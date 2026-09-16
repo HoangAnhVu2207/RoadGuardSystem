@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RoadGuardSystem.Repositories.Extensions;
 using RoadGuardSystem.Repositories.Options;
 using Xunit;
 
@@ -56,8 +57,7 @@ public sealed class DatabaseOptionsValidationTests
     {
         var options = new RoadGuardDatabaseOptions
         {
-            ConnectionString = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;TrustServerCertificate=true",
-            IsProduction = true
+            ConnectionString = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;TrustServerCertificate=true"
         };
 
         var result = _validator.Validate(null, options);
@@ -71,8 +71,7 @@ public sealed class DatabaseOptionsValidationTests
     {
         var options = new RoadGuardDatabaseOptions
         {
-            ConnectionString = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=false;TrustServerCertificate=false",
-            IsProduction = true
+            ConnectionString = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=false;TrustServerCertificate=false"
         };
 
         var result = _validator.Validate(null, options);
@@ -87,7 +86,6 @@ public sealed class DatabaseOptionsValidationTests
         var options = new RoadGuardDatabaseOptions
         {
             ConnectionString = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=true;TrustServerCertificate=false",
-            IsProduction = true,
             EnableSensitiveDataLogging = true
         };
 
@@ -115,8 +113,7 @@ public sealed class DatabaseOptionsValidationTests
     {
         var options = new RoadGuardDatabaseOptions
         {
-            ConnectionString = "Server=sql.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=true;TrustServerCertificate=false",
-            IsProduction = true
+            ConnectionString = "Server=sql.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=true;TrustServerCertificate=false"
         };
 
         var result = _validator.Validate(null, options);
@@ -124,14 +121,34 @@ public sealed class DatabaseOptionsValidationTests
         result.Succeeded.Should().BeTrue("valid secure connection string must pass validation");
     }
 
+    [Fact(DisplayName = "Negative: Configuration cannot bypass production security by setting IsProduction=false")]
+    public void Configuration_Cannot_Bypass_Production_Security_By_Setting_IsProduction_False()
+    {
+        var services = new ServiceCollection();
+        // Attacker or misconfiguration tries to disable production checks via configuration JSON
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            ["RoadGuardDatabase:ConnectionString"] = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=false;TrustServerCertificate=true",
+            ["RoadGuardDatabase:IsProduction"] = "false",
+            ["RoadGuardDatabase:EnableSensitiveDataLogging"] = "true"
+        };
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        // Host composition root declares production mode is true
+        var act = () => services.AddRoadGuardPersistence(configuration, isProduction: true);
+
+        act.Should().Throw<ArgumentException>("configuration cannot bypass production security rules by supplying IsProduction=false");
+    }
+
     [Fact(DisplayName = "Negative: AddRoadGuardPersistence fails fast when configuration is missing")]
     public void AddRoadGuardPersistence_FailsFast_When_Configuration_Missing()
     {
-        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
-        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
+        var services = new ServiceCollection();
+        var configuration = new ConfigurationBuilder().Build();
 
-        var act = () => RoadGuardSystem.Repositories.Extensions.RoadGuardPersistenceExtensions.AddRoadGuardPersistence(
-            services, configuration);
+        var act = () => services.AddRoadGuardPersistence(services.BuildServiceProvider().GetService<IConfiguration>() ?? configuration);
 
         act.Should().Throw<ArgumentException>("missing configuration must fail fast on DI registration");
     }
@@ -139,18 +156,16 @@ public sealed class DatabaseOptionsValidationTests
     [Fact(DisplayName = "Positive: AddRoadGuardPersistence succeeds when valid configuration is supplied")]
     public void AddRoadGuardPersistence_Succeeds_When_Valid_Configuration_Supplied()
     {
-        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        var services = new ServiceCollection();
         var inMemorySettings = new Dictionary<string, string?>
         {
-            ["RoadGuardDatabase:ConnectionString"] = "Server=sql.test.internal;Database=RoadGuard;Integrated Security=True;TrustServerCertificate=false",
-            ["RoadGuardDatabase:IsProduction"] = "false"
+            ["RoadGuardDatabase:ConnectionString"] = "Server=sql.test.internal;Database=RoadGuard;Integrated Security=True;Encrypt=true;TrustServerCertificate=false"
         };
-        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+        var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings)
             .Build();
 
-        var act = () => RoadGuardSystem.Repositories.Extensions.RoadGuardPersistenceExtensions.AddRoadGuardPersistence(
-            services, configuration);
+        var act = () => services.AddRoadGuardPersistence(configuration, isProduction: true);
 
         act.Should().NotThrow();
     }

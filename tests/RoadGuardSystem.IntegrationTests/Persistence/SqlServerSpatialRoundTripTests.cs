@@ -154,22 +154,19 @@ WHERE c.object_id = OBJECT_ID('SpatialProbeRecords')
     [Fact(DisplayName = "Positive: Database is reliably dropped on fixture dispose")]
     public async Task Database_Is_Dropped_On_Fixture_Dispose()
     {
-        // ARRANGE: Create a temporary fixture instance
-        var tempFixture = new SqlServerTestFixture();
+        // ARRANGE: Create an isolated database via sub-fixture on the live server
+        var tempFixture = new SqlServerTestFixture(masterConnectionString: _fixture.MasterConnectionString);
         await tempFixture.InitializeAsync();
         var dbName = tempFixture.DatabaseName;
 
-        // ACT: Dispose the fixture
+        var existsBefore = await _fixture.DatabaseExistsAsync(dbName);
+        existsBefore.Should().BeTrue("database should exist after fixture initialization");
+
+        // ACT: Dispose the sub-fixture
         await tempFixture.DisposeAsync();
 
-        // ASSERT: Query master sys.databases on the exact same instance to confirm database was dropped
-        await using var masterConn = new SqlConnection(tempFixture.MasterConnectionString);
-        await masterConn.OpenAsync();
-
-        await using var cmd = masterConn.CreateCommand();
-        cmd.CommandText = $"SELECT COUNT(1) FROM sys.databases WHERE name = '{dbName}';";
-        var count = (int)(await cmd.ExecuteScalarAsync() ?? 0);
-
-        count.Should().Be(0, "the test database must be dropped when fixture is disposed");
+        // ASSERT: Query master sys.databases on the still-living server to confirm database was dropped
+        var existsAfter = await _fixture.DatabaseExistsAsync(dbName);
+        existsAfter.Should().BeFalse("the test database must be dropped when fixture is disposed");
     }
 }

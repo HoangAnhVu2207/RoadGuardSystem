@@ -114,4 +114,29 @@ public sealed class SpatialInvariantTests
 
         act.Should().NotThrow();
     }
+
+    [Fact(DisplayName = "Negative: AllowedProjectUtmSrids is truly immutable and cannot be mutated by caller")]
+    public void AllowedProjectUtmSrids_Is_Truly_Immutable()
+    {
+        var allowed = SpatialConstants.AllowedProjectUtmSrids;
+
+        // If cast to mutable collection interfaces, mutation operations throw NotSupportedException
+        if (allowed is ICollection<int> collection)
+        {
+            var addAct = () => collection.Add(99999);
+            addAct.Should().Throw<NotSupportedException>("modifying frozen/immutable set is strictly unsupported");
+
+            var clearAct = () => collection.Clear();
+            clearAct.Should().Throw<NotSupportedException>("modifying frozen/immutable set is strictly unsupported");
+
+            var removeAct = () => collection.Remove(SpatialConstants.UtmZone48NSrid);
+            removeAct.Should().Throw<NotSupportedException>("modifying frozen/immutable set is strictly unsupported");
+        }
+
+        // Verify it contains exactly the two allowed UTM zones and cannot be altered
+        allowed.Should().BeEquivalentTo(new[] { SpatialConstants.UtmZone48NSrid, SpatialConstants.UtmZone49NSrid });
+        SpatialConstants.IsAllowedProjectUtmSrid(SpatialConstants.UtmZone48NSrid).Should().BeTrue();
+        SpatialConstants.IsAllowedProjectUtmSrid(SpatialConstants.UtmZone49NSrid).Should().BeTrue();
+        SpatialConstants.IsAllowedProjectUtmSrid(3857).Should().BeFalse();
+    }
 }

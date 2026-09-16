@@ -11,7 +11,7 @@ namespace RoadGuardSystem.IntegrationTests.Persistence;
 /// <summary>
 /// Persistence-level negative tests verifying that invalid spatial data is rejected
 /// when calling SaveChangesAsync or executing direct database operations.
-/// Uses IClassFixture so the database is initialized once for the test class.
+/// Asserts exact exception types, stable messages, and database check constraint names.
 /// </summary>
 [Trait("TaskId", "P2-00")]
 public sealed class SpatialPersistenceNegativeTests : IClassFixture<SqlServerTestFixture>
@@ -45,7 +45,8 @@ public sealed class SpatialPersistenceNegativeTests : IClassFixture<SqlServerTes
         context.SpatialProbes.Add(record);
         var act = () => context.SaveChangesAsync();
 
-        await act.Should().ThrowAsync<Exception>("GPS geography with SRID 0 must be rejected on SaveChangesAsync");
+        await act.Should().ThrowAsync<ArgumentException>("GPS geography with SRID 0 must throw ArgumentException")
+            .WithMessage("*Spatial SRID 0 is forbidden*");
     }
 
     [Fact(DisplayName = "Negative Persistence: SaveChangesAsync rejects GPS geography with non-4326 SRID")]
@@ -65,7 +66,8 @@ public sealed class SpatialPersistenceNegativeTests : IClassFixture<SqlServerTes
         context.SpatialProbes.Add(record);
         var act = () => context.SaveChangesAsync();
 
-        await act.Should().ThrowAsync<Exception>("GPS geography with non-4326 SRID must be rejected on SaveChangesAsync");
+        await act.Should().ThrowAsync<ArgumentException>("GPS geography with non-4326 SRID must throw ArgumentException")
+            .WithMessage("*GPS geography requires SRID 4326*");
     }
 
     [Fact(DisplayName = "Negative Persistence: SaveChangesAsync rejects Engineering Geometry with SRID 0")]
@@ -85,7 +87,8 @@ public sealed class SpatialPersistenceNegativeTests : IClassFixture<SqlServerTes
         context.SpatialProbes.Add(record);
         var act = () => context.SaveChangesAsync();
 
-        await act.Should().ThrowAsync<Exception>("Engineering geometry with SRID 0 must be rejected on SaveChangesAsync");
+        await act.Should().ThrowAsync<ArgumentException>("Engineering geometry with SRID 0 must throw ArgumentException")
+            .WithMessage("*Spatial SRID 0 is forbidden*");
     }
 
     [Fact(DisplayName = "Negative Persistence: SaveChangesAsync rejects unsupported ProjectUtmSrid")]
@@ -105,7 +108,8 @@ public sealed class SpatialPersistenceNegativeTests : IClassFixture<SqlServerTes
         context.SpatialProbes.Add(record);
         var act = () => context.SaveChangesAsync();
 
-        await act.Should().ThrowAsync<Exception>("Project UTM SRID outside 32648/32649 must be rejected on SaveChangesAsync");
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>("Project UTM SRID outside 32648/32649 must throw ArgumentOutOfRangeException")
+            .WithMessage("*Project UTM SRID 3857 is not supported*");
     }
 
     [Fact(DisplayName = "Negative Persistence: SaveChangesAsync rejects EngineeringGeometry SRID mismatching ProjectUtmSrid")]
@@ -125,16 +129,18 @@ public sealed class SpatialPersistenceNegativeTests : IClassFixture<SqlServerTes
         context.SpatialProbes.Add(record);
         var act = () => context.SaveChangesAsync();
 
-        await act.Should().ThrowAsync<Exception>("Mismatched engineering geometry SRID must be rejected on SaveChangesAsync");
+        await act.Should().ThrowAsync<ArgumentException>("Mismatched engineering geometry SRID must throw ArgumentException")
+            .WithMessage("*does not match configured project UTM SRID*");
     }
 
     [Fact(DisplayName = "Negative Persistence: SQL Server check constraint directly rejects invalid ProjectUtmSrid")]
     public async Task Database_CheckConstraint_Rejects_Invalid_ProjectUtmSrid()
     {
-        // Direct SQL insert bypassing application logic to prove database CHECK constraint enforcement
-        var insertSql = $@"
+        // Direct SQL insert bypassing application logic to prove database CHECK constraint enforcement.
+        // Geometry SRID is set to 99999 to satisfy EngineeringGeometry_Srid check, isolating ProjectUtmSrid check.
+        var insertSql = @"
 INSERT INTO [SpatialProbeRecords] ([Id], [GpsLocation], [EngineeringGeometry], [ProjectUtmSrid], [Description], [CreatedAtUtc])
-VALUES (NEWID(), geography::Point(21.02, 105.85, 4326), geometry::Point(588500, 2325000, 32648), 99999, 'Invalid Zone', SYSDATETIMEOFFSET());";
+VALUES (NEWID(), geography::Point(21.02, 105.85, 4326), geometry::Point(588500, 2325000, 99999), 99999, 'Invalid Zone', SYSDATETIMEOFFSET());";
 
         await using var conn = new SqlConnection(_fixture.ConnectionString);
         await conn.OpenAsync();
@@ -142,16 +148,17 @@ VALUES (NEWID(), geography::Point(21.02, 105.85, 4326), geometry::Point(588500, 
 
         var act = () => cmd.ExecuteNonQueryAsync();
 
-        await act.Should().ThrowAsync<SqlException>("database check constraint CK_SpatialProbeRecords_ProjectUtmSrid must reject unconfigured SRID");
+        await act.Should().ThrowAsync<SqlException>("database check constraint CK_SpatialProbeRecords_ProjectUtmSrid must reject unconfigured SRID")
+            .WithMessage("*CK_SpatialProbeRecords_ProjectUtmSrid*");
     }
 
     [Fact(DisplayName = "Negative Persistence: SQL Server check constraint directly rejects invalid GpsLocation SRID")]
     public async Task Database_CheckConstraint_Rejects_Invalid_GpsLocation_Srid()
     {
-        // Direct SQL insert with SRID 4327 (not 4326)
-        var insertSql = $@"
+        // Direct SQL insert with SRID 4269 (NAD83: valid geographic SRID in sys.spatial_reference_systems, but not 4326)
+        var insertSql = @"
 INSERT INTO [SpatialProbeRecords] ([Id], [GpsLocation], [EngineeringGeometry], [ProjectUtmSrid], [Description], [CreatedAtUtc])
-VALUES (NEWID(), geography::STGeomFromText('POINT(105.85 21.02)', 4327), geometry::Point(588500, 2325000, 32648), 32648, 'Invalid GPS SRID', SYSDATETIMEOFFSET());";
+VALUES (NEWID(), geography::Point(21.02, 105.85, 4269), geometry::Point(588500, 2325000, 32648), 32648, 'Invalid GPS SRID', SYSDATETIMEOFFSET());";
 
         await using var conn = new SqlConnection(_fixture.ConnectionString);
         await conn.OpenAsync();
@@ -159,6 +166,25 @@ VALUES (NEWID(), geography::STGeomFromText('POINT(105.85 21.02)', 4327), geometr
 
         var act = () => cmd.ExecuteNonQueryAsync();
 
-        await act.Should().ThrowAsync<SqlException>("database check constraint CK_SpatialProbeRecords_GpsLocation_Srid must reject non-4326 geography");
+        await act.Should().ThrowAsync<SqlException>("database check constraint CK_SpatialProbeRecords_GpsLocation_Srid must reject non-4326 geography")
+            .WithMessage("*CK_SpatialProbeRecords_GpsLocation_Srid*");
+    }
+
+    [Fact(DisplayName = "Negative Persistence: SQL Server check constraint directly rejects EngineeringGeometry SRID mismatching ProjectUtmSrid")]
+    public async Task Database_CheckConstraint_Rejects_EngineeringGeometry_Srid_Mismatch()
+    {
+        // Direct SQL insert where geometry SRID (32648) does not match ProjectUtmSrid (32649)
+        var insertSql = @"
+INSERT INTO [SpatialProbeRecords] ([Id], [GpsLocation], [EngineeringGeometry], [ProjectUtmSrid], [Description], [CreatedAtUtc])
+VALUES (NEWID(), geography::Point(21.02, 105.85, 4326), geometry::Point(588500, 2325000, 32648), 32649, 'SRID Mismatch', SYSDATETIMEOFFSET());";
+
+        await using var conn = new SqlConnection(_fixture.ConnectionString);
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand(insertSql, conn);
+
+        var act = () => cmd.ExecuteNonQueryAsync();
+
+        await act.Should().ThrowAsync<SqlException>("database check constraint CK_SpatialProbeRecords_EngineeringGeometry_Srid must reject mismatch")
+            .WithMessage("*CK_SpatialProbeRecords_EngineeringGeometry_Srid*");
     }
 }

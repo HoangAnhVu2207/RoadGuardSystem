@@ -5,11 +5,24 @@ namespace RoadGuardSystem.Repositories.Options;
 
 /// <summary>
 /// Validates RoadGuardDatabaseOptions to ensure fast failure on missing or malformed configuration.
-/// Enforces security rules such as prohibiting TrustServerCertificate=true in production.
+/// Enforces security rules such as prohibiting TrustServerCertificate=true, Encrypt=false, and
+/// EnableSensitiveDataLogging=true in production.
 /// </summary>
 public sealed class RoadGuardDatabaseOptionsValidator : IValidateOptions<RoadGuardDatabaseOptions>
 {
+    private readonly bool _isProduction;
+
+    public RoadGuardDatabaseOptionsValidator(bool isProduction = true)
+    {
+        _isProduction = isProduction;
+    }
+
     public ValidateOptionsResult Validate(string? name, RoadGuardDatabaseOptions options)
+    {
+        return Validate(options, _isProduction);
+    }
+
+    public static ValidateOptionsResult Validate(RoadGuardDatabaseOptions options, bool isProduction)
     {
         if (options is null)
         {
@@ -41,7 +54,7 @@ public sealed class RoadGuardDatabaseOptionsValidator : IValidateOptions<RoadGua
             return ValidateOptionsResult.Fail("ConnectionString must specify an Initial Catalog / Database name.");
         }
 
-        if (options.IsProduction)
+        if (isProduction)
         {
             if (builder.TrustServerCertificate)
             {
@@ -81,10 +94,9 @@ public sealed class RoadGuardDatabaseOptionsValidator : IValidateOptions<RoadGua
     /// Validates database options and throws an ArgumentException immediately if invalid.
     /// Used for fail-fast startup behavior.
     /// </summary>
-    public static void ValidateOrThrow(RoadGuardDatabaseOptions options)
+    public static void ValidateOrThrow(RoadGuardDatabaseOptions options, bool isProduction = true)
     {
-        var validator = new RoadGuardDatabaseOptionsValidator();
-        var result = validator.Validate(null, options);
+        var result = Validate(options, isProduction);
         if (result.Failed)
         {
             throw new ArgumentException(

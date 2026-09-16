@@ -2,6 +2,8 @@ namespace RoadGuardSystem.Repositories.Options;
 
 /// <summary>
 /// Configuration options for RoadGuard SQL Server database persistence.
+/// Bound strictly from configuration section "RoadGuardDatabase".
+/// Note: Production security mode is controlled by host environment/composition root, not bound from configuration.
 /// </summary>
 public sealed class RoadGuardDatabaseOptions
 {
@@ -30,12 +32,7 @@ public sealed class RoadGuardDatabaseOptions
 
     /// <summary>
     /// Enables sensitive data logging in dev/test only.
+    /// Strictly prohibited in production.
     /// </summary>
     public bool EnableSensitiveDataLogging { get; set; }
-
-    /// <summary>
-    /// Indicates if the application is running in Production mode.
-    /// In production, TrustServerCertificate=true is strictly forbidden.
-    /// </summary>
-    public bool IsProduction { get; set; } = true;
 }

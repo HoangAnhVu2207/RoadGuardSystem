@@ -5,18 +5,21 @@ using Xunit;
 namespace RoadGuardSystem.IntegrationTests.Persistence;
 
 [Trait("TaskId", "P2-00")]
-public sealed class SqlServerDiagnosticTests
+public sealed class SqlServerDiagnosticTests : IClassFixture<SqlServerTestFixture>
 {
+    private readonly SqlServerTestFixture _fixture;
+
+    public SqlServerDiagnosticTests(SqlServerTestFixture fixture)
+    {
+        _fixture = fixture;
+    }
     [Fact(DisplayName = "Negative: Unreachable SQL Server instance returns false on connection probe without throwing false-green")]
     public async Task Unreachable_SqlServer_Connection_Probe_Fails_Fast()
     {
-        // ARRANGE: An unreachable server host with very short timeout
         const string unreachableConnStr = "Server=127.0.0.1,59999;Database=master;User Id=sa;Password=FakePassword123!;Connect Timeout=1;TrustServerCertificate=True";
 
-        // ACT
         var canConnect = await SqlServerTestFixture.CanConnectAsync(unreachableConnStr);
 
-        // ASSERT: Probe must return false, never claiming connection succeeded
         canConnect.Should().BeFalse("unreachable SQL server must report connection failure");
     }
 
@@ -33,41 +36,75 @@ public sealed class SqlServerDiagnosticTests
             because: "the diagnostic exception message should guide developers on how to configure the connection string");
     }
 
+    [Fact(DisplayName = "Negative: Configured env var when empty fails immediately without fallback")]
+    public async Task Configured_EnvVar_When_Empty_FailsFast_Without_Fallback()
+    {
+        var fixture = new SqlServerTestFixture(_ => string.Empty);
+        var act = () => fixture.InitializeAsync();
+
+        var ex = await act.Should().ThrowAsync<SqlTestEnvironmentUnavailableException>(
+            "empty connection string env var must fail fast without fallback");
+        ex.WithMessage("*empty or whitespace*");
+    }
+
+    [Fact(DisplayName = "Negative: Configured env var when whitespace fails immediately without fallback")]
+    public async Task Configured_EnvVar_When_Whitespace_FailsFast_Without_Fallback()
+    {
+        var fixture = new SqlServerTestFixture(_ => "   \t\n  ");
+        var act = () => fixture.InitializeAsync();
+
+        var ex = await act.Should().ThrowAsync<SqlTestEnvironmentUnavailableException>(
+            "whitespace connection string env var must fail fast without fallback");
+        ex.WithMessage("*empty or whitespace*");
+    }
+
+    [Fact(DisplayName = "Negative: Configured env var when malformed fails immediately without fallback")]
+    public async Task Configured_EnvVar_When_Malformed_FailsFast_Without_Fallback()
+    {
+        var fixture = new SqlServerTestFixture(_ => "NotAValidConnectionString;;==123");
+        var act = () => fixture.InitializeAsync();
+
+        var ex = await act.Should().ThrowAsync<SqlTestEnvironmentUnavailableException>(
+            "malformed connection string env var must fail fast without fallback");
+        ex.WithMessage("*malformed*");
+    }
+
     [Fact(DisplayName = "Negative: Configured env var when unreachable fails immediately without fallback")]
     public async Task Configured_EnvVar_When_Unreachable_FailsFast_Without_Fallback()
     {
-        var originalEnv = Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
+        var fixture = new SqlServerTestFixture(
+            _ => "Server=127.0.0.1,59998;Database=master;User Id=sa;Password=FakePassword123!;Connect Timeout=1;TrustServerCertificate=True");
+        var act = () => fixture.InitializeAsync();
+
+        var ex = await act.Should().ThrowAsync<SqlTestEnvironmentUnavailableException>(
+            "unreachable connection string env var must fail fast without fallback");
+        ex.WithMessage("*could not connect to SQL Server*refusing fallback*");
+    }
+
+    [Fact(DisplayName = "Negative: Cleanup failure is observed, not swallowed, and does not leak test database")]
+    public async Task Cleanup_Failure_Is_Observed_And_Does_Not_Leak_Database()
+    {
+        var tempFixture = new SqlServerTestFixture(masterConnectionString: _fixture.MasterConnectionString);
+        await tempFixture.InitializeAsync();
+        var dbName = tempFixture.DatabaseName;
+
         try
         {
-            // Set invalid/unreachable connection string
-            Environment.SetEnvironmentVariable(
-                "ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING",
-                "Server=127.0.0.1,59998;Database=master;User Id=sa;Password=FakePassword123!;Connect Timeout=1;TrustServerCertificate=True");
+            // Simulate drop failure on fixture
+            tempFixture.SimulateDropFailure = true;
+            var act = () => tempFixture.DisposeAsync();
 
-            var fixture = new SqlServerTestFixture();
-            var act = () => fixture.InitializeAsync();
-
-            var ex = await act.Should().ThrowAsync<SqlTestEnvironmentUnavailableException>(
-                "unreachable ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING must fail fast and not fallback to local SQL or Docker");
-            ex.WithMessage("*ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING*refusing fallback*");
+            await act.Should().ThrowAsync<InvalidOperationException>(
+                "cleanup failure must be observed and not swallowed");
         }
         finally
         {
-            Environment.SetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING", originalEnv);
+            // Clean up cleanly so no database leaks
+            tempFixture.SimulateDropFailure = false;
+            await tempFixture.DropDatabaseAsync();
+
+            var exists = await _fixture.DatabaseExistsAsync(dbName);
+            exists.Should().BeFalse("database must be dropped cleanly and never leaked");
         }
-    }
-
-    [Fact(DisplayName = "Negative: Cleanup failure is observed and not swallowed")]
-    public async Task Cleanup_Failure_Is_Observed_And_Not_Swallowed()
-    {
-        var fixture = new SqlServerTestFixture();
-        await fixture.InitializeAsync();
-
-        // Simulate corrupted master connection string prior to dispose
-        fixture.CorruptMasterConnectionStringForTesting("Server=127.0.0.1,59997;Database=master;Connect Timeout=1;TrustServerCertificate=True");
-
-        var act = () => fixture.DisposeAsync();
-
-        await act.Should().ThrowAsync<Exception>("cleanup failure must not be swallowed; test runner must observe teardown errors");
     }
 }

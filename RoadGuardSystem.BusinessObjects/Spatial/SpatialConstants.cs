@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace RoadGuardSystem.BusinessObjects.Spatial;
 
 /// <summary>
@@ -24,18 +26,20 @@ public static class SpatialConstants
     /// </summary>
     public const int UtmZone49NSrid = 32649;
 
-    /// <summary>
-    /// The set of permitted project UTM SRIDs per specification.
-    /// Systems must configure one of these per project; no global hardcoded UTM zone is allowed.
-    /// </summary>
-    public static readonly IReadOnlySet<int> AllowedProjectUtmSrids = new HashSet<int>
+    private static readonly FrozenSet<int> _allowedProjectUtmSrids = new[]
     {
         UtmZone48NSrid,
         UtmZone49NSrid
-    };
+    }.ToFrozenSet();
+
+    /// <summary>
+    /// The truly immutable set of permitted project UTM SRIDs per specification.
+    /// Systems must configure one of these per project; no global hardcoded UTM zone is allowed.
+    /// </summary>
+    public static IReadOnlySet<int> AllowedProjectUtmSrids => _allowedProjectUtmSrids;
 
     /// <summary>
     /// Checks whether the given SRID is a valid project UTM SRID.
     /// </summary>
-    public static bool IsAllowedProjectUtmSrid(int srid) => AllowedProjectUtmSrids.Contains(srid);
+    public static bool IsAllowedProjectUtmSrid(int srid) => _allowedProjectUtmSrids.Contains(srid);
 }

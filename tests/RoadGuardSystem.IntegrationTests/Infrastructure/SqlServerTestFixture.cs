@@ -6,52 +6,67 @@ using Xunit;
 namespace RoadGuardSystem.IntegrationTests.Infrastructure;
 
 /// <summary>
+/// Delegate for retrieving environment variables, enabling deterministic testing without process-wide mutation.
+/// </summary>
+public delegate string? EnvironmentVariableAccessor(string variableName);
+
+/// <summary>
 /// Manages isolated SQL Server test databases for integration tests.
-/// Supports runtime connection via:
-/// 1. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING environment variable (strictly enforced without fallback if set)
-/// 2. Detected local SQL Server instance (e.g. MSSQL$HANHNAV)
-/// 3. Testcontainers MsSql container (when Docker daemon is active)
-/// If no SQL Server instance can be reached, throws SqlTestEnvironmentUnavailableException (no false-green).
-/// Guarantees database cleanup in DisposeAsync without swallowing teardown failures.
+/// Supports connection resolution via:
+/// 1. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING (strict: fail-fast without fallback if empty, whitespace, malformed, or unreachable)
+/// 2. Testcontainers MsSql container when the environment variable is unset (no hardcoded instance names).
+/// Provides reliable lifecycle management and unswallowed teardown failures.
 /// </summary>
 public sealed class SqlServerTestFixture : IAsyncLifetime
 {
+    private readonly EnvironmentVariableAccessor _environmentAccessor;
     private MsSqlContainer? _container;
+    private bool _ownsContainer;
     private string? _masterConnectionString;
     private string? _databaseName;
     private string? _databaseConnectionString;
+    private bool _databaseDropped;
 
     public string DatabaseName => _databaseName ?? throw new InvalidOperationException("Fixture has not been initialized.");
     public string ConnectionString => _databaseConnectionString ?? throw new InvalidOperationException("Fixture has not been initialized.");
     public string MasterConnectionString => _masterConnectionString ?? throw new InvalidOperationException("Fixture has not been initialized.");
 
-    public void CorruptMasterConnectionStringForTesting(string corruptedConn)
+    /// <summary>
+    /// For testing teardown error observation without corrupting connections.
+    /// </summary>
+    public bool SimulateDropFailure { get; set; }
+
+    public SqlServerTestFixture() : this(null, null)
     {
-        _masterConnectionString = corruptedConn;
     }
+
+    internal SqlServerTestFixture(EnvironmentVariableAccessor? environmentAccessor = null, string? masterConnectionString = null)
+    {
+        _environmentAccessor = environmentAccessor ?? Environment.GetEnvironmentVariable;
+        _masterConnectionString = masterConnectionString;
+    }
+
+    public static SqlServerTestFixture CreateWithEnvironmentAccessor(EnvironmentVariableAccessor accessor)
+        => new(accessor);
+
+    public static SqlServerTestFixture CreateWithMasterConnectionString(string masterConnectionString)
+        => new(null, masterConnectionString);
 
     public async Task InitializeAsync()
     {
-        _masterConnectionString = await ResolveMasterConnectionStringAsync();
+        _masterConnectionString ??= await ResolveMasterConnectionStringAsync();
         _databaseName = $"RoadGuard_Test_{Guid.NewGuid():N}";
 
         // Build connection string for the isolated test database
         var dbBuilder = new SqlConnectionStringBuilder(_masterConnectionString)
         {
             InitialCatalog = _databaseName,
-            // Test fixture connects directly to local or container test instance
             TrustServerCertificate = true
         };
         _databaseConnectionString = dbBuilder.ConnectionString;
 
         // Create the isolated test database
-        await using (var masterConn = new SqlConnection(_masterConnectionString))
-        {
-            await masterConn.OpenAsync();
-            await using var cmd = masterConn.CreateCommand();
-            cmd.CommandText = $"CREATE DATABASE [{_databaseName}];";
-            await cmd.ExecuteNonQueryAsync();
-        }
+        await CreateDatabaseAsync(_databaseName);
 
         // Initialize schema with SpatialProbeDbContext
         await using var context = CreateDbContext();
@@ -72,48 +87,91 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
         return new SpatialProbeDbContext(options);
     }
 
+    public async Task CreateDatabaseAsync(string databaseName)
+    {
+        await using var masterConn = new SqlConnection(MasterConnectionString);
+        await masterConn.OpenAsync();
+        await using var cmd = masterConn.CreateCommand();
+        cmd.CommandText = $"CREATE DATABASE [{databaseName}];";
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DropDatabaseAsync()
+    {
+        if (SimulateDropFailure)
+        {
+            throw new InvalidOperationException("Simulated database drop failure for teardown testing.");
+        }
+
+        if (_databaseName is not null)
+        {
+            await DropDatabaseByNameAsync(_databaseName);
+            _databaseDropped = true;
+        }
+    }
+
+    public async Task DropDatabaseByNameAsync(string databaseName)
+    {
+        await using var masterConn = new SqlConnection(MasterConnectionString);
+        await masterConn.OpenAsync();
+        await using var cmd = masterConn.CreateCommand();
+        cmd.CommandText = $@"
+IF EXISTS (SELECT 1 FROM sys.databases WHERE name = '{databaseName}')
+BEGIN
+    ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [{databaseName}];
+END";
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task<bool> DatabaseExistsAsync(string databaseName)
+    {
+        await using var masterConn = new SqlConnection(MasterConnectionString);
+        await masterConn.OpenAsync();
+        await using var cmd = masterConn.CreateCommand();
+        cmd.CommandText = $"SELECT COUNT(1) FROM sys.databases WHERE name = '{databaseName}';";
+        var count = (int)(await cmd.ExecuteScalarAsync() ?? 0);
+        return count > 0;
+    }
+
     public async Task DisposeAsync()
     {
         Exception? dbCleanupException = null;
 
-        if (_masterConnectionString is not null && _databaseName is not null)
+        try
         {
-            try
+            if (!_databaseDropped && _masterConnectionString is not null && _databaseName is not null)
             {
-                await using var masterConn = new SqlConnection(_masterConnectionString);
-                await masterConn.OpenAsync();
-                await using var cmd = masterConn.CreateCommand();
-                cmd.CommandText = $@"
-IF EXISTS (SELECT 1 FROM sys.databases WHERE name = '{_databaseName}')
-BEGIN
-    ALTER DATABASE [{_databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [{_databaseName}];
-END";
-                await cmd.ExecuteNonQueryAsync();
-            }
-            catch (Exception ex)
-            {
-                dbCleanupException = ex;
+                try
+                {
+                    await DropDatabaseAsync();
+                }
+                catch (Exception ex)
+                {
+                    dbCleanupException = ex;
+                }
             }
         }
-
-        // Guarantee container cleanup runs even if database cleanup threw an exception
-        if (_container is not null)
+        finally
         {
-            try
+            // Guarantee container cleanup runs in finally even if unexpected exceptions occurred
+            if (_ownsContainer && _container is not null)
             {
-                await _container.DisposeAsync();
-            }
-            catch (Exception containerEx)
-            {
-                if (dbCleanupException is not null)
+                try
                 {
-                    throw new AggregateException(
-                        "Both database cleanup and container disposal failed during test fixture teardown.",
-                        dbCleanupException,
-                        containerEx);
+                    await _container.DisposeAsync();
                 }
-                throw;
+                catch (Exception containerEx)
+                {
+                    if (dbCleanupException is not null)
+                    {
+                        throw new AggregateException(
+                            "Both database cleanup and container disposal failed during test fixture teardown.",
+                            dbCleanupException,
+                            containerEx);
+                    }
+                    throw;
+                }
             }
         }
 
@@ -129,9 +187,16 @@ END";
     private async Task<string> ResolveMasterConnectionStringAsync()
     {
         // 1. Check environment variable: if configured, must succeed without fallback
-        var envConn = Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
-        if (!string.IsNullOrWhiteSpace(envConn))
+        var envConn = _environmentAccessor("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
+        if (envConn is not null)
         {
+            if (string.IsNullOrWhiteSpace(envConn))
+            {
+                throw new SqlTestEnvironmentUnavailableException(
+                    "ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING was provided but is empty or whitespace. " +
+                    "Refusing fallback to maintain deterministic test configuration.");
+            }
+
             SqlConnectionStringBuilder builder;
             try
             {
@@ -141,7 +206,7 @@ END";
             {
                 throw new SqlTestEnvironmentUnavailableException(
                     $"ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING was specified but is malformed: {ex.Message}. " +
-                    "Refusing fallback to local SQL or Docker to maintain deterministic test configuration.", ex);
+                    "Refusing fallback to maintain deterministic test configuration.", ex);
             }
 
             if (!await CanConnectAsync(builder.ConnectionString))
@@ -154,36 +219,20 @@ END";
             return builder.ConnectionString;
         }
 
-        // 2. Check local running SQL Server instances (only when env var is not set)
-        var localCandidates = new[]
-        {
-            @"Server=.\HANHNAV;Database=master;Integrated Security=True;TrustServerCertificate=True",
-            @"Server=localhost;Database=master;Integrated Security=True;TrustServerCertificate=True",
-            @"Server=(localdb)\mssqllocaldb;Database=master;Integrated Security=True;TrustServerCertificate=True"
-        };
-
-        foreach (var candidate in localCandidates)
-        {
-            if (await CanConnectAsync(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        // 3. Check Testcontainers if Docker is available
+        // 2. If environment variable is unset: use Testcontainers directly (no hardcoded instance strings)
         try
         {
             var container = new MsSqlBuilder().Build();
             await container.StartAsync();
             _container = container;
+            _ownsContainer = true;
             return container.GetConnectionString();
         }
         catch (Exception ex)
         {
             throw new SqlTestEnvironmentUnavailableException(
-                "SQL Server integration test environment is unavailable. Neither Docker/Testcontainers nor an accessible " +
-                "local SQL Server instance could be reached. Set ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING or ensure " +
-                "SQL Server / Docker is running before executing integration tests.", ex);
+                "SQL Server integration test environment is unavailable. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING is unset, " +
+                "and Testcontainers could not start a SQL Server container (ensure Docker daemon is running).", ex);
         }
     }
 

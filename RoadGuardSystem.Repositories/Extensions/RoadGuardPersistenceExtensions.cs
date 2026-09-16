@@ -13,11 +13,13 @@ public static class RoadGuardPersistenceExtensions
 {
     /// <summary>
     /// Registers RoadGuard database options with fail-fast validation and configures RoadGuardDbContext with SQL Server and NetTopologySuite.
+    /// Production security mode is passed explicitly from the host environment, preventing configuration tampering.
     /// Missing or malformed configuration fails immediately on registration.
     /// </summary>
     public static IServiceCollection AddRoadGuardPersistence(
         this IServiceCollection services,
         IConfiguration configuration,
+        bool isProduction = true,
         Action<RoadGuardDatabaseOptions>? configure = null)
     {
         var options = new RoadGuardDatabaseOptions();
@@ -29,8 +31,8 @@ public static class RoadGuardPersistenceExtensions
 
         configure?.Invoke(options);
 
-        // Fail-fast: validate immediately during registration so errors are surfaced at startup
-        RoadGuardDatabaseOptionsValidator.ValidateOrThrow(options);
+        // Fail-fast: validate immediately during registration with isProduction from host environment
+        RoadGuardDatabaseOptionsValidator.ValidateOrThrow(options, isProduction);
 
         services.Configure<RoadGuardDatabaseOptions>(opt =>
         {
@@ -41,7 +43,8 @@ public static class RoadGuardPersistenceExtensions
             configure?.Invoke(opt);
         });
 
-        services.AddSingleton<IValidateOptions<RoadGuardDatabaseOptions>, RoadGuardDatabaseOptionsValidator>();
+        services.AddSingleton<IValidateOptions<RoadGuardDatabaseOptions>>(
+            new RoadGuardDatabaseOptionsValidator(isProduction));
 
         services.AddDbContext<RoadGuardDbContext>((sp, dbContextOptions) =>
         {

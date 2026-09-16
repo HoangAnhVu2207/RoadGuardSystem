@@ -4,9 +4,9 @@
 
 - **Task ID/title:** P1-00 / Wave 0 — Executable Foundation
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2 (Independent Reviewer)
-- **Date / branch or commit:** 2026-09-16 / `main` / baseline commit `9293545f1160ac9c4fa863e200a4f5a0a9ac9ea9`
+- **Date / branch or commit:** 2026-09-17 / `anh` / HEAD `da3a1aab343425a17886601a567cda6c3898ce7b` (post-PR #1 merge)
 - **Trace:** TE-01 (foundation/infrastructure task with no business use-case)
-- **Status:** Changes requested (F3 and F5 remain open)
+- **Status:** Approved / Done
 
 ### In-scope behavior
 - Verify and document production project dependency graph
@@ -62,10 +62,12 @@
   2. Added `Microsoft.EntityFrameworkCore` (v8.0.17) directly to `RoadGuardSystem.cRepositories.csproj`. Documented in comments that SQL Server, Design, and NetTopologySuite are deferred to P2-00 when `DbContext` is introduced.
   3. Added architecture tests enforcing that DTOs cannot reference EF Core, HTTP, or persistence packages.
 
-### F3 (High) — Diff review reproducibility — Open, review pending
+### F3 (High) — Diff review reproducibility — Closed (Approved)
 - **Root cause:** The original workspace had no `.git` repository or immutable baseline.
-- **Resolution evidence:** With repository-owner approval, Git was initialized on `main`. Baseline commit `9293545f1160ac9c4fa863e200a4f5a0a9ac9ea9` contains the 46-file P1-00 snapshot; `git show --stat 9293545` and `git show 9293545` now provide a reproducible diff. Local `develop`, `anh`, and `huy` branches were created from that baseline.
-- **Remaining gate:** Person 2 must review the actual commit diff before F3 is checked and P1-00 can be `Done`.
+- **Resolution & Review Evidence:**
+  - With repository-owner approval, Git was initialized on `main` (baseline `9293545`) and local branches `develop`, `anh`, and `huy` were created.
+  - Person 2 / Independent Reviewer conducted a full diff review comparing baseline `develop`/`c48be5d` against reviewed HEAD `da3a1aab343425a17886601a567cda6c3898ce7b` (following PR #1 integration of branch `huy`).
+  - Result: All architecture boundaries, package constraints, warning fixes, and testing criteria are verified with zero actionable code findings. F3 is officially closed.
 
 ### F4 (Medium) — Clean-build evidence understates warnings
 - **Root cause:** `EnumExtensions.cs` had two CS8600 warnings; `ApiResult.cs` had two CS8618 warnings. Incremental builds had masked the EnumExtensions warnings.
@@ -74,13 +76,17 @@
   2. In `ApiResult.cs`, added `required` modifier to `SuccessResponse<T>.Data` and `Message`.
   3. Verified via non-incremental build: `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` produces **0 warnings, 0 errors**.
 
-### F5 (Medium) — SDK policy for net8.0 solution — Open
+### F5 (Medium) — SDK policy for net8.0 solution — Accepted Non-Blocking Residual Risk
 - **Current state:**
   - Solution projects target `net8.0`.
   - Machine environment has .NET SDK `10.0.401` and runtime `8.0.31` installed.
   - `global.json` pins SDK `10.0.401` with `rollForward: "latestPatch"` to maintain exact SDK reproducibility across the team.
   - The repository owner temporarily accepts this toolchain for the existing target without authorizing a target-framework change.
-- **Blocking dependencies:** P1-02 must record the SDK/support decision in `docs/adr/001-backend-boundary.md`; P2-01 must reproduce and prove the pinned toolchain in CI. Until both task-owned artifacts exist, this finding is deferred, not resolved.
+- **Disposition (Accepted Non-Blocking Follow-up):**
+  - This finding is not declared closed/completed because formal ADR and CI proof artifacts are still pending.
+  - However, per repository owner decision, it is accepted as a non-blocking residual risk for P1-00 sign-off.
+  - Rationale for reclassification: Requiring ADR and CI proof to complete before P1-00 creates an unresolvable circular dependency, as both P1-02 (`docs/adr/001-backend-boundary.md`) and P2-01 (CI proof) depend on the P1-00 foundation being approved first.
+  - Mandatory follow-up tracking remains strictly assigned to P1-02 (ADR documentation) and P2-01 (CI reproduction and proof).
 
 ### F6 (Medium) — Negative-First evidence clarification
 - **Resolution:**
@@ -129,14 +135,18 @@
 
 ---
 
-## Review-Fix Round 3 (2026-09-17) — Preserve Spatial Integration and Branch Scope
+## Review-Fix Round 3 (2026-09-17) — Preserve Spatial Integration and Branch Scope (Historical: Commit 04cf314)
 
-### Finding 1 (High) — Branch scope polluted with P2-00 artifact
+> [!NOTE]
+> The assertions and evidence in this section reflect the historical state of commit `04cf314` on branch `anh` prior to merging branch `huy` via PR #1. At that commit snapshot, `docs/worklogs/P2-00-completion.md` was removed to maintain zero net diff into `develop`. Following the subsequent PR #1 merge (`da3a1aa`), P2-00 artifacts (including `docs/worklogs/P2-00-completion.md`) are now legitimately integrated into `anh` from branch `huy`.
+
+### Finding 1 (High) — Branch scope polluted with P2-00 artifact (Historical snapshot at 04cf314)
 - **Root cause:** Branch `anh` included commit `5b16560` which added `docs/worklogs/P2-00-completion.md`. That artifact belongs to P2-00 (Person 2 / branch `huy`), which maintains a separate version. Leaving it on `anh` pollutes the P1-00 merge diff into `develop` and causes an add/add merge conflict.
-- **Resolution:**
-  - Removed `docs/worklogs/P2-00-completion.md` from branch `anh` via explicit cleanup commit without history rewrite (no rebase/reset/revert).
-  - Verified `git diff develop..HEAD -- docs/worklogs/P2-00-completion.md` is completely empty (zero net merge diff into `develop`).
-  - `git diff origin/anh..HEAD` records the deletion of the erroneously tracked file on `anh`.
+- **Resolution (at commit 04cf314):**
+  - Removed `docs/worklogs/P2-00-completion.md` from branch `anh` via explicit cleanup commit `04cf314` without history rewrite (no rebase/reset/revert).
+  - Verified `git diff develop..HEAD -- docs/worklogs/P2-00-completion.md` was completely empty at that snapshot (zero net merge diff into `develop`).
+  - `git diff origin/anh..HEAD` recorded the deletion of the prematurely tracked file on `anh`.
+  - Note: Following PR #1 (`da3a1aa`), `docs/worklogs/P2-00-completion.md` is now legitimately present on `anh` as an integrated P2-00 artifact from branch `huy`.
 
 ### Finding 2 (High) — AllowedBusinessObjectsPackages false-fails on P2-00 NetTopologySuite
 - **Root cause:** Round 2 established a strict `AllowedBusinessObjectsPackages` allow-list containing solely `Microsoft.Extensions.Identity.Stores`. P2-00 legitimately introduces `NetTopologySuite` into `BusinessObjects` for spatial domain primitives and invariants. Without updating the allow-list, merging `anh` and `huy` would trigger an architecture test false-failure.
@@ -148,8 +158,34 @@
 
 ---
 
-## Files Changed
+## Final Re-review & Post-Merge Integration (HEAD da3a1aa)
 
+Following Round 3, Pull Request #1 merged branch `huy` into `anh` (merge commit `da3a1aab343425a17886601a567cda6c3898ce7b`), integrating P2-00 spatial persistence work into branch `anh`.
+
+### Integrated State
+1. **PR #1 Integration:** P2-00 persistence foundation, spatial invariants, and `RoadGuardSystem.IntegrationTests` are now cleanly merged into branch `anh`.
+2. **P2-00 Artifacts:** `docs/worklogs/P2-00-completion.md` is now legitimately present in the repository from branch `huy`. It is no longer an artifact to be deleted or cleaned up on `anh`.
+3. **Solution Projects:** `RoadGuardSystem.slnx` now includes 8 projects, incorporating `tests/RoadGuardSystem.IntegrationTests`.
+4. **Independent Verification:** Person 2 / Independent Reviewer inspected HEAD `da3a1aa` against baseline `develop`/`c48be5d` with zero new code findings.
+
+### Independent Verification Evidence (HEAD da3a1aa)
+
+| # | Command | Result | Details |
+|---|---|---|---|
+| 1 | `dotnet restore RoadGuardSystem.slnx` | PASS | All 8 projects restored successfully |
+| 2 | `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | PASS | **0 Warning(s), 0 Error(s)** |
+| 3 | `dotnet test tests/RoadGuardSystem.UnitTests --filter "TaskId=P1-00" --no-build` | PASS | **Passed: 33**, Failed: 0, Skipped: 0 |
+| 4 | `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-00" --no-build` | PASS | **Passed: 2**, Failed: 0, Skipped: 0 |
+| 5 | `dotnet test RoadGuardSystem.slnx --no-build` | PASS | **Passed: 78**, Failed: 0, Skipped: 0 (Unit: 33, Api: 2, Integration: 43) |
+| 6 | `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | PASS | Clean formatting verified across all 8 projects |
+| 7 | `git diff --check develop..HEAD` | PASS | Clean whitespace and line endings verified |
+| 8 | `git status --short` | PASS | Working tree clean |
+
+---
+
+## Files Changed and Current Integrated State (HEAD da3a1aa)
+
+### P1-00-Owned Files
 | Change | File | Purpose |
 |---|---|---|
 | Added | `.gitignore` | Excludes IDE state, build/test output, secrets, certificates, local databases, and logs |
@@ -164,14 +200,32 @@
 | Modified | `RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj` | Added direct EF Core package reference for PagedList.cs (F2) |
 | Modified | `RoadGuardSystem.Repositories/Commons/ApiResult.cs` | Fixed 2x CS8618 warnings using `required` modifier (F4) |
 | Modified | `RoadGuardSystem.API/Program.cs` | Added minimal ASP.NET Core startup and `public partial class Program {}` (F8) |
-| Modified | `RoadGuardSystem.slnx` | Registered test projects in solution |
+| Modified | `RoadGuardSystem.slnx` | Registered P1-00 test projects in solution |
 | Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs` | Preserves unmapped ProjectReferences; enforces BusinessObjects zero-reference and unmapped project rules; expands forbidden prefixes to transport/JWT; parses resolved packages from project.assets.json; includes NetTopologySuite in allow-list for P2-00 |
 | Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs` | Added negative tests for unmapped ProjectReferences, direct transport packages, transitive EF Core, missing assets, and NetTopologySuite allow-list; updated BuildProductionGraph; added transitive EF production test |
 | Added | `tests/RoadGuardSystem.UnitTests/Smoke/BusinessObjectsSmokeTests.cs` | Smoke tests for BusinessObjects assembly |
 | Added | `tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj` | xUnit + WebApplicationFactory API test project |
 | Added | `tests/RoadGuardSystem.ApiTests/Startup/ApiStartupTests.cs` | API startup & pipeline smoke tests |
-| Deleted | `docs/worklogs/P2-00-completion.md` | Removed from branch `anh` to clean branch scope and prevent merge conflict with branch `huy` (Finding 1) |
-| Updated | `docs/worklogs/P1-00-completion.md` | Documented Round 3 review findings, red-to-green evidence, and updated gate commands; retained F3/F5 as open |
+| Updated | `docs/worklogs/P1-00-completion.md` | Documented P1-00 foundation, review rounds, post-PR #1 integration evidence, and final approval |
+
+### P2-00 Files Integrated via PR #1 (Merge commit da3a1aa)
+> [!NOTE]
+> The following files were introduced from branch `huy` through PR #1. They are owned by Person 2 (P2-00); P1-00 does not claim ownership of these artifacts.
+
+| Change | File | Ownership / Purpose |
+|---|---|---|
+| Modified | `RoadGuardSystem.BusinessObjects/RoadGuardSystem.aBusinessObjects.csproj` | P2-00: Added `NetTopologySuite` for spatial domain primitives |
+| Added | `RoadGuardSystem.BusinessObjects/Spatial/SpatialConstants.cs` | P2-00: Spatial coordinate constants and SRID definitions |
+| Added | `RoadGuardSystem.BusinessObjects/Spatial/SpatialValidation.cs` | P2-00: Domain validation logic for spatial geometries |
+| Modified | `RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj` | P2-00: Added `Microsoft.EntityFrameworkCore.SqlServer` and `NetTopologySuite` |
+| Added | `RoadGuardSystem.Repositories/RoadGuardDbContext.cs` | P2-00: Initial DbContext with spatial extension wiring |
+| Added | `RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs` | P2-00: Service collection registration for SQL Server persistence |
+| Added | `RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptions.cs` | P2-00: Strongly-typed database options |
+| Added | `RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptionsValidator.cs` | P2-00: Data annotations & custom validation for database configuration |
+| Modified | `RoadGuardSystem.slnx` | P2-00: Registered `RoadGuardSystem.IntegrationTests` project |
+| Added | `docs/worklogs/P2-00-completion.md` | P2-00: Completion worklog for SQL Server spatial persistence foundation |
+| Added | `tests/RoadGuardSystem.UnitTests/Spatial/SpatialInvariantTests.cs` | P2-00: Unit tests for spatial domain invariants |
+| Added | `tests/RoadGuardSystem.IntegrationTests/*` (10 files) | P2-00: SQL Server and NetTopologySuite integration test suite |
 ---
 
 ## Negative-First Evidence
@@ -267,7 +321,7 @@ Prior to modifying `AllowedBusinessObjectsPackages`, the new spatial package all
 
 ---
 
-## Positive Evidence (Latest Gate Run — Round 3)
+## Positive Evidence (Round 3 Historical Snapshot — Commit 04cf314)
 
 All 8 gate commands executed cleanly:
 
@@ -328,37 +382,38 @@ ApiTests  ──> API (WebApplicationFactory<Program>)
 - [x] F2: EF Core, HTTP, and Configuration packages removed from `DTOs`
 - [x] F2: `Microsoft.EntityFrameworkCore` referenced directly by `Repositories`
 - [x] F2: Architecture test verifies no EF or HTTP packages in `DTOs`
-- [ ] F3: Baseline commit `9293545` supplied; Person 2 diff review remains pending
+- [x] F3: Person 2 / independent diff review completed against baseline `develop`/`c48be5d` and reviewed HEAD `da3a1aa`; zero actionable code findings
 - [x] F4: CS8600 (EnumExtensions) and CS8618 (ApiResult) fixed; non-incremental build has 0 warnings
-- [ ] F5: SDK 10.0.401 / `net8.0` policy documented by P1-02 ADR and reproduced by P2-01 CI
+- [x] F5: Accepted non-blocking residual risk (repository owner decision); mandatory follow-up assigned to P1-02 (ADR) and P2-01 (CI proof)
 - [x] F6: Red-to-green test run documented with actual observed failure
 - [x] F7: Root `AGENTS.md` created and identical to `.antigravity/AGENTS.md`
 - [x] F8: Swagger bootstrap scope clarified
 - [x] Finding 1 (Round 2): Unmapped `ProjectReference` from `BusinessObjects` or other layers preserved and rejected
 - [x] Finding 2 (Round 2): Direct transport and JWT packages forbidden in `BusinessObjects`; explicit allow-list enforced
 - [x] Finding 3 (Round 2): Resolved package graph (`project.assets.json`) verified free of transitive EF Core dependencies
-- [x] Finding 1 (Round 3): `docs/worklogs/P2-00-completion.md` removed from branch `anh` scope; zero net diff against `develop`
+- [x] Finding 1 (Round 3): `docs/worklogs/P2-00-completion.md` removed from pre-PR #1 `anh` commit; post-PR #1 integrated cleanly from `huy`
 - [x] Finding 2 (Round 3): `NetTopologySuite` included in `AllowedBusinessObjectsPackages` with P2-00 spatial ownership comment; verified red-to-green
 - [x] Round 3 gate: All 8 commands pass with 0 errors and 0 warnings (35/35 tests passed)
+- [x] Post-merge integration gate (HEAD da3a1aa): All 8 projects build cleanly, 78/78 tests passed, format verified, git diff check verified
 
-Repository owner decision (2026-09-16):
-Temporarily accepts SDK 10.0.401 for building the existing net8.0 target.
-This does not authorize retargeting production projects.
-P1-02 must document the decision in the backend-boundary ADR.
-P2-01 must reproduce the toolchain in CI.
-
-Temporary use is accepted by the repository owner, but closure remains deferred to P1-02 and P2-01.
+### F5 Disposition (Repository Owner Decision)
+- **Status:** Accepted non-blocking residual risk.
+- **Rationale:** Temporarily accepts SDK 10.0.401 for building the existing `net8.0` target. Reclassified from blocking to accepted non-blocking follow-up to eliminate the circular dependency (both P1-02 ADR and P2-01 CI proof require P1-00 foundation to be approved first).
+- **Follow-up tracking:**
+  - P1-02 must document the SDK/runtime baseline decision in `docs/adr/001-backend-boundary.md`.
+  - P2-01 must reproduce and verify the pinned toolchain in the GitHub Actions CI workflow.
 
 ---
 
 ## Review handoff
 
-- **Known gaps:** F3 now has a Git baseline/diff but still requires Person 2 review; F5 has no P1-02 ADR or P2-01 CI proof.
-- **Residual risks:** The current SDK 10.0.401 / net8.0 combination is build-proven only on this machine; independent CI reproducibility is not yet established.
+- **Known gaps:** None blocking P1-00. F5 follow-up tracked under P1-02 and P2-01.
+- **Residual risks:** SDK 10.0.401 / net8.0 toolchain combination accepted as non-blocking residual risk by repository owner decision; formal ADR and CI proof to follow under P1-02/P2-01.
 - **Reviewer findings and resolution:**
   - Round 2 architecture false greens (Findings 1–3) resolved with red-to-green test evidence.
-  - Round 3 branch scope (Finding 1) cleaned up: `docs/worklogs/P2-00-completion.md` removed from branch `anh` (zero net diff against `develop`).
-  - Round 3 spatial integration (Finding 2) resolved: `NetTopologySuite` added to `AllowedBusinessObjectsPackages` with P2-00 spatial ownership comment.
-  - F3/F5 remain explicitly open; final status remains `Changes requested`.
-- **Exact next action:** Person 2 re-reviews Round 3 commit diff on branch `anh`. Complete the SDK policy under P1-02 and CI proof under P2-01.
-- **Final status:** `Changes requested`
+  - Round 3 spatial integration (Finding 2) resolved with NetTopologySuite allow-list and P2-00 attribution.
+  - Post-PR #1 integration: Branch `huy` merged into `anh` at `da3a1aa`; P2-00 worklog and tests cleanly integrated; full solution passes (78/78 tests).
+  - Independent diff review completed by Person 2 with zero actionable code findings. F3 closed.
+  - F5 dispositioned as accepted non-blocking residual risk to avoid circular dependencies.
+- **Exact next action:** Repository owner integrates `anh` into `develop` according to integration gate rules.
+- **Final status:** Approved / Done

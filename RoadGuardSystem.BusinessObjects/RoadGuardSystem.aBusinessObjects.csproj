@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    P1-00 F1 fix: replaced Microsoft.AspNetCore.Identity.EntityFrameworkCore (EF persistence package)
+    with Microsoft.Extensions.Identity.Stores (identity abstractions & POCO models without EF Core dependency).
+
+    ApplicationUser and ApplicationRole derive from IdentityUser<Guid> and IdentityRole<Guid>
+    respectively. These base types are defined in Microsoft.Extensions.Identity.Stores, which
+    contains core Identity model types without any EF Core or transport dependency.
+
+    Per AGENTS.md: "BusinessObjects has no dependency on API, Services, Repositories,
+    DTOs, EF Core, or transport details."
+
+    ADR note: P2-10 owns the EF Identity integration (UserStore, RoleStore, and
+    IdentityDbContext) in Repositories. P2-00 owns only the generic EF Core SQL Server
+    and spatial foundation.
+    The P1-02 authentication ADR must reference this boundary decision.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="8.0.17" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Entities\" />
+  </ItemGroup>
+
+</Project>

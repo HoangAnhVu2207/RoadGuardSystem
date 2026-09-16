@@ -1,0 +1,27 @@
+<Project>
+  <!--
+    Directory.Build.props — solution-level MSBuild defaults.
+    Applied to all projects under this directory.
+    Created by: P1-00 (Developer Person 1).
+    Reviewer: Person 2.
+
+    The P1-00 baseline builds cleanly, so warnings are treated as errors solution-wide.
+    This keeps production and test projects on the same compile-time quality gate.
+  -->
+  <PropertyGroup>
+    <!-- Language features: align with .NET 8 target framework default. -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Reproducible builds. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Roslyn analysers. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!-- AnalysisLevel aligned with the solution TargetFramework (net8.0 → latest). -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj" />
+  <Project Path="RoadGuardSystem.BusinessObjects/RoadGuardSystem.aBusinessObjects.csproj" />
+  <Project Path="RoadGuardSystem.DTOs/RoadGuardSystem.bDTOs.csproj" />
+  <Project Path="RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj" />
+  <Project Path="RoadGuardSystem.Services/RoadGuardSystem.dServices.csproj" />
+  <Project Path="tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj" />
+  <Project Path="tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj" />
+</Solution>

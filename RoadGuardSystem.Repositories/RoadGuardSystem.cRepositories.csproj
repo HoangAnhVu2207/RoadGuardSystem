@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+    <Folder Include="Interfaces\" />
+    <Folder Include="Implementations\" />
+    <Folder Include="WorkSeeds\" />
+  </ItemGroup>
+
+  <!--
+    P1-00 F2 fix: EF Core packages moved here from DTOs (where they did not belong).
+    PagedList.cs uses Microsoft.EntityFrameworkCore query extensions (CountAsync, ToListAsync),
+    which requires EF Core to be a direct dependency of Repositories, not a transitive one from DTOs.
+    Per AGENTS.md: "Repositories owns EF Core, DbContext, mappings, migrations, storage implementations."
+
+    SQL Server, Design, and Tools packages deferred to P2-00 when DbContext is introduced.
+    Only Microsoft.EntityFrameworkCore (base) is needed here for PagedList.cs.
+
+    Note on Microsoft.Extensions.Configuration.*: also removed from DTOs. Services project already
+    carries these via its own PackageReference, so no action needed in Repositories for P1-00.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.17" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RoadGuardSystem.DTOs\RoadGuardSystem.bDTOs.csproj" />
+  </ItemGroup>
+
+</Project>

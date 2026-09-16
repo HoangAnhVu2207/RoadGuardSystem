@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Xml.Linq;
 using FluentAssertions;
 using Xunit;
@@ -120,6 +121,97 @@ public static class DependencyGraphChecker
         return packages;
     }
 
+    /// <summary>
+    /// Builds a DependencyGraph from projects and reference reader, mapping assembly names to logical names.
+    /// Preserves unmapped project references with their raw names instead of silently dropping them.
+    /// </summary>
+    public static DependencyGraph BuildGraph(
+        IReadOnlyDictionary<string, string> projects,
+        IReadOnlyDictionary<string, string> assemblyToLogical,
+        Func<string, IReadOnlySet<string>> referenceReader)
+    {
+        var edges = new Dictionary<string, IReadOnlySet<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (logical, path) in projects)
+        {
+            var rawRefs = referenceReader(path);
+            var logicalRefs = rawRefs
+                .Select(r => assemblyToLogical.TryGetValue(r, out var mapped) ? mapped : r)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            edges[logical] = logicalRefs;
+        }
+
+        return new DependencyGraph(edges);
+    }
+
+    /// <summary>
+    /// Parses resolved packages from project.assets.json content.
+    /// Extracts resolved package identifiers while excluding project references.
+    /// </summary>
+    public static IReadOnlySet<string> ParseResolvedPackages(string assetsJsonContent)
+    {
+        using var doc = JsonDocument.Parse(assetsJsonContent);
+        var root = doc.RootElement;
+        var packages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (root.TryGetProperty("targets", out var targets))
+        {
+            foreach (var target in targets.EnumerateObject())
+            {
+                foreach (var item in target.Value.EnumerateObject())
+                {
+                    if (item.Value.TryGetProperty("type", out var typeProp) &&
+                        string.Equals(typeProp.GetString(), "project", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var name = item.Name;
+                    var slash = name.IndexOf('/');
+                    packages.Add(slash >= 0 ? name[..slash] : name);
+                }
+            }
+        }
+
+        if (root.TryGetProperty("libraries", out var libraries))
+        {
+            foreach (var lib in libraries.EnumerateObject())
+            {
+                if (lib.Value.TryGetProperty("type", out var typeProp) &&
+                    string.Equals(typeProp.GetString(), "project", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var name = lib.Name;
+                var slash = name.IndexOf('/');
+                packages.Add(slash >= 0 ? name[..slash] : name);
+            }
+        }
+
+        return packages;
+    }
+
+    /// <summary>
+    /// Reads resolved packages from project.assets.json in the project's obj directory.
+    /// Throws FileNotFoundException with an actionable message if restore assets do not exist.
+    /// </summary>
+    public static IReadOnlySet<string> ReadResolvedPackages(string projectDirectoryOrAssetsPath)
+    {
+        string assetsPath = projectDirectoryOrAssetsPath.EndsWith("project.assets.json", StringComparison.OrdinalIgnoreCase)
+            ? projectDirectoryOrAssetsPath
+            : Path.Combine(projectDirectoryOrAssetsPath, "obj", "project.assets.json");
+
+        if (!File.Exists(assetsPath))
+        {
+            throw new FileNotFoundException(
+                $"Restore assets file '{assetsPath}' was not found. Run 'dotnet restore' first to generate resolved dependency assets.",
+                assetsPath);
+        }
+
+        var json = File.ReadAllText(assetsPath);
+        return ParseResolvedPackages(json);
+    }
+
     // ---------------------------------------------------------------------------
     // Package-level boundary rules
     // ---------------------------------------------------------------------------
@@ -133,7 +225,27 @@ public static class DependencyGraphChecker
     public static readonly IReadOnlyList<string> ForbiddenBusinessObjectsPackagePrefixes =
     [
         "Microsoft.EntityFrameworkCore",
-        "Microsoft.AspNetCore.Identity.EntityFrameworkCore",
+        "Microsoft.AspNetCore",
+        "System.IdentityModel",
+        "Microsoft.IdentityModel",
+        "System.Net.Http",
+    ];
+
+    /// <summary>
+    /// Explicit allow-list of permitted direct packages in BusinessObjects.
+    /// </summary>
+    public static readonly IReadOnlySet<string> AllowedBusinessObjectsPackages =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Microsoft.Extensions.Identity.Stores",
+        };
+
+    /// <summary>
+    /// Package prefixes that must NOT appear transitively in BusinessObjects resolved assets.
+    /// </summary>
+    public static readonly IReadOnlyList<string> ForbiddenTransitiveBusinessObjectsPackagePrefixes =
+    [
+        "Microsoft.EntityFrameworkCore",
     ];
 
     /// <summary>
@@ -210,6 +322,39 @@ public static class DependencyGraphChecker
         {
             if (CanReach(graph, from, to))
                 violations.Add($"VIOLATION: {rule} — path found from '{from}' to '{to}'");
+        }
+
+        // Domain boundary: BusinessObjects must not depend on ANY project.
+        if (graph.Edges.TryGetValue("BusinessObjects", out var boDeps))
+        {
+            foreach (var dep in boDeps)
+            {
+                var alreadyReported = transitivelyForbidden.Any(t =>
+                    string.Equals(t.From, "BusinessObjects", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(t.To, dep, StringComparison.OrdinalIgnoreCase));
+                if (!alreadyReported)
+                {
+                    violations.Add(
+                        $"VIOLATION: BusinessObjects must not depend on '{dep}' — BusinessObjects must have zero project references");
+                }
+            }
+        }
+
+        // Architecture boundary: All project references must be known mapped architecture layers.
+        var knownLayers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "BusinessObjects", "DTOs", "Repositories", "Services", "API",
+        };
+        foreach (var (from, neighbors) in graph.Edges)
+        {
+            foreach (var to in neighbors)
+            {
+                if (!knownLayers.Contains(to))
+                {
+                    violations.Add(
+                        $"VIOLATION: Project '{from}' references unmapped project '{to}' — unknown production reference");
+                }
+            }
         }
 
         // Forbidden DIRECT edge only: API must not directly reference Repositories.

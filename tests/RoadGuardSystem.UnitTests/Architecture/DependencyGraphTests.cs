@@ -74,18 +74,7 @@ public sealed class DependencyGraphTests
             ["RoadGuardSystem.eAPI"] = "API",
         };
 
-        var edges = new Dictionary<string, IReadOnlySet<string>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (logical, csprojPath) in projects)
-        {
-            var rawRefs = ReadDirectReferences(csprojPath);
-            var logicalRefs = rawRefs
-                .Where(r => assemblyToLogical.ContainsKey(r))
-                .Select(r => assemblyToLogical[r])
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            edges[logical] = logicalRefs;
-        }
-
-        return new DependencyGraph(edges);
+        return BuildGraph(projects, assemblyToLogical, ReadDirectReferences);
     }
 
     // ===========================================================================
@@ -464,6 +453,135 @@ public sealed class DependencyGraphTests
             because: "the checker must detect BusinessObjects -> DTOs project reference");
     }
 
+    [Fact(DisplayName = "Production graph policy rejects unmapped ProjectReference from BusinessObjects")]
+    public void ProductionGraphPolicy_Rejects_Unmapped_ProjectReference_From_BusinessObjects()
+    {
+        // ARRANGE — BusinessObjects has a reference to an unmapped infrastructure project
+        var projects = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BusinessObjects"] = "RoadGuardSystem.BusinessObjects",
+            ["DTOs"] = "RoadGuardSystem.DTOs",
+            ["Repositories"] = "RoadGuardSystem.Repositories",
+            ["Services"] = "RoadGuardSystem.Services",
+            ["API"] = "RoadGuardSystem.API",
+        };
+
+        var assemblyToLogical = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["RoadGuardSystem.aBusinessObjects"] = "BusinessObjects",
+            ["RoadGuardSystem.bDTOs"] = "DTOs",
+            ["RoadGuardSystem.cRepositories"] = "Repositories",
+            ["RoadGuardSystem.dServices"] = "Services",
+            ["RoadGuardSystem.eAPI"] = "API",
+        };
+
+        // Simulated reader: BusinessObjects references an unmapped project
+        var rawReferences = new Dictionary<string, IReadOnlySet<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["RoadGuardSystem.BusinessObjects"] = new HashSet<string> { "RoadGuardSystem.NewInfrastructure" },
+            ["RoadGuardSystem.DTOs"] = new HashSet<string> { "RoadGuardSystem.aBusinessObjects" },
+            ["RoadGuardSystem.Repositories"] = new HashSet<string> { "RoadGuardSystem.bDTOs" },
+            ["RoadGuardSystem.Services"] = new HashSet<string> { "RoadGuardSystem.cRepositories" },
+            ["RoadGuardSystem.API"] = new HashSet<string> { "RoadGuardSystem.dServices" },
+        };
+
+        // ACT — Build graph and evaluate forbidden edges
+        var graph = BuildGraph(projects, assemblyToLogical, path => rawReferences[path]);
+        var violations = FindForbiddenEdges(graph);
+
+        // ASSERT — Policy must not silently drop the unmapped reference; it must reject it
+        violations.Should().NotBeEmpty(
+            because: "an unmapped ProjectReference from BusinessObjects must be rejected by production graph policy");
+        violations.Should().Contain(v =>
+            v.Contains("BusinessObjects", StringComparison.OrdinalIgnoreCase) &&
+            v.Contains("RoadGuardSystem.NewInfrastructure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact(DisplayName = "Checker detects direct HTTP transport package in BusinessObjects fixture")]
+    public void Checker_Detects_Direct_Http_TransportPackage_In_BusinessObjects()
+    {
+        var badPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Microsoft.AspNetCore.Http",
+        };
+
+        var violations = FindForbiddenPackages(
+            "BusinessObjects", badPackages, ForbiddenBusinessObjectsPackagePrefixes);
+
+        violations.Should().NotBeEmpty(
+            because: "transport packages such as Microsoft.AspNetCore.Http are forbidden in BusinessObjects");
+        violations.Should().Contain(v =>
+            v.Contains("Microsoft.AspNetCore.Http", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact(DisplayName = "Checker detects direct JWT package in BusinessObjects fixture")]
+    public void Checker_Detects_Direct_Jwt_Package_In_BusinessObjects()
+    {
+        var badPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "System.IdentityModel.Tokens.Jwt",
+        };
+
+        var violations = FindForbiddenPackages(
+            "BusinessObjects", badPackages, ForbiddenBusinessObjectsPackagePrefixes);
+
+        violations.Should().NotBeEmpty(
+            because: "JWT packages are forbidden in BusinessObjects");
+        violations.Should().Contain(v =>
+            v.Contains("System.IdentityModel.Tokens.Jwt", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact(DisplayName = "Checker detects transitive EF Core in resolved package graph fixture")]
+    public void Checker_Detects_Transitive_EFCore_In_ResolvedPackages()
+    {
+        var syntheticAssets = """
+        {
+          "version": 3,
+          "targets": {
+            "net8.0": {
+              "Microsoft.Extensions.Identity.Stores/8.0.17": {
+                "type": "package",
+                "dependencies": {
+                  "Microsoft.EntityFrameworkCore": "8.0.17"
+                }
+              },
+              "Microsoft.EntityFrameworkCore/8.0.17": {
+                "type": "package"
+              }
+            }
+          },
+          "libraries": {
+            "Microsoft.Extensions.Identity.Stores/8.0.17": {
+              "type": "package"
+            },
+            "Microsoft.EntityFrameworkCore/8.0.17": {
+              "type": "package"
+            }
+          }
+        }
+        """;
+
+        var resolved = ParseResolvedPackages(syntheticAssets);
+        var violations = FindForbiddenPackages(
+            "BusinessObjects (resolved)", resolved, ForbiddenTransitiveBusinessObjectsPackagePrefixes);
+
+        violations.Should().NotBeEmpty(
+            because: "transitive EF Core package in resolved graph must be detected");
+        violations.Should().Contain(v =>
+            v.Contains("Microsoft.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact(DisplayName = "ReadResolvedPackages fails with actionable message when restore assets are missing")]
+    public void ReadResolvedPackages_ThrowsFileNotFound_WhenAssetsMissing()
+    {
+        var nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        var act = () => ReadResolvedPackages(nonExistentPath);
+
+        act.Should().Throw<FileNotFoundException>()
+            .WithMessage("*dotnet restore*");
+    }
+
     // ===========================================================================
     // PHASE 2 (F1/F2) — PRODUCTION package boundary tests
     //
@@ -477,7 +595,7 @@ public sealed class DependencyGraphTests
     //   After cleanup, both tests must turn green.
     // ===========================================================================
 
-    [Fact(DisplayName = "BusinessObjects production project has no forbidden package references (F1)")]
+    [Fact(DisplayName = "BusinessObjects production project has no forbidden package references (F1/F2)")]
     public void BusinessObjects_HasNoForbiddenPackages()
     {
         var root = RepositoryRoot();
@@ -488,9 +606,30 @@ public sealed class DependencyGraphTests
         var violations = FindForbiddenPackages(
             "BusinessObjects", packages, ForbiddenBusinessObjectsPackagePrefixes);
 
+        var allowListViolations = packages
+            .Where(p => !AllowedBusinessObjectsPackages.Contains(p))
+            .Select(p => $"PACKAGE VIOLATION in BusinessObjects: '{p}' is not in the explicit allow-list")
+            .ToList();
+
+        var allViolations = violations.Concat(allowListViolations).ToList();
+
+        allViolations.Should().BeEmpty(
+            because: "BusinessObjects must not contain EF Core, persistence, or transport packages per AGENTS.md: " +
+                     "'BusinessObjects has no dependency on API, Services, Repositories, DTOs, EF Core, or transport details'");
+    }
+
+    [Fact(DisplayName = "BusinessObjects resolved package graph contains no transitive EF Core dependencies (F3)")]
+    public void BusinessObjects_ResolvedPackageGraph_HasNoForbiddenDependencies()
+    {
+        var root = RepositoryRoot();
+        var boDir = Path.Combine(root, "RoadGuardSystem.BusinessObjects");
+
+        var resolvedPackages = ReadResolvedPackages(boDir);
+        var violations = FindForbiddenPackages(
+            "BusinessObjects (resolved)", resolvedPackages, ForbiddenTransitiveBusinessObjectsPackagePrefixes);
+
         violations.Should().BeEmpty(
-            because: "BusinessObjects must not contain EF Core or EF Identity packages per AGENTS.md: " +
-                     "'BusinessObjects has no dependency on EF Core or transport details'");
+            because: "the resolved package graph of BusinessObjects must not contain any transitive EF Core dependencies");
     }
 
     [Fact(DisplayName = "DTOs production project has no forbidden package references (F2)")]

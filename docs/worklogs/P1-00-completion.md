@@ -99,6 +99,36 @@
 
 ---
 
+## Review-Fix Round 2 (2026-09-17) — Close Architecture Gate False Greens
+
+### Finding 1 (High) — BuildProductionGraph silently dropped unmapped ProjectReferences
+- **Root cause:** `DependencyGraphTests.cs:81-84` used `.Where(r => assemblyToLogical.ContainsKey(r))` which silently filtered out any `ProjectReference` not present in `assemblyToLogical`. If `BusinessObjects` referenced a newly introduced infrastructure project, the gate remained green (false green).
+- **Resolution:**
+  1. Extracted reusable `DependencyGraphChecker.BuildGraph(projects, assemblyToLogical, referenceReader)` where unmapped references are preserved with their raw names instead of being omitted.
+  2. In `FindForbiddenEdges`, enforced two explicit gates:
+     - Domain boundary: `BusinessObjects` must not depend on ANY project reference (must have zero project references).
+     - Architecture boundary: All project references across all projects must belong to recognized architecture layers (`BusinessObjects`, `DTOs`, `Repositories`, `Services`, `API`). Unmapped references trigger an explicit violation naming the source project and unmapped reference.
+  3. Added negative fixture test `ProductionGraphPolicy_Rejects_Unmapped_ProjectReference_From_BusinessObjects`.
+
+### Finding 2 (High) — ForbiddenBusinessObjectsPackagePrefixes missed transport and JWT packages
+- **Root cause:** `DependencyGraphChecker.cs:133-137` only checked for EF Core prefixes (`Microsoft.EntityFrameworkCore`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`). Repository rules prohibit transport dependencies in `BusinessObjects`; `Microsoft.AspNetCore.Http` and JWT packages were not detected.
+- **Resolution:**
+  1. Expanded `ForbiddenBusinessObjectsPackagePrefixes` to include `Microsoft.AspNetCore`, `System.IdentityModel`, `Microsoft.IdentityModel`, and `System.Net.Http`.
+  2. Established `AllowedBusinessObjectsPackages` containing strictly `Microsoft.Extensions.Identity.Stores`.
+  3. Enforced the explicit allow-list in production test `BusinessObjects_HasNoForbiddenPackages`.
+  4. Added negative fixture tests `Checker_Detects_Direct_Http_TransportPackage_In_BusinessObjects` and `Checker_Detects_Direct_Jwt_Package_In_BusinessObjects`.
+
+### Finding 3 (High) — Direct package check failed to verify resolved transitive EF Core dependencies
+- **Root cause:** `DependencyGraphChecker.ReadPackageReferences` only read direct `PackageReference` elements from `.csproj`. It did not verify whether the resolved package graph contained EF Core transitively.
+- **Resolution:**
+  1. Implemented `ParseResolvedPackages(string assetsJsonContent)` and `ReadResolvedPackages(string projectDirectoryOrAssetsPath)` using `System.Text.Json` to parse `targets` and `libraries` from `project.assets.json`.
+  2. If `project.assets.json` does not exist, `ReadResolvedPackages` fails fast with `FileNotFoundException` and the actionable message: `"Run 'dotnet restore' first to generate resolved dependency assets."`
+  3. Added `ForbiddenTransitiveBusinessObjectsPackagePrefixes = ["Microsoft.EntityFrameworkCore"]`.
+  4. Added negative fixture test `Checker_Detects_Transitive_EFCore_In_ResolvedPackages` and `ReadResolvedPackages_ThrowsFileNotFound_WhenAssetsMissing`.
+  5. Added production test `BusinessObjects_ResolvedPackageGraph_HasNoForbiddenDependencies`.
+
+---
+
 ## Files Changed
 
 | Change | File | Purpose |
@@ -117,12 +147,12 @@
 | Modified | `RoadGuardSystem.API/Program.cs` | Added minimal ASP.NET Core startup and `public partial class Program {}` (F8) |
 | Modified | `RoadGuardSystem.slnx` | Registered test projects in solution |
 | Added | `tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj` | xUnit + FluentAssertions + coverlet test project |
-| Added | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs` | Checks ProjectReference edges & PackageReference rules |
-| Added | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs` | Architecture tests (negative fixtures + production rules) |
+| Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs` | Preserves unmapped ProjectReferences; enforces BusinessObjects zero-reference and unmapped project rules; expands forbidden prefixes to transport/JWT; parses resolved packages from project.assets.json |
+| Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs` | Added negative tests for unmapped ProjectReferences, direct transport packages, transitive EF Core, and missing assets; updated BuildProductionGraph; added transitive EF production test |
 | Added | `tests/RoadGuardSystem.UnitTests/Smoke/BusinessObjectsSmokeTests.cs` | Smoke tests for BusinessObjects assembly |
 | Added | `tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj` | xUnit + WebApplicationFactory API test project |
 | Added | `tests/RoadGuardSystem.ApiTests/Startup/ApiStartupTests.cs` | API startup & pipeline smoke tests |
-| Updated | `docs/worklogs/P1-00-completion.md` | Corrected review status and retained F3/F5 as open findings |
+| Updated | `docs/worklogs/P1-00-completion.md` | Documented Round 2 review findings, red-to-green evidence, and updated gate commands; retained F3/F5 as open |
 ---
 
 ## Negative-First Evidence
@@ -168,22 +198,52 @@ Prior to removing forbidden packages from production project files, the new prod
   Passed! - Failed: 0, Passed: 26, Skipped: 0, Total: 26 - RoadGuardSystem.UnitTests.dll (net8.0)
   ```
 
+### 3. Review-Fix Round 2 Red-to-Green Evidence (2026-09-17)
+Prior to implementing fixes for Findings 1, 2, and 3, five negative fixture tests were executed against the initial checker logic:
+- **Command:** `dotnet test tests/RoadGuardSystem.UnitTests --filter "TaskId=P1-00"`
+- **Exit Code:** 1
+- **Observed RED failure:**
+  ```
+  Failed Production graph policy rejects unmapped ProjectReference from BusinessObjects
+    Expected violations not to be empty because an unmapped ProjectReference from BusinessObjects must be rejected by production graph policy.
+  Failed Checker detects direct HTTP transport package in BusinessObjects fixture
+    Expected violations not to be empty because transport packages such as Microsoft.AspNetCore.Http are forbidden in BusinessObjects.
+  Failed Checker detects direct JWT package in BusinessObjects fixture
+    Expected violations not to be empty because JWT packages are forbidden in BusinessObjects.
+  Failed Checker detects transitive EF Core in resolved package graph fixture
+    Expected violations not to be empty because transitive EF Core package in resolved graph must be detected.
+  Failed ReadResolvedPackages fails with actionable message when restore assets are missing
+    Expected a <System.IO.FileNotFoundException> to be thrown, but no exception was thrown.
+  Total: 31, Failed: 5, Passed: 26
+  ```
+- **Implementation:**
+  - `DependencyGraphChecker.BuildGraph`: maps known projects to logical names and preserves unmapped project references as raw identifiers instead of silently dropping them.
+  - `DependencyGraphChecker.FindForbiddenEdges`: enforces domain boundary (BusinessObjects has zero project references) and architecture boundary (all project references across all projects must belong to recognized architecture layers).
+  - `DependencyGraphChecker.ForbiddenBusinessObjectsPackagePrefixes`: expanded to include `Microsoft.AspNetCore`, `System.IdentityModel`, `Microsoft.IdentityModel`, and `System.Net.Http`. Added `AllowedBusinessObjectsPackages` explicit allow-list.
+  - `DependencyGraphChecker.ParseResolvedPackages` & `ReadResolvedPackages`: parsed `project.assets.json` to detect resolved transitive EF Core packages; fails fast with `FileNotFoundException` and actionable `dotnet restore` instruction if assets are missing.
+  - `DependencyGraphTests.cs`: updated `BuildProductionGraph` to use `BuildGraph`; updated `BusinessObjects_HasNoForbiddenPackages` with allow-list check; added production test `BusinessObjects_ResolvedPackageGraph_HasNoForbiddenDependencies`.
+- **Observed GREEN pass:**
+  ```
+  Passed! - Failed: 0, Passed: 32, Skipped: 0, Total: 32 - RoadGuardSystem.UnitTests.dll (net8.0)
+  ```
+
 ---
 
-## Positive Evidence (Latest Re-review Gate Run)
+## Positive Evidence (Latest Gate Run — Round 2)
 
-All 6 re-review commands executed cleanly:
+All 7 gate commands executed cleanly:
 
 | # | Command | Exit Code | Result | Timestamp (UTC+7) |
 |---|---|---:|---|---|
-| 1 | `dotnet restore RoadGuardSystem.slnx` | 0 | All 7 projects restored | 2026-09-16 20:59 |
-| 2 | `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | **0 Warning(s), 0 Error(s)** | 2026-09-16 20:59 |
-| 3 | `dotnet test tests/RoadGuardSystem.UnitTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 26**, Failed: 0, Skipped: 0 | 2026-09-16 21:00 |
-| 4 | `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 2**, Failed: 0, Skipped: 0 | 2026-09-16 21:00 |
-| 5 | `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting verified | 2026-09-16 21:00 |
-| 6 | `dotnet test RoadGuardSystem.slnx --no-build` | 0 | **Passed: 28**, Failed: 0, Skipped: 0 | 2026-09-16 21:00 |
+| 1 | `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up-to-date for restore | 2026-09-17 00:06 |
+| 2 | `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | **0 Warning(s), 0 Error(s)** | 2026-09-17 00:07 |
+| 3 | `dotnet test tests/RoadGuardSystem.UnitTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 32**, Failed: 0, Skipped: 0 | 2026-09-17 00:07 |
+| 4 | `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 2**, Failed: 0, Skipped: 0 | 2026-09-17 00:07 |
+| 5 | `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting verified | 2026-09-17 00:08 |
+| 6 | `dotnet test RoadGuardSystem.slnx --no-build` | 0 | **Passed: 34**, Failed: 0, Skipped: 0 (Unit: 32, API: 2) | 2026-09-17 00:08 |
+| 7 | `git diff --check` | 0 | Clean whitespace verified | 2026-09-17 00:08 |
 
-### Git bootstrap evidence
+### Git bootstrap evidence (Baseline)
 
 | Command/check | Exit Code | Result | Timestamp (UTC+7) |
 |---|---:|---|---|
@@ -208,14 +268,14 @@ API (RoadGuardSystem.eAPI)
         └── Repositories (RoadGuardSystem.cRepositories)
               └── DTOs (RoadGuardSystem.bDTOs)
                     └── BusinessObjects (RoadGuardSystem.aBusinessObjects)
-                          └── (no project references)
+                          └── (zero project references)
 
 UnitTests ──> BusinessObjects (smoke tests)
 ApiTests  ──> API (WebApplicationFactory<Program>)
 ```
 
 ### Package Reference Boundaries:
-- `BusinessObjects`: Pure domain abstractions (`Microsoft.Extensions.Identity.Stores` for `IdentityUser<Guid>` and `IdentityRole<Guid>`). Zero EF Core dependencies.
+- `BusinessObjects`: Pure domain abstractions (`Microsoft.Extensions.Identity.Stores` for `IdentityUser<Guid>` and `IdentityRole<Guid>`). Zero EF Core dependencies (direct or transitive). Zero transport dependencies. Enforced via explicit allow-list and `project.assets.json` inspection.
 - `DTOs`: Pure contracts. Zero EF Core, HTTP, or persistence dependencies.
 - `Repositories`: `Microsoft.EntityFrameworkCore` (v8.0.17) for `PagedList.cs`. SQL Server and NetTopologySuite to be added in P2-00.
 
@@ -235,7 +295,11 @@ ApiTests  ──> API (WebApplicationFactory<Program>)
 - [x] F6: Red-to-green test run documented with actual observed failure
 - [x] F7: Root `AGENTS.md` created and identical to `.antigravity/AGENTS.md`
 - [x] F8: Swagger bootstrap scope clarified
-- [x] Re-review gate: All 6 commands pass with 0 errors and 0 warnings (28/28 tests passed)
+- [x] Finding 1 (Round 2): Unmapped `ProjectReference` from `BusinessObjects` or other layers preserved and rejected
+- [x] Finding 2 (Round 2): Direct transport and JWT packages forbidden in `BusinessObjects`; explicit allow-list enforced
+- [x] Finding 3 (Round 2): Resolved package graph (`project.assets.json`) verified free of transitive EF Core dependencies
+- [x] Round 2 gate: All 7 commands pass with 0 errors and 0 warnings (34/34 tests passed)
+
 Repository owner decision (2026-09-16):
 Temporarily accepts SDK 10.0.401 for building the existing net8.0 target.
 This does not authorize retargeting production projects.
@@ -250,6 +314,6 @@ Temporary use is accepted by the repository owner, but closure remains deferred 
 
 - **Known gaps:** F3 now has a Git baseline/diff but still requires Person 2 review; F5 has no P1-02 ADR or P2-01 CI proof.
 - **Residual risks:** The current SDK 10.0.401 / net8.0 combination is build-proven only on this machine; independent CI reproducibility is not yet established.
-- **Reviewer findings and resolution:** Identity ownership and warning-policy documentation are corrected. F3/F5 are explicitly open rather than overstated as resolved.
-- **Exact next action:** Person 2 reviews `git show 9293545`; then the team resolves findings on a personal branch before merging to `develop`. Complete the SDK policy under P1-02 and CI proof under P2-01.
+- **Reviewer findings and resolution:** Architecture gate false greens (Findings 1, 2, 3) are resolved with red-to-green test evidence. F3/F5 remain explicitly open.
+- **Exact next action:** Person 2 re-reviews Round 2 commit diff on branch `anh`. Complete the SDK policy under P1-02 and CI proof under P2-01.
 - **Final status:** `Changes requested`

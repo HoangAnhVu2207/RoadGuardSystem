@@ -4,7 +4,7 @@
 
 - **Task ID/title:** P1-00 / Wave 0 — Executable Foundation
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2 (Independent Reviewer)
-- **Date / branch or commit:** 2026-09-16 / Workspace snapshot (no `.git` directory present in repository root — see F3 note)
+- **Date / branch or commit:** 2026-09-16 / `main` / baseline commit `9293545f1160ac9c4fa863e200a4f5a0a9ac9ea9`
 - **Trace:** TE-01 (foundation/infrastructure task with no business use-case)
 - **Status:** Changes requested (F3 and F5 remain open)
 
@@ -14,6 +14,7 @@
 - Create `Directory.Build.props` (Nullable enable, ImplicitUsings enable, Deterministic true, NetAnalyzers enabled)
 - Create `global.json` (pin SDK 10.0.401 with `latestPatch`)
 - Add root `AGENTS.md` for standard tool and agent discovery (F7)
+- Bootstrap Git with protected-flow documentation for `main` -> `develop` and personal branches `anh`/`huy`
 - Fix empty `Program.cs` (CS5001 baseline error) with minimal ASP.NET Core startup + `public partial class Program {}`
 - Clean up production package references (F1, F2):
   - `BusinessObjects`: removed `Microsoft.AspNetCore.Identity.EntityFrameworkCore`; added `Microsoft.Extensions.Identity.Stores` (v8.0.17, zero EF Core dependencies)
@@ -39,7 +40,7 @@
 - ProblemDetails, API versioning, correlation middleware, health checks, OpenAPI schema customization (owned by P1-01)
 - ADR documents (owned by P1-02)
 - SQL Server/NetTopologySuite integration and migrations (owned by P2-00)
-- Initializing or rewriting git repository history (requires repository owner approval)
+- GitHub remote creation, pushing, hosted branch-protection settings, and rewriting published history
 
 ---
 
@@ -61,10 +62,10 @@
   2. Added `Microsoft.EntityFrameworkCore` (v8.0.17) directly to `RoadGuardSystem.cRepositories.csproj`. Documented in comments that SQL Server, Design, and NetTopologySuite are deferred to P2-00 when `DbContext` is introduced.
   3. Added architecture tests enforcing that DTOs cannot reference EF Core, HTTP, or persistence packages.
 
-### F3 (High) — Diff review reproducibility in non-git workspace — Open
-- **Root cause:** Working directory `D:\Project BE\RoadGuardSystem` has no `.git` repository. Per repository rules, agents must not run destructive commands or initialize repository history without owner consent.
-- **Current evidence:** The file inventory below supports handoff but is not an immutable baseline or a reviewable diff.
-- **Required resolution:** Repository owner initializes/provides the intended Git repository and P1-00 commit/diff; then Person 2 reviews that diff before P1-00 can be `Done`.
+### F3 (High) — Diff review reproducibility — Open, review pending
+- **Root cause:** The original workspace had no `.git` repository or immutable baseline.
+- **Resolution evidence:** With repository-owner approval, Git was initialized on `main`. Baseline commit `9293545f1160ac9c4fa863e200a4f5a0a9ac9ea9` contains the 46-file P1-00 snapshot; `git show --stat 9293545` and `git show 9293545` now provide a reproducible diff. Local `develop`, `anh`, and `huy` branches were created from that baseline.
+- **Remaining gate:** Person 2 must review the actual commit diff before F3 is checked and P1-00 can be `Done`.
 
 ### F4 (Medium) — Clean-build evidence understates warnings
 - **Root cause:** `EnumExtensions.cs` had two CS8600 warnings; `ApiResult.cs` had two CS8618 warnings. Incremental builds had masked the EnumExtensions warnings.
@@ -102,7 +103,10 @@
 
 | Change | File | Purpose |
 |---|---|---|
-| Added | `AGENTS.md` | Root rules file matching `.antigravity/AGENTS.md` for standard discovery (F7) |
+| Added | `.gitignore` | Excludes IDE state, build/test output, secrets, certificates, local databases, and logs |
+| Added | `.gitattributes` | Normalizes text line endings and preserves intentional Markdown hard breaks |
+| Added | `AGENTS.md` | Root rules file matching `.antigravity/AGENTS.md`, including branch workflow and agent Git command policy |
+| Modified | `.antigravity/AGENTS.md` | Keeps hidden agent rules aligned with the root Git policy |
 | Added | `global.json` | Pins SDK to 10.0.401 with `latestPatch` (F5) |
 | Added | `Directory.Build.props` | Solution-level Nullable, deterministic analyzers, and warnings-as-errors gate; stale warning rationale removed in re-review |
 | Modified | `RoadGuardSystem.BusinessObjects/RoadGuardSystem.aBusinessObjects.csproj` | Replaced EF Identity with `Microsoft.Extensions.Identity.Stores` and assigned EF Identity persistence to P2-10 (F1) |
@@ -179,6 +183,20 @@ All 6 re-review commands executed cleanly:
 | 5 | `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting verified | 2026-09-16 21:00 |
 | 6 | `dotnet test RoadGuardSystem.slnx --no-build` | 0 | **Passed: 28**, Failed: 0, Skipped: 0 | 2026-09-16 21:00 |
 
+### Git bootstrap evidence
+
+| Command/check | Exit Code | Result | Timestamp (UTC+7) |
+|---|---:|---|---|
+| Pre-change policy assertions | 1 (expected) | Git repository, `.gitignore`, and agent Git policy all absent | 2026-09-16 21:02 |
+| `git init -b main` | 0 | Empty repository initialized with `main` as the initial branch | 2026-09-16 21:05 |
+| Local Git configuration | 0 | `pull.ff=only`, `fetch.prune=true`, `core.autocrlf=false`, `core.safecrlf=warn` | 2026-09-16 21:05 |
+| Ignore/candidate validation | 0 | 46 candidates; no `.vs`, `bin`, `obj`, secret, certificate, database, or log path | 2026-09-16 21:05 |
+| First `git diff --cached --check` | nonzero (expected) | Detected intentional Markdown hard breaks and two real whitespace-only `.csproj` lines | 2026-09-16 21:06 |
+| Final `git diff --cached --check` | 0 | Clean after Markdown attribute and `.csproj` whitespace correction | 2026-09-16 21:06 |
+| Restore/build/format/test gate | 0 | Build 0 warnings/errors; format clean; unit 26/26; API 2/2; total 28/28 | 2026-09-16 21:07 |
+| `git commit -m "P1-00: establish executable foundation and Git workflow"` | 0 | Root commit `9293545`, 46 files | 2026-09-16 21:08 |
+| Create `develop`, `anh`, and `huy` from `main` | 0 | All four local branches initially reference `9293545` | 2026-09-16 21:08 |
+
 ---
 
 ## Production Dependency Graph (Verified)
@@ -211,7 +229,7 @@ ApiTests  ──> API (WebApplicationFactory<Program>)
 - [x] F2: EF Core, HTTP, and Configuration packages removed from `DTOs`
 - [x] F2: `Microsoft.EntityFrameworkCore` referenced directly by `Repositories`
 - [x] F2: Architecture test verifies no EF or HTTP packages in `DTOs`
-- [ ] F3: Real Git baseline/diff supplied and reviewed by Person 2
+- [ ] F3: Baseline commit `9293545` supplied; Person 2 diff review remains pending
 - [x] F4: CS8600 (EnumExtensions) and CS8618 (ApiResult) fixed; non-incremental build has 0 warnings
 - [ ] F5: SDK 10.0.401 / `net8.0` policy documented by P1-02 ADR and reproduced by P2-01 CI
 - [x] F6: Red-to-green test run documented with actual observed failure
@@ -230,8 +248,8 @@ Temporary use is accepted by the repository owner, but closure remains deferred 
 
 ## Review handoff
 
-- **Known gaps:** F3 has no Git baseline/diff; F5 has no P1-02 ADR or P2-01 CI proof.
+- **Known gaps:** F3 now has a Git baseline/diff but still requires Person 2 review; F5 has no P1-02 ADR or P2-01 CI proof.
 - **Residual risks:** The current SDK 10.0.401 / net8.0 combination is build-proven only on this machine; independent CI reproducibility is not yet established.
 - **Reviewer findings and resolution:** Identity ownership and warning-policy documentation are corrected. F3/F5 are explicitly open rather than overstated as resolved.
-- **Exact next action:** Obtain repository-owner authorization for Git initialization/baseline, then have Person 2 review the resulting P1-00 diff. Complete the SDK policy under P1-02 and CI proof under P2-01.
+- **Exact next action:** Person 2 reviews `git show 9293545`; then the team resolves findings on a personal branch before merging to `develop`. Complete the SDK policy under P1-02 and CI proof under P2-01.
 - **Final status:** `Changes requested`

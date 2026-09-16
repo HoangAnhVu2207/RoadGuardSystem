@@ -1,0 +1,168 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Testcontainers.MsSql;
+using Xunit;
+
+namespace RoadGuardSystem.IntegrationTests.Infrastructure;
+
+/// <summary>
+/// Manages isolated SQL Server test databases for integration tests.
+/// Supports runtime connection via:
+/// 1. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING environment variable
+/// 2. Detected local SQL Server instance (e.g. MSSQL$HANHNAV)
+/// 3. Testcontainers MsSql container (when Docker daemon is active)
+/// If no SQL Server instance can be reached, throws SqlTestEnvironmentUnavailableException (no false-green).
+/// Guarantees database cleanup in DisposeAsync.
+/// </summary>
+public sealed class SqlServerTestFixture : IAsyncLifetime
+{
+    private MsSqlContainer? _container;
+    private string? _masterConnectionString;
+    private string? _databaseName;
+    private string? _databaseConnectionString;
+
+    public string DatabaseName => _databaseName ?? throw new InvalidOperationException("Fixture has not been initialized.");
+    public string ConnectionString => _databaseConnectionString ?? throw new InvalidOperationException("Fixture has not been initialized.");
+
+    public async Task InitializeAsync()
+    {
+        _masterConnectionString = await ResolveMasterConnectionStringAsync();
+        _databaseName = $"RoadGuard_Test_{Guid.NewGuid():N}";
+
+        // Build connection string for the isolated test database
+        var dbBuilder = new SqlConnectionStringBuilder(_masterConnectionString)
+        {
+            InitialCatalog = _databaseName,
+            // Test fixture connects directly to local or container test instance
+            TrustServerCertificate = true
+        };
+        _databaseConnectionString = dbBuilder.ConnectionString;
+
+        // Create the isolated test database
+        await using (var masterConn = new SqlConnection(_masterConnectionString))
+        {
+            await masterConn.OpenAsync();
+            await using var cmd = masterConn.CreateCommand();
+            cmd.CommandText = $"CREATE DATABASE [{_databaseName}];";
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // Initialize schema with SpatialProbeDbContext
+        await using var context = CreateDbContext();
+        await context.Database.EnsureCreatedAsync();
+    }
+
+    public SpatialProbeDbContext CreateDbContext()
+    {
+        if (_databaseConnectionString is null)
+            throw new InvalidOperationException("Fixture has not been initialized.");
+
+        var options = new DbContextOptionsBuilder<SpatialProbeDbContext>()
+            .UseSqlServer(_databaseConnectionString, x => x.UseNetTopologySuite())
+            .EnableDetailedErrors()
+            .EnableSensitiveDataLogging()
+            .Options;
+
+        return new SpatialProbeDbContext(options);
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_masterConnectionString is not null && _databaseName is not null)
+        {
+            try
+            {
+                await using var masterConn = new SqlConnection(_masterConnectionString);
+                await masterConn.OpenAsync();
+                await using var cmd = masterConn.CreateCommand();
+                cmd.CommandText = $@"
+IF EXISTS (SELECT 1 FROM sys.databases WHERE name = '{_databaseName}')
+BEGIN
+    ALTER DATABASE [{_databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [{_databaseName}];
+END";
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch
+            {
+                // Best effort cleanup in dispose
+            }
+        }
+
+        if (_container is not null)
+        {
+            try
+            {
+                await _container.DisposeAsync();
+            }
+            catch
+            {
+                // Best effort container cleanup
+            }
+        }
+    }
+
+    private async Task<string> ResolveMasterConnectionStringAsync()
+    {
+        // 1. Check environment variable
+        var envConn = Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
+        if (!string.IsNullOrWhiteSpace(envConn))
+        {
+            if (await CanConnectAsync(envConn))
+            {
+                var builder = new SqlConnectionStringBuilder(envConn) { InitialCatalog = "master" };
+                return builder.ConnectionString;
+            }
+        }
+
+        // 2. Check local running SQL Server instances
+        var localCandidates = new[]
+        {
+            @"Server=.\HANHNAV;Database=master;Integrated Security=True;TrustServerCertificate=True",
+            @"Server=localhost;Database=master;Integrated Security=True;TrustServerCertificate=True",
+            @"Server=(localdb)\mssqllocaldb;Database=master;Integrated Security=True;TrustServerCertificate=True"
+        };
+
+        foreach (var candidate in localCandidates)
+        {
+            if (await CanConnectAsync(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        // 3. Check Testcontainers if Docker is available
+        try
+        {
+            var container = new MsSqlBuilder().Build();
+            await container.StartAsync();
+            _container = container;
+            return container.GetConnectionString();
+        }
+        catch (Exception ex)
+        {
+            throw new SqlTestEnvironmentUnavailableException(
+                "SQL Server integration test environment is unavailable. Neither Docker/Testcontainers nor an accessible " +
+                "local SQL Server instance could be reached. Set ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING or ensure " +
+                "SQL Server / Docker is running before executing integration tests.", ex);
+        }
+    }
+
+    public static async Task<bool> CanConnectAsync(string connectionString)
+    {
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString)
+            {
+                ConnectTimeout = 2
+            };
+            await using var conn = new SqlConnection(builder.ConnectionString);
+            await conn.OpenAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}

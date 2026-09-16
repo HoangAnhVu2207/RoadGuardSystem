@@ -6,13 +6,14 @@
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2
 - **Date / branch or commit:** 2026-09-17 / `anh` / baseline `f2008c25c7b5c76e0065370ad66c387f4a6022a8`
 - **Trace:** TE-02, depends on P1-00
-- **Status:** Ready for review
+- **Status:** Ready for re-review
 
 ### In-scope behavior
 - API versioning using URL path segment `/api/v{version:apiVersion}` with default v1.
 - OpenAPI / Swashbuckle configuration generating versioned v1 specification at `/swagger/v1/swagger.json`.
 - ProblemDetails error envelope conforming to RFC 7807/9110 with extensions: `code` and `correlationId`.
-- Centrally defined stable machine-readable error codes: `validation_error`, `unsupported_api_version`, `not_found`, `internal_error`.
+- Centrally defined stable machine-readable error codes: `validation_error`, `unsupported_api_version`, `not_found`, `internal_error`, `method_not_allowed`, `unsupported_media_type`.
+- Mapping framework 405 (Method Not Allowed) and 415 (Unsupported Media Type) to standard ProblemDetails envelopes with `method_not_allowed` and `unsupported_media_type` codes.
 - Security invariant: complete suppression of stack traces, internal exception types/messages, machine paths, and secrets in error responses across all environments.
 - Unhandled exceptions consistently return HTTP 500 with generic public message and `internal_error` code.
 - Correlation ID middleware using header `X-Correlation-ID` with standard UUID format validation, generation fallback for missing or invalid values, response header propagation, HttpContext/Trace attachment, and structured logging scope.
@@ -37,20 +38,21 @@
 
 - **Actor and project-scope rule:** Not applicable. P1-01 establishes cross-cutting API transport and platform infrastructure; there is no business actor or project-scope authorization involved.
 - **State before / allowed state after:**
-  - Before: Baseline `f2008c2` with minimal `Program.cs` and startup smoke test.
-  - After: Fully configured API pipeline with versioning, OpenAPI v1, correlation ID middleware, uniform ProblemDetails, and health endpoint.
+  - Before: Baseline `f2008c2` with minimal `Program.cs` and startup smoke test; commit `d833c48` with initial P1-01 foundation.
+  - After: Fully configured API pipeline with versioning, OpenAPI v1, correlation ID middleware, uniform ProblemDetails (covering 400, 404, 405, 415, 500), and health endpoint.
 - **Data/version/immutability rules:**
   - Business data immutability is not applicable (no entities or DB in P1-01).
   - API versioning uses route segment `/api/v{version:apiVersion}` with default `1.0`.
   - Error responses strictly use RFC 7807/9110 `ProblemDetails` with `application/problem+json` content type.
 - **Audit event and stable error codes:**
   - Business audit events are not applicable (no domain state transitions).
-  - Stable error codes: `validation_error`, `unsupported_api_version`, `not_found`, `internal_error`.
+  - Stable error codes: `validation_error`, `unsupported_api_version`, `not_found`, `internal_error`, `method_not_allowed`, `unsupported_media_type`.
 - **Idempotency/concurrency behavior:** Not applicable. There are no mutable domain aggregates, state transitions, or entity persistence.
 - **Assumptions, ADRs, or specification conflicts:**
   - Package dependencies: Added `Asp.Versioning.Mvc` (8.1.0) and `Asp.Versioning.Mvc.ApiExplorer` (8.1.0) pinned to exact versions compatible with net8.0.
   - Probe controller: Declared strictly within `tests/RoadGuardSystem.ApiTests` and registered via `AddApplicationPart` in `CustomWebApplicationFactory`, avoiding fake production controllers.
   - Information disclosure: No stack traces or exception details are serialized in ProblemDetails regardless of environment.
+  - Review Finding resolution: Framework 405 and 415 errors now explicitly carry `method_not_allowed` and `unsupported_media_type` machine-readable codes in their ProblemDetails extensions.
 
 ---
 
@@ -58,25 +60,25 @@
 
 | Change | File | Purpose |
 |---|---|---|
-| Added | `docs/worklogs/P1-01-completion.md` | Completion log for task P1-01 |
-| Modified | `RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj` | Added `Asp.Versioning.Mvc` and `Asp.Versioning.Mvc.ApiExplorer` (8.1.0) |
-| Modified | `RoadGuardSystem.API/Program.cs` | Wired pipeline: CorrelationId, ProblemDetails, versioning, health, OpenAPI |
-| Added | `RoadGuardSystem.API/Constants/ApiErrorCodes.cs` | Central stable error code constants (`validation_error`, `unsupported_api_version`, etc.) |
-| Added | `RoadGuardSystem.API/Middlewares/CorrelationIdMiddleware.cs` | X-Correlation-ID middleware (UUID parsing, response echo, logging scope) |
-| Added | `RoadGuardSystem.API/Middlewares/ApiVersioningValidationMiddleware.cs` | Validates API version segments and returns 400 `unsupported_api_version` envelope |
-| Added | `RoadGuardSystem.API/Extensions/ConfigureSwaggerOptions.cs` | Versioned OpenAPI generation for Swagger UI and `/swagger/v1/swagger.json` |
-| Added | `RoadGuardSystem.API/Extensions/ServiceCollectionExtensions.cs` | DI composition for ProblemDetails, versioning, health checks, and Swagger |
-| Added | `tests/RoadGuardSystem.ApiTests/Infrastructure/CustomWebApplicationFactory.cs` | Test factory registering test assembly ApplicationPart |
-| Added | `tests/RoadGuardSystem.ApiTests/Controllers/ProbeController.cs` | Test-only versioned probe controller for contract assertions |
-| Added | `tests/RoadGuardSystem.ApiTests/Platform/ProblemDetailsNegativeTests.cs` | Negative API contract tests (RFC 7807/9110, correlation, no leak) |
-| Added | `tests/RoadGuardSystem.ApiTests/Platform/ApiPlatformPositiveTests.cs` | Positive API contract tests (health, OpenAPI v1, correlation echoes) |
+| Modified | `docs/worklogs/P1-01-completion.md` | Completion log for task P1-01 updated with review finding resolution |
+| Modified | `RoadGuardSystem.API/Constants/ApiErrorCodes.cs` | Added `MethodNotAllowed` and `UnsupportedMediaType` stable constants |
+| Modified | `RoadGuardSystem.API/Extensions/ServiceCollectionExtensions.cs` | Mapped HTTP 405 and 415 in `CustomizeProblemDetails` to stable codes |
+| Modified | `tests/RoadGuardSystem.ApiTests/Platform/ProblemDetailsNegativeTests.cs` | Added negative contract tests for HTTP 405 and HTTP 415 |
+| Added (d833c48) | `RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj` | Added `Asp.Versioning.Mvc` and `Asp.Versioning.Mvc.ApiExplorer` (8.1.0) |
+| Added (d833c48) | `RoadGuardSystem.API/Program.cs` | Wired pipeline: CorrelationId, ProblemDetails, versioning, health, OpenAPI |
+| Added (d833c48) | `RoadGuardSystem.API/Middlewares/CorrelationIdMiddleware.cs` | X-Correlation-ID middleware (UUID parsing, response echo, logging scope) |
+| Added (d833c48) | `RoadGuardSystem.API/Middlewares/ApiVersioningValidationMiddleware.cs` | Validates API version segments and returns 400 `unsupported_api_version` envelope |
+| Added (d833c48) | `RoadGuardSystem.API/Extensions/ConfigureSwaggerOptions.cs` | Versioned OpenAPI generation for Swagger UI and `/swagger/v1/swagger.json` |
+| Added (d833c48) | `tests/RoadGuardSystem.ApiTests/Infrastructure/CustomWebApplicationFactory.cs` | Test factory registering test assembly ApplicationPart |
+| Added (d833c48) | `tests/RoadGuardSystem.ApiTests/Controllers/ProbeController.cs` | Test-only versioned probe controller for contract assertions |
+| Added (d833c48) | `tests/RoadGuardSystem.ApiTests/Platform/ApiPlatformPositiveTests.cs` | Positive API contract tests (health, OpenAPI v1, correlation echoes) |
 
 ---
 
 ## Database, API, config, and operations impact
 
 - **Migration added and recovery/downgrade note:** None (no database changes in P1-01).
-- **API/OpenAPI compatibility impact:** Introduces versioned route template `/api/v{version:apiVersion}`, OpenAPI v1 endpoint `/swagger/v1/swagger.json`, uniform `application/problem+json` envelope, and `X-Correlation-ID` header.
+- **API/OpenAPI compatibility impact:** Introduces versioned route template `/api/v{version:apiVersion}`, OpenAPI v1 endpoint `/swagger/v1/swagger.json`, uniform `application/problem+json` envelope across 400, 404, 405, 415, 500, and `X-Correlation-ID` header.
 - **Configuration/secret/environment impact:** None. Zero secrets added; no changes to configuration schema.
 - **Seed/data migration impact:** None.
 - **Worker/storage/queue impact:** None.
@@ -95,6 +97,8 @@ List each negative/edge case before positive cases. If a standard case is irrele
 | Non-existent route (404) | API contract | 404 Not Found, `not_found`, has correlationId | RED (empty 404 without ProblemDetails) | PASS (404, `not_found`, correlationId) |
 | Unsupported API version | API contract | 400 Bad Request, `unsupported_api_version`, has correlationId | RED (returned 500 / 404 without version middleware) | PASS (400, `unsupported_api_version`, problem+json) |
 | Invalid / multi-value correlation header | API contract | Ignored; server issues a new valid UUID | RED (X-Correlation-ID missing) | PASS (new valid UUID generated, not echoed raw) |
+| POST JSON to GET-only endpoint (405) | API contract | 405 Method Not Allowed, `method_not_allowed`, correlationId | RED (code extension missing in ProblemDetails) | PASS (405, `method_not_allowed`, matching correlationId) |
+| POST text/plain to JSON-only endpoint (415) | API contract | 415 Unsupported Media Type, `unsupported_media_type`, correlationId | RED (code extension missing in ProblemDetails) | PASS (415, `unsupported_media_type`, matching correlationId) |
 | Unauthorized / wrong project | Service/API | N/A — No business authorization in P1-01 (owned by P1-12) | N/A | N/A |
 | Invalid transition / prerequisite | Domain/service | N/A — No domain workflows in P1-01 | N/A | N/A |
 | Duplicate retry / idempotency | Integration/worker | N/A — No state-mutating commands in P1-01 | N/A | N/A |
@@ -125,13 +129,15 @@ List each negative/edge case before positive cases. If a standard case is irrele
 | `git rev-parse HEAD` | 0 | f2008c25c7b5c76e0065370ad66c387f4a6022a8 | 2026-09-17T01:40:50+07:00 |
 | `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01"` | 1 | RED run: 1 passed, 11 failed (contract failures observed) | 2026-09-17T01:54:48+07:00 |
 | `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01"` | 0 | GREEN run: 12 passed, 0 failed, 0 skipped | 2026-09-17T02:06:44+07:00 |
-| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up-to-date for restore | 2026-09-17T02:07:38+07:00 |
-| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 0 errors, 0 warnings | 2026-09-17T02:08:14+07:00 |
-| `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01" --no-build` | 0 | 12 passed, 0 failed, 0 skipped | 2026-09-17T02:08:41+07:00 |
-| `dotnet test tests/RoadGuardSystem.ApiTests --no-build` | 0 | 14 passed (12 P1-01 + 2 P1-00), 0 failed | 2026-09-17T02:09:03+07:00 |
-| `dotnet test RoadGuardSystem.slnx --no-build` | 0 | 90 passed (33 Unit, 14 Api, 43 Integration), 0 failed | 2026-09-17T02:09:47+07:00 |
-| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting across solution | 2026-09-17T02:10:20+07:00 |
-| `git diff --check` | 0 | No whitespace errors | 2026-09-17T02:10:43+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01"` | 1 | Review finding RED run: 2 failed (405/415 code missing), 12 passed | 2026-09-17T03:47:59+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01"` | 0 | Review finding GREEN run: 14 passed (9 negative + 5 positive) | 2026-09-17T03:48:16+07:00 |
+| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up-to-date for restore | 2026-09-17T03:49:00+07:00 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 0 errors, 0 warnings | 2026-09-17T03:49:15+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01" --no-build` | 0 | 14 passed, 0 failed, 0 skipped | 2026-09-17T03:49:30+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests --no-build` | 0 | 16 passed (14 P1-01 + 2 P1-00), 0 failed | 2026-09-17T03:49:45+07:00 |
+| `dotnet test RoadGuardSystem.slnx --no-build` | 0 | 92 passed (33 Unit, 16 Api, 43 Integration), 0 failed | 2026-09-17T03:50:15+07:00 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting across solution | 2026-09-17T03:50:30+07:00 |
+| `git diff --check` | 0 | No whitespace errors | 2026-09-17T03:50:40+07:00 |
 
 ---
 
@@ -144,8 +150,12 @@ List each negative/edge case before positive cases. If a standard case is irrele
   - Request with invalid JSON -> HTTP 400 `application/problem+json` with `code: "validation_error"`, matching `correlationId`, zero stack traces
   - Request with unhandled exception -> HTTP 500 `application/problem+json` with `code: "internal_error"`, matching `correlationId`, generic title/detail, zero internal leak
   - Request with unsupported API version `/api/v99.0/...` -> HTTP 400 `application/problem+json` with `code: "unsupported_api_version"`
+  - POST JSON to GET-only endpoint `/api/v1/probe/ok` -> HTTP 405 `application/problem+json` with `code: "method_not_allowed"`, matching `correlationId`
+  - POST text/plain to JSON-only endpoint `/api/v1/probe/validate` -> HTTP 415 `application/problem+json` with `code: "unsupported_media_type"`, matching `correlationId`
 - **Known gaps, skipped tests, and reason:** Business authorization, persistence, concurrency, and audit tests skipped because P1-01 is strictly HTTP platform foundation without domain entities or database.
 - **Residual risks:** None.
-- **Reviewer findings and resolution:** Pending review by Person 2.
+- **Reviewer findings and resolution:**
+  - Finding: ProblemDetails customizer only mapped codes for 400, 404, and 5xx; framework errors 405 and 415 lacked the `code` extension, compromising machine-readability of error envelopes.
+  - Resolution: Added `method_not_allowed` and `unsupported_media_type` to `ApiErrorCodes`, updated `CustomizeProblemDetails` in `ServiceCollectionExtensions` to handle 405 and 415, added negative-first contract tests, and verified all tests pass.
 - **Exact next task/action:** P1-02 (ADRs and API error-code naming policy).
-- **Final status:** Ready for review
+- **Final status:** Ready for re-review

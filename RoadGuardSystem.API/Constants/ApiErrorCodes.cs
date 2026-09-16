@@ -10,4 +10,6 @@ public static class ApiErrorCodes
     public const string UnsupportedApiVersion = "unsupported_api_version";
     public const string NotFound = "not_found";
     public const string InternalError = "internal_error";
+    public const string MethodNotAllowed = "method_not_allowed";
+    public const string UnsupportedMediaType = "unsupported_media_type";
 }

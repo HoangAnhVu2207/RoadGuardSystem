@@ -214,4 +214,64 @@ public sealed class ProblemDetailsNegativeTests : IDisposable
         Guid.TryParse(returnedId, out _).Should().BeTrue(
             because: "server must emit a single valid UUID");
     }
+
+    [Fact(DisplayName = "POST to GET-only endpoint returns 405 problem+json with method_not_allowed and matching correlationId")]
+    public async Task PostToGetOnlyEndpoint_Returns405_ProblemDetails_WithMethodNotAllowed()
+    {
+        // ARRANGE - POST JSON to GET-only /api/v1/probe/ok
+        using var content = new StringContent("{}", Encoding.UTF8, "application/json");
+
+        // ACT
+        var response = await _client.PostAsync("/api/v1/probe/ok", content);
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.MethodNotAllowed,
+            because: "HTTP 405 errors must have the exact literal code method_not_allowed");
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId,
+            because: "X-Correlation-ID header must match the body correlationId");
+    }
+
+    [Fact(DisplayName = "POST text/plain to JSON-only endpoint returns 415 problem+json with unsupported_media_type and matching correlationId")]
+    public async Task PostTextPlainToJsonEndpoint_Returns415_ProblemDetails_WithUnsupportedMediaType()
+    {
+        // ARRANGE - POST text/plain to JSON-expecting /api/v1/probe/validate
+        using var content = new StringContent("invalid text plain body", Encoding.UTF8, "text/plain");
+
+        // ACT
+        var response = await _client.PostAsync("/api/v1/probe/validate", content);
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.UnsupportedMediaType);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.UnsupportedMediaType,
+            because: "HTTP 415 errors must have the exact literal code unsupported_media_type");
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId,
+            because: "X-Correlation-ID header must match the body correlationId");
+    }
 }

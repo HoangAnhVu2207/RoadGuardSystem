@@ -65,6 +65,18 @@ public static class ServiceCollectionExtensions
                         context.ProblemDetails.Extensions["code"] = ApiErrorCodes.ValidationError;
                     }
                 }
+                else if (context.ProblemDetails.Status == StatusCodes.Status405MethodNotAllowed)
+                {
+                    context.ProblemDetails.Title ??= "Method Not Allowed";
+                    context.ProblemDetails.Type ??= "https://tools.ietf.org/html/rfc9110#section-15.5.6";
+                    context.ProblemDetails.Extensions["code"] = ApiErrorCodes.MethodNotAllowed;
+                }
+                else if (context.ProblemDetails.Status == StatusCodes.Status415UnsupportedMediaType)
+                {
+                    context.ProblemDetails.Title ??= "Unsupported Media Type";
+                    context.ProblemDetails.Type ??= "https://tools.ietf.org/html/rfc9110#section-15.5.16";
+                    context.ProblemDetails.Extensions["code"] = ApiErrorCodes.UnsupportedMediaType;
+                }
 
                 // Security invariant: Purge any stack trace, internal exception type, or machine path
                 context.ProblemDetails.Extensions.Remove("exception");

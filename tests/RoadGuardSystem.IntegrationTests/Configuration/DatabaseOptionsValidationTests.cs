@@ -66,6 +66,37 @@ public sealed class DatabaseOptionsValidationTests
         result.FailureMessage.Should().Contain("TrustServerCertificate");
     }
 
+    [Fact(DisplayName = "Negative: Encrypt=false in production options is strictly forbidden")]
+    public void Encrypt_False_In_Production_Fails_Validation()
+    {
+        var options = new RoadGuardDatabaseOptions
+        {
+            ConnectionString = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=false;TrustServerCertificate=false",
+            IsProduction = true
+        };
+
+        var result = _validator.Validate(null, options);
+
+        result.Failed.Should().BeTrue("Encrypt=false must be rejected in production configuration");
+        result.FailureMessage.Should().Contain("Encrypt");
+    }
+
+    [Fact(DisplayName = "Negative: EnableSensitiveDataLogging=true in production options is strictly forbidden")]
+    public void EnableSensitiveDataLogging_In_Production_Fails_Validation()
+    {
+        var options = new RoadGuardDatabaseOptions
+        {
+            ConnectionString = "Server=sql.production.internal;Database=RoadGuard;User Id=app;Password=secret;Encrypt=true;TrustServerCertificate=false",
+            IsProduction = true,
+            EnableSensitiveDataLogging = true
+        };
+
+        var result = _validator.Validate(null, options);
+
+        result.Failed.Should().BeTrue("EnableSensitiveDataLogging=true must be rejected in production configuration to protect PII");
+        result.FailureMessage.Should().Contain("SensitiveDataLogging");
+    }
+
     [Fact(DisplayName = "Negative: ValidateOrThrow throws on invalid options immediately")]
     public void ValidateOrThrow_Throws_Immediately_On_Invalid_Options()
     {

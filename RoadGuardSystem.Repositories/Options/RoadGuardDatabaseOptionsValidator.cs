@@ -41,11 +41,27 @@ public sealed class RoadGuardDatabaseOptionsValidator : IValidateOptions<RoadGua
             return ValidateOptionsResult.Fail("ConnectionString must specify an Initial Catalog / Database name.");
         }
 
-        if (options.IsProduction && builder.TrustServerCertificate)
+        if (options.IsProduction)
         {
-            return ValidateOptionsResult.Fail(
-                "TrustServerCertificate=true is strictly forbidden in production database configuration. " +
-                "Production SQL Server connections must use a trusted certificate.");
+            if (builder.TrustServerCertificate)
+            {
+                return ValidateOptionsResult.Fail(
+                    "TrustServerCertificate=true is strictly forbidden in production database configuration. " +
+                    "Production SQL Server connections must use a trusted certificate.");
+            }
+
+            if (!builder.Encrypt)
+            {
+                return ValidateOptionsResult.Fail(
+                    "Encrypt=false is strictly forbidden in production database configuration. " +
+                    "Production SQL Server connections must enforce encrypted transport.");
+            }
+
+            if (options.EnableSensitiveDataLogging)
+            {
+                return ValidateOptionsResult.Fail(
+                    "EnableSensitiveDataLogging=true is strictly forbidden in production configuration to protect PII.");
+            }
         }
 
         if (options.CommandTimeoutSeconds <= 0)

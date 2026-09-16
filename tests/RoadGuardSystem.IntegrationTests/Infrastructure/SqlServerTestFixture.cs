@@ -8,11 +8,11 @@ namespace RoadGuardSystem.IntegrationTests.Infrastructure;
 /// <summary>
 /// Manages isolated SQL Server test databases for integration tests.
 /// Supports runtime connection via:
-/// 1. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING environment variable
+/// 1. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING environment variable (strictly enforced without fallback if set)
 /// 2. Detected local SQL Server instance (e.g. MSSQL$HANHNAV)
 /// 3. Testcontainers MsSql container (when Docker daemon is active)
 /// If no SQL Server instance can be reached, throws SqlTestEnvironmentUnavailableException (no false-green).
-/// Guarantees database cleanup in DisposeAsync.
+/// Guarantees database cleanup in DisposeAsync without swallowing teardown failures.
 /// </summary>
 public sealed class SqlServerTestFixture : IAsyncLifetime
 {
@@ -23,6 +23,12 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
 
     public string DatabaseName => _databaseName ?? throw new InvalidOperationException("Fixture has not been initialized.");
     public string ConnectionString => _databaseConnectionString ?? throw new InvalidOperationException("Fixture has not been initialized.");
+    public string MasterConnectionString => _masterConnectionString ?? throw new InvalidOperationException("Fixture has not been initialized.");
+
+    public void CorruptMasterConnectionStringForTesting(string corruptedConn)
+    {
+        _masterConnectionString = corruptedConn;
+    }
 
     public async Task InitializeAsync()
     {
@@ -68,6 +74,8 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        Exception? dbCleanupException = null;
+
         if (_masterConnectionString is not null && _databaseName is not null)
         {
             try
@@ -83,39 +91,70 @@ BEGIN
 END";
                 await cmd.ExecuteNonQueryAsync();
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort cleanup in dispose
+                dbCleanupException = ex;
             }
         }
 
+        // Guarantee container cleanup runs even if database cleanup threw an exception
         if (_container is not null)
         {
             try
             {
                 await _container.DisposeAsync();
             }
-            catch
+            catch (Exception containerEx)
             {
-                // Best effort container cleanup
+                if (dbCleanupException is not null)
+                {
+                    throw new AggregateException(
+                        "Both database cleanup and container disposal failed during test fixture teardown.",
+                        dbCleanupException,
+                        containerEx);
+                }
+                throw;
             }
+        }
+
+        // Re-throw database drop errors so cleanup failures are observed by test runner (no false-green)
+        if (dbCleanupException is not null)
+        {
+            throw new InvalidOperationException(
+                $"Failed to drop isolated test database '{_databaseName}': {dbCleanupException.Message}",
+                dbCleanupException);
         }
     }
 
     private async Task<string> ResolveMasterConnectionStringAsync()
     {
-        // 1. Check environment variable
+        // 1. Check environment variable: if configured, must succeed without fallback
         var envConn = Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
         if (!string.IsNullOrWhiteSpace(envConn))
         {
-            if (await CanConnectAsync(envConn))
+            SqlConnectionStringBuilder builder;
+            try
             {
-                var builder = new SqlConnectionStringBuilder(envConn) { InitialCatalog = "master" };
-                return builder.ConnectionString;
+                builder = new SqlConnectionStringBuilder(envConn) { InitialCatalog = "master" };
             }
+            catch (Exception ex)
+            {
+                throw new SqlTestEnvironmentUnavailableException(
+                    $"ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING was specified but is malformed: {ex.Message}. " +
+                    "Refusing fallback to local SQL or Docker to maintain deterministic test configuration.", ex);
+            }
+
+            if (!await CanConnectAsync(builder.ConnectionString))
+            {
+                throw new SqlTestEnvironmentUnavailableException(
+                    "ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING was specified but could not connect to SQL Server. " +
+                    "Refusing fallback to local SQL Server or Docker to prevent unintended test execution context.");
+            }
+
+            return builder.ConnectionString;
         }
 
-        // 2. Check local running SQL Server instances
+        // 2. Check local running SQL Server instances (only when env var is not set)
         var localCandidates = new[]
         {
             @"Server=.\HANHNAV;Database=master;Integrated Security=True;TrustServerCertificate=True",

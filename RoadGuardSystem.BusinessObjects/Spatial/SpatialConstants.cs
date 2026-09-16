@@ -1,7 +1,8 @@
-namespace RoadGuardSystem.Repositories.Spatial;
+namespace RoadGuardSystem.BusinessObjects.Spatial;
 
 /// <summary>
 /// Spatial reference system identifiers (SRIDs) for RoadGuard per Data Dictionary v1 sections 2.4 & 2.5.
+/// Domain invariant definitions owned by BusinessObjects.
 /// </summary>
 public static class SpatialConstants
 {

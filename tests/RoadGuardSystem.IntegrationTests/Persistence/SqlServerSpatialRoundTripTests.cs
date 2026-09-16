@@ -2,28 +2,23 @@ using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
+using RoadGuardSystem.BusinessObjects.Spatial;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
-using RoadGuardSystem.Repositories.Spatial;
 using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Persistence;
 
 [Trait("TaskId", "P2-00")]
-public sealed class SqlServerSpatialRoundTripTests : IAsyncLifetime
+public sealed class SqlServerSpatialRoundTripTests : IClassFixture<SqlServerTestFixture>
 {
-    private readonly SqlServerTestFixture _fixture = new();
+    private readonly SqlServerTestFixture _fixture;
     private static readonly GeometryFactory Srid4326Factory = new(new PrecisionModel(), SpatialConstants.GpsGeographySrid);
     private static readonly GeometryFactory Srid32648Factory = new(new PrecisionModel(), SpatialConstants.UtmZone48NSrid);
     private static readonly GeometryFactory Srid32649Factory = new(new PrecisionModel(), SpatialConstants.UtmZone49NSrid);
 
-    public async Task InitializeAsync()
+    public SqlServerSpatialRoundTripTests(SqlServerTestFixture fixture)
     {
-        await _fixture.InitializeAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        await _fixture.DisposeAsync();
+        _fixture = fixture;
     }
 
     [Fact(DisplayName = "Positive: Fixture creates isolated, collision-safe database with unique name")]
@@ -167,10 +162,8 @@ WHERE c.object_id = OBJECT_ID('SpatialProbeRecords')
         // ACT: Dispose the fixture
         await tempFixture.DisposeAsync();
 
-        // ASSERT: Query master sys.databases to confirm database was dropped
-        await using var masterConn = new SqlConnection(_fixture.ConnectionString);
-        var builder = new SqlConnectionStringBuilder(_fixture.ConnectionString) { InitialCatalog = "master" };
-        masterConn.ConnectionString = builder.ConnectionString;
+        // ASSERT: Query master sys.databases on the exact same instance to confirm database was dropped
+        await using var masterConn = new SqlConnection(tempFixture.MasterConnectionString);
         await masterConn.OpenAsync();
 
         await using var cmd = masterConn.CreateCommand();

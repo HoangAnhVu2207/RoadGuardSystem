@@ -32,4 +32,42 @@ public sealed class SqlServerDiagnosticTests
         ex.Message.Should().Contain("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING",
             because: "the diagnostic exception message should guide developers on how to configure the connection string");
     }
+
+    [Fact(DisplayName = "Negative: Configured env var when unreachable fails immediately without fallback")]
+    public async Task Configured_EnvVar_When_Unreachable_FailsFast_Without_Fallback()
+    {
+        var originalEnv = Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
+        try
+        {
+            // Set invalid/unreachable connection string
+            Environment.SetEnvironmentVariable(
+                "ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING",
+                "Server=127.0.0.1,59998;Database=master;User Id=sa;Password=FakePassword123!;Connect Timeout=1;TrustServerCertificate=True");
+
+            var fixture = new SqlServerTestFixture();
+            var act = () => fixture.InitializeAsync();
+
+            var ex = await act.Should().ThrowAsync<SqlTestEnvironmentUnavailableException>(
+                "unreachable ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING must fail fast and not fallback to local SQL or Docker");
+            ex.WithMessage("*ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING*refusing fallback*");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING", originalEnv);
+        }
+    }
+
+    [Fact(DisplayName = "Negative: Cleanup failure is observed and not swallowed")]
+    public async Task Cleanup_Failure_Is_Observed_And_Not_Swallowed()
+    {
+        var fixture = new SqlServerTestFixture();
+        await fixture.InitializeAsync();
+
+        // Simulate corrupted master connection string prior to dispose
+        fixture.CorruptMasterConnectionStringForTesting("Server=127.0.0.1,59997;Database=master;Connect Timeout=1;TrustServerCertificate=True");
+
+        var act = () => fixture.DisposeAsync();
+
+        await act.Should().ThrowAsync<Exception>("cleanup failure must not be swallowed; test runner must observe teardown errors");
+    }
 }

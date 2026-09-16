@@ -1,10 +1,10 @@
 using NetTopologySuite.Geometries;
 
-namespace RoadGuardSystem.Repositories.Spatial;
+namespace RoadGuardSystem.BusinessObjects.Spatial;
 
 /// <summary>
 /// Domain validation rules for spatial geometry and geography per RoadGuard specifications
-/// (Data Dictionary v1 sections 2.4 & 2.5).
+/// (Data Dictionary v1 sections 2.4 & 2.5). Owned by BusinessObjects layer.
 /// </summary>
 public static class SpatialValidation
 {

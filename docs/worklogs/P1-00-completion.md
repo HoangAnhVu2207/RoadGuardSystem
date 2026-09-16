@@ -129,6 +129,25 @@
 
 ---
 
+## Review-Fix Round 3 (2026-09-17) — Preserve Spatial Integration and Branch Scope
+
+### Finding 1 (High) — Branch scope polluted with P2-00 artifact
+- **Root cause:** Branch `anh` included commit `5b16560` which added `docs/worklogs/P2-00-completion.md`. That artifact belongs to P2-00 (Person 2 / branch `huy`), which maintains a separate version. Leaving it on `anh` pollutes the P1-00 merge diff into `develop` and causes an add/add merge conflict.
+- **Resolution:**
+  - Removed `docs/worklogs/P2-00-completion.md` from branch `anh` via explicit cleanup commit without history rewrite (no rebase/reset/revert).
+  - Verified `git diff develop..HEAD -- docs/worklogs/P2-00-completion.md` is completely empty (zero net merge diff into `develop`).
+  - `git diff origin/anh..HEAD` records the deletion of the erroneously tracked file on `anh`.
+
+### Finding 2 (High) — AllowedBusinessObjectsPackages false-fails on P2-00 NetTopologySuite
+- **Root cause:** Round 2 established a strict `AllowedBusinessObjectsPackages` allow-list containing solely `Microsoft.Extensions.Identity.Stores`. P2-00 legitimately introduces `NetTopologySuite` into `BusinessObjects` for spatial domain primitives and invariants. Without updating the allow-list, merging `anh` and `huy` would trigger an architecture test false-failure.
+- **Resolution:**
+  - Added negative fixture test `BusinessObjects_Allows_IdentityStores_And_NetTopologySuite` proving that `NetTopologySuite` was initially rejected by the allow-list (RED).
+  - Added `NetTopologySuite` to `AllowedBusinessObjectsPackages` in `DependencyGraphChecker.cs` with explicit documentation attributing ownership to P2-00 for spatial domain invariants and geometry models.
+  - Kept all forbidden package checks (EF Core, ASP.NET Core transport, JWT packages) and transitive EF Core gates strictly enforced.
+  - Verified all 33 unit tests and 2 API tests turn GREEN.
+
+---
+
 ## Files Changed
 
 | Change | File | Purpose |
@@ -146,13 +165,13 @@
 | Modified | `RoadGuardSystem.Repositories/Commons/ApiResult.cs` | Fixed 2x CS8618 warnings using `required` modifier (F4) |
 | Modified | `RoadGuardSystem.API/Program.cs` | Added minimal ASP.NET Core startup and `public partial class Program {}` (F8) |
 | Modified | `RoadGuardSystem.slnx` | Registered test projects in solution |
-| Added | `tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj` | xUnit + FluentAssertions + coverlet test project |
-| Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs` | Preserves unmapped ProjectReferences; enforces BusinessObjects zero-reference and unmapped project rules; expands forbidden prefixes to transport/JWT; parses resolved packages from project.assets.json |
-| Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs` | Added negative tests for unmapped ProjectReferences, direct transport packages, transitive EF Core, and missing assets; updated BuildProductionGraph; added transitive EF production test |
+| Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs` | Preserves unmapped ProjectReferences; enforces BusinessObjects zero-reference and unmapped project rules; expands forbidden prefixes to transport/JWT; parses resolved packages from project.assets.json; includes NetTopologySuite in allow-list for P2-00 |
+| Modified | `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs` | Added negative tests for unmapped ProjectReferences, direct transport packages, transitive EF Core, missing assets, and NetTopologySuite allow-list; updated BuildProductionGraph; added transitive EF production test |
 | Added | `tests/RoadGuardSystem.UnitTests/Smoke/BusinessObjectsSmokeTests.cs` | Smoke tests for BusinessObjects assembly |
 | Added | `tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj` | xUnit + WebApplicationFactory API test project |
 | Added | `tests/RoadGuardSystem.ApiTests/Startup/ApiStartupTests.cs` | API startup & pipeline smoke tests |
-| Updated | `docs/worklogs/P1-00-completion.md` | Documented Round 2 review findings, red-to-green evidence, and updated gate commands; retained F3/F5 as open |
+| Deleted | `docs/worklogs/P2-00-completion.md` | Removed from branch `anh` to clean branch scope and prevent merge conflict with branch `huy` (Finding 1) |
+| Updated | `docs/worklogs/P1-00-completion.md` | Documented Round 3 review findings, red-to-green evidence, and updated gate commands; retained F3/F5 as open |
 ---
 
 ## Negative-First Evidence
@@ -227,21 +246,41 @@ Prior to implementing fixes for Findings 1, 2, and 3, five negative fixture test
   Passed! - Failed: 0, Passed: 32, Skipped: 0, Total: 32 - RoadGuardSystem.UnitTests.dll (net8.0)
   ```
 
+### 4. Review-Fix Round 3 Red-to-Green Evidence (2026-09-17)
+Prior to modifying `AllowedBusinessObjectsPackages`, the new spatial package allow-list test was executed:
+- **Command:** `dotnet test tests/RoadGuardSystem.UnitTests --filter "DisplayName=BusinessObjects allows both Identity Stores and NetTopologySuite spatial package"`
+- **Exit Code:** 1
+- **Observed RED failure:**
+  ```
+  Failed BusinessObjects allows both Identity Stores and NetTopologySuite spatial package [50 ms]
+    Error Message:
+     Expected allViolations to be empty because BusinessObjects allows Microsoft.Extensions.Identity.Stores (P1-00) and NetTopologySuite (P2-00) for spatial domain invariants, but found at least one item {"PACKAGE VIOLATION in BusinessObjects: 'NetTopologySuite' is not in the explicit allow-list"}.
+  ```
+- **Implementation:**
+  - Updated `AllowedBusinessObjectsPackages` in `DependencyGraphChecker.cs` to include `"NetTopologySuite"` with an explicit ownership comment attributing it to P2-00 for spatial domain invariants and geometry calculations.
+  - Retained strict forbidden prefixes (`Microsoft.EntityFrameworkCore`, `Microsoft.AspNetCore`, `System.IdentityModel`, `Microsoft.IdentityModel`, `System.Net.Http`) and transitive EF Core validation without relaxing any boundaries.
+  - Removed `docs/worklogs/P2-00-completion.md` from branch `anh` to eliminate artifact pollution and prevent add/add merge conflicts with branch `huy`.
+- **Observed GREEN pass:**
+  ```
+  Passed! - Failed: 0, Passed: 33, Skipped: 0, Total: 33 - RoadGuardSystem.UnitTests.dll (net8.0)
+  ```
+
 ---
 
-## Positive Evidence (Latest Gate Run — Round 2)
+## Positive Evidence (Latest Gate Run — Round 3)
 
-All 7 gate commands executed cleanly:
+All 8 gate commands executed cleanly:
 
 | # | Command | Exit Code | Result | Timestamp (UTC+7) |
 |---|---|---:|---|---|
-| 1 | `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up-to-date for restore | 2026-09-17 00:06 |
-| 2 | `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | **0 Warning(s), 0 Error(s)** | 2026-09-17 00:07 |
-| 3 | `dotnet test tests/RoadGuardSystem.UnitTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 32**, Failed: 0, Skipped: 0 | 2026-09-17 00:07 |
-| 4 | `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 2**, Failed: 0, Skipped: 0 | 2026-09-17 00:07 |
-| 5 | `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting verified | 2026-09-17 00:08 |
-| 6 | `dotnet test RoadGuardSystem.slnx --no-build` | 0 | **Passed: 34**, Failed: 0, Skipped: 0 (Unit: 32, API: 2) | 2026-09-17 00:08 |
-| 7 | `git diff --check` | 0 | Clean whitespace verified | 2026-09-17 00:08 |
+| 1 | `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up-to-date for restore | 2026-09-17 00:40 |
+| 2 | `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | **0 Warning(s), 0 Error(s)** | 2026-09-17 00:40 |
+| 3 | `dotnet test tests/RoadGuardSystem.UnitTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 33**, Failed: 0, Skipped: 0 | 2026-09-17 00:41 |
+| 4 | `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-00" --no-build` | 0 | **Passed: 2**, Failed: 0, Skipped: 0 | 2026-09-17 00:41 |
+| 5 | `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting verified | 2026-09-17 00:41 |
+| 6 | `dotnet test RoadGuardSystem.slnx --no-build` | 0 | **Passed: 35**, Failed: 0, Skipped: 0 (Unit: 33, Api: 2) | 2026-09-17 00:41 |
+| 7 | `git diff --check` | 0 | Clean whitespace verified | 2026-09-17 00:41 |
+| 8 | `git diff --name-status origin/anh..HEAD` | 0 | Clean scope: M for checker/tests/completion, D for P2-00 artifact | 2026-09-17 00:42 |
 
 ### Git bootstrap evidence (Baseline)
 
@@ -275,7 +314,7 @@ ApiTests  ──> API (WebApplicationFactory<Program>)
 ```
 
 ### Package Reference Boundaries:
-- `BusinessObjects`: Pure domain abstractions (`Microsoft.Extensions.Identity.Stores` for `IdentityUser<Guid>` and `IdentityRole<Guid>`). Zero EF Core dependencies (direct or transitive). Zero transport dependencies. Enforced via explicit allow-list and `project.assets.json` inspection.
+- `BusinessObjects`: Pure domain abstractions (`Microsoft.Extensions.Identity.Stores` for `IdentityUser<Guid>` / `IdentityRole<Guid>`, and `NetTopologySuite` for P2-00 spatial geometry/geography domain primitives). Zero EF Core dependencies (direct or transitive). Zero transport dependencies. Enforced via explicit allow-list and `project.assets.json` inspection.
 - `DTOs`: Pure contracts. Zero EF Core, HTTP, or persistence dependencies.
 - `Repositories`: `Microsoft.EntityFrameworkCore` (v8.0.17) for `PagedList.cs`. SQL Server and NetTopologySuite to be added in P2-00.
 
@@ -298,7 +337,9 @@ ApiTests  ──> API (WebApplicationFactory<Program>)
 - [x] Finding 1 (Round 2): Unmapped `ProjectReference` from `BusinessObjects` or other layers preserved and rejected
 - [x] Finding 2 (Round 2): Direct transport and JWT packages forbidden in `BusinessObjects`; explicit allow-list enforced
 - [x] Finding 3 (Round 2): Resolved package graph (`project.assets.json`) verified free of transitive EF Core dependencies
-- [x] Round 2 gate: All 7 commands pass with 0 errors and 0 warnings (34/34 tests passed)
+- [x] Finding 1 (Round 3): `docs/worklogs/P2-00-completion.md` removed from branch `anh` scope; zero net diff against `develop`
+- [x] Finding 2 (Round 3): `NetTopologySuite` included in `AllowedBusinessObjectsPackages` with P2-00 spatial ownership comment; verified red-to-green
+- [x] Round 3 gate: All 8 commands pass with 0 errors and 0 warnings (35/35 tests passed)
 
 Repository owner decision (2026-09-16):
 Temporarily accepts SDK 10.0.401 for building the existing net8.0 target.
@@ -314,6 +355,10 @@ Temporary use is accepted by the repository owner, but closure remains deferred 
 
 - **Known gaps:** F3 now has a Git baseline/diff but still requires Person 2 review; F5 has no P1-02 ADR or P2-01 CI proof.
 - **Residual risks:** The current SDK 10.0.401 / net8.0 combination is build-proven only on this machine; independent CI reproducibility is not yet established.
-- **Reviewer findings and resolution:** Architecture gate false greens (Findings 1, 2, 3) are resolved with red-to-green test evidence. F3/F5 remain explicitly open.
-- **Exact next action:** Person 2 re-reviews Round 2 commit diff on branch `anh`. Complete the SDK policy under P1-02 and CI proof under P2-01.
+- **Reviewer findings and resolution:**
+  - Round 2 architecture false greens (Findings 1–3) resolved with red-to-green test evidence.
+  - Round 3 branch scope (Finding 1) cleaned up: `docs/worklogs/P2-00-completion.md` removed from branch `anh` (zero net diff against `develop`).
+  - Round 3 spatial integration (Finding 2) resolved: `NetTopologySuite` added to `AllowedBusinessObjectsPackages` with P2-00 spatial ownership comment.
+  - F3/F5 remain explicitly open; final status remains `Changes requested`.
+- **Exact next action:** Person 2 re-reviews Round 3 commit diff on branch `anh`. Complete the SDK policy under P1-02 and CI proof under P2-01.
 - **Final status:** `Changes requested`

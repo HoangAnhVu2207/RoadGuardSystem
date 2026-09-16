@@ -582,6 +582,32 @@ public sealed class DependencyGraphTests
             .WithMessage("*dotnet restore*");
     }
 
+    [Fact(DisplayName = "BusinessObjects allows both Identity Stores and NetTopologySuite spatial package")]
+    public void BusinessObjects_Allows_IdentityStores_And_NetTopologySuite()
+    {
+        // ARRANGE — Valid package set for BusinessObjects including P2-00 NetTopologySuite
+        var validPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Microsoft.Extensions.Identity.Stores",
+            "NetTopologySuite",
+        };
+
+        // ACT — Check forbidden prefixes and explicit allow-list
+        var forbiddenViolations = FindForbiddenPackages(
+            "BusinessObjects", validPackages, ForbiddenBusinessObjectsPackagePrefixes);
+
+        var allowListViolations = validPackages
+            .Where(p => !AllowedBusinessObjectsPackages.Contains(p))
+            .Select(p => $"PACKAGE VIOLATION in BusinessObjects: '{p}' is not in the explicit allow-list")
+            .ToList();
+
+        var allViolations = forbiddenViolations.Concat(allowListViolations).ToList();
+
+        // ASSERT — Both packages must be permitted without violations
+        allViolations.Should().BeEmpty(
+            because: "BusinessObjects allows Microsoft.Extensions.Identity.Stores (P1-00) and NetTopologySuite (P2-00) for spatial domain invariants");
+    }
+
     // ===========================================================================
     // PHASE 2 (F1/F2) — PRODUCTION package boundary tests
     //

@@ -233,11 +233,14 @@ public static class DependencyGraphChecker
 
     /// <summary>
     /// Explicit allow-list of permitted direct packages in BusinessObjects.
+    /// P1-00 owns Microsoft.Extensions.Identity.Stores (pure Identity models without EF).
+    /// P2-00 owns NetTopologySuite (spatial geometry/geography domain primitives and invariants).
     /// </summary>
     public static readonly IReadOnlySet<string> AllowedBusinessObjectsPackages =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Microsoft.Extensions.Identity.Stores",
+            "NetTopologySuite", // P2-00: spatial domain models and geometry calculations
         };
 
     /// <summary>

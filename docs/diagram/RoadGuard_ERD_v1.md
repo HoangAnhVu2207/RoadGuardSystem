@@ -247,6 +247,7 @@ erDiagram
         uuid id PK
         uuid user_id FK
         datetime issued_at
+        json device_metadata_json
         datetime expires_at
         datetime revoked_at
     }
@@ -1008,3 +1009,6 @@ Quan he giua `DATA_RETENTION_REQUEST` va `LEGAL_HOLD` la kiem tra lien aggregate
 8. `MEASUREMENT_VALIDATION_SAMPLE` phai ghep ground truth va derived measurement cung `sample_id`, `measurement_type` va don vi tuong thich.
 9. Research Validation khong tu tao/chuyen trang thai `DEFECT` va khong ket luan trach nhiem `WARRANTY`.
 10. Duyet xoa du lieu phai kiem tra `LEGAL_HOLD` active theo pham vi truoc khi thuc thi.
+11. `User.role_code` la role toan he thong authoritative; JWT role chi la snapshot va phai duoc doi chieu voi du lieu server tren moi request.
+12. Voi non-Supervisor trong MVP, `ProjectMember.role_code` phai khop `User.role_code`, membership phai active/con hieu luc va thuoc dung project cua resource.
+13. Thay doi role phat `UserRoleChanged`, ghi audit va thu hoi toan bo `SESSION`/`REFRESH_TOKEN` dang active trong cung transaction; thay doi membership co hieu luc ngay o request ke tiep.

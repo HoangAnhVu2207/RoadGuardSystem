@@ -33,14 +33,15 @@ Mã truy vết: `UD-01` (audit log riêng), `UD-02` (Warranty), `UD-03` (Quality
 ### `User` [R]
 - Không có entity con transactional.
 - **Invariant:**
-  - `role` ∈ {Supervisor, PM, DroneOperator, RepairCrew}, không đổi tùy tiện (US-01 mục 3: "không thể tự đổi vai trò").
+  - `User.role_code` là role toàn hệ thống authoritative và thuộc {Supervisor, PM, DroneOperator, RepairCrew}; người dùng không được tự đổi vai trò (US-01 mục 3).
   - `status = Suspended` → không đăng nhập được, không đặt lại mật khẩu được (US-01 mục 6).
   - Đặt lại mật khẩu → bắt buộc đổi mật khẩu ở lần đăng nhập kế tiếp (US-01 mục 6).
-- **Domain Events:** `UserSuspended` (kích hoạt tạo danh sách bàn giao việc — quy tắc 17), `UserPasswordReset` (kích hoạt thu hồi toàn bộ Session).
+- **Domain Events:** `UserSuspended` (kích hoạt tạo danh sách bàn giao việc — quy tắc 17), `UserPasswordReset` (kích hoạt thu hồi toàn bộ Session), `UserRoleChanged` (ghi audit và thu hồi toàn bộ Session/RefreshToken trong cùng transaction trước khi role mới có hiệu lực).
 
 ### `Session` [R]
 - Tham chiếu `user_id`.
-- **Invariant:** phải bị thu hồi khi logout, hết hạn, hoặc khi `User.PasswordReset`/`Suspended` xảy ra (US-01 mục 2, mục 6) — **cross-aggregate: Session phải lắng nghe event từ User**.
+- Ghi nhận `issued_at`; có thể lưu `device_metadata_json` nullable theo schema ứng dụng đã version hóa. Metadata là write-once, không chứa secret/token, không trả qua API nghiệp vụ/public, không ghi log và không được dùng thay cho kiểm tra session, role hoặc `ProjectMember` phía server.
+- **Invariant:** phải bị thu hồi khi logout, hết hạn, hoặc khi `User.PasswordReset`/`Suspended`/`UserRoleChanged` xảy ra (US-01, US-17) — **cross-aggregate: Session phải lắng nghe event từ User**. Mỗi request phải đối chiếu JWT role claim với `User.role_code`; mismatch phải fail closed và thu hồi token family.
 
 ### `Notification` [R]
 - Tham chiếu `recipient_user_id` + `source_entity_type/id` (đọc, không phải nghiệp vụ nên polymorphic ref chấp nhận được ở đây, khác với `Evidence`).
@@ -67,6 +68,7 @@ Mã truy vết: `UD-01` (audit log riêng), `UD-02` (Warranty), `UD-03` (Quality
 - **Invariant:**
   - `project_code` duy nhất (US-03 mục 1).
   - Đúng 1 `ProjectMember` với `role = PM` đang active tại một thời điểm (US-03 mục 5, quy tắc 2 Use Case).
+  - Với non-Supervisor trong MVP, `ProjectMember.role_code` phải bằng `User.role_code` hiện tại. Membership phải `ACTIVE`, nằm trong `valid_from`/`valid_to`, thuộc đúng project của resource và thỏa policy thao tác; thay đổi membership có hiệu lực ngay ở request kế tiếp.
   - `status = Closed` → chặn tác nghiệp thông thường, giữ nguyên lịch sử (US-03 mục 7).
 - **Domain Events:** `ProjectMemberReassigned` (kích hoạt `Notification`).
 

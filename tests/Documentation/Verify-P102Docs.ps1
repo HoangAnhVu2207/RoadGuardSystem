@@ -19,8 +19,19 @@ $adr001 = Join-Path $RepoRoot "docs\adr\001-backend-boundary.md"
 $adr002 = Join-Path $RepoRoot "docs\adr\002-authentication.md"
 $apiErrors = Join-Path $RepoRoot "docs\api-errors.md"
 $worklog = Join-Path $RepoRoot "docs\worklogs\P1-02-completion.md"
+$dataDictionary = Join-Path $RepoRoot "docs\diagram\RoadGuard_Data_Dictionary_v1.md"
+$erd = Join-Path $RepoRoot "docs\diagram\RoadGuard_ERD_v1.md"
+$domainModel = Join-Path $RepoRoot "docs\diagram\RoadGuard_Domain_Model_v1.md"
+$useCases = Join-Path $RepoRoot "docs\diagram\Dac_ta_UseCase_v2.md"
+$userStories = Join-Path $RepoRoot "docs\diagram\User_Stories_Acceptance_Criteria_v2.md"
+$person1Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_1.md"
+$person2Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_2.md"
 
-$docs = @($adr001, $adr002, $apiErrors, $worklog)
+$docs = @(
+    $adr001, $adr002, $apiErrors, $worklog,
+    $dataDictionary, $erd, $domainModel, $useCases, $userStories,
+    $person1Plan, $person2Plan
+)
 
 # 1. Verify existence of required files
 foreach ($doc in $docs) {
@@ -102,6 +113,8 @@ $adr002Content = Get-Content $adr002 -Raw
 # In SelfTestNegative mode, simulate an injected invalid mapping to verify verifier failure detection
 if ($SelfTestNegative) {
     $adr002Content = $adr002Content -replace [regex]::Escape("CN01 (Login / Logout)"), "CN02 (Logout)"
+    $adr002Content = $adr002Content -replace [regex]::Escape("device_metadata_json"), "created_at"
+    $adr002Content = $adr002Content -replace [regex]::Escape("UserRoleChanged"), "RoleChangeIgnored"
 }
 
 $adr002Headings = @(
@@ -123,7 +136,8 @@ $exactMappings = @(
     "CN02 (Profile)",
     "CN03 (Assigned Project / Work Scope)",
     "CN10 (Password Reset)",
-    "QT01 (Account Suspension)"
+    "QT01 (Account Suspension)",
+    "QT02 (Role and Project Access Management)"
 )
 foreach ($map in $exactMappings) {
     if ($adr002Content -notmatch [regex]::Escape($map)) {
@@ -158,7 +172,7 @@ foreach ($code in $requiredRoleCodes) {
 
 # Task ownership validation
 $adr002OwnershipRequirements = @(
-    "P1-00", "P2-10", "P1-10", "P1-11", "P1-12",
+    "P1-00", "P2-10", "P1-10", "P1-11", "P1-12", "P1-64", "P2-11",
     "Section 3.1",
     "internally provisioned credentials",
     "JWT Bearer + Rotating Opaque Refresh-Token Model",
@@ -177,6 +191,95 @@ foreach ($req in $adr002OwnershipRequirements) {
 if ($adr002Content -match "session entities.*P1-00\s*/\s*P1-11" -or
     $adr002Content -match "P1-00\s*/\s*P1-11.*session entities") {
     $errors += "ADR 002 incorrectly assigns session entities to P1-00 / P1-11 instead of P2-10"
+}
+
+# Session schema compatibility decision approved by the Product Owner on 2026-09-17.
+$dataDictionaryContent = Get-Content $dataDictionary -Raw
+$erdContent = Get-Content $erd -Raw
+$domainModelContent = Get-Content $domainModel -Raw
+$useCasesContent = Get-Content $useCases -Raw
+$userStoriesContent = Get-Content $userStories -Raw
+$person1PlanContent = Get-Content $person1Plan -Raw
+$person2PlanContent = Get-Content $person2Plan -Raw
+
+$sessionContractDocuments = @(
+    @{ Name = "ADR 002"; Content = $adr002Content },
+    @{ Name = "Data Dictionary"; Content = $dataDictionaryContent },
+    @{ Name = "ERD"; Content = $erdContent },
+    @{ Name = "Domain Model"; Content = $domainModelContent }
+)
+
+foreach ($document in $sessionContractDocuments) {
+    foreach ($requiredToken in @("issued_at", "device_metadata_json")) {
+        if ($document.Content -notmatch [regex]::Escape($requiredToken)) {
+            $errors += "$($document.Name) missing approved Session contract token: '$requiredToken'"
+        }
+    }
+}
+
+foreach ($requiredToken in @("nvarchar(max)", "ISJSON", "application-level schema validation")) {
+    if ($dataDictionaryContent -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "Data Dictionary missing Session device metadata requirement: '$requiredToken'"
+    }
+    if ($adr002Content -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "ADR 002 missing Session device metadata requirement: '$requiredToken'"
+    }
+}
+
+if ($adr002Content -match '(?i)Session[^\r\n]*`created_at`') {
+    $errors += "ADR 002 must use Session.issued_at and must not redefine the issuance timestamp as Session.created_at"
+}
+
+# Product Owner authorization decision approved on 2026-09-17.
+foreach ($requiredToken in @(
+    "User.role_code",
+    "ProjectMember.role_code",
+    "UserRoleChanged",
+    "authoritative",
+    "role claim mismatch"
+)) {
+    if ($adr002Content -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "ADR 002 missing approved authorization authority requirement: '$requiredToken'"
+    }
+}
+
+foreach ($document in @(
+    @{ Name = "Data Dictionary"; Content = $dataDictionaryContent },
+    @{ Name = "ERD"; Content = $erdContent },
+    @{ Name = "Domain Model"; Content = $domainModelContent }
+)) {
+    foreach ($requiredToken in @("User.role_code", "ProjectMember.role_code", "UserRoleChanged")) {
+        if ($document.Content -notmatch [regex]::Escape($requiredToken)) {
+            $errors += "$($document.Name) missing approved authorization invariant token: '$requiredToken'"
+        }
+    }
+}
+
+foreach ($document in @(
+    @{ Name = "Use Case"; Content = $useCasesContent },
+    @{ Name = "User Stories"; Content = $userStoriesContent }
+)) {
+    foreach ($requiredToken in @("có hiệu lực ngay", "thu hồi toàn bộ phiên")) {
+        if ($document.Content -notmatch [regex]::Escape($requiredToken)) {
+            $errors += "$($document.Name) missing approved immediate authorization-change rule: '$requiredToken'"
+        }
+    }
+}
+
+foreach ($plan in @(
+    @{ Name = "Person 1 plan"; Content = $person1PlanContent },
+    @{ Name = "Person 2 plan"; Content = $person2PlanContent }
+)) {
+    foreach ($requiredToken in @(
+        "device_metadata_json",
+        "P2-10",
+        "UserRoleChanged",
+        "ProjectMember.role_code"
+    )) {
+        if ($plan.Content -notmatch [regex]::Escape($requiredToken)) {
+            $errors += "$($plan.Name) missing approved Session/authorization ownership token: '$requiredToken'"
+        }
+    }
 }
 
 # 6. Validate api-errors.md content
@@ -216,7 +319,8 @@ $worklogRequirements = @(
     "Verify-P102Docs.ps1",
     "001-backend-boundary.md", "002-authentication.md", "api-errors.md",
     "8 projects",
-    "21 integration tests",
+    "43 integration tests",
+    "104 solution tests",
     "Docker"
 )
 foreach ($req in $worklogRequirements) {

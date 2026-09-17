@@ -109,7 +109,7 @@ Trong Data Dictionary, trường `GEOMETRY(...)` là kiểu logic; DDL SQL Serve
 | `email` | VARCHAR(254) | Có | UQ khi có | PROP | Email nhận thông báo/khôi phục. |
 | `display_name` | VARCHAR(200) | Không |  | SRC | Tên hiển thị. |
 | `password_hash` | TEXT | Không |  | PROP | Hash mật khẩu; không bao giờ trả về API/log. |
-| `role_code` | ENUM | Không | FK `Role.code` | SRC | Một trong bốn vai trò hệ thống. |
+| `role_code` | ENUM | Không | FK `Role.code` | SRC | Vai trò toàn hệ thống authoritative, một trong bốn mã chuẩn. Chỉ Supervisor/Admin được đổi; thay đổi phát `UserRoleChanged`, ghi audit và thu hồi toàn bộ phiên/token đang hoạt động. |
 | `status` | ENUM | Không |  | SRC | `ACTIVE`, `SUSPENDED`, `PENDING`; suspended chặn đăng nhập/reset. |
 | `must_change_password` | BOOLEAN | Không |  | SRC | Đặt `true` sau reset bắt buộc đổi ở lần đăng nhập kế tiếp. |
 | `last_login_at` | TIMESTAMPTZ | Có |  | PROP | Lần đăng nhập thành công gần nhất. |
@@ -131,13 +131,16 @@ Trong Data Dictionary, trường `GEOMETRY(...)` là kiểu logic; DDL SQL Serve
 | `Session` | `id` | UUID | Không | PK | Phiên đăng nhập. |
 | `Session` | `user_id` | UUID | Không | FK `User.id` | Chủ phiên. |
 | `Session` | `issued_at` | TIMESTAMPTZ | Không |  | Thời điểm cấp. |
+| `Session` | `device_metadata_json` | `nvarchar(max)` | Có | `CHECK (device_metadata_json IS NULL OR ISJSON(device_metadata_json) = 1)` | Metadata thiết bị tại thời điểm cấp phiên; write-once, không dùng làm tín hiệu authorization và phải qua application-level schema validation. |
 | `Session` | `expires_at` | TIMESTAMPTZ | Không |  | Thời điểm hết hạn. |
-| `Session` | `revoked_at` | TIMESTAMPTZ | Có |  | Thu hồi khi logout, reset password hoặc suspend. |
+| `Session` | `revoked_at` | TIMESTAMPTZ | Có |  | Thu hồi khi logout, reset password, suspend, phát hiện replay hoặc thay đổi `User.role_code`. |
 | `RefreshToken` | `id` | UUID | Không | PK | Định danh token record. |
 | `RefreshToken` | `session_id` | UUID | Không | FK `Session.id` | Token thuộc phiên. |
 | `RefreshToken` | `token_hash` | TEXT | Không | UQ | Chỉ lưu hash, không lưu token plaintext. |
 | `RefreshToken` | `expires_at` | TIMESTAMPTZ | Không |  | Hạn token. |
 | `RefreshToken` | `revoked_at` | TIMESTAMPTZ | Có |  | Thời điểm thu hồi. |
+
+Khi `Session.device_metadata_json` khác null, application-level schema validation phải chấp nhận duy nhất JSON object phiên bản 1 gồm `schema_version = 1` và các string field tùy chọn `device_id`, `platform`, `app_version`; từ chối unknown properties, non-object JSON, secret, password, access token và refresh token. Các giới hạn độ dài do options/schema cấu hình, không hard-code trong domain. Metadata được phân loại ít nhất là `INTERNAL`, có thể chứa PII tùy nguồn, không trả qua API nghiệp vụ/public, không ghi log và không được sửa sau khi tạo Session.
 
 #### `PasswordResetLog` — nhật ký reset mật khẩu (giữ riêng)
 
@@ -204,11 +207,13 @@ Không thêm `password`, `password_hash`, reset token hoặc secret vào entity 
 | `id` | UUID | Không | PK | Bản ghi phân quyền dự án. |
 | `project_id` | UUID | Không | FK `Project.id` | Dự án được gán. |
 | `user_id` | UUID | Không | FK `User.id` | Người được gán. |
-| `role_code` | ENUM | Không | FK `Role.code` | Vai trò trong dự án. |
+| `role_code` | ENUM | Không | FK `Role.code` | Vai trò authoritative trong dự án. Trong MVP, với non-Supervisor phải bằng `User.role_code` hiện tại và phù hợp policy của thao tác. |
 | `is_primary` | BOOLEAN | Không |  | Đánh dấu PM chính; mỗi dự án tối đa một bản ghi active. |
 | `valid_from` | DATE | Không |  | Ngày hiệu lực. |
 | `valid_to` | DATE | Có |  | Ngày hết hiệu lực. |
 | `status` | ENUM | Không |  | `ACTIVE`, `ENDED`. |
+
+Quy tắc authorization MVP: `User.role_code` là nguồn vai trò toàn hệ thống; `ProjectMember.role_code` là nguồn quyền trong project và phải khớp `User.role_code` đối với non-Supervisor. Supervisor chỉ được miễn membership sau khi backend tải và xác nhận role hiện tại từ kho dữ liệu. Thay đổi role toàn hệ thống phát `UserRoleChanged` và thu hồi toàn bộ Session/RefreshToken trong cùng transaction; thay đổi, hết hạn hoặc kết thúc `ProjectMember` có hiệu lực ngay ở request kế tiếp vì backend kiểm tra membership phía server, không tin role/project claim của client. Mọi thay đổi phải ghi `AuditLog` append-only.
 
 #### `RoadSection` và `RoadSectionVersion`
 

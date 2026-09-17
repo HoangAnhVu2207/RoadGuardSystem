@@ -93,7 +93,7 @@ Là một người dùng nội bộ (Supervisor, PM, Drone Operator hoặc Repai
 1. **Đăng nhập và phiên làm việc**
    - **Given** tài khoản đang hoạt động và mật khẩu đúng
    - **When** người dùng đăng nhập
-   - **Then** hệ thống tạo phiên, nhận diện đúng vai trò và chỉ tải các dự án/công việc thuộc phạm vi quyền.
+   - **Then** hệ thống tạo phiên, nhận diện đúng vai trò hiện tại từ server và chỉ tải các dự án/công việc thuộc membership active, còn hiệu lực và đúng vai trò.
    - Nếu tài khoản không tồn tại, bị ngừng sử dụng, mật khẩu sai hoặc phiên hết hạn, hệ thống từিসে chối truy cập và không tiết lộ thông tin nhạy cảm.
 2. **Đăng xuất và hết hạn phiên**
    - **When** người dùng đăng xuất hoặc phiên hết hạn
@@ -580,7 +580,9 @@ Là Supervisor (Admin), tôi muốn quản lý vòng đời tài khoản, quyề
    - **Then** hệ thống thu hồi phiên, chặn đăng nhập mới, giữ lịch sử, lập danh sách việc cần bàn giao và thông báo người có quyền phân công lại.
    - Không tự hủy, tự hoàn tất hoặc xóa bản nháp/công việc đang mở.
 3. **Phân quyền**
-   - Admin cấp/sửa quyền dự án theo vai trò; PM/Drone Operator/Repair Crew không xem được dữ liệu ngoài phạm vi.
+   - Admin cấp/sửa quyền dự án theo vai trò; thay đổi được audit và có hiệu lực ngay. PM/Drone Operator/Repair Crew không xem được dữ liệu ngoài membership active, còn hiệu lực và đúng vai trò.
+   - Khi Admin đổi role toàn hệ thống, hệ thống thu hồi toàn bộ phiên và refresh token trong cùng transaction; JWT role cũ không tiếp tục cấp quyền.
+   - Khi quyền project bị đổi, hết hạn hoặc kết thúc, request kế tiếp phải bị kiểm tra theo membership hiện tại phía server; client claim không được dùng thay thế.
 4. **Danh mục**
    - Admin thêm hoặc ngừng sử dụng loại lỗi; mục cũ không bị xóa khỏi lịch sử.
 5. **Quy tắc phân mức**

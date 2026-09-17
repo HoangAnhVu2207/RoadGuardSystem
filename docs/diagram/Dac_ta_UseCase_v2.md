@@ -91,9 +91,9 @@ Có các nhóm tổng quan, được phân rã thành các mục trong sơ đồ
 
 | Mã | Chức năng | Tác nhân trực tiếp | Quy tắc / kết quả |
 |---|---|---|---|
-| CN01 | Đăng nhập / đăng xuất | Supervisor; PM; Drone Operator; Repair Crew | Tài khoản do Admin cấp; phiên đăng nhập xác định vai trò và quyền dự án. Phiên hết hạn hoặc mật khẩu đã đặt lại (CN10) thì phải đăng nhập lại. |
+| CN01 | Đăng nhập / đăng xuất | Supervisor; PM; Drone Operator; Repair Crew | Tài khoản do Admin cấp; phiên đăng nhập mang snapshot vai trò nhưng backend phải đối chiếu vai trò và quyền dự án hiện tại phía server trên mỗi request. Phiên hết hạn, mật khẩu đã đặt lại (CN10), tài khoản bị suspend hoặc role toàn hệ thống thay đổi thì thu hồi toàn bộ phiên/token và phải đăng nhập lại. |
 | CN02 | Xem và cập nhật hồ sơ cá nhân | Supervisor; PM; Drone Operator; Repair Crew | Chỉnh thông tin cá nhân; không tự thay đổi vai trò hay quyền dự án. |
-| CN03 | Xem dự án và công việc trong phạm vi được giao | Supervisor; PM; Drone Operator; Repair Crew | Supervisor xem toàn bộ; các vai trò khác chỉ xem dữ liệu được phân công. |
+| CN03 | Xem dự án và công việc trong phạm vi được giao | Supervisor; PM; Drone Operator; Repair Crew | Supervisor chỉ xem toàn bộ sau khi role hiện tại được xác nhận từ server; các vai trò khác chỉ xem dữ liệu có membership active, còn hiệu lực, đúng project và đúng vai trò được phân công. Không tin project/role claim do client gửi. |
 | CN04 | Xem thông báo và nhắc việc | Supervisor; PM; Drone Operator; Repair Crew | Hiển thị thông báo phù hợp vai trò: khảo sát, kết quả, duyệt, sửa lại, từ chối/hủy nhiệm vụ, phân công lại, đến hạn bảo hành. |
 | CN05 | Lưu công việc và bản đồ phục vụ ngoại tuyến | Drone Operator; Repair Crew | Chuẩn bị dữ liệu đã được phép truy cập để tra cứu khi mất mạng; phạm vi bản đồ phụ thuộc dữ liệu đã tải. |
 | CN06 | Lưu bản nháp và bằng chứng khi không có mạng | Drone Operator; Repair Crew | Lưu dữ liệu trong bộ nhớ ứng dụng và hiển thị trạng thái chưa đồng bộ. |
@@ -226,7 +226,7 @@ Có các nhóm tổng quan, được phân rã thành các mục trong sơ đồ
 | Mã | Chức năng | Tác nhân trực tiếp | Quy tắc / kết quả |
 |---|---|---|---|
 | QT01 | Tạo, cập nhật và ngừng sử dụng tài khoản | Supervisor (Admin) | Không xóa lịch sử hành động khi tài khoản ngừng sử dụng. Khi ngừng mà còn việc mở: liệt kê việc cần bàn giao, thông báo PM/Supervisor; phân công lại theo quy tắc 17. |
-| QT02 | Quản lý vai trò và quyền truy cập dự án | Supervisor (Admin) | Phân quyền theo bốn vai trò; thay đổi quyền được ghi nhật ký. |
+| QT02 | Quản lý vai trò và quyền truy cập dự án | Supervisor (Admin) | Phân quyền theo bốn vai trò; thay đổi quyền được ghi nhật ký và có hiệu lực ngay. Đổi role toàn hệ thống phải thu hồi toàn bộ phiên/refresh token trong cùng transaction; đổi, hết hạn hoặc kết thúc quyền project phải được guard server-side áp dụng từ request kế tiếp. |
 | QT03 | Quản lý danh mục loại lỗi | Supervisor (Admin) | Ngừng sử dụng mục cũ thay vì làm mất dữ liệu lịch sử. |
 | QT04 | Quản lý bộ quy tắc phân mức và dung sai có phiên bản | Supervisor (Admin) | Cố định quy tắc vận hành theo chuẩn đã chọn và loại mặt đường; thay phiên bản phải lưu căn cứ. |
 | QT05 | Cấu hình nhắc khảo sát và nhắc trước hạn bảo hành | Supervisor (Admin) | Quản lý giá trị mặc định, nhắc định kỳ và mốc sắp hết hạn; không tự áp dụng thời hạn pháp lý chưa xác minh. |

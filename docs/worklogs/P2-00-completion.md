@@ -2,11 +2,11 @@
 
 ## Identity and scope
 
-- **Task ID/title:** P2-00 / SQL Server + NetTopologySuite spatial persistence foundation
+- **Task ID/title:** P2-00 / SQL Server + NetTopologySuite spatial persistence foundation & dependency security remediation
 - **Owner / reviewer:** Person 2 (Huy) / Person 1 (Anh)
-- **Date / branch or commit:** 2026-09-16 / `huy` / baseline commit `c48be5d` / input commit `07ca766`
+- **Date / branch or commit:** 2026-09-17 / `huy` / baseline commit `9451632`
 - **Trace (`US-*`, use case, acceptance criteria):** TE-01 / TE-09 (Technical Enabler — persistence and spatial infrastructure; no business use case)
-- **Status:** Ready for re-review
+- **Status:** Ready for cross-review
 
 ### In-scope behavior
 
@@ -78,6 +78,35 @@
 
 ---
 
+## Dependency Security Remediation (GHSA-q939-rpr3-3284 / CVE-2026-48798)
+
+- **Vulnerability Details:**
+  - Advisory: [GHSA-q939-rpr3-3284](https://github.com/advisories/GHSA-q939-rpr3-3284)
+  - CVE: CVE-2026-48798
+  - Severity: High (CVSS 7.1)
+  - Description: Path traversal vulnerability in `SSH.NET` `ScpClient.Download` recursive download method allowing malicious/compromised servers to overwrite arbitrary files outside intended destination.
+  - Affected versions: `SSH.NET < 2026.0.0`
+  - Fixed version: `SSH.NET 2026.0.0`
+- **Dependency Paths (Before vs After):**
+  - **Before:**
+    `tests/RoadGuardSystem.IntegrationTests.csproj`
+    └── `Testcontainers.MsSql 3.10.0`
+        └── `Testcontainers 3.10.0`
+            └── `SSH.NET 2023.0.0` (**Vulnerable**, Severity: High)
+  - **After:**
+    `tests/RoadGuardSystem.IntegrationTests.csproj`
+    └── `Testcontainers.MsSql 4.15.0`
+        └── `Testcontainers 4.15.0`
+            └── `SSH.NET 2026.0.0` (**Remediated**, 0 vulnerable packages)
+- **Integration Fixture API Adjustment:**
+  `Testcontainers.MsSql 4.15.0` obsoleted parameterless `MsSqlBuilder()` constructor (CS0618) which triggers compiler error under `TreatWarningsAsErrors=true`. Explicit image `mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04` was passed to the constructor. This retains the exact pre-cached Testcontainers 3.x baseline image in local Docker, avoids unneeded multi-gigabyte downloads, and strictly adheres to net8.0 compatibility.
+- **Dependency Security Gate:**
+  Added reusable script `tests/Security/Verify-DependencySecurity.ps1` that automates `dotnet list <ProjectPath> package --vulnerable --include-transitive` and fails fast with non-zero exit code upon encountering any High/Critical advisory.
+- **Recovery / Downgrade Note:**
+  If `Testcontainers.MsSql 4.15.0` must ever be downgraded to `3.10.0`, revert `RoadGuardSystem.IntegrationTests.csproj` and `SqlServerTestFixture.cs`, and add an explicit direct package reference `<PackageReference Include="SSH.NET" Version="2026.0.0" />` to keep `GHSA-q939-rpr3-3284` remediated.
+
+---
+
 ## Existing Orphaned Databases Notice & Cleanup Script
 
 During investigation, 6 lingering test databases created prior to this harden pass were detected on the local SQL Server instance:
@@ -108,21 +137,31 @@ foreach ($db in $dbs) {
 
 ---
 
-## Files changed
+## Files changed (21 files in diff from merge-base develop)
 
 | Change | File | Purpose |
 |---|---|---|
-| Modified | `RoadGuardSystem.BusinessObjects/Spatial/SpatialConstants.cs` | Realized AllowedProjectUtmSrids as FrozenSet<int> exposed as IReadOnlySet<int>; added IsAllowedProjectUtmSrid |
-| Modified | `RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptions.cs` | Removed IsProduction property to prevent untrusted configuration binding |
-| Modified | `RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptionsValidator.cs` | Validates production security rules based on explicit isProduction parameter |
-| Modified | `RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs` | Added isProduction parameter defaulting to true from composition root |
-| Modified | `tests/RoadGuardSystem.IntegrationTests/Infrastructure/SqlServerTestFixture.cs` | Decoupled container ownership, injected env accessor, removed hardcoded fallbacks, guaranteed container disposal in finally |
-| Modified | `tests/RoadGuardSystem.IntegrationTests/Configuration/DatabaseOptionsValidationTests.cs` | Added test proving configuration cannot bypass production security via IsProduction=false |
-| Modified | `tests/RoadGuardSystem.IntegrationTests/Spatial/SpatialInvariantTests.cs` | Added test verifying AllowedProjectUtmSrids is truly immutable (mutation throws NotSupportedException) |
-| Modified | `tests/RoadGuardSystem.IntegrationTests/Persistence/SpatialPersistenceNegativeTests.cs` | Tightened assertions to exact exception types/messages; added direct raw SQL constraint tests |
-| Modified | `tests/RoadGuardSystem.IntegrationTests/Persistence/SqlServerDiagnosticTests.cs` | Added deterministic tests for unset/empty/whitespace/malformed/unreachable env var; safe cleanup failure test |
-| Modified | `tests/RoadGuardSystem.IntegrationTests/Persistence/SqlServerSpatialRoundTripTests.cs` | Updated Database_Is_Dropped_On_Fixture_Dispose to use sub-fixture on active server |
-| Modified | `docs/worklogs/P2-00-completion.md` | Recorded re-review findings, resolutions, exact gate commands, timestamps, and zero-leak verification |
+| Modified | `RoadGuardSystem.BusinessObjects/RoadGuardSystem.aBusinessObjects.csproj` | Added NetTopologySuite and package configuration for BusinessObjects |
+| Added | `RoadGuardSystem.BusinessObjects/Spatial/SpatialConstants.cs` | Realized AllowedProjectUtmSrids as FrozenSet<int> exposed as IReadOnlySet<int>; added IsAllowedProjectUtmSrid |
+| Added | `RoadGuardSystem.BusinessObjects/Spatial/SpatialValidation.cs` | Domain validation rules for GPS geography (SRID 4326) and Engineering geometry (UTM SRID 32648/32649) |
+| Added | `RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs` | Added isProduction parameter defaulting to true from composition root |
+| Added | `RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptions.cs` | Removed IsProduction property to prevent untrusted configuration binding |
+| Added | `RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptionsValidator.cs` | Validates production security rules based on explicit isProduction parameter |
+| Added | `RoadGuardSystem.Repositories/RoadGuardDbContext.cs` | EF Core DbContext with NetTopologySuite support and base configuration for RoadGuard persistence |
+| Modified | `RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj` | Added EF Core SQL Server and NetTopologySuite package references |
+| Modified | `RoadGuardSystem.slnx` | Solution configuration registering all solution projects and dependencies |
+| Added | `docs/worklogs/P2-00-completion.md` | Recorded vulnerability remediation, negative-first scan/gate evidence, dependency paths before/after, gate commands, and review handoff |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Configuration/DatabaseOptionsValidationTests.cs` | Added test proving configuration cannot bypass production security via IsProduction=false |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Infrastructure/SpatialProbeDbContext.cs` | Test DbContext modeling spatial probe records for geography/geometry persistence testing |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Infrastructure/SpatialProbeRecord.cs` | Test entity containing GPS location (geography 4326), Engineering geometry (geometry UTM SRID), and project SRID |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Infrastructure/SqlServerTestFixture.cs` | Specified explicit cached SQL Server 2019 image in MsSqlBuilder constructor (CS0618 compliance); decoupled container ownership, injected env accessor, removed hardcoded fallbacks, guaranteed container disposal in finally |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Infrastructure/SqlTestEnvironmentUnavailableException.cs` | Typed exception for SQL Server environment unavailable diagnostics |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Persistence/SpatialPersistenceNegativeTests.cs` | Tightened assertions to exact exception types/messages; added direct raw SQL constraint tests |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Persistence/SqlServerDiagnosticTests.cs` | Added deterministic tests for unset/empty/whitespace/malformed/unreachable env var; safe cleanup failure test |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Persistence/SqlServerSpatialRoundTripTests.cs` | Updated Database_Is_Dropped_On_Fixture_Dispose to use sub-fixture on active server |
+| Added | `tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj` | Upgraded Testcontainers.MsSql from 3.10.0 to 4.15.0 to remediate SSH.NET GHSA-q939-rpr3-3284 |
+| Added | `tests/RoadGuardSystem.IntegrationTests/Spatial/SpatialInvariantTests.cs` | Added test verifying AllowedProjectUtmSrids is truly immutable (mutation throws NotSupportedException) |
+| Added | `tests/Security/Verify-DependencySecurity.ps1` | Reusable JSON-based dependency security gate with internal parser, strict schema validation, and 12-case regression suite (-SelfTest) |
 
 ---
 
@@ -162,6 +201,18 @@ foreach ($db in $dbs) {
 | Configured env var when malformed fails immediately without fallback | IntegrationTests/Infrastructure | `SqlTestEnvironmentUnavailableException` ("malformed") | PASS |
 | Configured env var when unreachable fails immediately without fallback | IntegrationTests/Infrastructure | `SqlTestEnvironmentUnavailableException` ("could not connect...refusing fallback") | PASS |
 | Cleanup failure is observed and does not leak test database | IntegrationTests/Infrastructure | `InvalidOperationException` thrown; database dropped in finally | PASS |
+| `dotnet list ... package --vulnerable --include-transitive` (pre-fix baseline) | Tests/Dependencies | Flags `SSH.NET 2023.0.0` (High, GHSA-q939-rpr3-3284) | PASS (vulnerability detected) |
+| `tests/Security/Verify-DependencySecurity.ps1` (pre-fix baseline) | Security Gate | Exits with code 1; reports High advisory GHSA-q939-rpr3-3284 on SSH.NET 2023.0.0 | PASS (RED confirmed) |
+| Standard CLI rejects test-only `-JsonInput` parameter | Security Gate | Pre-fix: returned 0 with false SUCCESS; Post-fix: fails with exit code 1 (`NamedParameterNotFound`), no SUCCESS emitted | PASS (RED confirmed) |
+| `Verify-DependencySecurity.ps1 -ProjectPath AGENTS.md` (non-project path) | Security Gate | Exits with code 1; scanner error caught; does not print SUCCESS | PASS (RED confirmed) |
+| Schema: empty JSON object `{}` | Security Gate | Pre-fix: exited 0 with false SUCCESS; Post-fix: exits 1 ("missing or invalid schema version"), no SUCCESS | PASS (RED confirmed) |
+| Schema: missing version `{"projects":[{"path":"test.csproj"}]}` | Security Gate | Exits 1 ("missing or invalid schema version"), no SUCCESS | PASS (RED confirmed) |
+| Schema: empty projects array `{"version":1,"projects":[]}` | Security Gate | Pre-fix: exited 0 with false SUCCESS; Post-fix: exits 1 ("missing or empty 'projects' array"), no SUCCESS | PASS (RED confirmed) |
+| Schema: project missing path `{"version":1,"projects":[{}]}` | Security Gate | Pre-fix: exited 0 with false SUCCESS; Post-fix: exits 1 ("missing required 'path' property"), no SUCCESS | PASS (RED confirmed) |
+| Parser: corrupt JSON `{ invalid json ...` | Security Gate | Exits 1 ("Failed to parse vulnerability scanner JSON output"), no SUCCESS | PASS (RED confirmed) |
+| Parser: scanner problems array | Security Gate | Exits 1 ("Scanner reported problem(s)"), no SUCCESS | PASS (RED confirmed) |
+| Findings: topLevelPackages High/Critical blocked | Security Gate | Exits 1 ("Detected 1 vulnerable package(s) matching severities... [Top-level]"), no SUCCESS | PASS (RED confirmed) |
+| Findings: transitivePackages High/Critical blocked (`SSH.NET 2023.0.0`) | Security Gate | Exits 1 ("Detected 1 vulnerable package(s) matching severities... [Transitive]"), no SUCCESS | PASS (RED confirmed) |
 
 ---
 
@@ -180,6 +231,15 @@ foreach ($db in $dbs) {
 | Round-trip LineString with UTM SRID 32649 on real SQL Server | IntegrationTests | Persisted and queried back with exact coords and SRID 32649 | PASS |
 | SQL Server catalog column types confirmed via `sys.columns` | IntegrationTests | `GpsLocation` is `geography`, `EngineeringGeometry` is `geometry` | PASS |
 | Database is reliably dropped on fixture dispose | IntegrationTests | Confirmed database count in `sys.databases` on same instance is 0 after `DisposeAsync` | PASS |
+| `dotnet list ... package --vulnerable --include-transitive --no-restore` (post-fix) | Tests/Dependencies | `RoadGuardSystem.IntegrationTests has no vulnerable packages` | PASS |
+| `tests/Security/Verify-DependencySecurity.ps1` (post-fix standard run) | Security Gate | Exits with code 0; reports 0 vulnerable packages; SUCCESS emitted | PASS (GREEN confirmed) |
+| Real clean JSON without frameworks (clean scanner report) | Security Gate | Exits with code 0; SUCCESS emitted | PASS (GREEN confirmed) |
+| Clean JSON with frameworks and Low-only vulnerabilities | Security Gate | Exits with code 0; SUCCESS emitted | PASS (GREEN confirmed) |
+| `Verify-DependencySecurity.ps1 -SelfTest` (Full regression suite) | Security Gate | All 12 regression tests pass (12/12) | PASS (GREEN confirmed) |
+| Testcontainers isolated run after 4.15.0 upgrade | IntegrationTests | 43 passed, 0 failed in 14s | PASS |
+| Solution-wide tests after upgrade (Unit + API + Integration) | All test suites | 71 passed, 0 failed in 14s | PASS |
+| Code formatting verification | Solution | `dotnet format --verify-no-changes --no-restore` clean | PASS |
+| Git diff whitespace and conflict check | Solution | `git diff --check` clean | PASS |
 
 ---
 
@@ -199,6 +259,21 @@ foreach ($db in $dbs) {
 | `dotnet test RoadGuardSystem.slnx --no-build` | 0 | Gate 6: All 71 tests passed solution-wide (26 Unit, 2 Api, 43 Integration) | 2026-09-16T22:49:20 |
 | `git diff --check` | 0 | Gate 7: Clean diff check (no whitespace errors or conflict markers) | 2026-09-16T22:49:48 |
 | `powershell -Command "sqlcmd -S '.\HANHNAV' -E -Q 'SELECT name FROM sys.databases WHERE name LIKE ''RoadGuard_Test_%'''"` | 0 | Gate 8: Verified database count still exactly 6 after all gate executions | 2026-09-16T22:50:04 |
+| `dotnet list tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj package --vulnerable --include-transitive` | 0 | Remediation RED evidence: identified SSH.NET 2023.0.0 (High, GHSA-q939-rpr3-3284) | 2026-09-17T16:00:19 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1` | 1 | Remediation RED evidence: security gate fails fast and detects SSH.NET 2023.0.0 High | 2026-09-17T16:03:29 |
+| `dotnet restore RoadGuardSystem.slnx` | 0 | Restored solution with Testcontainers.MsSql 4.15.0; SSH.NET resolves to 2026.0.0 | 2026-09-17T16:03:41 |
+| `dotnet list tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj package --vulnerable --include-transitive --no-restore` | 0 | Remediation GREEN evidence: 0 vulnerable packages reported | 2026-09-17T16:03:48 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | Clean build with 0 errors and 0 warnings (CS0618 resolved by explicit image) | 2026-09-17T16:06:23 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1 -JsonInput "{}"` | 0 | RED regression finding: test-only parameter accepted by CLI, bypassed scanner with false SUCCESS | 2026-09-17T16:40:40 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1 -JsonInput "{}"` | 1 | GREEN regression verification: parameter removed; CLI rejects JsonInput (NamedParameterNotFound), no SUCCESS | 2026-09-17T16:42:11 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1 -ProjectPath AGENTS.md` | 1 | GREEN regression verification: non-project path fails scanner with code 1, prints FAILURE, no SUCCESS | 2026-09-17T16:42:14 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1 -SelfTest` | 0 | Hardened security gate regression suite: all 12 test cases pass | 2026-09-17T16:42:04 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1` | 0 | Standard JSON scan on IntegrationTests: 0 vulnerable dependencies, SUCCESS emitted | 2026-09-17T16:42:09 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | Verification clean build: 0 errors, 0 warnings | 2026-09-17T16:24:42 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Verification format check: clean (0 changes) | 2026-09-17T16:24:54 |
+| `powershell -Command "Remove-Item env:ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING -ErrorAction SilentlyContinue; dotnet test tests/RoadGuardSystem.IntegrationTests --filter 'TaskId=P2-00'"` | 0 | Testcontainers path rerun: 43 passed, 0 failed in 14s | 2026-09-17T16:25:20 |
+| `powershell -Command "Remove-Item env:ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING -ErrorAction SilentlyContinue; dotnet test RoadGuardSystem.slnx --no-build"` | 0 | Solution-wide test rerun: 71 passed, 0 failed across Unit, API, and Integration | 2026-09-17T16:25:46 |
+| `git diff --check` | 0 | Verification diff check: 0 errors | 2026-09-17T16:26:03 |
 
 ---
 
@@ -212,9 +287,10 @@ foreach ($db in $dbs) {
   5. Decoupled fixture lifecycle ensuring safe database dropping and teardown error observation with zero database leaks.
   6. Persistence-level validation in `SaveChangesAsync` and database CHECK constraints on SQL Server (`CK_SpatialProbeRecords_ProjectUtmSrid`, `CK_SpatialProbeRecords_GpsLocation_Srid`, `CK_SpatialProbeRecords_EngineeringGeometry_Srid`).
   7. Real SQL Server round-trip for geography and geometry columns on an isolated test database.
-- **Proven test environments:** Both local configured SQL Server (`ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING`) and dynamic Testcontainers MsSql container verified green with zero lingering databases.
+  8. Hardened JSON-based dependency vulnerability gate (`tests/Security/Verify-DependencySecurity.ps1`) with built-in regression test suite (`-SelfTest`), checking scanner exit code, topLevelPackages, and transitivePackages, fail-closed on corrupt output, and remediation of High advisory `GHSA-q939-rpr3-3284` via `Testcontainers.MsSql 4.15.0` (transitive `SSH.NET 2026.0.0`).
+- **Proven test environments:** Both local configured SQL Server (`ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` fail-fast validation) and dynamic Testcontainers MsSql container verified green with zero lingering databases.
 - **Known gaps, skipped tests, and reason:** None. Zero skipped tests.
-- **Residual risks:** Docker Desktop (for Testcontainers) or an accessible SQL Server instance is required to run `RoadGuardSystem.IntegrationTests`.
-- **Reviewer findings and resolution:** Findings RRF-1 through RRF-6 resolved and verified.
-- **Exact next task/action:** Hand off task `P2-00` follow-up commit to Person 1 for re-review.
-- **Final status:** `Ready for re-review`
+- **Residual risks:** Docker Desktop is required to run `RoadGuardSystem.IntegrationTests` when `ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` is unset. Upstream P1 projects (`RoadGuardSystem.API`, `RoadGuardSystem.Services`, `RoadGuardSystem.ApiTests`) retain independent transitive dependency `System.Security.Cryptography.Xml 8.0.2` which is outside Person 2 scope and tracked under P1-00/P1-01.
+- **Reviewer findings and resolution:** Findings RRF-1 through RRF-6 resolved and verified; GHSA-q939-rpr3-3284 remediated; gate script hardened with JSON parser, scanner exit-code assertion, and regression suite.
+- **Exact next task/action:** Hand off task `P2-00` updates to Person 1 for re-cross-review before Wave 0 merge into `develop`.
+- **Final status:** `Ready for cross-review`

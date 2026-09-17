@@ -74,13 +74,16 @@ public sealed class ApiPlatformPositiveTests : IDisposable
             because: "v1 OpenAPI document must describe versioned /api/v1/ routes");
     }
 
-    [Fact(DisplayName = "Request without correlation header is assigned a new valid UUID")]
+    [Fact(DisplayName = "Request without correlation header is assigned a new valid UUID and routes successfully to v1")]
     public async Task RequestWithoutCorrelationHeader_ReceivesNewValidUuid()
     {
         // ACT
         var response = await _client.GetAsync("/api/v1/probe/ok");
 
         // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            because: "GET /api/v1/probe/ok must route successfully and return HTTP 200 OK for supported v1");
+
         response.Headers.TryGetValues("X-Correlation-ID", out var values).Should().BeTrue(
             because: "server must attach X-Correlation-ID header to every response");
 

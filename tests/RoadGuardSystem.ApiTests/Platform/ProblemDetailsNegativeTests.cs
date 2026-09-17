@@ -148,16 +148,16 @@ public sealed class ProblemDetailsNegativeTests : IDisposable
         Guid.TryParse(correlationElement.GetString(), out _).Should().BeTrue();
     }
 
-    [Fact(DisplayName = "Unsupported API version is rejected consistently with 400 and unsupported_api_version (not 500)")]
-    public async Task UnsupportedApiVersion_Returns400_ProblemDetails_WithUnsupportedApiVersion()
+    [Fact(DisplayName = "Unsupported numeric API version with subpath /api/v99.0/probe/ok returns 400 problem+json with unsupported_api_version")]
+    public async Task UnsupportedApiVersion_WithSubpath_Returns400_ProblemDetails_WithUnsupportedApiVersion()
     {
-        // ACT - request nonexistent API version 99.0
+        // ACT - request nonexistent numeric API version 99.0 with subpath
         var response = await _client.GetAsync("/api/v99.0/probe/ok");
         var rawBody = await response.Content.ReadAsStringAsync();
 
         // ASSERT
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
-            because: "unsupported API version must be rejected cleanly with 400 Bad Request and not 500");
+            because: "unsupported numeric API version must be rejected cleanly with 400 Bad Request and not 404/500");
 
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
 
@@ -169,8 +169,225 @@ public sealed class ProblemDetailsNegativeTests : IDisposable
             because: "unsupported API version error must have code unsupported_api_version");
 
         root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
-        Guid.TryParse(correlationElement.GetString(), out _).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId);
+
+        rawBody.ToLowerInvariant().Should().NotContain("stacktrace");
+        rawBody.ToLowerInvariant().Should().NotContain("exception");
+        rawBody.Should().NotContain(":\\");
+        rawBody.Should().NotContain("at RoadGuardSystem");
+        rawBody.Should().NotContain(ProbeController.ExceptionSecretMessage);
     }
+
+    [Fact(DisplayName = "Unsupported numeric API version without trailing slash /api/v99.0 returns 400 problem+json with unsupported_api_version")]
+    public async Task UnsupportedApiVersion_ExactWithoutTrailingSlash_Returns400_ProblemDetails_WithUnsupportedApiVersion()
+    {
+        // ACT - request nonexistent numeric API version 99.0 without trailing slash
+        var response = await _client.GetAsync("/api/v99.0");
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            because: "exact unsupported numeric version /api/v99.0 must be rejected with 400 Bad Request");
+
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.UnsupportedApiVersion);
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId);
+
+        rawBody.ToLowerInvariant().Should().NotContain("stacktrace");
+        rawBody.ToLowerInvariant().Should().NotContain("exception");
+        rawBody.Should().NotContain(":\\");
+        rawBody.Should().NotContain("at RoadGuardSystem");
+        rawBody.Should().NotContain(ProbeController.ExceptionSecretMessage);
+    }
+
+    [Fact(DisplayName = "Unsupported numeric API version with trailing slash /api/v99.0/ returns identical 400 problem+json contract")]
+    public async Task UnsupportedApiVersion_ExactWithTrailingSlash_Returns400_ProblemDetails_WithUnsupportedApiVersion()
+    {
+        // ACT - request nonexistent numeric API version 99.0 with trailing slash
+        var response = await _client.GetAsync("/api/v99.0/");
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            because: "exact unsupported numeric version with trailing slash /api/v99.0/ must return identical 400 Bad Request contract");
+
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.UnsupportedApiVersion);
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId);
+
+        rawBody.ToLowerInvariant().Should().NotContain("stacktrace");
+        rawBody.ToLowerInvariant().Should().NotContain("exception");
+        rawBody.Should().NotContain(":\\");
+        rawBody.Should().NotContain("at RoadGuardSystem");
+        rawBody.Should().NotContain(ProbeController.ExceptionSecretMessage);
+    }
+
+    [Fact(DisplayName = "Non-numeric malformed version prefix such as /api/vabc/probe/ok bypasses version middleware and returns 404 not_found")]
+    public async Task NonNumericMalformedVersion_SuchAsVabc_BypassesVersionMiddleware_Returns404NotFound()
+    {
+        // ACT - non-numeric prefix does not match numeric version namespace
+        var response = await _client.GetAsync("/api/vabc/probe/ok");
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            because: "non-numeric malformed version prefixes must bypass version middleware and return 404 Not Found");
+
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.NotFound,
+            because: "bypassed non-numeric routes must return code not_found");
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId);
+
+        rawBody.ToLowerInvariant().Should().NotContain("stacktrace");
+        rawBody.ToLowerInvariant().Should().NotContain("exception");
+        rawBody.Should().NotContain(":\\");
+        rawBody.Should().NotContain("at RoadGuardSystem");
+        rawBody.Should().NotContain(ProbeController.ExceptionSecretMessage);
+    }
+
+    [Fact(DisplayName = "Empty version prefix such as /api/v/probe/ok bypasses version middleware and returns 404 not_found")]
+    public async Task EmptyVersionPrefix_SuchAsV_BypassesVersionMiddleware_Returns404NotFound()
+    {
+        // ACT - empty prefix '/v/' does not match numeric version namespace
+        var response = await _client.GetAsync("/api/v/probe/ok");
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            because: "empty version prefix /api/v/ must bypass version middleware and return 404 Not Found");
+
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.NotFound);
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId);
+
+        rawBody.ToLowerInvariant().Should().NotContain("stacktrace");
+        rawBody.ToLowerInvariant().Should().NotContain("exception");
+        rawBody.Should().NotContain(":\\");
+        rawBody.Should().NotContain("at RoadGuardSystem");
+        rawBody.Should().NotContain(ProbeController.ExceptionSecretMessage);
+    }
+
+    [Theory(DisplayName = "Boundary non-numeric routes such as /api/v1beta and /api/v1. bypass version middleware and return 404 not_found")]
+    [InlineData("/api/v1beta/probe/ok")]
+    [InlineData("/api/v1./probe/ok")]
+    [InlineData("/api/v1beta")]
+    [InlineData("/api/v1.")]
+    public async Task BoundaryMalformedVersions_BypassVersionMiddleware_Return404NotFound(string boundaryPath)
+    {
+        // ACT
+        var response = await _client.GetAsync(boundaryPath);
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            because: $"boundary path {boundaryPath} does not match numeric version pattern and must return 404 Not Found");
+
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.NotFound);
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId);
+
+        rawBody.ToLowerInvariant().Should().NotContain("stacktrace");
+        rawBody.ToLowerInvariant().Should().NotContain("exception");
+        rawBody.Should().NotContain(":\\");
+        rawBody.Should().NotContain("at RoadGuardSystem");
+        rawBody.Should().NotContain(ProbeController.ExceptionSecretMessage);
+    }
+
+    [Theory(DisplayName = "Unrelated paths such as /api/videos and /api/videos/123 bypass version middleware and return 404 not_found")]
+    [InlineData("/api/videos")]
+    [InlineData("/api/videos/123")]
+    public async Task UnrelatedPaths_SuchAsVideos_BypassVersionMiddleware_Return404NotFound(string unrelatedPath)
+    {
+        // ACT - unrelated paths starting with /api/v... that are not numeric version routes
+        var response = await _client.GetAsync(unrelatedPath);
+        var rawBody = await response.Content.ReadAsStringAsync();
+
+        // ASSERT
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            because: $"unrelated path {unrelatedPath} must not be intercepted by version middleware and must return 404 Not Found");
+
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+
+        using var jsonDoc = JsonDocument.Parse(rawBody);
+        var root = jsonDoc.RootElement;
+
+        root.TryGetProperty("code", out var codeElement).Should().BeTrue();
+        codeElement.GetString().Should().Be(ApiErrorCodes.NotFound,
+            because: "unrelated non-existent paths must return code not_found and never unsupported_api_version");
+
+        root.TryGetProperty("correlationId", out var correlationElement).Should().BeTrue();
+        var bodyCorrelationId = correlationElement.GetString();
+        Guid.TryParse(bodyCorrelationId, out _).Should().BeTrue();
+
+        response.Headers.TryGetValues("X-Correlation-ID", out var responseHeaders).Should().BeTrue();
+        responseHeaders!.Single().Should().Be(bodyCorrelationId);
+
+        rawBody.ToLowerInvariant().Should().NotContain("stacktrace");
+        rawBody.ToLowerInvariant().Should().NotContain("exception");
+        rawBody.Should().NotContain(":\\");
+        rawBody.Should().NotContain("at RoadGuardSystem");
+        rawBody.Should().NotContain(ProbeController.ExceptionSecretMessage);
+    }
+
 
     [Fact(DisplayName = "Invalid correlation header is not reflected raw; server issues new valid UUID")]
     public async Task InvalidCorrelationHeader_IsNotReflectedRaw_ServerIssuesNewValidUuid()

@@ -52,7 +52,8 @@
   - Package dependencies: Added `Asp.Versioning.Mvc` (8.1.0) and `Asp.Versioning.Mvc.ApiExplorer` (8.1.0) pinned to exact versions compatible with net8.0.
   - Probe controller: Declared strictly within `tests/RoadGuardSystem.ApiTests` and registered via `AddApplicationPart` in `CustomWebApplicationFactory`, avoiding fake production controllers.
   - Information disclosure: No stack traces or exception details are serialized in ProblemDetails regardless of environment.
-  - Review Finding resolution: Framework 405 and 415 errors now explicitly carry `method_not_allowed` and `unsupported_media_type` machine-readable codes in their ProblemDetails extensions.
+  - Review Finding 1 resolution: Framework 405 and 415 errors now explicitly carry `method_not_allowed` and `unsupported_media_type` machine-readable codes in their ProblemDetails extensions.
+  - Review Finding 2 resolution (confirmed numeric routing policy): `ApiVersioningValidationMiddleware` replaces broad substring/StartsWith route matching with an anchored, culture-invariant numeric-version matcher `^/api/v\d+(\.\d+)?(/.*)?$`. Only numeric version segments enter version validation. The captured numeric version is extracted independently of whether an optional trailing slash exists (normalized logically inside the middleware without redirection or changing the public contract). Unsupported numeric versions (e.g. `/api/v99.0`, `/api/v99.0/`, `/api/v99.0/probe/ok`) return HTTP 400 `unsupported_api_version`. Non-numeric malformed prefixes (e.g. `/api/vabc/probe/ok`, `/api/v/probe/ok`, `/api/v1beta`, `/api/v1.`) and unrelated paths (`/api/videos`, `/api/videos/123`) do not match the numeric version namespace, bypass the middleware, and return HTTP 404 `not_found`.
 
 ---
 
@@ -60,18 +61,18 @@
 
 | Change | File | Purpose |
 |---|---|---|
-| Modified | `docs/worklogs/P1-01-completion.md` | Completion log for task P1-01 updated with review finding resolution |
+| Modified | `docs/worklogs/P1-01-completion.md` | Completion log for task P1-01 updated with confirmed numeric routing policy, evidence, and commands |
+| Modified | `RoadGuardSystem.API/Middlewares/ApiVersioningValidationMiddleware.cs` | Uses anchored regex `^/api/v\d+(\.\d+)?(/.*)?$` to validate only numeric version segments; extracts version independently of trailing slash |
+| Modified | `tests/RoadGuardSystem.ApiTests/Platform/ProblemDetailsNegativeTests.cs` | Added negative contract tests for numeric unsupported versions (/api/v99.0, /api/v99.0/, /api/v99.0/probe/ok), non-numeric 404s (/api/vabc/..., /api/v/...), boundary non-numeric routes (/api/v1beta, /api/v1.), and unrelated paths (/api/videos, /api/videos/123) |
+| Modified | `tests/RoadGuardSystem.ApiTests/Platform/ApiPlatformPositiveTests.cs` | Strengthened positive version routing test to assert HTTP 200 OK for `GET /api/v1/probe/ok` |
 | Modified | `RoadGuardSystem.API/Constants/ApiErrorCodes.cs` | Added `MethodNotAllowed` and `UnsupportedMediaType` stable constants |
 | Modified | `RoadGuardSystem.API/Extensions/ServiceCollectionExtensions.cs` | Mapped HTTP 405 and 415 in `CustomizeProblemDetails` to stable codes |
-| Modified | `tests/RoadGuardSystem.ApiTests/Platform/ProblemDetailsNegativeTests.cs` | Added negative contract tests for HTTP 405 and HTTP 415 |
 | Added (d833c48) | `RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj` | Added `Asp.Versioning.Mvc` and `Asp.Versioning.Mvc.ApiExplorer` (8.1.0) |
 | Added (d833c48) | `RoadGuardSystem.API/Program.cs` | Wired pipeline: CorrelationId, ProblemDetails, versioning, health, OpenAPI |
 | Added (d833c48) | `RoadGuardSystem.API/Middlewares/CorrelationIdMiddleware.cs` | X-Correlation-ID middleware (UUID parsing, response echo, logging scope) |
-| Added (d833c48) | `RoadGuardSystem.API/Middlewares/ApiVersioningValidationMiddleware.cs` | Validates API version segments and returns 400 `unsupported_api_version` envelope |
 | Added (d833c48) | `RoadGuardSystem.API/Extensions/ConfigureSwaggerOptions.cs` | Versioned OpenAPI generation for Swagger UI and `/swagger/v1/swagger.json` |
 | Added (d833c48) | `tests/RoadGuardSystem.ApiTests/Infrastructure/CustomWebApplicationFactory.cs` | Test factory registering test assembly ApplicationPart |
 | Added (d833c48) | `tests/RoadGuardSystem.ApiTests/Controllers/ProbeController.cs` | Test-only versioned probe controller for contract assertions |
-| Added (d833c48) | `tests/RoadGuardSystem.ApiTests/Platform/ApiPlatformPositiveTests.cs` | Positive API contract tests (health, OpenAPI v1, correlation echoes) |
 
 ---
 
@@ -95,7 +96,13 @@ List each negative/edge case before positive cases. If a standard case is irrele
 | Invalid model payload | API contract | 400 Bad Request, `validation_error`, validation errors dictionary | RED (500 without model validation config) | PASS (400, `validation_error`, errors dict) |
 | Unhandled exception | API contract | 500 Internal Server Error, `internal_error`, generic message, no leak | RED (unhandled exception unmasked) | PASS (500, `internal_error`, zero secret/stack leak) |
 | Non-existent route (404) | API contract | 404 Not Found, `not_found`, has correlationId | RED (empty 404 without ProblemDetails) | PASS (404, `not_found`, correlationId) |
-| Unsupported API version | API contract | 400 Bad Request, `unsupported_api_version`, has correlationId | RED (returned 500 / 404 without version middleware) | PASS (400, `unsupported_api_version`, problem+json) |
+| Unsupported numeric API version with subpath (`/api/v99.0/probe/ok`) | API contract | 400 Bad Request, `unsupported_api_version`, matching correlationId, zero leak | RED (returned 500 / 404 without version middleware) | PASS (400, `unsupported_api_version`, problem+json, zero leak) |
+| Unsupported numeric API version without trailing slash (`/api/v99.0`) | API contract | 400 Bad Request, `unsupported_api_version`, matching correlationId, zero leak | RED (returned 404 not_found) | PASS (400, `unsupported_api_version`, problem+json, zero leak) |
+| Unsupported numeric API version with trailing slash (`/api/v99.0/`) | API contract | 400 Bad Request, `unsupported_api_version`, matching correlationId, zero leak | RED (captured empty version segment) | PASS (400, `unsupported_api_version`, problem+json, zero leak) |
+| Non-numeric version prefix (`/api/vabc/probe/ok`) | API contract | 404 Not Found, `not_found`, matching correlationId, zero leak | RED (returned 400 unsupported_api_version) | PASS (404, `not_found`, matching correlationId, zero leak) |
+| Empty version prefix (`/api/v/probe/ok`) | API contract | 404 Not Found, `not_found`, matching correlationId, zero leak | RED (returned 400 unsupported_api_version) | PASS (404, `not_found`, matching correlationId, zero leak) |
+| Boundary non-numeric routes (`/api/v1beta`, `/api/v1.`, etc.) | API contract | 404 Not Found, `not_found`, matching correlationId, zero leak | RED (returned 400 unsupported_api_version) | PASS (404, `not_found`, matching correlationId, zero leak) |
+| Unrelated paths (`/api/videos`, `/api/videos/123`) | API contract | 404 Not Found, `not_found`, matching correlationId, zero leak | RED (`/api/videos/123` returned 400) | PASS (404, `not_found`, matching correlationId, zero leak) |
 | Invalid / multi-value correlation header | API contract | Ignored; server issues a new valid UUID | RED (X-Correlation-ID missing) | PASS (new valid UUID generated, not echoed raw) |
 | POST JSON to GET-only endpoint (405) | API contract | 405 Method Not Allowed, `method_not_allowed`, correlationId | RED (code extension missing in ProblemDetails) | PASS (405, `method_not_allowed`, matching correlationId) |
 | POST text/plain to JSON-only endpoint (415) | API contract | 415 Unsupported Media Type, `unsupported_media_type`, correlationId | RED (code extension missing in ProblemDetails) | PASS (415, `unsupported_media_type`, matching correlationId) |
@@ -115,7 +122,7 @@ List each negative/edge case before positive cases. If a standard case is irrele
 | WebApplicationFactory startup | API contract | Factory builds and client created without exception | PASS | PASS |
 | Process liveness health check | API contract | GET /health returns 200 OK | RED (404, endpoint unmapped) | PASS (200 OK, Healthy) |
 | OpenAPI v1 document | API contract | GET /swagger/v1/swagger.json returns 200 OK with v1 schema | RED (404, v1 doc unconfigured) | PASS (200 OK, openapi: 3.0.1, v1 routes) |
-| Missing correlation header generates UUID | API contract | Response contains valid UUID in X-Correlation-ID and body | RED (X-Correlation-ID missing) | PASS (valid UUID attached) |
+| Missing correlation header generates UUID and routes to v1 | API contract | GET /api/v1/probe/ok returns 200 OK and response contains valid UUID in X-Correlation-ID | RED (X-Correlation-ID missing, 200 unasserted) | PASS (200 OK, valid UUID attached) |
 | Valid client correlation header preserved | API contract | Same client UUID echoed in header and body | RED (X-Correlation-ID missing) | PASS (echoed client UUID) |
 | Correlation header and body match | API contract | Header X-Correlation-ID equals ProblemDetails correlationId | RED (header and correlationId missing) | PASS (strictly identical UUID) |
 
@@ -138,6 +145,12 @@ List each negative/edge case before positive cases. If a standard case is irrele
 | `dotnet test RoadGuardSystem.slnx --no-build` | 0 | 92 passed (33 Unit, 16 Api, 43 Integration), 0 failed | 2026-09-17T03:50:15+07:00 |
 | `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting across solution | 2026-09-17T03:50:30+07:00 |
 | `git diff --check` | 0 | No whitespace errors | 2026-09-17T03:50:40+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01"` | 1 | Numeric routing policy RED run: 6 failed (bypassed non-numeric routes returned 400, /api/v99.0 returned 404), 18 passed | 2026-09-17T12:34:00+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=P1-01"` | 0 | Numeric routing policy GREEN run: 24 passed (19 negative + 5 positive), 0 failed | 2026-09-17T12:34:28+07:00 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 0 errors, 0 warnings | 2026-09-17T12:35:00+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests --no-build` | 0 | 26 passed (24 P1-01 + 2 P1-00), 0 failed | 2026-09-17T12:35:10+07:00 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Clean formatting across solution | 2026-09-17T12:35:20+07:00 |
+| `git diff --check` | 0 | No whitespace errors | 2026-09-17T12:35:30+07:00 |
 
 ---
 
@@ -146,16 +159,25 @@ List each negative/edge case before positive cases. If a standard case is irrele
 - **Observable demo/output:**
   - `GET /health` -> 200 OK (`Healthy`)
   - `GET /swagger/v1/swagger.json` -> 200 OK (OpenAPI specification for v1)
+  - `GET /api/v1/probe/ok` -> 200 OK (Supported v1 route returns OK and attaches `X-Correlation-ID: <UUID>`)
   - Any request returns header `X-Correlation-ID: <UUID>`
   - Request with invalid JSON -> HTTP 400 `application/problem+json` with `code: "validation_error"`, matching `correlationId`, zero stack traces
   - Request with unhandled exception -> HTTP 500 `application/problem+json` with `code: "internal_error"`, matching `correlationId`, generic title/detail, zero internal leak
-  - Request with unsupported API version `/api/v99.0/...` -> HTTP 400 `application/problem+json` with `code: "unsupported_api_version"`
+  - Request with unsupported numeric version `/api/v99.0/probe/ok` -> HTTP 400 `application/problem+json` with `code: "unsupported_api_version"`
+  - Request with unsupported numeric version without slash `/api/v99.0` -> HTTP 400 `application/problem+json` with `code: "unsupported_api_version"`
+  - Request with unsupported numeric version with trailing slash `/api/v99.0/` -> HTTP 400 `application/problem+json` with `code: "unsupported_api_version"`
+  - Request with non-numeric prefix `/api/vabc/probe/ok` -> HTTP 404 `application/problem+json` with `code: "not_found"`
+  - Request with empty version prefix `/api/v/probe/ok` -> HTTP 404 `application/problem+json` with `code: "not_found"`
+  - Request with boundary non-numeric prefixes `/api/v1beta`, `/api/v1.` -> HTTP 404 `application/problem+json` with `code: "not_found"`
+  - Request to unrelated paths `/api/videos`, `/api/videos/123` -> HTTP 404 `application/problem+json` with `code: "not_found"`
   - POST JSON to GET-only endpoint `/api/v1/probe/ok` -> HTTP 405 `application/problem+json` with `code: "method_not_allowed"`, matching `correlationId`
   - POST text/plain to JSON-only endpoint `/api/v1/probe/validate` -> HTTP 415 `application/problem+json` with `code: "unsupported_media_type"`, matching `correlationId`
 - **Known gaps, skipped tests, and reason:** Business authorization, persistence, concurrency, and audit tests skipped because P1-01 is strictly HTTP platform foundation without domain entities or database.
 - **Residual risks:** None.
 - **Reviewer findings and resolution:**
-  - Finding: ProblemDetails customizer only mapped codes for 400, 404, and 5xx; framework errors 405 and 415 lacked the `code` extension, compromising machine-readability of error envelopes.
-  - Resolution: Added `method_not_allowed` and `unsupported_media_type` to `ApiErrorCodes`, updated `CustomizeProblemDetails` in `ServiceCollectionExtensions` to handle 405 and 415, added negative-first contract tests, and verified all tests pass.
+  - Finding 1: ProblemDetails customizer only mapped codes for 400, 404, and 5xx; framework errors 405 and 415 lacked the `code` extension, compromising machine-readability of error envelopes.
+  - Resolution 1: Added `method_not_allowed` and `unsupported_media_type` to `ApiErrorCodes`, updated `CustomizeProblemDetails` in `ServiceCollectionExtensions` to handle 405 and 415, added negative-first contract tests, and verified all tests pass.
+  - Finding 2 (Confirmed Numeric Routing Policy): Substring-based `StartsWith("/api/v")` matched unrelated `/api/v...` routes such as `/api/videos/123`, and did not handle numeric versions without trailing slashes (`/api/v99.0`) uniformly. Non-numeric malformed routes (e.g. `/api/vabc/probe/ok`, `/api/v/probe/ok`) were previously expected to return 400, but under confirmed routing policy only numeric version segments belong to the version middleware namespace; non-numeric prefixes must bypass it and return 404 `not_found`.
+  - Resolution 2: Replaced string inspection in `ApiVersioningValidationMiddleware` with an anchored, culture-invariant regex `^/api/v\d+(\.\d+)?(/.*)?$`. The numeric version is extracted independently of trailing slashes without redirects. Unsupported numeric versions (`/api/v99.0`, `/api/v99.0/`, `/api/v99.0/probe/ok`) return HTTP 400 Bad Request `unsupported_api_version`. Non-numeric routes (`/api/vabc/...`, `/api/v/...`, `/api/v1beta`, `/api/v1.`) and unrelated routes (`/api/videos`, `/api/videos/123`) bypass the middleware and return HTTP 404 Not Found `not_found`. All negative and positive contract tests updated and verified passing.
 - **Exact next task/action:** P1-02 (ADRs and API error-code naming policy).
 - **Final status:** Ready for re-review

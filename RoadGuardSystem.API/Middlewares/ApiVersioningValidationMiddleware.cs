@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Http;
@@ -10,10 +11,14 @@ namespace RoadGuardSystem.API.Middlewares;
 /// Middleware that validates requested API version numbers in URL segment routes (/api/v{version}/...).
 /// If an unsupported version is requested, rejects with HTTP 400 Bad Request and
 /// a standard ProblemDetails envelope (code: unsupported_api_version, correlationId).
+/// Only numeric version segments matching ^/api/v\d+(\.\d+)?(/.*)?$ enter version validation.
 /// </summary>
-public class ApiVersioningValidationMiddleware
+public partial class ApiVersioningValidationMiddleware
 {
     private readonly RequestDelegate _next;
+
+    [GeneratedRegex(@"^/api/v(?<version>\d+(?:\.\d+)?)(?:/.*)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex VersionRouteRegex();
 
     public ApiVersioningValidationMiddleware(RequestDelegate next)
     {
@@ -23,14 +28,15 @@ public class ApiVersioningValidationMiddleware
     public async Task InvokeAsync(HttpContext context, IApiVersionDescriptionProvider provider)
     {
         var path = context.Request.Path.Value;
-        if (!string.IsNullOrEmpty(path) && path.StartsWith("/api/v", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(path))
         {
-            var slashIndex = path.IndexOf('/', 6);
-            var versionSegment = slashIndex > 6 ? path.Substring(6, slashIndex - 6) : path.Substring(6);
-
-            if (ApiVersionParser.Default.TryParse(versionSegment, out var requestedVersion))
+            var match = VersionRouteRegex().Match(path);
+            if (match.Success)
             {
-                var isSupported = provider.ApiVersionDescriptions.Any(d => d.ApiVersion == requestedVersion);
+                var versionSegment = match.Groups["version"].Value;
+                var isSupported = ApiVersionParser.Default.TryParse(versionSegment, out var requestedVersion)
+                    && provider.ApiVersionDescriptions.Any(d => d.ApiVersion == requestedVersion);
+
                 if (!isSupported)
                 {
                     var correlationId = context.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string

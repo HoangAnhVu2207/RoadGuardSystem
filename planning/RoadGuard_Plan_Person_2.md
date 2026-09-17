@@ -19,7 +19,7 @@ For each task: read the traced specification sections; write negative tests firs
 | Task | Status | Branch | Note |
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
-| `P2-01` | `Ready for Codex review` | `huy` | Compose/config templates, CI YAML, seed framework and integration test. |
+| `P2-01` | `Blocked` | `huy` | Codex review round 1 found no code defect and all local/SQL gates passed, but live Compose is unverified because Docker Desktop cannot start its engine; the GitHub-hosted workflow also has no executed run. Resume from `cc3da7a` with those two environment proofs. |
 | `P2-02` | `Not started` | `huy` | Must not overlap `P2-01`; keep queued until `P2-01` is `Done`. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 

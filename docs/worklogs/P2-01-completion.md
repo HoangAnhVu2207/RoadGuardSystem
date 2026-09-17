@@ -241,3 +241,18 @@
 - **Optional independent review:** Delegated to Codex per special review instructions. Antigravity does not self-mark `Done`.
 - **Exact next task/action:** Awaiting Codex final review.
 - **Final status:** `Ready for Codex review`.
+
+## Codex acceptance review - round 1
+
+- **Reviewer / date:** Codex, 2026-09-18T03:04:44+07:00.
+- **Reviewed artifacts:** P2-01 implementation range `20ff1d3..cc3da7a` (18 task files). Current `huy` HEAD `4c40433` adds the separate P2-03 documentation commit; it does not change P2-01 production, CI, Compose, seeder, or integration-test artifacts.
+- **Acceptance coverage:** Verified the owner self-review and negative-first history; CI secret scoping and fail-closed fixtures; Compose interpolation/config parsing; seeder cancellation, ordering, retry behavior and environment-only connection input; dependency security; clean restore/build/format; SQL Server execution; complete solution tests and coverage collection.
+- **Fresh checks:** `dotnet restore RoadGuardSystem.slnx` exit 0; non-incremental build exit 0 with 0 warnings/errors; both explicit and workflow-form `dotnet format` exit 0; P2-01 SQL filter 13/13 passed with 0 skipped on isolated database `RoadGuard_Test_*` via local SQL Server; full solution and coverage runs each passed 117/117 with 0 skipped (35 unit, 26 API, 56 integration); seeder entry point exit 0; CI and Compose positive verifiers exit 0; both negative suites returned their expected exit 1 after asserting 7 rejected fixtures each; documentation/P2-03 verifiers and dependency scan/self-test passed.
+- **Findings:** No open code finding in the submitted P2-01 artifacts.
+- **Verification gap B-01 (blocking):** Live `docker compose up` and container health were not executed. A fresh attempt found Docker CLI 29.6.1 installed, but Docker Desktop 4.82.0 stopped before the WSL engine started because its backend could not remove the stale `dockerInference` reparse point. Static `docker compose config` success does not prove container startup or health.
+- **Verification gap B-02 (blocking):** The GitHub-hosted Ubuntu workflow has no executed run, and availability of repository secret `ROADGUARD_CI_SQL_PASSWORD` is unverified. Local command equivalence and YAML verifiers do not prove hosted service-container, expression, artifact-upload, or runner behavior.
+- **Conflict warning / metadata ownership:** None. Antigravity handed off the P2-01 review/status sections; this round changes no implementation artifact.
+- **Verdict:** `Blocked`. Local behavior is green, but P2-01 cannot be marked `Done` or integrated until both required environment proofs exist.
+- **Resume point:** Keep implementation frozen at `cc3da7a`; repair or provide a working Docker daemon and record a live Compose healthy-start/stop run, then run the branch workflow on a GitHub-hosted runner with the required repository secret and attach the run result. Codex then rechecks only these gaps and affected artifacts.
+- **Plan status update:** P2-01 changed `Ready for Codex review` -> `Blocked` by Codex on 2026-09-18; P2-02 remains queued.
+- **Final status:** `Blocked` pending live Compose and hosted-CI evidence. No merge or push is authorized by this verdict.

@@ -18,21 +18,6 @@ jobs:
     name: Build, Verify, and Test
     runs-on: ubuntu-latest
 
-    services:
-      mssql:
-        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
-        ports:
-          - 1433:1433
-        env:
-          ACCEPT_EULA: 'Y'
-          MSSQL_SA_PASSWORD: ${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
-          MSSQL_PID: 'Developer'
-        options: >-
-          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
@@ -58,6 +43,63 @@ jobs:
       - name: Verify Dependency Security
         run: pwsh -File tests/Security/Verify-DependencySecurity.ps1
 
+      - name: Generate ephemeral SQL credential
+        shell: pwsh
+        run: |
+          $bytes = [byte[]]::new(24)
+          [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+          $password = "Rg!$([Convert]::ToHexString($bytes))aA1"
+          Write-Output "::add-mask::$password"
+
+          $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
+          [IO.File]::WriteAllText(
+            $credentialPath,
+            "MSSQL_SA_PASSWORD=$password`n",
+            [Text.UTF8Encoding]::new($false))
+          chmod 600 $credentialPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to restrict the SQL credential file permissions."
+          }
+
+      - name: Start SQL Server container
+        shell: pwsh
+        run: |
+          $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
+          docker run --detach `
+            --name roadguard-ci-sqlserver `
+            --publish 1433:1433 `
+            --env-file $credentialPath `
+            --env ACCEPT_EULA=Y `
+            --env MSSQL_PID=Developer `
+            --health-cmd '/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null' `
+            --health-interval 10s `
+            --health-timeout 5s `
+            --health-retries 10 `
+            mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to start the SQL Server container."
+          }
+
+      - name: Wait for SQL Server readiness
+        shell: pwsh
+        run: |
+          $deadline = [DateTimeOffset]::UtcNow.AddMinutes(3)
+          while ([DateTimeOffset]::UtcNow -lt $deadline) {
+            $health = docker inspect --format '{{.State.Health.Status}}' roadguard-ci-sqlserver 2>$null
+            if ($LASTEXITCODE -eq 0 -and $health.Trim() -eq 'healthy') {
+              Write-Output 'SQL Server container is healthy.'
+              exit 0
+            }
+            if ($LASTEXITCODE -eq 0 -and $health.Trim() -eq 'unhealthy') {
+              docker logs roadguard-ci-sqlserver
+              throw 'SQL Server container became unhealthy.'
+            }
+            Start-Sleep -Seconds 5
+          }
+
+          docker logs roadguard-ci-sqlserver
+          throw 'SQL Server readiness timeout after 3 minutes.'
+
       - name: Restore dependencies
         run: dotnet restore RoadGuardSystem.slnx
 
@@ -74,14 +116,34 @@ jobs:
         run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/ApiTests
 
       - name: Run Integration Tests with coverage
-        run: dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
-        env:
-          ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+        shell: pwsh
+        run: |
+          $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
+          $credential = [IO.File]::ReadAllText($credentialPath).Trim()
+          if (-not $credential.StartsWith('MSSQL_SA_PASSWORD=')) {
+            throw 'Malformed SQL credential file.'
+          }
+          $password = $credential.Substring('MSSQL_SA_PASSWORD='.Length)
+          $env:ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True;"
+          dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       - name: Validate Seeder Entry Point
-        run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build
-        env:
-          ROADGUARD_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+        shell: pwsh
+        run: |
+          $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
+          $credential = [IO.File]::ReadAllText($credentialPath).Trim()
+          if (-not $credential.StartsWith('MSSQL_SA_PASSWORD=')) {
+            throw 'Malformed SQL credential file.'
+          }
+          $password = $credential.Substring('MSSQL_SA_PASSWORD='.Length)
+          $env:ROADGUARD_CONNECTION_STRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True;"
+          dotnet run --project tools/RoadGuardSystem.Seeder --no-build
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       - name: Upload Code Coverage Artifact
         uses: actions/upload-artifact@v4
@@ -89,3 +151,14 @@ jobs:
         with:
           name: code-coverage-reports
           path: TestResults/**/coverage.cobertura.xml
+
+      - name: Cleanup SQL Server container and credential
+        if: always()
+        shell: pwsh
+        run: |
+          $null = docker rm --force roadguard-ci-sqlserver 2>$null
+          $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
+          if (Test-Path -LiteralPath $credentialPath) {
+            Remove-Item -LiteralPath $credentialPath -Force
+          }
+          exit 0

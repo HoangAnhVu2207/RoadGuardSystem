@@ -19,7 +19,7 @@ For each task: read the traced specification sections; write negative tests firs
 | Task | Status | Branch | Note |
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
-| `P2-01` | `Blocked` | `huy` | Codex review round 1 found no code defect and all local/SQL gates passed, but live Compose is unverified because Docker Desktop cannot start its engine; the GitHub-hosted workflow also has no executed run. Resume from `cc3da7a` with those two environment proofs. |
+| `P2-01` | `In Progress` | `huy` | Owner-requested remediation of Codex round-1 blockers. Live Compose proof is complete; hosted run `35271729041` reproduced SQL service credential failure on `cc3da7a`. Replace the external repository-secret dependency with an ephemeral runner credential, rerun hosted CI, then resubmit for separate Codex acceptance. |
 | `P2-02` | `Not started` | `huy` | Must not overlap `P2-01`; keep queued until `P2-01` is `Done`. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 

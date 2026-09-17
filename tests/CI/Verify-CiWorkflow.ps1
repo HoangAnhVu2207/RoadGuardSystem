@@ -23,9 +23,11 @@ function Test-CiWorkflowContent {
     )
     $findings = @()
 
-    # Secret reference and credential hardening
-    if ($Content -notmatch 'secrets\.ROADGUARD_CI_SQL_PASSWORD') {
-        $findings += 'CI workflow must reference repository secret "${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}".'
+    # Hosted service containers initialize before steps, so a bad external
+    # secret skips the complete build. Use a diagnosable step-managed container.
+    if ($Content -match 'secrets\.ROADGUARD_CI_SQL_PASSWORD' -or
+        $Content -match '(?ms)^\s{4}services:\s*$.*?^\s{6}mssql:\s*$') {
+        $findings += 'CI workflow must use an ephemeral runner credential and a step-managed SQL container; repository-secret service containers are prohibited.'
     }
 
     # Extract mssql service block under services
@@ -92,11 +94,9 @@ function Test-CiWorkflowContent {
         }
     }
 
-    if ($servicePasswordMatches.Count -eq 0) {
-        $findings += "CI workflow service container 'mssql' is missing required MSSQL_SA_PASSWORD configuration."
-    } elseif ($servicePasswordMatches.Count -gt 1) {
+    if ($servicePasswordMatches.Count -gt 1) {
         $findings += "CI workflow service container 'mssql' contains duplicate MSSQL_SA_PASSWORD configuration entries."
-    } else {
+    } elseif ($servicePasswordMatches.Count -eq 1) {
         $rawVal = $servicePasswordMatches[0]
         $val = $rawVal
         if ($val -match '^''([^'']*)''') {
@@ -108,13 +108,46 @@ function Test-CiWorkflowContent {
         }
 
         if ($val -notmatch '^\$\{\{\s*secrets\.ROADGUARD_CI_SQL_PASSWORD\s*\}\}$') {
-            $findings += "CI workflow service container 'mssql' MSSQL_SA_PASSWORD must be strictly set to repository secret `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}` (found: '$rawVal'). Plaintext passwords and literals are prohibited."
+            $findings += "CI workflow service container 'mssql' MSSQL_SA_PASSWORD contains a plaintext literal (found: '$rawVal')."
         }
     }
 
-    # Connection string in env must use secret reference, NOT literal password
-    if ($Content -match 'Password=(?!(\$\{\{\s*secrets\.ROADGUARD_CI_SQL_PASSWORD\s*\}\}))[^;''"`\s]+') {
+    # Connection strings may interpolate only the in-process ephemeral variable.
+    if ($Content -match 'Password=(?!(\$password\b|\$\{password\}))[^;''"`\s]+') {
         $findings += "CI workflow contains hardcoded password literal in connection string."
+    }
+
+    $hasProtectedCredential =
+        $Content -match 'RandomNumberGenerator' -and
+        $Content -match 'RUNNER_TEMP' -and
+        $Content -match 'roadguard-sql-password' -and
+        $Content -match '::add-mask::' -and
+        $Content -match 'chmod\s+600'
+    if (-not $hasProtectedCredential) {
+        $findings += 'CI workflow must generate an ephemeral SQL credential, mask it, and protect its RUNNER_TEMP file with mode-600 permissions.'
+    }
+
+    $hasManagedContainer =
+        $Content -match 'docker\s+run' -and
+        $Content -match '--name\s+roadguard-ci-sqlserver' -and
+        $Content -match 'mcr\.microsoft\.com/mssql/server:2019-CU18-ubuntu-20\.04'
+    if (-not $hasManagedContainer) {
+        $findings += 'CI workflow must launch the pinned SQL image as the step-managed roadguard-ci-sqlserver container.'
+    }
+
+    $hasBoundedReadiness =
+        $Content -match 'docker\s+inspect' -and
+        $Content -match 'docker\s+logs' -and
+        $Content -match 'Start-Sleep' -and
+        $Content -match '(?i)deadline|timeout'
+    if (-not $hasBoundedReadiness) {
+        $findings += 'CI workflow must use a bounded health wait and emit container diagnostics on readiness failure.'
+    }
+
+    $hasUnconditionalCleanup =
+        $Content -match '(?ms)-\s+name:\s*Cleanup SQL Server container and credential.*?if:\s*always\(\).*?docker\s+rm\s+--force\s+roadguard-ci-sqlserver.*?Remove-Item'
+    if (-not $hasUnconditionalCleanup) {
+        $findings += 'CI workflow must provide unconditional cleanup for the SQL container and ephemeral credential file.'
     }
 
     # Check for database connection strings or secrets at workflow-level or job-level env
@@ -218,7 +251,7 @@ function Test-CiWorkflowContent {
 
     # Healthcheck must NOT use Compose-style $$MSSQL_SA_PASSWORD
     if ($Content -match '\$\$MSSQL_SA_PASSWORD') {
-        $findings += 'CI workflow healthcheck must not use Compose-style "$$MSSQL_SA_PASSWORD". GitHub Actions service containers execute in container shell.'
+        $findings += 'CI workflow healthcheck must not use Compose-style "$$MSSQL_SA_PASSWORD". The container shell expands a single dollar sign.'
     }
 
     # Healthcheck must NOT single-quote $MSSQL_SA_PASSWORD (disables parameter expansion)
@@ -394,6 +427,67 @@ jobs:
           ROADGUARD_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
 "@
 
+    # Fixture 8: Repository secret and pre-step service container reproduce the hosted credential mismatch boundary
+    $fixture8RepositorySecretService = @"
+name: Fixture 8 Repository Secret Service
+on:
+  push:
+    branches: [ develop ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        env:
+          MSSQL_SA_PASSWORD: `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"`$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
+"@
+
+    # Fixture 9: Ephemeral credential lacks masking and restrictive file permissions
+    $fixture9UnprotectedCredential = @"
+name: Fixture 9 Unprotected Credential
+on: [ push ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate ephemeral SQL credential
+        shell: pwsh
+        run: |
+          `$password = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
+          [IO.File]::WriteAllText((Join-Path `$env:RUNNER_TEMP 'roadguard-sql-password'), `$password)
+"@
+
+    # Fixture 10: Container starts without bounded health wait or failure diagnostics
+    $fixture10UnboundedStartup = @"
+name: Fixture 10 Unbounded Startup
+on: [ push ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start SQL Server container
+        run: docker run --detach --name roadguard-ci-sqlserver mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+"@
+
+    # Fixture 11: Workflow has no unconditional container and credential cleanup
+    $fixture11MissingCleanup = @"
+name: Fixture 11 Missing Cleanup
+on: [ push ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate ephemeral SQL credential
+        run: Write-Output '::add-mask::fixture'
+      - name: Start SQL Server container
+        run: docker run --detach --name roadguard-ci-sqlserver mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+      - name: Run Integration Tests with coverage
+        run: dotnet test
+"@
+
     $res1 = Test-CiWorkflowContent $fixture1Hardcoded
     $res2 = Test-CiWorkflowContent $fixture2ComposeStyle
     $res3 = Test-CiWorkflowContent $fixture3SingleQuoted
@@ -401,6 +495,10 @@ jobs:
     $res5 = Test-CiWorkflowContent $fixture5UnquotedServicePassword
     $res6 = Test-CiWorkflowContent $fixture6JobLevelSecret
     $res7 = Test-CiWorkflowContent $fixture7UnauthorizedStepSecret
+    $res8 = Test-CiWorkflowContent $fixture8RepositorySecretService
+    $res9 = Test-CiWorkflowContent $fixture9UnprotectedCredential
+    $res10 = Test-CiWorkflowContent $fixture10UnboundedStartup
+    $res11 = Test-CiWorkflowContent $fixture11MissingCleanup
 
     $detected1 = ($res1 | Where-Object { $_ -match "hardcoded password literal" }).Count -gt 0
     $detected2 = ($res2 | Where-Object { $_ -match "Compose-style" }).Count -gt 0
@@ -409,6 +507,10 @@ jobs:
     $detected5 = ($res5 | Where-Object { $_ -match "service container 'mssql' MSSQL_SA_PASSWORD" }).Count -gt 0
     $detected6 = ($res6 | Where-Object { $_ -match "job-level env" }).Count -gt 0
     $detected7 = ($res7 | Where-Object { $_ -match "must not receive database connection secret" }).Count -gt 0
+    $detected8 = ($res8 | Where-Object { $_ -match "ephemeral runner credential" }).Count -gt 0
+    $detected9 = ($res9 | Where-Object { $_ -match "mask.*mode-600" }).Count -gt 0
+    $detected10 = ($res10 | Where-Object { $_ -match "bounded health wait.*diagnostic" }).Count -gt 0
+    $detected11 = ($res11 | Where-Object { $_ -match "unconditional cleanup" }).Count -gt 0
 
     $testCases = @(
         @{ Name = '1. Hardcoded password literal in healthcheck'; Detected = $detected1; Findings = $res1 },
@@ -417,7 +519,11 @@ jobs:
         @{ Name = '4. CLI connection-string argument in seeder invocation'; Detected = $detected4; Findings = $res4 },
         @{ Name = '5. Unquoted service password literal while connection string uses secret'; Detected = $detected5; Findings = $res5 },
         @{ Name = '6. Connection string secret exposed at job-level env'; Detected = $detected6; Findings = $res6 },
-        @{ Name = '7. Database secret exposed to unauthorized step (e.g. unit test step)'; Detected = $detected7; Findings = $res7 }
+        @{ Name = '7. Database secret exposed to unauthorized step (e.g. unit test step)'; Detected = $detected7; Findings = $res7 },
+        @{ Name = '8. Repository-secret service container instead of ephemeral runner credential'; Detected = $detected8; Findings = $res8 },
+        @{ Name = '9. Ephemeral credential is not masked and mode-600'; Detected = $detected9; Findings = $res9 },
+        @{ Name = '10. SQL startup lacks bounded health wait and diagnostics'; Detected = $detected10; Findings = $res10 },
+        @{ Name = '11. Workflow lacks unconditional container and credential cleanup'; Detected = $detected11; Findings = $res11 }
     )
 
     $failedTests = $testCases | Where-Object { -not $_.Detected }
@@ -474,13 +580,13 @@ if ($ciContent -notmatch "dotnet-version:\s*['`"]?10\.0\.401['`"]?") {
     $errors += "CI workflow must use exact pinned .NET SDK version '10.0.401'."
 }
 
-# 5. Service container verification: exact pinned SQL Server image and healthcheck
+# 5. Step-managed SQL container verification: exact pinned image and healthcheck
 $expectedSqlImage = "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04"
 if ($ciContent -notmatch [regex]::Escape($expectedSqlImage)) {
-    $errors += "CI workflow service container must use pinned SQL Server image: '$expectedSqlImage'"
+    $errors += "CI workflow SQL container must use pinned image: '$expectedSqlImage'"
 }
-if ($ciContent -notmatch "(?s)options:.*--health-cmd") {
-    $errors += "CI workflow SQL Server service container must specify a healthcheck command."
+if ($ciContent -notmatch "--health-cmd") {
+    $errors += "CI workflow SQL Server container must specify a healthcheck command."
 }
 
 # Apply shared credential, secret, healthcheck, and CLI rules
@@ -497,13 +603,17 @@ $pipelineTokens = @(
     "Verify-DockerCompose.ps1",
     "Verify-CiWorkflow.ps1",
     "Verify-DependencySecurity.ps1",
+    "Generate ephemeral SQL credential",
+    "Start SQL Server container",
+    "Wait for SQL Server readiness",
     "dotnet restore",
     "dotnet format --verify-no-changes",
     "dotnet build",
     "--no-incremental",
     "dotnet test",
     "XPlat Code Coverage",
-    "actions/upload-artifact@v4"
+    "actions/upload-artifact@v4",
+    "Cleanup SQL Server container and credential"
 )
 
 $lastIndex = -1

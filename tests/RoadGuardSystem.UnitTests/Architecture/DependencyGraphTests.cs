@@ -77,6 +77,58 @@ public sealed class DependencyGraphTests
         return BuildGraph(projects, assemblyToLogical, ReadDirectReferences);
     }
 
+    [Fact(DisplayName = "P2-01 ReadDirectReferences handles Windows separators on every operating system")]
+    [Trait("TaskId", "P2-01")]
+    public void ReadDirectReferences_HandlesWindowsSeparators_OnEveryOperatingSystem()
+    {
+        var projectPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.csproj");
+        try
+        {
+            File.WriteAllText(projectPath, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <ItemGroup>
+                    <ProjectReference Include="..\RoadGuardSystem.BusinessObjects\RoadGuardSystem.aBusinessObjects.csproj" />
+                  </ItemGroup>
+                </Project>
+                """);
+
+            var references = ReadDirectReferences(projectPath);
+
+            references.Should().BeEquivalentTo(
+                ["RoadGuardSystem.aBusinessObjects"],
+                because: "repository project files use Windows-style separators and the architecture gate also runs on Linux");
+        }
+        finally
+        {
+            File.Delete(projectPath);
+        }
+    }
+
+    [Fact(DisplayName = "P2-01 ReadDirectReferences handles Unix separators")]
+    [Trait("TaskId", "P2-01")]
+    public void ReadDirectReferences_HandlesUnixSeparators()
+    {
+        var projectPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.csproj");
+        try
+        {
+            File.WriteAllText(projectPath, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <ItemGroup>
+                    <ProjectReference Include="../RoadGuardSystem.BusinessObjects/RoadGuardSystem.aBusinessObjects.csproj" />
+                  </ItemGroup>
+                </Project>
+                """);
+
+            var references = ReadDirectReferences(projectPath);
+
+            references.Should().BeEquivalentTo(["RoadGuardSystem.aBusinessObjects"]);
+        }
+        finally
+        {
+            File.Delete(projectPath);
+        }
+    }
+
     // ===========================================================================
     // PHASE 1 — NEGATIVE: fixture graphs prove the checker detects bad edges
     // ===========================================================================

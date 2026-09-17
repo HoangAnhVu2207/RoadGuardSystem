@@ -101,7 +101,7 @@ public static class DependencyGraphChecker
         var refs = doc.Descendants("ProjectReference")
             .Select(e => e.Attribute("Include")?.Value)
             .Where(v => v is not null)
-            .Select(v => Path.GetFileNameWithoutExtension(v!))
+            .Select(v => Path.GetFileNameWithoutExtension(v!.Replace('\\', '/')))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         return refs;
     }

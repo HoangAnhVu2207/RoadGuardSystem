@@ -19,7 +19,7 @@ For each task: read the traced specification sections; write negative tests firs
 | Task | Status | Branch | Note |
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
-| `P2-01` | `In Progress` | `huy` | Owner-requested remediation of Codex round-1 blockers. Live Compose proof is complete; hosted run `35271729041` reproduced SQL service credential failure on `cc3da7a`. Replace the external repository-secret dependency with an ephemeral runner credential, rerun hosted CI, then resubmit for separate Codex acceptance. |
+| `P2-01` | `In Progress` | `huy` | Repository owner authorized the narrow Person 1 test-helper exception on `huy`. Cross-platform path regression tests now pass locally and in Linux; commit, push authorization, and a fresh hosted CI run remain before self-review can mark the task `Done`. |
 | `P2-02` | `Not started` | `huy` | Must not overlap `P2-01`; keep queued until `P2-01` is `Done`. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 

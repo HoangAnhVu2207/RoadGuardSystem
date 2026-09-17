@@ -278,3 +278,88 @@
 - **Conflict warning:** None. Changes stay within P2-01-owned CI, verifier, plan status and worklog paths.
 - **Current status:** `In Progress`. Local implementation and self-review are complete; a hosted run of the new commit is required before `Ready for review`.
 - **Next action:** Commit the scoped diff on `huy`, obtain explicit push authorization, push `huy`, then record the hosted run result and submit for separate Codex acceptance.
+
+### Hosted run after remediation commit
+
+- **Commit / run:** `108d7e4`; GitHub Actions run `35274717164`, job `105382393005`.
+- **Verified P2-01 boundary:** Checkout, SDK setup, all four repository verifiers, dependency security, ephemeral credential generation, step-managed SQL container start, bounded readiness, restore, non-incremental build, coverage artifact upload and unconditional cleanup all passed on Ubuntu 24.04. This closes the hosted credential/container portion of B-02.
+- **New prerequisite failure:** Unit test `Production dependency graph satisfies all architecture rules` failed before API/integration/seeder steps. On Linux, `Path.GetFileNameWithoutExtension` receives the Windows-style ProjectReference `..\RoadGuardSystem.BusinessObjects\RoadGuardSystem.aBusinessObjects.csproj` and returns `..\RoadGuardSystem.BusinessObjects\RoadGuardSystem.aBusinessObjects`, which is then reported as an unmapped project. The production dependency is valid; the cross-platform test helper is defective.
+- **Conflict warning:** `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs` and its tests are Person 1-owned under the active plans. P2-01 owns CI/operations and must not silently edit this prerequisite. Required sequence: repository owner either authorizes a narrow P1-file exception on `huy`, or Person 1 fixes/tests it on `anh` and owner-approved integration brings that commit to `huy`; then rerun hosted CI. P2-01 status is `Blocked` pending that ownership decision.
+
+## Owner-authorized cross-platform prerequisite repair
+
+- **Implementer / authorization / start:** Codex, 2026-09-18. The repository owner explicitly approved the proposed narrow exception to edit `DependencyGraphChecker.cs` and `DependencyGraphTests.cs` directly on `huy` so P2-01 can proceed.
+- **Trace:** `P2-01`, TE-01/10. This repair protects the CI architecture gate that validates the pinned backend solution before the P2-01 SQL, seeder and coverage stages run.
+- **Exclusive files for this slice:** `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs`, `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs`, this worklog, and the P2-01 status row in `planning/RoadGuard_Plan_Person_2.md`.
+- **Actor / workflow applicability:** This is build/test infrastructure, not an API or domain command. Authorized runtime actor, project scope, state transition, audit event, idempotency, concurrency and evidentiary immutability are not applicable; no production behavior, schema, API contract, persisted state or audit path changes.
+- **Precondition:** Hosted run `35274717164` passed the P2-01 runner/container/build boundary and failed only when the architecture helper parsed Windows-style `ProjectReference` values on Linux.
+- **Allowed outcome:** Resolve both Windows and Unix separators to the referenced project filename while preserving case-insensitive de-duplication and the existing unmapped-reference fail-closed policy.
+- **Failure cases:** A Windows-style reference must not retain its directory prefix on Linux; a Unix-style reference must remain supported; the production graph must still reject genuinely unmapped projects.
+
+### Negative-first evidence and implementation
+
+- **Root cause reproduction:** The unmodified production architecture test failed in Linux because `Path.GetFileNameWithoutExtension` does not treat backslash as a directory separator there. It returned `..\RoadGuardSystem.BusinessObjects\RoadGuardSystem.aBusinessObjects` instead of `RoadGuardSystem.aBusinessObjects`.
+- **RED edge test:** Added `ReadDirectReferences_HandlesWindowsSeparators_OnEveryOperatingSystem` first. In Linux it failed with the same retained-directory value as hosted CI.
+- **Positive test before implementation:** Added `ReadDirectReferences_HandlesUnixSeparators`. In the same pre-fix Linux run, the Unix case passed and the Windows case failed, isolating the separator assumption.
+- **Minimal implementation:** Normalize backslashes to forward slashes before calling `Path.GetFileNameWithoutExtension`. No policy, project map or dependency rule changed.
+- **GREEN:** All 37 unit tests passed inside Linux with .NET 8.0.31 runtime under pinned SDK 10.0.401; the formerly failing production graph and both P2-01 path tests passed.
+
+### Commands and results for this repair
+
+| Command | Exit | Result | Time |
+|---|---:|---|---|
+| Initial read-only scope inspection: `git status --short --branch`, `git branch --list`, `git log -5 --oneline --decorate`, `rg` for P2-01/AGENTS/plans, plan/worklog/diff reads | 0 | Confirmed branch `huy`, P2-01 blocker, two pre-existing task metadata modifications, and no unrelated worktree changes | 2026-09-18 |
+| `docker version --format '{{.Server.Os}} {{.Server.Version}}'` | 0 | Linux Docker daemon 29.6.1 available | 2026-09-18 |
+| `gh --version`, `gh auth status`, `gh run view 35274717164 --log-failed` | 1 | GitHub CLI is not installed; no remote mutation attempted. Existing hosted evidence was read from the task log | 2026-09-18 |
+| First SDK 10.0.401 Linux reproduction command | 1 | Diagnostic setup failure: image lacked the net8.0 runtime, so testhost could not start; not counted as behavioral RED | 2026-09-18 |
+| SDK 10.0.401 Linux reproduction with temporary .NET 8 runtime installation, production graph filter | 1 | Valid RED: production graph reported Windows-style reference as unmapped | 2026-09-18 |
+| Same Linux harness, new Windows-separator test only | 1 | Valid RED: expected assembly name, received retained directory plus assembly name | 2026-09-18 |
+| Same Linux harness, both new path tests before implementation | 1 | Negative test failed and Unix happy-path passed: 1 failed, 1 passed | 2026-09-18 |
+| Same Linux harness, complete unit-test project after implementation | 0 | 37/37 passed, including production graph and both P2-01 regression tests | 2026-09-18 |
+| `docker compose ps -a` without a password | 1 | Expected fail-closed interpolation: `MSSQL_SA_PASSWORD is required`; no container was started | 2026-09-18 |
+| `git diff --check` | 0 | No whitespace errors | 2026-09-18 |
+| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up to date | 2026-09-18 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Formatting clean | 2026-09-18 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 9 projects built; 0 warnings, 0 errors | 2026-09-18 |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --no-restore` | 0 | 37/37 passed, 0 skipped | 2026-09-18 |
+| `dotnet test RoadGuardSystem.slnx --no-build --no-restore` | 0 | 119/119 passed: Unit 37, API 26, Integration 56; 0 skipped; Testcontainers SQL fallback used | 2026-09-18 |
+| `dotnet test RoadGuardSystem.slnx --no-build --no-restore --filter "TaskId=P2-01"` | 0 | Unit 2/2 and Integration 13/13 passed; API correctly had no matching task test | 2026-09-18 |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --no-restore --filter "TaskId=P2-01"` | 0 | 13/13 SQL Server tests passed, 0 skipped | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/CI/Verify-CiWorkflow.ps1` | 0 | CI workflow verifier passed | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/Operations/Verify-DockerCompose.ps1` | 0 | Compose verifier and fail-closed regression passed | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Documentation gate passed | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1` | 0 | No High/Critical vulnerable dependency found | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/CI/Verify-CiWorkflow.ps1 -SelfTestNegative` | 1 | Expected negative-suite exit; all 11 invalid fixtures were rejected | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/Operations/Verify-DockerCompose.ps1 -SelfTestNegative` | 1 | Expected negative-suite exit; all 7 invalid fixtures were rejected | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1 -SelfTestNegative` | 1 | Operator error recorded: unsupported parameter; no verification claim from this invocation | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1 -SelfTest` | 0 | Correct interface; all 12 dependency-security regression cases passed | 2026-09-18 |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/UnitTests` | 0 | 37/37 passed and Cobertura artifact generated | 2026-09-18T04:29:01+07:00 |
+
+### Self-review and handoff
+
+- **Authorization / ownership:** Repository-owner approval resolves the recorded P1-file overlap for these two test-helper files only. No broader Person 1 ownership transfer is implied.
+- **State transitions / immutability / idempotency / concurrency / audit:** No runtime paths changed. Existing domain and persistence guarantees are untouched.
+- **Fail-closed behavior:** The checker still preserves and rejects genuinely unmapped references; only separator interpretation changed.
+- **Secrets:** No credential was read, printed or written. SQL tests used Testcontainers fallback with an ephemeral credential managed by the fixture.
+- **Missing tests:** None identified for the changed behavior. Both separator forms, the real production graph, the unmapped-reference negative policy and the complete unit suite are covered.
+- **Changed files in this repair:** `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs`, `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs`, `docs/worklogs/P2-01-completion.md`, `planning/RoadGuard_Plan_Person_2.md`.
+- **Current status:** `In Progress`. Local and Linux gates are green. A focused commit, explicit push authorization and a fresh hosted CI run are still required before final self-review can mark P2-01 `Done`.
+
+### Final local gate incident and controlled recovery
+
+- A post-documentation full-solution rerun did not reproduce a code failure: Unit 37/37 and API 26/26 passed, but Docker Desktop stopped responding while four parallel integration fixtures were starting SQL containers. Integration finished 22 passed / 34 failed after 101 seconds, with every failure rooted in `TaskCanceledException` from the Docker API start call.
+- Read-only `docker version`, `docker ps`, `docker info` and one earlier `docker inspect` also hung, confirming the boundary was the daemon rather than a test assertion or SQL behavior. The corresponding owned CLI processes were stopped after their PIDs and command lines were inspected.
+- Docker Desktop was restarted through `docker desktop restart --timeout 120`. After restart, the four stopped containers were verified to carry `org.testcontainers=true` and the same resource-reaper session label, then removed by their exact IDs. No pre-existing/user container was running before the incident.
+- The final verification used one explicitly named, step-managed SQL container, a cryptographically generated credential held only in process environment, a bounded readiness loop, an ephemeral host port, and unconditional environment/container cleanup. This mirrors the hosted CI resource model and avoids treating a concurrent local daemon failure as application evidence.
+
+| Command | Exit | Result | Time |
+|---|---:|---|---|
+| Post-edit `dotnet test RoadGuardSystem.slnx --no-build --no-restore` with four parallel Testcontainers | 1 | Unit 37/37 and API 26/26 passed; Integration 22 passed / 34 failed because Docker API container-start calls timed out | 2026-09-18 |
+| `Get-CimInstance Win32_Process -Filter "Name = 'docker.exe'"` and exact `Stop-Process` for the four owned hung read-only CLI calls | 0 | Identified and ended only the diagnostic CLI processes; Docker Desktop processes were not killed | 2026-09-18 |
+| `docker desktop restart --timeout 120` | 0 | Docker Desktop engine restarted successfully | 2026-09-18 |
+| `docker version` and labeled `docker ps -a` after restart | 0 | Daemon responsive; exactly four failed-session SQL containers found, all labeled `org.testcontainers=true` with session `66a2bb17-2cf0-4427-ad30-586b00aaa86e` | 2026-09-18 |
+| `docker rm fc6757370abf e182ca04b7f0 4657bdb3d068 0a82257d8c22` | 0 | Removed the four exact stopped test containers | 2026-09-18 |
+| Controlled step-managed SQL verification: bounded readiness, `dotnet test RoadGuardSystem.slnx --no-build --no-restore`, seeder, unconditional cleanup | 0 | Final GREEN: Unit 37/37, API 26/26, Integration 56/56, 0 skipped; seeder succeeded | 2026-09-18 |
+| Final `docker ps -a --format ...` | 0 | Empty; no verification container or failed Testcontainer remained | 2026-09-18 |
+
+- **Final local verification state:** Green with 119/119 tests and seeder success against the controlled SQL Server container. The transient parallel-Testcontainers failure remains recorded as environment evidence and is not concealed or counted as a passing run.

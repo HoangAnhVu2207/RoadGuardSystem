@@ -191,29 +191,39 @@ if (-not [string]::IsNullOrWhiteSpace($trackedEnv)) {
 }
 
 # 6. Structured verification using `docker compose config`
-# Test A: When MSSQL_SA_PASSWORD is unset, `docker compose config` MUST fail (exit non-zero)
-Write-Host "Verifying Docker Compose fail-closed behavior when MSSQL_SA_PASSWORD is unset..." -ForegroundColor Gray
+# Test A: When MSSQL_SA_PASSWORD is unset, `docker compose config` MUST fail (exit non-zero).
+# Uses an isolated empty temporary --env-file so any local .env file in the workspace does not affect this fail-closed test.
+Write-Host "Verifying Docker Compose fail-closed behavior when MSSQL_SA_PASSWORD is unset (isolated via empty --env-file)..." -ForegroundColor Gray
+$emptyEnvFile = [System.IO.Path]::GetTempFileName()
 $envBackup = $env:MSSQL_SA_PASSWORD
 try {
     $env:MSSQL_SA_PASSWORD = $null
-    $null = docker compose -f $composeFile config 2>&1
+    $null = docker compose --env-file $emptyEnvFile -f $composeFile config 2>&1
     if ($LASTEXITCODE -eq 0) {
-        $errors += "docker compose config succeeded with exit code 0 when MSSQL_SA_PASSWORD was unset. It must fail-closed with non-zero exit code."
+        $errors += "docker compose config succeeded with exit code 0 when MSSQL_SA_PASSWORD was unset (using isolated empty --env-file). It must fail-closed with non-zero exit code."
     }
 } finally {
+    if (Test-Path $emptyEnvFile) {
+        Remove-Item $emptyEnvFile -Force -ErrorAction SilentlyContinue
+    }
     if ($null -ne $envBackup) {
         $env:MSSQL_SA_PASSWORD = $envBackup
     }
 }
 
-# Test B: When temporary valid password provided, `docker compose config --format json` MUST succeed and parse valid JSON
-Write-Host "Verifying Docker Compose structured JSON when temporary password is provided..." -ForegroundColor Gray
-$tempSaPassword = "TempVerifyPassword123!"
-$env:MSSQL_SA_PASSWORD = $tempSaPassword
+# Test B: Regression test with valid environment configuration via --env-file
+# Validates that docker compose config succeeds (exit 0) and outputs compliant structured JSON
+Write-Host "Verifying Docker Compose regression test with valid environment configuration via --env-file..." -ForegroundColor Gray
+$validEnvFile = [System.IO.Path]::GetTempFileName()
 try {
-    $jsonOutput = docker compose -f $composeFile config --format json 2>&1
+    Set-Content -Path $validEnvFile -Value @"
+MSSQL_PORT=1433
+MSSQL_SA_PASSWORD=RegressionSA_Password123!
+"@ -Encoding UTF8
+
+    $jsonOutput = docker compose --env-file $validEnvFile -f $composeFile config --format json 2>&1
     if ($LASTEXITCODE -ne 0) {
-        $errors += "docker compose config --format json failed with exit code $LASTEXITCODE when temporary password was provided."
+        $errors += "docker compose config --format json failed with exit code $LASTEXITCODE when valid env configuration was provided via --env-file."
     } else {
         $parsedConfig = $null
         try {
@@ -248,10 +258,48 @@ try {
         }
     }
 } finally {
-    if ($null -ne $envBackup) {
-        $env:MSSQL_SA_PASSWORD = $envBackup
+    if (Test-Path $validEnvFile) {
+        Remove-Item $validEnvFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# Test C: Regression test with local .env file
+# If a local .env file exists in the repository, verify it is accepted by docker compose without requiring --env-file
+$localEnvPath = Join-Path $RepoRoot ".env"
+if (Test-Path $localEnvPath) {
+    Write-Host "Verifying existing local .env file with Docker Compose..." -ForegroundColor Gray
+    $localEnvOutput = docker compose -f $composeFile config 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $errors += "docker compose config failed with local .env file. Exit code: $LASTEXITCODE. Output: $localEnvOutput"
     } else {
-        Remove-Item env:MSSQL_SA_PASSWORD -ErrorAction SilentlyContinue
+        Write-Host "Local .env file validated cleanly with Docker Compose." -ForegroundColor Green
+    }
+} else {
+    # If no local .env exists in repository root, run regression test verifying default .env resolution in isolated temp directory
+    Write-Host "Running regression test for local .env resolution in isolated temporary directory..." -ForegroundColor Gray
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    try {
+        Copy-Item -Path $composeFile -Destination (Join-Path $tempDir "docker-compose.yml")
+        $tempLocalEnv = Join-Path $tempDir ".env"
+        Set-Content -Path $tempLocalEnv -Value @"
+MSSQL_PORT=1433
+MSSQL_SA_PASSWORD=ValidLocalDotEnvPassword123!
+"@ -Encoding UTF8
+
+        Push-Location $tempDir
+        try {
+            $null = docker compose config 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                $errors += "Regression test: docker compose config failed to resolve valid local .env file. Exit code: $LASTEXITCODE."
+            }
+        } finally {
+            Pop-Location
+        }
+    } finally {
+        if (Test-Path $tempDir) {
+            Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 

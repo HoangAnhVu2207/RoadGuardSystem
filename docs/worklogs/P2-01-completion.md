@@ -4,7 +4,7 @@
 
 - **Task ID/title:** P2-01 / Docker Compose dependencies, seed framework and CI pipeline
 - **Owner / self-reviewer:** Person 2 (Huy) / Awaiting Codex final review
-- **Date / branch or commit:** 2026-09-18 / `huy` / baseline commit `20ff1d3` / follow-up review fixes after `0011ad6`
+- **Date / branch or commit:** 2026-09-18 / `huy` / baseline commit `6d5ef26` / follow-up review fixes after `6d5ef26`
 - **Trace (`US-*`, use case, acceptance criteria):** TE-01 / TE-10 (Technical Enabler — CI/CD delivery pipeline, local Docker Compose dependencies, and deterministic database seed framework; no business use case)
 - **Status:** Ready for Codex review
 
@@ -19,11 +19,14 @@
   - Zero hardcoded real credentials or usable passwords in Compose file or `.env.example`.
   - Template `.env.example` contains strictly empty `MSSQL_SA_PASSWORD=` with explicit user instructions to set a strong password prior to launch.
   - `.env` explicitly ignored by `.gitignore` and untracked by Git.
+  - `Verify-DockerCompose.ps1` runs fail-closed check with an isolated empty temporary `--env-file` to prevent local `.env` from causing false negatives, plus regression tests for valid `--env-file` and local `.env` resolution.
 - **Database Seeding Framework & Entry Point:**
   - Reusable, extensible, deterministic seeding abstraction (`ISeedStep`, `IDatabaseSeeder`, `DatabaseSeeder`) in `RoadGuardSystem.Repositories.Seeding`.
   - Fail-fast readiness validation: verifies database connection readiness before executing seed; fails immediately (`DatabaseNotReadyException`) if database is unavailable or unhealthy without creating schema or inserting records.
   - Idempotency contract invariant: clearly documented that `DatabaseSeeder` delegates to steps sequentially and does not automatically make non-idempotent steps idempotent; idempotency is a mandatory contract invariant of each `ISeedStep` implementation.
-  - Dedicated console entry point tool `tools/RoadGuardSystem.Seeder/` (`RoadGuardSystem.Seeder.csproj`, `Program.cs`) capable of executing seeding from command line / CI with standard exit codes (0 = success, 1 = arg/usage error, 2 = readiness failure, 3 = unhandled exception) without passing secrets via CLI arguments.
+  - Dedicated console entry point tool `tools/RoadGuardSystem.Seeder/` (`RoadGuardSystem.Seeder.csproj`, `Program.cs`) capable of executing seeding from command line / CI with standard exit codes (0 = success, 1 = arg/usage error, 2 = readiness failure, 3 = unhandled exception).
+  - CLI rejects `-c` / `--connection-string` and any unsupported arguments; only reads `ROADGUARD_CONNECTION_STRING` from environment.
+  - Testable seam `Program.RunAsync(args, envLookup, cancellationToken)` enables deterministic testing of environment variable resolution without mutating process-level environment state.
   - Proven that Wave 0 no-op seed entry point can execute repeatedly on a live database with exit code 0, executing 0 steps, and leaving base tables unchanged without adding or removing tables.
 - **Continuous Integration Pipeline (`.github/workflows/ci.yml`):**
   - GitHub Actions workflow `.github/workflows/ci.yml`.
@@ -32,9 +35,10 @@
   - SQL Server service container with healthcheck using pinned image `mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04`.
   - Password provided securely via GitHub repository secret `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}`. Zero password literals.
   - Healthcheck inside container consumes container environment variable (`"$MSSQL_SA_PASSWORD"` double-quoted) allowing container shell parameter expansion in GitHub Actions service container.
+  - Database connection secrets strictly scoped to steps that need them (`Run Integration Tests with coverage` and `Validate Seeder Entry Point`). Zero secrets at job-level `env:`.
   - Seeder step consumes `ROADGUARD_CONNECTION_STRING` from step environment, passing zero secrets via CLI flags.
   - Full execution gate: documentation verifier, dependency-security vulnerability scan, restore, code format verification (`dotnet format --verify-no-changes`), non-incremental build (`dotnet build --no-incremental`), test execution across UnitTests, ApiTests, and IntegrationTests with Cobertura coverage collection, and artifact upload.
-  - Automated verifiers with negative self-tests: `Verify-CiWorkflow.ps1` and `Verify-DockerCompose.ps1` detect and fail fast on hardcoded credentials, missing guards, Compose-style `$$` in GHA, single-quoted env vars, and non-empty `.env.example` passwords (blocking `12345678`).
+  - Automated verifiers with negative self-tests: `Verify-CiWorkflow.ps1` and `Verify-DockerCompose.ps1` detect and fail fast on hardcoded credentials, missing guards, Compose-style `$$` in GHA, single-quoted env vars, job-level secrets, unauthorized step secrets, and non-empty `.env.example` passwords.
 
 ### Explicitly out of scope
 
@@ -51,8 +55,8 @@
 - **Actor and project-scope rule:** N/A — Technical enabler establishing CI, local container, and seeding infrastructure. No business actor or project-scope authorization applies at this layer.
 - **State before / allowed state after:**
   - Baseline `20ff1d3` integrating P1 Wave 0 (`3e13ca6`) and P2-00 (`b2662fe`).
-  - Follow-up review fixes after commit `0011ad6`.
-  - After: Hardened CI secrets and container-shell healthcheck expansion, fail-closed Compose configuration with empty template password, hardened verifiers with negative test assertions, proven Wave 0 no-op repeated seed without mutating base tables, and all 113 solution tests passing.
+  - Follow-up review fixes after commits `0011ad6`, `4da00ee`, and `6d5ef26`.
+  - After: Hardened CI secrets scoped strictly to integration-test and seeder steps, job-level env clean of connection strings, seeder CLI accepting only `ROADGUARD_CONNECTION_STRING` with testable seam and strict arg rejection, isolated fail-closed Compose check with valid `.env` regression tests, and all 117 solution tests passing.
 - **Data/version/immutability rules:** N/A for business data. Seed operations are deterministic; individual `ISeedStep` implementations must satisfy the idempotency contract invariant.
 - **Audit event and stable error codes:** N/A for business audit. Seeder and CI scripts fail fast with descriptive diagnostic messages and standard exit codes.
 - **Idempotency/concurrency behavior:**
@@ -61,7 +65,7 @@
   - Wave 0 no-op seed entry point is proven to run repeatedly without mutating base tables (executing 0 steps).
 - **Assumptions, ADRs, or specification conflicts:**
   - P2-01 Product Owner decisions 1–14 strictly followed.
-  - Review findings 1–5 resolved completely.
+  - Review findings 1–3 (second follow-up) resolved completely.
   - SQL Server container image: `mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04`.
   - SDK: `10.0.401`.
 
@@ -71,18 +75,19 @@
 
 - Intended files:
   - `docker-compose.yml` (Modified: added required guard `:?`)
-  - `.env.example` (Modified: reset `MSSQL_SA_PASSWORD=` to empty value per Owner instruction)
-  - `.github/workflows/ci.yml` (Modified: secret references, double-quoted `$MSSQL_SA_PASSWORD` healthcheck, env seeder connection)
+  - `.env.example` (Modified: reset `MSSQL_SA_PASSWORD=` to empty value requiring user configuration)
+  - `.github/workflows/ci.yml` (Modified: secret references, double-quoted `$MSSQL_SA_PASSWORD` healthcheck, step-scoped connection strings, clean job-level env)
+  - `tools/RoadGuardSystem.Seeder/Program.cs` (Modified: removed `-c`/`--connection-string`, strictly reads `ROADGUARD_CONNECTION_STRING`, rejects unsupported args, added `RunAsync` seam)
   - `RoadGuardSystem.Repositories/Seeding/ISeedStep.cs` (Modified: documented mandatory idempotency contract)
-  - `RoadGuardSystem.Repositories/Seeding/DatabaseSeeder.cs` (Modified: clarified orchestration vs step idempotency)
-  - `tests/CI/Verify-CiWorkflow.ps1` (Modified: reject `$$` and single-quotes, require double-quotes, distinct negative fixtures with assertions)
-  - `tests/Operations/Verify-DockerCompose.ps1` (Modified: parse `.env.example` line, require empty value, negative test blocking `12345678`)
-  - `tests/RoadGuardSystem.IntegrationTests/Seeding/SeederTests.cs` (Modified: narrowed test name and comment to proven base-table assertion)
+  - `RoadGuardSystem.Repositories/Seeding/DatabaseSeeder.cs` (Modified: preserved cancellation semantics during readiness check)
+  - `tests/CI/Verify-CiWorkflow.ps1` (Modified: rejects job-level connection secrets, ensures only integration/seeder steps get secrets, added negative fixtures 6 & 7)
+  - `tests/Operations/Verify-DockerCompose.ps1` (Modified: isolated fail-closed test with empty `--env-file`, added valid env regression tests)
+  - `tests/RoadGuardSystem.IntegrationTests/Seeding/SeederTests.cs` (Modified: updated CLI tests to use `RunAsync` seam without process env mutation, added negative tests for unsupported/empty args and missing env)
   - `planning/RoadGuard_Plan_Person_2.md` (Modified: fixed status table formatting, removed divergence note, updated status)
   - `docs/worklogs/P2-01-completion.md` (Modified: recorded review findings, verifier evidence, runner boundaries, and handoff)
 - Exclusive ownership: Person 2 owns Docker Compose, CI workflows, seed infrastructure, operations scripts, and persistence integration tests.
 - Conflict warning:
-  - `planning/RoadGuard_Plan_Person_2.md`: Updated P2-01 status to `Ready for Codex review`. No active conflict.
+  - `planning/RoadGuard_Plan_Person_2.md`: Status remains `Ready for Codex review`. No active conflict.
 
 ---
 
@@ -92,14 +97,15 @@
 |---|---|---|
 | Modified | `docker-compose.yml` | Added fail-closed required interpolation guard `${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD is required}`. |
 | Modified | `.env.example` | Reset `MSSQL_SA_PASSWORD=` to empty value requiring user configuration. |
-| Modified | `.github/workflows/ci.yml` | Corrected healthcheck to use double-quoted `"$MSSQL_SA_PASSWORD"` allowing container shell parameter expansion. |
+| Modified | `.github/workflows/ci.yml` | Removed connection string secret from job-level `env:`; scoped `ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` strictly to integration tests and `ROADGUARD_CONNECTION_STRING` to seeder step; healthcheck uses double-quoted `"$MSSQL_SA_PASSWORD"`. |
+| Modified | `tools/RoadGuardSystem.Seeder/Program.cs` | Removed `-c`/`--connection-string`; only reads `ROADGUARD_CONNECTION_STRING`; rejects unsupported/empty args with exit 1; added testable `RunAsync(args, envLookup, cancellationToken)` seam. |
 | Modified | `RoadGuardSystem.Repositories/Seeding/ISeedStep.cs` | Documented mandatory contract invariant that each `ISeedStep` must be idempotent. |
 | Modified | `RoadGuardSystem.Repositories/Seeding/DatabaseSeeder.cs` | Preserved cancellation semantics before and after readiness probe, rethrowing `OperationCanceledException` without wrapping in `DatabaseNotReadyException`. |
-| Modified | `tests/CI/Verify-CiWorkflow.ps1` | Scoped verification strictly to `services.mssql`, rejected literals (quoted and unquoted), and added negative fixture 5 asserting detection of unquoted password with connection string secret. |
-| Modified | `tests/Operations/Verify-DockerCompose.ps1` | Enforced exactly one `MSSQL_PORT=` and `MSSQL_SA_PASSWORD=` via `[regex]::Matches`, requiring empty password; added negative fixture 7 for duplicate keys with unlisted password. |
-| Modified | `tests/RoadGuardSystem.IntegrationTests/Seeding/SeederTests.cs` | Added negative test for pre-canceled token verifying `OperationCanceledException` and 0 steps executed; narrowed base-table repeat assertion. |
+| Modified | `tests/CI/Verify-CiWorkflow.ps1` | Scoped verification strictly to `services.mssql`, rejected job-level connection secrets, verified step-level secret authorization, and added negative fixtures 6 (job-level secret) & 7 (unauthorized step secret). |
+| Modified | `tests/Operations/Verify-DockerCompose.ps1` | Isolated fail-closed check using temporary empty `--env-file` against local `.env` interference; added regression tests for valid `--env-file` and local `.env` resolution. |
+| Modified | `tests/RoadGuardSystem.IntegrationTests/Seeding/SeederTests.cs` | Updated CLI tests to use testable seam without modifying process env; added negative tests for unsupported args (`-c`, `--connection-string`, arbitrary flags), empty args, and missing `ROADGUARD_CONNECTION_STRING`. |
 | Modified | `planning/RoadGuard_Plan_Person_2.md` | Fixed table formatting, removed divergent branches warning, set status to `Ready for Codex review`. |
-| Modified | `docs/worklogs/P2-01-completion.md` | Recorded all review findings (F-1..5, intermediate 1..5, follow-up 1..3), verification evidence, runner bounds, and handoff. |
+| Modified | `docs/worklogs/P2-01-completion.md` | Recorded all review findings (F-1..5, intermediate 1..5, follow-up 1..3, second follow-up 1..3), verification evidence, runner bounds, and handoff. |
 
 ---
 
@@ -147,6 +153,14 @@
 | **Finding 2** | Medium | Duplicate `.env.example` Keys: `Test-EnvExampleContent` used single `-match` which evaluated only the first assignment and allowed duplicate keys and non-empty values not on blacklist. | Replaced with `[regex]::Matches` requiring exactly one `MSSQL_PORT=` and exactly one `MSSQL_SA_PASSWORD=`, enforcing that the single password value is empty; rejected missing keys, duplicate keys, and all non-empty values; added negative fixture in `SelfTestNegative` with duplicate keys and unlisted value `DifferentStrong9!`, proving detection is independent of the blacklist. |
 | **Finding 3** | Medium | Seeder Cancellation Semantics: `DatabaseSeeder.SeedAsync` caught all exceptions during `CanConnectAsync` and wrapped `OperationCanceledException` into `DatabaseNotReadyException`, violating cancellation semantics. | Added `cancellationToken.ThrowIfCancellationRequested()` before readiness probe, rethrown `OperationCanceledException` when caller token is canceled without wrapping into `DatabaseNotReadyException`, checked cancellation again after `CanConnectAsync` before evaluating readiness failure; added negative test `SeedAsync_ThrowsOperationCanceledException_WhenTokenIsPreCanceled` proving `OperationCanceledException` is thrown and zero seed steps run. |
 
+### Second Follow-up Review Fixes (Addressed in this slice, baseline `6d5ef26`)
+
+| Finding | Severity | Description | Resolution |
+|---|---|---|---|
+| **Finding 1** | High | Connection String Secret Scoping: `ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` was exposed at job-level `env:` in `.github/workflows/ci.yml`, leaking database credentials to all steps. | Removed `ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` from job-level `env:`; scoped `ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` strictly to `Run Integration Tests with coverage` step and `ROADGUARD_CONNECTION_STRING` to `Validate Seeder Entry Point` step. Hardened `Verify-CiWorkflow.ps1` parser to reject secrets or connection strings at workflow/job-level `env:` and reject secret exposure to unauthorized steps. Added negative Fixture 6 (job-level secret) and Fixture 7 (unauthorized step secret), both asserted in `SelfTestNegative`. |
+| **Finding 2** | Medium | Seeder CLI accepted `-c` / `--connection-string` and lacked a testable seam for environment lookup without process mutation. | Removed `-c` and `--connection-string` from CLI; Seeder only reads `ROADGUARD_CONNECTION_STRING` (removed connection string fallbacks). Added strict rejection (exit code 1) for unsupported or empty/whitespace arguments (only `-h` and `--help` supported). Created `Program.RunAsync(args, envLookup, cancellationToken)` seam. Added negative tests in `SeederTests.cs` for unsupported args (`-c`, `--connection-string`, arbitrary flags), empty args, and missing env var. |
+| **Finding 3** | Medium | `Verify-DockerCompose.ps1` fail-closed test was vulnerable to existing local `.env` file in developer checkout, causing false negatives. | Updated fail-closed test (Test A) to pass an isolated empty temporary `--env-file $emptyEnvFile` to `docker compose config`, preventing Docker Compose from reading workspace `.env`. Updated Test B regression test to use temporary valid `--env-file`. Added Test C regression test verifying that if a local `.env` exists in the repo it validates cleanly, or in clean environments runs an isolated regression test proving default local `.env` resolution succeeds. |
+
 ---
 
 ## Negative-first evidence
@@ -155,11 +169,13 @@
 |---|---|---|---|
 | Insecure CI workflow with hardcoded secrets | CI / Verifier | Exit 1 with specific security errors | PASS: Verified RED on baseline `ci.yml` before hardening |
 | Insecure Compose without guard & with usable password | Operations / Verifier | Exit 1 with specific configuration errors | PASS: Verified RED on baseline `docker-compose.yml` and `.env.example` |
-| `Verify-CiWorkflow.ps1 -SelfTestNegative` | CI / Script | Exit 1 detecting 5 distinct negative fixtures via assertions | PASS: Verified 1. Hardcoded password, 2. Compose-style `$$`, 3. Single-quoted `$MSSQL_SA_PASSWORD`, 4. CLI connection string argument, 5. Unquoted service password literal with connection string secret |
+| `Verify-CiWorkflow.ps1 -SelfTestNegative` | CI / Script | Exit 1 detecting 7 distinct negative fixtures via assertions | PASS: Verified 1. Hardcoded password, 2. Compose-style `$$`, 3. Single-quoted `$MSSQL_SA_PASSWORD`, 4. CLI connection string argument, 5. Unquoted service password literal with connection string secret, 6. Job-level env connection secret, 7. Unauthorized step secret |
 | `Verify-DockerCompose.ps1 -SelfTestNegative` | Operations / Script | Exit 1 detecting 7 negative checks via assertions | PASS: Verified missing image, missing healthcheck, hardcoded secret, missing volume, missing guard `:?`, non-empty password blocking `12345678`, and duplicate keys with unlisted password `DifferentStrong9!` |
-| Docker Compose fail-closed when password unset | Operations / CLI | Exit 1 with required variable missing error | PASS: `error while interpolating services.sqlserver.environment.MSSQL_SA_PASSWORD: ... is required` (ExitCode: 1) |
-| Seeder CLI with missing connection string | CLI / Tool | Exit 1 with usage instruction | PASS: Exits with code 1 |
-| Seeder CLI with unreachable database | CLI / Tool | Exit 2 with fail-fast diagnostic output | PASS: Exits with code 2 (`DatabaseNotReadyException`) |
+| Docker Compose fail-closed when password unset (isolated via empty `--env-file`) | Operations / CLI | Exit 1 with required variable missing error | PASS: `error while interpolating services.sqlserver.environment.MSSQL_SA_PASSWORD: ... is required` (ExitCode: 1) |
+| Seeder CLI with unsupported argument (e.g. `-c`, `--connection-string`, arbitrary flag) | CLI / Tool | Exit 1 with usage instruction and argument error | PASS: Exits with code 1 (`Cli_ReturnsCode1_WhenUnsupportedArgumentPassed`) |
+| Seeder CLI with empty or whitespace argument | CLI / Tool | Exit 1 with usage instruction | PASS: Exits with code 1 (`Cli_ReturnsCode1_WhenEmptyOrWhitespaceArgumentPassed`) |
+| Seeder CLI with missing `ROADGUARD_CONNECTION_STRING` | CLI / Tool | Exit 1 with missing env error | PASS: Exits with code 1 (`Cli_ReturnsCode1_WhenEnvironmentVariableIsMissing`) |
+| Seeder CLI with unreachable database via seam | CLI / Tool | Exit 2 with fail-fast diagnostic output | PASS: Exits with code 2 (`DatabaseNotReadyException`) |
 | `SeedAsync` when context null | Seeder / Unit | `ArgumentNullException` | PASS |
 | `SeedAsync` when DB unreachable | Seeder / Integration | `DatabaseNotReadyException` | PASS |
 | `SeedAsync` when token pre-canceled | Seeder / Integration | `OperationCanceledException` | PASS: Throws `OperationCanceledException` without wrapping into `DatabaseNotReadyException`, zero seed steps run |
@@ -171,15 +187,14 @@
 | Test | Layer | Expected state/output | Result |
 |---|---|---|---|
 | Clean CI workflow verification | CI / Script | `Verify-CiWorkflow.ps1` exits 0 | PASS (ExitCode: 0) |
-| Clean Docker Compose verification | Operations / Script | `Verify-DockerCompose.ps1` exits 0 | PASS (ExitCode: 0) |
-| Structured Docker Compose JSON parsing | Operations / CLI | `docker compose config --format json` parses valid JSON with exactly 1 service | PASS: Validated single service `sqlserver`, image, volume, healthcheck |
+| Clean Docker Compose verification | Operations / Script | `Verify-DockerCompose.ps1` exits 0 | PASS (ExitCode: 0; includes isolated fail-closed check, valid `--env-file` check, and local `.env` resolution) |
+| Structured Docker Compose JSON parsing | Operations / CLI | `docker compose --env-file <temp> config --format json` parses valid JSON with exactly 1 service | PASS: Validated single service `sqlserver`, image, volume, healthcheck |
 | Deterministic seed execution | Seeder / Integration | Seeder runs successfully on live SQL Server database | PASS (`SeedAsync_CompletesDeterministically_OnHealthyDatabase`) |
 | Ordered seed execution | Seeder / Integration | Executes registered steps in strict numerical order | PASS (`SeedAsync_ExecutesSteps_InStrictOrder`) |
 | Seed step idempotency contract | Seeder / Integration | `ISeedStep` implementing contract executes safely across repeated runs | PASS (`SeedStepContract_DemonstratesIdempotentStepExecution`) |
 | Repeated no-op seed base table preservation | Seeder / Integration | No-op seed runs twice with 0 steps executed; base table list unchanged | PASS (`Wave0_NoOpSeed_CanExecuteRepeatedly_WithoutMutatingBaseTables`) |
-| Seeder CLI two consecutive runs | CLI / Integration | Both runs exit code 0, 0 steps executed | PASS (Run 1: ExitCode 0, Run 2: ExitCode 0) |
-| Seeder CLI on healthy DB | CLI / Tool | Exit 0 | PASS (`Cli_ReturnsCode0_WhenDatabaseIsHealthy`) |
-| Seeder CLI help flag | CLI / Tool | Exit 0 | PASS (`Cli_ReturnsCode0_WhenHelpRequested`) |
+| Seeder CLI on healthy DB via `ROADGUARD_CONNECTION_STRING` seam | CLI / Tool | Exit 0 | PASS (`Cli_ReturnsCode0_WhenDatabaseIsHealthy`) |
+| Seeder CLI help flag (`-h`, `--help`) | CLI / Tool | Exit 0 | PASS (`Cli_ReturnsCode0_WhenHelpRequested`) |
 | Secret scan on tracked files | Static / Git | Zero password literals in workflow, compose, or code | PASS: `git grep` confirmed no plaintext secrets; only secret references |
 
 ---
@@ -188,29 +203,28 @@
 
 | Command | Exit code | Result/coverage | Timestamp |
 |---|---:|---|---|
-| `powershell -ExecutionPolicy Bypass -File tests/CI/Verify-CiWorkflow.ps1` | 0 | Post-fix GREEN: CI workflow verified cleanly | 2026-09-18T00:27:07 |
-| `powershell -ExecutionPolicy Bypass -File tests/CI/Verify-CiWorkflow.ps1 -SelfTestNegative` | 1 | Negative self-test: 5 distinct negative fixtures detected and asserted | 2026-09-18T00:27:10 |
-| `powershell -ExecutionPolicy Bypass -File tests/Operations/Verify-DockerCompose.ps1` | 0 | Post-fix GREEN: Compose and environment verified cleanly | 2026-09-18T00:27:12 |
-| `powershell -ExecutionPolicy Bypass -File tests/Operations/Verify-DockerCompose.ps1 -SelfTestNegative` | 1 | Negative self-test: 7 checks detected and asserted (including duplicate keys and unlisted `DifferentStrong9!`) | 2026-09-18T00:27:14 |
-| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --filter "TaskId=P2-01"` | 0 | 10 P2-01 integration tests passed against local SQL Server in 2s | 2026-09-18T00:27:26 |
-| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Code formatting verified clean | 2026-09-18T00:27:40 |
-| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | Clean build across all 9 projects (0 warnings, 0 errors) in 2.67s | 2026-09-18T00:27:44 |
-| `dotnet test RoadGuardSystem.slnx --no-build --no-restore` | 0 | Solution-wide test run: 114 passed across Unit (35), API (26), and Integration (53) in 8s | 2026-09-18T00:28:02 |
-| `powershell -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Documentation gate passed | 2026-09-18T00:28:05 |
-| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1` | 0 | Dependency vulnerability scan passed (0 High/Critical vulnerabilities) | 2026-09-18T00:28:11 |
-| `git diff --check` | 0 | Clean git diff check (0 whitespace issues, 0 conflict markers) | 2026-09-18T00:28:13 |
-| `git status --short` | 0 | Verified only expected files modified | 2026-09-18T00:28:15 |
+| `powershell -ExecutionPolicy Bypass -File tests/CI/Verify-CiWorkflow.ps1` | 0 | Post-fix GREEN: CI workflow verified cleanly (scoped secrets, clean job env) | 2026-09-18T00:54:08 |
+| `powershell -ExecutionPolicy Bypass -File tests/CI/Verify-CiWorkflow.ps1 -SelfTestNegative` | 1 | Negative self-test: 7 distinct negative fixtures detected and asserted | 2026-09-18T00:54:11 |
+| `powershell -ExecutionPolicy Bypass -File tests/Operations/Verify-DockerCompose.ps1` | 0 | Post-fix GREEN: Compose verified cleanly (isolated fail-closed + regression tests) | 2026-09-18T00:54:14 |
+| `powershell -ExecutionPolicy Bypass -File tests/Operations/Verify-DockerCompose.ps1 -SelfTestNegative` | 1 | Negative self-test: 7 checks detected and asserted | 2026-09-18T00:54:17 |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --filter "TaskId=P2-01"` | 0 | 13 P2-01 integration tests passed against local SQL Server in 2s | 2026-09-18T00:54:29 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Code formatting verified clean | 2026-09-18T00:54:42 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | Clean build across all 9 projects (0 warnings, 0 errors) in 7.21s | 2026-09-18T00:54:51 |
+| `dotnet test RoadGuardSystem.slnx --no-build --no-restore` | 0 | Solution-wide test run: 117 passed across Unit (35), API (26), and Integration (56) in 8s | 2026-09-18T00:55:08 |
+| `powershell -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Documentation gate passed | 2026-09-18T00:55:10 |
+| `powershell -ExecutionPolicy Bypass -File tests/Security/Verify-DependencySecurity.ps1` | 0 | Dependency vulnerability scan passed (0 High/Critical vulnerabilities) | 2026-09-18T00:55:27 |
+| `git diff --check` | 0 | Clean git diff check (0 whitespace issues, 0 conflict markers) | 2026-09-18T00:55:29 |
+| `git status --short` | 0 | Verified only expected files modified | 2026-09-18T00:55:31 |
 
 ---
 
 ## Self-review and conflict report
 
 - **Observable demo/output:**
-  - `Verify-CiWorkflow.ps1` extracts and checks the `services.mssql` block, strictly verifying `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}` and rejecting all literals regardless of secrets elsewhere in the file.
-  - `Verify-DockerCompose.ps1` enforces exactly one `MSSQL_PORT=` and exactly one `MSSQL_SA_PASSWORD=` via `[regex]::Matches`, ensuring the password value is empty and catching duplicate keys and non-empty values without reliance on a blacklist.
-  - Negative self-tests in both scripts assert each tested fixture/check. These fixtures prove that the targeted negative conditions are caught, without asserting absolute verifier infallibility beyond the tested test suite.
-  - `DatabaseSeeder.SeedAsync` checks cancellation before readiness probe, rethrows `OperationCanceledException` when caller cancellation is requested, and re-checks token after `CanConnectAsync` before throwing `DatabaseNotReadyException`.
-  - All 114 solution tests (35 Unit, 26 API, 53 Integration) pass cleanly.
+  - `Verify-CiWorkflow.ps1` ensures secrets are never placed at job-level `env:`, restricts secrets strictly to `Integration Tests` and `Seeder` steps, and verifies service password matches `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}`. Negative self-test asserts 7 distinct negative fixtures.
+  - `tools/RoadGuardSystem.Seeder/Program.cs` rejects `-c` / `--connection-string` and all unsupported arguments; reads exclusively `ROADGUARD_CONNECTION_STRING`; provides a testable `RunAsync(args, envLookup, cancellationToken)` seam.
+  - `Verify-DockerCompose.ps1` runs the fail-closed check using a temporary empty `--env-file`, eliminating false negatives caused by local `.env` files in developer checkouts, and includes regression tests for valid env files and local `.env` resolution.
+  - All 117 solution tests (35 Unit, 26 API, 56 Integration) pass cleanly.
 - **Known gaps, skipped tests, and reason:** None.
 - **Execution bounds and runner limitations:**
   1. *Docker Daemon Limitation:* Local tests and validations were executed against a local SQL Server instance (`.\HANHNAV`) using connection string `$env:ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING`. While Docker Compose configuration was structurally and syntactically validated fail-closed via `docker compose config`, live container instantiation via Docker daemon was not executed locally in this environment.
@@ -218,12 +232,10 @@
   3. *Repository Secret Prerequisite:* The GitHub Actions workflow relies on repository secret `ROADGUARD_CI_SQL_PASSWORD`. If this secret is not configured in the GitHub repository settings prior to first run, the CI job's SQL service container and integration tests will fail.
   4. *Fork Pull Request Limitation:* Standard GitHub Actions security policy does not expose repository secrets to pull requests originated from external forks. Fork PRs will not have access to `ROADGUARD_CI_SQL_PASSWORD` unless configured by repository maintainers or run on internal branches.
 - **Self-review findings and resolution:**
-  - All findings (baseline F-1 through F-5, intermediate Findings 1 through 5, and follow-up Findings 1 through 3) resolved completely.
-  - No secrets in code, Compose, or workflow.
-  - Fail-closed behavior proven on Compose.
-  - Service container password assignment strictly validated against repository secret.
-  - `.env.example` duplicate keys and non-empty values caught via regex matching.
-  - Cancellation semantics preserved in `DatabaseSeeder`.
+  - All review findings across baseline, first follow-up, and second follow-up resolved completely.
+  - Zero secrets in code, Compose, or workflow job env.
+  - Fail-closed behavior proven on Compose with empty `--env-file`.
+  - Seeder CLI hardened to only accept `ROADGUARD_CONNECTION_STRING` with testable seam.
   - Planning table formatting preserved and status maintained at `Ready for Codex review`.
 - **Conflict warning final state:** None. Shared hotspot `planning/RoadGuard_Plan_Person_2.md` unchanged in this slice, status remains `Ready for Codex review`.
 - **Optional independent review:** Delegated to Codex per special review instructions. Antigravity does not self-mark `Done`.

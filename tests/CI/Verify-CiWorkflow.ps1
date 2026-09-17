@@ -117,6 +117,100 @@ function Test-CiWorkflowContent {
         $findings += "CI workflow contains hardcoded password literal in connection string."
     }
 
+    # Check for database connection strings or secrets at workflow-level or job-level env
+    # Workflow-level env has indent 0; job-level env has indent 4.
+    # Service container env (e.g., services.mssql.env) has indent >= 8 and is authorized for MSSQL_SA_PASSWORD.
+    $inRootOrJobEnv = $false
+    $envBlockIndent = -1
+    $rootOrJobEnvLines = @()
+    $inSteps = $false
+    $inServices = $false
+
+    for ($i = 0; $i -lt $lines.Length; $i++) {
+        $line = $lines[$i]
+        $trimmed = $line.Trim()
+        if ($trimmed.StartsWith("#") -or [string]::IsNullOrWhiteSpace($trimmed)) {
+            continue
+        }
+
+        if ($line -match '^\s*steps:\s*$') {
+            $inRootOrJobEnv = $false
+            $inSteps = $true
+            $inServices = $false
+            continue
+        }
+
+        if (-not $inSteps) {
+            # Check if entering services block (indent 4)
+            if ($line -match '^ {4}services:\s*$') {
+                $inServices = $true
+                $inRootOrJobEnv = $false
+                continue
+            }
+
+            if ($inServices) {
+                # If indent is <= 4 and non-empty, we have left services
+                if ($line -match '^(\s*)\S') {
+                    $currIndent = $Matches[1].Length
+                    if ($currIndent -le 4) {
+                        $inServices = $false
+                    }
+                }
+            }
+
+            if (-not $inServices) {
+                if (-not $inRootOrJobEnv) {
+                    # Workflow-level env (indent 0) or job-level env (indent 4)
+                    if ($line -match '^( {0}| {4})env:\s*$') {
+                        $inRootOrJobEnv = $true
+                        $envBlockIndent = $Matches[1].Length
+                    }
+                } else {
+                    if ($line -match '^(\s*)\S') {
+                        $currIndent = $Matches[1].Length
+                        if ($currIndent -le $envBlockIndent) {
+                            $inRootOrJobEnv = $false
+                            if ($line -match '^ {4}services:\s*$') {
+                                $inServices = $true
+                            }
+                        } else {
+                            $rootOrJobEnvLines += $line
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    foreach ($jLine in $rootOrJobEnvLines) {
+        if ($jLine -match 'secrets\.ROADGUARD_CI_SQL_PASSWORD' -or $jLine -match 'Password=' -or $jLine -match 'ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING' -or $jLine -match 'ROADGUARD_CONNECTION_STRING') {
+            $findings += "CI workflow must not expose database connection strings or secrets at job-level env. Database connection secrets must be scoped strictly to steps that require them (integration-test and seeder steps)."
+            break
+        }
+    }
+
+    # Step-level secret scoping: only Integration Tests and Seeder steps are allowed database secrets
+    $stepsText = ""
+    if ($Content -match '(?s)steps:\s*\r?\n(.*)') {
+        $stepsText = $Matches[1]
+    }
+
+    $stepBlocks = [regex]::Split($stepsText, '(?m)^\s*-\s+name:\s*')
+    foreach ($block in $stepBlocks) {
+        if ([string]::IsNullOrWhiteSpace($block)) { continue }
+        $blockLines = $block -split "`r?`n"
+        $stepName = $blockLines[0].Trim()
+
+        $hasSecret = ($block -match 'secrets\.ROADGUARD_CI_SQL_PASSWORD') -or ($block -match 'ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING') -or ($block -match 'ROADGUARD_CONNECTION_STRING')
+
+        if ($hasSecret) {
+            $isAuthorized = ($stepName -match 'Integration Tests') -or ($stepName -match 'Seeder')
+            if (-not $isAuthorized) {
+                $findings += "CI workflow step '$stepName' must not receive database connection secret. Only integration-test and seeder steps may receive database secrets."
+            }
+        }
+    }
+
     # Healthcheck must NOT specify hardcoded password literal
     if (($Content -match '--health-cmd.*-P\s+[''"][^$\\"]') -or ($Content -match '--health-cmd.*-P\s+[^''"$\\s]')) {
         $findings += "CI workflow healthcheck specifies hardcoded password literal instead of container environment variable."
@@ -233,8 +327,71 @@ jobs:
           MSSQL_SA_PASSWORD: HardcodedPlainPassword123!
         options: >-
           --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"`$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
+    steps:
+      - name: Run Integration Tests with coverage
+        run: dotnet test
+        env:
+          ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+      - name: Validate Seeder Entry Point
+        run: dotnet run
+        env:
+          ROADGUARD_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+"@
+
+    # Fixture 6: Connection string secret exposed at job-level env
+    $fixture6JobLevelSecret = @"
+name: Fixture 6 Job-Level Secret
+on:
+  push:
+    branches: [ develop ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        env:
+          MSSQL_SA_PASSWORD: `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"`$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
     env:
       ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+    steps:
+      - name: Run Integration Tests with coverage
+        run: dotnet test
+      - name: Validate Seeder Entry Point
+        run: dotnet run
+"@
+
+    # Fixture 7: Database secret exposed to unauthorized step (e.g. unit tests step)
+    $fixture7UnauthorizedStepSecret = @"
+name: Fixture 7 Unauthorized Step Secret
+on:
+  push:
+    branches: [ develop ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        env:
+          MSSQL_SA_PASSWORD: `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"`$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
+    steps:
+      - name: Run Unit Tests with coverage
+        run: dotnet test
+        env:
+          ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+      - name: Run Integration Tests with coverage
+        run: dotnet test
+        env:
+          ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+      - name: Validate Seeder Entry Point
+        run: dotnet run
+        env:
+          ROADGUARD_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
 "@
 
     $res1 = Test-CiWorkflowContent $fixture1Hardcoded
@@ -242,19 +399,25 @@ jobs:
     $res3 = Test-CiWorkflowContent $fixture3SingleQuoted
     $res4 = Test-CiWorkflowContent $fixture4CliArgs
     $res5 = Test-CiWorkflowContent $fixture5UnquotedServicePassword
+    $res6 = Test-CiWorkflowContent $fixture6JobLevelSecret
+    $res7 = Test-CiWorkflowContent $fixture7UnauthorizedStepSecret
 
     $detected1 = ($res1 | Where-Object { $_ -match "hardcoded password literal" }).Count -gt 0
     $detected2 = ($res2 | Where-Object { $_ -match "Compose-style" }).Count -gt 0
     $detected3 = ($res3 | Where-Object { $_ -match "single quote" -or $_ -match "single-quote" }).Count -gt 0
     $detected4 = ($res4 | Where-Object { $_ -match "CLI argument" }).Count -gt 0
     $detected5 = ($res5 | Where-Object { $_ -match "service container 'mssql' MSSQL_SA_PASSWORD" }).Count -gt 0
+    $detected6 = ($res6 | Where-Object { $_ -match "job-level env" }).Count -gt 0
+    $detected7 = ($res7 | Where-Object { $_ -match "must not receive database connection secret" }).Count -gt 0
 
     $testCases = @(
         @{ Name = '1. Hardcoded password literal in healthcheck'; Detected = $detected1; Findings = $res1 },
         @{ Name = '2. Compose-style "$$MSSQL_SA_PASSWORD" in healthcheck'; Detected = $detected2; Findings = $res2 },
         @{ Name = '3. Single-quoted ''$MSSQL_SA_PASSWORD'' in healthcheck'; Detected = $detected3; Findings = $res3 },
         @{ Name = '4. CLI connection-string argument in seeder invocation'; Detected = $detected4; Findings = $res4 },
-        @{ Name = '5. Unquoted service password literal while connection string uses secret'; Detected = $detected5; Findings = $res5 }
+        @{ Name = '5. Unquoted service password literal while connection string uses secret'; Detected = $detected5; Findings = $res5 },
+        @{ Name = '6. Connection string secret exposed at job-level env'; Detected = $detected6; Findings = $res6 },
+        @{ Name = '7. Database secret exposed to unauthorized step (e.g. unit test step)'; Detected = $detected7; Findings = $res7 }
     )
 
     $failedTests = $testCases | Where-Object { -not $_.Detected }

@@ -6,32 +6,45 @@ namespace RoadGuardSystem.Seeder;
 
 public static class Program
 {
-    public static async Task<int> Main(string[] args)
+    public const string ConnectionStringEnvVarName = "ROADGUARD_CONNECTION_STRING";
+
+    public static Task<int> Main(string[] args) => RunAsync(args, Environment.GetEnvironmentVariable);
+
+    public static async Task<int> RunAsync(
+        string[] args,
+        Func<string, string?>? envLookup = null,
+        CancellationToken cancellationToken = default)
     {
+        envLookup ??= Environment.GetEnvironmentVariable;
+
         Console.WriteLine("=== RoadGuard Database Seeder ===");
 
-        string? connectionString = null;
-
-        for (int i = 0; i < args.Length; i++)
+        // Validate command-line arguments: only --help / -h are supported
+        foreach (var arg in args)
         {
-            if (args[i] is "--connection-string" or "-c" && i + 1 < args.Length)
+            if (string.IsNullOrWhiteSpace(arg))
             {
-                connectionString = args[++i];
+                Console.Error.WriteLine("ERROR: Argument cannot be empty or whitespace.");
+                PrintUsage();
+                return 1;
             }
-            else if (args[i] is "--help" or "-h")
+
+            if (arg is "--help" or "-h")
             {
                 PrintUsage();
                 return 0;
             }
+
+            Console.Error.WriteLine($"ERROR: Unsupported argument '{arg}'. The Seeder CLI does not accept connection strings or flags via command-line arguments. Set the {ConnectionStringEnvVarName} environment variable.");
+            PrintUsage();
+            return 1;
         }
 
-        connectionString ??= Environment.GetEnvironmentVariable("ROADGUARD_CONNECTION_STRING")
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
+        var connectionString = envLookup(ConnectionStringEnvVarName);
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            Console.Error.WriteLine("ERROR: No connection string provided. Use --connection-string <conn> or set ROADGUARD_CONNECTION_STRING environment variable.");
+            Console.Error.WriteLine($"ERROR: Missing required environment variable {ConnectionStringEnvVarName}.");
             PrintUsage();
             return 1;
         }
@@ -52,7 +65,7 @@ public static class Program
 
         try
         {
-            var result = await seeder.SeedAsync(context);
+            var result = await seeder.SeedAsync(context, cancellationToken);
             Console.WriteLine($"SUCCESS: Seeding completed successfully. {result.StepsExecuted} steps executed in {result.Elapsed.TotalMilliseconds:F1}ms.");
             return 0;
         }
@@ -60,6 +73,11 @@ public static class Program
         {
             Console.Error.WriteLine($"FATAL: Database readiness verification failed: {ex.Message}");
             return 2;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            Console.Error.WriteLine("FATAL: Seeding execution was canceled.");
+            throw;
         }
         catch (Exception ex)
         {
@@ -70,16 +88,15 @@ public static class Program
 
     private static void PrintUsage()
     {
-        Console.WriteLine(@"
+        Console.WriteLine($@"
 Usage:
   dotnet run --project tools/RoadGuardSystem.Seeder -- [options]
 
 Options:
-  -c, --connection-string <conn>   SQL Server database connection string.
   -h, --help                       Show this help message.
 
 Environment Variables:
-  ROADGUARD_CONNECTION_STRING      Fallback connection string if not specified via CLI.
+  {ConnectionStringEnvVarName}      SQL Server database connection string (required).
 ");
     }
 }

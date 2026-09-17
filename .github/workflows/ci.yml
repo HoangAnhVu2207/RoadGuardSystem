@@ -36,7 +36,6 @@ jobs:
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
-      ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
 
     steps:
       - name: Checkout repository
@@ -76,11 +75,13 @@ jobs:
 
       - name: Run Integration Tests with coverage
         run: dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
+        env:
+          ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
 
       - name: Validate Seeder Entry Point
         run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build
         env:
-          ROADGUARD_CONNECTION_STRING: ${{ env.ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING }}
+          ROADGUARD_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
 
       - name: Upload Code Coverage Artifact
         uses: actions/upload-artifact@v4

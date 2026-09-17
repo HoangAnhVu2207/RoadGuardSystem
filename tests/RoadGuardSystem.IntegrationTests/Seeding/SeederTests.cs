@@ -198,24 +198,71 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         return tableNames;
     }
 
-    [Fact(DisplayName = "Negative: Seeder CLI returns code 2 when database is unreachable")]
+    [Fact(DisplayName = "Negative: Seeder CLI returns code 1 when unsupported argument like -c is passed")]
+    public async Task Cli_ReturnsCode1_WhenUnsupportedArgumentPassed()
+    {
+        var exitCodeDashC = await RoadGuardSystem.Seeder.Program.RunAsync(
+            new[] { "-c", "Server=localhost;" },
+            envLookup: _ => _fixture.ConnectionString);
+        exitCodeDashC.Should().Be(1);
+
+        var exitCodeLong = await RoadGuardSystem.Seeder.Program.RunAsync(
+            new[] { "--connection-string", "Server=localhost;" },
+            envLookup: _ => _fixture.ConnectionString);
+        exitCodeLong.Should().Be(1);
+
+        var exitCodeUnknown = await RoadGuardSystem.Seeder.Program.RunAsync(
+            new[] { "--arbitrary-flag" },
+            envLookup: _ => _fixture.ConnectionString);
+        exitCodeUnknown.Should().Be(1);
+    }
+
+    [Fact(DisplayName = "Negative: Seeder CLI returns code 1 when empty or whitespace argument is passed")]
+    public async Task Cli_ReturnsCode1_WhenEmptyOrWhitespaceArgumentPassed()
+    {
+        var exitCodeEmpty = await RoadGuardSystem.Seeder.Program.RunAsync(
+            new[] { "" },
+            envLookup: _ => _fixture.ConnectionString);
+        exitCodeEmpty.Should().Be(1);
+
+        var exitCodeWhitespace = await RoadGuardSystem.Seeder.Program.RunAsync(
+            new[] { "   " },
+            envLookup: _ => _fixture.ConnectionString);
+        exitCodeWhitespace.Should().Be(1);
+    }
+
+    [Fact(DisplayName = "Negative: Seeder CLI returns code 1 when ROADGUARD_CONNECTION_STRING environment variable is missing or whitespace")]
+    public async Task Cli_ReturnsCode1_WhenEnvironmentVariableIsMissing()
+    {
+        var exitCodeNull = await RoadGuardSystem.Seeder.Program.RunAsync(
+            Array.Empty<string>(),
+            envLookup: _ => null);
+        exitCodeNull.Should().Be(1);
+
+        var exitCodeWhitespace = await RoadGuardSystem.Seeder.Program.RunAsync(
+            Array.Empty<string>(),
+            envLookup: _ => "   ");
+        exitCodeWhitespace.Should().Be(1);
+    }
+
+    [Fact(DisplayName = "Negative: Seeder CLI returns code 2 when database is unreachable via ROADGUARD_CONNECTION_STRING")]
     public async Task Cli_ReturnsCode2_WhenDatabaseIsUnreachable()
     {
-        var exitCode = await RoadGuardSystem.Seeder.Program.Main(new[]
-        {
-            "-c", "Server=127.0.0.1,59999;Database=master;Connect Timeout=1;TrustServerCertificate=True;"
-        });
+        var exitCode = await RoadGuardSystem.Seeder.Program.RunAsync(
+            Array.Empty<string>(),
+            envLookup: key => key == "ROADGUARD_CONNECTION_STRING"
+                ? "Server=127.0.0.1,59999;Database=master;Connect Timeout=1;TrustServerCertificate=True;"
+                : null);
 
         exitCode.Should().Be(2);
     }
 
-    [Fact(DisplayName = "Positive: Seeder CLI returns code 0 on healthy database")]
+    [Fact(DisplayName = "Positive: Seeder CLI returns code 0 on healthy database via ROADGUARD_CONNECTION_STRING seam")]
     public async Task Cli_ReturnsCode0_WhenDatabaseIsHealthy()
     {
-        var exitCode = await RoadGuardSystem.Seeder.Program.Main(new[]
-        {
-            "-c", _fixture.ConnectionString
-        });
+        var exitCode = await RoadGuardSystem.Seeder.Program.RunAsync(
+            Array.Empty<string>(),
+            envLookup: key => key == "ROADGUARD_CONNECTION_STRING" ? _fixture.ConnectionString : null);
 
         exitCode.Should().Be(0);
     }
@@ -223,9 +270,11 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
     [Fact(DisplayName = "Positive: Seeder CLI returns code 0 when help flag is passed")]
     public async Task Cli_ReturnsCode0_WhenHelpRequested()
     {
-        var exitCode = await RoadGuardSystem.Seeder.Program.Main(new[] { "-h" });
+        var exitCodeShort = await RoadGuardSystem.Seeder.Program.RunAsync(new[] { "-h" });
+        exitCodeShort.Should().Be(0);
 
-        exitCode.Should().Be(0);
+        var exitCodeLong = await RoadGuardSystem.Seeder.Program.RunAsync(new[] { "--help" });
+        exitCodeLong.Should().Be(0);
     }
 
     private sealed class TestSeedStep : ISeedStep

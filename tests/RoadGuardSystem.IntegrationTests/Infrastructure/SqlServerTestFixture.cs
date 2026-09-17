@@ -222,7 +222,7 @@ END";
         // 2. If environment variable is unset: use Testcontainers directly (no hardcoded instance strings)
         try
         {
-            var container = new MsSqlBuilder().Build();
+            var container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
             await container.StartAsync();
             _container = container;
             _ownsContainer = true;

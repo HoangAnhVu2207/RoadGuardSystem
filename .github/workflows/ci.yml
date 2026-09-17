@@ -25,10 +25,10 @@ jobs:
           - 1433:1433
         env:
           ACCEPT_EULA: 'Y'
-          MSSQL_SA_PASSWORD: 'yourStrong(!)Password'
+          MSSQL_SA_PASSWORD: ${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
           MSSQL_PID: 'Developer'
         options: >-
-          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'SELECT 1' -b -o /dev/null"
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '$$MSSQL_SA_PASSWORD' -Q 'SELECT 1' -b -o /dev/null"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -36,7 +36,7 @@ jobs:
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
-      ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True;"
+      ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
 
     steps:
       - name: Checkout repository
@@ -78,7 +78,9 @@ jobs:
         run: dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
 
       - name: Validate Seeder Entry Point
-        run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build -- -c "Server=localhost,1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True;"
+        run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build
+        env:
+          ROADGUARD_CONNECTION_STRING: ${{ env.ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING }}
 
       - name: Upload Code Coverage Artifact
         uses: actions/upload-artifact@v4

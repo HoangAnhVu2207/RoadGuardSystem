@@ -4,9 +4,10 @@ using Microsoft.EntityFrameworkCore;
 namespace RoadGuardSystem.Repositories.Seeding;
 
 /// <summary>
-/// Deterministic and idempotent database seeder implementation.
-/// Enforces fail-fast database readiness check before executing any seed steps.
+/// Deterministic database seeder orchestrator.
+/// Enforces fail-fast database readiness check before executing registered seed steps in sequence.
 /// Does not create or modify schema; requires schema to be managed by migrations/runtime.
+/// Note: The seeder executes registered steps in order; idempotency must be guaranteed by each registered <see cref="ISeedStep"/>.
 /// </summary>
 public sealed class DatabaseSeeder : IDatabaseSeeder
 {

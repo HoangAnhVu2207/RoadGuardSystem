@@ -95,10 +95,10 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         executionOrder.Should().ContainInOrder("StepOne", "StepTwo", "StepThree");
     }
 
-    [Fact(DisplayName = "Positive: SeedAsync is strictly idempotent on repeated executions")]
-    public async Task SeedAsync_IsStrictlyIdempotent_OnRepeatedExecutions()
+    [Fact(DisplayName = "Positive: ISeedStep conforming to idempotency contract executes safely across repeated runs")]
+    public async Task SeedStepContract_DemonstratesIdempotentStepExecution()
     {
-        // ARRANGE
+        // ARRANGE: Idempotency is a contract invariant required of each ISeedStep implementation
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
             .UseSqlServer(_fixture.ConnectionString, x => x.UseNetTopologySuite())
             .Options;
@@ -108,7 +108,7 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         var counter = 0;
         var idempotentStep = new TestSeedStep(1, "IdempotentStep", () =>
         {
-            // Simulates idempotent logic (e.g. check-then-insert or upsert)
+            // Simulates idempotent logic implemented by a seed step (e.g. check-then-insert or upsert)
             if (counter == 0)
             {
                 counter++;
@@ -125,6 +125,53 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         run1.Success.Should().BeTrue();
         run2.Success.Should().BeTrue();
         counter.Should().Be(1);
+    }
+
+    [Fact(DisplayName = "Positive: Wave 0 no-op seed entry point runs repeatedly on live database without modifying schema or state")]
+    public async Task Wave0_NoOpSeed_CanExecuteRepeatedly_WithoutAlteringDatabaseState()
+    {
+        // ARRANGE
+        var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
+            .UseSqlServer(_fixture.ConnectionString, x => x.UseNetTopologySuite())
+            .Options;
+
+        await using var context = new RoadGuardDbContext(options);
+        var seeder = new DatabaseSeeder(Array.Empty<ISeedStep>());
+
+        var tablesBefore = await GetDatabaseTableNamesAsync(context);
+
+        // ACT: Run no-op seed twice consecutively on the same database
+        var run1 = await seeder.SeedAsync(context);
+        var run2 = await seeder.SeedAsync(context);
+
+        var tablesAfter = await GetDatabaseTableNamesAsync(context);
+
+        // ASSERT: Both runs succeed with 0 steps executed
+        run1.Success.Should().BeTrue();
+        run1.StepsExecuted.Should().Be(0);
+        run2.Success.Should().BeTrue();
+        run2.StepsExecuted.Should().Be(0);
+
+        // Database state is strictly unchanged: no tables created, no records inserted, schema untouched
+        tablesAfter.Should().Equal(tablesBefore);
+    }
+
+    private static async Task<List<string>> GetDatabaseTableNamesAsync(DbContext context)
+    {
+        var tableNames = new List<string>();
+        var conn = context.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            await conn.OpenAsync();
+        }
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;";
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            tableNames.Add(reader.GetString(0));
+        }
+        return tableNames;
     }
 
     [Fact(DisplayName = "Negative: Seeder CLI returns code 2 when database is unreachable")]

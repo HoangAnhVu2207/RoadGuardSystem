@@ -6,7 +6,7 @@
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2
 - **Date / branch or commit:** 2026-09-17 / `anh` / baseline `f2008c25c7b5c76e0065370ad66c387f4a6022a8`
 - **Trace:** TE-02, depends on P1-00
-- **Status:** Ready for re-review
+- **Status:** Done (final Person 2 cross-review completed)
 
 ### In-scope behavior
 - API versioning using URL path segment `/api/v{version:apiVersion}` with default v1.
@@ -180,4 +180,12 @@ List each negative/edge case before positive cases. If a standard case is irrele
   - Finding 2 (Confirmed Numeric Routing Policy): Substring-based `StartsWith("/api/v")` matched unrelated `/api/v...` routes such as `/api/videos/123`, and did not handle numeric versions without trailing slashes (`/api/v99.0`) uniformly. Non-numeric malformed routes (e.g. `/api/vabc/probe/ok`, `/api/v/probe/ok`) were previously expected to return 400, but under confirmed routing policy only numeric version segments belong to the version middleware namespace; non-numeric prefixes must bypass it and return 404 `not_found`.
   - Resolution 2: Replaced string inspection in `ApiVersioningValidationMiddleware` with an anchored, culture-invariant regex `^/api/v\d+(\.\d+)?(/.*)?$`. The numeric version is extracted independently of trailing slashes without redirects. Unsupported numeric versions (`/api/v99.0`, `/api/v99.0/`, `/api/v99.0/probe/ok`) return HTTP 400 Bad Request `unsupported_api_version`. Non-numeric routes (`/api/vabc/...`, `/api/v/...`, `/api/v1beta`, `/api/v1.`) and unrelated routes (`/api/videos`, `/api/videos/123`) bypass the middleware and return HTTP 404 Not Found `not_found`. All negative and positive contract tests updated and verified passing.
 - **Exact next task/action:** P1-02 (ADRs and API error-code naming policy).
-- **Final status:** Ready for re-review
+
+## Final Person 2 cross-review (2026-09-17)
+
+- **Reviewer:** Person 2
+- **Evidence source:** Repository owner confirmation in the Wave 0 merge-gate review on 2026-09-17.
+- **Reviewed commit:** `3072852`
+- **Review scope:** authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests. The reviewer confirmed that business-workflow dimensions are correctly marked not applicable for this HTTP platform task and accepted the API versioning and ProblemDetails negative-test coverage.
+- **Review result:** Accepted with no open findings.
+- **Final status:** `Done`

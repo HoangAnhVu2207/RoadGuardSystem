@@ -6,7 +6,7 @@
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2
 - **Date / branch or commit:** 2026-09-17 / `anh`
 - **Trace:** Architecture / Task P1-02 (Foundation post P1-00 and P1-01). Downstream context: US-01, CN01-CN03, CN10, QT01, TE-01, TE-02.
-- **Status:** Ready for re-review
+- **Status:** Done (final Person 2 cross-review completed)
 
 ### In-scope behavior
 - Authored and updated [001-backend-boundary.md](../adr/001-backend-boundary.md):
@@ -230,8 +230,26 @@ List each negative/edge case before positive cases. If a standard case is irrele
     3. Proved verifier negative behavior: executed both `-SelfTestNegative` mode and external fixture test, proving exit code 1 on injected bad mappings, and exit code 0 on active repository.
     4. Updated worklog status to `Ready for review` without asserting reviewer approval; preserved disclosed integration test environment failure.
   - Final Person 2 re-review of commit `257c908`: no actionable findings. Documentation verifier negative/positive paths, build, affected unit/API tests, formatting, diff scope, authorization policy, session revocation, refresh-token concurrency, audit redaction, and task ownership were independently checked.
-  - That review predates the Product Owner-approved Session metadata extension. The new Data Dictionary/ERD/Domain Model/ADR/plan/verifier changes require a fresh Person 2 cross-review before P1-02 can return to `Done`.
+  - That review predated the Product Owner-approved Session metadata extension. Person 2 subsequently cross-reviewed the complete correction commit as recorded below.
   - Wave 0 authorization review findings were resolved by documenting authoritative global/project roles, stale-claim revocation, immediate membership changes, stable 401/403 semantics, and downstream negative tests.
-- **Exact next task/action:**
-  - Person 2 re-reviews the complete P1 Wave 0 diff and accepts the P2-10/P2-11 handoff. Repository owner keeps the merge gate blocked until this cross-review, the P2-owned integration-test advisory remediation, and a focused commit of the reviewed workspace are complete.
-- **Final status:** `Ready for re-review`
+
+## Final Person 2 cross-review (2026-09-17)
+
+- **Reviewer:** Person 2
+- **Evidence source:** Repository owner confirmation in the Wave 0 merge-gate review on 2026-09-17.
+- **Reviewed commit:** `5223105`
+- **Review scope:** authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests. This included the authoritative global/project role contract, stale-claim handling, immediate membership enforcement, session revocation, audit redaction, test ownership, and the P2-10/P2-11 handoff.
+- **Review result:** Accepted with no open findings.
+- **Handoff:** Person 2 accepted the P2-10/P2-11 ownership and sequencing changes.
+- **Exact next task/action:** Person 2 remediates the P2-00 IntegrationTests `SSH.NET 2023.0.0` High advisory; the repository owner keeps the merge gate blocked until that correction is reviewed, committed, integrated, and the full gate passes.
+- **Final status:** `Done`
+
+### Final cross-review evidence verification
+
+| Command | Exit code | Result | Timestamp |
+|---|---:|---|---|
+| `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` after adding cross-review assertions, before worklog updates | 1 | Expected RED: 18 missing evidence tokens across P1-00/P1-01/P1-02 | 2026-09-17T15:45+07:00 |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1` during compatibility check | 1 | Parser exposed pre-existing UTF-8/no-BOM source incompatibility in Windows PowerShell 5; verifier source was made ASCII-safe and document reads now specify UTF-8 | 2026-09-17T15:47+07:00 |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1` | 0 | GREEN: all documentation and final cross-review evidence contracts passed on Windows PowerShell 5 | 2026-09-17T15:51+07:00 |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1 -SelfTestNegative` | 1 | Expected negative gate: 5 injected contract failures detected | 2026-09-17T15:51+07:00 |
+| `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` | 0 | GREEN: same verifier passed on PowerShell 7 | 2026-09-17T15:51+07:00 |

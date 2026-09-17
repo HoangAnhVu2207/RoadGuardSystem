@@ -19,6 +19,8 @@ $adr001 = Join-Path $RepoRoot "docs\adr\001-backend-boundary.md"
 $adr002 = Join-Path $RepoRoot "docs\adr\002-authentication.md"
 $apiErrors = Join-Path $RepoRoot "docs\api-errors.md"
 $worklog = Join-Path $RepoRoot "docs\worklogs\P1-02-completion.md"
+$p100Worklog = Join-Path $RepoRoot "docs\worklogs\P1-00-completion.md"
+$p101Worklog = Join-Path $RepoRoot "docs\worklogs\P1-01-completion.md"
 $dataDictionary = Join-Path $RepoRoot "docs\diagram\RoadGuard_Data_Dictionary_v1.md"
 $erd = Join-Path $RepoRoot "docs\diagram\RoadGuard_ERD_v1.md"
 $domainModel = Join-Path $RepoRoot "docs\diagram\RoadGuard_Domain_Model_v1.md"
@@ -28,7 +30,7 @@ $person1Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_1.md"
 $person2Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_2.md"
 
 $docs = @(
-    $adr001, $adr002, $apiErrors, $worklog,
+    $adr001, $adr002, $apiErrors, $worklog, $p100Worklog, $p101Worklog,
     $dataDictionary, $erd, $domainModel, $useCases, $userStories,
     $person1Plan, $person2Plan
 )
@@ -48,7 +50,7 @@ if ($errors.Count -gt 0) {
 
 # 2. Check for prohibited absolute file:// links in all documents
 foreach ($doc in $docs) {
-    $content = Get-Content $doc -Raw
+    $content = Get-Content $doc -Raw -Encoding UTF8
     if ($content -match '\[[^\]]+\]\(file:///[^)]+\)') {
         $errors += "Prohibited absolute 'file://' link found in: $doc. Use portable relative Markdown links instead."
     }
@@ -57,7 +59,7 @@ foreach ($doc in $docs) {
 # 3. Validate relative links resolve correctly
 $linkRegex = '\[([^\]]+)\]\(([^)]+)\)'
 foreach ($doc in $docs) {
-    $content = Get-Content $doc -Raw
+    $content = Get-Content $doc -Raw -Encoding UTF8
     $matches = [regex]::Matches($content, $linkRegex)
     foreach ($m in $matches) {
         $target = $m.Groups[2].Value
@@ -76,7 +78,7 @@ foreach ($doc in $docs) {
 }
 
 # 4. Validate ADR 001 content & dependency graph
-$adr001Content = Get-Content $adr001 -Raw
+$adr001Content = Get-Content $adr001 -Raw -Encoding UTF8
 $adr001Headings = @(
     "ADR 001: Backend Architecture Boundaries", "Status", "Context",
     "Decision", "Layer Ownership and Clean Architecture Invariants",
@@ -91,7 +93,7 @@ foreach ($heading in $adr001Headings) {
 
 $adr001Requirements = @(
     "API -> Services -> Repositories",
-    "Repositories -> BusinessObjects và DTOs",
+    [regex]::Unescape("Repositories -> BusinessObjects v\u00e0 DTOs"),
     "DTOs -> BusinessObjects",
     "RoadGuardDbContext",
     "DependencyGraphTests.cs",
@@ -108,7 +110,7 @@ foreach ($req in $adr001Requirements) {
 }
 
 # 5. Validate ADR 002 content, exact use-case mappings, roles, and task ownership
-$adr002Content = Get-Content $adr002 -Raw
+$adr002Content = Get-Content $adr002 -Raw -Encoding UTF8
 
 # In SelfTestNegative mode, simulate an injected invalid mapping to verify verifier failure detection
 if ($SelfTestNegative) {
@@ -194,13 +196,13 @@ if ($adr002Content -match "session entities.*P1-00\s*/\s*P1-11" -or
 }
 
 # Session schema compatibility decision approved by the Product Owner on 2026-09-17.
-$dataDictionaryContent = Get-Content $dataDictionary -Raw
-$erdContent = Get-Content $erd -Raw
-$domainModelContent = Get-Content $domainModel -Raw
-$useCasesContent = Get-Content $useCases -Raw
-$userStoriesContent = Get-Content $userStories -Raw
-$person1PlanContent = Get-Content $person1Plan -Raw
-$person2PlanContent = Get-Content $person2Plan -Raw
+$dataDictionaryContent = Get-Content $dataDictionary -Raw -Encoding UTF8
+$erdContent = Get-Content $erd -Raw -Encoding UTF8
+$domainModelContent = Get-Content $domainModel -Raw -Encoding UTF8
+$useCasesContent = Get-Content $useCases -Raw -Encoding UTF8
+$userStoriesContent = Get-Content $userStories -Raw -Encoding UTF8
+$person1PlanContent = Get-Content $person1Plan -Raw -Encoding UTF8
+$person2PlanContent = Get-Content $person2Plan -Raw -Encoding UTF8
 
 $sessionContractDocuments = @(
     @{ Name = "ADR 002"; Content = $adr002Content },
@@ -259,7 +261,10 @@ foreach ($document in @(
     @{ Name = "Use Case"; Content = $useCasesContent },
     @{ Name = "User Stories"; Content = $userStoriesContent }
 )) {
-    foreach ($requiredToken in @("có hiệu lực ngay", "thu hồi toàn bộ phiên")) {
+    foreach ($requiredToken in @(
+        [regex]::Unescape("c\u00f3 hi\u1ec7u l\u1ef1c ngay"),
+        [regex]::Unescape("thu h\u1ed3i to\u00e0n b\u1ed9 phi\u00ean")
+    )) {
         if ($document.Content -notmatch [regex]::Escape($requiredToken)) {
             $errors += "$($document.Name) missing approved immediate authorization-change rule: '$requiredToken'"
         }
@@ -283,7 +288,7 @@ foreach ($plan in @(
 }
 
 # 6. Validate api-errors.md content
-$apiErrorsContent = Get-Content $apiErrors -Raw
+$apiErrorsContent = Get-Content $apiErrors -Raw -Encoding UTF8
 $apiErrorsHeadings = @(
     "API Error Handling and Taxonomy Specification", "Status",
     "Overview and RFC 7807/9110 Standard", "Standard Error Envelope Schema",
@@ -313,7 +318,7 @@ foreach ($req in $apiErrorsRequirements) {
 }
 
 # 7. Validate worklog content
-$worklogContent = Get-Content $worklog -Raw
+$worklogContent = Get-Content $worklog -Raw -Encoding UTF8
 $worklogRequirements = @(
     "P1-02", "Person 1", "Person 2",
     "Verify-P102Docs.ps1",
@@ -326,6 +331,30 @@ $worklogRequirements = @(
 foreach ($req in $worklogRequirements) {
     if ($worklogContent -notmatch [regex]::Escape($req)) {
         $errors += "Worklog missing required token: '$req'"
+    }
+}
+
+# 8. Validate final Person 2 cross-review evidence for the complete P1 Wave 0 correction set.
+$crossReviewRequirements = @(
+    @{ Task = "P1-00"; Commit = "eb246f2"; Path = $p100Worklog },
+    @{ Task = "P1-01"; Commit = "3072852"; Path = $p101Worklog },
+    @{ Task = "P1-02"; Commit = "5223105"; Path = $worklog }
+)
+$reviewChecklist = "authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests"
+
+foreach ($review in $crossReviewRequirements) {
+    $reviewContent = Get-Content $review.Path -Raw -Encoding UTF8
+    foreach ($requiredToken in @(
+        "Final Person 2 cross-review (2026-09-17)",
+        "**Reviewer:** Person 2",
+        "**Reviewed commit:** ``$($review.Commit)``",
+        $reviewChecklist,
+        "**Review result:** Accepted with no open findings",
+        "**Final status:** ``Done``"
+    )) {
+        if ($reviewContent -notmatch [regex]::Escape($requiredToken)) {
+            $errors += "$($review.Task) worklog missing final cross-review evidence token: '$requiredToken'"
+        }
     }
 }
 

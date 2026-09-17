@@ -6,7 +6,7 @@
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2 (Independent Reviewer)
 - **Date / branch or commit:** 2026-09-17 / `anh` / HEAD `da3a1aab343425a17886601a567cda6c3898ce7b` (post-PR #1 merge)
 - **Trace:** TE-01 (foundation/infrastructure task with no business use-case)
-- **Status:** Ready for re-review (reopened for Wave 0 dependency advisory remediation)
+- **Status:** Done (final Person 2 cross-review completed after dependency advisory remediation)
 
 ### In-scope behavior
 - Verify and document production project dependency graph
@@ -455,4 +455,14 @@ The Wave 0 merge review found that `RoadGuardSystem.Services` directly reference
 
 - P1 runtime advisory is resolved and protected by an architecture test.
 - The remaining `Testcontainers.MsSql 3.10.0 -> SSH.NET 2023.0.0` advisory belongs to the P2-00 integration-test project and remains a separate merge blocker for Person 2 or an explicitly approved cross-owner correction.
-- **Status after correction:** Ready for Person 2 re-review.
+- **Status after correction:** Done following the final Person 2 cross-review recorded below.
+
+## Final Person 2 cross-review (2026-09-17)
+
+- **Reviewer:** Person 2
+- **Evidence source:** Repository owner confirmation in the Wave 0 merge-gate review on 2026-09-17.
+- **Reviewed commit:** `eb246f2`
+- **Review scope:** authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests. The reviewer confirmed the non-applicable workflow dimensions remain correctly documented for this executable-foundation task and inspected the dependency-remediation test and diff.
+- **Review result:** Accepted with no open findings.
+- **Merge-gate note:** The separate P2-00 IntegrationTests advisory remains open and blocks integration; it does not reopen P1-00.
+- **Final status:** `Done`

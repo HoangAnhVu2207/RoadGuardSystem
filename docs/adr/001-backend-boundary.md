@@ -36,9 +36,9 @@ Furthermore, clear product and system boundaries must be established between the
    - External clients and services—specifically the Android Mobile Application (`RoadGuard Mobile`), Web Management Dashboard (`RoadGuard Dashboard`), and Python AI Defect Analysis Service—are external systems interacting with the backend strictly via well-defined public API contracts or adapter interfaces.
 
 2. **Phase 1 AI Adapter Architecture:**
-   - In Phase 1, road inspection defect analysis uses an in-process, deterministic mock adapter (`IAiDefectDetectionService`) that produces predictable, repeatable detection results for development, testing, and CI validation.
+   - In Phase 1, road inspection defect analysis uses an in-process, deterministic mock adapter contract (to be formally defined in task **P1-31** under US-07 and KS10–KS13) that produces predictable, repeatable detection results for development, testing, and CI validation.
    - Domain logic and application services in `RoadGuardSystem` must depend exclusively on domain abstractions defined in `BusinessObjects` or `Services`, and must **never** depend directly on the mock implementation or on Python-specific transports (such as raw sockets, Python interop, or gRPC endpoints).
-   - In subsequent phases, integration with the external Python AI service will be accomplished by introducing an out-of-process adapter implementing the existing interface without altering domain workflows.
+   - In subsequent phases, integration with the external Python AI service will be accomplished by introducing an out-of-process adapter implementing the contract defined in P1-31 without altering domain workflows.
 
 3. **Drone Operations Boundary:**
    - The backend **never directly controls, navigates, or monitors drones**.
@@ -58,19 +58,30 @@ Furthermore, clear product and system boundaries must be established between the
 
 ### 2. Layer Ownership and Clean Architecture Invariants
 
-The solution strictly enforces one-way dependency flow inward toward the domain core:
+The solution enforces project references and dependency directions as implemented in the project files:
 
 ```
-[ API (eAPI) ] ──────> [ Services (dServices) ] ──────> [ BusinessObjects (aBusinessObjects) ]
-      │                         │                                       ▲
-      │                         ▼                                       │
-      └──────────────> [ DTOs (bDTOs) ] ────────────────────────────────┤
-                                ▲                                       │
-                                │                                       │
-                       [ Repositories (cRepositories) ] ────────────────┘
+[ API (eAPI) ]
+      │
+      ▼
+[ Services (dServices) ]
+      │
+      ▼
+[ Repositories (cRepositories) ]
+     ╱                   ╲
+    ▼                     ▼
+[ DTOs (bDTOs) ] ───> [ BusinessObjects (aBusinessObjects) ]
 ```
 
-#### Layer Responsibilities
+#### Actual Project Reference Graph
+- Full project reference chain: `API -> Services -> Repositories; Repositories -> BusinessObjects và DTOs; DTOs -> BusinessObjects`.
+- `API` references `Services` (`API -> Services`).
+- `Services` references `Repositories` (`Services -> Repositories`).
+- `Repositories` references `BusinessObjects` and `DTOs` (`Repositories -> BusinessObjects và DTOs`).
+- `DTOs` references `BusinessObjects` (`DTOs -> BusinessObjects`).
+- `BusinessObjects` has zero project references (pure domain core).
+
+#### Layer Responsibilities and Policy Rules (AGENTS.md)
 
 1. **`BusinessObjects` (`RoadGuardSystem.aBusinessObjects`):**
    - **Owns:** Domain entities (e.g., `Survey`, `Defect`, `RoadSection`, `RoadSectionVersion`), aggregate roots, value objects, domain invariants, and fixed numeric enums (all enums must define `Unknown = 0` and maintain immutable published numeric values).
@@ -86,12 +97,13 @@ The solution strictly enforces one-way dependency flow inward toward the domain 
    - **Strict Prohibitions:** Must never reference Entity Framework Core, persistence libraries, ASP.NET Core HTTP context packages, or expose domain entities directly to API consumers.
 
 3. **`Repositories` (`RoadGuardSystem.cRepositories`):**
-   - **Owns:** Database persistence implementation using Entity Framework Core SQL Server provider with NetTopologySuite spatial extensions, `ApplicationDbContext`, entity type configurations (`IEntityTypeConfiguration<T>`), database migrations, and repository implementations for port interfaces defined by Services.
-   - **Identity Persistence:** In accordance with P1-00 review finding F1, the EF Core Identity persistence layer (`UserStore`, `RoleStore`, `IdentityDbContext`) is owned exclusively by `Repositories` and assigned to Person 2 under task **P2-10**. P2-00 establishes baseline SQL Server setup; domain user models reside in `BusinessObjects`.
+   - **Owns:** EF Core, `DbContext` (`RoadGuardDbContext`), entity type configurations (`IEntityTypeConfiguration<T>`), database migrations, SQL Server provider configurations with NetTopologySuite spatial extensions, storage implementations, and **repository interfaces used by Services**.
+   - **Identity Persistence:** In accordance with P1-00 review finding F1 and the repository division of responsibility, EF Core Identity persistence and IdentityDbContext configuration are owned exclusively by `Repositories` and assigned to Person 2 under task **P2-10** (without asserting an unconfirmed class name in advance).
    - **Strict Prohibitions:** Must never reference `API` or external transport layers.
 
 4. **`Services` (`RoadGuardSystem.dServices`):**
-   - **Owns:** Application use-case orchestration, business workflow policies, cross-aggregate domain invariants, state machine transitions, server-side project membership authorization checks, transaction boundaries, and outbound port abstractions (AI adapter, file storage, email/notification services).
+   - **Owns:** Use-case orchestration, business workflow policies, cross-aggregate domain invariants, state machine transitions, server-side project membership authorization checks, and transaction boundaries.
+   - **External Boundaries:** Per `AGENTS.md`, abstractions are introduced only at real external boundaries such as file storage, time/clock, notifications, processing queue, and AI service.
    - **Strict Prohibitions:** Must never depend on `API`, HTTP transport primitives, or controller contexts.
 
 5. **`API` (`RoadGuardSystem.eAPI`):**
@@ -162,7 +174,7 @@ The solution strictly enforces one-way dependency flow inward toward the domain 
 
 ### Positive
 - **Strict Boundary Enforcement:** Architectural tests (`DependencyGraphChecker`) automatically verify that no forbidden references or packages enter the codebase.
-- **Testability & Determinism:** The Phase 1 deterministic AI adapter enables comprehensive unit, integration, and API testing without relying on external Python services or GPU hardware.
+- **Testability & Determinism:** The Phase 1 deterministic AI adapter contract enables comprehensive unit, integration, and API testing without relying on external Python services or GPU hardware.
 - **Clear Team Division:** Distinct ownership boundaries between Person 1 (Domain, Services, API) and Person 2 (Repositories, SQL Server, EF Core Migrations, Identity persistence) prevent merge conflicts and coordination overhead.
 
 ### Trade-offs & Operational Costs
@@ -181,6 +193,6 @@ The solution strictly enforces one-way dependency flow inward toward the domain 
 
 ## Compliance and Verification
 
-- **Automated Dependency Checks:** Validated continuously via `tests/RoadGuardSystem.UnitTests/Architecture/ProductionArchitectureTests.cs` using `DependencyGraphChecker`.
-- **Build Cleanliness:** Verified via `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` yielding 0 warnings and 0 errors.
+- **Automated Dependency Checks:** Validated continuously via `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs` using `DependencyGraphChecker`.
+- **Build Cleanliness:** Verified via `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` yielding 0 warnings and 0 errors across all projects.
 - **Formatting Verification:** Verified via `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore`.

@@ -14,13 +14,17 @@ Normative Specification (2026-09-17)
 
 ## Overview and RFC 7807/9110 Standard
 
-The RoadGuard System API enforces a uniform, machine-readable error-handling contract across all HTTP endpoints. Every non-2xx error response returned by the backend conforms to **RFC 7807 / RFC 9110 Problem Details for HTTP APIs** using the standardized media type:
+The RoadGuard System API enforces a uniform, machine-readable error-handling contract across all HTTP endpoints. Standard API 4xx/5xx error responses returned by the backend conform to **RFC 7807 / RFC 9110 Problem Details for HTTP APIs** using the standardized media type:
 
 ```http
 Content-Type: application/problem+json
 ```
 
-This specification establishes the envelope structure, stable error-code naming conventions, HTTP status code semantics, and information-suppression invariants to guarantee secure and predictable client integration.
+*(Note: Specialized endpoints or protocols with an explicitly documented alternate contract—such as raw streaming endpoints, binary file downloads, or simple process liveness probes like `/health`—are exempt from the ProblemDetails contract).*
+
+### Implementation Baseline vs. Target Policy
+- **Current Baseline (P1-01):** The platform currently enforces uniform ProblemDetails error serialization for HTTP status codes **400, 404, 405, 415, and 500**.
+- **Downstream Implementation Target:** ProblemDetails mapping and machine-readable error codes for status codes **401 (Unauthorized), 403 (Forbidden), 409 (Conflict), and 422 (Unprocessable Content)** represent target architectural policies that must be implemented, wired, and tested by subsequent tasks (e.g., P1-10 for authentication, P1-12 for project authorization, and domain tasks for state machine conflicts).
 
 ---
 
@@ -135,9 +139,11 @@ To eliminate information disclosure vulnerabilities across all deployment enviro
 
 ## Versioning, Evolution, and Deprecation Policy
 
-1. **Additive Evolution:**
-   - As new use cases are developed (e.g., in Tasks P1-10, P1-11, P1-12), new domain error codes may be introduced additively.
-   - Adding a new error code to an existing or new endpoint is a backward-compatible change.
+1. **Evolution & Compatibility Reviews:**
+   - As new use cases are developed (e.g., in Tasks P1-10, P1-11, P1-12), new domain error codes may be registered.
+   - Adding or altering an error code on an existing endpoint is not inherently transparent to client implementations. Consequently:
+     - Client applications must be designed to be resilient, treating any unrecognized `code` gracefully by falling back to the standard HTTP `status` code.
+     - Any modification or addition to an endpoint's published error codes must undergo an explicit API compatibility review before release.
 
 2. **Immutability of Published Codes:**
    - Once an error code is published and consumed by mobile or web clients, its text string and semantic meaning become **immutable**.
@@ -145,7 +151,7 @@ To eliminate information disclosure vulnerabilities across all deployment enviro
 
 3. **Deprecation Process:**
    - If a business condition becomes obsolete, the associated error code must be formally marked as `Deprecated` in this specification with a documented migration path.
-   - Deprecated error codes must be supported for at least one major API version prior to decommissioning.
+   - The required duration for deprecation notices and sunsetting windows is an unresolved policy that will be decided by the Product Owner prior to the first public API release.
 
 ---
 

@@ -127,8 +127,8 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         counter.Should().Be(1);
     }
 
-    [Fact(DisplayName = "Positive: Wave 0 no-op seed entry point runs repeatedly on live database without modifying schema or state")]
-    public async Task Wave0_NoOpSeed_CanExecuteRepeatedly_WithoutAlteringDatabaseState()
+    [Fact(DisplayName = "Positive: Wave 0 no-op seed entry point runs repeatedly, executes 0 steps, and does not add or remove base tables")]
+    public async Task Wave0_NoOpSeed_CanExecuteRepeatedly_WithoutMutatingBaseTables()
     {
         // ARRANGE
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
@@ -146,13 +146,12 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
 
         var tablesAfter = await GetDatabaseTableNamesAsync(context);
 
-        // ASSERT: Both runs succeed with 0 steps executed
+        // ASSERT: Both runs succeed with 0 steps executed; verified evidence proves no base tables added or removed
         run1.Success.Should().BeTrue();
         run1.StepsExecuted.Should().Be(0);
         run2.Success.Should().BeTrue();
         run2.StepsExecuted.Should().Be(0);
 
-        // Database state is strictly unchanged: no tables created, no records inserted, schema untouched
         tablesAfter.Should().Equal(tablesBefore);
     }
 

@@ -17,14 +17,65 @@ $errors = @()
 
 $ciFile = Join-Path $RepoRoot ".github/workflows/ci.yml"
 
-# 1. SelfTestNegative mode: simulate broken/insecure CI workflow to verify gate blocks
+function Test-CiWorkflowContent {
+    param (
+        [string]$Content
+    )
+    $findings = @()
+
+    # Secret reference and credential hardening
+    if ($Content -notmatch 'secrets\.ROADGUARD_CI_SQL_PASSWORD') {
+        $findings += 'CI workflow must reference repository secret "${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}".'
+    }
+
+    # MSSQL_SA_PASSWORD in service must use secret reference, NOT literal
+    if ($Content -match "MSSQL_SA_PASSWORD:\s*['`"][^$]") {
+        $findings += "CI workflow contains hardcoded password literal in service container MSSQL_SA_PASSWORD."
+    }
+
+    # Connection string in env must use secret reference, NOT literal password
+    if ($Content -match 'Password=(?!(\$\{\{\s*secrets\.ROADGUARD_CI_SQL_PASSWORD\s*\}\}))[^;''"`\s]+') {
+        $findings += "CI workflow contains hardcoded password literal in connection string."
+    }
+
+    # Healthcheck must NOT specify hardcoded password literal
+    if (($Content -match '--health-cmd.*-P\s+[''"][^$\\"]') -or ($Content -match '--health-cmd.*-P\s+[^''"$\\s]')) {
+        $findings += "CI workflow healthcheck specifies hardcoded password literal instead of container environment variable."
+    }
+
+    # Healthcheck must NOT use Compose-style $$MSSQL_SA_PASSWORD
+    if ($Content -match '\$\$MSSQL_SA_PASSWORD') {
+        $findings += 'CI workflow healthcheck must not use Compose-style "$$MSSQL_SA_PASSWORD". GitHub Actions service containers execute in container shell.'
+    }
+
+    # Healthcheck must NOT single-quote $MSSQL_SA_PASSWORD (disables parameter expansion)
+    if ($Content -match '-P\s+''(?:\$\$)?\$MSSQL_SA_PASSWORD''') {
+        $findings += "CI workflow healthcheck must not enclose `$MSSQL_SA_PASSWORD in single quotes because single quotes disable container shell parameter expansion."
+    }
+
+    # Healthcheck must use double-quoted single $MSSQL_SA_PASSWORD to allow shell expansion
+    if (($Content -notmatch '--health-cmd.*-P\s+(\\"|")\$MSSQL_SA_PASSWORD(\\"|")') -or ($Content -match '\$\$MSSQL_SA_PASSWORD')) {
+        $findings += 'CI workflow healthcheck must pass container environment variable "$MSSQL_SA_PASSWORD" double-quoted to allow container shell parameter expansion.'
+    }
+
+    # Seeder command must read from environment variable, NOT CLI argument (-c / --connection-string)
+    if ($Content -match 'dotnet run.*--project.*tools/RoadGuardSystem\.Seeder.*--\s+(-c|--connection-string)') {
+        $findings += "CI workflow seeder command must not pass connection string or password via CLI argument (-c / --connection-string). Must read from environment."
+    }
+
+    return $findings
+}
+
+# 1. SelfTestNegative mode: prove gate detects all distinct security and configuration flaws
 if ($SelfTestNegative) {
-    Write-Host "[SelfTestNegative] Simulating broken and insecure CI configurations..." -ForegroundColor Yellow
-    $mockInsecureCi = @"
-name: Insecure CI
+    Write-Host "[SelfTestNegative] Running negative fixtures against CI verification rules..." -ForegroundColor Yellow
+
+    # Fixture 1: Hardcoded password literal in healthcheck
+    $fixture1Hardcoded = @"
+name: Fixture 1 Hardcoded Password
 on:
   push:
-    branches: [ main ]
+    branches: [ develop ]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,41 +83,94 @@ jobs:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
         env:
-          MSSQL_SA_PASSWORD: 'HardcodedPlainPassword123!'
-        options: --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'HardcodedPlainPassword123!' -Q 'SELECT 1'"
-    env:
-      ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=HardcodedPlainPassword123!;TrustServerCertificate=True;"
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-      - name: Validate Seeder
-        run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build -- -c "Server=localhost,1433;Password=HardcodedPlainPassword123!;"
+          MSSQL_SA_PASSWORD: `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'HardcodedPlainPassword123!' -Q 'SELECT 1'"
 "@
 
-    if ($mockInsecureCi -notmatch 'secrets\.ROADGUARD_CI_SQL_PASSWORD') {
-        $errors += "[Simulated] Missing repository secret reference secrets.ROADGUARD_CI_SQL_PASSWORD."
-    }
-    if ($mockInsecureCi -match "MSSQL_SA_PASSWORD:\s*['`"][^$]") {
-        $errors += "[Simulated] Hardcoded password literal in service MSSQL_SA_PASSWORD."
-    }
-    if ($mockInsecureCi -match 'Password=(?!(\$\{\{\s*secrets\.ROADGUARD_CI_SQL_PASSWORD\s*\}\}))[^;''"`\s]+') {
-        $errors += "[Simulated] Hardcoded password literal in connection string."
-    }
-    if ($mockInsecureCi -match 'dotnet run.*--project.*Seeder.*--\s+-c') {
-        $errors += "[Simulated] Seeder invoked with CLI connection string argument."
-    }
-    if ($mockInsecureCi -match '--health-cmd.*-P\s+[''"]?[^$]') {
-        $errors += "[Simulated] Healthcheck specifies hardcoded password instead of container environment."
-    }
-    if ($mockInsecureCi -notmatch "dotnet-version:\s*['`"]?10\.0\.401['`"]?") {
-        $errors += "[Simulated] Invalid or unpinned SDK version (must be 10.0.401)."
+    # Fixture 2: Compose-style $$ in healthcheck
+    $fixture2ComposeStyle = @"
+name: Fixture 2 Compose Style
+on:
+  push:
+    branches: [ develop ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        env:
+          MSSQL_SA_PASSWORD: `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '`$`$MSSQL_SA_PASSWORD' -Q 'SELECT 1'"
+"@
+
+    # Fixture 3: Single-quoted environment variable in healthcheck
+    $fixture3SingleQuoted = @"
+name: Fixture 3 Single Quoted
+on:
+  push:
+    branches: [ develop ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        env:
+          MSSQL_SA_PASSWORD: `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '`$MSSQL_SA_PASSWORD' -Q 'SELECT 1'"
+"@
+
+    # Fixture 4: CLI connection-string argument in seeder invocation
+    $fixture4CliArgs = @"
+name: Fixture 4 Seeder CLI Args
+on:
+  push:
+    branches: [ develop ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Seeder
+        run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build -- -c "Server=localhost;Password=secret"
+"@
+
+    $res1 = Test-CiWorkflowContent $fixture1Hardcoded
+    $res2 = Test-CiWorkflowContent $fixture2ComposeStyle
+    $res3 = Test-CiWorkflowContent $fixture3SingleQuoted
+    $res4 = Test-CiWorkflowContent $fixture4CliArgs
+
+    $detected1 = ($res1 | Where-Object { $_ -match "hardcoded password literal" }).Count -gt 0
+    $detected2 = ($res2 | Where-Object { $_ -match "Compose-style" }).Count -gt 0
+    $detected3 = ($res3 | Where-Object { $_ -match "single quote" -or $_ -match "single-quote" }).Count -gt 0
+    $detected4 = ($res4 | Where-Object { $_ -match "CLI argument" }).Count -gt 0
+
+    $testCases = @(
+        @{ Name = '1. Hardcoded password literal in healthcheck'; Detected = $detected1; Findings = $res1 },
+        @{ Name = '2. Compose-style "$$MSSQL_SA_PASSWORD" in healthcheck'; Detected = $detected2; Findings = $res2 },
+        @{ Name = '3. Single-quoted ''$MSSQL_SA_PASSWORD'' in healthcheck'; Detected = $detected3; Findings = $res3 },
+        @{ Name = '4. CLI connection-string argument in seeder invocation'; Detected = $detected4; Findings = $res4 }
+    )
+
+    $failedTests = $testCases | Where-Object { -not $_.Detected }
+    if ($failedTests.Count -gt 0) {
+        Write-Host "FATAL: SelfTestNegative failed! $($failedTests.Count) negative fixture(s) were NOT detected as violations:" -ForegroundColor Red
+        foreach ($ft in $failedTests) {
+            Write-Host "  - FAILED: $($ft.Name)" -ForegroundColor Red
+        }
+        exit 2
     }
 
-    Write-Host "[SelfTestNegative] Detected $($errors.Count) simulated policy violations as expected." -ForegroundColor Green
-    $errors | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+    Write-Host "[SelfTestNegative] All $($testCases.Count) distinct negative fixtures were verified and blocked as expected:" -ForegroundColor Green
+    foreach ($tc in $testCases) {
+        Write-Host "  [PASS] $($tc.Name)" -ForegroundColor Green
+        foreach ($f in $tc.Findings) {
+            Write-Host "         -> Caught: $f" -ForegroundColor Gray
+        }
+    }
     exit 1
 }
 
@@ -105,7 +209,7 @@ if ($ciContent -notmatch "dotnet-version:\s*['`"]?10\.0\.401['`"]?") {
     $errors += "CI workflow must use exact pinned .NET SDK version '10.0.401'."
 }
 
-# 5. Service container verification: exact pinned SQL Server image, secret reference, container-env healthcheck
+# 5. Service container verification: exact pinned SQL Server image and healthcheck
 $expectedSqlImage = "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04"
 if ($ciContent -notmatch [regex]::Escape($expectedSqlImage)) {
     $errors += "CI workflow service container must use pinned SQL Server image: '$expectedSqlImage'"
@@ -114,29 +218,10 @@ if ($ciContent -notmatch "(?s)options:.*--health-cmd") {
     $errors += "CI workflow SQL Server service container must specify a healthcheck command."
 }
 
-# Finding 1 & 3: Secret reference and credential hardening
-if ($ciContent -notmatch 'secrets\.ROADGUARD_CI_SQL_PASSWORD') {
-    $errors += 'CI workflow must reference repository secret "${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}".'
-}
-
-# MSSQL_SA_PASSWORD in service must use secret reference, NOT literal
-if ($ciContent -match "MSSQL_SA_PASSWORD:\s*['`"][^$]") {
-    $errors += "CI workflow contains hardcoded password literal in service container MSSQL_SA_PASSWORD."
-}
-
-# Connection string in env must use secret reference, NOT literal password
-if ($ciContent -match 'Password=(?!(\$\{\{\s*secrets\.ROADGUARD_CI_SQL_PASSWORD\s*\}\}))[^;''"`\s]+') {
-    $errors += "CI workflow contains hardcoded password literal in connection string."
-}
-
-# Healthcheck must use container environment variable ($$MSSQL_SA_PASSWORD), NOT hardcoded password
-if ($ciContent -notmatch '--health-cmd.*-P\s+[''"]*\$\$MSSQL_SA_PASSWORD') {
-    $errors += 'CI workflow healthcheck must pass container environment variable "$$MSSQL_SA_PASSWORD" to -P.'
-}
-
-# Seeder command must read from environment variable, NOT CLI argument (-c / --connection-string)
-if ($ciContent -match 'dotnet run.*--project.*tools/RoadGuardSystem\.Seeder.*--\s+(-c|--connection-string)') {
-    $errors += "CI workflow seeder command must not pass connection string or password via CLI argument (-c / --connection-string). Must read from environment."
+# Apply shared credential, secret, healthcheck, and CLI rules
+$contentViolations = Test-CiWorkflowContent $ciContent
+if ($contentViolations.Count -gt 0) {
+    $errors += $contentViolations
 }
 
 # 6. Pipeline steps verification in expected order

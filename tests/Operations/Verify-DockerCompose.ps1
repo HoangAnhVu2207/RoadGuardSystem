@@ -19,9 +19,41 @@ $composeFile = Join-Path $RepoRoot "docker-compose.yml"
 $envExample = Join-Path $RepoRoot ".env.example"
 $gitignore = Join-Path $RepoRoot ".gitignore"
 
+function Test-EnvExampleContent {
+    param (
+        [string]$Content
+    )
+    $findings = @()
+
+    # Must parse MSSQL_SA_PASSWORD= line and strictly require an empty value
+    if ($Content -match '(?m)^\s*MSSQL_SA_PASSWORD=(.*)$') {
+        $val = $Matches[1].Trim()
+        if ($val -ne "") {
+            $findings += ".env.example must have MSSQL_SA_PASSWORD set to an empty value (found: '$val'). Any non-empty value, including sample passwords like '12345678', is prohibited."
+        }
+    } else {
+        $findings += ".env.example is missing required 'MSSQL_SA_PASSWORD=' configuration entry."
+    }
+
+    if ($Content -notmatch '(?m)^\s*MSSQL_PORT=') {
+        $findings += ".env.example is missing MSSQL_PORT configuration placeholder."
+    }
+
+    $prohibitedPasswords = @("SuperSecret", "Password123", "P@ssw0rd123!", "Admin@123", "RoadGuard@2026!", "yourStrong(!)Password", "12345678")
+    foreach ($prohibited in $prohibitedPasswords) {
+        if ($Content -match [regex]::Escape($prohibited)) {
+            $findings += ".env.example contains prohibited credential or sample password: '$prohibited'."
+        }
+    }
+
+    return $findings
+}
+
 # 1. SelfTestNegative mode: simulate broken/insecure compose config to prove gate blocks
 if ($SelfTestNegative) {
-    Write-Host "[SelfTestNegative] Simulating insecure Docker Compose and missing healthcheck..." -ForegroundColor Yellow
+    Write-Host "[SelfTestNegative] Running negative fixtures against Docker Compose and .env.example rules..." -ForegroundColor Yellow
+
+    # Negative Compose fixture
     $mockCompose = @"
 services:
   sqlserver:
@@ -31,24 +63,38 @@ services:
     environment:
       - MSSQL_SA_PASSWORD=SuperSecretRealPassword123!
 "@
-    if ($mockCompose -notmatch 'mcr\.microsoft\.com/mssql/server:2019-CU18-ubuntu-20\.04') {
-        $errors += "[Simulated] Missing pinned SQL Server 2019-CU18 image."
-    }
-    if ($mockCompose -notmatch 'healthcheck:') {
-        $errors += "[Simulated] Missing container healthcheck."
-    }
-    if ($mockCompose -match 'MSSQL_SA_PASSWORD=[^$]') {
-        $errors += "[Simulated] Hardcoded secret detected in compose environment."
-    }
-    if ($mockCompose -notmatch 'volumes:') {
-        $errors += "[Simulated] Missing named persistent volume."
-    }
-    if ($mockCompose -notmatch 'MSSQL_SA_PASSWORD:\s*["'']?\$\{MSSQL_SA_PASSWORD:\?') {
-        $errors += "[Simulated] Missing fail-closed required environment guard ':?' on MSSQL_SA_PASSWORD."
+
+    # Negative .env.example fixture containing sample password '12345678'
+    $mockInsecureEnv = @"
+MSSQL_PORT=1433
+MSSQL_SA_PASSWORD=12345678
+"@
+
+    $envViolations = Test-EnvExampleContent -Content $mockInsecureEnv
+    $detected12345678 = ($envViolations | Where-Object { $_ -match "12345678" }).Count -gt 0
+
+    $testCases = @(
+        @{ Name = "1. Missing pinned SQL Server image in compose"; Passed = ($mockCompose -notmatch 'mcr\.microsoft\.com/mssql/server:2019-CU18-ubuntu-20\.04') },
+        @{ Name = "2. Missing container healthcheck in compose"; Passed = ($mockCompose -notmatch 'healthcheck:') },
+        @{ Name = "3. Hardcoded secret in compose environment"; Passed = ($mockCompose -match 'MSSQL_SA_PASSWORD=[^$]') },
+        @{ Name = "4. Missing named persistent volume in compose"; Passed = ($mockCompose -notmatch 'volumes:') },
+        @{ Name = "5. Missing fail-closed guard :? on MSSQL_SA_PASSWORD in compose"; Passed = ($mockCompose -notmatch 'MSSQL_SA_PASSWORD:\s*["'']?\$\{MSSQL_SA_PASSWORD:\?') },
+        @{ Name = "6. Non-empty password in .env.example (blocking '12345678')"; Passed = $detected12345678 }
+    )
+
+    $failedTests = $testCases | Where-Object { -not $_.Passed }
+    if ($failedTests.Count -gt 0) {
+        Write-Host "FATAL: SelfTestNegative failed! $($failedTests.Count) negative check(s) did not trigger as expected:" -ForegroundColor Red
+        foreach ($ft in $failedTests) {
+            Write-Host "  - FAILED: $($ft.Name)" -ForegroundColor Red
+        }
+        exit 2
     }
 
-    Write-Host "[SelfTestNegative] Detected $($errors.Count) simulated policy violations as expected." -ForegroundColor Green
-    $errors | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+    Write-Host "[SelfTestNegative] All $($testCases.Count) negative checks were verified and blocked as expected (including blocking '12345678'):" -ForegroundColor Green
+    foreach ($tc in $testCases) {
+        Write-Host "  [PASS] $($tc.Name)" -ForegroundColor Green
+    }
     exit 1
 }
 
@@ -77,17 +123,9 @@ if ($gitignoreContent -notmatch '(?m)^\.env\b' -and $gitignoreContent -notmatch 
 
 # 4. Validate .env.example contains only non-usable placeholders / empty values and no real secrets
 $envExampleContent = Get-Content $envExample -Raw -Encoding UTF8
-$prohibitedPasswords = @("SuperSecret", "Password123", "P@ssw0rd123!", "Admin@123", "RoadGuard@2026!", "yourStrong(!)Password")
-foreach ($prohibited in $prohibitedPasswords) {
-    if ($envExampleContent -match [regex]::Escape($prohibited)) {
-        $errors += ".env.example contains immediately usable password or credential: '$prohibited'. It must be blank or placeholder requiring user configuration."
-    }
-}
-if ($envExampleContent -notmatch 'MSSQL_SA_PASSWORD=') {
-    $errors += ".env.example is missing MSSQL_SA_PASSWORD entry."
-}
-if ($envExampleContent -notmatch 'MSSQL_PORT=') {
-    $errors += ".env.example is missing MSSQL_PORT configuration placeholder."
+$envViolations = Test-EnvExampleContent -Content $envExampleContent
+if ($envViolations.Count -gt 0) {
+    $errors += $envViolations
 }
 
 # 5. Validate docker-compose.yml text contents

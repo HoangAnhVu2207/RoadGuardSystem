@@ -1,17 +1,33 @@
 # Antigravity completion log
 
-Create one copy per completed task, named `docs/worklogs/<TASK-ID>-completion.md`. Do not overwrite this template.
+Create one copy when assigning a task, named `docs/worklogs/<TASK-ID>-completion.md`. Antigravity maintains implementation/self-review evidence; Codex appends mandatory acceptance review. Preserve prior rounds and do not overwrite this template. Use the [shared prompts](../prompts/RoadGuard_Task_Workflow.md).
 
 ## Identity and scope
 
 - Task ID/title:
 - Owner / self-reviewer:
+- Implementer: Antigravity for the assigned Person.
+- Mandatory acceptance reviewer / Done authority: Codex.
 - Date / branch or commit:
 - Trace (`US-*`, use case, acceptance criteria):
 - In-scope behavior:
 - Explicitly out of scope:
 - Intended files / exclusive ownership check:
 - Conflict warning: `None` or list affected files, task IDs, owner, sequencing, and resolution.
+
+## Assignment and acceptance contract
+
+- Assignment author/date and baseline revision:
+- Dependencies and current-checkout evidence:
+- Required checks and justified N/A cases:
+- Ready for review gate: implementation, applicable checks, Antigravity self-review and evidence complete.
+- Done gate: Codex verifies all AC, dependencies, required checks, mandatory findings and conflict resolution for the submitted artifacts.
+
+| AC ID | Trace / observable acceptance criterion | In-scope behavior | Required test/evidence |
+|---|---|---|---|
+| AC-01 | | | |
+
+Record In scope, Out of scope and exclusive files above before edits. Keep this contract stable; record approved scope changes with the decision and impact rather than silently changing criteria.
 
 ## Preconditions and decisions
 
@@ -73,6 +89,26 @@ List each negative/edge case before positive cases. If a standard case is irrele
 - Residual risks:
 - Self-review findings and resolution:
 - Conflict warning final state:
-- Optional independent review, if explicitly requested:
+- Antigravity submission revision/diff identity, including relevant untracked files:
+- Handoff: Antigravity pauses submitted-artifact edits and yields task review/status sections to Codex.
 - Exact next task/action:
-- Final status: `Done` only after all required tests, self-review, and conflict-resolution gates pass.
+- Implementation status: `Ready for review` or `Blocked`; Antigravity never marks `Done`.
+
+## Codex acceptance review — append one section per round
+
+- Reviewer / round / date:
+- Reviewed commit or working-tree artifact identity / file scope:
+- AC coverage, dependency integration and Antigravity self-review checked:
+- Checks executed or verified evidence (command, exit code, environment, time, test counts):
+
+| Finding ID | Priority / owner | Location and violated AC | Trigger / impact / closure condition | Antigravity fix evidence | Codex disposition |
+|---|---|---|---|---|---|
+| F-01 (omit row if no findings) | | | | | Open / Fixed awaiting verification / Verified |
+
+- Verification gaps/blockers (separate from code defects):
+- Optional out-of-scope follow-ups (do not block agreed AC):
+- Conflict warning / shared-metadata ownership:
+- Verdict: `Changes requested`, `Blocked` or `Done`; explain evidence.
+- Next bounded fix/review action:
+- Plan status update: task, plan, old -> new, actor Codex, time; or explicitly report-only/deferred due to ownership conflict.
+- Final status: Only Codex records `Done` after mandatory acceptance passes. Preserve old rounds; changed implementation requires review again. Done does not authorize Git integration/publication.

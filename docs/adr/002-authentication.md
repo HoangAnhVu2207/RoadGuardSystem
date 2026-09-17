@@ -199,8 +199,8 @@ To maintain Clean Architecture boundaries and avoid conflating concerns:
 - **P2-10 (Person 2):** Implement EF Core Identity persistence, `IdentityDbContext`, mapping configurations for `sessions` (including nullable `device_metadata_json`, SQL Server `ISJSON` constraint, write-once behavior, and schema validation), `refresh_tokens`, `password_reset_logs`, and `account_status_change_logs`; add the migration with downgrade/recovery notes and SQL Server integration tests; seed roles (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`); and evaluate future domain enums.
 - **P1-10 (Person 1):** Implement application authentication service (`IAuthService`), login/logout/refresh endpoints (`AuthController`), password hashing, and clean up inactive Google package dependencies.
 - **P1-11 (Person 1):** Implement user profile updates, Admin password reset, and session revocation flows.
-- **P1-12 (Person 1):** Implement server-side project membership validation service and authorization policy handlers.
-- **P2-11 (Person 2):** Implement the authoritative active/effective `ProjectMember.role_code` read model and integration/API security matrix.
+- **P1-12 (Person 1):** Implement server-side project membership validation service, authorization policy handlers, and the API security matrix including HTTP 401/403 and cross-project tests.
+- **P2-11 (Person 2):** Implement the authoritative active/effective `ProjectMember.role_code` read model and SQL integration fixtures/tests only. API policies, tokens, HTTP 401/403 behavior and API tests remain exclusively in P1-12, as assigned by the current person plans.
 - **P1-64 (Person 1):** Implement Admin global-role changes, append-only audit, `UserRoleChanged`, and atomic revocation of all active sessions and refresh tokens.
 
 ---

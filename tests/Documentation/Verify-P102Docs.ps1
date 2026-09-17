@@ -294,28 +294,28 @@ foreach ($plan in @(
     }
 }
 
-# Product Owner planning policy approved on 2026-09-17. Historical P1 Wave 0
-# cross-review evidence remains immutable; these rules apply to subsequent work.
+# Owner-approved P1-06 workflow migration (2026-09-18). Antigravity implements
+# and self-reviews; Codex accepts. Historical P1 Wave 0 evidence stays immutable.
 foreach ($plan in @(
     @{ Name = "Person 1 plan"; Content = $person1PlanContent },
     @{ Name = "Person 2 plan"; Content = $person2PlanContent }
 )) {
     foreach ($requiredToken in @(
-        "Self-review: task owner",
+        "Implementation and self-review: Antigravity",
         "Conflict warning",
         "exclusive file ownership",
-        "self-mark ``Done``"
+        "Completion: Codex"
     )) {
         if ($plan.Content -notmatch [regex]::Escape($requiredToken)) {
-            $errors += "$($plan.Name) missing approved self-review/conflict-control token: '$requiredToken'"
+            $errors += "$($plan.Name) missing approved implementation/acceptance/conflict-control token: '$requiredToken'"
         }
     }
 }
 
 foreach ($requiredToken in @(
     'P2-00` | `Done`',
-    'P2-01` | `Not started - blocked by branch synchronization`',
-    'P2-02` | `Not started`',
+    'P2-01` |',
+    'P2-02` |',
     '3e13ca6',
     'b2662fe'
 )) {

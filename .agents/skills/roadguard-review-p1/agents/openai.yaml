@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadGuard Review P1"
+  short_description: "Review P1 domain, services, API and tests"
+  default_prompt: "Dùng $roadguard-review-p1 để nghiệm thu task P1 được giao, đối chiếu AC và self-review, ghi findings/status và chỉ mark Done khi đủ gate."

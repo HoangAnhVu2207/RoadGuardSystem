@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "microsoft-learn": {
+      "serverUrl": "https://learn.microsoft.com/api/mcp"
+    },
+    "context7": {
+      "serverUrl": "https://mcp.context7.com/mcp"
+    }
+  }
+}

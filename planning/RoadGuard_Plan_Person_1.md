@@ -1,12 +1,12 @@
 # RoadGuard execution plan — Person 1
 
-Owner: Person 1 (domain/application/API primary). Self-review: task owner. Baseline: 16/09/2026.
+Owner: Person 1 (domain/application/API primary). Implementation and self-review: Antigravity for the task owner. Completion: Codex after mandatory acceptance review. Baseline: 16/09/2026; workflow updated 18/09/2026.
 
-This is one of exactly two execution plans. Person 1 takes only one `In Progress` task at a time. Every task follows `AGENTS.md` and the four Negative-First phases. Paths below are target locations; if the actual solution uses different names, preserve its structure and record the mapping in the completion log.
+This is one of exactly two execution plans. Person 1 takes only one unfinished assigned task at a time, including `In Progress`, `Ready for review`, `Changes requested` and `Blocked`. Every task follows `AGENTS.md` and the four Negative-First phases. Paths below are target locations; if the actual solution uses different names, preserve its structure and record the mapping in the completion log.
 
 ## Task completion contract
 
-For each task: read the traced specification sections; write negative tests first and observe the expected failure; write positive tests; implement; run the narrow tests, affected suite, format, and build; then complete `Antigravity_Completion_Log_Template.md` and the mandatory owner self-review. The owner may self-mark `Done` only when every task gate is green and all self-review findings are resolved.
+For each task, Codex's assignment records acceptance criteria, In scope, Out of scope, dependencies, exclusive files and required checks. Antigravity reads traced specifications; writes negative tests and observes the expected failure; writes positive tests; implements; runs applicable checks; completes `Antigravity_Completion_Log_Template.md` and mandatory owner self-review; then submits `Ready for review`. Codex reviews the exact artifacts and records `Changes requested`, `Blocked` or `Done`. Only Codex may mark `Done`, after every applicable task gate and mandatory finding is verified. Explicit report-only reviews do not modify status/logs. See [shared prompts](../docs/prompts/RoadGuard_Task_Workflow.md); Git permissions remain separate.
 
 ## Current status and ownership
 
@@ -16,8 +16,11 @@ For each task: read the traced specification sections; write negative tests firs
 | `P1-01` | `Done` | `anh` | Historical cross-review evidence remains unchanged. |
 | `P1-02` | `Done` | `anh` | Historical cross-review evidence remains unchanged. |
 | `P1-03` | `Done` | `anh` | Align self-review ownership, conflict controls, and the P2-01 branch-synchronization gate. |
+| `P1-04` | `Done` | `anh` | Rules/skill corrected; Microsoft Learn and Context7 configured in workspace and live queries verified. See P1-04 completion log; existing IDE may need refresh. |
+| `P1-05` | `Done` | `anh` | Codex review suite for both plans; metadata, 20 links, existing verifiers and six independent scenarios pass. Exclusive paths: three new `.agents/skills/roadguard-review*` folders, this plan's P1-05 entries, and `docs/worklogs/P1-05-completion.md`. Existing P1-04 changes preserved; local artifacts only, no integration claimed. |
+| `P1-06` | `Done` | `anh` | Owner-requested workflow migration and reusable prompts accepted by separate Codex review; applicable checks and ten scenarios pass. Codex-authored bootstrap exception recorded in P1-06 log; future implementation/self-review belongs to Antigravity. Local acceptance only; no integration/publication. |
 
-The self-review policy applies to tasks after `P1-02`; it does not rewrite completed evidence.
+The mandatory Codex acceptance policy applies to new/reopened work from `P1-06` onward. Earlier task rows and logs describe historical policy and remain unchanged; they do not waive the current gate. P1-06 is a directly owner-requested Codex tooling migration with a separate Codex review pass, not a change to future Antigravity implementation ownership.
 
 ## Exclusive ownership and conflict control
 
@@ -46,6 +49,14 @@ dotnet test --no-build
 | `P1-03` / 0.25d | Planning/integration readiness; after P1-02 and P2-00 | Align task-owner self-review, exclusive file ownership, conflict reporting, retired review-only tasks, and the P2-01 branch-synchronization gate. Output: synchronized agent rules, both person plans, completion-log template, and documentation verifier policy checks. | Negative: verifier fails when the self-review, ownership, status, or synchronization tokens are absent. Positive: PowerShell 7 and Windows PowerShell 5 verification pass; historical P1 Wave 0 evidence remains unchanged. |
 
 ## Wave 1 — identity and access
+
+Agent tooling prerequisite (does not implement a business endpoint):
+
+| ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
+|---|---|---|---|
+| `P1-04` / 0.5d | TE-01, delivery tooling; P1-03 | Synchronize both AGENTS files, repair RoadGuard skill/references, add native Antigravity discovery entries and two workspace documentation MCP servers. Output: agent documents, `.agents/mcp_config.json`, setup verifier and completion log. | Negative: identify stale paths/policy contradictions before editing; malformed configuration/missing discovery cannot pass setup checks. Positive: mirrored rules, skill validation, existing doc checks, MCP initialize/tools/list and real public-document queries. |
+| `P1-05` / tooling | TE-01/10, owner-requested review tooling; P1-04 | Create discoverable Codex review skills for shared review, P1 application/API tasks and P2 persistence/operations tasks. Centralize evidence/reporting and cross-owner handoff checks; derive task scope from current plans. Exclusive paths are listed above. | Negative: synthetic authorization/SQL/evidence scenarios and read-only scope checks before authoring. Positive: skill metadata and local references validate; existing documentation/setup checks pass; independent scenario review and owner self-review recorded. No production changes or mandatory new cross-review gate. |
+| `P1-06` / tooling | TE-01/10; owner-requested workflow migration; P1-05 | Require Antigravity implementation/self-review followed by Codex acceptance and authorized Done updates; provide reusable assignment, implementation/fix and review prompts for either person. Exclusive ownership: both AGENTS files, current-policy sections of both existing plans, completion template, maintained delivery skill and its handoff/negative-first references, three review skills and affected references/UI metadata, `docs/prompts/RoadGuard_Task_Workflow.md`, `tests/Documentation/Verify-P102Docs.ps1`, this task log. Preserve historical logs/statuses and business task rows. Sequence: capture baseline; update policy/prompts; align existing verifier; validate; self-review; separate Codex review; record verdict. | Negative: expose old self-mark/optional-review contradictions and exercise existing verifier negative mode before changes. Positive: both-shell doc/setup checks, skill metadata/links, read-only and acceptance scenario evaluation, Codex final review. Runtime suites do not apply. |
 
 | ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
 |---|---|---|---|
@@ -100,4 +111,4 @@ dotnet test --no-build
 
 ## Person 1 release obligations
 
-After the final task, run the full seed scenario `project -> survey -> upload -> processing -> detection -> field measurement -> repair -> export`, complete owner self-review, resolve every conflict warning, and ensure every task has a completion log. Release is blocked by any skipped authorization/integrity test, unrecorded migration, mutable evidence/history, or undocumented specification conflict.
+After the final task, run the full seed scenario `project -> survey -> upload -> processing -> detection -> field measurement -> repair -> export`, complete Antigravity owner self-review and mandatory Codex acceptance, resolve every conflict warning, and ensure every task has a completion log. Release is blocked by any skipped authorization/integrity test, unrecorded migration, mutable evidence/history, or undocumented specification conflict.

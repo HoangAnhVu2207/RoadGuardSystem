@@ -1,12 +1,12 @@
 # RoadGuard execution plan — Person 2
 
-Owner: Person 2 (data/integration/test/operations primary). Self-review: task owner. Baseline: 16/09/2026.
+Owner: Person 2 (data/integration/test/operations primary). Implementation and self-review: Antigravity for the task owner. Completion: Codex after mandatory acceptance review. Baseline: 16/09/2026; workflow updated 18/09/2026.
 
-This is one of exactly two execution plans. Person 2 takes only one `In Progress` task at a time. Every task follows `AGENTS.md` and the four Negative-First phases. Person 2 owns production-like SQL Server proof, retry/idempotency evidence, and delivery infrastructure.
+This is one of exactly two execution plans. Person 2 takes only one unfinished assigned task at a time, including `In Progress`, `Ready for review`, `Changes requested` and `Blocked`. Every task follows `AGENTS.md` and the four Negative-First phases. Person 2 owns production-like SQL Server proof, retry/idempotency evidence, and delivery infrastructure.
 
 ## Task completion contract
 
-For each task: read the traced specification sections; write negative tests first and observe the expected failure; write positive tests; implement; run the narrow tests, affected suite, format, and build; then complete `Antigravity_Completion_Log_Template.md` and the mandatory owner self-review. The owner may self-mark `Done` only when every task gate is green and all self-review findings are resolved.
+For each task, Codex's assignment records acceptance criteria, In scope, Out of scope, dependencies, exclusive files and required checks. Antigravity reads traced specifications; writes negative tests and observes the expected failure; writes positive tests; implements; runs applicable checks; completes `Antigravity_Completion_Log_Template.md` and mandatory owner self-review; then submits `Ready for review`. Codex reviews the exact artifacts and records `Changes requested`, `Blocked` or `Done`. Only Codex may mark `Done`, after every applicable task gate and mandatory finding is verified. Explicit report-only reviews do not modify status/logs. See [shared prompts](../docs/prompts/RoadGuard_Task_Workflow.md); Git permissions remain separate. This policy applies to new/reopened work from the P1-06 workflow migration onward; historical Done evidence is preserved.
 
 ## Current status and branch synchronization gate
 
@@ -23,7 +23,7 @@ Conflict warning: the branches are currently divergent. A read-only `git merge-t
 ## Exclusive ownership and conflict control
 
 - Person 2 has exclusive file ownership of Repositories, migrations, SQL integration tests, Docker/Compose, CI workflows, seed infrastructure, and operations files while a Person 2 task is active.
-- Person 2 establishes entity/property/enum shape and persistence first. Only after that task is self-reviewed and `Done` may Person 1 begin the paired domain/API task and add domain methods/invariants.
+- Person 2 establishes entity/property/enum shape and persistence first. Only after Antigravity self-review and Codex acceptance mark that task `Done` may Person 1 begin the paired domain/API task and add domain methods/invariants. The dependency artifacts must also be present in the current checkout.
 - Person 2 must not edit API, Services, DTOs, unit tests, or API tests owned by an active Person 1 task. Record a `Conflict warning` and hand the required contract change to Person 1 instead.
 - Shared hotspots require a single declared owner. Every task log must list intended files before coding and record any overlap, sequencing constraint, or schema reopening.
 
@@ -100,8 +100,8 @@ dotnet test --no-build
 
 ## Person 2 release obligations
 
-Keep SQL Server integration tests deterministic and isolated; publish the exact Docker/SQL Server prerequisites in the runbook; verify all migrations from an empty database and from the previous migration; ensure CI exercises the same commands recorded in completion logs; complete owner self-review and resolve every conflict warning. Release is blocked by EF InMemory-only evidence for SQL behavior, destructive retention without legal-hold race protection, duplicate worker side effects, or secrets in source/logs.
+Keep SQL Server integration tests deterministic and isolated; publish the exact Docker/SQL Server prerequisites in the runbook; verify all migrations from an empty database and from the previous migration; ensure CI exercises the same commands recorded in completion logs; complete Antigravity owner self-review and mandatory Codex acceptance and resolve every conflict warning. Release is blocked by EF InMemory-only evidence for SQL behavior, destructive retention without legal-hold race protection, duplicate worker side effects, or secrets in source/logs.
 
 ## Retired cross-review task IDs
 
-`P2-12`, `P2-24`, `P2-33`, `P2-43`, `P2-54`, and `P2-66` are retired because each owner now self-reviews and self-marks `Done`. These IDs must not be started or reused. Independent review may still be requested explicitly by the repository owner, but it is not a scheduled implementation task.
+`P2-12`, `P2-24`, `P2-33`, `P2-43`, `P2-54`, and `P2-66` remain retired and must not be started or reused. Antigravity self-review and mandatory Codex acceptance are stages of each existing implementation task, not separate Person 2 implementation tasks. Only Codex records final acceptance and marks `Done` under the current policy; historical review logs remain unchanged.

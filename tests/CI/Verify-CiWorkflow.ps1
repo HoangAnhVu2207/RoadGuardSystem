@@ -28,9 +28,88 @@ function Test-CiWorkflowContent {
         $findings += 'CI workflow must reference repository secret "${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}".'
     }
 
-    # MSSQL_SA_PASSWORD in service must use secret reference, NOT literal
-    if ($Content -match "MSSQL_SA_PASSWORD:\s*['`"][^$]") {
-        $findings += "CI workflow contains hardcoded password literal in service container MSSQL_SA_PASSWORD."
+    # Extract mssql service block under services
+    $inServices = $false
+    $servicesIndent = -1
+    $inMssql = $false
+    $mssqlIndent = -1
+    $mssqlLines = @()
+
+    $lines = $Content -split "`r?`n"
+    for ($i = 0; $i -lt $lines.Length; $i++) {
+        $line = $lines[$i]
+        $trimmed = $line.Trim()
+        if ($trimmed.StartsWith("#") -or [string]::IsNullOrWhiteSpace($trimmed)) {
+            continue
+        }
+
+        if (-not $inServices) {
+            if ($line -match '^(\s*)services:\s*$') {
+                $inServices = $true
+                $servicesIndent = $Matches[1].Length
+            }
+            continue
+        }
+
+        # Inside services:
+        if (-not $inMssql) {
+            if ($line -match '^(\s*)mssql:\s*$') {
+                $indent = $Matches[1].Length
+                if ($indent -gt $servicesIndent) {
+                    $inMssql = $true
+                    $mssqlIndent = $indent
+                }
+            } elseif ($line -match '^(\s*)\S') {
+                $indent = $Matches[1].Length
+                if ($indent -le $servicesIndent) {
+                    # Exited services block
+                    $inServices = $false
+                }
+            }
+            continue
+        }
+
+        # Inside mssql service:
+        if ($line -match '^(\s*)\S') {
+            $indent = $Matches[1].Length
+            if ($indent -le $mssqlIndent) {
+                # Exited mssql service block
+                $inMssql = $false
+                if ($indent -le $servicesIndent) {
+                    $inServices = $false
+                }
+            } else {
+                $mssqlLines += $line
+            }
+        }
+    }
+
+    # MSSQL_SA_PASSWORD in service mssql must strictly use secret reference, NOT literal
+    $servicePasswordMatches = @()
+    foreach ($mLine in $mssqlLines) {
+        if ($mLine -match '^\s*MSSQL_SA_PASSWORD:\s*(.*)$') {
+            $servicePasswordMatches += $Matches[1].Trim()
+        }
+    }
+
+    if ($servicePasswordMatches.Count -eq 0) {
+        $findings += "CI workflow service container 'mssql' is missing required MSSQL_SA_PASSWORD configuration."
+    } elseif ($servicePasswordMatches.Count -gt 1) {
+        $findings += "CI workflow service container 'mssql' contains duplicate MSSQL_SA_PASSWORD configuration entries."
+    } else {
+        $rawVal = $servicePasswordMatches[0]
+        $val = $rawVal
+        if ($val -match '^''([^'']*)''') {
+            $val = $Matches[1].Trim()
+        } elseif ($val -match '^"([^"]*)"') {
+            $val = $Matches[1].Trim()
+        } else {
+            $val = ($val -split '\s+#')[0].Trim()
+        }
+
+        if ($val -notmatch '^\$\{\{\s*secrets\.ROADGUARD_CI_SQL_PASSWORD\s*\}\}$') {
+            $findings += "CI workflow service container 'mssql' MSSQL_SA_PASSWORD must be strictly set to repository secret `${{ secrets.ROADGUARD_CI_SQL_PASSWORD }}` (found: '$rawVal'). Plaintext passwords and literals are prohibited."
+        }
     }
 
     # Connection string in env must use secret reference, NOT literal password
@@ -138,21 +217,44 @@ jobs:
         run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build -- -c "Server=localhost;Password=secret"
 "@
 
+    # Fixture 5: Service password unquoted literal while connection string uses secret
+    $fixture5UnquotedServicePassword = @"
+name: Fixture 5 Unquoted Service Password
+on:
+  push:
+    branches: [ develop ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        env:
+          MSSQL_SA_PASSWORD: HardcodedPlainPassword123!
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"`$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
+    env:
+      ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=`${{ secrets.ROADGUARD_CI_SQL_PASSWORD }};TrustServerCertificate=True;"
+"@
+
     $res1 = Test-CiWorkflowContent $fixture1Hardcoded
     $res2 = Test-CiWorkflowContent $fixture2ComposeStyle
     $res3 = Test-CiWorkflowContent $fixture3SingleQuoted
     $res4 = Test-CiWorkflowContent $fixture4CliArgs
+    $res5 = Test-CiWorkflowContent $fixture5UnquotedServicePassword
 
     $detected1 = ($res1 | Where-Object { $_ -match "hardcoded password literal" }).Count -gt 0
     $detected2 = ($res2 | Where-Object { $_ -match "Compose-style" }).Count -gt 0
     $detected3 = ($res3 | Where-Object { $_ -match "single quote" -or $_ -match "single-quote" }).Count -gt 0
     $detected4 = ($res4 | Where-Object { $_ -match "CLI argument" }).Count -gt 0
+    $detected5 = ($res5 | Where-Object { $_ -match "service container 'mssql' MSSQL_SA_PASSWORD" }).Count -gt 0
 
     $testCases = @(
         @{ Name = '1. Hardcoded password literal in healthcheck'; Detected = $detected1; Findings = $res1 },
         @{ Name = '2. Compose-style "$$MSSQL_SA_PASSWORD" in healthcheck'; Detected = $detected2; Findings = $res2 },
         @{ Name = '3. Single-quoted ''$MSSQL_SA_PASSWORD'' in healthcheck'; Detected = $detected3; Findings = $res3 },
-        @{ Name = '4. CLI connection-string argument in seeder invocation'; Detected = $detected4; Findings = $res4 }
+        @{ Name = '4. CLI connection-string argument in seeder invocation'; Detected = $detected4; Findings = $res4 },
+        @{ Name = '5. Unquoted service password literal while connection string uses secret'; Detected = $detected5; Findings = $res5 }
     )
 
     $failedTests = $testCases | Where-Object { -not $_.Detected }

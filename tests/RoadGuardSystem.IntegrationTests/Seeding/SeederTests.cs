@@ -46,6 +46,31 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
             .WithMessage("*readiness probe*");
     }
 
+    [Fact(DisplayName = "Negative: SeedAsync throws OperationCanceledException when token is pre-canceled and does not execute steps")]
+    public async Task SeedAsync_ThrowsOperationCanceledException_WhenTokenIsPreCanceled()
+    {
+        // ARRANGE
+        var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
+            .UseSqlServer(_fixture.ConnectionString, x => x.UseNetTopologySuite())
+            .Options;
+
+        await using var context = new RoadGuardDbContext(options);
+
+        var stepExecuted = false;
+        var step = new TestSeedStep(1, "NeverRunStep", () => stepExecuted = true);
+        var seeder = new DatabaseSeeder(new[] { step });
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // ACT
+        var act = () => seeder.SeedAsync(context, cts.Token);
+
+        // ASSERT: Must throw OperationCanceledException (not DatabaseNotReadyException) and run zero steps
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        stepExecuted.Should().BeFalse();
+    }
+
     [Fact(DisplayName = "Positive: SeedAsync completes deterministically on healthy database")]
     public async Task SeedAsync_CompletesDeterministically_OnHealthyDatabase()
     {

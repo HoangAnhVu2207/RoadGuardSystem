@@ -24,6 +24,7 @@ public sealed class DatabaseSeeder : IDatabaseSeeder
     public async Task<SeedResult> SeedAsync(RoadGuardDbContext context, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
+        cancellationToken.ThrowIfCancellationRequested();
 
         // 1. Fail-fast readiness check: ensure database is reachable without mutating schema
         bool canConnect;
@@ -31,11 +32,22 @@ public sealed class DatabaseSeeder : IDatabaseSeeder
         {
             canConnect = await context.Database.CanConnectAsync(cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+
             throw new DatabaseNotReadyException(
                 "Database connection failed during readiness probe. Seeder aborted fail-fast without altering schema.", ex);
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!canConnect)
         {

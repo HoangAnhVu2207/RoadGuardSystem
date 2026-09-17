@@ -25,18 +25,31 @@ function Test-EnvExampleContent {
     )
     $findings = @()
 
-    # Must parse MSSQL_SA_PASSWORD= line and strictly require an empty value
-    if ($Content -match '(?m)^\s*MSSQL_SA_PASSWORD=(.*)$') {
-        $val = $Matches[1].Trim()
+    # 1. Check MSSQL_PORT assignments: must be exactly one
+    $portMatches = [regex]::Matches($Content, '(?m)^\s*MSSQL_PORT=(.*)$')
+    if ($portMatches.Count -eq 0) {
+        $findings += ".env.example is missing required 'MSSQL_PORT=' configuration entry."
+    } elseif ($portMatches.Count -gt 1) {
+        $findings += ".env.example contains duplicate 'MSSQL_PORT=' assignments (found: $($portMatches.Count)). Exactly one assignment is required."
+    }
+
+    # 2. Check MSSQL_SA_PASSWORD assignments: must be exactly one and value must be empty
+    $passwordMatches = [regex]::Matches($Content, '(?m)^\s*MSSQL_SA_PASSWORD=(.*)$')
+    if ($passwordMatches.Count -eq 0) {
+        $findings += ".env.example is missing required 'MSSQL_SA_PASSWORD=' configuration entry."
+    } elseif ($passwordMatches.Count -gt 1) {
+        $findings += ".env.example contains duplicate 'MSSQL_SA_PASSWORD=' assignments (found: $($passwordMatches.Count)). Exactly one assignment is required."
+        foreach ($m in $passwordMatches) {
+            $val = $m.Groups[1].Value.Trim()
+            if ($val -ne "") {
+                $findings += ".env.example has non-empty MSSQL_SA_PASSWORD value '$val'. Any non-empty password is prohibited."
+            }
+        }
+    } else {
+        $val = $passwordMatches[0].Groups[1].Value.Trim()
         if ($val -ne "") {
             $findings += ".env.example must have MSSQL_SA_PASSWORD set to an empty value (found: '$val'). Any non-empty value, including sample passwords like '12345678', is prohibited."
         }
-    } else {
-        $findings += ".env.example is missing required 'MSSQL_SA_PASSWORD=' configuration entry."
-    }
-
-    if ($Content -notmatch '(?m)^\s*MSSQL_PORT=') {
-        $findings += ".env.example is missing MSSQL_PORT configuration placeholder."
     }
 
     $prohibitedPasswords = @("SuperSecret", "Password123", "P@ssw0rd123!", "Admin@123", "RoadGuard@2026!", "yourStrong(!)Password", "12345678")
@@ -70,8 +83,18 @@ MSSQL_PORT=1433
 MSSQL_SA_PASSWORD=12345678
 "@
 
+    # Negative .env.example fixture containing duplicate keys and unlisted password
+    $mockDuplicateEnv = @"
+MSSQL_PORT=1433
+MSSQL_SA_PASSWORD=
+MSSQL_SA_PASSWORD=DifferentStrong9!
+"@
+
     $envViolations = Test-EnvExampleContent -Content $mockInsecureEnv
     $detected12345678 = ($envViolations | Where-Object { $_ -match "12345678" }).Count -gt 0
+
+    $duplicateViolations = Test-EnvExampleContent -Content $mockDuplicateEnv
+    $detectedDuplicate = ($duplicateViolations | Where-Object { $_ -match "duplicate" -or $_ -match "DifferentStrong9!" }).Count -gt 0
 
     $testCases = @(
         @{ Name = "1. Missing pinned SQL Server image in compose"; Passed = ($mockCompose -notmatch 'mcr\.microsoft\.com/mssql/server:2019-CU18-ubuntu-20\.04') },
@@ -79,7 +102,8 @@ MSSQL_SA_PASSWORD=12345678
         @{ Name = "3. Hardcoded secret in compose environment"; Passed = ($mockCompose -match 'MSSQL_SA_PASSWORD=[^$]') },
         @{ Name = "4. Missing named persistent volume in compose"; Passed = ($mockCompose -notmatch 'volumes:') },
         @{ Name = "5. Missing fail-closed guard :? on MSSQL_SA_PASSWORD in compose"; Passed = ($mockCompose -notmatch 'MSSQL_SA_PASSWORD:\s*["'']?\$\{MSSQL_SA_PASSWORD:\?') },
-        @{ Name = "6. Non-empty password in .env.example (blocking '12345678')"; Passed = $detected12345678 }
+        @{ Name = "6. Non-empty password in .env.example (blocking '12345678')"; Passed = $detected12345678 },
+        @{ Name = "7. Duplicate MSSQL_SA_PASSWORD keys in .env.example with unlisted password 'DifferentStrong9!'"; Passed = $detectedDuplicate }
     )
 
     $failedTests = $testCases | Where-Object { -not $_.Passed }
@@ -91,7 +115,7 @@ MSSQL_SA_PASSWORD=12345678
         exit 2
     }
 
-    Write-Host "[SelfTestNegative] All $($testCases.Count) negative checks were verified and blocked as expected (including blocking '12345678'):" -ForegroundColor Green
+    Write-Host "[SelfTestNegative] All $($testCases.Count) negative checks were verified and blocked as expected (including duplicate keys and unlisted passwords):" -ForegroundColor Green
     foreach ($tc in $testCases) {
         Write-Host "  [PASS] $($tc.Name)" -ForegroundColor Green
     }

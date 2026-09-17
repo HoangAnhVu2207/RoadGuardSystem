@@ -1,5 +1,7 @@
 # User Story và Acceptance Criteria - RoadGuard / CÁT TƯỜNG
 
+> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
+
 ## 1. Mục đích và phạm vi
 
 Tài liệu này chuyển đặc tả use case trong `UseCase/Dac_ta_UseCase.md` thành các User Story lớn theo nhóm nghiệp vụ. Mỗi story giữ mã chức năng nguồn để truy vết và có Acceptance Criteria theo dạng **Given / When / Then**.
@@ -8,7 +10,7 @@ Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android A
 
 ### 1.1 Ngoài phạm vi MVP
 
-- `AI13` và `TN01-TN06` về đo đạc thực tế do Repair Crew thực hiện là bước bắt buộc trong MVP đối với mọi phát hiện sơ bộ được PM giữ lại để xác minh.
+- `AI13` và `TN01-TN06`, `TN12` về đo đạc thực tế do Repair Crew thực hiện là bước bắt buộc trong MVP đối với mọi phát hiện sơ bộ được PM giữ lại để xác minh.
 - `AI02` (ảnh trực giao/mô hình bề mặt) và các phép đo phụ thuộc pipeline nâng cao: không phải điều kiện nghiệm thu MVP sản phẩm. Tuy nhiên, **Research Validation Track của đề cương là bắt buộc**: phải thu thập ground truth vật lý cho mẫu depression/slab faulting và đối chiếu với số đo drone để báo cáo measurement uncertainty.
 - Điều khiển thiết bị bay; hệ thống chỉ tiếp nhận dữ liệu do thiết bị bay tạo ra.
 - Cam kết độ chính xác địa lý, độ sâu hoặc thời điểm hỏng chỉ từ đầu ra YOLO/bounding box.
@@ -67,7 +69,7 @@ Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android A
 | US-12 | Sửa chữa | Phân công và bàn giao Repair Crew | SC10-SC11 |
 | US-13 | Thi công | Tiếp nhận đợt sửa, ghi tiến độ và bằng chứng | HT01-HT08, HT14-HT15 |
 | US-14 | Thi công | Kiểm tra, sửa lại và xác nhận hoàn tất | HT09-HT13 |
-| US-20 | Đo đạc thực tế | Đo đạc bắt buộc và xác minh hư hỏng chính thức | AI13, TN01-TN06 |
+| US-20 | Đo đạc thực tế | Đo đạc bắt buộc và xác minh hư hỏng chính thức | AI13, TN01-TN06, TN12 |
 | US-15 | Báo cáo | Dashboard quản lý dự án, chi phí và rủi ro | BC01-BC05 |
 | US-16 | Báo cáo | Xuất hồ sơ, nguồn gốc và tra cứu lưu trữ | BC06-BC10 |
 | US-17 | Quản trị | Quản lý tài khoản, quyền, danh mục và nhắc việc | QT01-QT05 |
@@ -530,7 +532,7 @@ Là PM, tôi muốn bắt buộc giao Repair Crew đo đạc tại hiện trư�
 7. **Audit và quyền truy cập**
    - Mọi giao việc, tiếp nhận/từ chối, gửi, chấp nhận và yêu cầu bổ sung phải lưu người, thời điểm, lý do, trạng thái và nguồn; Repair Crew chỉ xem nhiệm vụ thuộc phạm vi được giao.
 
-**Mã truy vết:** `AI13`, `TN01-TN06`, `CN05-CN09`.
+**Mã truy vết:** `AI13`, `TN01-TN06`, `TN12`, `CN05-CN09`.
 
 ### US-15 - Dashboard quản lý dự án, chi phí và rủi ro
 
@@ -684,7 +686,7 @@ Một User Story chỉ được xem là hoàn thành khi:
 | `SC10`, `SC11` | US-12 | Phân công và bàn giao Repair Crew. |
 | `HT01`, `HT02`, `HT03`, `HT04`, `HT05`, `HT06`, `HT07`, `HT08`, `HT14`, `HT15` | US-13 | Tiếp nhận, hướng dẫn, phân việc, bằng chứng, báo cáo, từ chối. |
 | `HT09`, `HT10`, `HT11`, `HT12`, `HT13` | US-14 | Kiểm tra, trả sửa, trình, xác nhận, sửa lại. |
-| `AI13`, `TN01`, `TN02`, `TN03`, `TN04`, `TN05`, `TN06` | US-20 | Giao, thực hiện, gửi và đánh giá đo đạc thực tế; không tự kết luận bảo hành. |
+| `AI13`, `TN01`, `TN02`, `TN03`, `TN04`, `TN05`, `TN06`, `TN12` | US-20 | Giao, thực hiện, gửi và đánh giá đo đạc thực tế; không tự kết luận bảo hành. |
 | `BC01`, `BC02`, `BC03`, `BC04`, `BC05` | US-15 | Dashboard dự án, chi phí, rủi ro, so sánh. |
 | `BC06`, `BC07`, `BC08`, `BC09`, `BC10` | US-16 | Xuất báo cáo, hồ sơ bằng chứng, nguồn gốc, lưu trữ. |
 | `QT01`, `QT02`, `QT03`, `QT04`, `QT05` | US-17 | Tài khoản, quyền, danh mục, quy tắc, nhắc việc. |

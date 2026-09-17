@@ -312,16 +312,65 @@ foreach ($plan in @(
     }
 }
 
-foreach ($requiredToken in @(
-    'P2-00` | `Done`',
-    'P2-01` | `Not started - blocked by branch synchronization`',
-    'P2-02` | `Not started`',
-    '3e13ca6',
-    'b2662fe'
-)) {
-    if ($person2PlanContent -notmatch [regex]::Escape($requiredToken)) {
-        $errors += "Person 2 plan missing approved Wave 0 status/synchronization token: '$requiredToken'"
+# P2-03: Read the current status section, not historical prose elsewhere.
+# Legal progression must not require editing the verifier's source.
+$allowedStatuses = @('Not started', 'In Progress', 'Blocked', 'Ready for review',
+    'Ready for Codex review', 'Ready for cross-review', 'Done')
+$currentStatuses = @{}
+$taskDependencies = @{}
+foreach ($planContent in @($person1PlanContent, $person2PlanContent)) {
+    $section = [regex]::Match($planContent, '(?ms)^## Current status[^\r\n]*\r?\n(?<body>.*?)(?=^## |\z)')
+    foreach ($row in [regex]::Matches($section.Groups['body'].Value,
+        '(?m)^\|\s*`(?<id>P[12]-\d{2})`\s*\|\s*`(?<status>[^`]+)`\s*\|')) {
+        $id = $row.Groups['id'].Value
+        $status = $row.Groups['status'].Value
+        if ($currentStatuses.ContainsKey($id)) { $errors += "PLAN_STATUS: duplicate current row for $id" }
+        if ($status -notin $allowedStatuses) { $errors += "PLAN_STATUS: invalid status for $id : $status" }
+        $currentStatuses[$id] = $status
     }
+    foreach ($row in [regex]::Matches($planContent,
+        '(?m)^\|\s*`(?<id>P[12]-\d{2})`\s*/[^|]+\|(?<trace>[^|]+)\|')) {
+        $id = $row.Groups['id'].Value
+        if ($taskDependencies.ContainsKey($id)) { $errors += "PLAN_DEPENDENCY: duplicate task definition $id" }
+        $taskDependencies[$id] = @([regex]::Matches($row.Groups['trace'].Value, '\bP[12]-\d{2}\b') |
+            ForEach-Object { $_.Value } | Select-Object -Unique)
+    }
+}
+foreach ($id in @('P1-00', 'P1-01', 'P1-02', 'P1-03', 'P2-00', 'P2-01', 'P2-02')) {
+    if (-not $currentStatuses.ContainsKey($id)) { $errors += "PLAN_STATUS: missing current row for $id" }
+}
+foreach ($id in $currentStatuses.Keys) {
+    if (-not $taskDependencies.ContainsKey($id)) { $errors += "PLAN_STATUS: undefined current task $id" }
+}
+foreach ($id in $taskDependencies.Keys) {
+    foreach ($dependency in $taskDependencies[$id]) {
+        if (-not $taskDependencies.ContainsKey($dependency)) {
+            $errors += "PLAN_DEPENDENCY: $id references undefined $dependency"
+        }
+    }
+}
+# These are cross-owner handoffs, not assumptions based on wave/row ordering.
+foreach ($edge in @(
+    @('P2-10', 'P2-02'), @('P2-11', 'P2-20'), @('P2-20', 'P2-10'),
+    @('P1-12', 'P1-10'), @('P1-12', 'P2-11')
+)) {
+    if (-not $taskDependencies.ContainsKey($edge[0]) -or $edge[1] -notin $taskDependencies[$edge[0]]) {
+        $errors += "PLAN_DEPENDENCY: $($edge[0]) must declare $($edge[1])"
+    }
+}
+# Kahn's algorithm: a nonempty remainder is a cycle or unresolved dependency.
+$remaining = @{}
+foreach ($id in $taskDependencies.Keys) { $remaining[$id] = $taskDependencies[$id] }
+$resolvedTasks = @{}
+while ($remaining.Count -gt 0) {
+    $ready = @($remaining.Keys | Where-Object {
+        @($remaining[$_] | Where-Object { -not $resolvedTasks.ContainsKey($_) }).Count -eq 0
+    })
+    if ($ready.Count -eq 0) {
+        $errors += "PLAN_CYCLE: unresolved dependency graph: $(($remaining.Keys | Sort-Object) -join ', ')"
+        break
+    }
+    foreach ($id in $ready) { $resolvedTasks[$id] = $true; $remaining.Remove($id) }
 }
 
 foreach ($agentRules in @(

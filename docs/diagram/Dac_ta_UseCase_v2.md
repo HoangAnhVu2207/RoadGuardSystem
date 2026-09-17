@@ -1,5 +1,7 @@
 # Đặc tả use case RoadGuard / CÁT TƯỜNG
 
+> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
+
 Phiên bản 11/09/2026 — dùng kèm các sơ đồ trong thư mục này.  
 Căn cứ thêm: `Build/RoadGuard_Data_Dictionary_v1.md` là chuẩn dữ liệu/công nghệ ưu tiên; đề cương `RoadGuard_Contractor_Warranty_Inspection_phuonglhk.md` và các quyết định đã chốt (vai trò tiếng Anh, khảo sát gốc bàn giao, Backend C# + AI Python, **thu thập ground truth nghiên cứu là bắt buộc**).
 

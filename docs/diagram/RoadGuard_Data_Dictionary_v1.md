@@ -1,5 +1,7 @@
 # RoadGuard — Data Dictionary v1
 
+> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
+
 Tài liệu này là từ điển dữ liệu mức logic cho RoadGuard. Nó được lập từ:
 
 - `Build/RoadGuard_Domain_Model_v1.md`;
@@ -866,7 +868,7 @@ Không tự ý đổi tên enum ở API sau khi triển khai; nếu cần đổi
 15. `FieldInspectionSession.purpose = DEFECT_VERIFICATION` bắt buộc có `field_inspection_task_id`, `survey_id`, Repair Crew hợp lệ và các phép đo trỏ đúng `defect_id`; `RESEARCH_VALIDATION` phải để `field_inspection_task_id` null.
 16. `DefectVerificationLog` phải có đúng một trong `ai_detection_id` hoặc `defect_id`. Chỉ PM được hoàn tất task và chuyển `Defect OPEN` sang `VERIFIED`/`REJECTED`; `VERIFIED` yêu cầu task `COMPLETED`, quyết định `DEFECT_CONFIRMED` và có session/phép đo đã gửi hoặc khóa.
 17. Chỉ tạo `RepairItem` cho `Defect VERIFIED` thỏa điều kiện đo đạt; chặn lỗi `OPEN`, `REJECTED`, task chưa hoàn tất hoặc đang yêu cầu bổ sung.
-18. Research Validation Track không tự tạo/chuyển trạng thái `Defect`, không tự chuyển `Warranty` và không thay thế quyết định PM trong workflow TN01-TN12/AI13.
+18. Research Validation Track không tự tạo/chuyển trạng thái `Defect`, không tự chuyển `Warranty` và không thay thế quyết định PM trong workflow TN01–TN06, TN12/AI13.
 19. PM chỉ nhập `RepairItem.estimated_cost`; hệ thống tính `RepairBatchVersion.estimated_total_cost` từ các item. Không lưu biện pháp, vật liệu, khối lượng hoặc ưu tiên trên `RepairItem`.
 
 ## 6. Chính sách bảo mật, PII và lưu trữ — đề xuất để review
@@ -948,7 +950,7 @@ Các chính sách dưới đây là đề xuất kỹ thuật, không tự kết
 | Version hình học | `RoadSectionVersion`, `road_section_version_id` | US-03 mục 3 |
 | Hủy yêu cầu khảo sát | `SurveyDataVersion.status` | US-05 mục 5 |
 | Retry xử lý | `ProcessingAttempt.error_type` | US-07, US-18 |
-| Đo thực địa bắt buộc | `FieldInspectionTask`, `FieldInspectionAssignment`, `FieldInspectionSession.purpose` | `UD-05`, AI13, TN01-TN12, US-20 |
+| Đo thực địa bắt buộc | `FieldInspectionTask`, `FieldInspectionAssignment`, `FieldInspectionSession.purpose` | `UD-05`, AI13, TN01–TN06, TN12, US-20 |
 | Xác minh hư hỏng chính thức | `Defect.status`, `DefectVerificationLog.field_inspection_task_id`, `GroundTruthMeasurement.defect_id` | `UD-05`, AI04-AI07, TN05, US-08, US-20 |
 | Giữ lịch sử sửa chữa | `RepairBatchVersion`, `RepairItem`, `RepairEvidence` | US-11 đến US-14 |
 | Rút gọn chi phí sửa chữa | `RepairItem.estimated_cost`, `RepairBatchVersion.estimated_total_cost` | `UD-06`, SC02-SC03, US-11 |
@@ -957,4 +959,4 @@ Các chính sách dưới đây là đề xuất kỹ thuật, không tự kết
 
 ## 8. Trạng thái tài liệu
 
-Đây là bản Data Dictionary logic v1 để review. Các trường gắn `PROP` là đề xuất triển khai, cần xác nhận trước khi đóng băng DDL. Các quyết định `DEC` là yêu cầu thiết kế đã chốt và phải được giữ nguyên khi chuyển sang ERD, API contract và migration. Workflow đo thực địa TN01-TN12/AI13 thuộc hệ thống sản phẩm hiện tại; Research Validation là mục đích độc lập dùng chung cấu trúc số đo nhưng không tự kết luận nghiệp vụ.
+Đây là bản Data Dictionary logic v1 để review. Các trường gắn `PROP` là đề xuất triển khai, cần xác nhận trước khi đóng băng DDL. Các quyết định `DEC` là yêu cầu thiết kế đã chốt và phải được giữ nguyên khi chuyển sang ERD, API contract và migration. Workflow đo thực địa TN01–TN06, TN12/AI13 thuộc hệ thống sản phẩm hiện tại; Research Validation là mục đích độc lập dùng chung cấu trúc số đo nhưng không tự kết luận nghiệp vụ.

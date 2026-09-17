@@ -4,6 +4,12 @@ Owner: Person 1 (domain/application/API primary). Self-review: task owner. Basel
 
 This is one of exactly two execution plans. Person 1 takes only one `In Progress` task at a time. Every task follows `AGENTS.md` and the four Negative-First phases. Paths below are target locations; if the actual solution uses different names, preserve its structure and record the mapping in the completion log.
 
+## Backend delivery boundary — owner clarification, 2026-09-18
+
+The two-week target covers backend MVP and backend Research Validation software. Android and Web Dashboard belong to FE; real AI training/inference/DSM generation and field data collection are external follow-ups. Backend processing uses a deterministic mock behind the existing adapter boundary, and Research Validation is testable with controlled imported/synthetic pairs. Real AI accuracy and field-trial conclusions are not prerequisites for backend software acceptance and are not claimed by mock tests. See [ADR 003](../docs/adr/003-backend-delivery-and-ai-boundary.md) for contracts, unresolved product decisions and research sources.
+
+Task IDs remain stable. Wave headings group features; explicit dependencies, not row order, determine execution. New P2-04–P2-07 tasks extract prerequisites previously buried in P2-30/P2-64/P2-65; their ownership is exclusive. Only completed schema tasks hand entities to Person 1. Each parent task may have several acceptance checkpoints, but is Done only when every checkpoint passes.
+
 ## Task completion contract
 
 For each task: read the traced specification sections; write negative tests first and observe the expected failure; write positive tests; implement; run the narrow tests, affected suite, format, and build; then complete `Antigravity_Completion_Log_Template.md` and the mandatory owner self-review. The owner may self-mark `Done` only when every task gate is green and all self-review findings are resolved.
@@ -49,32 +55,38 @@ dotnet test --no-build
 
 | ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
 |---|---|---|---|
-| `P1-10` / 1.5d | US-01, CN01-CN03; P2-10 | Implement login/refresh/logout and forced password change application flow with hashed refresh tokens. Validate the JWT role snapshot against authoritative `User.role_code` on every request and fail closed on mismatch. Output: Auth DTOs, service interfaces/implementation, endpoints, error codes. | Negative: null/empty credentials, suspended/pending account, wrong password, expired/revoked/replayed refresh token, stale role claim after `UserRoleChanged`. Positive: login→refresh→logout; old token unusable; current role/session is accepted. |
-| `P1-11` / 1d | US-01, CN10; P1-10, P2-10 | Implement profile update and Admin password reset/session revocation. Output: profile/reset commands, endpoints and audit events. | Negative: self-role change, reset suspended user, invalid fields, old session after reset. Positive: allowed profile fields update; reset forces password change and audit contains no secret. |
-| `P1-12` / 1d | US-01, TE-03; P2-11 | Add current-user/project authorization service and endpoint policies. For non-Supervisor operations, enforce active/effective membership and authoritative `ProjectMember.role_code`; Supervisor bypass requires current server-side `User.role_code`. Output: authorization handlers/policies and reusable project-scope guard. | Negative: unauthenticated 401, wrong role/project 403, mismatched `ProjectMember.role_code`, ended/expired membership, forged project claim. Positive: assigned member and current Supervisor paths; membership change applies on the next request; no protected query runs before scope check where measurable. |
+| `P1-10` / 1.5d | US-01, CN01-CN03; P1-01, P1-02, P2-10 | Implement login/refresh/logout and forced password change application flow with hashed refresh tokens. Validate the JWT role snapshot against authoritative `User.role_code` on every request and fail closed on mismatch. Output: Auth DTOs, service interfaces/implementation, endpoints, error codes. | Negative: null/empty credentials, suspended/pending account, wrong password, expired/revoked/replayed refresh token, stale role claim after `UserRoleChanged`. Positive: login→refresh→logout; old token unusable; current role/session is accepted. |
+| `P1-11` / 1d | US-01, CN02, CN10; P1-10, P2-10 | Implement profile update and Admin password reset/session revocation. Output: profile/reset commands, endpoints and audit events. | Negative: self-role change, reset suspended user, invalid fields, old session after reset. Positive: allowed profile fields update; reset forces password change and audit contains no secret. |
+| `P1-12` / 1d | US-01, US-02, CN03, CN05, TE-03; P1-10, P2-11 | Add current-user/project authorization service and endpoint policies. For non-Supervisor operations, enforce active/effective membership and authoritative `ProjectMember.role_code`; Supervisor bypass requires current server-side `User.role_code`. Output: authorization handlers/policies and reusable project-scope guard. Define authorized work-package reads for FE offline preparation; CN06 local drafts and CN09 local deletion remain FE-owned. | Negative: unauthenticated 401, wrong role/project 403, mismatched `ProjectMember.role_code`, ended/expired membership, forged project claim. Positive: assigned member and current Supervisor paths; membership change applies on the next request; no protected query runs before scope check where measurable. |
 
 ## Wave 2 — project and survey lifecycle
 
 | ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
 |---|---|---|---|
-| `P1-20` / 2d | US-03, DA01, DA03-DA05; P1-12, P2-20 | Implement Project/ProjectMember/Warranty domain rules and create/update/assign/reassign PM use cases. Output: aggregate methods, services, DTOs, endpoints. | Negative: missing handover data, invalid warranty dates, second active primary PM, outside-project caller, stale reassignment. Positive: create project and atomically reassign primary PM with audit. |
-| `P1-21` / 1.5d | US-03, DA02, DA12; P2-21 | Implement RoadSection version creation and project-close policy. Output: versioning service, commands/queries and endpoints. | Negative: malformed geometry/SRID, in-place edit of referenced version, close with open work, stale write. Positive: geometry change creates version N+1; old data remains anchored/queryable. |
+| `P1-20` / 2d | US-03, DA01, DA03-DA05; P1-12, P2-20, P2-21 | Implement Project/ProjectMember/Warranty domain rules and create/update/assign/reassign PM use cases. Output: aggregate methods, services, DTOs, endpoints. | Negative: missing handover data, invalid warranty dates, second active primary PM, outside-project caller, stale reassignment. Positive: create project and atomically reassign primary PM with audit. |
+| `P1-21` / 1.5d | US-03, DA02; P1-20, P2-21 | Implement RoadSection version creation; project-close policy is extracted to P1-24 after open-work schemas exist. Output: versioning service, commands/queries and endpoints. | Negative: malformed geometry/SRID, in-place edit of referenced version, stale write. Positive: geometry change creates version N+1; old data remains anchored/queryable. |
 | `P1-22` / 1.5d | US-04, DA06-DA09; P1-21, P2-22 | Implement survey plan/request creation and postpone rules. Output: domain transitions, services, DTOs/endpoints. | Negative: empty scope, wrong road version, invalid dates, unauthorized PM, invalid/postponed transition. Positive: baseline and periodic plan/request creation with reasoned postpone and audit. |
-| `P1-23` / 1.5d | US-05, KS01-KS04, KS14; P1-22, P2-23 | Implement assign/accept/reject/reassign/cancel survey transitions. Output: explicit transition methods and API commands. | Negative: reject after accept, cancel after server confirmation, missing reason, duplicate active assignment, stale version. Positive: assign→reject→reassign→accept and allowed cancel paths. |
+| `P1-23` / 1.5d | US-05, KS01-KS04, KS14; P1-22, P2-23, P2-30 | Implement assign/accept/reject/reassign/cancel survey transitions. Output: explicit transition methods and API commands. | Negative: reject after accept, cancel after server confirmation, missing reason, duplicate active assignment, stale version. Positive: assign→reject→reassign→accept and allowed cancel paths. |
 
 ## Wave 3 — upload, processing, and AI review
 
+Project closure is a late slice even though its task ID groups it with projects:
+
 | ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
 |---|---|---|---|
-| `P1-30` / 2d | US-06/07, KS05-KS13, CN07-CN09; P2-30 | Implement upload-session/chunk/complete contracts, checksum orchestration and dataset confirmation policy. Output: upload DTOs/services/endpoints. | Negative: empty/oversize chunk, bad order/checksum, missing file, duplicate completion, timeout, caller outside assignment. Positive: resume multipart upload; only backend-confirmed data advances. |
-| `P1-31` / 1.5d | US-07, KS10-KS13; P2-31 | Implement processing state machine and AI adapter contract with deterministic fake. Output: job policy, AI request/result DTOs, fake adapter. | Negative: retry permanent data failure, duplicate job key, malformed AI result, timeout/cancellation. Positive: queued→running→completed and retryable failure→retry without duplicate output. |
-| `P1-32` / 1.5d | US-08, AI01, AI04-AI07; P1-31, P2-32 | Implement PM keep/edit/reject detection flow; retained detection creates `OPEN` defect plus required inspection task. Output: review commands/queries, transition policy, endpoints. | Negative: non-PM/outside project, already reviewed detection, invalid edit, direct VERIFIED state, missing reason. Positive: keep creates exactly one defect/task; reject retains immutable AI output/history. |
+| `P1-24` / 0.5d | US-03, DA12; P1-42, P1-53, P2-53 | Complete project-close service/API policy once survey, defect, inspection and repair work can all be queried. Extracted from P1-21 to keep road versioning independent of late workflow schemas. | Negative: each category of open work, wrong actor/project, stale version and duplicate conflicting close; positive: eligible close preserves history, appends audit and replays idempotently. |
+
+| ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
+|---|---|---|---|
+| `P1-30` / 2d | US-02, US-06, US-07, KS05-KS12, CN07-CN09; P1-23, P2-30, P2-31 | Implement upload-session/chunk/complete/status contracts and supplementary-survey request/approval/submission orchestration for KS11-KS12. Reuse File/storage primitives from P2-04. Upload completion enqueues backend validation; only the worker may confirm the immutable dataset manifest after checksum, completeness and server quality checks. Output: upload and SupplementarySurveyRequest DTOs/services/endpoints plus FE acknowledgement contract. | Negative: empty/oversize/traversal input, changed chunk or manifest under the same retry key, checksum failure, missing file, unauthorized/reassigned caller, concurrent complete, timeout, invalid supplementary transition and overwriting old data. Positive: resume after lost response; replay returns the same upload/version; status remains pending until worker confirmation; supplementary round N+1 preserves all original files. |
+| `P1-31` / 1.5d | US-07, KS10-KS13; P1-30, P2-31, P2-32 | Implement processing state machine and transport-neutral AI adapter contract with deterministic fake. Job request identifies project, RoadSectionVersion, SurveyDataVersion, model version, manifest and correlation/idempotency IDs; result preserves source/model provenance and schema version. Output: job policy, adapter request/result contracts and fake adapter; no Python/GPU/model development. | Negative: malformed/off-scope or wrong-version results, retry of permanent data failure, duplicate job/result, timeout/cancellation and late result from an expired lease. Positive: queued-to-completed through fake adapter, retryable failure recovery and contract tests reusable by a later real adapter without duplicate detection output. |
+| `P1-32` / 1.5d | US-08, US-20, AI01, AI04-AI07, AI13; P1-31, P2-32 | Implement PM keep/edit/reject detection flow; retained detection creates `OPEN` defect plus required inspection task. Output: review commands/queries, transition policy, endpoints. | Negative: non-PM/outside project, already reviewed detection, invalid edit, direct VERIFIED state, missing reason. Positive: keep creates exactly one defect/task; reject retains immutable AI output/history. |
 
 ## Wave 4 — field verification and baseline
 
 | ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
 |---|---|---|---|
-| `P1-40` / 1.5d | US-20, TN01-TN04/TN12; P1-32, P2-40 | Implement inspection assignment/accept/reject/submit commands and idempotent offline client IDs. Output: task/session DTOs, services and endpoints. | Negative: unassigned crew, reject after accept, malformed/off-scope measurement, duplicate client ID with different payload. Positive: assignment→accept→submit; same retry returns same result. |
+| `P1-40` / 1.5d | US-02, US-20, AI13, TN01-TN04, TN12, CN07-CN09; P1-32, P2-40 | Implement inspection assignment/accept/reject/submit commands and idempotent offline client IDs. Output: task/session DTOs, services and endpoints. Use GroundTruthMeasurement.evidence_file_id from the Data Dictionary; do not invent an Evidence-to-measurement FK. Recheck current assignment before accepting or replaying synchronized work. | Negative: unassigned crew, reject after accept, malformed/off-scope measurement, duplicate client ID with different payload. Positive: assignment→accept→submit; same retry returns same result. |
 | `P1-41` / 1.5d | US-20, TN05-TN06; P1-40, P2-41 | Implement PM review and explicit `OPEN -> VERIFIED/REJECTED` policy; supplements append records. Output: review service/transitions/endpoints. | Negative: task incomplete, no submitted measurement, wrong PM/project, in-place edit, stale review. Positive: confirm and no-defect decisions update state and append audit/verification log. |
 | `P1-42` / 1d | US-04, DA10-DA11; P1-41, P2-42 | Implement baseline confirmation cross-aggregate policy and status query. Output: confirmation policy/service/API. | Negative: unconfirmed file, incomplete job, unreviewed detection/open task/defect. Positive: eligible survey confirms baseline once; replay is idempotent. |
 
@@ -85,19 +97,102 @@ dotnet test --no-build
 | `P1-50` / 2d | US-11, SC01-SC04; P1-41, P2-50 | Implement repair eligibility, draft batch/version/items, server-calculated estimated total and submit. Output: aggregate policies, DTOs/services/endpoints. | Negative: non-VERIFIED defect, incomplete inspection, duplicate active repair, negative/overflow cost, stale version. Positive: eligible defects create draft; total is deterministic; submit locks version. |
 | `P1-51` / 1.5d | US-11, SC05-SC09/SC12; P1-50, P2-51 | Implement Supervisor approve/return/reject and PM new-version/resubmit. Output: approval/version transitions and history API. | Negative: self/incorrect role approval, missing reason, mutate approved version, stale decision. Positive: return whole batch, create N+1, preserve N, resubmit/approve. |
 | `P1-52` / 1d | US-12, SC10-SC11; P1-51, P2-52 | Implement assignment/reassignment only from current approved version. Output: assignment commands and endpoints. | Negative: draft/old approved version, duplicate active assignment, crew outside scope. Positive: assign and reassign with immutable history/audit. |
-| `P1-53` / 2d | US-13/14, HT01-HT13/HT15; P1-52, P2-53 | Implement crew progress/report, PM inspection/rework and Supervisor final confirmation. Output: per-item state machine, APIs and completion policy. | Negative: missing/unconfirmed evidence, item outside batch, overwrite append-only progress, close with failed/pending item. Positive: submit→inspect→rework/resubmit; passed item does not regress; all-pass closes batch. |
+| `P1-53` / 2d | US-02, US-13, US-14, HT01-HT15, CN07-CN09; P1-52, P2-53 | Implement crew progress/report, PM inspection/rework and Supervisor final confirmation. Output: per-item state machine, APIs and completion policy. Explicitly include accept/reject-before-accept, internal crew work notes without extra accounts, unplanned-defect reporting, scoped history HT14, and retry-safe evidence/progress synchronization. | Negative: missing/unconfirmed evidence, item outside batch, overwrite append-only progress, close with failed/pending item. Positive: submit→inspect→rework/resubmit; passed item does not regress; all-pass closes batch. |
 
 ## Wave 6 — query, export, retention, research
 
 | ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
 |---|---|---|---|
-| `P1-60` / 2d | US-09/15, AI08-AI12, BC01-BC05; P2-60 | Implement defect match/merge decisions and authorized dashboard/drill-down contracts. Output: query services/DTOs/endpoints. | Negative: cross-project access, incompatible periods, double-counted versions, invalid filters. Positive: each metric drills to source; pending/approved/actual costs remain separate. |
-| `P1-61` / 1.5d | US-16, BC06-BC10; P2-61 | Implement export request/status/download authorization and provenance manifest contract. Output: export services/endpoints/manifest DTO. | Negative: oversized scope, outside-project download, unsupported format, duplicate key mismatch. Positive: idempotent request and completed manifest includes filters, versions and checksums. |
-| `P1-62` / 2d | US-19, QT11-QT14; P2-62 | Implement retention request/review policy, legal-hold gate and deletion dry run. Output: policy/services/endpoints. | Negative: active legal hold, premature retention, scope drift, requester approves own request if prohibited, stale decision. Positive: request→approve→dry-run with exact scope and audit. |
-| `P1-63` / 2d | RS01-RS06; P2-63 | Implement research import/pair/calculation contract (bias, MAE, RMSE, sample count) isolated from operational workflow. Output: import validation, calculation service and report API. | Negative: malformed row, duplicate sample, unit/type mismatch, missing pair, divide-by-zero/all excluded. Positive: golden dataset reproducibly calculates metrics and never creates Defect/Warranty transitions. |
-| `P1-64` / 2d | US-17, CN04, QT01-QT05; P2-64 | Implement Admin account suspend/reactivate and global-role change with open-work handover list, notification inbox, defect catalog/severity-rule versioning and reminder-rule APIs. Global-role change emits `UserRoleChanged`, audits before/after state, and atomically revokes active sessions/refresh tokens. Output: admin/notification/config services, DTOs and endpoints. | Negative: non-Admin, suspend already suspended user, self-escalation, stale role token remains usable, partial role-change/session-revocation transaction, mutate active rule version, reminder auto-creates survey, sync draft transfer. Positive: suspend/role change revokes sessions, preserves history/drafts, lists reassignment work and publishes versioned rules/reminders. |
-| `P1-65` / 1.5d | US-10/18, AI14, QT06-QT10; P2-65 | Implement AI model/job/device administration plus training-label approval/export workflow. Output: admin policies, services, DTOs/endpoints and versioned export contract. | Negative: activate invalid model, retry data failure, unauthorized device/job access, export unapproved labels, mutate approved label. Positive: activate one model version, inspect/retry eligible job, register device, approve labels and create reproducible dataset export. |
+| `P1-60` / 2d | US-09, US-15, AI08-AI12, BC01-BC05; P1-53, P2-60 | Implement defect match/merge decisions and authorized dashboard/drill-down contracts. Output: query services/DTOs/endpoints. Review separately: match/merge decisions with audit and concurrency, then dashboard calculations/drill-down. Parent task is Done only after both slices pass. | Negative: cross-project access, incompatible periods, double-counted versions, invalid filters. Positive: each metric drills to source; pending/approved/actual costs remain separate. |
+| `P1-61` / 1.5d | US-16, BC06-BC10; P1-60, P2-61 | Implement export request/status/download authorization and provenance manifest contract. Output: export services/endpoints/manifest DTO. | Negative: oversized scope, outside-project download, unsupported format, duplicate key mismatch. Positive: idempotent request and completed manifest includes filters, versions and checksums. |
+| `P1-62` / 2d | US-19, QT11-QT14; P1-61, P2-62 | Implement retention request/review policy, legal-hold gate and deletion dry run. Output: policy/services/endpoints. | Negative: active legal hold, premature retention, scope drift, requester approves own request if prohibited, stale decision. Positive: request→approve→dry-run with exact scope and audit. |
+| `P1-63` / 2d | RS01-RS06; P1-12, P2-63 | Implement backend research import, identity-based pairing, reproducible error calculation and report API using imported or clearly labeled synthetic data; do not implement an AI/DSM pipeline or require a field campaign to test software. Calculate bias, MAE, RMSE and included sample count by measurement type; preserve exclusions, source versions, provenance and uncertainty value/method when supplied or calculated by an approved method. Keep RESEARCH_VALIDATION isolated from operational Defect/Warranty transitions. | Negative: wrong project, ambiguous/missing pair, duplicate import key with changed payload, incompatible units/type, all samples excluded, immutable-run mutation and missing uncertainty method when a value is supplied. Positive: controlled paired fixture gives independently calculated metrics, reproducible export and zero operational writes; unknown uncertainty stays explicitly unavailable, not zero or RMSE relabeled as uncertainty. |
+| `P1-64` / 2d | US-01, US-04, US-17, CN04, DA07, QT01-QT05; P1-12, P1-53, P2-64 | Implement Admin account suspend/reactivate and global-role change with open-work handover list, notification inbox, defect catalog/severity-rule versioning and reminder-rule APIs. Global-role change emits `UserRoleChanged`, audits before/after state, and atomically revokes active sessions/refresh tokens. Output: admin/notification/config services, DTOs and endpoints. Separate review checkpoints for account/security handover, inbox/reminders, and catalog/rule administration; reuse early schemas from P2-05/P2-07. | Negative: non-Admin, suspend already suspended user, self-escalation, stale role token remains usable, partial role-change/session-revocation transaction, mutate active rule version, reminder auto-creates survey, sync draft transfer. Positive: suspend/role change revokes sessions, preserves history/drafts, lists reassignment work and publishes versioned rules/reminders. |
+| `P1-65` / 1.5d | US-10, US-18, AI14, QT06-QT10; P1-31, P1-41, P2-65 | Implement AI model/job/device administration plus training-label approval/export workflow. Output: admin policies, services, DTOs/endpoints and versioned export contract. Backend metadata, job administration, device registry and approved-label export are in scope; training, GPU inference and real model evaluation are external. Synthetic mock model versions must be identifiable in API/report provenance. | Negative: activate invalid model, retry data failure, unauthorized device/job access, export unapproved labels, mutate approved label. Positive: activate one model version, inspect/retry eligible job, register device, approve labels and create reproducible dataset export. |
 
 ## Person 1 release obligations
+
+### Execution sequence and acceptance checkpoints
+
+The existing day sizes above are historical estimates. New schema prerequisite tasks redistribute work; do not add old and extracted estimates as if both were new work. Re-estimate remaining slices after the first measured handoff. No business task is marked Done by this documentation correction.
+
+| Order | Person 1 task(s) | Start gate / concrete acceptance output |
+|---|---|---|
+| 1 | P1-10, P1-11 | P2-10 Done: login/refresh/logout/reset/profile with revoked/stale credentials rejected; publish authentication examples for FE. |
+| 2 | P1-12 | P1-10 and P2-11 Done: project/resource authorization and scoped offline-preparation reads. |
+| 3 | P1-20, P1-21 | P2-20/P2-21 Done and ADR 003 D-01 resolved: project/PM handover, warranty and road versions; publish first usable business API slice. |
+| 4 | P1-22, P1-23 | Paired persistence Done: plan/request/assignment/rejection/reassignment/cancellation; preserve assignment history. |
+| 5 | P1-30, P1-31, P1-32 | Paired persistence Done: resume upload, supplementary request, worker confirmation, mock processing and PM preliminary review. |
+| 6 | P1-40, P1-41, P1-42 | Paired persistence Done: field measurement/review and baseline prerequisites; exercise forbidden/stale/retry paths. |
+| 7 | P1-63 | Pull forward immediately after P2-63 and P1-12 Done; do not wait for dashboard or real AI. Review import, pairing/metrics, then publication/export as separate checkpoints. D-02 applies only to the unresolved uncertainty slice. |
+| 8 | P1-50, P1-51, P1-52, P1-53 | Paired persistence Done: eligible repair draft -> submission/approval -> assignment -> evidence/rework -> final confirmation/history. |
+| 8a | P1-24 | P1-42/P1-53/P2-53 Done: project closure reads all open-work categories and preserves history. |
+| 9 | P1-60, P1-61, P1-62 | Paired persistence Done: match/merge and dashboards, export/download authorization, retention/legal hold. |
+| 10 | P1-64, P1-65 | Start as soon as declared dependencies are Done; admin/inbox/reminder and model/job/device/label contracts. D-03 gates reminder-version implementation. |
+
+Within every task, execute one AC slice at a time:
+
+1. State actor, current membership/resource scope, preconditions, allowed transition, stable error code and audit event in that task's worklog; declare exact file ownership.
+2. Add negative/edge tests and observe the intended RED; add positive contract/state tests next.
+3. Implement the DTO/service/domain/API slice against the completed schema handoff. Run narrow tests, affected suites, format and non-incremental build.
+4. Review authorization, transitions, immutability, retries, concurrency and audit. Record file diff and actual command results; only then mark the parent Done when all its slices pass.
+5. Provide FE with OpenAPI/request-response examples, conflict/retry semantics, seed identities and confirmation/status behavior. Android implementation remains external.
+
+### Backend coverage map
+
+This map assigns server responsibilities; it does not claim that FE-only acceptance criteria have been implemented by the backend.
+
+| Source | Backend task owner(s) | Acceptance evidence |
+|---|---|---|
+| US-01 / CN01-CN04, CN10 | P1-10, P1-11, P1-12, P1-64 | Auth/profile/reset/scope and inbox; current role/membership and revocation tests. |
+| US-02 / CN05-CN09 | P1-12, P1-30, P1-40, P1-53; P2-02 | Authorized downloads; resumable/retry-safe uploads and writes; acknowledgement before FE cleanup. CN06 local drafts and local queue/UI belong to FE. |
+| US-03 / DA01-DA05, DA12 | P1-20, P1-21, P1-24 | Project/PM/warranty/road versions; closing a project must account for all later open-work aggregates in P1-24 and the final release gate. |
+| US-04 / DA06-DA11 | P1-22, P1-42, P1-64 | Plan/postpone/reminders and cross-aggregate baseline confirmation. |
+| US-05 / KS01-KS04, KS14 | P1-23 | Assignment/rejection/reassignment/cancellation state and audit. |
+| US-06 / KS05-KS10 | P1-30, P1-31 | Flight/file metadata, required-file validation, worker integrity confirmation and admitted processing. |
+| US-07 / KS11-KS13 | P1-30, P1-31 | Independent supplementary rounds and retry classification without source overwrite. |
+| US-08 / AI01, AI04-AI07 | P1-32 | Keep/adjust/reject history; retained detection creates OPEN defect and task. |
+| US-09 / AI08-AI12 | P1-60 | Scoped audited merge/match decisions and period comparisons. |
+| US-10 / AI14 | P1-65 | Approved-label/dataset provenance and export, no model training. |
+| US-11 / SC01-SC09, SC12 | P1-50, P1-51 | VERIFIED eligibility, immutable approval snapshots, totals and resubmission. |
+| US-12 / SC10-SC11 | P1-52 | Assignment uses only current approved version; history preserved. |
+| US-13 / HT01-HT08, HT14-HT15 | P1-53 | Accept/reject, crew notes, progress/evidence, unplanned report and scoped history. |
+| US-14 / HT09-HT13 | P1-53 | Per-item inspection/rework and Supervisor final confirmation. |
+| US-15 / BC01-BC05 | P1-60 | Golden-seed metrics drill to source without duplicate-version counts. |
+| US-16 / BC06-BC10 | P1-61 | Export scope, status, manifest/checksum and authorized download. |
+| US-17 / QT01-QT05 | P1-64 | Account administration, revocation/handover and versioned rules/reminders. |
+| US-18 / QT06-QT10 | P1-65 | Backend model/job/device metadata and eligible retries using the mock adapter. |
+| US-19 / QT11-QT14 | P1-62 | Approved immutable deletion scope and execution-time legal-hold protection. |
+| US-20 / AI13, TN01-TN06, TN12 | P1-32, P1-40, P1-41 | Required field task, assignment, immutable measurement and PM verification. |
+| RS01-RS06 | P1-63, P2-63 | Backend import/pair/metrics/provenance/export tests with controlled data; field collection and real AI validation are external. |
+
+### Two-week operating cadence
+
+Assumption for capacity assessment: two backend owners, ten working days; actual availability must be recorded at kickoff. This is a target and review cadence, not a promise that the original 72 person-days fit twenty person-days. AI was already mocked in the original estimates.
+
+| Checkpoint | Required output / action |
+|---|---|
+| Day 1 | Close documentation correction, review P2-01 and establish working SQL/CI prerequisites; resolve D-01 before road/version migration and record ownership handoffs. |
+| Day 2 | Measure completed schema/API slices and actual review/test time; publish a remaining-work forecast for every backend coverage-map row. If full acceptance does not fit, escalate capacity/date explicitly; do not silently drop features. |
+| Days 3-5 | Follow dependency order; integrate each completed API slice and hand its contract to FE. Day 5 records working workflows, failed gates and revised forecast. |
+| Days 6-8 | Continue eligible slices, prioritize research immediately when measurement persistence is ready, and close core/admin/export/retention gaps identified by the coverage map. No prerequisite is waived to match a calendar box. |
+| Days 9-10 | Reserve verification time: full API/SQL scenario, research golden dataset, format/build/security, FE contract checks and P2-67 backup/restore evidence. Full acceptance requires all backend rows green; otherwise report exact unfinished tasks. |
+
+### Planned code ownership and executable checks
+
+Person 1 implementation stays in `RoadGuardSystem.API`, `RoadGuardSystem.Services`, `RoadGuardSystem.DTOs`, `tests/RoadGuardSystem.ApiTests` and `tests/RoadGuardSystem.UnitTests`. Domain methods in `RoadGuardSystem.BusinessObjects` require the paired schema handoff. Declare concrete filenames in each task worklog before that implementation starts; this repository-wide plan does not invent all future method signatures.
+
+Run the task-filtered commands above with the real task ID, then:
+
+```powershell
+dotnet restore RoadGuardSystem.slnx
+dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore
+dotnet test RoadGuardSystem.slnx --no-build
+pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1
+pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1
+```
+
+Final verification uses a known SQL Server environment and does not treat skipped/infrastructure-failed tests as acceptance. Exact actor permissions, fixture IDs and expected state/audit outcomes accompany each slice.
 
 After the final task, run the full seed scenario `project -> survey -> upload -> processing -> detection -> field measurement -> repair -> export`, complete owner self-review, resolve every conflict warning, and ensure every task has a completion log. Release is blocked by any skipped authorization/integrity test, unrecorded migration, mutable evidence/history, or undocumented specification conflict.

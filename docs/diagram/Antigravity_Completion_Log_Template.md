@@ -7,6 +7,7 @@ Create one copy per completed task, named `docs/worklogs/<TASK-ID>-completion.md
 - Task ID/title:
 - Owner / self-reviewer:
 - Date / branch or commit:
+- Reviewed baseline and exact change scope (commit or working-tree diff):
 - Trace (`US-*`, use case, acceptance criteria):
 - In-scope behavior:
 - Explicitly out of scope:
@@ -60,6 +61,8 @@ List each negative/edge case before positive cases. If a standard case is irrele
 
 ## Commands run
 
+Keep RED, positive-contract and GREEN runs in chronological order. Distinguish owner-recorded history from checks rerun for the reviewed scope. Report unexecuted CI/container/SQL checks as gaps, not as passes; static configuration validation is not runtime proof.
+
 | Command | Exit code | Result/coverage | Timestamp |
 |---|---:|---|---|
 | `dotnet test ...` | | | |
@@ -70,9 +73,11 @@ List each negative/edge case before positive cases. If a standard case is irrele
 
 - Observable demo/output:
 - Known gaps, skipped tests, and reason:
+- Unexecuted environments / external acceptance dependencies (FE, real AI, field data):
 - Residual risks:
 - Self-review findings and resolution:
 - Conflict warning final state:
 - Optional independent review, if explicitly requested:
 - Exact next task/action:
+- Latest status assessment date and evidence; supersedes earlier handoff where applicable:
 - Final status: `Done` only after all required tests, self-review, and conflict-resolution gates pass.

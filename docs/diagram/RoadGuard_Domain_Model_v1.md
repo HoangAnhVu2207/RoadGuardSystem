@@ -1,5 +1,7 @@
 # RoadGuard — Domain Model v1
 
+> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
+
 Dựa trên `RoadGuard_Entity_List_v2.md`. Mục tiêu: xác định ranh giới giao dịch nhất quán (aggregate),
 quy tắc bất biến (invariant), và các quy tắc **liên-aggregate** cần domain service thực thi thay vì FK.
 
@@ -24,7 +26,7 @@ Mã truy vết: `UD-01` (audit log riêng), `UD-02` (Warranty), `UD-03` (Quality
 
 - Có thể ghi nhận ngoài app bằng Excel/giấy trong đợt thực địa.
 - Trước khi phân tích, dữ liệu phải được chuẩn hóa thành các aggregate nghiên cứu có `sample_id`, liên kết survey/road section version, người đo, dụng cụ, thời điểm, vị trí, giá trị, đơn vị và bằng chứng.
-- Không dùng Research Validation Track để tự động kết luận trách nhiệm bảo hành. Workflow TN01–TN12/AI13 là phần bắt buộc của sản phẩm hiện tại và dùng chung cấu trúc số đo với Research Validation nhưng có mục đích, phân quyền và state machine riêng.
+- Không dùng Research Validation Track để tự động kết luận trách nhiệm bảo hành. Workflow TN01–TN06, TN12/AI13 là phần bắt buộc của sản phẩm hiện tại và dùng chung cấu trúc số đo với Research Validation nhưng có mục đích, phân quyền và state machine riêng.
 
 ---
 
@@ -285,4 +287,4 @@ Mã truy vết: `UD-01` (audit log riêng), `UD-02` (Warranty), `UD-03` (Quality
 
 ## Trạng thái quyết định
 
-Các quyết định ở đầu tài liệu đã được chốt theo hệ thống hiện tại. Workflow đo thực địa TN01–TN12/AI13 thuộc MVP sản phẩm; Research Validation là nhánh mục đích riêng nhưng dùng chung cấu trúc phiên/phép đo có kiểm soát.
+Các quyết định ở đầu tài liệu đã được chốt theo hệ thống hiện tại. Workflow đo thực địa TN01–TN06, TN12/AI13 thuộc MVP sản phẩm; Research Validation là nhánh mục đích riêng nhưng dùng chung cấu trúc phiên/phép đo có kiểm soát.

@@ -9,7 +9,7 @@ Accepted (2026-09-17)
 - **Reviewer:** Person 2
 - **Approved by:** Product Owner (Decision P1-02)
 - **Trace:** Architecture / Task P1-02 (Foundation post P1-00 and P1-01)
-- **Downstream Context:** Architectural foundation for use cases CN01 (Login / Logout), CN02 (Profile), CN03 (Assigned Project / Work Scope), CN10 (Password Reset), QT01 (Account Suspension), and User Story US-01. (Note: P1-02 establishes architectural policy and contracts only; production code and endpoint implementation are assigned to P1-10, P2-10, and P1-12).
+- **Downstream Context:** Architectural foundation for use cases CN01 (Login / Logout), CN02 (Profile), CN03 (Assigned Project / Work Scope), CN10 (Password Reset), QT01 (Account Suspension), and User Story US-01. (Note: P1-02 establishes architectural policy and contracts only; production code and endpoint implementation are assigned to P1-10, P2-10, P1-11, and P1-12).
 
 ---
 
@@ -19,7 +19,7 @@ The RoadGuard System requires a robust, secure, and auditable authentication and
 1. Field personnel (`Drone Operator`, `Repair Crew`) using the Android Mobile Application (`RoadGuard Mobile`), frequently operating in variable network conditions.
 2. Project Managers (`PM`) and System Supervisors (`Supervisor`) using the Web Dashboard (`RoadGuard Dashboard`).
 
-Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 1.1) and `RoadGuard_Domain_Model_v1.md` specify database entities for `Session`, `RefreshToken`, `PasswordResetLog`, and `AccountStatusChangeLog`. Furthermore, safety-critical road inspection workflows demand strict multi-tenant project isolation and instantaneous session revocation upon account suspension (QT01), password reset (CN10), logout (CN01), or security compromise.
+Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `RoadGuard_Domain_Model_v1.md` specify database entities for `Session`, `RefreshToken`, `PasswordResetLog`, and `AccountStatusChangeLog`. Furthermore, safety-critical road inspection workflows demand strict multi-tenant project isolation and instantaneous session revocation upon account suspension (QT01), password reset (CN10), logout (CN01), or security compromise.
 
 ---
 
@@ -50,11 +50,11 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 1.1) and `R
      - `jti` (JWT ID): Unique token instance UUID.
      - `exp`, `iat`, `nbf`: Standard temporal claims.
      - **`sid` (Session ID):** Standard session identifier matching the database `Session.id`. Every authenticated access token must carry this claim.
-     - `role`: User role claims (`Supervisor`, `PM`, `Drone Operator`, `Repair Crew`) embedded for client UI rendering convenience only.
+     - **`role`:** Machine-readable role claim using Data Dictionary codes: `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`. Display labels may remain "Supervisor", "PM", "Drone Operator", and "Repair Crew" in user interfaces, but serialized role claims must strictly use these four stable uppercase codes. A strongly typed `UserRole` enum or role lookup is future work owned by task **P2-10** (not currently defined in `BusinessObjects`).
 
 2. **Session Persistence and Logical State:**
    - Each successful login creates a `Session` record linked to the user account, capturing device metadata, creation time (`created_at`), expiration time (`expires_at`), and optional revocation time (`revoked_at`).
-   - **Schema Note:** To maintain strict conformance with `RoadGuard_Data_Dictionary_v1.md` and avoid unapproved schema changes in P1-02, the `Session` entity does **not** persist a separate `status` column in the database. The session state (`ACTIVE`, `REVOKED`, `EXPIRED`) is a logically computed/derived property:
+   - **Schema Note:** To maintain strict conformance with `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and avoid unapproved schema changes in P1-02, the `Session` entity does **not** persist a separate `status` column in the database. The session state (`ACTIVE`, `REVOKED`, `EXPIRED`) is a logically computed/derived property:
      - `ACTIVE`: `revoked_at IS NULL AND expires_at > UtcNow`
      - `REVOKED`: `revoked_at IS NOT NULL`
      - `EXPIRED`: `revoked_at IS NULL AND expires_at <= UtcNow`
@@ -84,7 +84,7 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 1.1) and `R
 
 1. **Entropy and Cryptographic Hash Persistence:**
    - Refresh tokens must be generated with high cryptographic entropy (e.g., 256 bits of cryptographically secure random bytes generated via `RandomNumberGenerator`, Base64URL-encoded).
-   - In accordance with `RoadGuard_Data_Dictionary_v1.md`, the database **only stores a cryptographic hash** (`token_hash`) of the refresh token. (Storing the cryptographic hash is an explicit ADR architectural decision fulfilling the data specification).
+   - In accordance with `RoadGuard_Data_Dictionary_v1.md` (Section 3.1), the database **only stores a cryptographic hash** (`token_hash`) of the refresh token. (Storing the cryptographic hash is an explicit ADR architectural decision fulfilling the data specification).
    - Plaintext refresh tokens are **never** stored in the database, logged, or serialized outside the initial issuance response.
 
 2. **Strict Refresh Token Rotation:**
@@ -110,7 +110,7 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 1.1) and `R
 
 1. **Multi-Tenancy and Civil Infrastructure Scope:**
    - RoadGuard aggregates (Surveys, Road Sections, Defects, Repair Items, Warranties) are strictly bound to specific civil infrastructure `Project` entities (governed by use case **CN03**).
-   - Authorization cannot be determined solely by static role claims (e.g., `role: Drone Operator` or `role: PM`).
+   - Authorization cannot be determined solely by static role claims (e.g., `role: DRONE_OPERATOR` or `role: PM`).
 
 2. **Authoritative Server-Side Membership Guard:**
    - For all actors other than the global `Supervisor`, every query and command targeting project-scoped resources must verify that the authenticated user has an active server-side `ProjectMember` record in the target project.
@@ -125,9 +125,9 @@ To maintain Clean Architecture boundaries and avoid conflating concerns:
 
 | Layer | Project | Responsibilities | Assigned Task |
 |---|---|---|---|
-| **Domain** | `BusinessObjects` | Domain user and role models (`ApplicationUser`, `ApplicationRole`), session entities, enum definitions (`UserRole` with `Supervisor`, `PM`, `Drone Operator`, `Repair Crew`; `AccountStatus`). | P1-00 / P1-11 |
-| **Persistence** | `Repositories` | EF Core Identity persistence (`IdentityDbContext`, `UserStore`, `RoleStore`), table mappings (`sessions`, `refresh_tokens`, `password_reset_logs`, `account_status_change_logs`), and database migrations. | **P2-10** |
-| **Application** | `Services` | Authentication orchestration, credential verification, token generation, refresh rotation, replay detection, session invalidation, and server-side project membership validation services. | **P1-10**, **P1-12** |
+| **Domain** | `BusinessObjects` | Domain user and role foundation (`ApplicationUser`, `ApplicationRole`). Future role/status enums and domain types are owned by P2-10. | **P1-00** (foundation) / **P2-10** (future enums) |
+| **Persistence** | `Repositories` | EF Core Identity persistence (`IdentityDbContext`, `UserStore`, `RoleStore`), table mappings (`sessions`, `refresh_tokens`, `password_reset_logs`, `account_status_change_logs`), entities, and database migrations/seeding. | **P2-10** |
+| **Application** | `Services` | Authentication orchestration, credential verification, token generation, refresh rotation, replay detection, session invalidation (P1-10); profile updates, Admin password-reset and forced session-revocation flows (P1-11); server-side project membership authorization services and policies (P1-12). | **P1-10**, **P1-11**, **P1-12** |
 | **Presentation** | `API` | JWT Bearer authentication handler configuration, token extraction, correlation middleware, and authentication controllers (`AuthController`, login/logout/refresh endpoints). | **P1-10** |
 
 ---
@@ -155,7 +155,7 @@ To maintain Clean Architecture boundaries and avoid conflating concerns:
 
 1. **Google OAuth / External SSO:**
    - Google Authentication (OAuth 2.0 / OpenID Connect) is **Out of Scope and Deferred** for Phase 1.
-   - System specifications (`Dac_ta_UseCase_v2.md` CN01–CN03, CN10 and `User_Stories_Acceptance_Criteria_v2.md` US-01) specify internal username/email and password credentials only.
+   - System specifications (`Dac_ta_UseCase_v2.md` CN01–CN03, CN10 and `User_Stories_Acceptance_Criteria_v2.md` US-01) specify internally provisioned credentials (username + password; email is currently a PROP field in the Data Dictionary and is not yet an approved login identifier).
    - The existing package references in the solution (`Google.Apis.Auth` in `RoadGuardSystem.Services` and `Microsoft.AspNetCore.Authentication.Google` in `RoadGuardSystem.API`) represent technical debt and are not activated. They are scheduled for formal audit and removal during Task **P1-10** or a designated dependency cleanup task. P1-02 does not modify project package references.
 
 ---
@@ -187,8 +187,10 @@ To maintain Clean Architecture boundaries and avoid conflating concerns:
 - **Auditability:** Complete, append-only history of password changes (CN10) and account suspensions (QT01).
 
 ### Follow-up Task Allocations
-- **P2-10 (Person 2):** Implement EF Core Identity persistence, `IdentityDbContext`, mapping configurations for `sessions`, `refresh_tokens`, `password_reset_logs`, and `account_status_change_logs`.
-- **P1-10 (Person 1):** Implement application authentication service (`IAuthService`), login/logout/refresh endpoints, password hashing, and clean up inactive Google package dependencies.
+- **P1-00 (Person 1):** Foundation domain `ApplicationUser` and `ApplicationRole` (already established).
+- **P2-10 (Person 2):** Implement EF Core Identity persistence, `IdentityDbContext`, mapping configurations for `sessions`, `refresh_tokens`, `password_reset_logs`, and `account_status_change_logs`, role seeding (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`), and future domain enum evaluations.
+- **P1-10 (Person 1):** Implement application authentication service (`IAuthService`), login/logout/refresh endpoints (`AuthController`), password hashing, and clean up inactive Google package dependencies.
+- **P1-11 (Person 1):** Implement user profile updates, Admin password reset, and session revocation flows.
 - **P1-12 (Person 1):** Implement server-side project membership validation service and authorization policy handlers.
 
 ---

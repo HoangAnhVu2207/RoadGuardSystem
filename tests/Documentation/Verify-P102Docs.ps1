@@ -1,7 +1,8 @@
 # Automated documentation contract and integrity verification for Task P1-02
 [CmdletBinding()]
 param (
-    [string]$RepoRoot = ""
+    [string]$RepoRoot = "",
+    [switch]$SelfTestNegative
 )
 
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
@@ -95,8 +96,14 @@ foreach ($req in $adr001Requirements) {
     }
 }
 
-# 5. Validate ADR 002 content, use-case mapping, roles, and security policy
+# 5. Validate ADR 002 content, exact use-case mappings, roles, and task ownership
 $adr002Content = Get-Content $adr002 -Raw
+
+# In SelfTestNegative mode, simulate an injected invalid mapping to verify verifier failure detection
+if ($SelfTestNegative) {
+    $adr002Content = $adr002Content -replace [regex]::Escape("CN01 (Login / Logout)"), "CN02 (Logout)"
+}
+
 $adr002Headings = @(
     "ADR 002: Authentication Architecture", "Status", "Context", "Decision",
     "Core Authentication Architecture", "Token Lifecycle and Session Management",
@@ -110,33 +117,79 @@ foreach ($heading in $adr002Headings) {
     }
 }
 
-$adr002Requirements = @(
-    "CN01", "CN02", "CN03", "CN10", "QT01",
-    "Supervisor", "PM", "Drone Operator", "Repair Crew",
+# Exact use-case mappings (must be strictly present)
+$exactMappings = @(
+    "CN01 (Login / Logout)",
+    "CN02 (Profile)",
+    "CN03 (Assigned Project / Work Scope)",
+    "CN10 (Password Reset)",
+    "QT01 (Account Suspension)"
+)
+foreach ($map in $exactMappings) {
+    if ($adr002Content -notmatch [regex]::Escape($map)) {
+        $errors += "ADR 002 missing exact required use-case mapping: '$map'"
+    }
+}
+
+# Prohibited old incorrect mappings (must be strictly rejected)
+$rejectedMappings = @(
+    "CN02 (Logout)",
+    "CN03 (Change Password)",
+    "CN10 (Account Suspension)"
+)
+foreach ($rej in $rejectedMappings) {
+    if ($adr002Content -match [regex]::Escape($rej)) {
+        $errors += "ADR 002 contains rejected obsolete use-case mapping: '$rej'"
+    }
+}
+
+# Stable machine-readable role codes
+$requiredRoleCodes = @(
+    "SUPERVISOR",
+    "PM",
+    "DRONE_OPERATOR",
+    "REPAIR_CREW"
+)
+foreach ($code in $requiredRoleCodes) {
+    if ($adr002Content -notmatch "\b$code\b") {
+        $errors += "ADR 002 missing machine-readable role code: '$code'"
+    }
+}
+
+# Task ownership validation
+$adr002OwnershipRequirements = @(
+    "P1-00", "P2-10", "P1-10", "P1-11", "P1-12",
+    "Section 3.1",
+    "internally provisioned credentials",
     "JWT Bearer + Rotating Opaque Refresh-Token Model",
     "JWT Signing Credentials",
     "sid",
     "token_hash",
-    "fail closed",
-    "P1-10", "P2-10", "P1-12"
+    "fail closed"
 )
-foreach ($req in $adr002Requirements) {
+foreach ($req in $adr002OwnershipRequirements) {
     if ($adr002Content -notmatch [regex]::Escape($req)) {
-        $errors += "ADR 002 missing required requirement token: '$req'"
+        $errors += "ADR 002 missing required ownership/architecture token: '$req'"
     }
+}
+
+# Reject attributing session entities to P1-00 / P1-11
+if ($adr002Content -match "session entities.*P1-00\s*/\s*P1-11" -or
+    $adr002Content -match "P1-00\s*/\s*P1-11.*session entities") {
+    $errors += "ADR 002 incorrectly assigns session entities to P1-00 / P1-11 instead of P2-10"
 }
 
 # 6. Validate api-errors.md content
 $apiErrorsContent = Get-Content $apiErrors -Raw
 $apiErrorsHeadings = @(
-    "# API Error Handling and Taxonomy Specification", "## Status",
-    "## Overview and RFC 7807/9110 Standard", "## Standard Error Envelope Schema",
-    "## Error Code Naming Rules and Taxonomy", "## HTTP Status Code Mapping",
-    "## Registry of Normative Error Codes", "## Security and Information Disclosure Rules",
-    "## Versioning, Evolution, and Deprecation Policy", "## Non-Normative Examples"
+    "API Error Handling and Taxonomy Specification", "Status",
+    "Overview and RFC 7807/9110 Standard", "Standard Error Envelope Schema",
+    "Error Code Naming Rules and Taxonomy", "HTTP Status Code Mapping",
+    "Registry of Normative Error Codes", "Security and Information Disclosure Rules",
+    "Versioning, Evolution, and Deprecation Policy", "Non-Normative Examples"
 )
 foreach ($heading in $apiErrorsHeadings) {
-    if ($apiErrorsContent -notmatch [regex]::Escape($heading)) {
+    if ($apiErrorsContent -notmatch "(?m)^#{1,4}\s+.*$([regex]::Escape($heading))") {
         $errors += "api-errors.md missing required heading: '$heading'"
     }
 }
@@ -156,10 +209,10 @@ foreach ($req in $apiErrorsRequirements) {
     }
 }
 
-# 7. Validate worklog content & status
+# 7. Validate worklog content
 $worklogContent = Get-Content $worklog -Raw
 $worklogRequirements = @(
-    "P1-02", "Person 1", "Person 2", "Changes requested",
+    "P1-02", "Person 1", "Person 2",
     "Verify-P102Docs.ps1",
     "001-backend-boundary.md", "002-authentication.md", "api-errors.md",
     "8 projects",
@@ -178,5 +231,5 @@ if ($errors.Count -gt 0) {
     exit 1
 }
 
-Write-Host "SUCCESS: All P1-02 documentation contracts, relative links, use-cases, and dependency checks passed!" -ForegroundColor Green
+Write-Host "SUCCESS: All P1-02 documentation contracts, exact use-case mappings, stable role codes, and dependency checks passed!" -ForegroundColor Green
 exit 0

@@ -6,7 +6,7 @@
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2
 - **Date / branch or commit:** 2026-09-17 / `anh`
 - **Trace:** Architecture / Task P1-02 (Foundation post P1-00 and P1-01). Downstream context: US-01, CN01-CN03, CN10, QT01, TE-01, TE-02.
-- **Status:** Changes requested
+- **Status:** Ready for review
 
 ### In-scope behavior
 - Authored and updated [001-backend-boundary.md](../adr/001-backend-boundary.md):
@@ -22,14 +22,20 @@
 - Authored and updated [002-authentication.md](../adr/002-authentication.md):
   - Defined authentication architecture: ASP.NET Core Identity with standard PBKDF2 password hashing (`PasswordHasher<TUser>`) and JWT bearer + rotating opaque refresh-token model.
   - Aligned exact use-case mappings: CN01 (Login / Logout), CN02 (Profile), CN03 (Assigned Project / Work Scope), CN10 (Password Reset), QT01 (Account Suspension).
-  - Aligned exact system roles: `Supervisor`, `PM`, `Drone Operator`, `Repair Crew`.
+  - Defined machine-readable role codes from Data Dictionary Section 3.1: `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`. Display labels ("Supervisor", "PM", "Drone Operator", "Repair Crew") distinguished from serialized codes. Clarified that a `UserRole` enum is future work owned by P2-10.
+  - Codified credentials policy: internally provisioned credentials (username + password; email is a PROP field in Data Dictionary Section 3.1 and is not an approved login identifier).
   - Codified configurable short-lived access tokens via ASP.NET Core Options pattern (no hard-coded duration), carrying standard session claim `sid`.
   - Defined authoritative per-request session and account validation ensuring instant revocation upon logout (CN01), password reset (CN10), account suspension (QT01), or replay attack. Positive cache may only be used with provable session-version/security-stamp mechanisms; baseline mandate for P1-10 requires querying authoritative session/user stores.
-  - Clarified database session persistence: `Session.status` is not a persisted column in Data Dictionary v1; status is derived logically from temporal boundaries (`revoked_at`, `expires_at`). Schema additions belong exclusively to P2-10.
+  - Clarified database session persistence: `Session.status` is not a persisted column in Data Dictionary Section 3.1; status is derived logically from temporal boundaries (`revoked_at`, `expires_at`). Schema additions belong exclusively to P2-10.
   - Codified refresh token rotation and token-family replay detection: high-entropy tokens, persisting only cryptographic hashes (`token_hash`), with replay attacks triggering immediate session revocation and security logging.
   - Adopted implementation-neutral terminology: "JWT signing credentials", moving algorithm selection (symmetric vs. asymmetric) to Unresolved Decisions.
   - Codified mandatory server-side project membership validation for all non-Supervisor queries and commands; client claims are untrusted hints.
-  - Corrected task allocation table: P1-10 owns auth API (`AuthController`, login/logout/refresh endpoints); P2-10 owns User, Role, Session, and RefreshToken persistence.
+  - Corrected task allocation table:
+    - `P1-00`: Foundation `ApplicationUser` and `ApplicationRole` in `BusinessObjects`.
+    - `P2-10`: User, Role, Session, RefreshToken, PasswordResetLog, AccountStatusChangeLog persistence entities, EF Core configurations, migrations, and role seeding (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`).
+    - `P1-10`: Authentication service orchestration (`IAuthService`), login/logout/refresh endpoints (`AuthController`), password hashing, and cleaning unused Google auth packages.
+    - `P1-11`: Profile updates and Admin password-reset / forced session revocation flows.
+    - `P1-12`: Current-user and project authorization service, project-scope policies and guards.
   - Defined secret handling, HTTPS/TLS mandate, and log sanitization (no passwords, tokens, or secrets in logs).
   - Documented Google OAuth/SSO as Deferred / Out of Scope for Phase 1; flagged existing Google package references as technical debt for P1-10 review.
   - Documented rejected alternatives, consequences, and unresolved decisions.
@@ -41,8 +47,14 @@
   - Registered the 6 published normative platform error codes implemented in `RoadGuardSystem.API/Constants/ApiErrorCodes.cs` and `RoadGuardSystem.API/Extensions/ServiceCollectionExtensions.cs`.
   - Mandated global suppression of internal exception types, stack traces, and database/server details across all environments.
   - Removed arbitrary deprecation timeframe, marking sunset duration as an unresolved policy requiring Product Owner decision prior to release.
-- Added reproducible documentation verifier script [Verify-P102Docs.ps1](../../tests/Documentation/Verify-P102Docs.ps1).
-- Executed negative-first documentation contract verification: RED demonstrated before file creation (exit code 1), GREEN demonstrated after file creation (exit code 0).
+- Added and strengthened reproducible documentation verifier script [Verify-P102Docs.ps1](../../tests/Documentation/Verify-P102Docs.ps1):
+  - Validates required files and headings.
+  - Validates portable relative links and strictly prohibits absolute `file://` links.
+  - Validates exact use-case mappings (`CN01 (Login / Logout)`, `CN02 (Profile)`, `CN03 (Assigned Project / Work Scope)`, `CN10 (Password Reset)`, `QT01 (Account Suspension)`).
+  - Explicitly rejects obsolete mappings (`CN02 (Logout)`, `CN03 (Change Password)`, `CN10 (Account Suspension)`).
+  - Validates stable machine-readable role codes (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`).
+  - Validates task ownership and strictly rejects assigning session entities to `P1-00 / P1-11`.
+  - Proves negative behavior via `-SelfTestNegative` mode and external negative fixture testing.
 - Preserved existing uncommitted working tree modifications from P1-01 untouched.
 
 ### Explicitly out of scope
@@ -76,6 +88,7 @@
     3. Refresh token rotation: High-entropy tokens; only cryptographic hash stored in DB; rotation on every refresh; replay triggers full session revocation; concurrency-safe transactions.
     4. Runtime baseline: `net8.0` target with SDK `10.0.401` accepted as baseline from P1-00; P2-01 mandates CI replication; no default downgrade; time-bound LTS evaluation before .NET 8 EOL or release.
     5. Error taxonomy: ASCII lowercase `snake_case`; 6 platform codes retained; domain codes use `<domain>_<reason>` and `<domain>_<action>_<reason>`; client resilience required.
+    6. Role codes & credentials: Data Dictionary Section 3.1 establishes stable role codes `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`; internally provisioned credentials required (username + password; email is a PROP field).
 
 ---
 
@@ -84,20 +97,10 @@
 | Change | File | Purpose |
 |---|---|---|
 | Added | `docs/adr/001-backend-boundary.md` | ADR defining system boundaries, Clean Architecture layer responsibilities (`API -> Services -> Repositories`, `Repositories -> BusinessObjects và DTOs`, `DTOs -> BusinessObjects`), `RoadGuardDbContext`, AI adapter contract under P1-31, drone/warranty boundaries, and SDK 10.0.401 / net8.0 runtime baseline. |
-| Added | `docs/adr/002-authentication.md` | ADR defining ASP.NET Core Identity + short-lived JWT (`sid` claim) + refresh token hash rotation and replay detection, instant session revocation upon logout (CN01), password reset (CN10), account suspension (QT01), server-side project membership (CN03), and deferred Google auth. |
+| Added | `docs/adr/002-authentication.md` | ADR defining ASP.NET Core Identity + short-lived JWT (`sid` claim) + refresh token hash rotation and replay detection, instant session revocation upon logout (CN01), password reset (CN10), account suspension (QT01), server-side project membership (CN03), machine-readable role codes (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`), Data Dictionary Section 3.1 alignment, and deferred Google auth. |
 | Added | `docs/api-errors.md` | Specification defining RFC 7807/9110 ProblemDetails schema for API 4xx/5xx responses, distinguishing P1-01 baseline (400, 404, 405, 415, 500) from target policies, lowercase `snake_case` error taxonomy, client tolerance, and deprecation policy. |
-| Added | `tests/Documentation/Verify-P102Docs.ps1` | Reusable documentation test script validating required files, headings, portable relative links, prohibited `file://` links, correct use-case mappings, and dependency graph. |
+| Added | `tests/Documentation/Verify-P102Docs.ps1` | Reusable documentation test script validating required files, headings, portable relative links, prohibited `file://` links, exact use-case mappings, obsolete mapping rejection, role codes, task ownership, and dependency graph. Includes `-SelfTestNegative` switch. |
 | Added | `docs/worklogs/P1-02-completion.md` | Completion worklog for Task P1-02 recording scope, decisions, verification commands, review findings resolution, and review handoff. |
-
----
-
-## Database, API, config, and operations impact
-
-- **Migration added and recovery/downgrade note:** None (architecture documentation task).
-- **API/OpenAPI compatibility impact:** Defines normative error contracts and naming rules for all future API endpoints. No existing endpoints were modified.
-- **Configuration/secret/environment impact:** Documents the requirement for configurable token lifetimes via Options pattern (`JwtOptions`) and mandates environment-based secret management with zero hard-coded secrets.
-- **Seed/data migration impact:** None.
-- **Worker/storage/queue impact:** None.
 
 ---
 
@@ -107,7 +110,8 @@ List each negative/edge case before positive cases. If a standard case is irrele
 
 | Test | Layer | Expected failure/code | Result | Rationale / Note |
 |---|---|---|---|---|
-| Null/empty/malformed | Documentation | RED: Missing files or sections fail contract check | RED reproduced (exit code 1) -> PASS (exit code 0) | Verified via `tests/Documentation/Verify-P102Docs.ps1` checking required headings, tokens, schemas, and prohibiting `file://` links. |
+| Injected obsolete use-case mapping / missing mapping | Automation verifier | Exit code 1; flags missing `CN01 (Login / Logout)` and flags rejected `CN02 (Logout)` | PASS (exit code 1) | Proved via `Verify-P102Docs.ps1 -SelfTestNegative` and external temporary fixture test. |
+| Null/empty/malformed documentation | Documentation | RED: Missing files or sections fail contract check | RED reproduced (exit code 1) -> PASS (exit code 0) | Verified via `Verify-P102Docs.ps1` checking required headings, tokens, schemas, and prohibiting `file://` links. |
 | Boundary/oversize | Unit/API | N/A | N/A (Documentation task) | No runtime data streaming or memory allocations in architecture documentation. |
 | Unauthorized/wrong project | Service/API | N/A | N/A (Documentation task) | Runtime authorization policies are designed in ADR 002 and implemented in P1-10 / P1-12. |
 | Invalid transition/prerequisite | Domain/service | N/A | N/A (Documentation task) | Domain state machines are documented in ADR 001/002 and implemented in domain tasks. |
@@ -122,7 +126,7 @@ List each negative/edge case before positive cases. If a standard case is irrele
 
 | Test | Layer | Expected state/output | Result |
 |---|---|---|---|
-| Documentation contract verification | Automation script | All 4 documents exist, contain mandatory sections, headings, tokens, correct use-case mappings, and portable relative links | PASS (exit code 0 via `Verify-P102Docs.ps1`) |
+| Documentation contract verification | Automation script | All 4 documents exist, contain mandatory sections, headings, tokens, exact use-case mappings, stable role codes, and portable relative links | PASS (exit code 0 via `Verify-P102Docs.ps1`) |
 | Relative file link verification | Documentation | All markdown links between documents resolve to valid existing files; 0 broken links | PASS |
 | Non-incremental solution build | Toolchain | Build succeeds with 0 warnings, 0 errors across 8 projects | PASS (exit code 0) |
 | In-scope test suite execution | API / Unit | All in-scope automated tests pass: 33 UnitTests + 26 ApiTests = 59 passed, 0 failed | PASS (59 passed, 0 failed, exit code 0) |
@@ -134,13 +138,14 @@ List each negative/edge case before positive cases. If a standard case is irrele
 
 | Command | Exit code | Result/coverage | Timestamp |
 |---|---:|---|---|
-| `powershell -ExecutionPolicy Bypass -File "tests/Documentation/Verify-P102Docs.ps1"` | 0 | SUCCESS: All P1-02 documentation contracts, relative links, use-cases, and dependency checks passed | 2026-09-17T13:12:00+07:00 |
-| `git diff --check` | 0 | Clean diff, no trailing whitespace or merge conflict markers | 2026-09-17T13:12:15+07:00 |
-| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 0 warnings, 0 errors across all 8 projects | 2026-09-17T13:12:30+07:00 |
-| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build` | 0 | 33 passed, 0 failed, 0 skipped | 2026-09-17T13:12:45+07:00 |
-| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build` | 0 | 26 passed, 0 failed, 0 skipped | 2026-09-17T13:13:00+07:00 |
-| `dotnet test RoadGuardSystem.slnx --no-build` | 1 | 81 passed, 21 failed (UnitTests: 33 passed; ApiTests: 26 passed; IntegrationTests: 22 passed, 21 failed due to Docker/SQL Server service inactive on workstation) | 2026-09-17T13:13:15+07:00 |
-| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Formatted code conforms perfectly, 0 changes required | 2026-09-17T13:13:30+07:00 |
+| `powershell -ExecutionPolicy Bypass -File "tests/Documentation/Verify-P102Docs.ps1" -SelfTestNegative` | 1 | FAILURE (expected): Caught missing 'CN01 (Login / Logout)' and caught rejected 'CN02 (Logout)' | 2026-09-17T13:29:55+07:00 |
+| `powershell -ExecutionPolicy Bypass -File "tests/Documentation/Verify-P102Docs.ps1"` | 0 | SUCCESS: All P1-02 documentation contracts, exact use-case mappings, stable role codes, and dependency checks passed | 2026-09-17T13:30:00+07:00 |
+| `git diff --check` | 0 | Clean diff, no trailing whitespace or merge conflict markers | 2026-09-17T13:31:00+07:00 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 0 warnings, 0 errors across all 8 projects | 2026-09-17T13:31:15+07:00 |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build` | 0 | 33 passed, 0 failed, 0 skipped | 2026-09-17T13:31:30+07:00 |
+| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build` | 0 | 26 passed, 0 failed, 0 skipped | 2026-09-17T13:31:45+07:00 |
+| `dotnet test RoadGuardSystem.slnx --no-build` | 1 | 81 passed, 21 failed (UnitTests: 33 passed; ApiTests: 26 passed; IntegrationTests: 22 passed, 21 failed due to Docker/SQL Server service inactive on workstation) | 2026-09-17T13:32:00+07:00 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Formatted code conforms perfectly, 0 changes required | 2026-09-17T13:32:15+07:00 |
 
 ---
 
@@ -159,11 +164,11 @@ List each negative/edge case before positive cases. If a standard case is irrele
   - SDK 10.0.401 runtime baseline: Documented in ADR 001 with assigned follow-up to P2-01 (CI reproduction proof) and pre-release evaluation.
   - Inactive Google authentication packages: Documented in ADR 002 as technical debt to be audited and cleaned in P1-10.
 - **Reviewer findings and resolution:**
-  - All 4 review findings addressed:
-    1. ADR 001 updated with exact project references (`API -> Services -> Repositories`, etc.), `AGENTS.md` repository interface ownership policy, `RoadGuardDbContext`, AI adapter contract under P1-31, and `DependencyGraphTests.cs` link.
-    2. ADR 002 updated with corrected use-case mappings (`CN01`, `CN02`, `CN03`, `CN10`, `QT01`), exact system roles (`Supervisor`, `PM`, `Drone Operator`, `Repair Crew`), JWT bearer model terminology, neutral signing credentials, and authoritative session store check mandate.
-    3. api-errors.md updated to scope 4xx/5xx responses, distinguish P1-01 baseline from target policies, require client tolerance, and remove unconfirmed deprecation duration.
-    4. Worklog updated with portable relative links, `Verify-P102Docs.ps1` script, 8 projects build evidence, full-suite integration test failure transparency, and status set to `Changes requested`.
+  - Addressed remaining re-review findings from Person 2:
+    1. Corrected ADR 002 ownership table (P1-00 foundation, P2-10 persistence/seeding, P1-10 auth orchestration/API, P1-11 profile/Admin reset, P1-12 project auth); removed session entities from P1-11; clarified UserRole enum is future P2-10 work; defined machine-readable role codes `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`; updated Data Dictionary citation to Section 3.1; replaced username/email with internally provisioned credentials.
+    2. Strengthened Verify-P102Docs.ps1: exact use-case mappings (`CN01 (Login / Logout)`, `CN02 (Profile)`, `CN03 (Assigned Project / Work Scope)`, `CN10 (Password Reset)`, `QT01 (Account Suspension)`), explicit rejection of obsolete mappings (`CN02 (Logout)`, `CN03 (Change Password)`, `CN10 (Account Suspension)`), role code verification, ownership check rejecting P1-00/P1-11 for sessions, removed status string lock, and added self-test negative mode.
+    3. Proved verifier negative behavior: executed both `-SelfTestNegative` mode and external fixture test, proving exit code 1 on injected bad mappings, and exit code 0 on active repository.
+    4. Updated worklog status to `Ready for review` without asserting reviewer approval; preserved disclosed integration test environment failure.
 - **Exact next task/action:**
-  - Person 2 re-inspects P1-02 deliverables and confirms resolution of review findings.
-- **Final status:** `Changes requested`
+  - Person 2 conducts final review of P1-02 deliverables.
+- **Final status:** `Ready for review`

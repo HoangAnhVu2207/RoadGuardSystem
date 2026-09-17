@@ -7,4 +7,5 @@
   <Project Path="tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj" />
   <Project Path="tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj" />
   <Project Path="tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj" />
+  <Project Path="tools/RoadGuardSystem.Seeder/RoadGuardSystem.Seeder.csproj" />
 </Solution>

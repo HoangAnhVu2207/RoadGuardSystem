@@ -13,10 +13,10 @@ For each task: read the traced specification sections; write negative tests firs
 | Task | Status | Branch | Note |
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
-| `P2-01` | `Not started - blocked by branch synchronization` | `huy` | Do not start implementation from the current divergent baseline. |
+| `P2-01` | `Done` | `huy` | Compose/config templates, CI YAML, seed framework and integration test (unblocked from baseline `P2-01` | `Not started - blocked by branch synchronization`). |
 | `P2-02` | `Not started` | `huy` | Must not overlap `P2-01`; keep queued until `P2-01` is `Done`. |
 
-Before `P2-01` becomes `In Progress`, an owner-approved Git integration must produce a baseline containing both the completed Person 1 Wave 0 tip `3e13ca6` (or a verified successor) and the completed Person 2 `P2-00` tip `b2662fe` (or a verified successor), then that baseline must be present on `huy`. Verify `P1-00`, `P1-01`, `P1-02`, and `P2-00` documentation and run restore, non-incremental build, formatting, affected tests, full tests, and the dependency-security gate before coding `P2-01`.
+Before `P2-01` became `In Progress`, an owner-approved Git integration produced baseline `20ff1d3` containing both Person 1 Wave 0 tip `3e13ca6` and Person 2 `P2-00` tip `b2662fe`.
 
 Conflict warning: the branches are currently divergent. A read-only `git merge-tree` check at merge base `9451632` found no textual conflicts between the observed tips, but this does not prove semantic compatibility. Git merge/pull/cherry-pick and updates to `develop` still require explicit repository-owner approval under `AGENTS.md`; the synchronization run must report any conflict and must not silently resolve shared project/configuration files.
 

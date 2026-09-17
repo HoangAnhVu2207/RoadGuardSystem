@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.Repositories.Options;
+using RoadGuardSystem.Repositories.Seeding;
 
 namespace RoadGuardSystem.Repositories.Extensions;
 
@@ -70,6 +71,15 @@ public static class RoadGuardPersistenceExtensions
             }
         });
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the database seeder framework and any registered seed steps.
+    /// </summary>
+    public static IServiceCollection AddRoadGuardSeeding(this IServiceCollection services)
+    {
+        services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
         return services;
     }
 }

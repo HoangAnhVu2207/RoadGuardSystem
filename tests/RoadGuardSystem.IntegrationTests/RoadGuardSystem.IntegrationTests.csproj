@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\RoadGuardSystem.Repositories\RoadGuardSystem.cRepositories.csproj" />
+    <ProjectReference Include="..\..\tools\RoadGuardSystem.Seeder\RoadGuardSystem.Seeder.csproj" />
   </ItemGroup>
 
 </Project>

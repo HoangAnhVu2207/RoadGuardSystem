@@ -1,0 +1,88 @@
+name: RoadGuard Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+      - anh
+      - huy
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build, Verify, and Test
+    runs-on: ubuntu-latest
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        ports:
+          - 1433:1433
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: 'yourStrong(!)Password'
+          MSSQL_PID: 'Developer'
+        options: >-
+          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING: "Server=localhost,1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True;"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+
+      - name: Verify Documentation Contract
+        run: pwsh -File tests/Documentation/Verify-P102Docs.ps1
+
+      - name: Verify Docker Compose Configuration
+        run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
+
+      - name: Verify CI Workflow Integrity
+        run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
+
+      - name: Verify Dependency Security
+        run: pwsh -File tests/Security/Verify-DependencySecurity.ps1
+
+      - name: Restore dependencies
+        run: dotnet restore RoadGuardSystem.slnx
+
+      - name: Verify code formatting
+        run: dotnet format --verify-no-changes
+
+      - name: Build solution (non-incremental)
+        run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+
+      - name: Run Unit Tests with coverage
+        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/UnitTests
+
+      - name: Run API Tests with coverage
+        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/ApiTests
+
+      - name: Run Integration Tests with coverage
+        run: dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
+
+      - name: Validate Seeder Entry Point
+        run: dotnet run --project tools/RoadGuardSystem.Seeder --no-build -- -c "Server=localhost,1433;Database=master;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True;"
+
+      - name: Upload Code Coverage Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-coverage-reports
+          path: TestResults/**/coverage.cobertura.xml

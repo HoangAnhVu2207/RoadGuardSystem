@@ -19,7 +19,7 @@ For each task: read the traced specification sections; write negative tests firs
 | Task | Status | Branch | Note |
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
-| `P2-01` | `In Progress` | `huy` | Repository owner authorized the narrow Person 1 test-helper exception on `huy`. Cross-platform path regression tests now pass locally and in Linux; commit, push authorization, and a fresh hosted CI run remain before self-review can mark the task `Done`. |
+| `P2-01` | `Done` | `huy` | Owner-authorized cross-platform gate repair committed as `77505f2`; hosted CI run `35277820417` passed all verification, SQL, test, seeder, coverage-upload and cleanup steps on Ubuntu. Owner self-review complete. |
 | `P2-02` | `Not started` | `huy` | Must not overlap `P2-01`; keep queued until `P2-01` is `Done`. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 

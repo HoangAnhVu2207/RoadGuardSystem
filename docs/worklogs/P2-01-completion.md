@@ -363,3 +363,31 @@
 | Final `docker ps -a --format ...` | 0 | Empty; no verification container or failed Testcontainer remained | 2026-09-18 |
 
 - **Final local verification state:** Green with 119/119 tests and seeder success against the controlled SQL Server container. The transient parallel-Testcontainers failure remains recorded as environment evidence and is not concealed or counted as a passing run.
+
+## Final hosted acceptance and owner self-review
+
+- **Repair commit:** `77505f243dd2d244175624bdc2a5af795ca9c7a6` (`P2-01: fix cross-platform architecture gate`) pushed to `origin/huy` with explicit repository-owner authorization.
+- **Hosted evidence:** GitHub Actions run `35277820417` / job `105392553355`, created 2026-09-17T21:38:41Z and completed 2026-09-17T21:41:08Z, conclusion `success` for the exact repair SHA.
+- **Successful hosted steps:** checkout; pinned SDK setup; documentation, Compose, CI-integrity and dependency-security verifiers; ephemeral credential generation; pinned SQL container start and bounded readiness; restore; format; non-incremental build; Unit/API/Integration tests with coverage; seeder; coverage upload; unconditional container/credential cleanup.
+- **Coverage evidence:** Artifact `code-coverage-reports` (`10521082893`), 19,665 bytes, uploaded successfully and not expired at acceptance time.
+- **Local evidence retained:** Linux unit suite 37/37; final controlled-SQL full solution 119/119 with 0 skipped; seeder success; all positive verifiers and negative fixture suites passed as recorded above.
+
+### Final self-review checklist
+
+- **Authorization / project scope:** Not applicable to the cross-platform test helper; no endpoint, identity, membership or project-scoped query changed.
+- **State transitions:** No domain transition or direct state assignment changed.
+- **Immutability / versioning:** No submitted, approved, confirmed, evidentiary or persisted record changed.
+- **Idempotency / concurrency:** No retryable command, worker, transaction or concurrency behavior changed.
+- **Audit / sensitive data:** No audit path changed. Ephemeral credentials remained masked/in-memory or in the protected runner file and were removed by the successful cleanup step; no secret was added to source or logs.
+- **Fail-closed policy:** Genuine unmapped `ProjectReference` values remain violations. Regression coverage proves both Windows and Unix separators resolve consistently.
+- **Missing tests:** None identified for the repair. Negative-first Linux evidence, both path forms, production graph, unmapped reference rejection, affected unit suite, full local solution and hosted Ubuntu workflow are covered.
+- **Conflict resolution:** Repository-owner approval applied only to the two Person 1-owned architecture-test files on `huy`; all other changes stayed in P2-01-owned worklog/plan metadata. No unresolved overlap remains.
+- **Files changed by the final repair:** `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs`, `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs`, `docs/worklogs/P2-01-completion.md`, `planning/RoadGuard_Plan_Person_2.md`.
+- **Final status:** `Done`. All P2-01 acceptance, negative-first, local SQL/Linux, hosted CI, cleanup, traceability and owner self-review gates are satisfied. P2-02 may now be scheduled without overlapping P2-01.
+
+| Finalization command | Exit | Result | Time |
+|---|---:|---|---|
+| `git push origin huy` | 0 | Explicitly authorized push advanced `origin/huy` from `108d7e4` to `77505f2` | 2026-09-18 |
+| GitHub Actions API monitor for run `35277820417` using the Git credential helper without printing or persisting the token | 0 | Run and job completed `success` for exact SHA `77505f2`; all steps and coverage artifact enumerated | 2026-09-18 |
+| `powershell -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1` after marking `Done` | 0 | Current-plan documentation contract passed | 2026-09-18 |
+| `git diff --check` after marking `Done` | 0 | No whitespace errors | 2026-09-18 |

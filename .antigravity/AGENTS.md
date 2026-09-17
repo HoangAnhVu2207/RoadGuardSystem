@@ -4,9 +4,9 @@
 
 - Antigravity/Codex must work only on the task IDs assigned in the applicable person plan under `planning/`.
 - Before changing production code, create the negative/edge-case tests for the task, then positive tests, then implement, then run and repair until green. Record every command and result in `Antigravity_Completion_Log_Template.md` copied to the task workspace.
-- A task is not complete when code compiles alone. It needs traceability to `US-*`/use-case codes, the required tests, review evidence, and an explicit list of files changed.
+- A task is not complete when code compiles alone. It needs traceability to `US-*`/use-case codes, the required tests, self-review evidence, and an explicit list of files changed.
 - If specifications conflict, stop the affected task, record the conflict and proposed options in the completion log/ADR, and request Product Owner direction. Do not silently choose behavior that changes data compatibility or workflow scope.
-- A reviewer must inspect the other person's changes for authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests before the task is marked Done.
+- Task-owner self-review is mandatory. The owner must inspect authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests before self-marking the task `Done`. Independent review is optional unless the repository owner explicitly requests it.
 
 ## Technical Stack Baseline
 
@@ -34,6 +34,15 @@ The task owner may omit an irrelevant negative case only by writing the reason i
 - Use this precedence when specifications disagree: `RoadGuard_Data_Dictionary_v1.md`, then `RoadGuard_ERD_v1.md` and `RoadGuard_Domain_Model_v1.md`, then `Dac_ta_UseCase_v2.md`, then `User_Stories_Acceptance_Criteria_v2.md`.
 - Do not silently resolve a material conflict. Record the conflict and the proposed decision in the task or an ADR, and ask the product owner when behavior, data compatibility, or scope would change.
 - Keep the applicable `planning/RoadGuard_Plan_Person_1.md` and/or `planning/RoadGuard_Plan_Person_2.md` aligned when a change materially affects scope, dependencies, ownership, or sequencing. Do not create a third planning file.
+
+## Parallel Work And Conflict Control
+
+- Each active task must declare exclusive file ownership before edits begin. An agent must not edit files owned by the other person's active task.
+- Person 1 normally owns `RoadGuardSystem.API`, `RoadGuardSystem.Services`, `RoadGuardSystem.DTOs`, API tests, unit tests, and domain behavior after the paired persistence/schema task is `Done`.
+- Person 2 normally owns `RoadGuardSystem.Repositories`, migrations, SQL integration tests, Docker/CI/operations assets, and entity/property/enum shape while the paired persistence/schema task is active.
+- `RoadGuardSystem.BusinessObjects` uses a task-scoped handoff: Person 2 establishes entity/property/enum shape for a persistence task; after that task is `Done`, Person 1 may add domain methods and invariants without reopening schema. A schema change after handoff requires an explicit conflict decision.
+- Shared hotspots include `RoadGuardSystem.slnx`, `Directory.Build.props`, `global.json`, project files, `Program.cs`, dependency-registration files, common enums, plans, and specification documents. Only one active task may own a shared hotspot at a time.
+- Any actual or potential overlap must be recorded as a `Conflict warning` in the completion log, including affected files, task IDs, owner, required sequencing, and resolution. Stop and ask the repository owner when ownership or integration order is unclear.
 
 ## Product Boundaries
 
@@ -84,9 +93,9 @@ The task owner may omit an irrelevant negative case only by writing the reason i
 - Valid and invalid state transitions, idempotent retry, audit history, and concurrency behavior are covered when applicable.
 - API contracts include validation and stable error codes; logs contain correlation identifiers and no sensitive data.
 - Schema, migration, seed/test data, and documentation are updated together when the data model changes.
-- The other team member reviews the change; the author resolves findings before merge.
+- The task owner completes and records the self-review checklist and resolves all findings before marking `Done` or requesting integration.
 
-## Code Review Rules
+## Self-Review Rules
 
 - Flag any endpoint that trusts a project or role claim without checking current server-side membership.
 - Flag direct state assignment that bypasses an explicit transition method or policy.
@@ -100,11 +109,11 @@ The task owner may omit an irrelevant negative case only by writing the reason i
 
 ### Branch model
 
-- `main` is the protected, release-ready branch. People and agents must not commit directly to it. Only reviewed and fully verified changes from `develop` may be merged into `main`.
-- `develop` is the integration and test branch. Feature implementation must not be committed directly to it. Only reviewed changes from `anh` or `huy` may be merged into `develop`.
+- `main` is the protected, release-ready branch. People and agents must not commit directly to it. Only self-reviewed and fully verified changes from `develop` may be merged into `main`.
+- `develop` is the integration and test branch. Feature implementation must not be committed directly to it. Only self-reviewed changes from `anh` or `huy` may be merged into `develop`.
 - `anh` is Anh's working branch; `huy` is Huy's working branch. Each person and their agent commits only to their assigned branch unless the repository owner explicitly approves an exception.
 - Before work starts, the task ID and branch owner must be stated in the completion log. A branch name does not override task ownership in the applicable person plan.
-- The other person reviews the commit diff before it enters `develop`. After integration tests pass on `develop`, the repository owner approves promotion to `main`.
+- The task owner self-reviews the commit diff before it enters `develop`. After integration tests pass on `develop`, the repository owner approves promotion to `main`.
 - Prefer pull requests for `anh`/`huy` into `develop` and for `develop` into `main` once a GitHub remote is configured. Configure GitHub branch protection for both protected branches.
 
 ### Commands agents may run without additional approval
@@ -131,6 +140,6 @@ The task owner may omit an irrelevant negative case only by writing the reason i
 ### Integration gates
 
 1. `anh` or `huy`: implement one assigned task, follow negative-first testing, update its completion log, and create a focused commit.
-2. Cross-review: the other person reviews authorization, transitions, immutability/versioning, idempotency, concurrency, audit, and tests.
+2. Owner self-review: the task owner reviews authorization, transitions, immutability/versioning, idempotency, concurrency, audit, tests, and conflict warnings, then may self-mark the task `Done`.
 3. `develop`: merge only after findings are resolved; run restore, non-incremental build, formatting verification, and all affected tests.
 4. `main`: merge only from `develop`, only with repository-owner approval, and only after the full gate is green. Tagging or deployment is a separate approved action.

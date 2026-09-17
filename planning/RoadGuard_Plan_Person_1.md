@@ -1,12 +1,30 @@
 # RoadGuard execution plan — Person 1
 
-Owner: Person 1 (domain/application/API primary). Reviewer: Person 2. Baseline: 16/09/2026.
+Owner: Person 1 (domain/application/API primary). Self-review: task owner. Baseline: 16/09/2026.
 
 This is one of exactly two execution plans. Person 1 takes only one `In Progress` task at a time. Every task follows `AGENTS.md` and the four Negative-First phases. Paths below are target locations; if the actual solution uses different names, preserve its structure and record the mapping in the completion log.
 
 ## Task completion contract
 
-For each task: read the traced specification sections; write negative tests first and observe the expected failure; write positive tests; implement; run the narrow tests, affected suite, format, and build; then complete `Antigravity_Completion_Log_Template.md`. A task is `Done` only after Person 2 reproduces the tests and reviews the diff.
+For each task: read the traced specification sections; write negative tests first and observe the expected failure; write positive tests; implement; run the narrow tests, affected suite, format, and build; then complete `Antigravity_Completion_Log_Template.md` and the mandatory owner self-review. The owner may self-mark `Done` only when every task gate is green and all self-review findings are resolved.
+
+## Current status and ownership
+
+| Task | Status | Branch | Note |
+|---|---|---|---|
+| `P1-00` | `Done` | `anh` | Historical cross-review evidence remains unchanged. |
+| `P1-01` | `Done` | `anh` | Historical cross-review evidence remains unchanged. |
+| `P1-02` | `Done` | `anh` | Historical cross-review evidence remains unchanged. |
+| `P1-03` | `Done` | `anh` | Align self-review ownership, conflict controls, and the P2-01 branch-synchronization gate. |
+
+The self-review policy applies to tasks after `P1-02`; it does not rewrite completed evidence.
+
+## Exclusive ownership and conflict control
+
+- Person 1 has exclusive file ownership of API, Services, DTOs, unit tests, and API tests while a Person 1 task is active.
+- Person 1 starts a paired domain/API task only after the Person 2 schema/persistence dependency is `Done`. Person 2 first establishes entity/property/enum shape; Person 1 then owns domain methods and invariants in `BusinessObjects` without changing the agreed schema.
+- Person 1 must not edit Repositories, migrations, SQL integration fixtures, Docker, CI, or operations files owned by an active Person 2 task.
+- Shared hotspots require a single declared owner. Any overlap or required schema reopening must be recorded as a `Conflict warning` with files, task IDs, sequence, and resolution before edits continue.
 
 Default commands once Sprint 0 exists:
 
@@ -25,6 +43,7 @@ dotnet test --no-build
 | `P1-00` / 1d | TE-01, none | Verify/create solution references; enable nullable/analyzers; create `RoadGuardSystem.API`, `BusinessObjects`, `DTOs`, `Services`, unit/API test projects and one solution-level build entry point. Output: `.sln`, project files, `Directory.Build.props`, test skeletons. | Negative: architecture test rejects a forbidden BusinessObjects dependency. Positive: solution restore/build and a smoke unit test pass. |
 | `P1-01` / 1d | TE-02, after P1-00 | Add API versioning, OpenAPI, ProblemDetails, stable error-code envelope, correlation middleware, health endpoint and DI composition. Output: API extensions/middleware plus API contract tests. | Negative: malformed request has no stack trace and includes stable code/correlation ID. Positive: health and OpenAPI endpoints respond; API factory boots. |
 | `P1-02` / 0.5d | Architecture, after P1-00 | Create ADRs for backend boundary and authentication choice; define the API error-code naming policy; align the approved Session and authorization-authority contracts across Data Dictionary, ERD, Domain Model, Use Cases, and User Stories. Output: `docs/adr/001-backend-boundary.md`, `002-authentication.md`, `docs/api-errors.md`, and documentation verifier updates. | Negative review: verifier rejects `Session.created_at`, missing `device_metadata_json`/`ISJSON`, incorrect P2-10 ownership, missing `UserRoleChanged`, or missing `ProjectMember.role_code` authority. Positive: links and decisions are internally consistent; role changes revoke active credentials, membership changes take immediate effect, and documentation checks pass. |
+| `P1-03` / 0.25d | Planning/integration readiness; after P1-02 and P2-00 | Align task-owner self-review, exclusive file ownership, conflict reporting, retired review-only tasks, and the P2-01 branch-synchronization gate. Output: synchronized agent rules, both person plans, completion-log template, and documentation verifier policy checks. | Negative: verifier fails when the self-review, ownership, status, or synchronization tokens are absent. Positive: PowerShell 7 and Windows PowerShell 5 verification pass; historical P1 Wave 0 evidence remains unchanged. |
 
 ## Wave 1 — identity and access
 
@@ -81,4 +100,4 @@ dotnet test --no-build
 
 ## Person 1 release obligations
 
-After the final task, run the full seed scenario `project -> survey -> upload -> processing -> detection -> field measurement -> repair -> export`, resolve Person 2 review findings, and ensure every task has a completion log. Release is blocked by any skipped authorization/integrity test, unrecorded migration, mutable evidence/history, or undocumented specification conflict.
+After the final task, run the full seed scenario `project -> survey -> upload -> processing -> detection -> field measurement -> repair -> export`, complete owner self-review, resolve every conflict warning, and ensure every task has a completion log. Release is blocked by any skipped authorization/integrity test, unrecorded migration, mutable evidence/history, or undocumented specification conflict.

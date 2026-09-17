@@ -5,11 +5,13 @@ Create one copy per completed task, named `docs/worklogs/<TASK-ID>-completion.md
 ## Identity and scope
 
 - Task ID/title:
-- Owner / reviewer:
+- Owner / self-reviewer:
 - Date / branch or commit:
 - Trace (`US-*`, use case, acceptance criteria):
 - In-scope behavior:
 - Explicitly out of scope:
+- Intended files / exclusive ownership check:
+- Conflict warning: `None` or list affected files, task IDs, owner, sequencing, and resolution.
 
 ## Preconditions and decisions
 
@@ -64,11 +66,13 @@ List each negative/edge case before positive cases. If a standard case is irrele
 | `dotnet format --verify-no-changes` | | | |
 | `dotnet build --no-restore` | | | |
 
-## Review handoff
+## Self-review and conflict report
 
 - Observable demo/output:
 - Known gaps, skipped tests, and reason:
 - Residual risks:
-- Reviewer findings and resolution:
+- Self-review findings and resolution:
+- Conflict warning final state:
+- Optional independent review, if explicitly requested:
 - Exact next task/action:
-- Final status: `Ready for review` / `Changes requested` / `Done`
+- Final status: `Done` only after all required tests, self-review, and conflict-resolution gates pass.

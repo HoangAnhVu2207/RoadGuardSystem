@@ -28,11 +28,15 @@ $useCases = Join-Path $RepoRoot "docs\diagram\Dac_ta_UseCase_v2.md"
 $userStories = Join-Path $RepoRoot "docs\diagram\User_Stories_Acceptance_Criteria_v2.md"
 $person1Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_1.md"
 $person2Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_2.md"
+$rootAgentRules = Join-Path $RepoRoot "AGENTS.md"
+$antigravityAgentRules = Join-Path $RepoRoot ".antigravity\AGENTS.md"
+$completionLogTemplate = Join-Path $RepoRoot "docs\diagram\Antigravity_Completion_Log_Template.md"
 
 $docs = @(
     $adr001, $adr002, $apiErrors, $worklog, $p100Worklog, $p101Worklog,
     $dataDictionary, $erd, $domainModel, $useCases, $userStories,
-    $person1Plan, $person2Plan
+    $person1Plan, $person2Plan, $rootAgentRules, $antigravityAgentRules,
+    $completionLogTemplate
 )
 
 # 1. Verify existence of required files
@@ -203,6 +207,9 @@ $useCasesContent = Get-Content $useCases -Raw -Encoding UTF8
 $userStoriesContent = Get-Content $userStories -Raw -Encoding UTF8
 $person1PlanContent = Get-Content $person1Plan -Raw -Encoding UTF8
 $person2PlanContent = Get-Content $person2Plan -Raw -Encoding UTF8
+$rootAgentRulesContent = Get-Content $rootAgentRules -Raw -Encoding UTF8
+$antigravityAgentRulesContent = Get-Content $antigravityAgentRules -Raw -Encoding UTF8
+$completionLogTemplateContent = Get-Content $completionLogTemplate -Raw -Encoding UTF8
 
 $sessionContractDocuments = @(
     @{ Name = "ADR 002"; Content = $adr002Content },
@@ -284,6 +291,61 @@ foreach ($plan in @(
         if ($plan.Content -notmatch [regex]::Escape($requiredToken)) {
             $errors += "$($plan.Name) missing approved Session/authorization ownership token: '$requiredToken'"
         }
+    }
+}
+
+# Product Owner planning policy approved on 2026-09-17. Historical P1 Wave 0
+# cross-review evidence remains immutable; these rules apply to subsequent work.
+foreach ($plan in @(
+    @{ Name = "Person 1 plan"; Content = $person1PlanContent },
+    @{ Name = "Person 2 plan"; Content = $person2PlanContent }
+)) {
+    foreach ($requiredToken in @(
+        "Self-review: task owner",
+        "Conflict warning",
+        "exclusive file ownership",
+        "self-mark ``Done``"
+    )) {
+        if ($plan.Content -notmatch [regex]::Escape($requiredToken)) {
+            $errors += "$($plan.Name) missing approved self-review/conflict-control token: '$requiredToken'"
+        }
+    }
+}
+
+foreach ($requiredToken in @(
+    'P2-00` | `Done`',
+    'P2-01` | `Not started - blocked by branch synchronization`',
+    'P2-02` | `Not started`',
+    '3e13ca6',
+    'b2662fe'
+)) {
+    if ($person2PlanContent -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "Person 2 plan missing approved Wave 0 status/synchronization token: '$requiredToken'"
+    }
+}
+
+foreach ($agentRules in @(
+    @{ Name = "root AGENTS.md"; Content = $rootAgentRulesContent },
+    @{ Name = ".antigravity/AGENTS.md"; Content = $antigravityAgentRulesContent }
+)) {
+    foreach ($requiredToken in @(
+        "Task-owner self-review",
+        "Conflict warning",
+        "must not edit files owned by the other person's active task"
+    )) {
+        if ($agentRules.Content -notmatch [regex]::Escape($requiredToken)) {
+            $errors += "$($agentRules.Name) missing approved self-review/conflict-control token: '$requiredToken'"
+        }
+    }
+}
+
+foreach ($requiredToken in @(
+    "Owner / self-reviewer",
+    "Conflict warning",
+    "Self-review findings and resolution"
+)) {
+    if ($completionLogTemplateContent -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "Completion-log template missing self-review/conflict field: '$requiredToken'"
     }
 }
 

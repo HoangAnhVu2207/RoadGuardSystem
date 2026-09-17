@@ -430,6 +430,21 @@ public sealed class DependencyGraphTests
         violations.Should().BeEmpty(because: "none of these packages are forbidden in DTOs");
     }
 
+    [Fact(DisplayName = "Checker detects legacy ASP.NET Core Identity package in Services fixture")]
+    public void Checker_Detects_Legacy_AspNetCore_Identity_Package_In_Services()
+    {
+        var badPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Microsoft.AspNetCore.Identity",
+        };
+
+        var violations = FindForbiddenPackages(
+            "Services", badPackages, ForbiddenServicesPackagePrefixes);
+
+        violations.Should().ContainSingle()
+            .Which.Should().Contain("Microsoft.AspNetCore.Identity");
+    }
+
     [Fact(DisplayName = "Checker detects BusinessObjects -> DTOs project reference violation in fixture graph")]
     public void Checker_Detects_BusinessObjects_DependsOn_DTOs()
     {
@@ -672,6 +687,21 @@ public sealed class DependencyGraphTests
         violations.Should().BeEmpty(
             because: "DTOs must contain only public contract packages — EF Core, HTTP, and " +
                      "Configuration packages belong in Repositories or API per AGENTS.md");
+    }
+
+    [Fact(DisplayName = "Services production project has no legacy ASP.NET Core Identity package")]
+    public void Services_HasNoLegacyAspNetCoreIdentityPackage()
+    {
+        var root = RepositoryRoot();
+        var csprojPath = Path.Combine(
+            root, "RoadGuardSystem.Services", "RoadGuardSystem.dServices.csproj");
+
+        var packages = ReadPackageReferences(csprojPath);
+        var violations = FindForbiddenPackages(
+            "Services", packages, ForbiddenServicesPackagePrefixes);
+
+        violations.Should().BeEmpty(
+            because: "the net8.0 Services layer must not carry the obsolete ASP.NET Core Identity 2.x dependency graph");
     }
 
     // ===========================================================================

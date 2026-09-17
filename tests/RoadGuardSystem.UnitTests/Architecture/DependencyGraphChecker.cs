@@ -266,6 +266,15 @@ public static class DependencyGraphChecker
     ];
 
     /// <summary>
+    /// Legacy ASP.NET Core Identity packages must not be referenced by Services in
+    /// this net8.0 solution. Identity model abstractions live in BusinessObjects.
+    /// </summary>
+    public static readonly IReadOnlyList<string> ForbiddenServicesPackagePrefixes =
+    [
+        "Microsoft.AspNetCore.Identity",
+    ];
+
+    /// <summary>
     /// Checks a set of package IDs against a list of forbidden prefixes.
     /// Returns matching (packageId, prefix) pairs.
     /// </summary>

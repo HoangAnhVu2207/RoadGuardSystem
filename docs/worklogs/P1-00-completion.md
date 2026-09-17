@@ -6,7 +6,7 @@
 - **Owner / reviewer:** Person 1 (Antigravity) / Person 2 (Independent Reviewer)
 - **Date / branch or commit:** 2026-09-17 / `anh` / HEAD `da3a1aab343425a17886601a567cda6c3898ce7b` (post-PR #1 merge)
 - **Trace:** TE-01 (foundation/infrastructure task with no business use-case)
-- **Status:** Approved / Done
+- **Status:** Ready for re-review (reopened for Wave 0 dependency advisory remediation)
 
 ### In-scope behavior
 - Verify and document production project dependency graph
@@ -417,3 +417,42 @@ ApiTests  ──> API (WebApplicationFactory<Program>)
   - F5 dispositioned as accepted non-blocking residual risk to avoid circular dependencies.
 - **Exact next action:** Repository owner integrates `anh` into `develop` according to integration gate rules.
 - **Final status:** Approved / Done
+
+---
+
+## Wave 0 dependency advisory remediation (2026-09-17)
+
+The Wave 0 merge review found that `RoadGuardSystem.Services` directly referenced the unused legacy package `Microsoft.AspNetCore.Identity` 2.3.1. That package introduced a vulnerable `System.Security.Cryptography.Xml` runtime dependency into Services, API, and API tests.
+
+### Negative-first evidence
+
+1. Added fixture coverage proving the package checker detects `Microsoft.AspNetCore.Identity` in Services.
+2. Added production gate `Services_HasNoLegacyAspNetCoreIdentityPackage`.
+3. Ran `dotnet test tests\RoadGuardSystem.UnitTests --filter "TaskId=P1-00"` before changing the production project: exit code 1, 34 passed and 1 failed. The failure named the legacy package and forbidden prefix.
+4. Removed the unused direct package from `RoadGuardSystem.Services/RoadGuardSystem.dServices.csproj`.
+5. Re-ran the same command: exit code 0, 35 passed, 0 failed, 0 skipped.
+
+### Files changed in this correction
+
+- `RoadGuardSystem.Services/RoadGuardSystem.dServices.csproj`
+- `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphChecker.cs`
+- `tests/RoadGuardSystem.UnitTests/Architecture/DependencyGraphTests.cs`
+- `docs/worklogs/P1-00-completion.md`
+
+### Commands and results
+
+| Command | Exit code | Result | Timestamp |
+|---|---:|---|---|
+| `dotnet test tests\RoadGuardSystem.UnitTests --filter "TaskId=P1-00"` before package removal | 1 | Expected RED: 34 passed, 1 failed; production Services package violation detected | 2026-09-17T15:00+07:00 |
+| `dotnet test tests\RoadGuardSystem.UnitTests --filter "TaskId=P1-00"` after package removal | 0 | GREEN: 35 passed, 0 failed, 0 skipped | 2026-09-17T15:06+07:00 |
+| `dotnet restore RoadGuardSystem.slnx` | 0 | Services/API assets restored without the legacy package | 2026-09-17T15:11+07:00 |
+| `dotnet list RoadGuardSystem.slnx package --vulnerable --include-transitive --no-restore` | 0 | API, Services, and API tests have no known vulnerable packages; P2-00 IntegrationTests still report transitive `SSH.NET 2023.0.0` High advisory | 2026-09-17T15:12+07:00 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 8 projects; 0 warnings, 0 errors | 2026-09-17T15:14+07:00 |
+| `dotnet test RoadGuardSystem.slnx --no-build` | 0 | 104 passed: Unit 35, API 26, Integration 43; 0 failed, 0 skipped | 2026-09-17T15:16+07:00 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | Formatting verification clean | 2026-09-17T15:16+07:00 |
+
+### Handoff
+
+- P1 runtime advisory is resolved and protected by an architecture test.
+- The remaining `Testcontainers.MsSql 3.10.0 -> SSH.NET 2023.0.0` advisory belongs to the P2-00 integration-test project and remains a separate merge blocker for Person 2 or an explicitly approved cross-owner correction.
+- **Status after correction:** Ready for Person 2 re-review.

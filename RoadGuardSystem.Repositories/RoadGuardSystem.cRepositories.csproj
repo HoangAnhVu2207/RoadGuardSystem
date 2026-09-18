@@ -44,4 +44,9 @@
     <ProjectReference Include="..\RoadGuardSystem.DTOs\RoadGuardSystem.bDTOs.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RoadGuardSystem.IntegrationTests" />
+    <InternalsVisibleTo Include="RoadGuardSystem.UnitTests" />
+  </ItemGroup>
+
 </Project>

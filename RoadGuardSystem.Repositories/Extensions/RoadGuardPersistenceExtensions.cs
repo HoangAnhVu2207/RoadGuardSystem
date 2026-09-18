@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.Repositories.Seeding;
 using RoadGuardSystem.Repositories.Idempotency;
+using RoadGuardSystem.Repositories.Identity;
 using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Repositories.Transactions;
 
@@ -50,9 +52,21 @@ public static class RoadGuardPersistenceExtensions
         services.AddSingleton<IValidateOptions<RoadGuardDatabaseOptions>>(
             new RoadGuardDatabaseOptionsValidator(isProduction));
 
+        services.Configure<SessionDeviceMetadataOptions>(opt =>
+        {
+            var metadataSection = configuration.GetSection(SessionDeviceMetadataOptions.SectionName);
+            if (metadataSection.Exists())
+            {
+                metadataSection.Bind(opt);
+            }
+        });
+
         services.AddScoped<RoadGuardTransactionService>();
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
+        services.AddScoped<IIdentityRepository, IdentityRepository>();
+        services.AddScoped<Microsoft.AspNetCore.Identity.IUserStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationUser>, RoadGuardUserStore>();
+        services.AddScoped<Microsoft.AspNetCore.Identity.IRoleStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationRole>, RoadGuardRoleStore>();
 
         services.AddDbContext<RoadGuardDbContext>((sp, dbContextOptions) =>
         {
@@ -87,6 +101,7 @@ public static class RoadGuardPersistenceExtensions
     public static IServiceCollection AddRoadGuardSeeding(this IServiceCollection services)
     {
         services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
+        services.AddScoped<ISeedStep, IdentityRoleSeedStep>();
         return services;
     }
 }

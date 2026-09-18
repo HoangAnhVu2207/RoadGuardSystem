@@ -84,6 +84,8 @@ public sealed class P202TransactionAndIdempotencyTests : IClassFixture<P202SqlSe
         var projectId = Guid.NewGuid();
         var operationId = Guid.NewGuid();
         var correlationId = Guid.NewGuid();
+        await context.EnsureActorUserAsync(actorId);
+
         Func<CancellationToken, Task> operation = async cancellationToken =>
         {
             context.TransactionProbes.Add(new P202TransactionProbe { Id = probeId, Value = "must-rollback" });

@@ -571,6 +571,8 @@ public sealed class P202ServiceContractTests : IClassFixture<P202SqlServerFixtur
         string afterSnapshot,
         CancellationToken cancellationToken)
     {
+        await context.EnsureActorUserAsync(actorId);
+
         await context.Database.ExecuteSqlRawAsync(
             """
             INSERT INTO [AuditLogs]

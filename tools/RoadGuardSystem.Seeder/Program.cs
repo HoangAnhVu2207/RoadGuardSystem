@@ -60,8 +60,12 @@ public static class Program
 
         await using var context = new RoadGuardDbContext(optionsBuilder.Options);
 
-        // Wave 0: framework entry point without invented business entities
-        var seeder = new DatabaseSeeder(Array.Empty<ISeedStep>());
+        // Supported seeder composition: executes registered foundational seed steps
+        var steps = new ISeedStep[]
+        {
+            new IdentityRoleSeedStep()
+        };
+        var seeder = new DatabaseSeeder(steps);
 
         try
         {

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RoadGuardSystem.Repositories;
 
@@ -11,9 +12,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260918185427_EnforceAuditActorUserForeignKey")]
+    partial class EnforceAuditActorUserForeignKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -202,10 +205,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                             t.HasCheckConstraint("CK_AccountStatusChangeLogs_FromStatus", "[FromStatus] IN (1, 2, 3)");
 
                             t.HasCheckConstraint("CK_AccountStatusChangeLogs_FromToStatus_Diff", "[FromStatus] <> [ToStatus]");
-
-                            t.HasCheckConstraint("CK_AccountStatusChangeLogs_Reason_SafeCode", "[Reason] IN ('ADMINISTRATOR_INITIATED', 'SELF_SERVICE_ACCOUNT_RECOVERY', 'REGISTRATION_APPROVED', 'SAFETY_POLICY_VIOLATION', 'NO_STATUS_CHANGE', 'ADMINISTRATIVE_LOCK', 'SECURITY_INCIDENT', 'ACCOUNT_REACTIVATED')");
-
-                            t.HasCheckConstraint("CK_AccountStatusChangeLogs_Source_SafeCode", "[Source] IN ('ADMIN_API', 'SELF_SERVICE', 'IDENTITY_SERVICE', 'COMPLIANCE_REVIEW', 'SYSTEM')");
 
                             t.HasCheckConstraint("CK_AccountStatusChangeLogs_ToStatus", "[ToStatus] IN (1, 2, 3)");
                         });
@@ -399,11 +398,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         {
                             t.HasTrigger("TR_PasswordResetLogs_AppendOnly");
 
-                            t.HasCheckConstraint("CK_PasswordResetLogs_Reason_SafeCode", "[Reason] IS NULL OR [Reason] IN ('ADMINISTRATOR_INITIATED', 'SELF_SERVICE_ACCOUNT_RECOVERY', 'REGISTRATION_APPROVED', 'SAFETY_POLICY_VIOLATION', 'NO_STATUS_CHANGE', 'ADMINISTRATIVE_LOCK', 'SECURITY_INCIDENT', 'ACCOUNT_REACTIVATED')");
-
                             t.HasCheckConstraint("CK_PasswordResetLogs_Result", "[Result] IN (1, 2, 3)");
-
-                            t.HasCheckConstraint("CK_PasswordResetLogs_Source_SafeCode", "[Source] IN ('ADMIN_API', 'SELF_SERVICE', 'IDENTITY_SERVICE', 'COMPLIANCE_REVIEW', 'SYSTEM')");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);

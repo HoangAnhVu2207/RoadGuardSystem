@@ -4,7 +4,7 @@
 
 ### Assignment 1 - prepared 2026-09-18T04:50:46+07:00
 
-- Assignment status: `Blocked`. The implementation assignment is complete, but implementation has not started and this preparation is not implementation evidence.
+- Assignment status: `In Progress`. The implementation assignment is complete, but implementation has not started and this preparation is not implementation evidence.
 - Task ID / title: `P2-02` / Audit, outbox, idempotency, concurrency primitives and transaction conventions.
 - Person / branch: Person 2 / `huy`.
 - Baseline: local `huy` HEAD `2890d29ab2bb7030f475b8fb902ee8d43ea7026e`; worktree was clean before this assignment; local branch was one commit ahead of `origin/huy`.
@@ -194,3 +194,251 @@ Not started. Antigravity must append its self-review and handoff; it must not ov
 ## Codex acceptance review history
 
 No acceptance round exists. Preserve each future review round with stable finding IDs and disposition history.
+
+---
+
+## Antigravity implementation attempt 1 - blocked 2026-09-18T13:22:34+07:00
+
+### Status and mode
+
+- Requested mode: implementation, because the latest worklog contains no Codex acceptance round and no `Changes requested` finding.
+- Actual status: `Blocked`. P2-02 did not enter `In Progress`; no negative/positive tests, production code, migration, plan status, commit, merge, or publication was changed.
+- Branch/revision: Person 2 branch `huy`, clean at `e55d6664db62dccb8e4a03885c1de41739fd6b44` before this worklog-only append; the branch was ahead of `origin/huy` by two commits.
+- Dependency check: P2-00, P2-01, and P2-03 artifacts remain present, but the mandatory current workflow-policy commit `b50b86f561bd4b0d0c8cca06dfc0fc486ed6380d` is not an ancestor of this checkout (`git merge-base --is-ancestor ...` exit `1`).
+- Blocking conflict warning: `b50b86f` changes shared hotspots including root/mirror `AGENTS.md`, both person plans, the completion-log template, workflow prompt, documentation verifier, and agent skills. Integrating it requires an explicitly authorized merge/cherry-pick/rebase or an owner-approved successor. Manually copying those files would bypass the branch-synchronization gate and risk overwriting later accepted Person 2 planning changes.
+- Resume point: the repository owner must authorize the integration method and conflict resolution for `b50b86f` (or identify a verified successor already integrated into `huy`). After synchronization, rerun branch/HEAD/dependency/ownership checks, revalidate this assignment against the resulting plan and policy, then change only P2-02 to `In Progress` before authoring negative tests.
+
+### Declared files for this blocked attempt
+
+- `docs/worklogs/P2-02-completion.md`: append-only blocker evidence for this attempt.
+- Production, test, migration, project, DI, and plan files: not edited because the synchronization precondition failed.
+
+### Command evidence
+
+Environment: Windows PowerShell, Windows host, repository `D:\Project BE\RoadGuardSystem`, local time zone `Asia/Bangkok` (`+07:00`).
+
+| Command/check | Exit | Result | Time |
+|---|---:|---|---|
+| Read `superpowers:using-superpowers`, its Codex reference, `brainstorming`, `test-driven-development`, `writing-good-tests`, and `verification-before-completion` | 0 | Loaded the required process, TDD, test-quality, and evidence-before-claims rules. | 2026-09-18T13:18-13:20+07:00 |
+| `Get-Content -Raw D:\Project BE\RoadGuardSystem\.agents\skills\roadguard-agile-delivery\SKILL.md` | 1 | Requested fallback path is absent in this checkout; no action was taken from a missing skill file. | 2026-09-18T13:18+07:00 |
+| Search user/repository skill roots, then read `.antigravity/skills/roadguard-agile-delivery/SKILL.md` and all three linked references | 0 | Located the active compatibility skill and loaded C#/.NET, negative-first, and handoff contracts. | 2026-09-18T13:19-13:20+07:00 |
+| Read root and `.antigravity` `AGENTS.md` | 0 | Confirmed task ownership, negative-first order, shared-hotspot rules, and Git restrictions in this checkout. | 2026-09-18T13:18-13:20+07:00 |
+| `git status --short --branch`; `git rev-parse HEAD`; `git branch --show-current`; `git log -5 --oneline --decorate` | 0 | Clean `huy`, HEAD `e55d666`, ahead of `origin/huy` by two. | 2026-09-18T13:20+07:00 |
+| Read P2-02 task row, full assignment/worklog, relevant plan context, and specification-file inventory | 0 | Confirmed Person 2 ownership, dependencies, eight fixed ACs, exclusive paths, current `Blocked` row, and no Codex review/finding round. | 2026-09-18T13:20+07:00 |
+| `git show --stat/--name-status e55d666`; `git show -s HEAD`; `git log --all --oneline --decorate -20` | 0 | `e55d666` contains only the assignment worklog and P2-02 plan-row update; it does not integrate the workflow-policy commit. | 2026-09-18T13:21+07:00 |
+| `git merge-base --is-ancestor b50b86f HEAD` | 1 | Expected blocker reproduced: current workflow policy is not in the `huy` ancestry. This is not a behavioral RED test. | 2026-09-18T13:21+07:00 |
+| `git show --stat/--name-status b50b86f`; `git diff HEAD b50b86f -- AGENTS.md docs/diagram/Antigravity_Completion_Log_Template.md planning/RoadGuard_Plan_Person_1.md planning/RoadGuard_Plan_Person_2.md` | 0 | Verified the missing policy touches shared workflow/plan/template hotspots and has material differences from this checkout. | 2026-09-18T13:21+07:00 |
+| `git diff -- AGENTS.md docs/diagram/Antigravity_Completion_Log_Template.md planning/RoadGuard_Plan_Person_1.md planning/RoadGuard_Plan_Person_2.md`; `git status --short` | 0 | No pre-existing working-tree changes or active local edits were present before this append. | 2026-09-18T13:21+07:00 |
+| `Get-Date -Format o` | 0 | Recorded `2026-09-18T13:22:34.3098918+07:00`. | 2026-09-18T13:22:34+07:00 |
+
+### Acceptance criteria and test disposition
+
+- P2-02-AC-01 through P2-02-AC-07: not started and not claimed. The branch-synchronization precondition failed before the negative-first phase.
+- P2-02-AC-08: blocker and exact resume action are recorded, but implementation/self-review/handoff evidence does not exist; `Ready for review` is not claimed.
+- Behavioral RED/GREEN, SQL Server/Testcontainers, restore, non-incremental build, format, affected/full tests, dependency-security, migration lifecycle, and cleanup checks: not run because no implementation was authorized to start. A missing workflow dependency is not recorded as a behavioral RED, and unrelated runtime gates would not resolve this process/ownership blocker.
+
+### Self-review for this attempt
+
+- Authorization/project scope: N/A; no endpoint, service, repository command, or persisted data changed.
+- State transitions: N/A; P2-02 remained `Blocked` and was not moved to `In Progress`.
+- Immutability/versioning: preserved; assignment/review history was appended, not replaced, and no evidentiary/domain data changed.
+- Idempotency/concurrency/audit: not implemented or modified; AC-02 through AC-06 remain pending.
+- Sensitive data: no credentials, tokens, connection strings, or runtime payloads were read into or written to this log.
+- Missing tests: all P2-02 negative/positive/SQL tests remain intentionally pending behind the synchronization gate; none is reported as passed or skipped.
+- Findings: no Codex findings exist. No finding was fixed, disputed, or silently omitted.
+
+### Post-append verifier evidence
+
+| Command/check | Exit | Result | Time |
+|---|---:|---|---|
+| `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Existing P1-02 documentation, mapping, role-code, and dependency contracts passed. | 2026-09-18T13:23+07:00 |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Same documentation contracts passed under Windows PowerShell. | 2026-09-18T13:23+07:00 |
+| `pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1` | 0 | 9/9 planning/status/dependency regression cases passed; 0 failed, 0 skipped. | 2026-09-18T13:23+07:00 |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tests/Documentation/Test-P203Planning.ps1` | 0 | 9/9 planning/status/dependency regression cases passed; 0 failed, 0 skipped. | 2026-09-18T13:23+07:00 |
+| `git diff --check` | 0 | No whitespace errors after the worklog append. | 2026-09-18T13:23+07:00 |
+| `git diff -- docs/worklogs/P2-02-completion.md`; `git status --short --branch` | 0 | Exact diff contains only this append; status is `huy...origin/huy [ahead 2]` with one modified task worklog. | 2026-09-18T13:23+07:00 |
+| `Get-Date -Format o` | 0 | Recorded `2026-09-18T13:23:49.7205232+07:00`. | 2026-09-18T13:23:49+07:00 |
+
+---
+
+## Antigravity implementation attempt 2 - In Progress 2026-09-18T13:34:46+07:00
+
+### Resolved blocker and baseline
+
+- Repository-owner authorization: the owner explicitly approved merging `develop` into `huy` to satisfy the branch-synchronization gate and instructed Antigravity to start P2-02.
+- Integration result: merge commit `b6d39d09a899ef71e6fa088da52dbd099ab2e05c` has parents `e55d6664db62dccb8e4a03885c1de41739fd6b44` and `b50b86f561bd4b0d0c8cca06dfc0fc486ed6380d`.
+- Ancestry proof: `git merge-base --is-ancestor b50b86f HEAD` returned exit `0` after the merge.
+- Conflict resolution: preserved the newer Person 1/Person 2 dependency, coverage and sequencing content from `huy`; integrated mandatory Codex acceptance/template/skill/verifier policy from `develop`; retained both robust current-status/dependency-graph validation and approved Wave 0 synchronization-token validation.
+- Merge verification: no conflict markers remained; `Verify-P102Docs.ps1`, `Test-P203Planning.ps1`, and `Verify-AntigravitySetup.ps1` each returned exit `0` before merge commit creation.
+- Task state: only P2-02 changed from `Blocked` to `In Progress`. No acceptance criterion, In scope, Out of scope, or ownership boundary was changed.
+
+### Implementation manifest
+
+- Task/owner/branch: P2-02; Person 2; `huy`; Antigravity implements and self-reviews; Codex alone accepts and marks `Done`.
+- Trace: `TE-05`, `TE-07`, plus the scoped retry/offline contract supporting `US-02`/`CN07-CN09` as already fixed in the assignment and ADR 003.
+- Actor/project scope: infrastructure primitive. Tests use explicit synthetic actor, project, operation and correlation IDs. Business callers must supply project scope and later services must recheck current authorization before returning replayed outcomes. Identified system sources may use null actor/project only where the caller contract documents it.
+- Preconditions: synchronized workflow policy and P2-00/P2-01/P2-03 artifacts are present; SQL Server fixture and existing EF Core baseline remain unchanged.
+- Business transition: N/A, because P2-02 introduces no product aggregate transition. Internal transaction state moves from uncommitted staging to one atomic committed domain/audit/idempotency/outbox unit; failures leave no partial state.
+- Failure cases: invalid/oversize metadata or JSON, changed-fingerprint replay, scoped-key race, stale rowversion, unique insert distinct from stale update, forced rollback, sensitive-value leakage, audit mutation/deletion, duplicate consumer delivery, and SQL interruption.
+- Audit event: the integration probe uses `p2_02.transaction_probe_committed`, source `integration_test`, UTC timestamp, correlation identity and allow-listed/redacted snapshots. It is not a public product event contract.
+- Idempotency/concurrency: scope is actor/project/operation/key; same fingerprint replays stable outcome identity, changed fingerprint conflicts, first-writer races create one outcome, and mutable probes use SQL Server rowversion.
+- API/controller/DTO impact: N/A and out of scope. Repository results remain distinguishable for later P1 mapping; no HTTP error contract is introduced.
+
+### Declared implementation files
+
+The following concrete files are planned inside the assignment's exclusive paths. A generated migration timestamp/name may differ, but it will remain a new P2-02 migration and will be listed exactly at handoff.
+
+- `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs`
+- `RoadGuardSystem.BusinessObjects/Concurrency/IHasRowVersion.cs`
+- `RoadGuardSystem.BusinessObjects/Idempotency/IdempotencyRecord.cs`
+- `RoadGuardSystem.BusinessObjects/Messaging/OutboxMessage.cs`
+- `RoadGuardSystem.BusinessObjects/Messaging/ConsumerEffectReceipt.cs`
+- `RoadGuardSystem.Repositories/Auditing/AuditSnapshotBuilder.cs`
+- `RoadGuardSystem.Repositories/Auditing/AppendOnlyAuditInterceptor.cs`
+- `RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs`
+- `RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationResult.cs`
+- `RoadGuardSystem.Repositories/Messaging/ConsumerEffectService.cs`
+- `RoadGuardSystem.Repositories/Transactions/RoadGuardTransactionService.cs`
+- `RoadGuardSystem.Repositories/Concurrency/RowVersionConvention.cs`
+- `RoadGuardSystem.Repositories/Configurations/AuditLogConfiguration.cs`
+- `RoadGuardSystem.Repositories/Configurations/IdempotencyRecordConfiguration.cs`
+- `RoadGuardSystem.Repositories/Configurations/OutboxMessageConfiguration.cs`
+- `RoadGuardSystem.Repositories/Configurations/ConsumerEffectReceiptConfiguration.cs`
+- `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`
+- `RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs`
+- `RoadGuardSystem.Repositories/Migrations/<timestamp>_AddAuditOutboxIdempotencyConcurrencyPrimitives.cs`
+- `RoadGuardSystem.Repositories/Migrations/<timestamp>_AddAuditOutboxIdempotencyConcurrencyPrimitives.Designer.cs`
+- `RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextModelSnapshot.cs`
+- `tests/RoadGuardSystem.IntegrationTests/Infrastructure/P202TransactionProbe.cs`
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ValidationAndRedactionTests.cs`
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202TransactionAndIdempotencyTests.cs`
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ConcurrencyAndOutboxTests.cs`
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202MigrationLifecycleTests.cs`
+- `docs/worklogs/P2-02-completion.md`
+- `planning/RoadGuard_Plan_Person_2.md` (P2-02 status/note only)
+
+Shared hotspot ownership: P2-02 owns `RoadGuardDbContext.cs`, persistence DI registration, its new migration/model snapshot, and the P2-02 plan cell for this active task. No project/package/solution change is planned. Any newly required file outside the fixed ownership list will be recorded as a conflict before editing.
+
+### Resume command evidence
+
+| Command/check | Exit | Result | Time |
+|---|---:|---|---|
+| `git merge --no-edit develop` | 1 | Expected manual-resolution stop: conflicts in completion template, both plans and documentation verifier; no content was discarded. | 2026-09-18T13:28+07:00 |
+| Resolve four conflicts with `apply_patch`; scan conflict markers | 0 | Combined current Person 2 planning with mandatory Codex workflow; no conflict markers remained. | 2026-09-18T13:29-13:31+07:00 |
+| `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Documentation contracts passed after conflict resolution. | 2026-09-18T13:31+07:00 |
+| `pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1` | 0 | 9/9 planning regression cases passed; 0 failed/skipped. | 2026-09-18T13:31+07:00 |
+| `pwsh -NoProfile -File tests/Tooling/Verify-AntigravitySetup.ps1` | 0 | Workspace MCP config, mirrored rules and discovery/reference paths passed. | 2026-09-18T13:31+07:00 |
+| Explicit-path `git add`; `git diff --check`; `git diff --cached --check`; cached diff/name/status inspection | 0 | Only the authorized workflow integration was staged; P2-02 worklog remained unstaged; no whitespace errors. | 2026-09-18T13:32+07:00 |
+| `git commit -m "Merge develop workflow policy into huy"` | 0 | Created merge commit `b6d39d0`. | 2026-09-18T13:33+07:00 |
+| Re-read synchronized AGENTS/skill/references; ancestry/status/plan/dependency checks | 0 | Current workflow loaded; `b50b86f` is an ancestor; P2-02 is authorized to start after this status update. | 2026-09-18T13:33-13:34+07:00 |
+| `Get-Date -Format o` | 0 | Recorded `2026-09-18T13:34:46.6209567+07:00`. | 2026-09-18T13:34:46+07:00 |
+
+### Implementation result and AC trace
+
+| AC | Result and evidence |
+|---|---|
+| P2-02-AC-01 | Pass locally. Migration `20260918065914_AddAuditOutboxIdempotencyConcurrencyPrimitives` creates `AuditLogs`, `IdempotencyRecords`, `OutboxMessages`, and `ConsumerEffectReceipts` with bounded columns, `datetimeoffset(7)`, JSON checks, indexes, unique constraints, deferred actor/project FKs, and an append-only audit trigger. Migration lifecycle test applies to an empty SQL Server database, downgrades to `0`, and reapplies. |
+| P2-02-AC-02 | Pass locally. `RoadGuardTransactionService` and the idempotency first-write boundary use one SQL transaction under the configured execution strategy. Forced failure after staging domain probe, audit, outbox, and idempotency rows leaves all four absent. |
+| P2-02-AC-03 | Pass locally. Scope is actor/project/operation/key; request fingerprint is lowercase SHA-256 hex; replay returns the stored operation/outcome and scope; changed fingerprint returns `Conflict`; distinct scopes coexist; concurrent first requests commit one outcome and one domain effect. Unique races are resolved separately from rowversion conflicts. |
+| P2-02-AC-04 | Pass locally. `RowVersionConvention` configures reusable `byte[] RowVersion`; fresh updates advance the token and stale writers throw `DbUpdateConcurrencyException` without overwriting the winner. |
+| P2-02-AC-05 | Pass locally. Explicit allow-list builder recursively redacts case-insensitive sensitive keys and rejects malformed, scalar, or oversized JSON. Audit entity application validation, private setters, DbContext update/delete guard, SQL JSON checks, and `TR_AuditLogs_AppendOnly` protect persisted audit. Tests verify supplied sensitive values are absent from audit/outbox payload and validation exceptions; no application logging was introduced. |
+| P2-02-AC-06 | Pass locally. Outbox stores stable identity/type/UTC time/correlation/valid payload in the transaction. `(message, consumer)` uniqueness and `ConsumerEffectService` return the original effect on redelivery. No worker lease/retry scheduler, broker, or exactly-once claim was added. |
+| P2-02-AC-07 | Pass locally on SQL Server LocalDB with non-zero discovery and zero skips. Negative/positive chronology, migration lifecycle, restore, non-incremental build, format, affected/full tests, security and delivery verifiers, model-drift and cleanup checks are recorded below. Hosted CI was not run in this task; local gates match the repository commands and P2-01 already owns hosted pipeline evidence. |
+| P2-02-AC-08 | Antigravity implementation and self-review evidence is complete through the pre-handoff commit step. Exact commit identity and `Ready for review` status are appended only after the implementation commit is created. Codex acceptance remains mandatory and is not claimed. |
+
+### Exact implementation files
+
+- `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs`: Data Dictionary audit shape, UTC normalization, structured JSON validation, private mutation surface.
+- `RoadGuardSystem.BusinessObjects/Concurrency/IHasRowVersion.cs`: reusable mutable-aggregate marker.
+- `RoadGuardSystem.BusinessObjects/Idempotency/IdempotencyRecord.cs`: scoped key/fingerprint/stable outcome entity and application validation.
+- `RoadGuardSystem.BusinessObjects/Messaging/OutboxMessage.cs`: immutable event intent shape and JSON validation.
+- `RoadGuardSystem.BusinessObjects/Messaging/ConsumerEffectReceipt.cs`: durable consumer-effect receipt shape.
+- `RoadGuardSystem.Repositories/Auditing/AuditSnapshotBuilder.cs`: allow-list minimization, recursive sensitive-key redaction, size/schema validation.
+- `RoadGuardSystem.Repositories/Concurrency/RowVersionConvention.cs`: SQL Server rowversion/concurrency convention.
+- `RoadGuardSystem.Repositories/Configurations/AuditLogConfiguration.cs`: audit mapping, indexes, JSON checks and trigger metadata.
+- `RoadGuardSystem.Repositories/Configurations/IdempotencyRecordConfiguration.cs`: bounded mapping and unfiltered scoped unique index, including nullable system scope.
+- `RoadGuardSystem.Repositories/Configurations/OutboxMessageConfiguration.cs`: outbox mapping, JSON check and indexes.
+- `RoadGuardSystem.Repositories/Configurations/ConsumerEffectReceiptConfiguration.cs`: consumer uniqueness and outbox FK.
+- `RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationResult.cs`: explicit `Executed`/`Replayed`/`Conflict` result carrying stored scope.
+- `RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs`: validation, replay/conflict, atomic first-write and unique-race recovery under execution strategy.
+- `RoadGuardSystem.Repositories/Messaging/ConsumerEffectService.cs`: durable at-least-once effect deduplication.
+- `RoadGuardSystem.Repositories/Transactions/RoadGuardTransactionService.cs`: reusable retry-compatible SQL transaction boundary.
+- `RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextDesignTimeFactory.cs`: fail-closed design-time connection configuration; no connection string is stored.
+- `RoadGuardSystem.Repositories/Migrations/20260918065914_AddAuditOutboxIdempotencyConcurrencyPrimitives.cs`: new migration plus append-only SQL trigger.
+- `RoadGuardSystem.Repositories/Migrations/20260918065914_AddAuditOutboxIdempotencyConcurrencyPrimitives.Designer.cs`: generated migration metadata.
+- `RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextModelSnapshot.cs`: generated current model snapshot.
+- `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`: DbSets, convention application and application-path audit append-only guard.
+- `RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs`: scoped registration of the three persistence services.
+- `tests/RoadGuardSystem.IntegrationTests/Infrastructure/P202ProductionContract.cs`: runtime contract harness used to obtain behavioral RED without compile failures.
+- `tests/RoadGuardSystem.IntegrationTests/Infrastructure/P202TestDbContext.cs`: isolated migrated SQL database and rowversion transaction probe.
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ValidationAndRedactionTests.cs`: malformed/oversize/scalar/redaction/sensitive-exception cases.
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202TransactionAndIdempotencyTests.cs`: changed payload, JSON, full rollback, EF/SQL append-only cases.
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ConcurrencyAndOutboxTests.cs`: stale/fresh rowversion, JSON/metadata and consumer uniqueness cases.
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ServiceContractTests.cs`: validation, atomic write, replay/conflict/race/scope, interruption, retry strategy and dedupe paths.
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202MigrationLifecycleTests.cs`: empty apply, downgrade and reapply proof.
+- `planning/RoadGuard_Plan_Person_2.md`: P2-02 status/note only.
+- `docs/worklogs/P2-02-completion.md`: append-only implementation, verification and self-review evidence.
+
+Planned `AppendOnlyAuditInterceptor.cs` was not created: the final implementation uses the mandatory guard in `RoadGuardDbContext` so direct context construction and DI paths share the same application enforcement. The planned standalone `P202TransactionProbe.cs` was consolidated into `P202TestDbContext.cs`. Added design-time factory, reflection contract harness and service contract tests remain inside the assignment's declared migration and `P202*` ownership paths. No project/package/solution/API/Services/DTO/specification file changed.
+
+### Negative-first and GREEN chronology
+
+| Phase / command | Exit | Counts / observed result | Environment / time |
+|---|---:|---|---|
+| Initial full integration baseline with inherited configured SQL endpoint | 1 | 22 passed, 34 failed, 0 skipped of 56; every failure was `SqlTestEnvironmentUnavailableException`. Recorded as environment failure, not RED. | Windows; configured endpoint unreachable; Docker stopped; 2026-09-18 ~13:40+07:00 |
+| Start Docker Desktop/service probes | non-zero / timed out | Shell lacked Windows service permission; visible Docker backend did not expose a ready Linux engine. No test result claimed. | Windows Docker Desktop; 2026-09-18 ~13:42-13:47+07:00 |
+| `sqllocaldb start MSSQLLocalDB`; full integration baseline with process-scoped LocalDB connection | 0 | 56 passed, 0 failed, 0 skipped. Established real SQL Server baseline without changing global environment. | SQL Server LocalDB; 2026-09-18 ~13:48+07:00 |
+| First P2-02 test compile | 1 | `CS8603` in test-only reflection helper; fixed before RED and not counted as behavior evidence. | .NET 8 test project |
+| Initial negative run after helper correction | 1 | 11 failed, 0 passed/skipped. Some cases exposed test SQL brace formatting; corrected before final RED evidence. | SQL Server LocalDB |
+| Negative run after test-fixture correction | 1 | 11/11 failed for missing redactor/transaction service/tables/constraints and missing rowversion conflict; no compile/environment failure. | SQL Server LocalDB |
+| Negative plus positive contracts before production | 1 | 20/20 failed for missing P2-02 behavior and migration; no skips. | SQL Server LocalDB |
+| Application append-only contract added before production | 1 | 21/21 failed for missing behavior; no skips. | SQL Server LocalDB |
+| First implementation run | 1 | 15 passed, 6 failed: migration/trigger absent and four fixture-wide count assertions exposed test isolation issues. | SQL Server LocalDB |
+| After migration/trigger and scoped assertion repair | 1 then 0 | 20/21 passed, then 21/21 passed after scoping snapshot/payload reads. | SQL Server LocalDB |
+| Additional required matrix regression run | 1 | 25 passed, 2 failed of 27: fingerprint parameter name defect and EF-wrapped SQL interruption expectation. Production parameter contract fixed; interruption assertion corrected to inspect the exception chain. | SQL Server LocalDB |
+| Required matrix GREEN | 0 | 27/27 passed, 0 skipped. | SQL Server LocalDB |
+| Self-review JSON scalar regression | 1 | Targeted 1/1 failed because application accepted JSON scalar. | SQL Server LocalDB |
+| JSON application validation GREEN | 0 | 28/28 passed, 0 skipped. | SQL Server LocalDB |
+| Self-review retry execution-strategy regressions | 1 | Targeted 2/2 failed with EF user-transaction/execution-strategy error; subsequent compile namespace issue was not counted as RED. | SQL Server LocalDB |
+| Retry execution-strategy GREEN | 0 | Targeted 2/2 passed; complete P2-02 suite then passed 30/30, 0 skipped. | SQL Server LocalDB |
+
+### Migration recovery note
+
+- Empty apply: the migration creates exactly the four P2-02 production tables, JSON checks, indexes/FK and audit trigger; `P202MigrationLifecycleTests` proves this against an isolated empty SQL Server database.
+- Normal recovery: prefer a forward corrective migration after deployment; never edit this migration after it is shared.
+- Downgrade: `Down` drops the append-only trigger first, then receipt/audit/idempotency/outbox tables in FK-safe order. The lifecycle test migrates to `Migration.InitialDatabase` and reapplies successfully.
+- Data safety: downgrade is destructive to P2-02 records. Before downgrade on a non-empty environment, stop writers, back up/export audit/outbox/idempotency/receipt data and verify restore capability. Do not downgrade an environment containing evidentiary audit without an owner-approved recovery plan.
+- Deferred FKs: `AuditLog.actor_user_id` and project scope FKs are intentionally added by new migrations only after P2-10/P2-20 create authoritative tables; this migration does not create placeholders or a dependency cycle.
+
+### Verification evidence on final implementation content before handoff metadata
+
+| Command/check | Exit | Result | Environment / time |
+|---|---:|---|---|
+| `dotnet ef migrations has-pending-model-changes ... --no-build` | 0 | `No changes have been made to the model since the last migration.` | SDK 10.0.401 / EF Core 8 model; 2026-09-18 |
+| `dotnet ef migrations list ... --no-build` | 0 | Lists `20260918065914_AddAuditOutboxIdempotencyConcurrencyPrimitives (Pending)` against master, as expected; no production database was mutated. | SQL Server LocalDB design-time connection |
+| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up to date. | Windows / SDK 10.0.401; 2026-09-18T14:15+07:00 |
+| Initial `dotnet format ... --verify-no-changes --no-restore` | non-zero | Reported whitespace only in P2-02 idempotency mapping; scoped formatter corrected that file. | Windows; numeric exit was not captured by the tool wrapper and is not invented. |
+| Final `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | Build succeeded; 0 warnings, 0 errors. | Windows / SDK 10.0.401; 2026-09-18T14:15+07:00 |
+| Final `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | No formatting changes required. | Windows; 2026-09-18T14:15+07:00 |
+| Final `dotnet test RoadGuardSystem.slnx --no-build` with process-scoped LocalDB connection | 0 | Unit 37/37, API 26/26, integration 86/86; total 149 passed, 0 failed, 0 skipped. Integration includes P2-02 30/30 and migration downgrade/reapply. | SQL Server LocalDB; 2026-09-18T14:15+07:00 |
+| `pwsh -NoProfile -File tests/Security/Verify-DependencySecurity.ps1` | 0 | No High/Critical vulnerable dependency detected for the integration project. | PowerShell 7; 2026-09-18T14:15+07:00 |
+| Documentation, planning, tooling, CI and Compose verifiers in the commands recorded earlier in this attempt | 0 each | Documentation passed in PowerShell 7/5; planning 9/9 in both; Antigravity setup, CI workflow and Docker Compose verification passed. These are rerun after final handoff metadata below. | Windows; 2026-09-18 |
+| `sqlcmd` cleanup query against LocalDB master | 0 | `0` databases matching `RoadGuard_Test_%`; no isolated test database remained. | SQL Server LocalDB; 2026-09-18 |
+| Scoped secret/TODO scan | 0 | No TODO/FIXME/NotImplemented or embedded credential/connection-string assignment in P2-02 source/tests. Intentional sensitive-key test literals contain no real secrets. | `rg`; 2026-09-18T14:14-14:15+07:00 |
+| `git diff --check` | 0 | No whitespace errors before completion-log handoff append. | `huy`; 2026-09-18T14:14+07:00 |
+
+### Antigravity owner self-review
+
+- Authorization/project scope: P2-02 exposes no endpoint and performs no role decision. The idempotency record/result retains actor, project and operation so later P1 services can recheck current server-side authorization before replay data is returned. No claim/DTO trust path was added.
+- State transitions: business transition is N/A. Internal idempotency statuses are explicit `Executed`, `Replayed`, `Conflict`; consumer effects are `Recorded` or `Replayed`. Direct aggregate state assignment was not introduced.
+- Immutability/versioning: audit properties have private setters; EF update/delete is blocked and direct SQL update/delete is rejected by trigger. Stored idempotency outcomes and outbox event fields are created once through factories/services; audit correction requires a new event. Migration history is new and unshared; no prior migration was edited.
+- Idempotency: scoped unique index includes nullable system scope without an EF-generated null filter; same fingerprint replays, changed fingerprint conflicts, distinct scope isolates, and concurrent first writes commit one outcome/effect. Retry strategy regression is covered.
+- Concurrency: reusable rowversion convention is exercised with fresh/stale SQL writers. Stale update remains `DbUpdateConcurrencyException`; insertion uniqueness remains `SqlException`/explicit replay handling and is not converted into a stale update.
+- Transactions/audit/outbox: forced failure after staging all members rolls back all members; accepted flow commits all four. Audit shape matches Data Dictionary fields, normalizes UTC and preserves polymorphic entity reference without physical FK. Consumer redelivery creates one receipt/effect.
+- Sensitive data: allow-list/redaction covers nested objects/arrays and all required case-insensitive key names. Persisted audit/outbox and validation exception tests contain no supplied sensitive value. No logger or exception path includes request payload, connection string or credential.
+- Missing tests: no unresolved in-scope gap found. API 401/403/stable HTTP errors, business invalid transitions and current membership checks are N/A because P2-02 adds no API/business workflow. Worker leasing/retry scheduling is deferred to P2-31. Broker/real AI/FE tests are out of scope.
+- Conflict warning final state: resolved. Owner-authorized merge `b6d39d0` integrated workflow policy before implementation; P2-02 exclusively owns all production/test paths changed. The Person 2 plan edit is limited to the P2-02 row. No active task overlap or schema handoff reopening was observed.
+- Self-review fixes completed: correct fingerprint parameter contract; object/array JSON schema validation; retry-compatible explicit transactions; stronger four-member rollback; scoped fixture assertions; exception-chain interruption evidence. No mandatory self-review finding remains open.
+- Residual limitations: hosted Linux CI and Docker/Testcontainers were not rerun because the local Docker service was unavailable to the agent. Real SQL Server evidence used user-scoped SQL Server LocalDB, with zero skipped tests and cleanup proof; the repository's hosted SQL Server CI remains the integration environment after review/integration.
+
+Implementation content is ready to commit. Task remains `In Progress` until the exact commit identity is appended and the final handoff metadata checks pass. Antigravity does not mark `Done`.

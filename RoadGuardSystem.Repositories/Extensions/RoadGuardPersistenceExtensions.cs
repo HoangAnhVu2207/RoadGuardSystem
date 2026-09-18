@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.Repositories.Seeding;
+using RoadGuardSystem.Repositories.Idempotency;
+using RoadGuardSystem.Repositories.Messaging;
+using RoadGuardSystem.Repositories.Transactions;
 
 namespace RoadGuardSystem.Repositories.Extensions;
 
@@ -46,6 +49,10 @@ public static class RoadGuardPersistenceExtensions
 
         services.AddSingleton<IValidateOptions<RoadGuardDatabaseOptions>>(
             new RoadGuardDatabaseOptionsValidator(isProduction));
+
+        services.AddScoped<RoadGuardTransactionService>();
+        services.AddScoped<IdempotencyOperationService>();
+        services.AddScoped<ConsumerEffectService>();
 
         services.AddDbContext<RoadGuardDbContext>((sp, dbContextOptions) =>
         {

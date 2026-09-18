@@ -46,8 +46,8 @@ public sealed class AuditLog
         ValidateRequired(eventType, nameof(eventType), 100);
         ValidateRequired(entityType, nameof(entityType), 100);
         ValidateRequired(source, nameof(source), 80);
-        ValidateOptionalJson(beforeSnapshot, nameof(beforeSnapshot));
-        ValidateOptionalJson(afterSnapshot, nameof(afterSnapshot));
+        var sanitizedBeforeSnapshot = SanitizeOptionalJson(beforeSnapshot, nameof(beforeSnapshot));
+        var sanitizedAfterSnapshot = SanitizeOptionalJson(afterSnapshot, nameof(afterSnapshot));
 
         return new AuditLog
         {
@@ -57,8 +57,8 @@ public sealed class AuditLog
             EventType = eventType.Trim(),
             EntityType = entityType.Trim(),
             EntityId = entityId,
-            BeforeSnapshot = beforeSnapshot,
-            AfterSnapshot = afterSnapshot,
+            BeforeSnapshot = sanitizedBeforeSnapshot,
+            AfterSnapshot = sanitizedAfterSnapshot,
             Reason = reason,
             Source = source.Trim(),
             CorrelationId = correlationId
@@ -74,17 +74,16 @@ public sealed class AuditLog
         }
     }
 
-    private static void ValidateOptionalJson(string? json, string parameterName)
+    private static string? SanitizeOptionalJson(string? json, string parameterName)
     {
         if (json is null)
         {
-            return;
+            return null;
         }
 
         try
         {
-            using var document = JsonDocument.Parse(json);
-            StructuredJsonValidation.EnsureObjectOrArray(document.RootElement, parameterName);
+            return SensitiveJsonSanitizer.Redact(json);
         }
         catch (JsonException exception)
         {

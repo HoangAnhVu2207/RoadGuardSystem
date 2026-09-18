@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.Repositories.Transactions;
 
 namespace RoadGuardSystem.Repositories.Messaging;
 
@@ -21,12 +22,18 @@ public sealed class ConsumerEffectService
         _context = context;
     }
 
-    public async Task<ConsumerEffectResult> RecordAsync(
+    /// <summary>
+    /// Commits one durable database effect and its receipt atomically. The callback must write through
+    /// this service's DbContext or another resource enlisted in its current database transaction.
+    /// </summary>
+    public async Task<ConsumerEffectResult> ProcessAsync(
         Guid messageId,
         string consumerName,
         Guid effectId,
+        Func<CancellationToken, Task> durableEffect,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(durableEffect);
         ArgumentException.ThrowIfNullOrWhiteSpace(consumerName);
         if (consumerName.Length > 100)
         {
@@ -40,16 +47,35 @@ public sealed class ConsumerEffectService
             return new ConsumerEffectResult(ConsumerEffectStatus.Replayed, existing.EffectId);
         }
 
+        ConsumerEffectResult? result = null;
         try
         {
-            var receipt = ConsumerEffectReceipt.Create(
-                messageId,
-                consumerName,
-                effectId,
-                DateTimeOffset.UtcNow);
-            _context.Set<ConsumerEffectReceipt>().Add(receipt);
-            await _context.SaveChangesAsync(cancellationToken);
-            return new ConsumerEffectResult(ConsumerEffectStatus.Recorded, receipt.EffectId);
+            var transactionService = new RoadGuardTransactionService(_context);
+            await transactionService.ExecuteAsync(
+                async operationCancellationToken =>
+                {
+                    existing = await FindExistingAsync(
+                        messageId,
+                        consumerName,
+                        operationCancellationToken);
+                    if (existing is not null)
+                    {
+                        result = new ConsumerEffectResult(ConsumerEffectStatus.Replayed, existing.EffectId);
+                        return;
+                    }
+
+                    var receipt = ConsumerEffectReceipt.Create(
+                        messageId,
+                        consumerName,
+                        effectId,
+                        DateTimeOffset.UtcNow);
+                    _context.Set<ConsumerEffectReceipt>().Add(receipt);
+                    await durableEffect(operationCancellationToken);
+                    result = new ConsumerEffectResult(ConsumerEffectStatus.Recorded, receipt.EffectId);
+                },
+                cancellationToken);
+
+            return result ?? throw new InvalidOperationException("Consumer effect transaction produced no result.");
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
         {

@@ -362,21 +362,143 @@ public sealed class P202ServiceContractTests : IClassFixture<P202SqlServerFixtur
         (await verification.TransactionProbes.CountAsync(probe => probe.Value.StartsWith("race-"))).Should().Be(1);
     }
 
-    [Fact(DisplayName = "P2-02 Positive: duplicate consumer delivery returns the first durable effect")]
-    public async Task ConsumerRedelivery_ReturnsPriorEffect()
+    [Fact(DisplayName = "P2-02 Negative F-02: forced consumer failure rolls back durable effect and receipt")]
+    public async Task ConsumerFailure_RollsBackDurableEffectAndReceipt()
+    {
+        var messageId = Guid.NewGuid();
+        var effectId = Guid.NewGuid();
+        await using var context = _fixture.CreateDbContext();
+        await InsertOutboxAsync(context, messageId, Guid.NewGuid(), "{\"schemaVersion\":1}", CancellationToken.None);
+
+        var action = () => ProcessConsumerEffectAsync(
+            context,
+            messageId,
+            "dashboard-projection",
+            effectId,
+            async cancellationToken =>
+            {
+                context.TransactionProbes.Add(new P202TransactionProbe { Id = effectId, Value = "must-rollback" });
+                await context.SaveChangesAsync(cancellationToken);
+                throw new InvalidOperationException("forced consumer failure");
+            });
+
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("forced consumer failure");
+
+        await using var verification = _fixture.CreateDbContext();
+        (await verification.TransactionProbes.CountAsync(probe => probe.Id == effectId)).Should().Be(0);
+        (await CountConsumerReceiptAsync(verification, messageId, "dashboard-projection")).Should().Be(0);
+    }
+
+    [Fact(DisplayName = "P2-02 Negative F-02: replay does not execute or persist another durable effect")]
+    public async Task ConsumerReplay_DoesNotExecuteDurableEffectAgain()
     {
         var messageId = Guid.NewGuid();
         var firstEffectId = Guid.NewGuid();
-        await using var context = _fixture.CreateDbContext();
-        await InsertOutboxAsync(context, messageId, Guid.NewGuid(), "{\"schemaVersion\":1}", CancellationToken.None);
-        var first = await RecordConsumerEffectAsync(context, messageId, "dashboard-projection", firstEffectId);
-        context.ChangeTracker.Clear();
-        var replay = await RecordConsumerEffectAsync(context, messageId, "dashboard-projection", Guid.NewGuid());
+        var replayEffectId = Guid.NewGuid();
+        await using (var setup = _fixture.CreateDbContext())
+        {
+            await InsertOutboxAsync(setup, messageId, Guid.NewGuid(), "{\"schemaVersion\":1}", CancellationToken.None);
+            await ProcessConsumerEffectAsync(
+                setup,
+                messageId,
+                "dashboard-projection",
+                firstEffectId,
+                cancellationToken =>
+                {
+                    setup.TransactionProbes.Add(new P202TransactionProbe { Id = firstEffectId, Value = "first-effect" });
+                    return Task.CompletedTask;
+                });
+        }
 
-        ReadProperty(first, "Status").ToString().Should().Be("Recorded");
+        var replayCallbackInvoked = false;
+        await using var replayContext = _fixture.CreateDbContext();
+        var replay = await ProcessConsumerEffectAsync(
+            replayContext,
+            messageId,
+            "dashboard-projection",
+            replayEffectId,
+            cancellationToken =>
+            {
+                replayCallbackInvoked = true;
+                replayContext.TransactionProbes.Add(new P202TransactionProbe { Id = replayEffectId, Value = "duplicate-effect" });
+                return Task.CompletedTask;
+            });
+
+        replayCallbackInvoked.Should().BeFalse();
         ReadProperty(replay, "Status").ToString().Should().Be("Replayed");
         ReadProperty<Guid>(replay, "EffectId").Should().Be(firstEffectId);
-        (await CountConsumerReceiptAsync(context, messageId, "dashboard-projection")).Should().Be(1);
+
+        await using var verification = _fixture.CreateDbContext();
+        (await verification.TransactionProbes.CountAsync(
+            probe => probe.Id == firstEffectId || probe.Id == replayEffectId)).Should().Be(1);
+        (await CountConsumerReceiptAsync(verification, messageId, "dashboard-projection")).Should().Be(1);
+    }
+
+    [Fact(DisplayName = "P2-02 Edge F-02: concurrent consumer deliveries commit one durable effect and receipt")]
+    public async Task ConcurrentConsumerDeliveries_CommitOneDurableEffectAndReceipt()
+    {
+        var messageId = Guid.NewGuid();
+        var effectIds = new[] { Guid.NewGuid(), Guid.NewGuid() };
+        await using (var setup = _fixture.CreateDbContext())
+        {
+            await InsertOutboxAsync(setup, messageId, Guid.NewGuid(), "{\"schemaVersion\":1}", CancellationToken.None);
+        }
+
+        var deliveries = effectIds.Select(async (effectId, index) =>
+        {
+            await using var context = _fixture.CreateDbContext();
+            return await ProcessConsumerEffectAsync(
+                context,
+                messageId,
+                "dashboard-projection",
+                effectId,
+                async cancellationToken =>
+                {
+                    context.TransactionProbes.Add(new P202TransactionProbe
+                    {
+                        Id = effectId,
+                        Value = $"concurrent-effect-{index}"
+                    });
+                    await Task.Delay(75, cancellationToken);
+                });
+        });
+
+        var results = await Task.WhenAll(deliveries);
+
+        results.Select(result => ReadProperty(result, "Status").ToString())
+            .Should().BeEquivalentTo(["Recorded", "Replayed"]);
+
+        await using var verification = _fixture.CreateDbContext();
+        (await verification.TransactionProbes.CountAsync(probe => effectIds.Contains(probe.Id))).Should().Be(1);
+        (await CountConsumerReceiptAsync(verification, messageId, "dashboard-projection")).Should().Be(1);
+    }
+
+    [Fact(DisplayName = "P2-02 Positive F-02: first consumer delivery commits durable effect and receipt atomically")]
+    public async Task FirstConsumerDelivery_CommitsDurableEffectAndReceipt()
+    {
+        var messageId = Guid.NewGuid();
+        var effectId = Guid.NewGuid();
+        await using var context = _fixture.CreateDbContext();
+        await InsertOutboxAsync(context, messageId, Guid.NewGuid(), "{\"schemaVersion\":1}", CancellationToken.None);
+
+        var result = await ProcessConsumerEffectAsync(
+            context,
+            messageId,
+            "dashboard-projection",
+            effectId,
+            cancellationToken =>
+            {
+                context.TransactionProbes.Add(new P202TransactionProbe { Id = effectId, Value = "committed-effect" });
+                return Task.CompletedTask;
+            });
+
+        ReadProperty(result, "Status").ToString().Should().Be("Recorded");
+        ReadProperty<Guid>(result, "EffectId").Should().Be(effectId);
+
+        await using var verification = _fixture.CreateDbContext();
+        (await verification.TransactionProbes.CountAsync(probe => probe.Id == effectId)).Should().Be(1);
+        (await CountConsumerReceiptAsync(verification, messageId, "dashboard-projection")).Should().Be(1);
     }
 
     private static Task<(Guid OperationId, string OutcomeJson)> AcceptedOutcome(CancellationToken _)
@@ -402,18 +524,22 @@ public sealed class P202ServiceContractTests : IClassFixture<P202SqlServerFixtur
             [actorUserId, projectId, operation, idempotencyKey, requestFingerprint, callback, CancellationToken.None]);
     }
 
-    private static async Task<object> RecordConsumerEffectAsync(
+    private static async Task<object> ProcessConsumerEffectAsync(
         P202TestDbContext context,
         Guid messageId,
         string consumerName,
-        Guid effectId)
+        Guid effectId,
+        Func<CancellationToken, Task> durableEffect)
     {
         var serviceType = P202ProductionContract.RequireRepositoryType("Messaging.ConsumerEffectService");
         var service = Activator.CreateInstance(serviceType, context);
         service.Should().NotBeNull();
-        var method = P202ProductionContract.RequirePublicMethod(serviceType, "RecordAsync", isStatic: false, parameterCount: 4);
+        var method = P202ProductionContract.RequirePublicMethod(serviceType, "ProcessAsync", isStatic: false, parameterCount: 5);
 
-        return await InvokeResultAsync(method, service, [messageId, consumerName, effectId, CancellationToken.None]);
+        return await InvokeResultAsync(
+            method,
+            service,
+            [messageId, consumerName, effectId, durableEffect, CancellationToken.None]);
     }
 
     private static async Task<object> InvokeResultAsync(MethodInfo method, object? target, object?[] arguments)

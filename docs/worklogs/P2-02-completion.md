@@ -457,3 +457,134 @@ Implementation content is ready to commit. Task remains `In Progress` until the 
 - `Get-Date -Format o`: exit `0`, recorded `2026-09-18T14:19:25.3439413+07:00`.
 - `git status --short --branch`: exit `0`, clean `huy` after implementation commit and ahead of `origin/huy` by five commits.
 - `git show -s --format=... HEAD`: exit `0`, confirmed commit `b2aec22`, parent `b6d39d0`, and focused P2-02 subject.
+
+## Codex acceptance review - round 1 (Changes requested)
+
+- **Reviewer / time:** Codex, 2026-09-18T15:21:14.5333799+07:00.
+- **Reviewed revision and diff identity:** Submitted implementation range `b6d39d09a899ef71e6fa088da52dbd099ab2e05c..b2aec22114e281a9a0edf59d84d3cc0bac96450f`, with handoff metadata commit `e9ef1e3225bae4e5ef0342c82c4e9c994515632c`. The checkout advanced during review to `682aa0630904729537091c35753a42a44809959f` through a P2-01-only metadata commit; `b2aec22` remains an ancestor and no P2-02 production or test artifact changed after the submitted implementation commit. The working tree, staged diff, and relevant untracked-file inventory were clean before this review write.
+- **Handoff and ownership:** Antigravity owner implementation/self-review was complete and P2-02 was `Ready for review`. P2-02 production/test artifacts were frozen. The Person 2 plan hotspot became clean after the independent P2-01 metadata commit, so this round writes only the P2-02 status cell and this appended review section.
+
+### Acceptance-criteria disposition
+
+- **P2-02-AC-01:** Passed for the submitted artifact. Entity shape, EF mappings, migration/snapshot, `datetimeoffset(7)`, JSON checks, indexes, append-only audit trigger, deferred FKs, empty apply, downgrade and reapply were inspected and exercised on SQL Server LocalDB.
+- **P2-02-AC-02:** Passed for the submitted artifact. The representative domain/audit/outbox/idempotency unit commits through the explicit transaction boundary, and the forced failure test rolls all four members back.
+- **P2-02-AC-03:** Passed for the submitted artifact. Scoped uniqueness, same-fingerprint replay, changed-fingerprint conflict, scope isolation, concurrent first submissions and retained actor/project/operation identity were inspected and exercised.
+- **P2-02-AC-04:** Passed for the submitted artifact. Independent SQL contexts demonstrate rowversion advancement and stale-writer `DbUpdateConcurrencyException` without overwriting the winner.
+- **P2-02-AC-05:** Failed by open finding F-01. The redaction helper works when explicitly invoked, but public production factories accept and retain valid secret-bearing JSON, so the mandatory sanitization invariant is bypassable.
+- **P2-02-AC-06:** Not accepted by open finding F-02. Durable uniqueness of the receipt is proven, but the submitted service/test does not demonstrate one durable consumer effect and its receipt committing atomically across failure, replay and concurrency.
+- **P2-02-AC-07:** Passed for the submitted artifact. Negative-first history is preserved, and fresh restore/build/format, real SQL Server affected/full tests, dependency-security, migration consistency, diff and cleanup checks passed with non-zero discovery and zero skips.
+- **P2-02-AC-08:** Incomplete until F-01 and F-02 are fixed and re-reviewed. The handoff/self-review evidence itself is present.
+
+### Findings
+
+- **F-01 - Open - [P1] Mandatory sensitive-data sanitization is bypassable through the production entity path.** Owner/task: Person 2 / P2-02. Locations: `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs:49-64`, `RoadGuardSystem.BusinessObjects/Messaging/OutboxMessage.cs:35-52`, and `RoadGuardSystem.Repositories/RoadGuardDbContext.cs:34-67`. Trigger: a repository caller supplies valid object/array JSON containing a case-insensitive sensitive key directly to `AuditLog.Create` or `OutboxMessage.Create`, then adds the returned entity to the exposed DbSet. Behavior: those factories validate only JSON shape and assign the original string; `SaveChanges` enforces only audit append-only state. A reviewer reflection probe using the sentinel `P2_02_REVIEW_SENTINEL` confirmed both `AfterSnapshot` and `PayloadJson` retained the supplied `token`/`authorization` value. SQL `ISJSON` accepts the payload, so it can be persisted. Impact: credentials/tokens can enter durable audit/outbox storage despite the task's no-secret contract. Violated contract: P2-02-AC-05 and Data Dictionary sections 6.3/6.6. Closure: make the production persistence API require or enforce an allow-listed/redacted representation for audit snapshots and secret-safe outbox payloads, and add SQL-backed regression tests that use the public production construction/persistence path for nested and case-variant sensitive keys. Tests that invoke the helper separately are insufficient.
+- **F-02 - Open - [P2] Consumer replay evidence records only a receipt, not an atomic durable effect.** Owner/task: Person 2 / P2-02. Locations: `RoadGuardSystem.Repositories/Messaging/ConsumerEffectService.cs:24-64` and `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ServiceContractTests.cs:365-379`. Trigger: an at-least-once handler crashes between applying its durable effect and recording the receipt, or between recording the receipt and applying the effect. Behavior: `RecordAsync` persists only `ConsumerEffectReceipt`; it exposes no combined effect callback/boundary, while the positive test asserts only receipt status/count and labels its `EffectId` as the effect. Impact: the submitted evidence does not exclude duplicate effects or a receipt that suppresses a missing effect. Violated contract: P2-02-AC-06 and its required positive/rollback evidence. Closure: demonstrate a repository-owned atomic composition (the existing transaction service may be used if sufficient) with a synthetic durable effect row plus receipt, proving first delivery commits both, replay/concurrent delivery does not rerun the effect, and a forced failure rolls both back. Change production code only if the existing primitives cannot satisfy that contract.
+
+### Fresh reviewer checks
+
+Environment: Windows 11 build 26100, PowerShell 7, .NET SDK 10.0.401, .NET 8.0.31 test runtime, SQL Server LocalDB 17.0.4025.3, branch `huy` at review HEAD `682aa06`.
+
+| Command/check | Exit | Reviewer result |
+|---|---:|---|
+| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up to date. |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 9 projects built; 0 warnings, 0 errors. |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | No formatting changes required. |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --no-restore --filter "TaskId=P2-02" --logger "console;verbosity=normal"` with process-scoped LocalDB connection | 0 | 30/30 passed, 0 failed, 0 skipped. |
+| `dotnet test RoadGuardSystem.slnx --no-build --no-restore --logger "console;verbosity=normal"` with process-scoped LocalDB connection | 0 | 149/149 passed, 0 failed, 0 skipped: Unit 37, API 26, SQL Integration 86. |
+| `pwsh -NoProfile -File tests/Security/Verify-DependencySecurity.ps1` | 0 | No High/Critical vulnerable dependency detected for the integration project. |
+| `dotnet ef migrations has-pending-model-changes --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --context RoadGuardDbContext --no-build` | 0 | No model changes since the migration. |
+| `dotnet ef migrations list --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --context RoadGuardDbContext --no-build` | 0 | P2-02 migration listed as pending against LocalDB master; no database mutation. |
+| Initial reviewer EF invocation using nonexistent `RoadGuardSystem.Repositories.csproj` | 1 | Reviewer command-path error, diagnosed from the actual solution project name and corrected above; not an artifact failure. |
+| Reflection probe against submitted BusinessObjects assembly | 0 | `AuditLog.Create` retained `token` sentinel and `OutboxMessage.Create` retained `authorization` sentinel, substantiating F-01 without mutating the database. |
+| `git diff --check b6d39d0..b2aec22`; ancestry checks | 0 | Submitted diff has no whitespace errors; baseline -> submission -> current HEAD ancestry verified. |
+| LocalDB cleanup query for `RoadGuard_Test_%` | 0 | 0 isolated test databases remained. |
+
+### Verification gaps, verdict and bounded fix request
+
+- Docker/Testcontainers and hosted Linux CI were not rerun in this round. This is not the blocking gap: the applicable SQL behavior ran on real SQL Server LocalDB with zero skips, and P2-01's hosted delivery gate is already accepted in this checkout.
+- **Verdict / recorded status:** `Changes requested`. P2-02 is not `Done`; F-01 and F-02 remain open. P2-10 remains blocked by the P2-02 dependency. This verdict does not authorize merge, push, deployment or the next task.
+- **Fix request to Antigravity:** Resume P2-02 as `In Progress`. Close F-01 by making secret sanitization non-bypassable through the public audit/outbox persistence path and proving it with SQL-backed regressions. Close F-02 by proving one synthetic durable consumer effect and its receipt are atomic and replay/concurrency safe, adding production behavior only if the existing transaction primitives cannot provide that guarantee. Rerun the P2-02 SQL filter plus restore, non-incremental build, format, full affected tests, migration consistency, security, diff and cleanup gates; self-review the fixes; then resubmit the exact artifact as `Ready for review` without starting P2-10.
+
+## Antigravity fix round 1 - started 2026-09-18T15:39:42+07:00
+
+- **Status:** `In Progress`; this round is limited to closing Codex findings F-01 and F-02. P2-10 remains blocked.
+- **Branch / baseline:** Person 2 branch `huy` at `682aa0630904729537091c35753a42a44809959f`. The pre-existing dirty files are the Codex round-1 review/status writes in this worklog and the P2-02 plan row; they are preserved and extended.
+- **Approved design:** F-01 adds SQL-backed regressions through the public production entity/DbContext path and makes sanitization mandatory at that path. F-02 adds a repository-owned process-once transaction boundary in which a synthetic durable SQL effect and its receipt commit together, with success, forced rollback, replay, and concurrent-delivery proof.
+- **Negative-first order:** author F-01/F-02 regressions, observe the intended failures against the submitted implementation, then make the minimum production changes and rerun to GREEN before the full gate.
+- **Exclusive production paths:** `RoadGuardSystem.BusinessObjects/Auditing/**`, `RoadGuardSystem.BusinessObjects/Messaging/**`, `RoadGuardSystem.Repositories/Auditing/**`, `RoadGuardSystem.Repositories/Messaging/**`, and `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`, only as needed for F-01/F-02.
+- **Exclusive test paths:** P2-02 infrastructure and persistence integration tests under `tests/RoadGuardSystem.IntegrationTests/**`.
+- **Shared metadata hotspot:** only this task's worklog and P2-02 plan row. No migration, project, solution, DI, API, Services, DTO, specification, or ADR change is planned.
+- **Conflict warning:** no active implementation overlap is visible. If the fix requires schema/migration or another task-owned hotspot, stop and record the new conflict before editing it.
+
+### Fix implementation and finding disposition
+
+- **F-01 - Fixed, pending Codex verification.** `AuditLog.Create` and `OutboxMessage.Create` now recursively redact all required case-insensitive sensitive keys before retaining JSON. `RoadGuardDbContext` independently re-sanitizes added audit snapshots and added/modified outbox payloads immediately before every synchronous or asynchronous save, including values replaced through EF's public property-entry API after construction. SQL regressions assert the supplied sentinel is absent and `[REDACTED]` is durable for nested `password`, `token`, `secret`, `authorization`, `cookie`, and `connectionString` variants.
+- **F-02 - Fixed, pending Codex verification.** Receipt-only `RecordAsync` was replaced by `ProcessAsync`, which owns the transaction composition of a `ConsumerEffectReceipt` and a caller-provided durable database effect. The receipt is staged before the callback; the transaction service commits both or rolls both back. Sequential replay does not invoke the callback. A concurrent unique-key loser rolls back its effect and returns the winning receipt. The callback contract explicitly requires the same `DbContext` or another resource enlisted in the current database transaction; external side effects are not claimed exactly-once.
+- **Schema/migration/API impact:** no schema, migration, HTTP/API, DTO, package, project, solution, DI, specification, or ADR change. The repository service contract changes from receipt-only `RecordAsync` to transaction-owned `ProcessAsync`; no production caller of `RecordAsync` existed in this checkout.
+
+### Negative-first and GREEN chronology
+
+1. Added SQL-backed F-01 public factory/`DbSet.Add` regression and F-02 process-once rollback/replay/concurrency contracts before production edits.
+2. The first targeted invocation failed at compile time because the new F-01 test omitted the EF namespace; this was a test-harness error and is not counted as behavioral RED.
+3. After correcting the test harness, the targeted SQL run failed as intended: F-01 persisted the `P2_02_F01_*` sentinel unchanged, and F-02 reported that the required public `ConsumerEffectService.ProcessAsync` contract did not exist. Two tests discovered and both failed for the assigned gaps.
+4. Added entity-factory redaction and the transaction-owned consumer-effect boundary. Targeted SQL runs passed factory persistence, rollback, replay, first-delivery success, and concurrency.
+5. Added a second F-01 regression that overwrites sanitized values through EF's public `PropertyEntry.CurrentValue` API. Its first invocation had a test raw-string syntax error and is not counted as RED. After correcting the literal, SQL persisted the bypass sentinel and the assertion failed as intended.
+6. Added the `SaveChanges` persistence-boundary invariant. The complete validation/redaction class passed 7/7, then the complete P2-02 SQL filter passed 35/35 with zero skips.
+
+### Changed files in fix round 1
+
+- `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs`
+- `RoadGuardSystem.BusinessObjects/Auditing/SensitiveJsonSanitizer.cs`
+- `RoadGuardSystem.BusinessObjects/Messaging/OutboxMessage.cs`
+- `RoadGuardSystem.Repositories/Messaging/ConsumerEffectService.cs`
+- `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ServiceContractTests.cs`
+- `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ValidationAndRedactionTests.cs`
+- `docs/worklogs/P2-02-completion.md`
+- P2-02 row only in `planning/RoadGuard_Plan_Person_2.md`
+
+### Fix-round verification evidence
+
+Environment: Windows 11 build 26100, PowerShell 7, .NET SDK 10.0.401, .NET 8.0.31 test runtime, SQL Server LocalDB 17.0.4025.3, branch `huy`, baseline `682aa0630904729537091c35753a42a44809959f`, local time zone `Asia/Bangkok` (`+07:00`).
+
+| Command/check | Exit | Result | Time |
+|---|---:|---|---|
+| Targeted F-01/F-02 RED SQL run after test-harness correction | 1 | 2/2 failed for intended gaps: raw sensitive sentinel persisted; `ProcessAsync` contract absent. | 2026-09-18T15:46+07:00 |
+| EF property-mutation bypass RED SQL run after literal correction | 1 | 1/1 failed because the bypass sentinel persisted in `AuditLog.AfterSnapshot`. | 2026-09-18T15:52+07:00 |
+| Targeted F-01/F-02 GREEN runs | 0 | Factory persistence, EF mutation defense, success, rollback, replay and concurrency passed on SQL Server LocalDB. | 2026-09-18T15:48-15:55+07:00 |
+| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up to date. | 2026-09-18T15:58+07:00 |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 9 projects built; 0 warnings, 0 errors. | 2026-09-18T15:58+07:00 |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | No formatting changes required. | 2026-09-18T15:59+07:00 |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --no-restore --filter "TaskId=P2-02" --logger "console;verbosity=normal"` with process-scoped LocalDB connection | 0 | 35/35 passed, 0 failed, 0 skipped. | 2026-09-18T15:59+07:00 |
+| `dotnet test RoadGuardSystem.slnx --no-build --no-restore --logger "console;verbosity=normal"` with process-scoped LocalDB connection | 0 | 154/154 passed, 0 failed, 0 skipped: Unit 37, API 26, SQL Integration 91. | 2026-09-18T16:00+07:00 |
+| `pwsh -NoProfile -File tests/Security/Verify-DependencySecurity.ps1` | 0 | No High/Critical vulnerable dependency detected for the integration project. | 2026-09-18T16:01+07:00 |
+| `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Documentation contracts, role codes and dependency checks passed. | 2026-09-18T16:01+07:00 |
+| `pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1` | 0 | 9/9 planning/status/dependency regression cases passed. | 2026-09-18T16:01+07:00 |
+| Initial EF commands with the runtime-test environment variable | 1 | Invocation error: design-time factory requires `ROADGUARD_MIGRATION_CONNECTION_STRING`; corrected below. Not an artifact failure. | 2026-09-18T16:01+07:00 |
+| `dotnet ef migrations has-pending-model-changes --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --context RoadGuardDbContext --no-build` with process-scoped migration connection | 0 | No model changes since the last migration. | 2026-09-18T16:02+07:00 |
+| `dotnet ef migrations list --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --context RoadGuardDbContext --no-build` with process-scoped migration connection | 0 | P2-02 migration listed; pending against LocalDB master as expected. | 2026-09-18T16:02+07:00 |
+| `git diff --check` | 0 | No whitespace errors. | 2026-09-18T16:02+07:00 |
+| Scoped TODO/secret-assignment scan | 1 | No matches; sensitive strings are generated test sentinels only. | 2026-09-18T16:02+07:00 |
+| LocalDB cleanup query for `RoadGuard_Test_%` | 0 | 0 isolated test databases remained. | 2026-09-18T16:01+07:00 |
+| Independent read-only pre-handoff review of working-tree diff | 0 | No Critical, Important or Minor findings; F-01/F-02 evidence judged ready for handoff, not acceptance. | 2026-09-18T16:06+07:00 |
+
+Hosted Linux CI and Docker/Testcontainers were not rerun in this fix round. The changed behavior was exercised on real SQL Server LocalDB with non-zero discovery and zero skips; no hosted/Docker claim is made.
+
+### Antigravity owner self-review - fix round 1
+
+- **Authorization/project scope:** unchanged and N/A at API/business-policy level. No endpoint, role decision, claim trust, or project query was introduced.
+- **State transitions:** consumer persistence results remain explicit `Recorded`/`Replayed`. Receipt-only public service behavior was removed so a successful receipt cannot suppress a missing durable effect through that service boundary.
+- **Immutability/versioning:** audit update/delete protection remains intact. The new save invariant only sanitizes added audit snapshots; it does not mutate persisted audit evidence. Outbox payload redaction is enforced for added/modified tracked values without changing schema or event identity.
+- **Idempotency/replay:** sequential replay returns the first `EffectId`, does not invoke the durable callback, and persists no second effect. Concurrent first delivery may enter both database callbacks, but unique-receipt arbitration commits one effect/receipt pair and rolls the losing transaction back; no universal exactly-once callback execution is claimed.
+- **Concurrency/transactions:** success asserts one durable effect plus one receipt. The rollback callback explicitly calls `SaveChangesAsync` after both are staged and then throws, proving transaction rollback of SQL changes rather than merely abandoning unsaved entries. Independent concurrent contexts prove one committed pair.
+- **Audit/secrets:** all required sensitive-key families are case-insensitive and recursive across objects/arrays. Factory sanitization and save-boundary sanitization provide defense in depth, including EF property-entry mutation. Supplied sentinel values are absent from durable audit/outbox JSON; exceptions/logs do not contain them.
+- **Missing tests:** no unresolved in-scope gap found. F-01 covers public construction plus persistence-boundary mutation; F-02 covers success, rollback, replay and concurrency on SQL Server. External broker delivery, worker leases and external side effects remain later-task scope.
+- **Conflict warning:** no unresolved overlap or shared schema hotspot. All edits remain inside the declared P2-02 paths; no migration/model snapshot change was needed.
+- **Internal review:** no Critical, Important or Minor finding. Residual constraint is documented on `ProcessAsync`: the callback must use the same/enlisted database transaction.
+
+### Ready for review resubmission - 2026-09-18T16:07:14+07:00
+
+- Final Antigravity status: `Ready for review`; Antigravity does not mark `Done`.
+- Findings submitted for closure: F-01 and F-02 are fixed with SQL-backed evidence above, pending Codex acceptance round 2 verification.
+- Submitted artifact: focused fix commit to be recorded immediately after explicit-path staging/commit checks; this metadata entry and the P2-02 plan row are part of that artifact.
+- P2-10 remains blocked. No merge, push, deployment, publication, or protected-branch integration is authorized or performed.

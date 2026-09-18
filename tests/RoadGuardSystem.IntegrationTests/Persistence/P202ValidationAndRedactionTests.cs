@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Messaging;
@@ -9,8 +10,109 @@ using Xunit;
 namespace RoadGuardSystem.IntegrationTests.Persistence;
 
 [Trait("TaskId", "P2-02")]
-public sealed class P202ValidationAndRedactionTests
+public sealed class P202ValidationAndRedactionTests : IClassFixture<P202SqlServerFixture>
 {
+    private readonly P202SqlServerFixture _fixture;
+
+    public P202ValidationAndRedactionTests(P202SqlServerFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
+    [Fact(DisplayName = "P2-02 Negative F-01: public persistence path redacts nested case-variant sensitive keys")]
+    public async Task PublicPersistencePath_RedactsSensitiveJsonBeforeSqlCommit()
+    {
+        var sentinel = $"P2_02_F01_{Guid.NewGuid():N}";
+        var auditId = Guid.NewGuid();
+        var outboxId = Guid.NewGuid();
+        var rawJson = $$"""
+            {
+              "safe": "visible",
+              "nested": [
+                { "ToKeN": "{{sentinel}}" },
+                { "AUTHORIZATION": "{{sentinel}}" },
+                { "connectionSTRING": "{{sentinel}}" }
+              ]
+            }
+            """;
+
+        await using (var context = _fixture.CreateDbContext())
+        {
+            context.AuditLogs.Add(AuditLog.Create(
+                auditId,
+                null,
+                DateTimeOffset.UtcNow,
+                "p2_02.f01_regression",
+                "P202TransactionProbe",
+                Guid.NewGuid(),
+                rawJson,
+                rawJson,
+                null,
+                "integration_test",
+                Guid.NewGuid()));
+            context.OutboxMessages.Add(OutboxMessage.Create(
+                outboxId,
+                "p2_02.f01_regression",
+                DateTimeOffset.UtcNow,
+                Guid.NewGuid(),
+                rawJson));
+
+            await context.SaveChangesAsync();
+        }
+
+        await using var verification = _fixture.CreateDbContext();
+        var audit = await verification.AuditLogs.AsNoTracking().SingleAsync(row => row.Id == auditId);
+        var outbox = await verification.OutboxMessages.AsNoTracking().SingleAsync(row => row.Id == outboxId);
+
+        audit.BeforeSnapshot.Should().NotContain(sentinel).And.Contain("[REDACTED]");
+        audit.AfterSnapshot.Should().NotContain(sentinel).And.Contain("[REDACTED]");
+        outbox.PayloadJson.Should().NotContain(sentinel).And.Contain("[REDACTED]");
+    }
+
+    [Fact(DisplayName = "P2-02 Negative F-01: EF property mutation cannot bypass persistence redaction")]
+    public async Task EfPropertyMutation_CannotBypassSensitiveJsonRedaction()
+    {
+        var sentinel = $"P2_02_F01_BYPASS_{Guid.NewGuid():N}";
+        var auditId = Guid.NewGuid();
+        var outboxId = Guid.NewGuid();
+        var rawJson = $"{{\"nested\":[{{\"sEcReT\":\"{sentinel}\"}},{{\"COOKIE\":\"{sentinel}\"}},{{\"PaSsWoRd\":\"{sentinel}\"}}]}}";
+
+        await using (var context = _fixture.CreateDbContext())
+        {
+            var audit = AuditLog.Create(
+                auditId,
+                null,
+                DateTimeOffset.UtcNow,
+                "p2_02.f01_bypass_regression",
+                "P202TransactionProbe",
+                Guid.NewGuid(),
+                null,
+                "{\"safe\":\"initial\"}",
+                null,
+                "integration_test",
+                Guid.NewGuid());
+            var outbox = OutboxMessage.Create(
+                outboxId,
+                "p2_02.f01_bypass_regression",
+                DateTimeOffset.UtcNow,
+                Guid.NewGuid(),
+                "{\"safe\":\"initial\"}");
+            context.AuditLogs.Add(audit);
+            context.OutboxMessages.Add(outbox);
+
+            context.Entry(audit).Property(row => row.AfterSnapshot).CurrentValue = rawJson;
+            context.Entry(outbox).Property(row => row.PayloadJson).CurrentValue = rawJson;
+            await context.SaveChangesAsync();
+        }
+
+        await using var verification = _fixture.CreateDbContext();
+        var persistedAudit = await verification.AuditLogs.AsNoTracking().SingleAsync(row => row.Id == auditId);
+        var persistedOutbox = await verification.OutboxMessages.AsNoTracking().SingleAsync(row => row.Id == outboxId);
+
+        persistedAudit.AfterSnapshot.Should().NotContain(sentinel).And.Contain("[REDACTED]");
+        persistedOutbox.PayloadJson.Should().NotContain(sentinel).And.Contain("[REDACTED]");
+    }
+
     [Fact(DisplayName = "P2-02 Negative: audit snapshot redacts sensitive keys recursively and applies allow-list")]
     public void AuditSnapshot_RedactsSensitiveKeysRecursively()
     {

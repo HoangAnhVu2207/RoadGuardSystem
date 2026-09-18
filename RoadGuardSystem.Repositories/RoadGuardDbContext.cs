@@ -33,19 +33,19 @@ public class RoadGuardDbContext : DbContext
 
     public override int SaveChanges()
     {
-        ValidateAppendOnlyAudit();
+        ValidatePersistenceInvariants();
         return base.SaveChanges();
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        ValidateAppendOnlyAudit();
+        ValidatePersistenceInvariants();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        ValidateAppendOnlyAudit();
+        ValidatePersistenceInvariants();
         return base.SaveChangesAsync(cancellationToken);
     }
 
@@ -53,17 +53,39 @@ public class RoadGuardDbContext : DbContext
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
-        ValidateAppendOnlyAudit();
+        ValidatePersistenceInvariants();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
-    private void ValidateAppendOnlyAudit()
+    private void ValidatePersistenceInvariants()
     {
         if (ChangeTracker.Entries<AuditLog>()
             .Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
         {
             throw new InvalidOperationException(
                 "AuditLogs are append-only; corrections require a new audit event.");
+        }
+
+        foreach (var entry in ChangeTracker.Entries<AuditLog>().Where(entry => entry.State == EntityState.Added))
+        {
+            if (entry.Entity.BeforeSnapshot is not null)
+            {
+                entry.Property(audit => audit.BeforeSnapshot).CurrentValue =
+                    SensitiveJsonSanitizer.Redact(entry.Entity.BeforeSnapshot);
+            }
+
+            if (entry.Entity.AfterSnapshot is not null)
+            {
+                entry.Property(audit => audit.AfterSnapshot).CurrentValue =
+                    SensitiveJsonSanitizer.Redact(entry.Entity.AfterSnapshot);
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<OutboxMessage>()
+                     .Where(entry => entry.State is EntityState.Added or EntityState.Modified))
+        {
+            entry.Property(message => message.PayloadJson).CurrentValue =
+                SensitiveJsonSanitizer.Redact(entry.Entity.PayloadJson);
         }
     }
 }

@@ -33,10 +33,10 @@ public sealed class OutboxMessage
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(payloadJson);
+        string sanitizedPayloadJson;
         try
         {
-            using var document = JsonDocument.Parse(payloadJson);
-            StructuredJsonValidation.EnsureObjectOrArray(document.RootElement, nameof(payloadJson));
+            sanitizedPayloadJson = SensitiveJsonSanitizer.Redact(payloadJson);
         }
         catch (JsonException exception)
         {
@@ -49,7 +49,7 @@ public sealed class OutboxMessage
             MessageType = messageType.Trim(),
             OccurredAtUtc = occurredAt.ToUniversalTime(),
             CorrelationId = correlationId,
-            PayloadJson = payloadJson
+            PayloadJson = sanitizedPayloadJson
         };
     }
 }

@@ -586,5 +586,13 @@ Hosted Linux CI and Docker/Testcontainers were not rerun in this fix round. The 
 
 - Final Antigravity status: `Ready for review`; Antigravity does not mark `Done`.
 - Findings submitted for closure: F-01 and F-02 are fixed with SQL-backed evidence above, pending Codex acceptance round 2 verification.
-- Submitted artifact: focused fix commit to be recorded immediately after explicit-path staging/commit checks; this metadata entry and the P2-02 plan row are part of that artifact.
+- Submitted artifact: the focused fix commit is recorded in the exact-identity section below; this handoff entry and the P2-02 plan row are part of that artifact.
 - P2-10 remains blocked. No merge, push, deployment, publication, or protected-branch integration is authorized or performed.
+
+### Exact resubmission identity - 2026-09-18T16:13:37+07:00
+
+- Fix implementation and handoff commit: `33b49e269581d5e9c2916b78fd9e34677d7e223a` (`P2-02: close sanitization and consumer effect findings`).
+- Parent/review baseline: `682aa0630904729537091c35753a42a44809959f`.
+- Submitted fix range: `682aa0630904729537091c35753a42a44809959f..33b49e269581d5e9c2916b78fd9e34677d7e223a` plus the metadata-only commit that appends this immutable identity.
+- Verification binding: all final runtime gates recorded above ran against the exact production and test content committed in `33b49e2`; this append changes review bookkeeping only.
+- Commit scope: 9 declared P2-02 files, 509 insertions, 39 deletions; no unrelated or generated file was included.

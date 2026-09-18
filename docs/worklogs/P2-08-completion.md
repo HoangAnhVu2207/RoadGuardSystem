@@ -94,4 +94,30 @@ The guide distinguishes automatic Testcontainers, persistent Docker Compose and 
 
 ## Codex acceptance review
 
-Not yet performed. A separate acceptance round is required before `Done`.
+### Round 1 - Done - 2026-09-18T23:50:07+07:00
+
+- Reviewer: Codex. Reviewed submitted commit `df692fff8a51792096b137b7b3be6d061fae955d` against baseline `7e44f40ddd971b97609509158552d87c2a4dcaf8`.
+- Reviewed scope: `docs/setup/sql-server-docker-local-setup.md`, this worklog and the P2-08 entries in `planning/RoadGuard_Plan_Person_2.md`. The submitted working tree and index were clean; no relevant untracked files existed.
+- Dependency verification: P2-00 and P2-01 are `Done`, and the documented Compose, environment template, SQL fixture, migration factory, seeder and verifier artifacts exist in the reviewed checkout.
+
+| AC ID | Codex disposition |
+|---|---|
+| P2-08-AC-01 | Verified. The guide separates automatic Testcontainers, persistent Docker Compose and native Windows SQL Server, including their distinct prerequisites and connection behavior. |
+| P2-08-AC-02 | Verified. Placeholders are used; `.env` is ignored; scans found no concrete password, private/local IP address or fixed developer machine name. The guide prohibits shared credentials and tracked secrets. |
+| P2-08-AC-03 | Verified. SQL image, ports, variable names and linked source paths match the current repository. The Compose positive verifier passed and its negative self-test rejected all seven broken/insecure fixtures. |
+| P2-08-AC-04 | Verified. The guide provides deterministic checks, expected results, non-destructive cleanup and actionable troubleshooting. P2-00 passed 43/43 with zero failures/skips on isolated SQL Server LocalDB. |
+
+Fresh reviewer checks:
+
+- `pwsh -NoProfile -File tests/Operations/Verify-DockerCompose.ps1`: exit 0.
+- `pwsh -NoProfile -File tests/Operations/Verify-DockerCompose.ps1 -SelfTestNegative`: expected exit 1 after all 7 negative fixtures were detected and rejected.
+- `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1`: exit 0.
+- `pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1`: exit 0; 9/9 planning scenarios passed.
+- `pwsh -NoProfile -File tests/Tooling/Verify-AntigravitySetup.ps1`: exit 0.
+- P2-08 reference, token, credential, local-IP and machine-name scans: expected no-match scans returned 1; all six authoritative linked paths exist.
+- `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter "TaskId=P2-00" --logger "console;verbosity=minimal" -m:1` with a process-scoped LocalDB master connection: exit 0; 43 passed, 0 failed, 0 skipped.
+- `git diff --check 7e44f40..df692ff`: exit 0.
+
+Findings: none. The external requirement for Huy to install or execute one selected SQL mode on his own machine is explicitly out of scope and is not represented as completed by this documentation acceptance.
+
+**Verdict: `Done`.** All P2-08 acceptance criteria, dependencies, self-review evidence and applicable checks are verified for commit `df692ff`; no mandatory finding or conflict warning remains. This verdict authorizes only the task-scoped status/evidence records above. Git integration and publication require the repository owner's separate authorization, supplied in the current request.

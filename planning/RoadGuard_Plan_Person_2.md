@@ -20,7 +20,7 @@ For each task, Codex's assignment records acceptance criteria, In scope, Out of 
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
 | `P2-01` | `Done` | `huy` | Owner-authorized cross-platform gate repair committed as `77505f2`; hosted CI run `35277820417` passed all verification, SQL, test, seeder, coverage-upload and cleanup steps on Ubuntu. Owner self-review complete. |
-| `P2-02` | `In Progress` | `huy` | Antigravity implementation started from synchronized baseline `b6d39d0`; workflow policy `b50b86f` and P2-00/P2-01/P2-03 dependencies are present. Exclusive persistence/test paths and shared hotspots are recorded in the task worklog. |
+| `P2-02` | `Ready for review` | `huy` | Antigravity implementation/self-review committed as `b2aec22` from synchronized baseline `b6d39d0`; P2-02 SQL tests 30/30 and final full solution tests 149/149 passed with zero skips. Mandatory Codex acceptance is pending; do not start P2-10. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 
 Prior gate: owner-approved integration produced baseline `20ff1d3`, containing Person 1 tip `3e13ca6` and Person 2 tip `b2662fe`. The synchronization gate is historical; the current table above determines task status.

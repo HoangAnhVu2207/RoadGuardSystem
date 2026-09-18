@@ -139,7 +139,32 @@ jobs:
             throw 'Malformed SQL credential file.'
           }
           $password = $credential.Substring('MSSQL_SA_PASSWORD='.Length)
-          $env:ROADGUARD_CONNECTION_STRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True;"
+
+          $databaseName = "RoadGuard_CI_Seed_$env:GITHUB_RUN_ID"
+          $connectionString = "Server=localhost,1433;Database=$databaseName;User Id=sa;Password=$password;TrustServerCertificate=True;"
+          $env:ROADGUARD_MIGRATION_CONNECTION_STRING = $connectionString
+          $env:ROADGUARD_CONNECTION_STRING = $connectionString
+
+          $toolPath = Join-Path $env:RUNNER_TEMP 'roadguard-dotnet-tools'
+          dotnet tool install dotnet-ef --tool-path $toolPath --version 8.0.17
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to install the pinned EF migration tool.'
+          }
+
+          $dotnetEf = Join-Path $toolPath 'dotnet-ef'
+          & $dotnetEf database update `
+            --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj `
+            --context RoadGuardDbContext `
+            --no-build
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to apply RoadGuard migrations before seeding.'
+          }
+
+          dotnet run --project tools/RoadGuardSystem.Seeder --no-build
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
           dotnet run --project tools/RoadGuardSystem.Seeder --no-build
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE

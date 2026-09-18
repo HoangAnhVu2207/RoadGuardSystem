@@ -216,7 +216,7 @@ function Test-CiWorkflowContent {
     }
 
     foreach ($jLine in $rootOrJobEnvLines) {
-        if ($jLine -match 'secrets\.ROADGUARD_CI_SQL_PASSWORD' -or $jLine -match 'Password=' -or $jLine -match 'ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING' -or $jLine -match 'ROADGUARD_CONNECTION_STRING') {
+        if ($jLine -match 'secrets\.ROADGUARD_CI_SQL_PASSWORD' -or $jLine -match 'Password=' -or $jLine -match 'ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING' -or $jLine -match 'ROADGUARD_MIGRATION_CONNECTION_STRING' -or $jLine -match 'ROADGUARD_CONNECTION_STRING') {
             $findings += "CI workflow must not expose database connection strings or secrets at job-level env. Database connection secrets must be scoped strictly to steps that require them (integration-test and seeder steps)."
             break
         }
@@ -234,7 +234,7 @@ function Test-CiWorkflowContent {
         $blockLines = $block -split "`r?`n"
         $stepName = $blockLines[0].Trim()
 
-        $hasSecret = ($block -match 'secrets\.ROADGUARD_CI_SQL_PASSWORD') -or ($block -match 'ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING') -or ($block -match 'ROADGUARD_CONNECTION_STRING')
+        $hasSecret = ($block -match 'secrets\.ROADGUARD_CI_SQL_PASSWORD') -or ($block -match 'ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING') -or ($block -match 'ROADGUARD_MIGRATION_CONNECTION_STRING') -or ($block -match 'ROADGUARD_CONNECTION_STRING')
 
         if ($hasSecret) {
             $isAuthorized = ($stepName -match 'Integration Tests') -or ($stepName -match 'Seeder')
@@ -267,6 +267,47 @@ function Test-CiWorkflowContent {
     # Seeder command must read from environment variable, NOT CLI argument (-c / --connection-string)
     if ($Content -match 'dotnet run.*--project.*tools/RoadGuardSystem\.Seeder.*--\s+(-c|--connection-string)') {
         $findings += "CI workflow seeder command must not pass connection string or password via CLI argument (-c / --connection-string). Must read from environment."
+    }
+
+    $seederBlocks = @()
+    foreach ($block in $stepBlocks) {
+        if ([string]::IsNullOrWhiteSpace($block)) { continue }
+        $blockLines = $block -split "`r?`n"
+        if ($blockLines[0].Trim() -match 'Seeder') {
+            $seederBlocks += $block
+        }
+    }
+
+    if ($seederBlocks.Count -ne 1) {
+        $findings += 'CI workflow must define exactly one Seeder validation step.'
+    } else {
+        $seederBlock = $seederBlocks[0]
+        if ($seederBlock -match 'Database=master(?:;|\b)') {
+            $findings += 'CI Seeder validation must target a dedicated migrated application database, never master.'
+        }
+
+        $hasPinnedEfTool =
+            $seederBlock -match 'dotnet\s+tool\s+install\s+dotnet-ef' -and
+            $seederBlock -match '--version\s+8\.0\.17'
+        if (-not $hasPinnedEfTool) {
+            $findings += 'CI Seeder validation must install exact dotnet-ef version 8.0.17 in an ephemeral tool path.'
+        }
+
+        if ($seederBlock -notmatch 'ROADGUARD_MIGRATION_CONNECTION_STRING') {
+            $findings += 'CI Seeder validation must scope ROADGUARD_MIGRATION_CONNECTION_STRING to the migrated application database.'
+        }
+
+        $migrationIndex = $seederBlock.IndexOf('database update', [StringComparison]::OrdinalIgnoreCase)
+        $seedCommand = 'dotnet run --project tools/RoadGuardSystem.Seeder --no-build'
+        $firstSeedIndex = $seederBlock.IndexOf($seedCommand, [StringComparison]::OrdinalIgnoreCase)
+        if ($migrationIndex -lt 0 -or $firstSeedIndex -lt 0 -or $migrationIndex -gt $firstSeedIndex) {
+            $findings += 'CI Seeder validation must apply EF migrations before invoking the production Seeder CLI.'
+        }
+
+        $seedRuns = [regex]::Matches($seederBlock, 'dotnet\s+run\s+--project\s+tools/RoadGuardSystem\.Seeder\s+--no-build', [Text.RegularExpressions.RegexOptions]::IgnoreCase).Count
+        if ($seedRuns -lt 2) {
+            $findings += 'CI Seeder validation must invoke the production Seeder CLI twice against the same database to prove idempotency.'
+        }
     }
 
     return $findings
@@ -488,6 +529,21 @@ jobs:
         run: dotnet test
 "@
 
+    # Fixture 12: Seeder points at reachable master without applying the application schema
+    $fixture12UnmigratedMasterSeeder = @"
+name: Fixture 12 Unmigrated Master Seeder
+on: [ push ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Seeder Entry Point
+        shell: pwsh
+        run: |
+          `$env:ROADGUARD_CONNECTION_STRING = "Server=localhost;Database=master;User Id=sa;Password=`$password;TrustServerCertificate=True;"
+          dotnet run --project tools/RoadGuardSystem.Seeder --no-build
+"@
+
     $res1 = Test-CiWorkflowContent $fixture1Hardcoded
     $res2 = Test-CiWorkflowContent $fixture2ComposeStyle
     $res3 = Test-CiWorkflowContent $fixture3SingleQuoted
@@ -499,6 +555,7 @@ jobs:
     $res9 = Test-CiWorkflowContent $fixture9UnprotectedCredential
     $res10 = Test-CiWorkflowContent $fixture10UnboundedStartup
     $res11 = Test-CiWorkflowContent $fixture11MissingCleanup
+    $res12 = Test-CiWorkflowContent $fixture12UnmigratedMasterSeeder
 
     $detected1 = ($res1 | Where-Object { $_ -match "hardcoded password literal" }).Count -gt 0
     $detected2 = ($res2 | Where-Object { $_ -match "Compose-style" }).Count -gt 0
@@ -511,6 +568,7 @@ jobs:
     $detected9 = ($res9 | Where-Object { $_ -match "mask.*mode-600" }).Count -gt 0
     $detected10 = ($res10 | Where-Object { $_ -match "bounded health wait.*diagnostic" }).Count -gt 0
     $detected11 = ($res11 | Where-Object { $_ -match "unconditional cleanup" }).Count -gt 0
+    $detected12 = ($res12 | Where-Object { $_ -match "dedicated migrated application database" }).Count -gt 0
 
     $testCases = @(
         @{ Name = '1. Hardcoded password literal in healthcheck'; Detected = $detected1; Findings = $res1 },
@@ -523,7 +581,8 @@ jobs:
         @{ Name = '8. Repository-secret service container instead of ephemeral runner credential'; Detected = $detected8; Findings = $res8 },
         @{ Name = '9. Ephemeral credential is not masked and mode-600'; Detected = $detected9; Findings = $res9 },
         @{ Name = '10. SQL startup lacks bounded health wait and diagnostics'; Detected = $detected10; Findings = $res10 },
-        @{ Name = '11. Workflow lacks unconditional container and credential cleanup'; Detected = $detected11; Findings = $res11 }
+        @{ Name = '11. Workflow lacks unconditional container and credential cleanup'; Detected = $detected11; Findings = $res11 },
+        @{ Name = '12. Seeder targets unmigrated master database'; Detected = $detected12; Findings = $res12 }
     )
 
     $failedTests = $testCases | Where-Object { -not $_.Detected }

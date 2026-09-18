@@ -19,7 +19,7 @@ For each task, Codex's assignment records acceptance criteria, In scope, Out of 
 | Task | Status | Branch | Note |
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
-| `P2-01` | `Done` | `huy` | Owner-authorized cross-platform gate repair committed as `77505f2`; hosted CI run `35277820417` passed all verification, SQL, test, seeder, coverage-upload and cleanup steps on Ubuntu. Owner self-review complete. |
+| `P2-01` | `Done` | `huy` | Codex acceptance round 2 recorded 2026-09-18 for artifact `77505f2`; hosted CI run `35277820417` and fresh checkout gates passed, with no open findings or blockers. |
 | `P2-02` | `Ready for review` | `huy` | Antigravity implementation/self-review committed as `b2aec22` from synchronized baseline `b6d39d0`; P2-02 SQL tests 30/30 and final full solution tests 149/149 passed with zero skips. Mandatory Codex acceptance is pending; do not start P2-10. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 
@@ -145,7 +145,7 @@ All task sizes above are historical or provisional sizing. Before correction, th
 
 - `P2-00`: current plan records owner-confirmed Done; the historical worklog ends at Ready for cross-review and is not edited to invent a newer review.
 - `P1-03`: its old synchronization warning is superseded for scheduling by baseline `20ff1d3`; this does not fabricate a new integration test run.
-- `P2-01`: stays Ready for Codex review. Hosted CI/live Compose execution limits in its log remain review gates; P2-03 neither runs nor signs off that task.
+- `P2-01`: Codex accepted artifact `77505f2` in review round 2 after verifying the recorded live-container and hosted-CI gates plus fresh checkout checks. P2-03 did not supply or substitute for this acceptance.
 - P2-67 requires complete backend US-01–US-20 coverage, research import/pair/error-metric/export proof, no operational research writes, adapter failure/retry coverage, and SQL backup/restore evidence. Data fixtures clearly identify synthetic provenance. No real-model accuracy or Android implementation is claimed.
 - ADR 003 D-01/D-02/D-03 must be resolved for their affected acceptance slices before those slices can be Done. Unrelated work can continue.
 

@@ -1,39 +1,41 @@
 # Negative-First test workflow
 
-Use this sequence for every task, even when the task is documentation or infrastructure (replace business cases with the nearest observable failure cases).
+Use this sequence for Antigravity implementing/fixing observable behavior. Review/diagnosis does not implement fixes; Codex task acceptance may record task review/status under AGENTS. Explicit report-only reviews remain read-only. Human prose: verify references, consistency and discovery, not exact wording. Scripts/configurations: test actual failure modes.
 
-## Phase 1 — negative and edge tests first
+## 1. Negative and edge cases
 
-Write failing tests for the cases that could cause unsafe data or unauthorized behavior:
+Choose relevant cases and name expected state/error:
 
-- `null`, empty, whitespace, malformed IDs/JSON/coordinates, unsupported enum values, invalid units, and invalid file metadata;
-- lower/upper boundary, oversized payload/file/chunk, duplicate item, duplicate idempotency key, and replayed message;
-- unauthenticated user, wrong role, suspended account, user outside project, and forged project/role input;
-- invalid state transition, missing prerequisite, stale concurrency token, immutable/submitted/approved record update;
-- checksum/integrity failure, timeout, storage/DB/queue failure, retryable versus permanent processing failure;
-- legal hold, retention scope mismatch, wrong `RoadSectionVersion`, missing evidence, and exactly-one-target violations where relevant.
+- malformed/empty input, unsupported enum/unit/SRID, invalid JSON and boundary/oversize values;
+- wrong role/project, suspended/revoked session and forged/stale claims;
+- invalid transition, missing prerequisites, stale version or immutable update;
+- repeated key/message, changed payload under the same key and racing workers;
+- missing file, failed checksum, timeout/disconnect and retryable versus permanent failure;
+- legal hold, deletion-scope drift, wrong geometry version or target count.
 
-Name the expected stable error code and verify that no state, audit record, notification, or file metadata is incorrectly created.
+Run the negative test before the fix and confirm the intended behavioral failure. Compilation/setup errors or unavailable SQL Server are not intended RED. Record irrelevant cases with reasons; HTTP-200-only checks are insufficient.
 
-## Phase 2 — positive tests
+Assert no unintended domain/file/outbox effects for rejection. Assert rejection/security audit where policy requires it; do not impose a blanket ban on audit evidence for rejected actions.
 
-Add the smallest valid request and one representative full path. Assert the resulting state, response DTO, audit event, version, and downstream/outbox effect—not just the status code.
+## 2. Positive contracts
 
-## Phase 3 — implementation
+Add the smallest accepted path and a representative flow. Assert DTO/error contract, state, version, audit and deduplicated effects as applicable. Research expected metrics use hand-calculated fixtures, not the implementation under test.
 
-Implement the smallest change that satisfies the tests and the source acceptance criteria. Keep domain decisions out of controllers and persistence entities. Preserve immutable history and project scope.
+## 3. Implement the assigned slice
 
-## Phase 4 — execution and self-repair
+Entity-local invariants live in BusinessObjects; orchestration/cross-aggregate decisions in Services. Controllers and EF mappings do not own workflow policy. Preserve scope, immutable content/source versions and exclusive ownership.
 
-Run the narrow test first, then the affected suite, then format/build. Read the first failure, fix the cause, rerun, and repeat until green. Do not weaken or delete a test to obtain a green build. Record commands, exit codes, and any environment-limited tests in the handoff log.
+## 4. Verify and self-review
 
-## Minimum evidence matrix
+Run narrow tests, affected suites and required format/build checks. Fix the first real failure and rerun affected checks; do not weaken requirements or discard another person's changes for green. Record command/exit code, chronology, RED/GREEN, skipped checks and environment limits.
 
-| Layer | Required evidence |
+| Layer | Observable proof |
 |---|---|
-| Domain | invalid transition and valid transition |
-| Service | role/project gate, cross-aggregate rule, audit/idempotency/concurrency |
-| Repository | mapping/constraint/spatial/transaction behavior on SQL Server |
-| API | validation, 401/403/409/422/404 as applicable, stable error code, DTO shape |
-| Worker | duplicate delivery, retry classification, no duplicate side effects |
-| End-to-end | one traceable user story flow with seeded data |
+| Domain/service | Invalid/accepted transitions, current authorization, cross-aggregate gates, audit/retry/version behavior |
+| Persistence | SQL constraints, rollback, spatial/concurrency and migration recovery |
+| API | Accepted request plus relevant forbidden/invalid transition; stable errors and DTO shape |
+| Worker | Duplicate delivery, stale lease/result, cancellation/retry without duplicate effects |
+| Tool/config | Invalid input/discovery/connection fails clearly; valid config operates as documented |
+| Prose/skill | Resolvable references and correct scenario decisions; no invented failure/runtime claim |
+
+Antigravity owner self-review is mandatory and ends at Ready for review. Mandatory Codex acceptance then verifies the exact submission, required checks and findings before Codex alone marks Done. Fix rounds retain finding IDs and acceptance scope; Antigravity never substitutes self-review for Codex acceptance. Follow the [handoff contract](antigravity-handoff.md).

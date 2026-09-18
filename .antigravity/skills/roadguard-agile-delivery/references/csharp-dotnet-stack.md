@@ -1,34 +1,38 @@
 # RoadGuard C#/.NET stack contract
 
-Use the existing supported solution target when one exists. If the solution is still a skeleton, select a currently supported .NET LTS SDK, pin the exact feature band in `global.json`, keep the corresponding default C# language version, and record the selection/support window in an ADR. Do not silently retarget an existing solution.
+## Verify the local baseline
 
-## Project and dependency rules
+Read global.json, Directory.Build.props, actual project files and accepted ADRs. This checkout targets net8.0 with SDK 10.0.401 and latestPatch roll-forward per ADR 001. A skeleton is still an existing solution: newer documentation does not authorize retargeting. Match libraries/examples to local versions.
 
-- Keep the boundaries `API -> Services -> Repositories -> BusinessObjects`; `DTOs` contains public contracts and does not expose EF entities.
-- `BusinessObjects` has no dependency on API, Services, Repositories, DTOs, EF Core, or transport details.
-- Use EF Core SQL Server plus NetTopologySuite. Configure SQL Server spatial columns explicitly (`geography(4326)` for GPS/raw points and the project UTM SRID for engineering geometry).
-- Use explicit enum numeric values, `Unknown = 0`, and append-only additions. Map status/scope enums to `tinyint` when their range permits.
-- Use `DateTimeOffset` persisted as UTC, `DateOnly` for calendar dates, `decimal(19,2)` for VND, SHA-256 lowercase hex for checksums, and JSON stored as `nvarchar(max)` with `ISJSON` plus application schema validation.
-- Use options classes for limits, storage, queue, AI, and SRID configuration. Validate options at startup; no magic numbers or environment-specific constants in domain logic.
+## Layer boundaries
 
-## API and security
+- [ADR 001](../../../../docs/adr/001-backend-boundary.md) records actual references: API -> Services -> Repositories; Repositories -> BusinessObjects and DTOs; DTOs -> BusinessObjects. Preserve names and supported references.
+- BusinessObjects owns entity-local invariants and fixed enums, with no API/Services/Repositories/DTOs/EF dependency. EF mapping an entity does not move domain methods into Repositories.
+- Services owns use-case decisions, current project authorization, cross-aggregate checks and transactions. API binds/dispatches/maps HTTP; return DTOs, not EF entities.
+- Repositories owns SQL Server/NetTopologySuite, mappings, migrations, repository interfaces and storage.
 
-- Controllers only bind/validate/authorize/dispatch/map results. Workflow, cross-aggregate checks, transactions, and state transitions live in Services/domain policies.
-- Return DTOs, `ProblemDetails`, stable error codes, and a correlation ID. Do not leak EF tracking state, stack traces, passwords, tokens, or internal connection details.
-- Every non-Supervisor query and command checks server-side project membership; never trust a project ID or role claim by itself.
-- Use the repository's chosen authentication mechanism (baseline: ASP.NET Core Identity with short-lived JWT access tokens and hashed refresh-token records). Revoke sessions on suspend and password reset.
+## Authentication and integrity
 
-## Persistence and workers
+- Apply [ADR 002](../../../../docs/adr/002-authentication.md): per-request authoritative user/session checks; JWT role is a snapshot. Supervisor bypass needs current server role; non-Supervisors need active/effective matching ProjectMember. Logout/reset/suspend/global role changes revoke credentials; membership changes apply on the next request.
+- Use UTC DateTimeOffset and DateOnly for calendar dates. Preserve Data Dictionary precision, checksums, enum numbers/Unknown = 0, and JSON ISJSON plus application schema validation.
+- GPS uses geography(4326); engineering geometry uses configured UTM SRID. Options own limits/thresholds; fixture constants are not engineering standards.
+- Mutable decisions use concurrency tokens. Stale updates return documented conflicts; insertion uniqueness errors need separate handling. Scoped retry keys/fingerprints reject changed-payload reuse.
+- Commit domain/audit/outbox intent atomically where they share a database. Delivery may repeat; handlers deduplicate effects. Only the backend worker confirms required files/checksums/server quality checks.
+- Original evidence, submitted measurements and published/approved versions are immutable; new content appends. General Evidence targets follow the dictionary; measurement evidence_file_id does not justify inventing a polymorphic FK.
 
-- Migrations are immutable once shared. A new schema change gets a new migration, mapping tests, and a downgrade/recovery note.
-- Add optimistic concurrency to mutable workflow aggregates and return a conflict error for stale writes.
-- Retryable mobile/worker commands require an idempotency key or a database uniqueness constraint. Outbox/job handlers must be safe to run twice.
-- Original files, submitted measurements, evidence, approved versions, and audit/retention records are append-only. New content means a new version/record.
-- Keep file storage, clock, current user, notification, queue, and AI service behind interfaces. Phase 1 AI uses a deterministic fake with a versioned contract.
+## AI and research
 
-## Test and delivery gates
+Implement the adapter/job contract and deterministic fake now, validating project/input/model/version provenance. Python inference, training and GPU deployment are external. Test research import/pairing/metrics with controlled data, preserve uncertainty method where present, and verify no Defect/Warranty transitions. A fake does not establish empirical accuracy.
 
-- Unit tests cover invariants and state transitions; integration tests cover SQL constraints, spatial mapping, transactions, authorization, and concurrency; API tests cover contracts and status/error codes; worker tests cover retry/idempotency; end-to-end tests cover one complete seeded flow.
-- Use SQL Server for claims involving spatial, filtered unique indexes, check constraints, or transaction behavior. EF InMemory is not evidence for those claims.
-- Before handoff run, as applicable: `dotnet restore`, `dotnet format --verify-no-changes`, `dotnet build --no-restore`, `dotnet test --no-build`, and coverage/report commands defined by CI. Record skipped commands and why.
-- CI must fail on build, format, or test failure. Local secrets belong in user secrets/environment/secret store, never committed config.
+## Verification
+
+Use existing xUnit/assertion libraries, WebApplicationFactory and SQL Server fixtures. EF InMemory cannot prove SQL/spatial/transaction behavior. Migrations need mapping/constraint tests and upgrade/recovery evidence; shared history stays unchanged.
+
+For production changes run task-filtered and affected tests, then required solution gates:
+
+    dotnet restore RoadGuardSystem.slnx
+    dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+    dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore
+    dotnet test RoadGuardSystem.slnx --no-build
+
+Record SQL/container environments and failures without printing secrets. Unavailable infrastructure is not a pass. Documentation/tooling changes use relevant verifier/script checks with an explanation of unaffected runtime suites.

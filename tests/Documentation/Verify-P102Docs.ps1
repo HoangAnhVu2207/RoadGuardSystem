@@ -294,28 +294,42 @@ foreach ($plan in @(
     }
 }
 
-# Product Owner planning policy approved on 2026-09-17. Historical P1 Wave 0
-# cross-review evidence remains immutable; these rules apply to subsequent work.
+# Owner-approved P1-06 workflow migration (2026-09-18). Antigravity implements
+# and self-reviews; Codex accepts. Historical P1 Wave 0 evidence stays immutable.
 foreach ($plan in @(
     @{ Name = "Person 1 plan"; Content = $person1PlanContent },
     @{ Name = "Person 2 plan"; Content = $person2PlanContent }
 )) {
     foreach ($requiredToken in @(
-        "Self-review: task owner",
+        "Implementation and self-review: Antigravity",
         "Conflict warning",
         "exclusive file ownership",
-        "self-mark ``Done``"
+        "Completion: Codex"
     )) {
         if ($plan.Content -notmatch [regex]::Escape($requiredToken)) {
-            $errors += "$($plan.Name) missing approved self-review/conflict-control token: '$requiredToken'"
+            $errors += "$($plan.Name) missing approved implementation/acceptance/conflict-control token: '$requiredToken'"
         }
+    }
+}
+
+# Preserve the approved Wave 0 synchronization evidence while validating the
+# current status table independently from historical prose.
+foreach ($requiredToken in @(
+    'P2-00` | `Done`',
+    'P2-01` |',
+    'P2-02` |',
+    '3e13ca6',
+    'b2662fe'
+)) {
+    if ($person2PlanContent -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "Person 2 plan missing approved Wave 0 status/synchronization token: '$requiredToken'"
     }
 }
 
 # P2-03: Read the current status section, not historical prose elsewhere.
 # Legal progression must not require editing the verifier's source.
 $allowedStatuses = @('Not started', 'In Progress', 'Blocked', 'Ready for review',
-    'Ready for Codex review', 'Ready for cross-review', 'Done')
+    'Ready for Codex review', 'Ready for cross-review', 'Changes requested', 'Done')
 $currentStatuses = @{}
 $taskDependencies = @{}
 foreach ($planContent in @($person1PlanContent, $person2PlanContent)) {

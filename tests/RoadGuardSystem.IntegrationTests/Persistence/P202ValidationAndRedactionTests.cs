@@ -19,6 +19,115 @@ public sealed class P202ValidationAndRedactionTests : IClassFixture<P202SqlServe
         _fixture = fixture;
     }
 
+    [Theory(DisplayName = "P2-02 Negative F-01: raw audit snapshots require an explicit allow-list")]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AuditWithoutAllowList_RejectsSnapshotBeforeSqlCommit(bool before)
+    {
+        var auditId = Guid.NewGuid();
+        const string raw = "{\"email\":\"pii@example.test\",\"unexpected\":\"must-not-persist\"}";
+        await using var context = _fixture.CreateDbContext();
+        var action = async () =>
+        {
+            context.AuditLogs.Add(AuditLog.Create(
+                auditId, null, DateTimeOffset.UtcNow, "p2_02.allow_list", "P202TransactionProbe",
+                Guid.NewGuid(), before ? raw : null, before ? null : raw, null, "integration_test", null));
+            await context.SaveChangesAsync();
+        };
+
+        var exception = (await action.Should().ThrowAsync<ArgumentException>()).Which;
+        exception.ToString().Should().NotContain("pii@example.test").And.NotContain("must-not-persist");
+        await using var verification = _fixture.CreateDbContext();
+        (await verification.AuditLogs.CountAsync(row => row.Id == auditId)).Should().Be(0);
+    }
+
+    [Theory(DisplayName = "P2-02 Negative F-01: non-allowed audit fields cannot reach SQL through any save overload")]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task AuditAllowList_RemovesUnexpectedFieldsAtFactoryAndSave(int saveOverload)
+    {
+        const string raw = """
+            {"safe":"visible","email":"pii@example.test","nested":[
+              {"safe":"nested-visible","unexpected":"must-not-persist","ToKeN":"token-sentinel"},
+              {"PaSsWoRd":"password-sentinel","authorization":"auth-sentinel",
+               "cookie":"cookie-sentinel","secret":"secret-sentinel","connectionSTRING":"connection-sentinel"}]}
+            """;
+        string[] allowed = ["safe", "nested", "token", "password", "authorization", "cookie", "secret", "connectionString"];
+        var id = Guid.NewGuid();
+        await using (var context = _fixture.CreateDbContext())
+        {
+            var audit = AuditLog.Create(id, null, DateTimeOffset.UtcNow, "p2_02.allow_list",
+                "P202TransactionProbe", Guid.NewGuid(), raw, raw, null, "integration_test", null, allowed);
+            audit.BeforeSnapshot.Should().NotContain("pii@example.test").And.NotContain("must-not-persist");
+            audit.AfterSnapshot.Should().NotContain("pii@example.test").And.NotContain("must-not-persist");
+
+            // Mutating caller-owned policy must not broaden the policy captured by the entity.
+            allowed[0] = "email";
+            context.AuditLogs.Add(audit);
+            context.Entry(audit).Property(row => row.BeforeSnapshot).CurrentValue = raw;
+            context.Entry(audit).Property(row => row.AfterSnapshot).CurrentValue = raw;
+            switch (saveOverload)
+            {
+                case 0: context.SaveChanges(); break;
+                case 1: context.SaveChanges(false); break;
+                case 2: await context.SaveChangesAsync(); break;
+                case 3: await context.SaveChangesAsync(false, CancellationToken.None); break;
+            }
+        }
+
+        await using var verification = _fixture.CreateDbContext();
+        var persisted = await verification.AuditLogs.AsNoTracking().SingleAsync(row => row.Id == id);
+        foreach (var snapshot in new[] { persisted.BeforeSnapshot!, persisted.AfterSnapshot! })
+        {
+            snapshot.Should().NotContainAny("email", "unexpected", "pii@example.test", "must-not-persist", "-sentinel");
+            using var document = JsonDocument.Parse(snapshot);
+            document.RootElement.GetProperty("safe").GetString().Should().Be("visible");
+            document.RootElement.GetProperty("nested")[0].GetProperty("safe").GetString().Should().Be("nested-visible");
+            document.RootElement.GetProperty("nested")[0].GetProperty("ToKeN").GetString().Should().Be("[REDACTED]");
+        }
+    }
+
+    [Fact(DisplayName = "P2-02 Negative F-01: a snapshot injected into a no-snapshot audit has no permitted fields")]
+    public async Task AuditWithoutSnapshots_DoesNotAllowEfInjectedFields()
+    {
+        var id = Guid.NewGuid();
+        await using (var context = _fixture.CreateDbContext())
+        {
+            var audit = AuditLog.Create(id, null, DateTimeOffset.UtcNow, "p2_02.allow_list",
+                "P202TransactionProbe", Guid.NewGuid(), null, null, null, "integration_test", null);
+            context.AuditLogs.Add(audit);
+            context.Entry(audit).Property(row => row.AfterSnapshot).CurrentValue = "{\"email\":\"pii@example.test\"}";
+            await context.SaveChangesAsync();
+        }
+
+        await using var verification = _fixture.CreateDbContext();
+        var persisted = await verification.AuditLogs.AsNoTracking().SingleAsync(row => row.Id == id);
+        persisted.BeforeSnapshot.Should().BeNull();
+        persisted.AfterSnapshot.Should().Be("{}");
+    }
+
+    [Theory(DisplayName = "P2-02 Positive F-01: explicit audit policy preserves permitted data and null snapshots")]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AuditAllowList_RoundTripsPermittedFieldsAndNull(bool emptyPolicy)
+    {
+        var id = Guid.NewGuid();
+        await using (var context = _fixture.CreateDbContext())
+        {
+            context.AuditLogs.Add(AuditLog.Create(id, null, DateTimeOffset.UtcNow, "p2_02.allow_list",
+                "P202TransactionProbe", Guid.NewGuid(), null, "[{\"SAFE\":\"visible\",\"email\":\"remove-me\"}]",
+                null, "integration_test", null, emptyPolicy ? [] : ["safe"]));
+            await context.SaveChangesAsync();
+        }
+
+        await using var verification = _fixture.CreateDbContext();
+        var persisted = await verification.AuditLogs.AsNoTracking().SingleAsync(row => row.Id == id);
+        persisted.BeforeSnapshot.Should().BeNull();
+        persisted.AfterSnapshot.Should().Be(emptyPolicy ? "[{}]" : "[{\"SAFE\":\"visible\"}]");
+    }
+
     [Fact(DisplayName = "P2-02 Negative F-01: public persistence path redacts nested case-variant sensitive keys")]
     public async Task PublicPersistencePath_RedactsSensitiveJsonBeforeSqlCommit()
     {
@@ -49,7 +158,8 @@ public sealed class P202ValidationAndRedactionTests : IClassFixture<P202SqlServe
                 rawJson,
                 null,
                 "integration_test",
-                Guid.NewGuid()));
+                Guid.NewGuid(),
+                ["safe", "nested", "token", "authorization", "connectionString"]));
             context.OutboxMessages.Add(OutboxMessage.Create(
                 outboxId,
                 "p2_02.f01_regression",
@@ -90,7 +200,8 @@ public sealed class P202ValidationAndRedactionTests : IClassFixture<P202SqlServe
                 "{\"safe\":\"initial\"}",
                 null,
                 "integration_test",
-                Guid.NewGuid());
+                Guid.NewGuid(),
+                ["safe", "nested", "secret", "cookie", "password"]);
             var outbox = OutboxMessage.Create(
                 outboxId,
                 "p2_02.f01_bypass_regression",
@@ -196,7 +307,8 @@ public sealed class P202ValidationAndRedactionTests : IClassFixture<P202SqlServe
             null,
             null,
             "integration_test",
-            Guid.NewGuid());
+            Guid.NewGuid(),
+            ["safe"]);
         var idempotencyEntity = () => IdempotencyRecord.Create(
             Guid.NewGuid(),
             Guid.NewGuid(),

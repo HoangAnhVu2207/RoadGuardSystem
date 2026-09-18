@@ -20,7 +20,7 @@ For each task, Codex's assignment records acceptance criteria, In scope, Out of 
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
 | `P2-01` | `Done` | `huy` | Codex acceptance round 2 recorded 2026-09-18 for artifact `77505f2`; hosted CI run `35277820417` and fresh checkout gates passed, with no open findings or blockers. |
-| `P2-02` | `Ready for review` | `huy` | Fix round 1 closes F-01/F-02 for resubmission: persistence-boundary sanitization is SQL-proven, and durable consumer effect + receipt are SQL-proven across success, rollback, replay, and concurrency. P2-02 SQL tests 35/35 and full solution tests 154/154 passed with zero skips. Codex acceptance round 2 is pending; P2-10 must not start. |
+| `P2-02` | `Done` | `huy` | Codex acceptance round 3 recorded 2026-09-18 for HEAD `c7c6829` plus the five-file working-tree fix identified by SHA-256 in the worklog. Owner explicitly authorized Codex final self-review and acceptance for this task. F-01/F-02 Verified; SQL 44/44 and solution 163/163 passed with zero skips; no open blockers. Changes are uncommitted; no integration or next-task assignment performed. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 
 Prior gate: owner-approved integration produced baseline `20ff1d3`, containing Person 1 tip `3e13ca6` and Person 2 tip `b2662fe`. The synchronization gate is historical; the current table above determines task status.

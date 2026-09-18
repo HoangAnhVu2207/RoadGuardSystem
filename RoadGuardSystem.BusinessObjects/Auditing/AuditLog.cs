@@ -4,6 +4,10 @@ namespace RoadGuardSystem.BusinessObjects.Auditing;
 
 public sealed class AuditLog
 {
+    // Transient insertion policy, deliberately not mapped or exposed for mutation.
+    // Materialized history cannot be updated; re-inserting it without a policy fails closed.
+    private readonly HashSet<string> _snapshotAllowedPropertyNames = new(StringComparer.OrdinalIgnoreCase);
+
     private AuditLog()
     {
     }
@@ -41,15 +45,18 @@ public sealed class AuditLog
         string? afterSnapshot,
         string? reason,
         string source,
-        Guid? correlationId)
+        Guid? correlationId,
+        IReadOnlyCollection<string>? snapshotAllowedPropertyNames = null)
     {
         ValidateRequired(eventType, nameof(eventType), 100);
         ValidateRequired(entityType, nameof(entityType), 100);
         ValidateRequired(source, nameof(source), 80);
-        var sanitizedBeforeSnapshot = SanitizeOptionalJson(beforeSnapshot, nameof(beforeSnapshot));
-        var sanitizedAfterSnapshot = SanitizeOptionalJson(afterSnapshot, nameof(afterSnapshot));
+        if ((beforeSnapshot is not null || afterSnapshot is not null) && snapshotAllowedPropertyNames is null)
+        {
+            throw new ArgumentException("Audit snapshots require an explicit field allow-list.", nameof(snapshotAllowedPropertyNames));
+        }
 
-        return new AuditLog
+        var audit = new AuditLog
         {
             Id = id,
             ActorUserId = actorUserId,
@@ -57,12 +64,29 @@ public sealed class AuditLog
             EventType = eventType.Trim(),
             EntityType = entityType.Trim(),
             EntityId = entityId,
-            BeforeSnapshot = sanitizedBeforeSnapshot,
-            AfterSnapshot = sanitizedAfterSnapshot,
+            BeforeSnapshot = beforeSnapshot,
+            AfterSnapshot = afterSnapshot,
             Reason = reason,
             Source = source.Trim(),
             CorrelationId = correlationId
         };
+        if (snapshotAllowedPropertyNames is not null)
+        {
+            audit._snapshotAllowedPropertyNames.UnionWith(snapshotAllowedPropertyNames);
+        }
+
+        audit.SanitizeSnapshotsForPersistence();
+        return audit;
+    }
+
+    /// <summary>
+    /// Reapplies the captured insertion policy after EF property-entry mutation, before persistence.
+    /// This cannot broaden the permitted fields or replace the policy.
+    /// </summary>
+    public void SanitizeSnapshotsForPersistence()
+    {
+        BeforeSnapshot = SanitizeOptionalJson(BeforeSnapshot, nameof(BeforeSnapshot));
+        AfterSnapshot = SanitizeOptionalJson(AfterSnapshot, nameof(AfterSnapshot));
     }
 
     private static void ValidateRequired(string value, string parameterName, int maxLength)
@@ -74,7 +98,7 @@ public sealed class AuditLog
         }
     }
 
-    private static string? SanitizeOptionalJson(string? json, string parameterName)
+    private string? SanitizeOptionalJson(string? json, string parameterName)
     {
         if (json is null)
         {
@@ -83,7 +107,7 @@ public sealed class AuditLog
 
         try
         {
-            return SensitiveJsonSanitizer.Redact(json);
+            return SensitiveJsonSanitizer.ApplyAllowList(json, _snapshotAllowedPropertyNames);
         }
         catch (JsonException exception)
         {

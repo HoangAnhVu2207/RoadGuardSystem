@@ -68,17 +68,7 @@ public class RoadGuardDbContext : DbContext
 
         foreach (var entry in ChangeTracker.Entries<AuditLog>().Where(entry => entry.State == EntityState.Added))
         {
-            if (entry.Entity.BeforeSnapshot is not null)
-            {
-                entry.Property(audit => audit.BeforeSnapshot).CurrentValue =
-                    SensitiveJsonSanitizer.Redact(entry.Entity.BeforeSnapshot);
-            }
-
-            if (entry.Entity.AfterSnapshot is not null)
-            {
-                entry.Property(audit => audit.AfterSnapshot).CurrentValue =
-                    SensitiveJsonSanitizer.Redact(entry.Entity.AfterSnapshot);
-            }
+            entry.Entity.SanitizeSnapshotsForPersistence();
         }
 
         foreach (var entry in ChangeTracker.Entries<OutboxMessage>()

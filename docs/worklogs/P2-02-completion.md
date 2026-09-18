@@ -596,3 +596,148 @@ Hosted Linux CI and Docker/Testcontainers were not rerun in this fix round. The 
 - Submitted fix range: `682aa0630904729537091c35753a42a44809959f..33b49e269581d5e9c2916b78fd9e34677d7e223a` plus the metadata-only commit that appends this immutable identity.
 - Verification binding: all final runtime gates recorded above ran against the exact production and test content committed in `33b49e2`; this append changes review bookkeeping only.
 - Commit scope: 9 declared P2-02 files, 509 insertions, 39 deletions; no unrelated or generated file was included.
+
+## Codex acceptance review - round 2 (Changes requested)
+
+- **Reviewer / time:** Codex / 2026-09-18T16:44:39+07:00.
+- **Reviewed artifact:** branch `huy`, HEAD `c7c682958813d1fd10fa405b4b8f219fd3d484bd`; fix baseline `682aa0630904729537091c35753a42a44809959f`; implementation commit `33b49e269581d5e9c2916b78fd9e34677d7e223a`; metadata-only identity commit `c7c682958813d1fd10fa405b4b8f219fd3d484bd`. Worktree, index and relevant untracked scope were empty at review start and after checks.
+- **Handoff / authority:** Antigravity submitted P2-02 as `Ready for review` and stopped edits. The repository-owner authorization permits only this task's worklog review section and P2-02 plan status/note bookkeeping. No production code, tests, commit, merge, push or next-task work was performed by Codex.
+
+### Acceptance-criteria disposition
+
+- **P2-02-AC-01 through AC-04:** remain accepted from round 1; the fix range does not change their schema, migration, idempotency, transaction or rowversion artifacts, and fresh regression gates remain green.
+- **P2-02-AC-05:** not accepted. F-01's sensitive-key redaction portion is fixed and SQL-proven, but the production `AuditLog.Create`/`RoadGuardDbContext` path still accepts raw snapshot JSON without an explicit allow-list and retains non-allowed fields. This violates the stable allow-list requirement and Data Dictionary section 6.3.
+- **P2-02-AC-06:** accepted. F-02 is Verified: fresh SQL Server tests prove the first durable effect and receipt commit together, a forced failure after an inner save rolls both back, replay skips the callback, and two independent concurrent contexts commit one effect/receipt pair.
+- **P2-02-AC-07:** accepted for this resubmission. Fresh restore, non-incremental build, format, P2-02 SQL tests, full solution tests, dependency security, documentation/planning verifiers, EF model consistency, diff and cleanup checks all passed with non-zero discovery and zero skips.
+- **P2-02-AC-08:** incomplete while F-01 remains open. Antigravity's fix-round chronology, self-review, changed-file list and exact resubmission identity are present.
+
+### Finding dispositions
+
+- **F-01 - Open - [P1] Audit allow-list remains bypassable through the production persistence path.** Owner/task: Person 2 / P2-02. Locations: `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs:33-64`, `RoadGuardSystem.Repositories/RoadGuardDbContext.cs:69-81`, and `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ValidationAndRedactionTests.cs:22-69`. Trigger: a repository caller passes a valid audit snapshot containing a non-allowed key such as `email` or `unexpected` directly to `AuditLog.Create`, then persists the entity through `RoadGuardDbContext`. Behavior: the factory and save invariant redact only six sensitive key names; they never require or apply an event-specific allowed-property set. A fresh reflection probe on the submitted assembly returned both `{"email":"pii@example.test","unexpected":"must-not-persist"}` fields unchanged, and the new SQL regression asserts only removal of named secret sentinels. Impact: PII or restricted/unnecessary data under any other property name can enter durable append-only audit history and cannot later be corrected in place. Violated contract: P2-02-AC-05 and `RoadGuard_Data_Dictionary_v1.md` section 6.3, which requires audit snapshots to use an allow-list and redact sensitive data. Closure: make the public production audit construction/persistence contract require or enforce an explicit allowed-property set so callers cannot persist raw snapshots outside that set; add a SQL-backed regression that supplies at least one non-allowed field and proves it is absent while the required nested/case-variant redaction still passes.
+- **F-02 - Verified - [P2] Consumer durable effect and receipt are atomic.** Verified against `ConsumerEffectService.ProcessAsync` and fresh SQL tests at HEAD `c7c6829`: success, rollback, replay and independent-context concurrency all assert both the durable probe effect and receipt. The callback contract is limited to the same/enlisted database transaction and makes no universal exactly-once external-side-effect claim.
+
+### Fresh reviewer checks
+
+Environment: Windows 11 build 26100, PowerShell 7, .NET SDK 10.0.401, .NET 8.0.31 test runtime, SQL Server LocalDB 17.0.4025.3, branch `huy`, HEAD `c7c682958813d1fd10fa405b4b8f219fd3d484bd`.
+
+| Command/check | Exit | Reviewer result |
+|---|---:|---|
+| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up to date. |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 9 projects built; 0 warnings, 0 errors. |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | No formatting changes required. |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --no-restore --filter "TaskId=P2-02" --logger "console;verbosity=normal"` with process-scoped LocalDB connection | 0 | 35/35 passed, 0 failed, 0 skipped. |
+| `dotnet test RoadGuardSystem.slnx --no-build --no-restore --logger "console;verbosity=normal"` with process-scoped LocalDB connection | 0 | 154/154 passed, 0 failed, 0 skipped: Unit 37, API 26, SQL Integration 91. |
+| `pwsh -NoProfile -File tests/Security/Verify-DependencySecurity.ps1` | 0 | No High/Critical vulnerable dependency detected for the integration project. |
+| `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Documentation contracts, role codes and dependency checks passed. |
+| `pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1` | 0 | 9/9 planning/status/dependency regression cases passed. |
+| `dotnet ef migrations has-pending-model-changes --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --context RoadGuardDbContext --no-build` | 0 | No model changes since the last migration. |
+| `dotnet ef migrations list --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --context RoadGuardDbContext --no-build` | 0 | P2-02 migration listed as pending against LocalDB master; no database mutation. |
+| `git diff --check 682aa0630904729537091c35753a42a44809959f..33b49e269581d5e9c2916b78fd9e34677d7e223a` | 0 | Submitted fix range has no whitespace errors. |
+| Reflection probe against submitted BusinessObjects assembly | 0 | `AuditLog.Create` retained non-allowed `email` and `unexpected` properties, substantiating the remaining F-01 closure gap without database mutation. The first PowerShell probe used `$null` for a string parameter and failed through shell coercion; the corrected probe above is the artifact result. |
+| LocalDB cleanup query for `RoadGuard_Test_%` | 0 | 0 isolated test databases remained. |
+
+### Verification gaps, verdict and bounded fix request
+
+- Docker/Testcontainers and hosted Linux CI were not rerun in this round. They are not the blocking issue: the changed behavior ran on real SQL Server LocalDB with zero skips, P2-01's hosted delivery gate is already accepted in this checkout, and no hosted/Docker behavior changed in the submitted fix.
+- **Verdict / recorded status:** `Changes requested`. F-02 is closed as Verified; F-01 remains open because the stable audit allow-list requirement is still bypassable. P2-02 is not `Done`, and P2-10 remains blocked by its dependency. This verdict does not authorize merge, push, deployment or the next task.
+- **Fix request to Antigravity:** Resume P2-02 as `In Progress` and close only F-01. Make explicit allow-list enforcement non-bypassable through the public production audit persistence path, retain recursive case-insensitive redaction, and add SQL-backed regression evidence that a non-allowed audit field is absent after commit. Rerun the P2-02 SQL filter and required repository gates, self-review the exact fix, then resubmit P2-02 as `Ready for review`; do not reopen F-02 or start P2-10.
+
+## Owner-requested Codex fix round 2 - 2026-09-18T17:21:19+07:00
+
+- Status: `In Progress`; Person 2 / `huy`, baseline `c7c682958813d1fd10fa405b4b8f219fd3d484bd`. The owner explicitly requested "fix cho tôi" after the F-01 explanation, authorizing Codex to implement this bounded correction. Earlier review-only limitations no longer prohibit this fix; no Git integration/publication is requested.
+- Scope: F-01 / P2-02-AC-05 only, retaining the accepted F-02 behavior. Enforce an explicit snapshot field allow-list at construction and again before EF insertion. Copy the policy so callers cannot broaden it after construction. Keep recursive case-insensitive sensitive-key redaction.
+- Exclusive files: `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs`, `RoadGuardSystem.BusinessObjects/Auditing/SensitiveJsonSanitizer.cs`, `RoadGuardSystem.Repositories/Auditing/AuditSnapshotBuilder.cs`, `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`, `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ValidationAndRedactionTests.cs`, this worklog and only the P2-02 plan status/note.
+- Conflict warning: the two existing dirty metadata files are Codex round-2 review/status writes and are preserved. No other dirty files or active P2 task is present. Schema, migrations, P1 contracts, HTTP authorization, consumer transactions and next tasks are outside this fix.
+- Actor/project/transition/audit: unchanged infrastructure-only contract; no new business actor, authorization policy or transition. The snapshot itself is the audit evidence. Only newly added audit rows receive the allow-list policy; persisted history remains append-only.
+- Verification sequence: reproduce raw-snapshot-without-policy acceptance as behavioral RED; add SQL negative cases for non-allowed/nested/EF-injected fields and mutated caller policy, then positive allowed-field/null/empty-policy contracts; implement; run focused SQL tests and required solution/security/migration/documentation/cleanup gates. Record Codex implementation self-check honestly; do not label it Antigravity self-review.
+
+### Fix result and implementation self-check - 2026-09-18T17:26:30+07:00
+
+- **F-01: Fixed, awaiting acceptance.** `AuditLog.Create` now requires an explicit `snapshotAllowedPropertyNames` collection whenever either snapshot is non-null. Omitting the policy throws before insertion, without including supplied snapshot content in the exception. A no-snapshot event remains valid; its default insertion policy permits no fields.
+- The entity privately copies the case-insensitive property-name policy; later caller-array changes cannot widen it. The policy is transient and has no EF mapping. Factory construction and every EF save overload apply the same recursive allow-list/redaction logic. Raw values inserted through `PropertyEntry.CurrentValue` are filtered again before SQL insertion. Empty policy drops all object properties; null snapshots stay null. This retains the existing name-based recursive policy contract rather than introducing per-path business schemas.
+- The existing `AuditSnapshotBuilder` delegates sanitization to the same BusinessObjects implementation, preserving its size/JSON checks and avoiding a second divergent filter. Outbox continues to use recursive redaction without the audit-only allow-list policy.
+- **Exact changed implementation files:** `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs`; `RoadGuardSystem.BusinessObjects/Auditing/SensitiveJsonSanitizer.cs`; `RoadGuardSystem.Repositories/Auditing/AuditSnapshotBuilder.cs`; `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`; `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ValidationAndRedactionTests.cs`. Metadata: this log and only the P2-02 status/note in the Person 2 plan. Earlier review records remain intact.
+- **Compatibility:** audit callers supplying snapshots must now supply their explicit field allow-list. All current direct factory callers are P2-02 tests and were updated; no production caller exists outside the factory. No HTTP, schema, migration, package, worker/consumer, or other task change. Existing stored rows are not rewritten, and new policy data is not persisted.
+- **Negative-first chronology:** added the two `AuditWithoutAllowList_RejectsSnapshotBeforeSqlCommit` cases first and ran them against the previous implementation on real SQL Server: 2/2 failed because raw snapshots committed without throwing. Then authored the additional negative cases (EF mutation in four save overloads, caller policy mutation, no-snapshot injection) and positive array/null/empty-policy contracts before production edits. Those additional cases were not separately executed as RED; the two observed behavioral failures establish the root-cause RED. After implementation, the complete validation/redaction class passed 16/16, then P2-02 passed 44/44 and the solution passed 163/163.
+- **Codex implementation self-check:** no new authorization, role/project policy, state transition, retry or consumer transaction was introduced. Audit application/SQL append-only guards remain unchanged and pass. F-02 success/rollback/replay/concurrency regressions remain green. Explicit allowed fields round-trip; unapproved root/nested fields and all supplied sensitive values are absent; snapshots inserted through EF are sanitized again. Snapshot size checks in the builder and the existing error contract remain covered. No secrets or generated files added, no ownership overlap, no model drift. This is Codex's implementation check, not a claim that Antigravity reviewed this changed content.
+
+### Commands and evidence for this fix
+
+Environment: Windows 11 build 26100, PowerShell 7, SDK 10.0.401 / .NET 8.0.31, SQL Server LocalDB 17.0.4025.3. Execution window 2026-09-18T17:21-17:26+07:00. Commands ran on the working-tree implementation identified below, over HEAD `c7c682958813d1fd10fa405b4b8f219fd3d484bd`.
+
+SQL tests used a process-scoped `ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` pointing to local integrated-authentication LocalDB master; the existing fixture creates and drops GUID-named `RoadGuard_Test_*` databases. EF consistency used process-scoped `ROADGUARD_MIGRATION_CONNECTION_STRING` against the same local instance; no production/shared DB was targeted.
+
+| Command/check | Exit | Actual result |
+|---|---:|---|
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~AuditWithoutAllowList_RejectsSnapshotBeforeSqlCommit --logger "console;verbosity=normal"` before implementation | 1 | Intended behavioral RED: 2/2 failed, no expected exception; raw before/after snapshots were accepted and saved. |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~P202ValidationAndRedactionTests --logger "console;verbosity=normal"` | 0 | 16/16 passed, zero failed/skipped. |
+| `dotnet restore RoadGuardSystem.slnx` | 0 | All projects up to date. |
+| `dotnet build RoadGuardSystem.slnx --no-restore --no-incremental` | 0 | 9 projects, zero warnings/errors. |
+| `dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore` | 0 | No formatting changes required. |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --no-restore --filter "TaskId=P2-02" --logger "console;verbosity=normal"` | 0 | 44/44 passed, zero failed/skipped, including migration apply/downgrade/reapply and F-02 regressions. |
+| `dotnet test RoadGuardSystem.slnx --no-build --no-restore --logger "console;verbosity=minimal"` | 0 | 163/163 passed: Unit 37, API 26, SQL Integration 100; zero failed/skipped. |
+| `pwsh -NoProfile -File tests/Security/Verify-DependencySecurity.ps1` | 0 | No High/Critical vulnerable dependency in integration project. |
+| `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` | 0 | Documentation contracts/dependencies passed. |
+| `pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1` | 0 | 9/9 planning/status regression cases passed. |
+| `dotnet ef migrations has-pending-model-changes --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --context RoadGuardDbContext --no-build` | 0 | No model changes since the last migration. |
+| `git diff --check`; scoped source/test diff inspection | 0 | Clean whitespace; only declared files changed. |
+| `sqlcmd -S '(localdb)\MSSQLLocalDB' -d master -E -W -Q "SET NOCOUNT ON; SELECT CONVERT(varchar(30), SERVERPROPERTY('ProductVersion')) AS SqlVersion; SELECT COUNT(*) AS RemainingTestDatabases FROM sys.databases WHERE name LIKE 'RoadGuard_Test_%';"` | 0 | SQL 17.0.4025.3; 0 remaining isolated test databases. |
+
+Docker/Testcontainers and hosted CI were not rerun; no such environment execution is claimed. Real SQL LocalDB tests and accepted P2-01 delivery evidence apply as in prior rounds. Two initial inventory searches using Windows glob paths produced `rg` path errors; discovery was corrected to a repository-wide `--glob '*.cs'` search before edits. These were inspection-command errors, not test failures.
+
+### Working-tree identity and remaining acceptance gate
+
+SHA-256 content identities (metadata excluded):
+
+| File | SHA-256 |
+|---|---|
+| `RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs` | `CC739A451BD264CCE72F8691CE5E34A2D237B5F38531D5342E8225933D8F2EBA` |
+| `RoadGuardSystem.BusinessObjects/Auditing/SensitiveJsonSanitizer.cs` | `6ABC078BD043A010F30D5DCBCE1BBB4348E355790773D33E23F3336E85AD52B8` |
+| `RoadGuardSystem.Repositories/Auditing/AuditSnapshotBuilder.cs` | `8AC55073BA27D63A7FAE551039C570609255C4A80D40FBD58981EB5F7B4CC6F0` |
+| `RoadGuardSystem.Repositories/RoadGuardDbContext.cs` | `45CDC31FBEB887E418089BF5B44E8EA6090A3E5D186EDC02248D43318DF583F9` |
+| `tests/RoadGuardSystem.IntegrationTests/Persistence/P202ValidationAndRedactionTests.cs` | `1A81D38C30F545EA0530EC3B35222DD52CB63354AF93349A758A3E5934DFC349` |
+
+- **Recorded task status: `Blocked` on the owner self-review/acceptance gate only.** The requested F-01 code fix and checks are complete. AGENTS requires Antigravity task-owner self-review and acceptance of changed artifacts; the prior self-review predates this implementation and cannot be reused as its review. No `Done` or final acceptance is claimed by the implementer.
+- **Resume point:** Antigravity inspects this exact bounded diff, records owner self-review for P2-02/F-01, and submits `Ready for review`; Codex then verifies F-01 closure and acceptance of this content. No additional business scope or F-02 rewrite is requested. P2-10 remains gated until P2-02 is accepted. No commit, merge, push or messages to another tool/person were performed.
+
+## Codex acceptance review - round 3 (Done) - 2026-09-18T17:34:47+07:00
+
+### Owner-authorized completion and exact scope
+
+- The repository owner explicitly requested **"codex sửa và hoàn thiện đến trạng thái done cho tôi"** after being informed that the only remaining gate was Antigravity self-review of the Codex fix. This task-specific instruction authorizes Codex to perform the remaining implementation self-review and acceptance for P2-02. It resolves the prior reviewer-identity blocker; it does not waive AC, testing, data integrity, or change the general workflow for other tasks. No Antigravity review of this final fix is claimed.
+- Reviewer and final-fix self-reviewer: **Codex**, acting under that task-specific owner exception. Person/task/branch remain **Person 2 / P2-02 / huy**. Implementation was frozen before this acceptance pass; metadata ownership is limited to this worklog and the P2-02 status/note in the existing plan.
+- Accepted artifact: HEAD `c7c682958813d1fd10fa405b4b8f219fd3d484bd` plus the five-file working-tree implementation/test diff identified by the SHA-256 table immediately above. Fresh hashes match all five recorded values exactly. Index and untracked inventory are empty; the only other modified files are this worklog and the P2-02 plan metadata. Acceptance is bound to that content, not a later changed implementation.
+- Fresh dependency checks: `git merge-base --is-ancestor <revision> HEAD` returned 0 for P2-00 `b2662fe`, P2-01 `77505f2`, P2-03 `4c40433`, workflow policy `b50b86f`, and the F-02 fix `33b49e2`. Required artifacts and accepted dependency statuses are present in this checkout. No fetch, branch integration or branch switch was needed.
+
+### Codex final self-review under owner exception
+
+- **Authorization / project scope:** no endpoint, role policy or membership bypass added. Scoped idempotency still retains actor/project/operation for current authorization checks by future P1 callers. User-specific API authorization is N/A for this persistence-foundation task.
+- **Transitions / immutability:** the new allow-list policy applies to construction and insertion only; it is private and copied, not a mutable mapped field. Existing audit rows remain protected by EF modified/deleted checks and the SQL append-only trigger. No migration or stored history was changed.
+- **Idempotency / concurrency / atomicity:** existing replay/conflict, scope isolation, unique-race handling, stale rowversion, four-member transaction rollback and F-02 effect/receipt tests all passed on the exact current content. The allow-list correction does not change these primitives or claim exactly-once external effects.
+- **Audit / secrets / errors:** missing snapshot policy rejects before insertion; explicitly permitted fields survive, root/nested non-permitted fields are removed, and sensitive permitted keys are redacted recursively and case-insensitively. Capturing a private copy prevents caller policy mutation; every save overload reapplies it after EF property-entry mutation. Default empty policy strips injected object fields. Validation exceptions do not include the supplied sensitive sentinels. Null snapshots and empty allow-lists have passing positive contracts.
+- **Tests / architecture / conflicts:** two behavioral RED cases preceded the fix; nine new SQL cases cover the correction. Existing redaction and F-02 regressions remain intact. BusinessObjects owns filtering invariants; Repositories invokes them at the insertion boundary. No new dependencies, production logger, HTTP changes, schema drift, unrelated edits, shared-file conflicts or unresolved mandatory self-review findings remain.
+
+### Final AC and finding dispositions
+
+| Acceptance criterion | Final disposition and evidence |
+|---|---|
+| P2-02-AC-01 | Verified: SQL mappings, bounded columns, UTC/JSON constraints, unique indexes and audit append-only trigger are present. Isolated migration empty apply/downgrade/reapply passes. Deferred User/Project FKs remain the agreed future migrations. |
+| P2-02-AC-02 | Verified: real SQL tests commit domain/audit/outbox/idempotency together and roll all four back on failure. |
+| P2-02-AC-03 | Verified: scoped key, fingerprint conflict, stable replay outcome, distinct scopes and concurrent first submission tests pass. |
+| P2-02-AC-04 | Verified: fresh rowversion advances and stale writer cannot overwrite the winner. |
+| P2-02-AC-05 | Verified: F-01 closed for the current artifact by mandatory allow-list at factory and EF insertion, recursive redaction, policy-copy and all-save-overload regressions; append-only and JSON tests remain green. |
+| P2-02-AC-06 | Verified: F-02 remains closed; durable consumer effect and receipt success/rollback/replay/concurrency tests pass. |
+| P2-02-AC-07 | Verified: exact-content RED/GREEN, required runtime/tooling/security/migration/diff/cleanup evidence is recorded in the preceding fix-round command table. |
+| P2-02-AC-08 | Verified under the explicit owner exception above: historical Antigravity evidence retained, final Codex self-review complete, exact artifact identified, all mandatory findings closed, acceptance recorded here before plan update. |
+
+- **F-01 - Verified / Closed.** The raw audit JSON path can no longer bypass an explicit allow-list, including EF injection and mutated caller arrays. The required secret redaction behavior remains proven. Closure applies to the five-file SHA-256 identity above.
+- **F-02 - Verified / Closed.** The previously accepted durable effect/receipt transaction behavior remains unchanged and passes current regression evidence.
+- **Open mandatory findings / blockers: none.** No optional follow-up is promoted into a new acceptance requirement. Plan labels TE-05/TE-07 remain trace labels whose concrete task criteria are specified in this assignment and ADR 003; no extra product behavior is inferred from those labels.
+
+### Verification binding and verdict
+
+- The required commands were run by Codex in this same task at 2026-09-18T17:21-17:26+07:00, with results observed directly, not inferred from another branch: restore 0; non-incremental build 0 (9 projects, no warnings/errors); format verification 0; P2-02 SQL **44/44** (0 failed/skipped); full solution **163/163** (Unit 37, API 26, SQL Integration 100; 0 failed/skipped); security 0; documentation 0; planning 0 (9/9); EF pending-model check 0 (no drift); cleanup 0 (no remaining test databases). Exact commands and environment are retained in the preceding table.
+- Fresh acceptance checks in this pass: status/HEAD/index/untracked inventory, five SHA-256 content comparisons, dependency ancestry, source/caller/test/migration inspection and `git diff --check` all succeeded. No production/test content changed after those runtime gates, so no redundant runtime rerun is represented as new evidence. Final metadata verifiers follow the plan update.
+- SQL behavior was verified on real SQL Server LocalDB 17.0.4025.3. Hosted Linux CI and Docker/Testcontainers were not rerun for the final fix; that limitation remains explicit and does not replace the accepted P2-01 delivery evidence. No hosted/Docker change is included in this correction.
+- **Final verdict / current task status: `Done`.** P2-02 acceptance is complete under the owner's explicit Codex self-review/acceptance exception. This supersedes the earlier `Blocked` verdict without rewriting its history. Done means task acceptance only; changes remain uncommitted in this checkout. No merge, push, deployment or next task was performed or assigned.
+- **Post-status verification:** `pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1` returned 0; `pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1` returned 0 with 9/9 cases; `git diff --check` returned 0. Readback confirmed the sole P2-02 current-status row is `Done` and the round-3 acceptance section is present. No additional implementation changes occurred.

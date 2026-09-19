@@ -6,7 +6,7 @@
 2. Honor the user's task IDs and comparison. For a current diff, inspect `git diff`, `git diff --cached` and explicitly relevant untracked files (`git ls-files --others --exclude-standard`); ordinary diff omits untracked files. For a supplied commit use `git show`; for a supplied local base/head use `git diff <base>...<head>`. Resolve both refs before comparison. Read surrounding callers, guards, mappings and tests so the diff is not judged in isolation.
 3. If the task is not stated, infer it only when changed paths and plan rows establish a unique match; disclose the assumption. Otherwise ask for the task/range while continuing read-only inventory. Do not treat all planned future functionality as missing from the current slice. Do not switch branches or overwrite the dirty working tree to review another ref; inspect it with read-only Git tools.
 4. Record reviewed HEAD/base/head, staged/unstaged/untracked scope and known dirty-file attribution. For working-tree reviews record the scoped file list and diff identity (or content hashes) when saving evidence. Verify dependency artifacts actually exist in this revision. Distinguish a dependency blocked on integration from a proven defect in the task.
-5. Read the assignment's stable AC, In scope, Out of scope, submission and previous findings. Codex is the mandatory acceptance actor after Antigravity implementation/self-review. Confirm the handoff before updating task-scoped plan/worklog sections. Explicit report-only/read-only requests prohibit all such writes; ordinary task acceptance has standing authorization under AGENTS.
+5. Read the assignment's stable AC, In scope, Out of scope, submission and previous findings. Codex is the mandatory acceptance actor after Codex Implementer implementation/self-review. Confirm the handoff before updating task-scoped plan/worklog sections. Explicit report-only/read-only requests prohibit all such writes; ordinary task acceptance has standing authorization under AGENTS.
 
 ## Recover acceptance criteria
 
@@ -14,7 +14,14 @@ Read only relevant sections, using this precedence: [Data Dictionary](../../../.
 
 Build a compact mapping: task -> US/use-case or TE/RS trace -> changed behavior -> tests/evidence. For each applicable command/query identify authorized actor, current project membership, preconditions, allowed transition, immutable content, audit, retry and stale-version outcomes. A material specification conflict is an open product/schema decision; cite the conflict, describe options, and stop only that affected conclusion. Do not silently resolve it or invent an acceptance criterion.
 
+## Independent acceptance
+
+Reviewer must be a separate Codex task/session that did not author the submission. Check the review packet and frozen content identity including untracked files; the implementer cannot accept its own work. Missing evidence blocks acceptance.
+
 ## Verify proportionally
+
+Follow AGENTS.md Lean TDD: rerun new regression/high-risk checks; inspect valid remaining evidence tied to matching content/environment. Record inspected versus rerun checks. Changed covered inputs, missing/untrustworthy evidence or failures require rerun; starting review alone does not require repeating every gate.
+
 
 - Read existing tests before choosing commands. Confirm actual project filenames with `rg --files`; do not assume a task filter exists. Zero discovered tests, skipped SQL tests and compilation alone are not passing behavioral evidence.
 - Review requests may run relevant existing safe checks without changing implementation, adding tests or repairing code. Task-scoped review/status records are the only standing write exception; report-only requests have no write exception. Inspect fixture/config requirements first. Use isolated test resources; do not point tests at live/shared databases or execute destructive migrations/retention/backup operations as a review shortcut.
@@ -37,7 +44,7 @@ A code finding needs a concrete triggering input/interleaving, observed code pat
 
 Severity `[P1]` is distinct from task owner **Person 1**. State the owner/task separately. Deduplicate one root cause across layers. Missing runs, absent dependency evidence and unknown scope belong in verification gaps, without invented code lines or severity. A missing test can be a finding when its precise omission demonstrably defeats a required regression gate; do not turn every unrun test into a code bug.
 
-Assign stable IDs (F-01, F-02) and closure conditions. Preserve IDs across rounds and distinguish Open, Fixed awaiting verification and Verified. Antigravity supplies fix evidence; Codex verifies closure, including regressions. Optional out-of-scope improvements do not block Done. A defect preventing the agreed AC/security/integrity outcome is a concrete blocker or scope/dependency decision, not an excuse for silent scope growth. Keep AC stable; a completed slice is not the whole task.
+Assign stable IDs (F-01, F-02) and closure conditions. Preserve IDs across rounds and distinguish Open, Fixed awaiting verification and Verified. Codex Implementer supplies fix evidence; Codex verifies closure, including regressions. Optional out-of-scope improvements do not block Done. A defect preventing the agreed AC/security/integrity outcome is a concrete blocker or scope/dependency decision, not an excuse for silent scope growth. Keep AC stable; a completed slice is not the whole task.
 
 ## Report contract
 
@@ -45,8 +52,8 @@ Assign stable IDs (F-01, F-02) and closure conditions. Preserve IDs across round
 2. **Open questions / verification gaps**: ambiguous specification or ownership, missing dependencies, unavailable environment, tests not run or skipped, and exact next proof needed. These remain separate from code defects.
 3. **Scope and verdict**: revision/diff, checks/results and task verdict `Changes requested`, `Blocked` or `Done`. Explain which gate passed or failed. For report-only reviews state findings/readiness without writing a status. Mixed outcomes can state both defects and incomplete verification. Do not call a task integration-ready while a required gate is missing.
 
-If there are no findings, say so explicitly and retain testing limitations. Codex may mark either Person's assigned task Done only after all AC, required checks, dependency integration, Antigravity self-review, mandatory findings and conflict resolutions are verified. Missing required evidence yields Changes requested for missing deliverables or Blocked for an unavailable gate/decision; it never becomes a pass because the code has no findings. Review does not authorize implementation fixes, Git integration, remote publication or messages to others.
+If there are no findings, say so explicitly and retain testing limitations. Codex may mark either Person's assigned task Done only after all AC, required checks, dependency integration, Codex Implementer self-review, mandatory findings and conflict resolutions are verified. Missing required evidence yields Changes requested for missing deliverables or Blocked for an unavailable gate/decision; it never becomes a pass because the code has no findings. Review does not authorize implementation fixes, Git integration, remote publication or messages to others.
 
 For task acceptance, append reviewer/round/time, exact reviewed artifacts, AC coverage, checks, findings/dispositions, gaps and verdict to the task's worklog using [the existing template](../../../../docs/diagram/Antigravity_Completion_Log_Template.md), then update only that task's status in the applicable existing plan. If needed add a status row for an already assigned plan task. Standing owner authorization covers these records without repeated permission. Confirm exclusive metadata handoff and serialize shared-file writes; an ownership conflict defers the write and must be reported, not described as an already-recorded Done. Explicit report-only returns chat only. No third plan or retired task IDs.
 
-Return a bounded fix request for Antigravity when not Done; do not silently implement it. Preserve all rounds. Changed implementation requires fresh review of affected behavior; metadata-only verdict bookkeeping does not invalidate acceptance. See [reusable prompts](../../../../docs/prompts/RoadGuard_Task_Workflow.md) for assignment, fix and acceptance inputs.
+Return a bounded fix request for Codex Implementer when not Done; do not silently implement it. Preserve all rounds. Changed implementation requires fresh review of affected behavior; metadata-only verdict bookkeeping does not invalidate acceptance. See [reusable prompts](../../../../docs/prompts/RoadGuard_Task_Workflow.md) for assignment, fix and acceptance inputs.

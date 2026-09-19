@@ -1,6 +1,6 @@
 # P1/P2 handoff and integration review
 
-Read both actual plan rows; task numbers alone do not establish a dependency. Under the current policy the schema/persistence task needs Antigravity self-review and Codex-accepted Done before paired P1 implementation starts, and its artifacts must be present in the reviewed checkout. Historical Done remains historical evidence, not a claim of retroactive Codex review. A reviewer may still report useful defects while a dependency is blocked.
+Read both actual plan rows; task numbers alone do not establish a dependency. Under the current policy the schema/persistence task needs Codex Implementer self-review and Codex-accepted Done before paired P1 implementation starts, and its artifacts must be present in the reviewed checkout. Historical Done remains historical evidence, not a claim of retroactive Codex review. A reviewer may still report useful defects while a dependency is blocked.
 
 | Boundary | Compare across the two owners |
 |---|---|
@@ -17,6 +17,6 @@ Read both actual plan rows; task numbers alone do not establish a dependency. Un
 
 Trace one accepted path and applicable forbidden, stale, replay, rollback paths from API through service to SQL/worker. Report the owner for each defect; do not require both owners to duplicate the same layer's tests.
 
-For shared hotspots (solution/project files, Program/DI, enums, plans/specs), compare the declared exclusive owner and integration sequence. Record an actual/potential overlap as a `Conflict warning` with files, task IDs, owner, required order and proposed resolution. Unclear ownership blocks affected edits, not independent read-only review. At Ready for review Antigravity freezes submitted artifacts and yields only the task's review/status sections to Codex; serialize writes to shared plans. If metadata ownership is blocked, report the verdict and deferred status write rather than claiming Done was recorded.
+For shared hotspots (solution/project files, Program/DI, enums, plans/specs), compare the declared exclusive owner and integration sequence. Record an actual/potential overlap as a `Conflict warning` with files, task IDs, owner, required order and proposed resolution. Unclear ownership blocks affected edits, not independent read-only review. At Ready for review Codex Implementer freezes submitted artifacts and yields only the task's review/status sections to Codex; serialize writes to shared plans. If metadata ownership is blocked, report the verdict and deferred status write rather than claiming Done was recorded.
 
 For P2-01, read its current branch-synchronization gate rather than freezing old SHAs here. Local branch logs/status and artifact comparison provide checkout evidence; remote freshness is unknown without an authorized fetch. A clean textual merge alone cannot establish semantic compatibility. Never merge, fetch, push or change branches merely to complete a review.

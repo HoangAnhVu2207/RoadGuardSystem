@@ -1,11 +1,13 @@
 ---
 name: roadguard-review-p1
-description: Use when Codex reviews RoadGuard Person 1 tasks (P1-*), domain, Services, DTO/API contracts and Antigravity self-review evidence for mandatory acceptance, or an explicitly read-only review. Not for implementing fixes or assigning P2 persistence work to P1.
+description: Use when Codex reviews RoadGuard Person 1 tasks (P1-*), domain, Services, DTO/API contracts and Codex Implementer self-review evidence for mandatory acceptance, or an explicitly read-only review. Not for implementing fixes or assigning P2 persistence work to P1.
 ---
 
 # Review Person 1 tasks
 
 Read the [shared review contract](../roadguard-review/references/review-contract.md) first, then the assigned row/dependencies in [the P1 plan](../../../planning/RoadGuard_Plan_Person_1.md). Apply the [task checklist](references/task-checklist.md) only to the requested slice. The shared contract supplies implementation/metadata boundaries, acceptance authority, evidence rules, severity and report structure; do not route recursively through the general skill.
+
+Acceptance requires a separate Codex task/session that did not author the submission. Same-task self-acceptance is prohibited. Apply root AGENTS.md Lean TDD gates and evidence reuse rules.
 
 ## Follow the command or query
 
@@ -19,7 +21,7 @@ Trace API DTO -> authentication/current-user -> current project authorization ->
 
 Check the paired P2 artifact is present and its plan dependency is satisfied before assessing readiness. Schema changes after handoff require the documented ownership decision. For a cross-layer defect read [handoff checks](../roadguard-review/references/handoff.md) and identify which owner must change which contract; read-only review does not authorize edits.
 
-Return concrete findings, separate verification gaps, and a scoped verdict in the user's language. Codex records review/status and may mark Done only after the full task acceptance gate; Antigravity stops at Ready for review. Explicit report-only means no file/status edits. Do not start future P1 tasks or substitute passing tests for missing AC/dependency/self-review evidence.
+Return concrete findings, separate verification gaps, and a scoped verdict in the user's language. Codex records review/status and may mark Done only after the full task acceptance gate; Codex Implementer stops at Ready for review. Explicit report-only means no file/status edits. Do not start future P1 tasks or substitute passing tests for missing AC/dependency/self-review evidence.
 
 ```text
 Dùng $roadguard-review-p1 review P1-41 trong diff hiện tại. Đối chiếu TN05/TN06, quyền PM, measurement đã submit, concurrency và audit; chỉ báo lỗi, không sửa.

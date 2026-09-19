@@ -7,6 +7,8 @@ description: Use when Codex reviews RoadGuard Person 2 tasks (P2-*), EF Core SQL
 
 Read the [shared review contract](../roadguard-review/references/review-contract.md) first, then the assigned row/dependencies in [the P2 plan](../../../planning/RoadGuard_Plan_Person_2.md). Apply the [task checklist](references/task-checklist.md) only to the requested slice. The shared contract supplies implementation/metadata boundaries, acceptance authority, evidence rules, severity and report structure; do not route recursively through the general skill.
 
+Acceptance requires a separate Codex task/session that did not author the submission. Same-task self-acceptance is prohibited. Apply root AGENTS.md Lean TDD gates and evidence reuse rules.
+
 ## Follow data to durable effects
 
 Trace entity/property/enum -> EF configuration -> migration SQL/model snapshot -> repository/transaction -> integration fixture -> worker/storage/outbox effect.

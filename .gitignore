@@ -27,6 +27,12 @@ packages/
 .env.*
 !.env.example
 appsettings.*.local.json
+appsettings.[Ll][Oo][Cc][Aa][Ll].json
+appsettings.*.[Ll][Oo][Cc][Aa][Ll].json
+.secrets/
+UserSecrets/
+http-client.private.env.json
+http-client.env.json.user
 appsettings.Production.json
 secrets.json
 *.pfx
@@ -35,12 +41,25 @@ secrets.json
 *.pem
 *.key
 
+# Local publish settings and package/test exports
+*.pubxml
+*.pubxml.user
+*.publishsettings
+*.nupkg
+*.snupkg
+*.trx
+*.DotSettings.user
+/publish/
+/coverage-report/
+
 # Local databases and logs
 *.db
 *.sqlite
 *.sqlite3
 *.mdf
 *.ldf
+*.bak
+*.bacpac
 *.log
 
 # Operating-system files

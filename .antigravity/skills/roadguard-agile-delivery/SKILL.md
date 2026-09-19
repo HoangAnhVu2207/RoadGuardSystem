@@ -22,7 +22,7 @@ Follow the user's requested scope and [repository rules](../../../AGENTS.md). Th
 | Implement/fix behavior | Read [negative-first workflow](references/negative-first-workflow.md) and [stack contract](references/csharp-dotnet-stack.md); execute one assigned AC slice. |
 | Schema/migration | Read the stack reference and Data Dictionary field-by-field; prove SQL/spatial/concurrency behavior on SQL Server. |
 | Documentation/tooling | Verify references, discovery and script/config behavior. Human prose does not need tests asserting wording. |
-| Complete/handoff | Read [handoff contract](references/antigravity-handoff.md); Antigravity implementation/self-review ends at Ready for review; mandatory Codex acceptance alone can mark Done. |
+| Complete/handoff | Read [handoff contract](references/antigravity-handoff.md); Codex Implementer implementation/self-review ends at Ready for review; mandatory Codex acceptance alone can mark Done. |
 | Library research/MCP | Read [documentation MCP tools](references/mcp-tools.md); use local versions and authoritative sources. |
 
 ## Backend boundaries
@@ -33,6 +33,6 @@ Services owns orchestration/cross-aggregate decisions; BusinessObjects owns enti
 
 ## Completion example
 
-For a defect-review slice: confirm persistence readiness, declare files and In scope/Out of scope, write wrong-PM/cross-project/missing-measurement/stale-version tests, observe RED, add the accepted-decision test, implement, verify state/audit/retry outcomes, then record Antigravity owner self-review and submit Ready for review. Codex verifies the submitted artifacts, returns scoped findings until resolved, and records Done only after the acceptance gate. A missing product/schema decision blocks its affected slice; continue independent authorized work.
+For a defect-review slice: confirm persistence readiness, declare files and In scope/Out of scope, write wrong-PM/cross-project/missing-measurement/stale-version tests, observe RED, add the accepted-decision test, implement, verify state/audit/retry outcomes, then record Codex Implementer owner self-review and submit Ready for review. Codex verifies the submitted artifacts, returns scoped findings until resolved, and records Done only after the acceptance gate. A missing product/schema decision blocks its affected slice; continue independent authorized work.
 
-Use the [shared task prompts](../../../docs/prompts/RoadGuard_Task_Workflow.md) for assignment, Antigravity implementation/fixes and Codex acceptance. Preserve historical approvals as history; never reuse them as fresh proof. Mandatory Codex review is a stage of each existing task, not a revived retired review task or a transfer of P1/P2 ownership.
+Use the [shared task prompts](../../../docs/prompts/RoadGuard_Task_Workflow.md) for assignment, Codex Implementer implementation/fixes and Codex acceptance. Preserve historical approvals as history; never reuse them as fresh proof. Mandatory Codex review is a stage of each existing task, not a revived retired review task or a transfer of P1/P2 ownership.

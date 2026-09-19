@@ -22,4 +22,4 @@ For migrations compare generated operations, snapshot and mapping, including des
 
 Concurrency evidence needs independent contexts/connections and a controlled competing update, not merely two sequential saves on one tracked entity. Race-sensitive leases, holds and uniqueness must be tested at the enforcing layer. Report absent execution proof separately from defects proven by code.
 
-Retired review-only task IDs in the current P2 plan remain retired. Antigravity self-review and mandatory Codex acceptance are stages of the same P2 task; no new review task is allocated. Codex alone may mark Done after verified acceptance.
+Retired review-only task IDs in the current P2 plan remain retired. Codex Implementer self-review and mandatory Codex acceptance are stages of the same P2 task; no new review task is allocated. Codex alone may mark Done after verified acceptance.

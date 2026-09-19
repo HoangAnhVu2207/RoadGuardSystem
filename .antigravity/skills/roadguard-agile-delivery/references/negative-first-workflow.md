@@ -1,6 +1,8 @@
 # Negative-First test workflow
 
-Use this sequence for Antigravity implementing/fixing observable behavior. Review/diagnosis does not implement fixes; Codex task acceptance may record task review/status under AGENTS. Explicit report-only reviews remain read-only. Human prose: verify references, consistency and discovery, not exact wording. Scripts/configurations: test actual failure modes.
+Use this sequence for Codex Implementer implementing/fixing observable behavior. Review/diagnosis does not implement fixes; Codex task acceptance may record task review/status under AGENTS. Explicit report-only reviews remain read-only. Human prose: verify references, consistency and discovery, not exact wording. Scripts/configurations: test actual failure modes.
+
+Apply this cycle per small behavior slice. Use root AGENTS.md Lean TDD gates: narrow tests during edits, affected checks after the slice, submission once per valid content/environment state. Avoid stale --no-build evidence after code changes.
 
 ## 1. Negative and edge cases
 
@@ -38,4 +40,4 @@ Run narrow tests, affected suites and required format/build checks. Fix the firs
 | Tool/config | Invalid input/discovery/connection fails clearly; valid config operates as documented |
 | Prose/skill | Resolvable references and correct scenario decisions; no invented failure/runtime claim |
 
-Antigravity owner self-review is mandatory and ends at Ready for review. Mandatory Codex acceptance then verifies the exact submission, required checks and findings before Codex alone marks Done. Fix rounds retain finding IDs and acceptance scope; Antigravity never substitutes self-review for Codex acceptance. Follow the [handoff contract](antigravity-handoff.md).
+Codex Implementer owner self-review is mandatory and ends at Ready for review. Mandatory Codex acceptance then verifies the exact submission, required checks and findings before Codex alone marks Done. Fix rounds retain finding IDs and acceptance scope; Codex Implementer never substitutes self-review for Codex acceptance. Follow the [handoff contract](antigravity-handoff.md).

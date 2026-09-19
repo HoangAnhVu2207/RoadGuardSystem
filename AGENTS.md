@@ -2,7 +2,7 @@
 
 ## Entry Points And Request Scope
 
-- Root `AGENTS.md` is canonical; `.antigravity/AGENTS.md` is an identical compatibility mirror. Update both together. Antigravity discovery uses `.agents/rules/roadguard.md` and `.agents/skills/roadguard-agile-delivery/SKILL.md`.
+- Root `AGENTS.md` is canonical; `.antigravity/AGENTS.md` is an identical compatibility mirror. Update both together. Antigravity compatibility discovery uses `.agents/rules/roadguard.md` and `.agents/skills/roadguard-agile-delivery/SKILL.md`.
 - Start with `git status --short --branch`, the assigned plan row and its dependencies. Earlier chat or a completion log from another branch does not prove integration into this checkout.
 - Explain/diagnose and explicitly read-only reviews mean inspection and relevant existing checks only. Codex task acceptance reviews additionally authorize the task-scoped review/status records described below; they do not authorize implementation fixes. Implement/fix requests authorize scoped edits and verification. Planning alone does not authorize implementing planned business features.
 - Continue authorized read-only checks and reversible in-scope work without repeated permission requests. Ask only for missing material product/ownership decisions or actions requiring approval under the Git policy below; authorization already granted in this conversation persists.
@@ -11,25 +11,41 @@
 
 ## Agent Operating Contract
 
-- Antigravity/Codex must work only on the task IDs assigned in the applicable person plan under `planning/`.
-- Before changing production code, create the negative/edge-case tests for the task, then positive tests, then implement, then run and repair until green. Record every command and result in `Antigravity_Completion_Log_Template.md` copied to the task workspace.
+- Codex Implementer and Codex Reviewer must work only on the task IDs assigned in the applicable person plan under `planning/`.
+- Before changing production behavior, work per small slice: negative/edge tests, positive contract, then implement to green. Record verification commands/results once in the task worklog based on `Antigravity_Completion_Log_Template.md`.
 - A task is not complete when code compiles alone. It needs traceability to `US-*`/use-case codes, the required tests, self-review evidence, and an explicit list of files changed.
 - If specifications conflict, stop the affected task, record the conflict and proposed options in the completion log/ADR, and request Product Owner direction. Do not silently choose behavior that changes data compatibility or workflow scope.
-- Task-owner self-review is mandatory and performed by Antigravity for the assigned Person. Inspect authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests; resolve self-review findings before submitting `Ready for review`. Antigravity must not mark `Done`.
+- Task-owner self-review is mandatory and performed by Codex Implementer for the assigned Person. Inspect authorization, state transitions, immutability/versioning, idempotency, concurrency, audit, and missing tests; resolve self-review findings before submitting `Ready for review`. Codex Implementer must not mark `Done`.
 - Codex acceptance review is mandatory for both Persons. The repository owner authorizes Codex to record task review evidence and update the applicable plan row and completion log to `Done` only after the acceptance gate below passes. This authority does not transfer implementation ownership or grant Git integration/publication permission.
 
-## Antigravity / Codex Task Loop
+## Codex Implementation / Independent Review Loop
 
 - Apply this workflow to new or reopened work from P1-06 onward. Preserve historical Done statuses, retired task IDs and old evidence; do not retroactively claim Codex reviewed them.
 - Codex assigns a bounded task from the applicable existing plan when asked to prepare work. Before implementation, record task/Person/branch, dependency artifacts, US/use-case or TE/RS trace, acceptance criteria, `In scope`, `Out of scope`, exclusive files/shared hotspots, required checks and the Done gate in the task log. No third plan or automatic start of unrelated tasks.
-- Antigravity owns implementation, tests, negative-first evidence, self-review and fixes. Codex owns acceptance review and the verdict. Use the reusable prompts at repository-root path `docs/prompts/RoadGuard_Task_Workflow.md` for either Person.
-- Status flow: `Not started -> In Progress -> Ready for review -> Done`; Codex returns `Changes requested` for unresolved in-scope findings or `Blocked` for required evidence/dependency/product/ownership obstacles. Antigravity resumes a returned task as `In Progress`, fixes it and resubmits `Ready for review`. Record the reason and resume point for `Blocked`; continue independent authorized checks. Count all unfinished assigned statuses when enforcing one active task per Person.
-- On handoff, Antigravity stops edits to submitted artifacts and yields that task's plan status/worklog review sections to Codex. Codex may update only these task-scoped records, for P1 or P2, without repeated permission. Serialize writes to shared plan files; if another task owns the hotspot, report the conflict and defer that write while continuing review. Explicit read-only/report-only requests override these metadata writes.
-- Review the exact submitted commit or identified working-tree diff, including relevant untracked files. Keep stable finding IDs across rounds with severity, file/line, trigger, impact, violated criterion, owner, closure condition and open/fixed/verified state. Antigravity may report a fix; Codex verifies closure. Separate code defects, verification gaps and optional follow-ups.
+- Codex Implementer owns implementation, tests, negative-first evidence, self-review and fixes. Codex owns acceptance review and the verdict. Use the reusable prompts at repository-root path `docs/prompts/RoadGuard_Task_Workflow.md` for either Person.
+- Status flow: `Not started -> In Progress -> Ready for review -> Done`; Codex returns `Changes requested` for unresolved in-scope findings or `Blocked` for required evidence/dependency/product/ownership obstacles. Codex Implementer resumes a returned task as `In Progress`, fixes it and resubmits `Ready for review`. Record the reason and resume point for `Blocked`; continue independent authorized checks. Count all unfinished assigned statuses when enforcing one active task per Person.
+- On handoff, Codex Implementer stops edits to submitted artifacts and yields that task's plan status/worklog review sections to Codex. Codex may update only these task-scoped records, for P1 or P2, without repeated permission. Serialize writes to shared plan files; if another task owns the hotspot, report the conflict and defer that write while continuing review. Explicit read-only/report-only requests override these metadata writes.
+- Review the exact submitted commit or identified working-tree diff, including relevant untracked files. Keep stable finding IDs across rounds with severity, file/line, trigger, impact, violated criterion, owner, closure condition and open/fixed/verified state. Codex Implementer may report a fix; Codex verifies closure. Separate code defects, verification gaps and optional follow-ups.
 - Keep acceptance criteria stable. Out-of-scope improvements do not block Done or authorize refactoring. A discovered prerequisite/security/integrity defect that prevents the agreed outcome must be evidenced and recorded as a blocker or proposed scope/dependency change; do not hide it under Out of scope. Ask the owner only for material product/schema/ownership decisions or unapproved scope expansion.
-- Codex marks `Done` only when all assigned acceptance criteria, applicable checks, dependency integration, Antigravity self-review, mandatory in-scope findings and conflict resolutions are verified for the submitted artifacts. Missing, zero-discovered or skipped required tests are not a pass. Record reviewer, time, revision/diff identity, checks, finding dispositions and verdict in the log before updating the plan. Done does not mean merged, pushed or deployed.
+- Codex marks `Done` only when all assigned acceptance criteria, applicable checks, dependency integration, Codex Implementer self-review, mandatory in-scope findings and conflict resolutions are verified for the submitted artifacts. Missing, zero-discovered or skipped required tests are not a pass. Record reviewer, time, revision/diff identity, checks, finding dispositions and verdict in the log before updating the plan. Done does not mean merged, pushed or deployed.
 - Changes to accepted task artifacts require resubmission and review of affected behavior; acceptance is bound to the reviewed content. Review/status-only bookkeeping does not itself invalidate the reviewed implementation. Preserve prior review rounds rather than replacing their evidence.
 - Repeat fix/review until the gate passes or a concrete blocker is recorded. Repeated non-progress requires diagnosis and a bounded next step, not endless new scope or a forced Done.
+
+## Independent Review And Migration (P1-07)
+
+- Codex Reviewer means a separate Codex task/session that did not author the submitted artifacts. Same-task self-acceptance is prohibited. Codex Implementer owns code/tests/self-review/fixes and cannot mark Done; reviewer writes only task-scoped review/status records.
+- P1-07 supersedes prospective P1-06 roles. Done tasks/evidence stay historical. Ready for review artifacts (including Antigravity submissions) proceed to independent review without rewriting. In Progress, Blocked and Changes requested retain evidence and transfer their next implementation/fix round to Codex Implementer after the current writer yields. Not started uses the new workflow. Record the handoff once in the existing worklog.
+- Every implementation/fix returns a compact review packet: task/Person/branch/status, baseline, exact commit or working-tree content identity including untracked files, changed files, AC coverage, command/exit/time/environment/test counts, RED/GREEN chronology, self-review, addressed finding IDs, gaps/blockers/risks, worklog link and a ready-to-run independent reviewer prompt. Freeze artifacts during review.
+
+## Proportional Verification (Lean TDD)
+
+- Work per small behavior slice: relevant negative/edge test with intended behavioral RED, positive contract, implementation to GREEN, then refactor. Do not require the entire task's test matrix before its first implementation. Compilation/setup failure is not behavioral RED. Group irrelevant cases into one justified N/A entry; prose needs no wording tests.
+- Inner loop: run selected test/class/filter with normal build. Restore only when assets/dependencies require it. Use --no-build only after a successful build covering current code/tests. Zero discovered tests never pass a required gate.
+- Affected checks: once a slice is green, run affected test projects, including real SQL/API checks for persistence/HTTP changes. Reuse at submission only while covered content and environment match.
+- Submission: production requires restore, non-incremental build, format verification and all affected tests on submitted content. Full solution applies to shared architecture, DI, schema, packages, security, cross-project contracts or explicit task/CI/integration requirements. Run once per relevant content/environment state, not after every edit. Prose/tooling uses relevant verifier/link/discovery/behavior checks.
+- Independent review: inspect every AC/diff, rerun new regression/high-risk checks and verify remaining gate evidence against artifact identity, commands, counts, time and environment. Distinguish rerun from inspected evidence. Missing/untrustworthy evidence, changed covered inputs/environment or a new failure/risk requires rerun. Optional style suggestions do not block Done.
+- Fix rounds reproduce findings, fix them, rerun affected checks and refresh invalidated submission evidence. Unrelated valid evidence may be reused. Required security/SQL/hosted-CI checks cannot be waived. Integration on develop verifies the integrated revision afresh.
+- Keep evidence once in the task worklog; use compact results and links to larger outputs. Read only relevant specs/skills and reread when changed or needed. Routine authorized choices need no new approval; ask for material product/schema/ownership decisions or Git actions requiring approval.
 
 ## Technical Stack Baseline
 
@@ -131,7 +147,7 @@ The task owner may omit an irrelevant negative case only by writing the reason i
 - Valid and invalid state transitions, idempotent retry, audit history, and concurrency behavior are covered when applicable.
 - API contracts include validation and stable error codes; logs contain correlation identifiers and no sensitive data.
 - Schema, migration, seed/test data, and documentation are updated together when the data model changes.
-- Antigravity completes and records task-owner self-review; Codex verifies closure of all mandatory findings and records acceptance before Codex marks `Done` or the task becomes eligible for integration.
+- Codex Implementer completes and records task-owner self-review; Codex verifies closure of all mandatory findings and records acceptance before Codex marks `Done` or the task becomes eligible for integration.
 
 ## Self-Review Rules
 
@@ -151,7 +167,7 @@ The task owner may omit an irrelevant negative case only by writing the reason i
 - `develop` is the integration and test branch. Feature implementation must not be committed directly to it. Only self-reviewed and Codex-accepted changes from `anh` or `huy` may be merged into `develop`.
 - `anh` is Anh's working branch; `huy` is Huy's working branch. Each person and their agent commits only to their assigned branch unless the repository owner explicitly approves an exception.
 - Before work starts, the task ID and branch owner must be stated in the completion log. A branch name does not override task ownership in the applicable person plan.
-- Antigravity performs task-owner self-review and Codex accepts the submitted diff before it enters `develop`. After integration tests pass on `develop`, the repository owner approves promotion to `main`.
+- Codex Implementer performs task-owner self-review and Codex accepts the submitted diff before it enters `develop`. After integration tests pass on `develop`, the repository owner approves promotion to `main`.
 - Prefer pull requests for `anh`/`huy` into `develop` and for `develop` into `main` once a GitHub remote is configured. Configure GitHub branch protection for both protected branches.
 
 ### Commands agents may run without additional approval
@@ -178,6 +194,6 @@ The task owner may omit an irrelevant negative case only by writing the reason i
 ### Integration gates
 
 1. `anh` or `huy`: implement one assigned task, follow negative-first testing, update its completion log, and create a focused commit.
-2. Antigravity self-review and Codex acceptance: Antigravity reviews authorization, transitions, immutability/versioning, idempotency, concurrency, audit, tests and conflict warnings, then submits `Ready for review`. Codex reviews the exact artifacts, requires scoped fixes until gates pass, records acceptance and updates `Done`.
+2. Codex Implementer self-review and Codex acceptance: Codex Implementer reviews authorization, transitions, immutability/versioning, idempotency, concurrency, audit, tests and conflict warnings, then submits `Ready for review`. Codex reviews the exact artifacts, requires scoped fixes until gates pass, records acceptance and updates `Done`.
 3. `develop`: merge only after findings are resolved; run restore, non-incremental build, formatting verification, and all affected tests.
 4. `main`: merge only from `develop`, only with repository-owner approval, and only after the full gate is green. Tagging or deployment is a separate approved action.

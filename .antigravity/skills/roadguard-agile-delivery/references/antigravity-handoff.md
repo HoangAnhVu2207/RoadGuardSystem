@@ -1,4 +1,4 @@
-# Antigravity task and review contract
+# Codex implementation and independent review contract
 
 Use the task assigned in one of the two plans. Root AGENTS.md is canonical; old logs and this reference cannot broaden the user's request.
 
@@ -18,13 +18,15 @@ Use the task assigned in one of the two plans. Root AGENTS.md is canonical; old 
 
 ## Completion package
 
+Reviewer must be a separate Codex task/session that did not author the artifacts. Return task/Person/branch/status, baseline, exact content identity including untracked files, changed files, AC trace, command/exit/time/environment/counts, RED/GREEN, self-review, finding IDs, gaps/risks, worklog link and ready-to-run prompt C from the shared workflow. Evidence lives once in this worklog.
+
 Record reviewed baseline/diff, explicit changed files, schema/API/config impacts, commands with exit codes/timestamps/environments, expected RED versus unexpected failures, positive outcomes and limitations.
 
-Antigravity performs task-owner self-review of authorization, state transitions, immutability/versioning, idempotency, concurrency, audit and missing tests. Resolve self-review findings/conflicts and submit Ready for review; Antigravity never marks Done. Freeze submitted artifacts and yield task review/status sections to Codex. Missing required evidence leaves the task Blocked.
+Codex Implementer performs task-owner self-review of authorization, state transitions, immutability/versioning, idempotency, concurrency, audit and missing tests. Resolve self-review findings/conflicts and submit Ready for review; Codex Implementer never marks Done. Freeze submitted artifacts and yield task review/status sections to Codex. Missing required evidence leaves the task Blocked.
 
 Codex acceptance is mandatory for both Persons under the current policy. Codex appends a review round with exact artifact identity, findings, checks and verdict, then updates the task's plan status. All AC, dependency integration, self-review, required checks and mandatory findings must be verified before Done. Explicit report-only requests produce chat evidence only. Serialize shared metadata writes; status authority never authorizes implementation fixes or another task's edits.
 
-Use stable finding IDs through Changes requested -> In Progress -> Ready for review. Antigravity maps each fix to evidence; Codex verifies closure. Keep optional out-of-scope improvements separate from blockers. Changes to reviewed implementation require another acceptance pass; status-only bookkeeping does not. Preserve old rounds and historical Done records; retired review task IDs stay retired.
+Use stable finding IDs through Changes requested -> In Progress -> Ready for review. Codex Implementer maps each fix to evidence; Codex verifies closure. Keep optional out-of-scope improvements separate from blockers. Changes to reviewed implementation require another acceptance pass; status-only bookkeeping does not. Preserve old rounds and historical Done records; retired review task IDs stay retired.
 
 State whether hosted CI, live Compose, SQL integration, real AI and FE integration actually ran. Static checks, mock datasets and old logs cannot replace them. Tooling completion does not sign off a backend feature or another person's task.
 

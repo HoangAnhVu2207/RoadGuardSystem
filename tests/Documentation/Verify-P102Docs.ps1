@@ -294,14 +294,13 @@ foreach ($plan in @(
     }
 }
 
-# Owner-approved P1-06 workflow migration (2026-09-18). Antigravity implements
-# and self-reviews; Codex accepts. Historical P1 Wave 0 evidence stays immutable.
+# P1-07 prospective roles; historical P1 Wave 0 evidence stays immutable.
 foreach ($plan in @(
     @{ Name = "Person 1 plan"; Content = $person1PlanContent },
     @{ Name = "Person 2 plan"; Content = $person2PlanContent }
 )) {
     foreach ($requiredToken in @(
-        "Implementation and self-review: Antigravity",
+        "Implementation and self-review: Codex Implementer",
         "Conflict warning",
         "exclusive file ownership",
         "Completion: Codex"

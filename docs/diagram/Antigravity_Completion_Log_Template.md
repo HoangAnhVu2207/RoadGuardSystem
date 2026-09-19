@@ -1,13 +1,13 @@
-# Antigravity completion log
+# RoadGuard task completion log
 
-Create one copy when assigning a task, named `docs/worklogs/<TASK-ID>-completion.md`. Antigravity maintains implementation/self-review evidence; Codex appends mandatory acceptance review. Preserve prior rounds and do not overwrite this template. Use the [shared prompts](../prompts/RoadGuard_Task_Workflow.md).
+Create one copy when assigning a task, named `docs/worklogs/<TASK-ID>-completion.md`. Codex Implementer maintains implementation/self-review evidence; Codex appends mandatory acceptance review. Preserve prior rounds and do not overwrite this template. Use the [shared prompts](../prompts/RoadGuard_Task_Workflow.md).
 
 ## Identity and scope
 
 - Task ID/title:
 - Owner / self-reviewer:
-- Implementer: Antigravity for the assigned Person.
-- Mandatory acceptance reviewer / Done authority: Codex.
+- Implementer: Codex Implementer for the assigned Person.
+- Mandatory acceptance reviewer / Done authority: Codex Reviewer in a separate task/session that did not author the artifacts.
 - Date / branch or commit:
 - Reviewed baseline and exact change scope (commit or working-tree diff):
 - Trace (`US-*`, use case, acceptance criteria):
@@ -21,7 +21,7 @@ Create one copy when assigning a task, named `docs/worklogs/<TASK-ID>-completion
 - Assignment author/date and baseline revision:
 - Dependencies and current-checkout evidence:
 - Required checks and justified N/A cases:
-- Ready for review gate: implementation, applicable checks, Antigravity self-review and evidence complete.
+- Ready for review gate: implementation, applicable checks, Codex Implementer self-review and evidence complete.
 - Done gate: Codex verifies all AC, dependencies, required checks, mandatory findings and conflict resolution for the submitted artifacts.
 
 | AC ID | Trace / observable acceptance criterion | In-scope behavior | Required test/evidence |
@@ -55,7 +55,7 @@ Record In scope, Out of scope and exclusive files above before edits. Keep this 
 
 ## Negative-first evidence
 
-List each negative/edge case before positive cases. If a standard case is irrelevant, state why.
+Keep only relevant rows per behavior slice. Group irrelevant categories into one justified N/A entry. Prose uses consistency/link/scenario checks without artificial RED.
 
 | Test | Layer | Expected failure/code | Result |
 |---|---|---|---|
@@ -75,6 +75,14 @@ List each negative/edge case before positive cases. If a standard case is irrele
 | Smallest valid path | | | |
 | Representative full path | | | |
 
+## Review packet and evidence reuse
+
+- Implementer task/session and independent reviewer task/session identity:
+- Ready-to-run reviewer prompt: prompt C in shared workflow, filled with task, baseline, content identity and worklog.
+- Changed files including untracked, AC -> evidence, addressed finding IDs, gaps/risks:
+- Gate selection and full-suite trigger or N/A reason:
+- Reused evidence: covered content/environment, original command/time and why still valid; distinguish reviewer reruns from inspected results.
+
 ## Commands run
 
 Keep RED, positive-contract and GREEN runs in chronological order. Distinguish owner-recorded history from checks rerun for the reviewed scope. Report unexecuted CI/container/SQL checks as gaps, not as passes; static configuration validation is not runtime proof.
@@ -93,20 +101,20 @@ Keep RED, positive-contract and GREEN runs in chronological order. Distinguish o
 - Residual risks:
 - Self-review findings and resolution:
 - Conflict warning final state:
-- Antigravity submission revision/diff identity, including relevant untracked files:
-- Handoff: Antigravity pauses submitted-artifact edits and yields task review/status sections to Codex.
+- Codex Implementer submission revision/diff identity, including relevant untracked files:
+- Handoff: Codex Implementer pauses submitted-artifact edits and yields task review/status sections to Codex.
 - Exact next task/action:
 - Latest status assessment date and evidence; supersedes earlier handoff where applicable:
-- Implementation status: `Ready for review` or `Blocked`; Antigravity never marks `Done`.
+- Implementation status: `Ready for review` or `Blocked`; Codex Implementer never marks `Done`.
 
 ## Codex acceptance review — append one section per round
 
 - Reviewer / round / date:
 - Reviewed commit or working-tree artifact identity / file scope:
-- AC coverage, dependency integration and Antigravity self-review checked:
+- AC coverage, dependency integration and Codex Implementer self-review checked:
 - Checks executed or verified evidence (command, exit code, environment, time, test counts):
 
-| Finding ID | Priority / owner | Location and violated AC | Trigger / impact / closure condition | Antigravity fix evidence | Codex disposition |
+| Finding ID | Priority / owner | Location and violated AC | Trigger / impact / closure condition | Codex Implementer fix evidence | Codex disposition |
 |---|---|---|---|---|---|
 | F-01 (omit row if no findings) | | | | | Open / Fixed awaiting verification / Verified |
 

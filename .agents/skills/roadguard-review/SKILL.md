@@ -9,6 +9,8 @@ Review the requested task against this checkout's contracts and observable behav
 
 Read [the shared review contract](references/review-contract.md). It defines scope, evidence, severity and the report format for all three review skills. Repository [AGENTS.md](../../../AGENTS.md) remains authoritative.
 
+Acceptance requires a separate Codex task/session that did not author the submission. Same-task self-acceptance is prohibited. Apply root AGENTS.md Lean TDD gates and evidence reuse rules.
+
 ## Select only the needed depth
 
 - P1 task: load `$roadguard-review-p1` from the sibling skill directory for domain, Services, DTO and API checks.
@@ -18,7 +20,7 @@ Read [the shared review contract](references/review-contract.md). It defines sco
 
 Task IDs, scope and dependencies come from the current person plans, not from numbering symmetry. Inspect actual code before treating a completion log as proof. Return substantiated findings first, verification gaps second, then a verdict limited to the reviewed scope. Zero findings is a valid result; do not manufacture issues to fill a checklist.
 
-Antigravity implements, self-reviews and submits Ready for review. Codex returns Changes requested/Blocked or records Done, using stable finding IDs and the same acceptance scope through fix rounds. Read the [reusable task prompts](../../../docs/prompts/RoadGuard_Task_Workflow.md) for handoff and the full assignment/implementation/acceptance loop.
+Codex Implementer implements, self-reviews and submits Ready for review. Codex returns Changes requested/Blocked or records Done, using stable finding IDs and the same acceptance scope through fix rounds. Read the [reusable task prompts](../../../docs/prompts/RoadGuard_Task_Workflow.md) for handoff and the full assignment/implementation/acceptance loop.
 
 ## Invocation examples
 

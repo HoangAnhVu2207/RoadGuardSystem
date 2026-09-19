@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadGuard · C# nền tảng"
+  short_description: "Viết C# theo kiến trúc và baseline RoadGuard"
+  default_prompt: "Dùng $roadguard-csharp-core để triển khai lát cắt của task RoadGuard đã giao theo baseline C# và quyền sở hữu hiện tại."

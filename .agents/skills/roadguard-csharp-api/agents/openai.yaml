@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadGuard · C# API và Services"
+  short_description: "Xây DTO, service và API đúng quyền dự án"
+  default_prompt: "Dùng $roadguard-csharp-api để triển khai endpoint thuộc task P1 đã giao, gồm DTO, service, authorization và test contract."

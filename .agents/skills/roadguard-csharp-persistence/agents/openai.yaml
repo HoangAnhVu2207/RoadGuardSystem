@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadGuard · C# và SQL Server"
+  short_description: "EF Core, migration và toàn vẹn dữ liệu RoadGuard"
+  default_prompt: "Dùng $roadguard-csharp-persistence để triển khai persistence của task đã giao với đúng schema, transaction, concurrency và test SQL Server."

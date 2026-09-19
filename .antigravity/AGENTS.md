@@ -1,4 +1,4 @@
-# RoadGuard Repository Rules
+﻿# RoadGuard Repository Rules
 
 ## Entry Points And Request Scope
 
@@ -46,6 +46,9 @@
 - Independent review: inspect every AC/diff, rerun new regression/high-risk checks and verify remaining gate evidence against artifact identity, commands, counts, time and environment. Distinguish rerun from inspected evidence. Missing/untrustworthy evidence, changed covered inputs/environment or a new failure/risk requires rerun. Optional style suggestions do not block Done.
 - Fix rounds reproduce findings, fix them, rerun affected checks and refresh invalidated submission evidence. Unrelated valid evidence may be reused. Required security/SQL/hosted-CI checks cannot be waived. Integration on develop verifies the integrated revision afresh.
 - Keep evidence once in the task worklog; use compact results and links to larger outputs. Read only relevant specs/skills and reread when changed or needed. Routine authorized choices need no new approval; ask for material product/schema/ownership decisions or Git actions requiring approval.
+- Minimize context: locate sections with `rg`, read relevant ranges, and reuse already-read unchanged instructions. Start with the latest assignment/submission/review; follow earlier evidence references as needed to cover every AC and finding, rather than dumping entire histories or diffs.
+- Keep verbose command output in secret-safe, untracked logs; show command, exit code, counts and actionable diagnostics. Inspect failures fully as needed; truncation, missing results, zero tests and skipped required tests never prove a pass. Avoid duplicate suites on unchanged content/environment unless a required gate or new risk justifies them.
+- Before acting on an old handoff, reconcile current status, acceptance and artifact identity. Existing Done is reusable only for matching accepted content without a new failure/risk; report existing acceptance without claiming a fresh review. Changed artifacts still require resubmission. Keep the complete review packet in the worklog and link it from concise handoffs.
 
 ## Technical Stack Baseline
 

@@ -28,9 +28,23 @@ Apply P1-07 migration and Lean TDD in [AGENTS.md](../AGENTS.md): narrow tests, a
 | `P1-05` | `Done` | `anh` | Codex review suite for both plans; metadata, 20 links, existing verifiers and six independent scenarios pass. Exclusive paths: three new `.agents/skills/roadguard-review*` folders, this plan's P1-05 entries, and `docs/worklogs/P1-05-completion.md`. Existing P1-04 changes preserved; local artifacts only, no integration claimed. |
 | `P1-06` | `Done` | `anh` | Owner-requested workflow migration and reusable prompts accepted by separate Codex review; applicable checks and ten scenarios pass. Codex-authored bootstrap exception recorded in P1-06 log; future implementation/self-review belongs to Antigravity. Local acceptance only; no integration/publication. |
 | `P1-07` | `Done` | `anh` | Independent Codex acceptance round 1 recorded 2026-09-19 for the manifest-bound working-tree submission at baseline `f6d4628`; AC-01 through AC-09 and required documentation/tooling checks passed with no findings or blockers. Local acceptance only; no commit, integration or publication performed. |
+| `P1-08` | `Done` | `anh` | Independent Codex acceptance Round 1, 2026-09-19: AC-01..06 verified for all 12 skill files and submitted scoped plan rows. Four skill validators, 71 local links, docs/setup checks and six source-backed scenarios pass; no open findings. See [P1-08 worklog](../docs/worklogs/P1-08-completion.md). Source manifest preserved; local acceptance only, no commit/integration/publication. |
+| `P1-09` | `Done` | `anh` | Independent Codex acceptance round 1 on 2026-09-19 verified AC-01..04 for source digest `daed134e...4108b`; documentation/setup checks, 9/9 planning scenarios, mirror/hash/link checks passed with no findings or blockers. See [worklog](../docs/worklogs/P1-09-completion.md). P1-08/P1-10 artifacts and entries preserved; local acceptance only, no commit/integration/publication. |
 | `P1-10` | `Done` | `anh` | Independent Codex acceptance Round 4 recorded 2026-09-19 for exact 54-file working-tree manifest `1dd5cc45...fb9ab`. F-07 and VG-04 are Verified; prior F-01..F-06 and VG-02/VG-03 remain Verified. Fresh reviewer gates passed: Unit 39/39, API 56/56, SQL P1-10/P2-10 66/66, full solution 346/346, build/format/security/model/docs checks, with no failed/skipped tests or open finding. Local acceptance only; no commit, integration, push, deployment or publication. See [P1-10 worklog](../docs/worklogs/P1-10-completion.md). |
 
 The mandatory Codex acceptance policy applies to new/reopened work from `P1-06` onward. Earlier task rows and logs describe historical policy and remain unchanged; they do not waive the current gate. P1-06 records the historical Antigravity workflow; P1-07 supersedes its prospective roles.
+
+## Owner-requested context reduction — P1-09
+
+| ID / status / branch | Trace and dependency | Scope and exclusive paths | Required checks and gate |
+|---|---|---|---|
+| `P1-09` / `Done` / `anh` | TE-01/10; P1-07; owner request to apply compact prompts, 2026-09-19 | Bounded documentation task requested while P1-08 awaits review; preserve its frozen artifacts and entries. Exclusive paths: `AGENTS.md`, `.antigravity/AGENTS.md`, `docs/prompts/RoadGuard_Task_Workflow.md`, `docs/worklogs/P1-09-completion.md`, and only P1-09 entries in this plan. Reduce repeated context/output and stale handoffs; retain every existing acceptance/security/SQL gate. No production, tests, skills, P1-08/P1-10 records or Git integration edits. | Documentation/setup/planning verifiers, mirror/link checks, scenario self-review and whitespace. Prose-only: no runtime tests or artificial RED. Codex Implementer submits Ready for review; separate Codex Reviewer alone may mark Done. |
+
+## Owner-approved tooling extension — P1-08
+
+| ID / size | Trace and dependency | Work and concrete output | Required tests and evidence |
+|---|---|---|---|
+| `P1-08` / tooling | TE-01/10; P1-04, P1-07 | Owner-requested RoadGuard C# reference suite: core conventions/source map, application/API contracts, EF Core SQL Server persistence and unit/API/SQL verification. Exclusive files are fixed in the P1-08 status row and worklog. Owner approved this bounded tooling task alongside P1-10 on 2026-09-19; only P1-08 entries may be edited in this shared plan. Existing business tasks and policies remain unchanged. | Validate four skill frontmatters/UI metadata, local links and discovery; run existing documentation/setup verifiers and independent retrieval/application scenarios; record self-review and exact artifact identity. No runtime behavior change, artificial RED or wording tests. Independent reviewer acceptance is required for Done. |
 
 ## Exclusive ownership and conflict control
 

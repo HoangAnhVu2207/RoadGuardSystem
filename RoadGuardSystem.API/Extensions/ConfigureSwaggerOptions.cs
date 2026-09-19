@@ -21,6 +21,15 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
 
     public void Configure(SwaggerGenOptions options)
     {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "RoadGuard JWT access token."
+        });
+        options.OperationFilter<AuthorizeOperationFilter>();
+
         var descriptions = _provider.ApiVersionDescriptions;
         if (descriptions.Count == 0)
         {

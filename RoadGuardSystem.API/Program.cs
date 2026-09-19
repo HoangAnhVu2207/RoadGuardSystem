@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
-builder.Services.AddApiPlatformServices(builder.Configuration);
+builder.Services.AddApiPlatformServices(builder.Configuration, builder.Environment.IsProduction());
 
 var app = builder.Build();
 
@@ -41,6 +41,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 
 // 4. Process liveness health check (unversioned)

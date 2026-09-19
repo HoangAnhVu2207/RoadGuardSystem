@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace RoadGuardSystem.ApiTests.Controllers;
@@ -20,6 +21,10 @@ public class ProbeController : ControllerBase
     {
         return Ok(new { message = "probe_ok" });
     }
+
+    [Authorize]
+    [HttpGet("protected")]
+    public IActionResult GetProtected() => Ok(new { message = "protected_ok" });
 
     [HttpGet("throw")]
     public IActionResult ThrowUnhandled()

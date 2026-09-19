@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
+using RoadGuardSystem.ApiTests.Infrastructure;
 using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Startup;
@@ -22,11 +22,11 @@ namespace RoadGuardSystem.ApiTests.Startup;
 /// it does not validate the OpenAPI document schema or versioning contract.
 /// </summary>
 [Trait("TaskId", "P1-00")]
-public sealed class ApiStartupTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class ApiStartupTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory _factory;
 
-    public ApiStartupTests(WebApplicationFactory<Program> factory)
+    public ApiStartupTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
     }

@@ -25,6 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="6.12.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.0" />
   </ItemGroup>
 
   <!--
@@ -35,6 +36,7 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\..\RoadGuardSystem.BusinessObjects\RoadGuardSystem.aBusinessObjects.csproj" />
+    <ProjectReference Include="..\..\RoadGuardSystem.Services\RoadGuardSystem.dServices.csproj" />
   </ItemGroup>
 
 </Project>

@@ -12,4 +12,9 @@ public static class ApiErrorCodes
     public const string InternalError = "internal_error";
     public const string MethodNotAllowed = "method_not_allowed";
     public const string UnsupportedMediaType = "unsupported_media_type";
+    public const string InvalidCredentials = "auth_invalid_credentials";
+    public const string PasswordChangeRequired = "auth_password_change_required";
+    public const string Unauthorized = "auth_unauthorized";
+    public const string SessionRevoked = "auth_session_revoked";
+    public const string ConcurrencyConflict = "auth_concurrency_conflict";
 }

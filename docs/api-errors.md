@@ -23,8 +23,8 @@ Content-Type: application/problem+json
 *(Note: Specialized endpoints or protocols with an explicitly documented alternate contract—such as raw streaming endpoints, binary file downloads, or simple process liveness probes like `/health`—are exempt from the ProblemDetails contract).*
 
 ### Implementation Baseline vs. Target Policy
-- **Current Baseline (P1-01):** The platform currently enforces uniform ProblemDetails error serialization for HTTP status codes **400, 404, 405, 415, and 500**.
-- **Downstream Implementation Target:** ProblemDetails mapping and machine-readable error codes for status codes **401 (Unauthorized), 403 (Forbidden), 409 (Conflict), and 422 (Unprocessable Content)** represent target architectural policies that must be implemented, wired, and tested by subsequent tasks (e.g., P1-10 for authentication, P1-12 for project authorization, and domain tasks for state machine conflicts).
+- **Current Baseline (P1-01), extended by P1-10:** The platform enforces uniform ProblemDetails error serialization for HTTP status codes **400, 401, 403, 404, 405, 409, 415, and 500**. P1-10 supplies the authentication-specific 401/403/409 mappings and correlation IDs.
+- **Downstream Implementation Target:** Project-authorization 403 mappings remain assigned to P1-12, while 422 and domain-specific conflict mappings remain assigned to their corresponding use-case tasks.
 
 ---
 
@@ -118,6 +118,16 @@ The following six platform error codes are currently published and normative. Th
 | **`method_not_allowed`** | 405 | The HTTP verb is not allowed for the matched route (e.g., `POST` to a read-only endpoint). |
 | **`unsupported_media_type`** | 415 | The request payload `Content-Type` is not supported (e.g., missing `application/json`). |
 | **`internal_error`** | 500 | An unhandled exception occurred during request processing. Always accompanied by a generic public message. |
+
+Authentication endpoints add the following stable domain codes. They preserve the same lowercase `snake_case` and correlation-ID requirements; credential, token, hash, and persistence details are never included in the response:
+
+| Error Code | HTTP Status | Meaning and Trigger |
+|---|---:|---|
+| **`auth_invalid_credentials`** | 401 | Username/password or refresh credential cannot be accepted without revealing whether the account exists. |
+| **`auth_password_change_required`** | 403 | Credentials are valid but the account is flagged for a mandatory password change; no business-capable token is issued. |
+| **`auth_unauthorized`** | 401 | The request has no valid authenticated identity or authoritative session/user validation failed. |
+| **`auth_session_revoked`** | 401 | The session/token family is expired, revoked, replayed, or carries a stale role snapshot. |
+| **`auth_concurrency_conflict`** | 409 | A refresh or other authentication workflow lost an optimistic-concurrency race. |
 
 ---
 

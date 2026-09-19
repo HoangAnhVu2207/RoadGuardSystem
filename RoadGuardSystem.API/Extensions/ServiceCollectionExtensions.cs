@@ -1,11 +1,14 @@
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.API.Constants;
+using RoadGuardSystem.API.Authentication;
 using RoadGuardSystem.API.Middlewares;
+using RoadGuardSystem.Services.Authentication;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace RoadGuardSystem.API.Extensions;
@@ -16,8 +19,28 @@ namespace RoadGuardSystem.API.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApiPlatformServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApiPlatformServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool isProduction)
     {
+        services.AddRoadGuardAuthenticationApplication(configuration, isProduction);
+
+        var jwtOptions = new JwtOptions();
+        configuration.GetRequiredSection(JwtOptions.SectionName).Bind(jwtOptions);
+        var jwtValidation = new JwtOptionsValidator().Validate(JwtOptions.SectionName, jwtOptions);
+        if (jwtValidation.Failed)
+        {
+            throw new OptionsValidationException(
+                JwtOptions.SectionName,
+                typeof(JwtOptions),
+                jwtValidation.Failures!);
+        }
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options => JwtBearerConfiguration.Configure(options, jwtOptions));
+        services.AddAuthorization();
+
         // 1. Health Checks (unversioned process liveness check, no DB or Docker required)
         services.AddHealthChecks();
 

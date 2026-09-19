@@ -49,6 +49,50 @@ public sealed record RotateRefreshTokenResult(
     RefreshToken? NewToken = null,
     string? ErrorMessage = null);
 
+public enum IssueSessionStatus
+{
+    Success,
+    UserNotFound,
+    UserNotEligible,
+    StaleConcurrency,
+    DuplicateCredential,
+    InvalidInput
+}
+
+public sealed record IssueSessionResult(
+    IssueSessionStatus Status,
+    Guid? SessionId = null,
+    string? ErrorMessage = null);
+
+public enum ForcedPasswordChangeStatus
+{
+    Success,
+    IdempotentReplay,
+    IdempotentConflict,
+    UserNotFound,
+    NotRequired,
+    StaleConcurrency,
+    InvalidInput
+}
+
+public sealed record ForcedPasswordChangeResult(
+    ForcedPasswordChangeStatus Status,
+    string? ErrorMessage = null);
+
+public enum ReplayRevocationStatus
+{
+    Success,
+    IdempotentReplay,
+    TokenNotFound,
+    StaleConcurrency,
+    InvalidInput
+}
+
+public sealed record ReplayRevocationResult(
+    ReplayRevocationStatus Status,
+    Guid? SessionId = null,
+    string? ErrorMessage = null);
+
 public enum UserRoleChangeStatus
 {
     Success,
@@ -78,6 +122,39 @@ public interface IIdentityRepository
         Guid oldTokenId,
         byte[] expectedRowVersion,
         RefreshToken newToken,
+        CancellationToken cancellationToken = default);
+
+    Task<IssueSessionResult> IssueSessionWithRefreshTokenAsync(
+        Guid userId,
+        byte[] expectedUserRowVersion,
+        UserSession session,
+        RefreshToken initialRefreshToken,
+        DateTimeOffset successfulLoginAt,
+        CancellationToken cancellationToken = default);
+
+    Task<ForcedPasswordChangeResult> CompleteForcedPasswordChangeAtomicAsync(
+        Guid userId,
+        byte[] expectedUserRowVersion,
+        string newPasswordHash,
+        string newSecurityStamp,
+        Guid operationId,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ForcedPasswordChangeResult> CompleteForcedPasswordChangeAtomicAsync(
+        Guid userId,
+        byte[] expectedUserRowVersion,
+        string newPasswordHash,
+        string newSecurityStamp,
+        string requestFingerprint,
+        Guid operationId,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ReplayRevocationResult> RevokeRefreshTokenFamilyForReplayAsync(
+        Guid refreshTokenId,
+        byte[] expectedTokenRowVersion,
+        Guid? correlationId = null,
         CancellationToken cancellationToken = default);
 
     Task RevokeSessionAndFamilyAsync(Guid sessionId, CancellationToken cancellationToken = default);

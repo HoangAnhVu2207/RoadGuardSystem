@@ -85,9 +85,9 @@ The solution enforces project references and dependency directions as implemente
 
 1. **`BusinessObjects` (`RoadGuardSystem.aBusinessObjects`):**
    - **Owns:** Domain entities (e.g., `Survey`, `Defect`, `RoadSection`, `RoadSectionVersion`), aggregate roots, value objects, domain invariants, and fixed numeric enums (all enums must define `Unknown = 0` and maintain immutable published numeric values).
-   - **Identity Model:** Defines domain user and role types (`ApplicationUser`, `ApplicationRole`).
+   - **Identity Model:** Defines domain user and role types (`ApplicationUser`, `ApplicationRole`). Per owner-approved Option A (2026-09-18), `ApplicationUser` inherits `IdentityUser<Guid>` and `ApplicationRole` is a domain entity keyed by `UserRoleCode Code` (mapped to `VARCHAR(40)` string primary key matching Data Dictionary Section 3.1), with custom `RoadGuardUserStore` and `RoadGuardRoleStore` in `Repositories` adapting to ASP.NET Core Identity without introducing default Identity join tables.
    - **Allowed Dependencies:** Foundational libraries without persistence runtime:
-     - `Microsoft.Extensions.Identity.Stores` (v8.0.17) for `IdentityUser<Guid>` and `IdentityRole<Guid>` abstractions.
+     - `Microsoft.Extensions.Identity.Stores` (v8.0.17) for `IdentityUser<Guid>` abstractions.
      - `NetTopologySuite` (v2.5.0) for standard GIS spatial types (`Point`, `LineString`, `Polygon`).
    - **Strict Prohibitions:** Must never reference `DTOs`, `Repositories`, `Services`, `API`, or any Entity Framework Core runtime packages (`Microsoft.EntityFrameworkCore`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`).
 
@@ -98,7 +98,7 @@ The solution enforces project references and dependency directions as implemente
 
 3. **`Repositories` (`RoadGuardSystem.cRepositories`):**
    - **Owns:** EF Core, `DbContext` (`RoadGuardDbContext`), entity type configurations (`IEntityTypeConfiguration<T>`), database migrations, SQL Server provider configurations with NetTopologySuite spatial extensions, storage implementations, and **repository interfaces used by Services**.
-   - **Identity Persistence:** In accordance with P1-00 review finding F1 and the repository division of responsibility, EF Core Identity persistence and IdentityDbContext configuration are owned exclusively by `Repositories` and assigned to Person 2 under task **P2-10** (without asserting an unconfirmed class name in advance).
+   - **Identity Persistence:** In accordance with P1-00 review finding F1 and the repository division of responsibility, EF Core Identity persistence and IdentityDbContext configuration are owned exclusively by `Repositories` and assigned to Person 2 under task **P2-10**. Under approved Option A, `RoadGuardDbContext` maps canonical `users` (Guid PK) and `roles` (string `code` PK) with custom `UserStore` and `RoleStore` adapting to the string role key without artificial join tables.
    - **Strict Prohibitions:** Must never reference `API` or external transport layers.
 
 4. **`Services` (`RoadGuardSystem.dServices`):**

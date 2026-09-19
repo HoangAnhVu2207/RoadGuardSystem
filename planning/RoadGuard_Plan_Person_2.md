@@ -21,10 +21,11 @@ Apply P1-07 migration and Lean TDD in [AGENTS.md](../AGENTS.md): narrow tests, a
 | Task | Status | Branch | Note |
 |---|---|---|---|
 | `P2-00` | `Done` | `huy` | Product Owner-confirmed completion; latest observed local tip is `b2662fe`. |
-| `P2-01` | `Done` | `huy` | Codex acceptance round 2 recorded 2026-09-18 for artifact `77505f2`; hosted CI run `35277820417` and fresh checkout gates passed, with no open findings or blockers. |
+| `P2-01` | `In Progress` | `huy` | Reopened 2026-09-19 for hosted-CI compatibility after P2-10 registered the first real seed step. Runs `35386508939` (`huy`) and `35386526835` (`develop`) passed build and all 250 tests but failed Seeder validation because CI targeted unmigrated `master`. Scope is limited to workflow/verifier/evidence; production Seeder and accepted P2-10 artifacts remain unchanged. |
 | `P2-02` | `Done` | `huy` | Codex acceptance round 3 recorded 2026-09-18 under the owner's task-specific self-review authorization; F-01/F-02 Verified. Accepted fix committed as `e2454e6` and fast-forwarded into local `develop`; fresh integration gate passed 163/163 with zero skips. Push pending correct remote/access information; no acceptance blocker or next-task assignment. |
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 | `P2-08` | `Done` | `huy` | Codex acceptance recorded 2026-09-18 for submitted commit `df692ff`; documentation, planning, tooling, Compose positive/negative, reference/secret and P2-00 SQL gates passed with no open findings. Runtime installation on Huy's machine remains an external execution step, not an acceptance blocker. |
+| `P2-10` | `Done` | `huy` | Independent Codex acceptance Round 4 recorded 2026-09-19 for HEAD `f6d4628` plus 46-file implementation manifest `3b7aad7029a684c3f2727632a42016445862be0918fd08fb521fa7014df16ffa`. F-01 through F-11 and VG-01/VG-02 are Verified; AC-01 through AC-10, P2-10 SQL 39/39, full gate 250/250, build/format/model/security/docs/tooling and cleanup all passed with no open finding or blocker. See docs/worklogs/P2-10-completion.md. |
 
 Prior gate: owner-approved integration produced baseline `20ff1d3`, containing Person 1 tip `3e13ca6` and Person 2 tip `b2662fe`. The synchronization gate is historical; the current table above determines task status.
 

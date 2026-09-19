@@ -410,3 +410,77 @@
 - **Verification gaps / blockers:** None blocking. The historical hosted-run re-query limitation is recorded above; exact immutable evidence is present and the reviewed P2-01 artifact is unchanged.
 - **Conflict and handoff:** Antigravity/owner implementation and self-review are complete and the submitted artifacts were frozen for review. The repository-owner-approved exception for the two Person 1 architecture-test helper files is recorded above; no unresolved file-ownership or specification conflict remains. This review writes only P2-01 worklog/status metadata and the P2-01 plan status note.
 - **Verdict / recorded status:** `Done`. Codex accepts P2-01 for the reviewed artifact. This is task acceptance only; it does not authorize merge, push, deploy, or starting another task.
+
+## Hosted CI compatibility remediation - 2026-09-19
+
+- **Implementer / workflow:** Codex direct implementation for Person 2, with independent Codex acceptance required before returning P2-01 to `Done`.
+- **Status:** `In Progress`.
+- **Baseline:** branch `huy`, HEAD `d0229869bc2dd5cb153d6ed8dfc81b62e4c0ead1`, synchronized with `origin/huy` and `origin/develop` before this remediation. Untracked `docs/worklogs/P2-04-completion.md` belongs to separate future work and is excluded.
+- **Trigger / reproduced boundary:** hosted runs `35386508939` (`huy`, workflow run 12) and `35386526835` (`develop`, workflow run 13) for exact SHA `d022986` passed documentation, Compose, CI integrity, dependency security, restore, format, build, Unit 85/85, API 26/26 and Integration 139/139, then failed `Validate Seeder Entry Point` with `Invalid object name 'Roles'`.
+- **Root cause:** the CI seeder connection targets SQL Server `master`, which is reachable but intentionally has no RoadGuard migrations. P2-10 changed the CLI composition from zero seed steps to `IdentityRoleSeedStep`, whose first query reads `Roles`. `DatabaseSeeder` correctly does not create or migrate schema, so CI must prepare a migrated application database before seeding.
+
+### Stable remediation acceptance criteria
+
+- [ ] **P2-01-R1:** Seeder validation uses a dedicated ephemeral application database, never `master`.
+- [ ] **P2-01-R2:** CI applies all RoadGuard EF migrations to that database before the first Seeder invocation, using exact EF tool version `8.0.17` and step-scoped environment variables without passing credentials on command-line arguments.
+- [ ] **P2-01-R3:** CI runs the production Seeder CLI twice against the same migrated database, proving the registered role seed is idempotent.
+- [ ] **P2-01-R4:** The CI verifier rejects an unmigrated/master Seeder workflow and accepts the corrected workflow; its negative self-test includes this regression.
+- [ ] **P2-01-R5:** Existing credential masking, mode-600 storage, bounded SQL readiness, coverage upload and unconditional container/credential cleanup remain intact. No plaintext credential enters source or logs.
+- [ ] **P2-01-R6:** Local verifier/Compose/security/docs gates, restore, non-incremental build, format and all tests pass; a new hosted run for the exact repair commit reaches successful Seeder and cleanup steps before acceptance.
+
+### Scope and ownership
+
+- **Exclusive implementation paths:** `.github/workflows/ci.yml`, `tests/CI/Verify-CiWorkflow.ps1`.
+- **Serialized metadata paths:** `docs/worklogs/P2-01-completion.md`, P2-01 row in `planning/RoadGuard_Plan_Person_2.md`.
+- **Out of scope:** production Seeder behavior, `DatabaseSeeder`, `IdentityRoleSeedStep`, P2-10 entities/migrations/tests, Docker Compose, API/domain behavior, business seed data, deployment and main-branch promotion.
+- **Conflict warning:** workflow and CI verifier are P2-01 shared delivery hotspots reserved for this remediation. P2-04 worklog remains untouched and excluded from staging.
+
+### Negative-first plan
+
+1. Extend the existing executable CI verifier so the currently submitted `master`/unmigrated/single-run Seeder step fails for the observed production reason.
+2. Run the positive verifier against current workflow and capture RED; run negative self-tests and prove the new invalid fixture is detected.
+3. Update only the Seeder validation workflow step to install pinned EF tooling in `RUNNER_TEMP`, target a run-scoped database, apply migrations, and invoke Seeder twice.
+4. Run focused verifier GREEN, controlled local migrated-database Seeder twice, all repository gates, direct Codex self-review, then independent Codex acceptance.
+
+### Local implementation evidence - 2026-09-19
+
+- **Current status:** `In Progress`; implementation and local self-review complete, independent pre-commit review and hosted exact-commit evidence pending.
+- **Implementation files:** `.github/workflows/ci.yml`, `tests/CI/Verify-CiWorkflow.ps1`.
+- **Metadata files:** this worklog and the P2-01 status row in `planning/RoadGuard_Plan_Person_2.md`.
+- **Behavior:** Seeder validation now derives a run-scoped `RoadGuard_CI_Seed_<GITHUB_RUN_ID>` connection, scopes both migration and seeder variables to the step, installs exact `dotnet-ef 8.0.17` under `RUNNER_TEMP`, applies all migrations, and runs the production Seeder CLI twice. Existing always-run container/credential cleanup removes the entire ephemeral SQL container and database.
+- **Production boundaries:** `Program.cs`, `DatabaseSeeder`, `IdentityRoleSeedStep`, P2-10 entities/migrations/tests and Docker Compose are unchanged.
+
+#### RED / GREEN chronology
+
+| Order | Command / evidence | Exit / result |
+|---:|---|---|
+| 1 | GitHub Actions run `35386526835`, step `Validate Seeder Entry Point` | Exit 1: `Invalid object name 'Roles'`; every prior verifier/build/test step passed, including Integration 139/139. Run `35386508939` on `huy` failed identically. |
+| 2 | Positive `Verify-CiWorkflow.ps1` after adding only the regression rules | Exit 1 RED with five specific violations: Seeder used `master`, no pinned EF tool, no migration variable, no migration-before-seed, and no second seed run. |
+| 3 | `Verify-CiWorkflow.ps1 -SelfTestNegative` before workflow edit | Expected exit 1; all 12 invalid fixtures, including unmigrated `master`, were detected. |
+| 4 | Positive verifier after workflow edit | Exit 0 GREEN. |
+| 5 | Negative self-test after workflow edit | Expected exit 1; 12/12 invalid fixtures blocked. |
+| 6 | Controlled local hosted-equivalent run | Exit 0: installed `dotnet-ef 8.0.17`, applied all four current migrations to a unique application database, Seeder pass 1 and pass 2 each executed successfully, exactly four canonical roles persisted, and exact temporary database cleanup passed. |
+
+#### Fresh local gates
+
+| Check | Exit | Result |
+|---|---:|---|
+| Restore | 0 | All projects up to date. |
+| Non-incremental build | 0 | 9 projects, 0 warnings/errors. |
+| Format verification | 0 | No changes required. |
+| Full solution tests on pinned SQL Server | 0 | 250 passed, 0 failed/skipped: Unit 85, API 26, Integration 139. |
+| CI positive verifier | 0 | Corrected workflow accepted. |
+| CI negative self-test | expected 1 | 12/12 invalid fixtures blocked. |
+| Compose, documentation, planning and tooling verifiers | 0 | All passed; planning 9/9. |
+| Dependency security | 0 | No High/Critical vulnerable dependency. |
+| `git diff --check`; SQL cleanup | 0 | No whitespace errors; line-ending warnings only; zero `RoadGuard_Test_*` or local seed databases remained. |
+
+#### Codex implementation self-review
+
+- Secret scope: the ephemeral password remains masked and stored mode 600; connection strings exist only as step-local process variables and never appear in CLI arguments or job-level environment.
+- Migration/seed separation: CI prepares schema explicitly; production Seeder continues to fail fast without altering schema.
+- Idempotency: the exact production Seeder executable runs twice against the same migrated database and retains four roles.
+- Failure propagation: tool install, migration and both seed invocations fail the step non-zero; existing `if: always()` cleanup remains unchanged.
+- Compatibility: exact EF tooling matches runtime package `8.0.17`; SDK remains pinned `10.0.401`; SQL image remains pinned to 2019 CU18.
+- Scope/conflicts: no domain/API/schema artifact changed. P2-04 worklog remains untracked, untouched and excluded.
+- Remaining gate: independent review, focused commit/push to `origin/huy`, hosted run success for the exact repair SHA, then final Codex acceptance and merge/push to `develop`.

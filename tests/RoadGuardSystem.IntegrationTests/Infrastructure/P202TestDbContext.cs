@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories;
 using Xunit;
 
@@ -21,6 +22,29 @@ public sealed class P202TestDbContext : RoadGuardDbContext
     }
 
     public DbSet<P202TransactionProbe> TransactionProbes => Set<P202TransactionProbe>();
+
+    public async Task EnsureActorUserAsync(Guid actorId)
+    {
+        var exists = await Users.AnyAsync(u => u.Id == actorId);
+        if (!exists)
+        {
+            var userName = $"p202_actor_{actorId:N}";
+            var user = new ApplicationUser
+            {
+                Id = actorId,
+                UserName = userName,
+                NormalizedUserName = userName.ToUpperInvariant(),
+                DisplayName = "P202 Actor",
+                PasswordHash = "hash",
+                RoleCode = RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Supervisor,
+                Status = RoadGuardSystem.aBusinessObjects.Commons.UserStatus.Active,
+                MustChangePassword = false,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            Users.Add(user);
+            await SaveChangesAsync();
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,6 +77,8 @@ public sealed class P202SqlServerFixture : IAsyncLifetime
         await using (var productionContext = CreateProductionDbContext())
         {
             await productionContext.Database.MigrateAsync();
+            var seedStep = new RoadGuardSystem.Repositories.Seeding.IdentityRoleSeedStep();
+            await seedStep.SeedAsync(productionContext);
         }
 
         await using var context = CreateDbContext();

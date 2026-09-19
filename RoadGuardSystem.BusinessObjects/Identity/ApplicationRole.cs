@@ -1,15 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity;
+using System;
+using RoadGuardSystem.aBusinessObjects.Commons;
 
+namespace RoadGuardSystem.BusinessObjects.Identity;
 
-namespace RoadGuardSystem.aBusinessObjects.Identity
+/// <summary>
+/// Represents a canonical system role per Option A / Data Dictionary section 3.1.
+/// In C# domain code, keyed by UserRoleCode enum.
+/// In EF Core persistence, mapped to canonical VARCHAR(40) string PK (SUPERVISOR, PM, DRONE_OPERATOR, REPAIR_CREW).
+/// </summary>
+public class ApplicationRole
 {
-    public class ApplicationRole : IdentityRole<Guid>
-    {
+    public UserRoleCode Code { get; set; } = UserRoleCode.Unknown;
 
+    public string Name { get; set; } = string.Empty;
+
+    public string? NormalizedName { get; set; }
+
+    public string? ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString();
+
+    public bool IsActive { get; set; } = true;
+
+    public ApplicationRole()
+    {
+    }
+
+    public ApplicationRole(UserRoleCode code, string name)
+    {
+        Code = code;
+        Name = name;
+        NormalizedName = name.ToUpperInvariant();
+        IsActive = true;
+    }
+
+    public ApplicationRole(string codeStr, string name)
+        : this(UserRoleCodeExtensions.FromDbCode(codeStr), name)
+    {
     }
 }

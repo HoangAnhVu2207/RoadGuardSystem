@@ -9,6 +9,8 @@ using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Identity;
 using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Repositories.Transactions;
+using RoadGuardSystem.Repositories.Files;
+using RoadGuardSystem.Repositories.Storage;
 
 namespace RoadGuardSystem.Repositories.Extensions;
 
@@ -61,10 +63,22 @@ public static class RoadGuardPersistenceExtensions
             }
         });
 
+        services.Configure<FileStorageOptions>(opt =>
+        {
+            var fileStorageSection = configuration.GetSection(FileStorageOptions.SectionName);
+            if (fileStorageSection.Exists())
+            {
+                fileStorageSection.Bind(opt);
+            }
+        });
+
         services.AddScoped<RoadGuardTransactionService>();
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
+        services.AddSingleton<IFileContentStore>(provider =>
+            new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));
+        services.AddScoped<IFileRepository, FileRepository>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IUserStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationUser>, RoadGuardUserStore>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IRoleStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationRole>, RoadGuardRoleStore>();
 

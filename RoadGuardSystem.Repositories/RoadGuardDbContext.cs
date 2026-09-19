@@ -7,6 +7,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
+using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.Repositories.Concurrency;
 
@@ -50,6 +51,8 @@ public class RoadGuardDbContext : DbContext
     public DbSet<PasswordResetLog> PasswordResetLogs => Set<PasswordResetLog>();
 
     public DbSet<AccountStatusChangeLog> AccountStatusChangeLogs => Set<AccountStatusChangeLog>();
+
+    public DbSet<StoredFile> Files => Set<StoredFile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -131,6 +134,19 @@ public class RoadGuardDbContext : DbContext
 
     private void ValidatePersistenceInvariants()
     {
+        var storedFileChanges = ChangeTracker.Entries<StoredFile>();
+        if (storedFileChanges.Any(entry => entry.State == EntityState.Modified))
+        {
+            throw new InvalidOperationException(
+                "Stored file metadata and content identity are immutable; create a new file identity instead.");
+        }
+
+        if (storedFileChanges.Any(entry => entry.State == EntityState.Deleted))
+        {
+            throw new InvalidOperationException(
+                "Stored files cannot be deleted through the generic persistence path; retention policy must authorize deletion.");
+        }
+
         // 1. AuditLog append-only
         if (ChangeTracker.Entries<AuditLog>()
             .Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))

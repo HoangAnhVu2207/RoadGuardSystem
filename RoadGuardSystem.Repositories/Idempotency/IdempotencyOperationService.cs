@@ -79,6 +79,20 @@ public sealed class IdempotencyOperationService
         Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
         CancellationToken cancellationToken)
     {
+        // A commit acknowledgement can fail after the database transaction is durable. Each retry must
+        // discard stale tracked state and prefer the durable outcome over invoking the handler again.
+        _context.ChangeTracker.Clear();
+        var durableOutcome = await FindExistingAsync(
+            actorUserId,
+            projectId,
+            operation,
+            idempotencyKey,
+            cancellationToken);
+        if (durableOutcome is not null)
+        {
+            return MapExisting(durableOutcome, requestFingerprint);
+        }
+
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
@@ -106,7 +120,16 @@ public sealed class IdempotencyOperationService
         }
         catch
         {
-            await transaction.RollbackAsync(CancellationToken.None);
+            try
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+            }
+            catch (InvalidOperationException)
+            {
+                // The transaction can already be durable when its commit acknowledgement fails.
+                // Preserve that transient error so the execution strategy can retry and read the outcome.
+            }
+
             throw;
         }
     }

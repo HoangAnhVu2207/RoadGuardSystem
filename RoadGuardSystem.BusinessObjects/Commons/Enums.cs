@@ -101,4 +101,14 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Cancelled = 9,
         Postponed = 10
     }
+
+    public enum SurveyStatus : byte
+    {
+        Unknown = 0,
+        Draft = 1,
+        InProgress = 2,
+        Submitted = 3,
+        Completed = 4,
+        Cancelled = 5
+    }
 }

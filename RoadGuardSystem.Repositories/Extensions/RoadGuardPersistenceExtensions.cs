@@ -13,6 +13,7 @@ using RoadGuardSystem.Repositories.Transactions;
 using RoadGuardSystem.Repositories.Warranties;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Storage;
+using RoadGuardSystem.Repositories.Surveys;
 
 namespace RoadGuardSystem.Repositories.Extensions;
 
@@ -81,6 +82,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<ProjectMembershipReadModel>();
         services.AddScoped<RoadSectionVersionPersistenceService>();
         services.AddScoped<WarrantyPersistenceService>();
+        services.AddScoped<SurveyAssignmentPersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));

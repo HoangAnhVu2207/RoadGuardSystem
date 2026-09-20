@@ -224,9 +224,13 @@ public sealed class P220ProjectMembershipSchemaTests : IClassFixture<IdentitySql
 
         context.ProjectMembers.Add(new ProjectMember
         {
-            Id = Guid.NewGuid(), ProjectId = project.Id, UserId = Guid.NewGuid(),
-            RoleCode = UserRoleCode.DroneOperator, IsPrimary = false,
-            ValidFrom = new DateOnly(2026, 9, 20), Status = ProjectMemberStatus.Active
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            UserId = Guid.NewGuid(),
+            RoleCode = UserRoleCode.DroneOperator,
+            IsPrimary = false,
+            ValidFrom = new DateOnly(2026, 9, 20),
+            Status = ProjectMemberStatus.Active
         });
         Func<Task> persistInvalidUser = () => context.SaveChangesAsync();
         await persistInvalidUser.Should().ThrowAsync<DbUpdateException>();
@@ -234,7 +238,9 @@ public sealed class P220ProjectMembershipSchemaTests : IClassFixture<IdentitySql
 
         context.HandoverDocuments.Add(new HandoverDocument
         {
-            Id = Guid.NewGuid(), ProjectId = Guid.NewGuid(), DocumentNo = "BBBG-FK-PROJECT",
+            Id = Guid.NewGuid(),
+            ProjectId = Guid.NewGuid(),
+            DocumentNo = "BBBG-FK-PROJECT",
             HandoverDate = new DateOnly(2026, 9, 20)
         });
         Func<Task> persistInvalidProject = () => context.SaveChangesAsync();
@@ -243,8 +249,11 @@ public sealed class P220ProjectMembershipSchemaTests : IClassFixture<IdentitySql
 
         context.HandoverDocuments.Add(new HandoverDocument
         {
-            Id = Guid.NewGuid(), ProjectId = project.Id, FileId = Guid.NewGuid(),
-            DocumentNo = "BBBG-FK-FILE", HandoverDate = new DateOnly(2026, 9, 20)
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            FileId = Guid.NewGuid(),
+            DocumentNo = "BBBG-FK-FILE",
+            HandoverDate = new DateOnly(2026, 9, 20)
         });
         Func<Task> persistInvalidFile = () => context.SaveChangesAsync();
         await persistInvalidFile.Should().ThrowAsync<DbUpdateException>();
@@ -258,7 +267,9 @@ public sealed class P220ProjectMembershipSchemaTests : IClassFixture<IdentitySql
         context.Projects.Add(project);
         context.HandoverDocuments.Add(new HandoverDocument
         {
-            Id = Guid.NewGuid(), ProjectId = project.Id, DocumentNo = "BBBG-RETAIN",
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            DocumentNo = "BBBG-RETAIN",
             HandoverDate = new DateOnly(2026, 9, 20)
         });
         await context.SaveChangesAsync();
@@ -317,8 +328,11 @@ public sealed class P220ProjectMembershipSchemaTests : IClassFixture<IdentitySql
 
     private static Project CreateProject() => new()
     {
-        Id = Guid.NewGuid(), ProjectCode = $"PRJ-{Guid.NewGuid():N}", Name = "P2-20 SQL fixture project",
-        Status = ProjectStatus.Active, CreatedAt = DateTimeOffset.UtcNow
+        Id = Guid.NewGuid(),
+        ProjectCode = $"PRJ-{Guid.NewGuid():N}",
+        Name = "P2-20 SQL fixture project",
+        Status = ProjectStatus.Active,
+        CreatedAt = DateTimeOffset.UtcNow
     };
 }
 

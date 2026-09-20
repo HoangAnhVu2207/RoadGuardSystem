@@ -1,4 +1,0 @@
-interface:
-  display_name: "RoadGuard Review"
-  short_description: "Review task P1/P2, evidence and handoff"
-  default_prompt: "Dùng $roadguard-review để nghiệm thu task RoadGuard được giao, ghi review/status và chỉ mark Done khi đủ gate; không tự sửa code."

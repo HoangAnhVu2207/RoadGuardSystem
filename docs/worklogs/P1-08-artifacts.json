@@ -1,0 +1,66 @@
+{
+  "task": "P1-08",
+  "baseline": "7513d576dac2b0d470059973aff70b1043828c9e",
+  "observed_head": "7513d576dac2b0d470059973aff70b1043828c9e",
+  "created_at": "2026-09-19T11:12:08.046665+07:00",
+  "files": [
+    {
+      "path": ".agents/skills/roadguard-csharp-api/agents/openai.yaml",
+      "sha256": "54f5b0d7123bca0f9bf8f09f049671f961870cd2254a8623cdc683ab555d585c"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-api/references/api-map.md",
+      "sha256": "c2f30a71350b07115bfd85e0382f32763c6344c9f1d3d03241eef2da26b026a9"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-api/SKILL.md",
+      "sha256": "cef663492c770009d6a37c7bda11af549305edb6c3460d57ac665118d7d4b81c"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-core/agents/openai.yaml",
+      "sha256": "e64e92f911b40b8b835bce33c95be152803201302b056eb93f28a8a1fae17689"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-core/references/source-map.md",
+      "sha256": "ba49f4b1ea494a89c10e2059cc8dc9a1e1898b56b1aaa98f7daab8f8fd1c99ee"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-core/SKILL.md",
+      "sha256": "052fe19908d2691e4d8dc89e67bf43ca4e941594fa04ace4938c59c0b45737f5"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-persistence/agents/openai.yaml",
+      "sha256": "67855a8a118d7ffb1431e95da147d4275468581a66669cee6e61c962e84257ea"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-persistence/references/persistence-map.md",
+      "sha256": "e25ada30fe725bf380a4ff04d9984011e0c66d808f5b94b0c01cb44369f8777a"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-persistence/SKILL.md",
+      "sha256": "ca49344fdc1072c73c8c057746e57ed7058080bb20b09da0fc3a1459dcf38528"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-testing/agents/openai.yaml",
+      "sha256": "552a93dee0d1199462ac9a3de5a084acbc3ef17e7794503cfbe2cabcbc0606d0"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-testing/references/test-map.md",
+      "sha256": "678f809cc4bc3a04a45fb7e30dbb9ebc0d9f4ec5755b0f514bc4fa76014847fd"
+    },
+    {
+      "path": ".agents/skills/roadguard-csharp-testing/SKILL.md",
+      "sha256": "9fda143325b7811b7558280e47639b15698ff8807036b1fcd99284077370807c"
+    }
+  ],
+  "plan_scope": {
+    "path": "planning/RoadGuard_Plan_Person_1.md",
+    "selector": "Lines beginning with | `P1-08`; normalized LF and final newline",
+    "rows": [
+      "| `P1-08` | `Ready for review` | `anh` | Owner-approved tooling exception on 2026-09-19 permits this task alongside P1-10. Four RoadGuard C# reference skills implemented; exclusive paths: `.agents/skills/roadguard-csharp-core/**`, `.agents/skills/roadguard-csharp-api/**`, `.agents/skills/roadguard-csharp-persistence/**`, `.agents/skills/roadguard-csharp-testing/**`, `docs/worklogs/P1-08-*`, and only this plan's P1-08 entries. Trace TE-01/10; P1-04/P1-07 integrated. Four skill validators, 71 local links, required PowerShell 7 verifiers and six forward scenarios pass; self-review and exact artifact packet in [P1-08 worklog](../docs/worklogs/P1-08-completion.md). Separate acceptance pending. No production or P1-10 artifact edits. |",
+      "| `P1-08` / tooling | TE-01/10; P1-04, P1-07 | Owner-requested RoadGuard C# reference suite: core conventions/source map, application/API contracts, EF Core SQL Server persistence and unit/API/SQL verification. Exclusive files are fixed in the P1-08 status row and worklog. Owner approved this bounded tooling task alongside P1-10 on 2026-09-19; only P1-08 entries may be edited in this shared plan. Existing business tasks and policies remain unchanged. | Validate four skill frontmatters/UI metadata, local links and discovery; run existing documentation/setup verifiers and independent retrieval/application scenarios; record self-review and exact artifact identity. No runtime behavior change, artificial RED or wording tests. Independent reviewer acceptance is required for Done. |"
+    ],
+    "sha256": "f2cbe108fc4913bd83b48e22e01845c7c45abaa431a88025bfb6b42bf6b131bd"
+  },
+  "exclusions": "Unrelated dirty/untracked artifacts, all other plan rows including pre-existing P1-10, and self-referential worklog/manifest hashes. Worklog and manifest remain supporting records for review."
+}

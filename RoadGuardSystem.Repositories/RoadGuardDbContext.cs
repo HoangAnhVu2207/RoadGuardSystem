@@ -43,6 +43,8 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<ConsumerEffectReceipt> ConsumerEffectReceipts => Set<ConsumerEffectReceipt>();
 
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     // Identity and session aggregates (P2-10)
     public DbSet<ApplicationUser> Users => Set<ApplicationUser>();
 

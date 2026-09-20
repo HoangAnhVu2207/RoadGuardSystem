@@ -75,6 +75,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<RoadGuardTransactionService>();
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
+        services.AddScoped<NotificationOutboxConsumer>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));

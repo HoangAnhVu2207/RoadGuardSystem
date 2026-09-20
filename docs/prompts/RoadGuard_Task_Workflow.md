@@ -1,92 +1,81 @@
-# RoadGuard — Codex triển khai và Codex review độc lập
+# RoadGuard - quy trinh Codex gon theo tung lat cat
 
-Quyền và gate nằm trong [AGENTS.md](../../AGENTS.md). Dùng một worklog cho mỗi task trong hai plan hiện có. Evidence ghi một lần trong worklog; prompt và câu trả lời chỉ dẫn tới evidence.
+Quy tac hien hanh nam trong [AGENTS.md](../../AGENTS.md). Cac task `Done` va worklog cu la lich su bat bien; workflow nay chi ap dung cho task moi hoac task duoc tiep tuc sau 20/09/2026.
 
-## Cách dùng
-
-1. Trong task Codex triển khai, dùng B với task ID. Agent tự chuẩn bị assignment nếu thiếu; không cần một phiên giao việc riêng. A chỉ dùng khi bạn muốn giao việc mà chưa code.
-2. Codex code, test, self-review, trả Ready for review cùng review packet và prompt C đã điền.
-3. Mở **task Codex mới độc lập**, cùng checkout/artifact, dán prompt C. Reviewer không phải phiên đã code và không sửa implementation.
-4. Nếu Changes requested, chuyển finding IDs về task triển khai ban đầu dùng B; sau khi sửa, trả packet mới cho reviewer. Chỉ reviewer độc lập ghi Done.
-
-Không chỉnh submitted artifacts trong khi review. Một task review mới không tạo task ID nghiệp vụ mới. Branch/worktree mới, merge/push vẫn theo quyền Git trong AGENTS.
-
-## Chuyển từ workflow cũ
-
-| Trạng thái | Áp dụng |
-|---|---|
-| Done | Giữ lịch sử và evidence; không review lại chỉ vì đổi workflow. |
-| Ready for review | Review artifact đã bàn giao, kể cả Antigravity tạo; không yêu cầu viết lại. |
-| In Progress / Blocked / Changes requested | Giữ evidence; chuyển vòng code/sửa tiếp theo cho Codex Implementer khi người đang sửa đã nhường quyền. Ghi handoff một lần. |
-| Not started | Codex Implementer và Codex Reviewer độc lập. |
-
-P1-07 thay chính sách vai trò hiện hành của P1-06. Tên file/template và thư mục Antigravity giữ để tương thích; nội dung lịch sử không bị đổi thành chứng nhận mới.
-
-## A. Chỉ giao việc
+## A. Prompt giao scope - bat buoc truoc khi sua
 
 ```text
-Chuẩn bị task RoadGuard <TASK-ID>, chưa triển khai. Đọc AGENTS.md, status/HEAD, task row và dependency thực có trong checkout. Ghi assignment vào worklog hiện có: Person/branch, AC và trace, In scope/Out of scope, exclusive files/shared hotspots, checks và gate. Giữ evidence cũ. Hỏi khi thiếu quyết định sản phẩm/schema/ownership; tự xử lý lựa chọn kỹ thuật thông thường. Không bắt đầu task khác hoặc thực hiện Git integration/publication.
+Chuan bi scope cho RoadGuard <TASK-ID>, owner <anh|huy>, chua viet code.
+
+Doc git status, task row, dependency thuc te va file lien quan. Tra dung mau:
+- Muc tieu
+- In scope
+- Out of scope
+- File se sua / shared hotspot
+- Dependency da co trong checkout
+- Bac kiem tra va lenh se chay
+- Package, migration, du lieu hoac tac dong ngoai
+- Neu task lon: chia 3-5 lat cat
+
+Ket thuc bang: "Tra loi Dong y <TASK-ID> de bat dau trong phien nay."
+Khong sua file cho den khi nguoi dung dong y ro rang.
 ```
 
-## B. Codex triển khai / sửa findings / self-review
+## B. Prompt lap ke hoach task lon
 
 ```text
-Triển khai/sửa RoadGuard <TASK-ID> theo AGENTS.md, roadguard-agile-delivery
-và assignment/review mới nhất trong docs/worklogs/<TASK-ID>-completion.md.
-Áp dụng quy tắc giảm context/output và Lean TDD của AGENTS; kiểm tra checkout,
-dependency/ownership trước edits. Nếu thiếu assignment, ghi từ task row trước.
-Giữ AC/scope; xử lý finding theo ID. Không mở lại Done nếu acceptance còn khớp.
-
-Ghi complete review packet một lần vào worklog: baseline/exact identity (cả
-untracked), files, AC/evidence, command/exit/time/environment/counts, RED/GREEN,
-self-review, finding IDs và gaps/risks. Đủ gate thì Ready for review, đóng băng
-artifacts; thiếu prerequisite thì Blocked kèm resume point. Không tự mark Done.
-
-Trả status, identity, finding/gap còn lại, link packet và prompt C đã điền.
-Không lặp danh sách file/hash/log đã có trong packet. Không commit/merge/push/deploy.
+Doc task <TASK-ID> va spec lien quan. Chia thanh 3-5 lat cat co the build/chay doc lap; moi lat co endpoint hoac output, file doc quyen, dependency, bac kiem tra va dieu kien xong. Chi lap ke hoach, chua viet code. Bao toan task Done va thay doi chua commit cua nguoi khac.
 ```
 
-## C. Codex reviewer — dán vào task độc lập
+## C. Prompt lam mot endpoint
 
 ```text
-Review độc lập RoadGuard <TASK-ID>, Person <PERSON>, branch <BRANCH>.
-Baseline: <BASELINE>. Submission: <COMMIT-OR-CONTENT-IDENTITY>.
-Worklog: docs/worklogs/<TASK-ID>-completion.md.
-Theo AGENTS.md và roadguard-review; thêm specialist P1/P2 phù hợp.
-Reviewer phải là task/session riêng, không author submitted artifacts.
+Lam lat cat <TASK-ID>/<SLICE> da duoc dong y.
 
-Kiểm tra checkout, assignment, acceptance mới nhất và exact artifact identity
-(cả untracked) trước khi dùng handoff này. Nếu Done còn khớp và không có risk
-mới, báo acceptance hiện có rồi dừng; không nhận là review mới. Nếu identity
-không khớp, xác định submission cần review, không dùng evidence cũ làm pass.
+Truoc code, viet spec 5-8 dong:
+1. method + route;
+2. actor/quyen;
+3. input + validation;
+4. success status + response;
+5. ProblemDetails/error code;
+6. quy tac nghiep vu;
+7. persistence/idempotency/concurrency neu co;
+8. audit/du lieu nhay cam neu co.
 
-Đọc phần liên quan và theo evidence links để bao phủ mọi AC/diff/dependency,
-self-review và finding. Rerun regression mới/high-risk; kiểm tra evidence reuse
-theo content/environment. Giữ mọi gate SQL/security/CI bắt buộc; phân biệt
-rerun/inspected. Dùng quy tắc output gọn của AGENTS; thiếu evidence không là pass.
-
-Không sửa code/tests. Chỉ append review/status đúng task theo shared contract:
-Changes requested, Blocked hoặc Done sau đủ gate; report-only thì không sửa file.
-Giữ lịch sử/ID findings, không mở rộng AC. Không commit/merge/push/deploy.
-Trả findings/gaps, checks, verdict/status và link worklog ngắn gọn.
+Chi sua file trong scope. Endpoint moi phai them Http/<feature>.http.
+Build project dang sua voi -nologo -v q -clp:ErrorsOnly.
+Sau do chay dotnet watch va goi request .http, bao status/body/state that.
+Chi viet 1-3 integration test sau smoke neu co tien/tinh toan, phan quyen, du lieu nhay cam, validation quan trong, concurrency/idempotency, SQL dac thu hoac bug cu.
+Khong them package hay migration neu scope khong noi ro.
 ```
 
-## Chọn lệnh kiểm tra
+## D. Prompt them test quan trong
 
-Tìm test project/filter có thật trước khi chạy. Ví dụ cho một P1 unit slice:
+```text
+Endpoint <ROUTE> da smoke thanh cong. Viet toi da 3 integration test cho <RISK>. Dung WebApplicationFactory; dung SQL Server/Testcontainers neu claim lien quan spatial, constraint, rowversion hoac migration. Tranh mock; khong test DTO/DI/CRUD don gian. Chi chay filter <FEATURE> voi output gon.
+```
+
+## E. Prompt sua bug
+
+```text
+Bug: <MO-TA>. File/slice: <PATH>. Tai hien bang request .http hoac test gon phu hop rui ro, sua trong scope, build project va chay lai dung ca tai hien. Neu loi con ton tai sau hai lan sua, dung va bao ten check + chan doan ngan; khong mo rong scope.
+```
+
+## Thang kiem tra
 
 ```powershell
-# Inner loop: có build; thay filter bằng class/test thực đã kiểm tra.
-dotnet test tests/RoadGuardSystem.UnitTests --filter "FullyQualifiedName~YourTestClass"
-# Affected: toàn project liên quan.
-dotnet test tests/RoadGuardSystem.UnitTests --no-restore
-# Submission production: chạy sau khi nội dung ổn định.
-dotnet restore RoadGuardSystem.slnx
-dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
-dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore
-# Sau build thành công, dùng --no-build cho affected suites đã xác định.
-# Full solution khi có trigger theo AGENTS:
-dotnet test RoadGuardSystem.slnx --no-build --no-restore
+# Bac 1: moi lan sua
+dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q -clp:ErrorsOnly
+
+# Bac 2: response that
+dotnet watch --project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj
+# Chay request tu Http/*.http va kiem tra status/body/state.
+
+# Bac 3: chi khi rui ro can test
+dotnet test tests/RoadGuardSystem.ApiTests --no-build --filter "FullyQualifiedName~<Feature>" -v q
+
+# Bac 4: truoc commit/merge hoac thay doi dung chung
+dotnet test RoadGuardSystem.slnx --no-build -v q
 ```
 
-Đây là công thức chọn lệnh, không phải script chạy tất cả mỗi vòng. Với docs/tooling, dùng verifier phù hợp thay runtime suites. Dừng và xử lý exit khác 0 trước bước phụ thuộc. Log dài giữ ngoài Git trong artifacts/; worklog giữ kết quả và bằng chứng cần cho review.
+Sau build thanh cong moi dung `--no-build`. Truoc commit, xem `git status --short`, `git diff --check`, diff cac path cu the va staged diff; stage tung path. Khong merge/push neu chua duoc phep.

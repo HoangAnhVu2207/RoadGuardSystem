@@ -1,8 +1,8 @@
 # RoadGuard execution plan — Person 2
 
-Owner: Person 2 (data/integration/test/operations primary). Implementation and self-review: Codex Implementer for the task owner. Completion: Codex Reviewer in a separate task/session that did not author the artifacts. Baseline: 16/09/2026; workflow updated 19/09/2026.
+Owner: Person 2 (`huy`, data/integration/operations primary). Baseline: 16/09/2026; lightweight endpoint workflow adopted 20/09/2026.
 
-This is one of exactly two execution plans. Person 2 takes only one unfinished assigned task at a time, including `In Progress`, `Ready for review`, `Changes requested` and `Blocked`. Every task follows `AGENTS.md` and the four Negative-First phases. Person 2 owns production-like SQL Server proof, retry/idempotency evidence, and delivery infrastructure.
+This is one of exactly two execution plans. Historical `Done` rows and their worklogs are immutable evidence. New work follows `AGENTS.md`: show scope first, wait for owner approval in the same session, then implement one small slice. Person 2 owns entity shape, `DbContext`, migrations, SQL-specific verification and delivery infrastructure.
 
 ## Backend delivery boundary — owner clarification, 2026-09-18
 
@@ -10,11 +10,11 @@ The two-week target covers backend MVP and backend Research Validation software.
 
 Task IDs remain stable. Wave headings group features; explicit dependencies, not row order, determine execution. New P2-04–P2-07 tasks extract prerequisites previously buried in P2-30/P2-64/P2-65; their ownership is exclusive. Only completed schema tasks hand entities to Person 1. Each parent task may have several acceptance checkpoints, but is Done only when every checkpoint passes.
 
-## Task completion contract
+## Workflow for new and resumed tasks
 
-For each task, Codex's assignment records acceptance criteria, In scope, Out of scope, dependencies, exclusive files and required checks. Codex Implementer reads traced specifications; writes negative tests and observes the expected failure; writes positive tests; implements; runs applicable checks; completes `Antigravity_Completion_Log_Template.md` and mandatory owner self-review; then submits `Ready for review`. Codex reviews the exact artifacts and records `Changes requested`, `Blocked` or `Done`. Only Codex may mark `Done`, after every applicable task gate and mandatory finding is verified. Explicit report-only reviews do not modify status/logs. See [shared prompts](../docs/prompts/RoadGuard_Task_Workflow.md); Git permissions remain separate. This policy applies to new/reopened work from the P1-06 workflow migration onward; historical Done evidence is preserved.
+Before editing, Codex posts a scope card containing task/owner, goal, In scope, Out of scope, files, dependencies, verification tier and side effects. Work starts only after explicit owner approval. Schema/migration work stays a separate Person 2 slice so Person 1 can build endpoints against a stable completed contract. Use SQL Server/Testcontainers only when SQL behavior matters; do not substitute SQLite for spatial, constraints, rowversion or migration claims.
 
-Apply P1-07 migration and Lean TDD in [AGENTS.md](../AGENTS.md): narrow tests, affected checks, submission once per content/environment state and independent review. Preserve historical evidence and Ready for review artifacts; new roles apply to the next implementation/fix round. Only a separate reviewer task may accept.
+The old Negative-First, mandatory self-review and independent acceptance workflow is historical from 20/09/2026 onward. Do not rewrite its `Done` evidence. Existing task-row negative/positive examples are a risk catalogue; the approved scope card selects build, smoke, focused tests or full tests by actual risk.
 
 ## Current status and branch synchronization gate
 
@@ -32,18 +32,16 @@ Prior gate: owner-approved integration produced baseline `20ff1d3`, containing P
 ## Exclusive ownership and conflict control
 
 - Person 2 has exclusive file ownership of Repositories, migrations, SQL integration tests, Docker/Compose, CI workflows, seed infrastructure, and operations files while a Person 2 task is active.
-- Person 2 establishes entity/property/enum shape and persistence first. Only after Codex Implementer self-review and Codex acceptance mark that task `Done` may Person 1 begin the paired domain/API task and add domain methods/invariants. The dependency artifacts must also be present in the current checkout.
+- Person 2 establishes entity/property/enum shape and persistence first. Person 1 starts the paired endpoint only after that task is `Done` and its artifacts are present in the current checkout.
 - Person 2 must not edit API, Services, DTOs, unit tests, or API tests owned by an active Person 1 task. Record a `Conflict warning` and hand the required contract change to Person 1 instead.
-- Shared hotspots require a single declared owner. Every task log must list intended files before coding and record any overlap, sequencing constraint, or schema reopening.
+- Shared hotspots require one declared owner. The approved scope card lists intended files and any overlap, sequencing constraint or schema reopening before coding.
 
-Default commands once Sprint 0 exists:
+Default persistence ladder (select it in the approved scope):
 
 ```powershell
-dotnet test tests/RoadGuardSystem.IntegrationTests --filter "TaskId=<TASK-ID>"
-dotnet test tests/RoadGuardSystem.ApiTests --filter "TaskId=<TASK-ID>"
-dotnet format --verify-no-changes
-dotnet build --no-restore
-dotnet test --no-build
+dotnet build RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj -nologo -v q -clp:ErrorsOnly
+dotnet test tests/RoadGuardSystem.IntegrationTests --no-build --filter "FullyQualifiedName~<Feature>" -v q
+dotnet test RoadGuardSystem.slnx --no-build -v q # before commit/merge or shared changes
 ```
 
 ## Wave 0 — data and CI foundation
@@ -138,7 +136,7 @@ dotnet test --no-build
 
 No two active Person 2 tasks own the same files. Update `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`, migration/model snapshots, solution/project/DI files and shared entity shape under one declared owner per task. New P2-04–P2-07 carve out prerequisites from older tasks; they are not additional independent product scope. Original estimates require re-estimation after this split.
 
-For each migration: write failing SQL negative cases, positive round-trips, then mapping/migration; verify empty-DB and previous-migration upgrade plus recovery/downgrade notes. For each handoff: publish mapped entities/enum values, repository signatures, transaction/version behavior, seed IDs, relevant tests and the accepted commit. Domain policy remains Person 1-owned.
+For each approved migration slice, define the schema/output and recovery note, build the repository project, then run focused SQL Server/Testcontainers checks for the actual mapping, constraint, spatial or concurrency risk. Verify empty-DB and previous-migration upgrade before commit. For each handoff, publish entity/enum shape, transaction/version behavior, seed IDs and the commit. Domain policy remains Person 1-owned.
 
 ### Two-week delivery checkpoints
 
@@ -154,10 +152,10 @@ All task sizes above are historical or provisional sizing. Before correction, th
 - P2-67 requires complete backend US-01–US-20 coverage, research import/pair/error-metric/export proof, no operational research writes, adapter failure/retry coverage, and SQL backup/restore evidence. Data fixtures clearly identify synthetic provenance. No real-model accuracy or Android implementation is claimed.
 - ADR 003 D-01/D-02/D-03 must be resolved for their affected acceptance slices before those slices can be Done. Unrelated work can continue.
 
-Execute documented task-filtered tests, solution restore/non-incremental build/format/all-tests, the dependency-security gate and documentation verification. Record the actual SQL environment, skipped cases, immutable commit/artifact references and self-review result. Do not infer readiness solely from static YAML or prose checks.
+Use the approved verification tier while iterating. Before commit/merge, run the full relevant suite plus dependency-security and documentation checks. Record the actual SQL environment and any skipped case; static YAML or prose alone does not prove runtime behavior.
 
-Keep SQL Server integration tests deterministic and isolated; publish the exact Docker/SQL Server prerequisites in the runbook; verify all migrations from an empty database and from the previous migration; ensure CI exercises the same commands recorded in completion logs; complete Codex Implementer owner self-review and mandatory Codex acceptance and resolve every conflict warning. Release is blocked by EF InMemory-only evidence for SQL behavior, destructive retention without legal-hold race protection, duplicate worker side effects, or secrets in source/logs.
+Keep SQL Server integration tests deterministic and isolated; publish the Docker/SQL Server prerequisites; verify migrations from an empty database and the previous migration; and keep CI commands aligned with task logs. EF InMemory-only evidence cannot prove SQL behavior.
 
 ## Retired cross-review task IDs
 
-`P2-12`, `P2-24`, `P2-33`, `P2-43`, `P2-54`, and `P2-66` remain retired and must not be started or reused. Codex Implementer self-review and mandatory Codex acceptance are stages of each existing implementation task, not separate Person 2 implementation tasks. Only Codex records final acceptance and marks `Done` under the current policy; historical review logs remain unchanged.
+`P2-12`, `P2-24`, `P2-33`, `P2-43`, `P2-54`, and `P2-66` remain retired and must not be started or reused. Historical review logs remain unchanged. New work uses the scope-first workflow and may be marked `Done` after its approved output and required verification complete.

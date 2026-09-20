@@ -1,4 +1,0 @@
-interface:
-  display_name: "RoadGuard · Kiểm thử C#"
-  short_description: "Chọn test unit, API và SQL theo từng lát cắt"
-  default_prompt: "Dùng $roadguard-csharp-testing để viết và chạy kiểm tra đúng phạm vi task hiện tại, ghi bằng chứng và các gap trước handoff."

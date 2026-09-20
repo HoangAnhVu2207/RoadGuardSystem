@@ -29,14 +29,12 @@ $userStories = Join-Path $RepoRoot "docs\diagram\User_Stories_Acceptance_Criteri
 $person1Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_1.md"
 $person2Plan = Join-Path $RepoRoot "planning\RoadGuard_Plan_Person_2.md"
 $rootAgentRules = Join-Path $RepoRoot "AGENTS.md"
-$antigravityAgentRules = Join-Path $RepoRoot ".antigravity\AGENTS.md"
-$completionLogTemplate = Join-Path $RepoRoot "docs\diagram\Antigravity_Completion_Log_Template.md"
+$taskLogTemplate = Join-Path $RepoRoot "docs\diagram\RoadGuard_Task_Log_Template.md"
 
 $docs = @(
     $adr001, $adr002, $apiErrors, $worklog, $p100Worklog, $p101Worklog,
     $dataDictionary, $erd, $domainModel, $useCases, $userStories,
-    $person1Plan, $person2Plan, $rootAgentRules, $antigravityAgentRules,
-    $completionLogTemplate
+    $person1Plan, $person2Plan, $rootAgentRules, $taskLogTemplate
 )
 
 # 1. Verify existence of required files
@@ -208,8 +206,7 @@ $userStoriesContent = Get-Content $userStories -Raw -Encoding UTF8
 $person1PlanContent = Get-Content $person1Plan -Raw -Encoding UTF8
 $person2PlanContent = Get-Content $person2Plan -Raw -Encoding UTF8
 $rootAgentRulesContent = Get-Content $rootAgentRules -Raw -Encoding UTF8
-$antigravityAgentRulesContent = Get-Content $antigravityAgentRules -Raw -Encoding UTF8
-$completionLogTemplateContent = Get-Content $completionLogTemplate -Raw -Encoding UTF8
+$taskLogTemplateContent = Get-Content $taskLogTemplate -Raw -Encoding UTF8
 
 $sessionContractDocuments = @(
     @{ Name = "ADR 002"; Content = $adr002Content },
@@ -294,19 +291,19 @@ foreach ($plan in @(
     }
 }
 
-# P1-07 prospective roles; historical P1 Wave 0 evidence stays immutable.
+# P1-70 prospective workflow; historical P1 Wave 0 evidence stays immutable.
 foreach ($plan in @(
     @{ Name = "Person 1 plan"; Content = $person1PlanContent },
     @{ Name = "Person 2 plan"; Content = $person2PlanContent }
 )) {
     foreach ($requiredToken in @(
-        "Implementation and self-review: Codex Implementer",
-        "Conflict warning",
-        "exclusive file ownership",
-        "Completion: Codex"
+        'Historical `Done` rows',
+        'scope card',
+        'explicit owner approval',
+        'risk catalogue'
     )) {
         if ($plan.Content -notmatch [regex]::Escape($requiredToken)) {
-            $errors += "$($plan.Name) missing approved implementation/acceptance/conflict-control token: '$requiredToken'"
+            $errors += "$($plan.Name) missing lightweight workflow token: '$requiredToken'"
         }
     }
 }
@@ -386,28 +383,28 @@ while ($remaining.Count -gt 0) {
     foreach ($id in $ready) { $resolvedTasks[$id] = $true; $remaining.Remove($id) }
 }
 
-foreach ($agentRules in @(
-    @{ Name = "root AGENTS.md"; Content = $rootAgentRulesContent },
-    @{ Name = ".antigravity/AGENTS.md"; Content = $antigravityAgentRulesContent }
+foreach ($requiredToken in @(
+    'Before edits, show:',
+    '5-8 line contract',
+    'Http/*.http',
+    'at or below 500 lines',
+    'Person 1 (`anh`)',
+    'Person 2 (`huy`)'
 )) {
-    foreach ($requiredToken in @(
-        "Task-owner self-review",
-        "Conflict warning",
-        "must not edit files owned by the other person's active task"
-    )) {
-        if ($agentRules.Content -notmatch [regex]::Escape($requiredToken)) {
-            $errors += "$($agentRules.Name) missing approved self-review/conflict-control token: '$requiredToken'"
-        }
+    if ($rootAgentRulesContent -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "root AGENTS.md missing current workflow token: '$requiredToken'"
     }
 }
 
 foreach ($requiredToken in @(
-    "Owner / self-reviewer",
-    "Conflict warning",
-    "Self-review findings and resolution"
+    "Scope approval",
+    "In scope:",
+    "Out of scope:",
+    "Verification tier and commands:",
+    "Endpoint contract"
 )) {
-    if ($completionLogTemplateContent -notmatch [regex]::Escape($requiredToken)) {
-        $errors += "Completion-log template missing self-review/conflict field: '$requiredToken'"
+    if ($taskLogTemplateContent -notmatch [regex]::Escape($requiredToken)) {
+        $errors += "Task-log template missing scope field: '$requiredToken'"
     }
 }
 

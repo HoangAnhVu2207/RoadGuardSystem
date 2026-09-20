@@ -32,7 +32,7 @@ function Invoke-Case([string]$Name, [scriptblock]$Mutate, [int]$ExpectedExit, [s
 
 try {
     New-Item -ItemType Directory -Path $fixture | Out-Null
-    foreach ($p in @('docs', 'planning', '.antigravity')) {
+    foreach ($p in @('docs', 'planning', '.agents')) {
         Copy-Item -LiteralPath (Join-Path $repo $p) -Destination (Join-Path $fixture $p) -Recurse
     }
     Copy-Item -LiteralPath (Join-Path $repo 'AGENTS.md') -Destination $fixture

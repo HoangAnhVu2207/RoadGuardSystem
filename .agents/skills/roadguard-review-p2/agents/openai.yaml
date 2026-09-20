@@ -1,4 +1,0 @@
-interface:
-  display_name: "RoadGuard Review P2"
-  short_description: "Review P2 SQL, migrations, workers and CI"
-  default_prompt: "Dùng $roadguard-review-p2 để nghiệm thu task P2 được giao, kiểm tra SQL/evidence và self-review, ghi findings/status và chỉ mark Done khi đủ gate."

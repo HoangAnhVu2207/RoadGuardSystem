@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadGuard Endpoint Delivery"
+  short_description: "Plan and deliver one RoadGuard API slice"
+  default_prompt: "Use $roadguard-endpoint-delivery to scope and deliver one RoadGuard endpoint."

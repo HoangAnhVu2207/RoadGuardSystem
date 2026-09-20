@@ -19,9 +19,13 @@
 
     <!-- Roslyn analysers. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <!-- AnalysisLevel aligned with the solution TargetFramework (net8.0 → latest). -->
-    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Approved P1-70 baseline debt remains visible as warnings; all other Recommended diagnostics are errors. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CA1805;CA1512;CA1000;CA1861</WarningsNotAsErrors>
+    <!-- Existing xUnit naming/support code stays visible without weakening production projects. -->
+    <WarningsNotAsErrors Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('Tests'))">$(WarningsNotAsErrors);CA1305;CA1707;CA1822;CA1854;CA2219</WarningsNotAsErrors>
 
   </PropertyGroup>
 </Project>

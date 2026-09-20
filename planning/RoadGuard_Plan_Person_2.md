@@ -27,6 +27,7 @@ The old Negative-First, mandatory self-review and independent acceptance workflo
 | `P2-03` | `Done` | `huy` | Backend delivery-plan/documentation correction self-reviewed and verified locally; see P2-03 completion log. No P2-01 sign-off. |
 | `P2-08` | `Done` | `huy` | Codex acceptance recorded 2026-09-18 for submitted commit `df692ff`; documentation, planning, tooling, Compose positive/negative, reference/secret and P2-00 SQL gates passed with no open findings. Runtime installation on Huy's machine remains an external execution step, not an acceptance blocker. |
 | `P2-10` | `Done` | `huy` | Independent Codex acceptance Round 4 and manifest `3b7aad7...` remain historical. P1-10's owner-authorized no-schema consumer extension was independently accepted `Done` on 2026-09-19 with SQL P1-10/P2-10 66/66, full 346/346 and no model drift. Temporary P1 ownership of the repository/interface/SQL-test paths is released after integration; normal plan ownership resumes. See both task worklogs. |
+| `P2-20` | `Done` | `huy` | Project, membership and handover SQL schema plus P2-11 fixtures completed locally. Focused P2-20 SQL tests passed 11/11; full IntegrationTests passed 211/211 with zero skipped after serializing Testcontainers collections. No commit, integration, push or deployment evidence is implied by this status row. |
 
 Prior gate: owner-approved integration produced baseline `20ff1d3`, containing Person 1 tip `3e13ca6` and Person 2 tip `b2662fe`. The synchronization gate is historical; the current table above determines task status.
 

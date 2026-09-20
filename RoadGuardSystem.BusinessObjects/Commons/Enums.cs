@@ -30,4 +30,17 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Failed = 2,
         Rejected = 3
     }
+
+    public enum ProjectStatus : byte
+    {
+        Planning = 1,
+        Active = 2,
+        Closed = 3
+    }
+
+    public enum ProjectMemberStatus : byte
+    {
+        Active = 1,
+        Ended = 2
+    }
 }

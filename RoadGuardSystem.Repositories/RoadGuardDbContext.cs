@@ -9,6 +9,7 @@ using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.Repositories.Concurrency;
 
 using Microsoft.Extensions.Options;
@@ -53,6 +54,12 @@ public class RoadGuardDbContext : DbContext
     public DbSet<AccountStatusChangeLog> AccountStatusChangeLogs => Set<AccountStatusChangeLog>();
 
     public DbSet<StoredFile> Files => Set<StoredFile>();
+
+    public DbSet<Project> Projects => Set<Project>();
+
+    public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
+
+    public DbSet<HandoverDocument> HandoverDocuments => Set<HandoverDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

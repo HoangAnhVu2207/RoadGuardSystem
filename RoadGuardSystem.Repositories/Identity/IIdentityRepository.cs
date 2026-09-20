@@ -15,6 +15,48 @@ public sealed record UserSecurityState(
     bool MustChangePassword,
     byte[] RowVersion);
 
+public sealed record UserProfileState(
+    Guid Id,
+    string UserName,
+    string DisplayName,
+    string? Email,
+    UserRoleCode RoleCode,
+    UserStatus Status,
+    byte[] RowVersion);
+
+public enum UserProfileUpdateStatus
+{
+    Success,
+    IdempotentReplay,
+    IdempotentConflict,
+    UserNotFound,
+    StaleConcurrency,
+    EmailConflict,
+    InvalidInput
+}
+
+public sealed record UserProfileUpdateResult(
+    UserProfileUpdateStatus Status,
+    UserProfileState? Profile = null,
+    string? Message = null);
+
+public enum AdminPasswordResetStatus
+{
+    Success,
+    IdempotentReplay,
+    IdempotentConflict,
+    ActorNotAuthorized,
+    UserNotFound,
+    TargetNotActive,
+    StaleConcurrency,
+    InvalidInput
+}
+
+public sealed record AdminPasswordResetResult(
+    AdminPasswordResetStatus Status,
+    UserSecurityState? Target = null,
+    string? Message = null);
+
 public sealed record SessionSecurityState(
     Guid Id,
     Guid UserId,
@@ -110,6 +152,28 @@ public sealed record UserRoleChangeResult(
 
 public interface IIdentityRepository
 {
+    Task<UserProfileState?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<UserProfileUpdateResult> UpdateUserProfileAtomicAsync(
+        Guid userId,
+        string displayName,
+        string? email,
+        byte[] expectedRowVersion,
+        Guid operationId,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminPasswordResetResult> ResetUserPasswordAtomicAsync(
+        Guid actorUserId,
+        Guid targetUserId,
+        string newPasswordHash,
+        string newSecurityStamp,
+        byte[] expectedTargetRowVersion,
+        string requestFingerprint,
+        Guid operationId,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default);
+
     Task<UserSecurityState?> GetUserSecurityStateAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<UserSecurityState?> GetUserSecurityStateByUsernameAsync(string username, CancellationToken cancellationToken = default);

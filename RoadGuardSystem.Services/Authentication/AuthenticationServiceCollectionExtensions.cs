@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories.Extensions;
+using RoadGuardSystem.Services.Identity;
 
 namespace RoadGuardSystem.Services.Authentication;
 
@@ -29,6 +30,10 @@ public static class AuthenticationServiceCollectionExtensions
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<ICredentialVerifier, IdentityCredentialVerifier>();
         services.AddScoped<AuthoritativeSessionValidator>();
+        services.AddScoped<IIdentityService>(provider =>
+            new IdentityService(
+                provider.GetRequiredService<Repositories.Identity.IIdentityRepository>(),
+                provider.GetRequiredService<IPasswordHasher<ApplicationUser>>()));
         services.AddScoped<AccessTokenFactory>(provider =>
             new AccessTokenFactory(provider.GetRequiredService<IOptions<JwtOptions>>().Value));
         services.AddScoped<PasswordChangeFingerprintFactory>(provider =>

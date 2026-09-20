@@ -4,3 +4,31 @@ GET {{RoadGuardSystem.API_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/profile
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
+PUT {{RoadGuardSystem.API_HostAddress}}/api/v1/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Updated Profile",
+  "email": "updated@example.test",
+  "expectedRowVersion": "{{profileRowVersion}}",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/admin/users/{{targetUserId}}/password-reset
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "expectedTargetRowVersion": "{{targetRowVersion}}",
+  "operationId": "{{$guid}}"
+}

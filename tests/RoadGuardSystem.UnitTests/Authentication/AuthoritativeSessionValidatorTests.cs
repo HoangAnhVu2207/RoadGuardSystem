@@ -183,6 +183,31 @@ public sealed class AuthoritativeSessionValidatorTests
         public bool ThrowOnRead { get; init; }
         public Guid? RevokedSessionId { get; private set; }
 
+        public Task<UserProfileState?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<UserProfileState?>(null);
+
+        public Task<UserProfileUpdateResult> UpdateUserProfileAtomicAsync(
+            Guid userId,
+            string displayName,
+            string? email,
+            byte[] expectedRowVersion,
+            Guid operationId,
+            Guid? correlationId = null,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<AdminPasswordResetResult> ResetUserPasswordAtomicAsync(
+            Guid actorUserId,
+            Guid targetUserId,
+            string newPasswordHash,
+            string newSecurityStamp,
+            byte[] expectedTargetRowVersion,
+            string requestFingerprint,
+            Guid operationId,
+            Guid? correlationId = null,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<UserSecurityState?> GetUserSecurityStateAsync(Guid userId, CancellationToken cancellationToken = default) =>
             ThrowOnRead ? throw new InvalidOperationException("store unavailable") : Task.FromResult(User);
 

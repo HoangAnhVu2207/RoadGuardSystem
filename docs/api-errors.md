@@ -119,7 +119,7 @@ The following six platform error codes are currently published and normative. Th
 | **`unsupported_media_type`** | 415 | The request payload `Content-Type` is not supported (e.g., missing `application/json`). |
 | **`internal_error`** | 500 | An unhandled exception occurred during request processing. Always accompanied by a generic public message. |
 
-Authentication endpoints add the following stable domain codes. They preserve the same lowercase `snake_case` and correlation-ID requirements; credential, token, hash, and persistence details are never included in the response:
+Authentication and identity endpoints add the following stable domain codes. They preserve the same lowercase `snake_case` and correlation-ID requirements; credential, token, hash, and persistence details are never included in the response:
 
 | Error Code | HTTP Status | Meaning and Trigger |
 |---|---:|---|
@@ -128,6 +128,11 @@ Authentication endpoints add the following stable domain codes. They preserve th
 | **`auth_unauthorized`** | 401 | The request has no valid authenticated identity or authoritative session/user validation failed. |
 | **`auth_session_revoked`** | 401 | The session/token family is expired, revoked, replayed, or carries a stale role snapshot. |
 | **`auth_concurrency_conflict`** | 409 | A refresh or other authentication workflow lost an optimistic-concurrency race. |
+| **`access_forbidden`** | 403 | An authenticated actor lacks the required global Supervisor authority for the requested identity action. |
+| **`identity_user_not_found`** | 404 | The target identity does not exist; no credential or account detail is disclosed. |
+| **`identity_user_inactive`** | 409 | The target identity is suspended or otherwise not eligible for an administrative password reset. |
+| **`duplicate_request`** | 409 | An idempotency operation ID was previously used with a different request fingerprint. |
+| **`identity_email_conflict`** | 409 | The requested profile email is already assigned to another user. |
 
 ---
 

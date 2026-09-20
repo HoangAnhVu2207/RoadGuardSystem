@@ -13,6 +13,8 @@ public sealed class Project : IHasRowVersion
 
     public string? Description { get; set; }
 
+    public int? EngineeringUtmSrid { get; set; }
+
     public ProjectStatus Status { get; set; }
 
     public DateOnly? StartDate { get; set; }

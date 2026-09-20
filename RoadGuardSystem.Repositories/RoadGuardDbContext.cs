@@ -13,6 +13,8 @@ using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.Repositories.Concurrency;
 
 using Microsoft.Extensions.Options;
@@ -71,6 +73,12 @@ public class RoadGuardDbContext : DbContext
     public DbSet<DroneDevice> DroneDevices => Set<DroneDevice>();
 
     public DbSet<Project> Projects => Set<Project>();
+
+    public DbSet<RoadSection> RoadSections => Set<RoadSection>();
+
+    public DbSet<RoadSectionVersion> RoadSectionVersions => Set<RoadSectionVersion>();
+
+    public DbSet<Warranty> Warranties => Set<Warranty>();
 
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 
@@ -156,6 +164,26 @@ public class RoadGuardDbContext : DbContext
 
     private void ValidatePersistenceInvariants()
     {
+        foreach (var entry in ChangeTracker.Entries<Project>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified &&
+                entry.Entity.EngineeringUtmSrid is int srid &&
+                !SpatialConstants.IsAllowedProjectUtmSrid(srid))
+            {
+                throw new InvalidOperationException("Project EngineeringUtmSrid must be 32648 or 32649 when configured.");
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<RoadSectionVersion>())
+        {
+            if (entry.State == EntityState.Modified &&
+                entry.Properties.Any(property => property.IsModified && property.Metadata.Name != nameof(RoadSectionVersion.IsCurrent)))
+            {
+                throw new InvalidOperationException(
+                    "RoadSectionVersion is immutable; only the current-version marker may change through its transaction boundary.");
+            }
+        }
+
         var storedFileChanges = ChangeTracker.Entries<StoredFile>();
         if (storedFileChanges.Any(entry => entry.State == EntityState.Modified))
         {

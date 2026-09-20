@@ -96,7 +96,7 @@ public sealed class P202SqlServerFixture : IAsyncLifetime
     public P202TestDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<P202TestDbContext>()
-            .UseSqlServer(ConnectionString)
+            .UseSqlServer(ConnectionString, sql => sql.UseNetTopologySuite())
             .EnableDetailedErrors()
             .Options;
 
@@ -106,7 +106,7 @@ public sealed class P202SqlServerFixture : IAsyncLifetime
     private RoadGuardDbContext CreateProductionDbContext()
     {
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
-            .UseSqlServer(ConnectionString)
+            .UseSqlServer(ConnectionString, sql => sql.UseNetTopologySuite())
             .Options;
 
         return new RoadGuardDbContext(options);

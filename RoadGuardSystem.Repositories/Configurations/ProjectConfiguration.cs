@@ -14,6 +14,9 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
             table.HasCheckConstraint(
                 "CK_Projects_DateRange",
                 "[EndDate] IS NULL OR [StartDate] IS NULL OR [EndDate] >= [StartDate]");
+            table.HasCheckConstraint(
+                "CK_Projects_EngineeringUtmSrid",
+                "[EngineeringUtmSrid] IS NULL OR [EngineeringUtmSrid] IN (32648, 32649)");
         });
 
         builder.HasKey(project => project.Id);
@@ -22,6 +25,7 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.HasIndex(project => project.ProjectCode).IsUnique().HasDatabaseName("UX_Projects_ProjectCode");
         builder.Property(project => project.Name).HasMaxLength(255).IsRequired();
         builder.Property(project => project.Description).HasColumnType("nvarchar(max)");
+        builder.Property(project => project.EngineeringUtmSrid).HasColumnType("int");
         builder.Property(project => project.Status).HasConversion<byte>().HasColumnType("tinyint").IsRequired();
         builder.Property(project => project.StartDate).HasColumnType("date");
         builder.Property(project => project.EndDate).HasColumnType("date");

@@ -10,6 +10,7 @@ using RoadGuardSystem.Repositories.Identity;
 using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Repositories.Projects;
 using RoadGuardSystem.Repositories.Transactions;
+using RoadGuardSystem.Repositories.Warranties;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Storage;
 
@@ -78,6 +79,8 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<ConsumerEffectService>();
         services.AddScoped<NotificationOutboxConsumer>();
         services.AddScoped<ProjectMembershipReadModel>();
+        services.AddScoped<RoadSectionVersionPersistenceService>();
+        services.AddScoped<WarrantyPersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));

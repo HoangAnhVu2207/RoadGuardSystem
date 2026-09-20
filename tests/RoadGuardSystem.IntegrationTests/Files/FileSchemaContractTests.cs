@@ -102,7 +102,9 @@ public sealed class FileSchemaContractTests
     private static RoadGuardDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
-            .UseSqlServer("Server=localhost;Database=unused_model_only;Trusted_Connection=True;TrustServerCertificate=True")
+            .UseSqlServer(
+                "Server=localhost;Database=unused_model_only;Trusted_Connection=True;TrustServerCertificate=True",
+                sql => sql.UseNetTopologySuite())
             .Options;
         return new RoadGuardDbContext(options);
     }

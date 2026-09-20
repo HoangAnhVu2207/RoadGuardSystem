@@ -43,7 +43,7 @@ public sealed class P202MigrationLifecycleTests
     private static RoadGuardDbContext CreateContext(string connectionString)
     {
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connectionString, sql => sql.UseNetTopologySuite())
             .Options;
         return new RoadGuardDbContext(options);
     }

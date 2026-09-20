@@ -352,7 +352,9 @@ public sealed class P220ProjectMembershipModelTests
     private static RoadGuardDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
-            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=RoadGuard_P220_ModelOnly;Integrated Security=true;TrustServerCertificate=true")
+            .UseSqlServer(
+                "Server=(localdb)\\MSSQLLocalDB;Database=RoadGuard_P220_ModelOnly;Integrated Security=true;TrustServerCertificate=true",
+                sql => sql.UseNetTopologySuite())
             .Options;
         return new RoadGuardDbContext(options);
     }

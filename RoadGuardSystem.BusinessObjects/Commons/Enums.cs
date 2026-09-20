@@ -50,4 +50,22 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Maintenance = 2,
         Retired = 3
     }
+
+    public enum WarrantyScope : byte
+    {
+        Unknown = 0,
+        Project = 1,
+        RoadSection = 2,
+        ContractItem = 3,
+        Other = 4
+    }
+
+    public enum WarrantyStatus : byte
+    {
+        Unknown = 0,
+        Planned = 1,
+        Active = 2,
+        Expired = 3,
+        Suspended = 4
+    }
 }

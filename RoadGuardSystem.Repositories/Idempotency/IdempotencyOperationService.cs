@@ -95,6 +95,8 @@ public sealed class IdempotencyOperationService
         Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
         CancellationToken cancellationToken)
     {
+        // A commit acknowledgement can fail after the database transaction is durable. Each retry must
+        // discard stale tracked state and prefer the durable outcome over invoking the handler again.
         _context.ChangeTracker.Clear();
         var existing = await FindExistingAsync(
             actorUserId,

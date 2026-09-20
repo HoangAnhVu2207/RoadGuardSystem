@@ -68,4 +68,47 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Expired = 3,
         Suspended = 4
     }
+
+    public enum SurveyType : byte
+    {
+        Unknown = 0,
+        Original = 1,
+        Periodic = 2,
+        Supplementary = 3
+    }
+
+    public enum SurveyPlanStatus : byte
+    {
+        Unknown = 0,
+        Planned = 1,
+        Postponed = 2,
+        InProgress = 3,
+        Completed = 4,
+        Cancelled = 5
+    }
+
+    public enum SurveyRequestStatus : byte
+    {
+        Unknown = 0,
+        NewAssigned = 1,
+        Accepted = 2,
+        Rejected = 3,
+        Reassigned = 4,
+        InProgress = 5,
+        Submitted = 6,
+        SupplementRequired = 7,
+        Completed = 8,
+        Cancelled = 9,
+        Postponed = 10
+    }
+
+    public enum SurveyStatus : byte
+    {
+        Unknown = 0,
+        Draft = 1,
+        InProgress = 2,
+        Submitted = 3,
+        Completed = 4,
+        Cancelled = 5
+    }
 }

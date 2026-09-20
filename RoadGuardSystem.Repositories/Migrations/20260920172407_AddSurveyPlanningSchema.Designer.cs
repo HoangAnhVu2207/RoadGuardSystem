@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
@@ -12,9 +13,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920172407_AddSurveyPlanningSchema")]
+    partial class AddSurveyPlanningSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1051,121 +1054,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.Survey", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("BaselineConfirmedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<Guid?>("BaselineConfirmedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsBaselineConfirmed")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("RoadSectionVersionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.Property<Guid?>("SurveyRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte>("SurveyType")
-                        .HasColumnType("tinyint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BaselineConfirmedByUserId");
-
-                    b.HasIndex("RoadSectionVersionId")
-                        .HasDatabaseName("IX_Surveys_RoadSectionVersionId");
-
-                    b.HasIndex("SurveyRequestId");
-
-                    b.HasIndex("ProjectId", "Status")
-                        .HasDatabaseName("IX_Surveys_ProjectStatus");
-
-                    b.ToTable("Surveys", null, t =>
-                        {
-                            t.HasTrigger("TR_Surveys_ScopeIntegrity");
-
-                            t.HasCheckConstraint("CK_Surveys_BaselineConfirmation", "([IsBaselineConfirmed] = 0 AND [BaselineConfirmedByUserId] IS NULL AND [BaselineConfirmedAt] IS NULL) OR ([IsBaselineConfirmed] = 1 AND [BaselineConfirmedByUserId] IS NOT NULL AND [BaselineConfirmedAt] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_Surveys_Status", "[Status] IN (1, 2, 3, 4, 5)");
-
-                            t.HasCheckConstraint("CK_Surveys_SurveyType", "[SurveyType] IN (1, 2, 3)");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyAssignment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("AcceptedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<DateTimeOffset>("AssignedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<Guid>("AssignedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("EndedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<Guid>("OperatorUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ReassignmentReason")
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTimeOffset?>("RejectedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid>("SurveyRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedByUserId");
-
-                    b.HasIndex("OperatorUserId");
-
-                    b.HasIndex("SurveyRequestId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_SurveyAssignments_ActiveRequest")
-                        .HasFilter("[EndedAt] IS NULL");
-
-                    b.HasIndex("SurveyRequestId", "EndedAt")
-                        .HasDatabaseName("IX_SurveyAssignments_RequestEndedAt");
-
-                    b.ToTable("SurveyAssignments", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_SurveyAssignments_AcceptanceRejection", "[AcceptedAt] IS NULL OR [RejectedAt] IS NULL");
-
-                            t.HasCheckConstraint("CK_SurveyAssignments_ActiveReassignmentReason", "[EndedAt] IS NOT NULL OR [ReassignmentReason] IS NULL");
-
-                            t.HasCheckConstraint("CK_SurveyAssignments_ReassignmentNotRejected", "[ReassignmentReason] IS NULL OR [RejectedAt] IS NULL");
-
-                            t.HasCheckConstraint("CK_SurveyAssignments_Rejection", "([RejectedAt] IS NULL AND [RejectionReason] IS NULL) OR ([RejectedAt] IS NOT NULL AND LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND [EndedAt] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_SurveyAssignments_TimestampOrder", "([AcceptedAt] IS NULL OR [AcceptedAt] >= [AssignedAt]) AND ([RejectedAt] IS NULL OR [RejectedAt] >= [AssignedAt]) AND ([EndedAt] IS NULL OR [EndedAt] >= [AssignedAt])");
-                        });
-                });
-
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1542,52 +1430,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSection", null)
                         .WithMany()
                         .HasForeignKey("RoadSectionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.Survey", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("BaselineConfirmedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
-                        .WithMany()
-                        .HasForeignKey("RoadSectionVersionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyAssignment", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("AssignedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("OperatorUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyRequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -81,7 +81,9 @@ Mã truy vết: `UD-01` (audit log riêng), `UD-02` (Warranty), `UD-03` (Quality
 - Không được biểu diễn bằng một field đơn trong `HandoverDocument`; `HandoverDocument` chỉ quản lý hồ sơ bàn giao.
 
 ### `RoadSection` [R]
-- Entity con: `RoadSectionVersion` (list, đúng 1 bản "current").
+- Entity con: `RoadSectionVersion` (list, đúng 1 bản `is_current = true`; không dùng current-version FK vòng).
+- **Invariant tạo/chuyển version:** tạo RoadSection rồi tạo Version 1 `is_current = true`; khi đổi hình học, tạo version bất biến mới và đổi marker trong cùng transaction. SQL filtered unique index chặn nhiều current version; application không hoàn tất command nếu chưa có current version.
+- **SRID:** `Project.engineering_utm_srid` nullable không có default, chỉ nhận 32648/32649; không tạo RoadSectionVersion khi project chưa cấu hình SRID.
 - **Invariant:** sửa hình học → tạo `RoadSectionVersion` mới, giữ bản cũ; **dữ liệu cũ (Survey, Defect) không tự gắn sang hình học mới** (US-03 mục 3).
 - **⚠️ Hệ quả thiết kế quan trọng:** vì invariant trên, mọi entity lưu vị trí trên đoạn đường (`Survey`, `Defect`) phải tham chiếu `road_section_version_id` cụ thể tại thời điểm tạo — **không** chỉ tham chiếu `road_section_id`. Nếu chỉ dùng `road_section_id`, sửa hình học sẽ vô tình "kéo" dữ liệu cũ sang hình học mới, vi phạm đúng quy tắc mà US-03 mục 3 cấm.
 

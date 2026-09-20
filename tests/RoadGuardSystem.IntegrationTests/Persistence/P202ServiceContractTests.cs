@@ -88,7 +88,7 @@ public sealed class P202ServiceContractTests : IClassFixture<P202SqlServerFixtur
         try
         {
             var options = new DbContextOptionsBuilder<P202TestDbContext>()
-                .UseSqlServer(isolatedDatabase.ConnectionString)
+                .UseSqlServer(isolatedDatabase.ConnectionString, sql => sql.UseNetTopologySuite())
                 .Options;
             await using var context = new P202TestDbContext(options);
             await isolatedDatabase.DropDatabaseAsync();
@@ -122,7 +122,11 @@ public sealed class P202ServiceContractTests : IClassFixture<P202SqlServerFixtur
     public async Task TransactionBoundary_SupportsRetryExecutionStrategy()
     {
         var options = new DbContextOptionsBuilder<P202TestDbContext>()
-            .UseSqlServer(_fixture.ConnectionString, sql => sql.EnableRetryOnFailure(1))
+            .UseSqlServer(_fixture.ConnectionString, sql =>
+            {
+                sql.EnableRetryOnFailure(1);
+                sql.UseNetTopologySuite();
+            })
             .Options;
         await using var context = new P202TestDbContext(options);
         var serviceType = P202ProductionContract.RequireRepositoryType("Transactions.RoadGuardTransactionService");
@@ -146,7 +150,11 @@ public sealed class P202ServiceContractTests : IClassFixture<P202SqlServerFixtur
     public async Task IdempotencyBoundary_SupportsRetryExecutionStrategy()
     {
         var options = new DbContextOptionsBuilder<P202TestDbContext>()
-            .UseSqlServer(_fixture.ConnectionString, sql => sql.EnableRetryOnFailure(1))
+            .UseSqlServer(_fixture.ConnectionString, sql =>
+            {
+                sql.EnableRetryOnFailure(1);
+                sql.UseNetTopologySuite();
+            })
             .Options;
         await using var context = new P202TestDbContext(options);
 

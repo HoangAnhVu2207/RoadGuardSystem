@@ -7,6 +7,7 @@ namespace RoadGuardSystem.IntegrationTests.Infrastructure;
 public sealed record ProjectMembershipFixtureData(
     Guid PrimaryProjectId,
     Guid SecondaryProjectId,
+    Guid SupervisorId,
     Guid ProjectManagerId,
     Guid DroneOperatorId,
     Guid RepairCrewId,
@@ -20,6 +21,7 @@ public static class ProjectMembershipSqlFixture
         await fixture.SeedRolesAsync(context);
         var primaryProjectId = Guid.NewGuid();
         var secondaryProjectId = Guid.NewGuid();
+        var supervisorId = Guid.NewGuid();
         var projectManagerId = Guid.NewGuid();
         var droneOperatorId = Guid.NewGuid();
         var repairCrewId = Guid.NewGuid();
@@ -27,6 +29,7 @@ public static class ProjectMembershipSqlFixture
         var now = DateTimeOffset.UtcNow;
 
         context.Users.AddRange(
+            User(supervisorId, UserRoleCode.Supervisor),
             User(projectManagerId, UserRoleCode.ProjectManager),
             User(droneOperatorId, UserRoleCode.DroneOperator),
             User(repairCrewId, UserRoleCode.RepairCrew),
@@ -35,13 +38,14 @@ public static class ProjectMembershipSqlFixture
             Project(primaryProjectId, "P220-PRIMARY", now),
             Project(secondaryProjectId, "P220-SECONDARY", now));
         context.ProjectMembers.AddRange(
+            Member(primaryProjectId, supervisorId, UserRoleCode.Supervisor, false, ProjectMemberStatus.Active, new DateOnly(2026, 1, 1), null),
             Member(primaryProjectId, projectManagerId, UserRoleCode.ProjectManager, true, ProjectMemberStatus.Active, new DateOnly(2026, 1, 1), null),
             Member(primaryProjectId, droneOperatorId, UserRoleCode.DroneOperator, false, ProjectMemberStatus.Active, new DateOnly(2026, 1, 1), null),
             Member(primaryProjectId, repairCrewId, UserRoleCode.RepairCrew, false, ProjectMemberStatus.Active, new DateOnly(2026, 1, 1), null),
             Member(secondaryProjectId, expiredDroneOperatorId, UserRoleCode.DroneOperator, false, ProjectMemberStatus.Ended, new DateOnly(2025, 1, 1), new DateOnly(2025, 12, 31)));
         await context.SaveChangesAsync();
 
-        return new ProjectMembershipFixtureData(primaryProjectId, secondaryProjectId, projectManagerId, droneOperatorId, repairCrewId, expiredDroneOperatorId);
+        return new ProjectMembershipFixtureData(primaryProjectId, secondaryProjectId, supervisorId, projectManagerId, droneOperatorId, repairCrewId, expiredDroneOperatorId);
     }
 
     private static ApplicationUser User(Guid id, UserRoleCode role) => new()

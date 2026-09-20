@@ -3,8 +3,8 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
 
 #nullable disable
@@ -12,9 +12,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920101324_AddDefectCatalogAndSeverityRules")]
+    partial class AddDefectCatalogAndSeverityRules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -179,66 +181,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                             t.HasCheckConstraint("CK_SeverityRuleVersions_RuleDefinition_JsonObject", "ISJSON([RuleDefinition]) = 1 AND LEFT(LTRIM([RuleDefinition]), 1) = '{'");
 
                             t.HasCheckConstraint("CK_SeverityRuleVersions_VersionNo_Positive", "[VersionNo] > 0");
-                        });
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Defects.Defect", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CauseCategoryCode")
-                        .HasMaxLength(80)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
-
-                    b.Property<string>("DefectTypeCode")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CauseCategoryCode");
-
-                    b.HasIndex("DefectTypeCode");
-
-                    b.ToTable("Defects", (string)null);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Devices.DroneDevice", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ChecklistVersion")
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("Model")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<string>("SerialNo")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(120)");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SerialNo")
-                        .IsUnique()
-                        .HasDatabaseName("UX_DroneDevices_SerialNo");
-
-                    b.ToTable("DroneDevices", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DroneDevices_Status", "[Status] IN (1, 2, 3)");
                         });
                 });
 
@@ -731,53 +673,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.ToTable("ConsumerEffectReceipts", (string)null);
                 });
 
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
-
-                    b.Property<DateTimeOffset?>("ReadAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<Guid>("RecipientUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SourceEntityId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("SourceEntityType")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipientUserId", "ReadAt")
-                        .HasDatabaseName("IX_Notifications_RecipientUserId_ReadAt");
-
-                    b.HasIndex("RecipientUserId", "SourceEntityType", "SourceEntityId", "EventType")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Notifications_RecipientSourceEvent");
-
-                    b.ToTable("Notifications", (string)null);
-                });
-
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -873,9 +768,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
 
-                    b.Property<int?>("EngineeringUtmSrid")
-                        .HasColumnType("int");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -908,8 +800,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.ToTable("Projects", null, t =>
                         {
                             t.HasCheckConstraint("CK_Projects_DateRange", "[EndDate] IS NULL OR [StartDate] IS NULL OR [EndDate] >= [StartDate]");
-
-                            t.HasCheckConstraint("CK_Projects_EngineeringUtmSrid", "[EngineeringUtmSrid] IS NULL OR [EngineeringUtmSrid] IN (32648, 32649)");
 
                             t.HasCheckConstraint("CK_Projects_Status", "[Status] IN (1, 2, 3)");
                         });
@@ -974,168 +864,12 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadSection", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId", "Code")
-                        .IsUnique()
-                        .HasDatabaseName("UX_RoadSections_ProjectId_Code");
-
-                    b.ToTable("RoadSections", (string)null);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ChangeReason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("EffectiveFrom")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<LineString>("Geometry")
-                        .IsRequired()
-                        .HasColumnType("geometry");
-
-                    b.Property<bool>("IsCurrent")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("RoadSectionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("VersionNo")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoadSectionId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_RoadSectionVersions_Current")
-                        .HasFilter("[IsCurrent] = 1");
-
-                    b.HasIndex("RoadSectionId", "VersionNo")
-                        .IsUnique()
-                        .HasDatabaseName("UX_RoadSectionVersions_RoadSectionId_VersionNo");
-
-                    b.ToTable("RoadSectionVersions", null, t =>
-                        {
-                            t.HasTrigger("TR_RoadSectionVersions_Immutable");
-
-                            t.HasCheckConstraint("CK_RoadSectionVersions_Geometry_AllowedSrid", "[Geometry].STSrid IN (32648, 32649)");
-
-                            t.HasCheckConstraint("CK_RoadSectionVersions_Geometry_LineString", "[Geometry].STGeometryType() = 'LineString'");
-
-                            t.HasCheckConstraint("CK_RoadSectionVersions_VersionNo_Positive", "[VersionNo] > 0");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Warranties.Warranty", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateOnly>("HandoverDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid?>("HandoverDocumentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal?>("RetainedValue")
-                        .HasPrecision(19, 2)
-                        .HasColumnType("decimal(19,2)");
-
-                    b.Property<Guid?>("RoadSectionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte>("Scope")
-                        .HasColumnType("tinyint");
-
-                    b.Property<Guid?>("SourceDocumentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("Terms")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateOnly>("WarrantyEndDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly>("WarrantyStartDate")
-                        .HasColumnType("date");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HandoverDocumentId");
-
-                    b.HasIndex("ProjectId")
-                        .HasDatabaseName("IX_Warranties_ProjectId");
-
-                    b.HasIndex("RoadSectionId")
-                        .HasDatabaseName("IX_Warranties_RoadSectionId");
-
-                    b.HasIndex("SourceDocumentId");
-
-                    b.ToTable("Warranties", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_Warranties_DateRange", "[WarrantyEndDate] >= [WarrantyStartDate]");
-
-                            t.HasCheckConstraint("CK_Warranties_RetainedValue_NonNegative", "[RetainedValue] IS NULL OR [RetainedValue] >= 0");
-
-                            t.HasCheckConstraint("CK_Warranties_Scope", "[Scope] IN (1, 2, 3, 4)");
-
-                            t.HasCheckConstraint("CK_Warranties_ScopeRoadSection", "([Scope] <> 1 OR [RoadSectionId] IS NULL) AND ([Scope] <> 2 OR [RoadSectionId] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_Warranties_Status", "[Status] IN (1, 2, 3, 4)");
-                        });
-                });
-
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Auditing.AuditLog", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("ActorUserId")
                         .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Defects.Defect", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Catalogs.CauseCategory", null)
-                        .WithMany()
-                        .HasForeignKey("CauseCategoryCode")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Catalogs.DefectType", null)
-                        .WithMany()
-                        .HasForeignKey("DefectTypeCode")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.StoredFile", b =>
@@ -1224,15 +958,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.Notification", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.HandoverDocument", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
@@ -1271,48 +996,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadSection", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSection", null)
-                        .WithMany()
-                        .HasForeignKey("RoadSectionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Warranties.Warranty", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.HandoverDocument", null)
-                        .WithMany()
-                        .HasForeignKey("HandoverDocumentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSection", null)
-                        .WithMany()
-                        .HasForeignKey("RoadSectionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
-                        .WithMany()
-                        .HasForeignKey("SourceDocumentId")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", b =>

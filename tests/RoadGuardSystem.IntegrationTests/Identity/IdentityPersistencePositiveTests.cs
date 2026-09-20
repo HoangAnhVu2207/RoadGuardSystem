@@ -817,8 +817,8 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         rolesCountAfter.Should().Be(4);
     }
 
-    [Fact(DisplayName = "P2-10 Positive: AddRoadGuardSeeding registers IDatabaseSeeder and IdentityRoleSeedStep")]
-    public async Task AddRoadGuardSeeding_RegistersSeederAndExecutesSuccessfully()
+    [Fact(DisplayName = "P2-06: AddRoadGuardSeeding registers identity and drone device seed steps")]
+    public async Task AddRoadGuardSeeding_RegistersAllPersistenceSeedStepsAndExecutesSuccessfully()
     {
         var services = new ServiceCollection();
         var config = new ConfigurationBuilder()
@@ -839,6 +839,9 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         var dbContext = scope.ServiceProvider.GetRequiredService<RoadGuardDbContext>();
 
         var result = await seeder.SeedAsync(dbContext);
-        result.StepsExecuted.Should().Be(1);
+        result.StepsExecuted.Should().Be(2);
+        result.ExecutedStepNames.Should().ContainInOrder(
+            "IdentityRoleSeedStep",
+            "DroneDeviceSeedStep");
     }
 }

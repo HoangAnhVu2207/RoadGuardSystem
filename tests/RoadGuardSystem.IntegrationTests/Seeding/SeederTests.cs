@@ -32,7 +32,9 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
     {
         // ARRANGE: Point to a non-existent, unreachable SQL Server port
         var badOptions = new DbContextOptionsBuilder<RoadGuardDbContext>()
-            .UseSqlServer("Server=127.0.0.1,59999;Database=master;Connect Timeout=1;TrustServerCertificate=True;")
+            .UseSqlServer(
+                "Server=127.0.0.1,59999;Database=master;Connect Timeout=1;TrustServerCertificate=True;",
+                sql => sql.UseNetTopologySuite())
             .Options;
 
         await using var badContext = new RoadGuardDbContext(badOptions);

@@ -8,7 +8,9 @@ using RoadGuardSystem.Repositories.Seeding;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Identity;
 using RoadGuardSystem.Repositories.Messaging;
+using RoadGuardSystem.Repositories.Projects;
 using RoadGuardSystem.Repositories.Transactions;
+using RoadGuardSystem.Repositories.Warranties;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Storage;
 
@@ -75,6 +77,10 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<RoadGuardTransactionService>();
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
+        services.AddScoped<NotificationOutboxConsumer>();
+        services.AddScoped<ProjectMembershipReadModel>();
+        services.AddScoped<RoadSectionVersionPersistenceService>();
+        services.AddScoped<WarrantyPersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));
@@ -116,6 +122,7 @@ public static class RoadGuardPersistenceExtensions
     {
         services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
         services.AddScoped<ISeedStep, IdentityRoleSeedStep>();
+        services.AddScoped<ISeedStep, DroneDeviceSeedStep>();
         return services;
     }
 }

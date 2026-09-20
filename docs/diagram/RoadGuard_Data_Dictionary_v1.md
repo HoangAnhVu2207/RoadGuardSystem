@@ -197,6 +197,7 @@ Không thêm `password`, `password_hash`, reset token hoặc secret vào entity 
 | `project_code` | VARCHAR(50) | Không | UQ | SRC | Mã dự án duy nhất. |
 | `name` | VARCHAR(255) | Không |  | SRC | Tên công trình. |
 | `description` | TEXT | Có |  | PROP | Mô tả/phạm vi. |
+| `engineering_utm_srid` | INTEGER | Có | `32648` hoặc `32649` | DEC | SRID kỹ thuật của dự án; không có default và phải được cấu hình trước khi tạo RoadSectionVersion. |
 | `status` | ENUM | Không |  | SRC | `PLANNING`, `ACTIVE`, `CLOSED`. Closed chặn tác nghiệp mới. |
 | `start_date` | DATE | Có |  | PROP | Ngày bắt đầu. |
 | `end_date` | DATE | Có |  | PROP | Ngày kết thúc thực tế. |
@@ -225,15 +226,17 @@ Quy tắc authorization MVP: `User.role_code` là nguồn vai trò toàn hệ th
 | `RoadSection` | `project_id` | UUID | Không | FK `Project.id` | Dự án sở hữu đoạn. |
 | `RoadSection` | `code` | VARCHAR(80) | Không | UQ trong project | Mã đoạn. |
 | `RoadSection` | `name` | VARCHAR(255) | Có |  | Tên/nhãn đoạn. |
-| `RoadSection` | `current_version_id` | UUID | Không | FK `RoadSectionVersion.id` | Phiên bản hình học hiện hành. |
 | `RoadSectionVersion` | `id` | UUID | Không | PK | Phiên bản bất biến. |
 | `RoadSectionVersion` | `road_section_id` | UUID | Không | FK `RoadSection.id` | Đoạn logic gốc. |
 | `RoadSectionVersion` | `version_no` | INTEGER | Không | UQ `(road_section_id, version_no)` | Số phiên bản tăng dần. |
+| `RoadSectionVersion` | `is_current` | BOOLEAN | Không | UQ filtered theo `road_section_id` | Marker version hiện hành; transaction tạo/chuyển version bảo đảm đúng một marker. |
 | `RoadSectionVersion` | `geometry` | GEOMETRY(LineString) | Không | SPATIAL | Hình học đoạn tại thời điểm version. |
 | `RoadSectionVersion` | `effective_from` | TIMESTAMPTZ | Không |  | Thời điểm có hiệu lực. |
 | `RoadSectionVersion` | `change_reason` | TEXT | Không |  | Lý do tạo version. |
 
 Mọi `Survey` và `Defect` có vị trí phải tham chiếu `road_section_version_id`, không chỉ `road_section_id`.
+
+Quyết định D-01 Option B: không tạo FK vòng `RoadSection.current_version_id`. Tạo RoadSection trước, sau đó tạo Version 1 với `is_current = true`; khi đổi hình học, tạo version bất biến mới và đổi marker trong cùng transaction. SQL filtered unique index chặn nhiều current version; application transaction không cho RoadSection tồn tại thiếu current version sau command thành công.
 
 #### `HandoverDocument`
 

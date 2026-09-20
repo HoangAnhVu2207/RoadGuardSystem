@@ -17,7 +17,7 @@ public sealed class RoadGuardDbContextDesignTimeFactory : IDesignTimeDbContextFa
         }
 
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connectionString, sqlOptions => sqlOptions.UseNetTopologySuite())
             .Options;
         return new RoadGuardDbContext(options);
     }

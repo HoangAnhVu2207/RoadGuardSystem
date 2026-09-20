@@ -59,18 +59,19 @@ erDiagram
     PROJECT {
         uuid id PK
         string project_code UK
+        int engineering_utm_srid
         string status
     }
     ROAD_SECTION {
         uuid id PK
         uuid project_id FK
-        uuid current_version_id FK
         string code UK
     }
     ROAD_SECTION_VERSION {
         uuid id PK
         uuid road_section_id FK
         int version_no UK
+        boolean is_current
         spatial geometry
     }
     SURVEY_REQUEST {
@@ -223,7 +224,6 @@ erDiagram
     ROLE ||--o{ PROJECT_MEMBER : acts_as
     PROJECT ||--o{ ROAD_SECTION : owns
     ROAD_SECTION ||--|{ ROAD_SECTION_VERSION : versions
-    ROAD_SECTION o|--|| ROAD_SECTION_VERSION : current_version
     PROJECT ||--o{ HANDOVER_DOCUMENT : has
     USER o|--o{ HANDOVER_DOCUMENT : accepts
     FILE o|--o{ HANDOVER_DOCUMENT : stores
@@ -287,6 +287,7 @@ erDiagram
         uuid id PK
         string project_code UK
         string name
+        int engineering_utm_srid
         string status
     }
     PROJECT_MEMBER {
@@ -302,7 +303,6 @@ erDiagram
     ROAD_SECTION {
         uuid id PK
         uuid project_id FK
-        uuid current_version_id FK
         string code UK
         string name
     }
@@ -310,6 +310,7 @@ erDiagram
         uuid id PK
         uuid road_section_id FK
         int version_no UK
+        boolean is_current
         spatial geometry
         datetime effective_from
     }

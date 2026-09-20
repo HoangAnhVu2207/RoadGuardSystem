@@ -70,11 +70,13 @@ These gates affect future production slices, not this documentation correction. 
 
 | Gate | Evidence / conflict | Affected tasks | Options requiring owner selection |
 |---|---|---|---|
-| D-01: initial road/version insertion | Data Dictionary makes both RoadSection.current_version_id and RoadSectionVersion.road_section_id non-null FKs. SQL Server checks constraints immediately, so the first pair needs an explicit insertion/schema strategy. | P2-21, then its dependents | Approve a nullable current pointer during atomic creation plus enforced completion, or approve a revised relationship/key design. Do not disable constraints or silently change nullability. |
+| D-01: initial road/version insertion | Owner resolved 2026-09-20 with Option B. RoadSection has no physical current-version pointer; RoadSectionVersion has required `is_current`, and a filtered unique index plus the write transaction preserves one current version. | P2-21, then its dependents | Create RoadSection first, then Version 1 with `is_current = true`; switch current version by inserting the next immutable version and clearing the old marker in one transaction. SQL Server deferred constraints are not used. |
 | D-02: uncertainty method | RS05 requires uncertainty with a method, while fields allow missing values and no estimator/experimental design is approved. | Computed-uncertainty slice of P1-63/P2-63 | Accept supplied value+method and explicit unavailable status for backend acceptance; or approve a specified estimator, assumptions and fixtures. Core import/pair/bias/MAE/RMSE work can proceed. |
 | D-03: reminder versioning | Plans require versioned reminder configuration; the current Data Dictionary ReminderRule table has no explicit version/history shape. | Reminder-version slice of P2-64/P1-64 | Approve a version/history schema, or formally revise the versioning requirement. Preserve existing schema until decided. |
 
 Also confirm per-task operational values (file limits, quality thresholds, polling/retry bounds, membership effective-date timezone and retention policy) in options/fixtures rather than hard-coding unapproved business thresholds. These are not reasons to start AI development.
+
+For P2-21, the owner also approved nullable `Project.engineering_utm_srid` with no default value; only SRIDs 32648 and 32649 are valid, and a RoadSectionVersion cannot be created until its project is configured. The EF-generated migration designer and model snapshot may exceed the ordinary 500-line file limit for this task only; authored files remain within that limit.
 
 ## Evidence, status and schedule
 

@@ -40,7 +40,9 @@ Viet delivery contract 5-8 dong phu hop voi task, gom: tac nhan/trigger, input v
 
 Thuc hien theo kien truc hien tai va chi sua file da duyet. Bao toan thay doi chua commit cua nguoi khac. Khong them package, migration, thay schema, xoa du lieu hoac tao tac dong ngoai neu scope khong noi ro. Neu la endpoint, them/cap nhat Http/*.http, tra response record thay vi EF entity va giu ProblemDetails/error code on dinh. Neu la read endpoint/query, dung AsNoTracking va projection. Neu la persistence SQL dac thu, dung SQL Server/Testcontainers; SQLite khong phai bang chung cho constraint, spatial, migration hoac rowversion.
 
-Kiem tra theo rui ro: neu sua project code, build project thay doi truoc; chay output/smoke that neu task co the chay; sau smoke moi them 1-3 test tap trung cho authorization, du lieu nhay cam, validation quan trong, tien/tinh toan, concurrency/idempotency, SQL dac thu hoac bug da tai hien. Task tai lieu/tooling dung verifier va kiem tra link/diff phu hop thay cho runtime test.
+Chon bac re nhat du chung minh thay doi: tai lieu/tooling chi dung verifier/link/diff lien quan; code build project bi doi; endpoint smoke request lien quan. Chon mot do rong test truoc khi chay: focused, affected-project hoac full-solution; day la ba lua chon thay the nhau, khong phai chuoi lenh. Neu da biet can bac rong hon thi bo qua bac hep. Full solution chi chay khi integration, release hoac owner yeu cau ro. Khong dung commit lam ly do nang bac test.
+
+Tai su dung ket qua da pass khi source/config/dependency, pham vi test va moi truong lien quan khong doi. Sau moi lan sua, chi chay lai check bi thay doi do lam mat hieu luc; khong chay lai cung lenh o buoc ban giao hoac commit chi de lay ket qua moi. Commit khong tu dong kich hoat them test.
 
 Neu cung mot loi van con sau hai lan sua, dung, bao ten check va chan doan ngan; khong thu lan ba va khong mo rong scope.
 ```
@@ -50,14 +52,14 @@ Neu cung mot loi van con sau hai lan sua, dung, bao ten check va chan doan ngan;
 ```text
 Kiem tra va ban giao RoadGuard <TASK-ID>/<SLICE> theo scope da duyet.
 
-Doc git status va diff cua dung cac path trong scope. Doi chieu delivery contract, acceptance criteria, ownership, dependency, gioi han 500 dong va thay doi ngoai scope. Chay bac kiem tra re nhat du de chung minh output; truoc commit/merge hoac khi sua hanh vi dung chung, chay full relevant tests. Khong coi test bi skip, khong discover test hoac dung sai moi truong SQL la pass.
+Doc git status va diff cua dung cac path trong scope. Doi chieu delivery contract, acceptance criteria, ownership, dependency, gioi han 500 dong va thay doi ngoai scope. Lap danh sach bang chung da pass va xac nhan input/moi truong cua tung lenh con nguyen. Chi chay check con thieu hoac da bi thay doi sau lan pass lam mat hieu luc. Khong lap lai build, smoke hay test chi vi dang ban giao, commit hoac merge.
 
 Neu co loi trong scope, sua va chay lai check lien quan; toi da hai lan sua cho cung mot loi. Neu loi can package, migration, schema, owner/file khac hoac tac dong ngoai chua duyet, dung va xin scope moi.
 
 Tra ket qua gon:
 - File da doi va hanh vi/output dat duoc
 - Lenh kiem tra, ket qua that va smoke response/output neu co
-- Test tap trung/full test, hoac ly do N/A
+- Bac kiem tra da chon va ly do; bang chung tai su dung/check phai chay lai
 - Package, migration, du lieu va tac dong ngoai thuc te
 - Rui ro con lai / blocker
 - Lat cat tiep theo neu task lon
@@ -75,11 +77,15 @@ dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q -clp:E
 dotnet watch --project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj
 # Chay request tu Http/*.http va kiem tra status/body/state.
 
-# Test tap trung khi rui ro yeu cau
-dotnet test tests/RoadGuardSystem.ApiTests --no-build --filter "FullyQualifiedName~<Feature>" -v q
+# Chon dung mot trong ba do rong test theo tac dong da biet
+# Focused: rui ro nam trong mot feature
+dotnet test tests/RoadGuardSystem.ApiTests --filter "FullyQualifiedName~<Feature>" -v q
 
-# Truoc commit/merge hoac khi thay doi hanh vi dung chung
-dotnet test RoadGuardSystem.slnx --no-build -v q
+# Affected-project: shared runtime behavior trong mot test project
+dotnet test <AffectedTestProject> -v q
+
+# Full-solution: chi integration/release hoac owner yeu cau ro
+dotnet test RoadGuardSystem.slnx -v q
 ```
 
-Chi dung `--no-build` sau khi build thanh cong. Voi project khac API, thay project/test/filter theo file va rui ro thuc te. Truoc khi xin commit, chay `git diff --check`, xem status, diff tung path va staged diff; chi stage path da duyet.
+Chi them `--no-build` khi dung test project va dependency ma lenh se nap da duoc build, sau do khong thay doi. Voi project khac API, thay project/test/filter theo file va rui ro thuc te. Truoc khi xin commit, chay `git diff --check`, xem status, diff tung path va staged diff; chi stage path da duyet. Cac kiem tra Git nay khong lam mat hieu luc bang chung test da pass.

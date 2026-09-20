@@ -12,9 +12,9 @@ Task IDs remain stable. Wave headings group features; explicit dependencies, not
 
 ## Workflow for new and resumed tasks
 
-Before editing, Codex posts a scope card containing task/owner, goal, In scope, Out of scope, files, dependencies, verification tier and side effects. Work starts only after explicit owner approval. Schema/migration work stays a separate Person 2 slice so Person 1 can build endpoints against a stable completed contract. Use SQL Server/Testcontainers only when SQL behavior matters; do not substitute SQLite for spatial, constraints, rowversion or migration claims.
+Before editing, Codex posts a scope card containing task/owner, goal, In scope, Out of scope, files, dependencies, verification tier and side effects. Work starts only after explicit owner approval. Schema/migration work stays a separate Person 2 slice so Person 1 can build endpoints against a stable completed contract. Use SQL Server/Testcontainers only when SQL behavior matters; do not substitute SQLite for spatial, constraints, rowversion or migration claims. Choose one test breadth before running tests: focused, affected-project, or full-solution; do not run them as a sequence. Reuse unchanged verification evidence; rerun only checks invalidated by later edits. A commit alone does not trigger more tests. Full-solution tests are integration/release gates or an explicit owner request.
 
-The old Negative-First, mandatory self-review and independent acceptance workflow is historical from 20/09/2026 onward. Do not rewrite its `Done` evidence. Existing task-row negative/positive examples are a risk catalogue; the approved scope card selects build, smoke, focused tests or full tests by actual risk.
+The old Negative-First, mandatory self-review and independent acceptance workflow is historical from 20/09/2026 onward. Do not rewrite its `Done` evidence. Existing task-row negative/positive examples are a risk catalogue; the approved scope card selects the cheapest sufficient documentation, build, smoke or one test breadth by actual risk.
 
 ## Current status and branch synchronization gate
 
@@ -41,8 +41,10 @@ Default persistence ladder (select it in the approved scope):
 
 ```powershell
 dotnet build RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj -nologo -v q -clp:ErrorsOnly
-dotnet test tests/RoadGuardSystem.IntegrationTests --no-build --filter "FullyQualifiedName~<Feature>" -v q
-dotnet test RoadGuardSystem.slnx --no-build -v q # before commit/merge or shared changes
+# Choose exactly one test command below.
+dotnet test tests/RoadGuardSystem.IntegrationTests --filter "FullyQualifiedName~<Feature>" -v q
+dotnet test tests/RoadGuardSystem.IntegrationTests -v q # shared persistence behavior affecting multiple features
+dotnet test RoadGuardSystem.slnx -v q # integration/release or explicit owner request only
 ```
 
 ## Wave 0 — data and CI foundation
@@ -137,7 +139,7 @@ dotnet test RoadGuardSystem.slnx --no-build -v q # before commit/merge or shared
 
 No two active Person 2 tasks own the same files. Update `RoadGuardSystem.Repositories/RoadGuardDbContext.cs`, migration/model snapshots, solution/project/DI files and shared entity shape under one declared owner per task. New P2-04–P2-07 carve out prerequisites from older tasks; they are not additional independent product scope. Original estimates require re-estimation after this split.
 
-For each approved migration slice, define the schema/output and recovery note, build the repository project, then run focused SQL Server/Testcontainers checks for the actual mapping, constraint, spatial or concurrency risk. Verify empty-DB and previous-migration upgrade before commit. For each handoff, publish entity/enum shape, transaction/version behavior, seed IDs and the commit. Domain policy remains Person 1-owned.
+For each approved migration slice, define the schema/output and recovery note, build the required artifacts, then choose the focused SQL filter or affected integration-test project from the known impact. Keep passing empty-DB and previous-migration upgrade evidence valid through commit; rerun it only after an invalidating change. For each handoff, publish entity/enum shape, transaction/version behavior, seed IDs and the commit. Domain policy remains Person 1-owned.
 
 ### Two-week delivery checkpoints
 
@@ -153,7 +155,7 @@ All task sizes above are historical or provisional sizing. Before correction, th
 - P2-67 requires complete backend US-01–US-20 coverage, research import/pair/error-metric/export proof, no operational research writes, adapter failure/retry coverage, and SQL backup/restore evidence. Data fixtures clearly identify synthetic provenance. No real-model accuracy or Android implementation is claimed.
 - ADR 003 D-01/D-02/D-03 must be resolved for their affected acceptance slices before those slices can be Done. Unrelated work can continue.
 
-Use the approved verification tier while iterating. Before commit/merge, run the full relevant suite plus dependency-security and documentation checks. Record the actual SQL environment and any skipped case; static YAML or prose alone does not prove runtime behavior.
+Use the cheapest sufficient approved tier while iterating: changed-project build, then choose either the focused SQL filter or the affected integration-test project from the known impact. Let `dotnet test` build its test artifacts unless that exact test project and its dependencies were already built and remain unchanged. Reuse passing evidence while inputs and environment are unchanged; handoff, commit and merge do not repeat it. Full-solution, dependency-security and complete documentation gates run only for integration/release or an explicit owner request. Record the actual SQL environment and any skipped case; static YAML or prose alone does not prove runtime behavior.
 
 Keep SQL Server integration tests deterministic and isolated; publish the Docker/SQL Server prerequisites; verify migrations from an empty database and the previous migration; and keep CI commands aligned with task logs. EF InMemory-only evidence cannot prove SQL behavior.
 

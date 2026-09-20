@@ -17,10 +17,12 @@
 - New or modified files must stay at or below 500 lines. Do not expand an existing oversized file; splitting it needs its own approved scope.
 
 ## Verification Ladder
-- Build only the changed project first: `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q -clp:ErrorsOnly`.
-- Then run `dotnet watch --project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj` and execute the relevant `.http` request against the real response.
+- Select the cheapest sufficient tier in the approved scope. Documentation/tooling changes run only their relevant verifier, link or diff check; they do not trigger runtime tests.
+- For code, build only the changed project first. For an endpoint, then run its relevant `.http` request against the real response.
 - Add 1-3 focused tests after the smoke call only for money/calculation, authorization, sensitive data, important validation, concurrency/idempotency, SQL-specific behavior, or a reproduced bug.
-- Use `dotnet test <project> --no-build --filter "FullyQualifiedName~<Feature>" -v q` for focused tests. Run full tests only before commit/merge or when shared behavior changed.
+- Choose one test breadth before running tests: focused, affected-project, or full-solution. They are alternatives, not a sequence; when a broader breadth is known to be required, skip the narrower run.
+- Test only affected features/projects. Expand to an affected-project suite only when shared runtime behavior can affect multiple features. Full-solution tests are reserved for integration, release, or an explicit owner request.
+- Reuse a passing result while its source/config/dependencies, test selection and environment are unchanged. After a change, rerun only checks it invalidated. A commit alone does not require more tests, and handoff must not repeat an already-valid command.
 - SQL Server spatial, constraints, migrations and rowversion require SQL Server/Testcontainers; SQLite is not proof for them.
 - If the same failure survives two fix attempts, stop, report the short error and ask the owner whether to restore/revert or open a fresh session.
 
@@ -29,4 +31,4 @@
 - Person 2 (`huy`) owns entity shape, `DbContext`, mappings, migrations, SQL tests, seed, Docker and CI. Schema work and endpoint work use separate task scopes.
 - Do not add packages, create/run/edit migrations, delete data, or change schema without explicit approval.
 - Commit only on the assigned `anh` or `huy` branch, stage explicit paths, and inspect status/diffs first. Merge, rebase, pull, push, tags, branch/worktree changes, stash and destructive restore require owner approval.
-- Before commit, run the full relevant test set; never treat zero discovered or skipped required tests as a pass.
+- Before commit, verify that the selected evidence is still valid; never treat zero discovered or skipped required tests as a pass.

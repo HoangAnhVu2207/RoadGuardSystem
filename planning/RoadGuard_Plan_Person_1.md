@@ -12,7 +12,7 @@ Task IDs remain stable. Wave headings group features; explicit dependencies, not
 
 ## Workflow for new and resumed tasks
 
-Before editing, Codex posts a scope card containing task/owner, goal, In scope, Out of scope, files, dependencies, verification tier and side effects. Work starts only after explicit owner approval: `Dong y <TASK-ID>` or an equally clear reply. An endpoint gets a 5-8 line contract, a project build, a real `.http` smoke call, and only risk-based tests. Larger work is split into 3-5 approved slices before code. See [shared prompts](../docs/prompts/RoadGuard_Task_Workflow.md).
+Before editing, Codex posts a scope card containing task/owner, goal, In scope, Out of scope, files, dependencies, verification tier and side effects. Work starts only after explicit owner approval: `Dong y <TASK-ID>` or an equally clear reply. An endpoint gets a 5-8 line contract, a project build, a real `.http` smoke call, and only risk-based tests. Choose one test breadth before running tests: focused, affected-project, or full-solution; do not run them as a sequence. Reuse unchanged verification evidence; rerun only checks invalidated by later edits. A commit alone does not trigger more tests. Full-solution tests are integration/release gates or an explicit owner request. Larger work is split into 3-5 approved slices before code. See [shared prompts](../docs/prompts/RoadGuard_Task_Workflow.md).
 
 The old Negative-First, mandatory self-review and independent acceptance workflow is historical from 20/09/2026 onward. Do not rewrite its `Done` evidence. Existing task-row negative/positive examples are a risk catalogue, not a required order or test matrix; the approved scope card selects the cheapest sufficient verification.
 
@@ -66,8 +66,10 @@ Default endpoint ladder (select the cheapest sufficient level in the approved sc
 ```powershell
 dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q -clp:ErrorsOnly
 dotnet watch --project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj
-dotnet test tests/RoadGuardSystem.ApiTests --no-build --filter "FullyQualifiedName~<Feature>" -v q
-dotnet test RoadGuardSystem.slnx --no-build -v q # before commit/merge or shared changes
+# Choose exactly one test command below.
+dotnet test tests/RoadGuardSystem.ApiTests --filter "FullyQualifiedName~<Feature>" -v q
+dotnet test tests/RoadGuardSystem.ApiTests -v q # shared API behavior affecting multiple features
+dotnet test RoadGuardSystem.slnx -v q # integration/release or explicit owner request only
 ```
 
 ## Wave 0 — executable foundation
@@ -171,7 +173,7 @@ Within every task, execute one AC slice at a time:
 
 1. State actor, current membership/resource scope, preconditions, allowed transition, stable error code and audit event in that task's worklog; declare exact file ownership.
 2. Add negative/edge tests and observe the intended RED; add positive contract/state tests next.
-3. Implement the DTO/service/domain/API slice against the completed schema handoff. Run narrow tests, affected suites, format and non-incremental build.
+3. Implement the DTO/service/domain/API slice against the completed schema handoff. Build once, then choose either focused tests or the affected-project suite from the known impact; do not run both as a routine progression.
 4. Review authorization, transitions, immutability, retries, concurrency and audit. Record file diff and actual command results; only then mark the parent Done when all its slices pass.
 5. Provide FE with OpenAPI/request-response examples, conflict/retry semantics, seed identities and confirmation/status behavior. Android implementation remains external.
 
@@ -219,14 +221,14 @@ Assumption for capacity assessment: two backend owners, ten working days; actual
 
 Person 1 implementation stays in `RoadGuardSystem.API`, `RoadGuardSystem.Services`, `RoadGuardSystem.DTOs`, `tests/RoadGuardSystem.ApiTests` and `tests/RoadGuardSystem.UnitTests`. Domain methods in `RoadGuardSystem.BusinessObjects` require the paired schema handoff. Declare concrete filenames in each task worklog before that implementation starts; this repository-wide plan does not invent all future method signatures.
 
-For each approved endpoint slice, build the changed project and run its real request from `Http/*.http`. Add focused tests only for the risk categories in `AGENTS.md`. Before a commit or merge, run the full relevant test set:
+For each approved endpoint slice, build the changed project and run its real request from `Http/*.http`. Add focused tests only for the risk categories in `AGENTS.md`. If shared API behavior affects several features, run the API-test project. Reuse passing evidence while its inputs and environment are unchanged; commit and handoff do not trigger reruns. Use the full solution only for integration/release or an explicit owner request. Documentation/tooling changes run only their relevant verifier.
 
 ```powershell
 dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q -clp:ErrorsOnly
-dotnet test RoadGuardSystem.slnx --no-build -v q
-pwsh -NoProfile -File tests/Documentation/Verify-P102Docs.ps1
-pwsh -NoProfile -File tests/Documentation/Test-P203Planning.ps1
-pwsh -NoProfile -File tests/Tooling/Verify-AgentSetup.ps1
+# Choose exactly one test command below.
+dotnet test tests/RoadGuardSystem.ApiTests --filter "FullyQualifiedName~<Feature>" -v q
+dotnet test tests/RoadGuardSystem.ApiTests -v q # shared API behavior only
+dotnet test RoadGuardSystem.slnx -v q # integration/release or owner request only
 ```
 
 SQL-specific slices use a known SQL Server environment; skipped or zero-discovered required tests are not a pass. The endpoint contract records actor, expected response and persisted effect.

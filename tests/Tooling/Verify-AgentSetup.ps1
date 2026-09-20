@@ -56,12 +56,38 @@ if ($errors.Count -eq 0) {
     $plan1 = Get-Content -Raw -LiteralPath $paths['planning/RoadGuard_Plan_Person_1.md']
     $plan2 = Get-Content -Raw -LiteralPath $paths['planning/RoadGuard_Plan_Person_2.md']
 
-    Require-Text 'AGENTS.md' $agents @('Before edits, show:', '5-8 line contract', 'Http/*.http', 'at or below 500 lines')
-    Require-Text 'skill' $skill @('name: roadguard-endpoint-delivery', 'description: Use when', 'Scope gate', 'Endpoint contract', 'Verification')
+    Require-Text 'AGENTS.md' $agents @(
+        'Before edits, show:', '5-8 line contract', 'Http/*.http', 'at or below 500 lines',
+        'Reuse a passing result', 'A commit alone does not require more tests',
+        'Full-solution tests are reserved for integration, release',
+        'Choose one test breadth before running tests'
+    )
+    Require-Text 'skill' $skill @(
+        'name: roadguard-endpoint-delivery', 'description: Use when', 'Scope gate',
+        'Endpoint contract', 'Verification', 'Reuse a passing result',
+        'Do not rerun the same command at handoff or commit',
+        'Full-solution tests are reserved for integration, release',
+        'Focused, affected-project and full-solution are mutually exclusive breadths'
+    )
     Require-Text 'openai.yaml' $ui @('display_name:', 'short_description:', '$roadguard-endpoint-delivery')
-    Require-Text 'workflow prompt' $prompt @('In scope', 'Out of scope', 'Dong y <TASK-ID>', '3-5 lat cat')
-    Require-Text 'Person 1 plan' $plan1 @('Historical `Done` rows', 'P1-70', 'risk catalogue')
-    Require-Text 'Person 2 plan' $plan2 @('Historical `Done` rows', 'scope card', 'risk catalogue')
+    Require-Text 'workflow prompt' $prompt @(
+        'In scope', 'Out of scope', 'Dong y <TASK-ID>', '3-5 lat cat',
+        'Tai su dung ket qua da pass', 'Commit khong tu dong kich hoat them test',
+        'Full solution chi chay khi integration, release',
+        'Chon mot do rong test truoc khi chay'
+    )
+    Require-Text 'Person 1 plan' $plan1 @(
+        'Historical `Done` rows', 'P1-70', 'risk catalogue',
+        'Reuse unchanged verification evidence', 'A commit alone does not trigger more tests',
+        'Full-solution tests are integration/release gates',
+        'Choose one test breadth before running tests'
+    )
+    Require-Text 'Person 2 plan' $plan2 @(
+        'Historical `Done` rows', 'scope card', 'risk catalogue',
+        'Reuse unchanged verification evidence', 'A commit alone does not trigger more tests',
+        'Full-solution tests are integration/release gates',
+        'Choose one test breadth before running tests'
+    )
 
     if ((Get-Content -LiteralPath $paths['AGENTS.md']).Count -gt 50) {
         $errors.Add('AGENTS.md exceeds 50 lines.')

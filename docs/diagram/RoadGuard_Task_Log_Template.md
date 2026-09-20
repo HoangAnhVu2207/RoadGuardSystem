@@ -21,9 +21,10 @@ Use 5-8 lines: route; authorized actor; input and validation; success output/sta
 ## Result
 
 - Files changed:
-- Build command/result:
-- `.http` smoke request/result:
-- Focused tests and reason, or N/A reason:
-- Full tests before commit/merge, or not yet run:
+- Selected verification tier and reason:
+- Commands/results (build, smoke, focused or affected-project checks as applicable):
+- Reused passing evidence and unchanged inputs/environment:
+- Checks rerun after an invalidating change:
+- Full-solution integration/release check, explicit owner request, or N/A reason:
 - Known gap/blocker:
 - Commit/revision, if the owner requested a commit:

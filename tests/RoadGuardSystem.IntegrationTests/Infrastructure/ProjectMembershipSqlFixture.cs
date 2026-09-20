@@ -46,18 +46,33 @@ public static class ProjectMembershipSqlFixture
 
     private static ApplicationUser User(Guid id, UserRoleCode role) => new()
     {
-        Id = id, UserName = $"p220_fixture_{id:N}", DisplayName = "P2-20 fixture user",
-        PasswordHash = "fixture-password-hash", RoleCode = role, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow
+        Id = id,
+        UserName = $"p220_fixture_{id:N}",
+        DisplayName = "P2-20 fixture user",
+        PasswordHash = "fixture-password-hash",
+        RoleCode = role,
+        Status = UserStatus.Active,
+        CreatedAt = DateTimeOffset.UtcNow
     };
 
     private static Project Project(Guid id, string code, DateTimeOffset createdAt) => new()
     {
-        Id = id, ProjectCode = $"{code}-{id:N}", Name = code, Status = ProjectStatus.Active, CreatedAt = createdAt
+        Id = id,
+        ProjectCode = $"{code}-{id:N}",
+        Name = code,
+        Status = ProjectStatus.Active,
+        CreatedAt = createdAt
     };
 
     private static ProjectMember Member(Guid projectId, Guid userId, UserRoleCode role, bool primary, ProjectMemberStatus status, DateOnly validFrom, DateOnly? validTo) => new()
     {
-        Id = Guid.NewGuid(), ProjectId = projectId, UserId = userId, RoleCode = role, IsPrimary = primary,
-        Status = status, ValidFrom = validFrom, ValidTo = validTo
+        Id = Guid.NewGuid(),
+        ProjectId = projectId,
+        UserId = userId,
+        RoleCode = role,
+        IsPrimary = primary,
+        Status = status,
+        ValidFrom = validFrom,
+        ValidTo = validTo
     };
 }

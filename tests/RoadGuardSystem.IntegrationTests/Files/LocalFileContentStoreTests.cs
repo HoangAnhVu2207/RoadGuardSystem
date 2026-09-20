@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using FluentAssertions;
 using RoadGuardSystem.Repositories.Options;
@@ -35,11 +36,11 @@ public sealed class LocalFileContentStoreTests : IDisposable
     public async Task OpenReadAsync_SymbolicLinkToOutsideRoot_IsRejected()
     {
         var store = CreateStore();
-        var outside = Path.Combine(Path.GetTempPath(), $"roadguard-p204-outside-{Guid.NewGuid():N}.pdf");
+        var outside = CreateOutsideDirectory();
         var key = new string('a', 32);
-        var link = Path.Combine(_root, "objects", key);
-        await File.WriteAllBytesAsync(outside, "%PDF-1.7 outside"u8.ToArray());
-        File.CreateSymbolicLink(link, outside);
+        var link = Path.Combine(_root, "objects");
+        await File.WriteAllBytesAsync(Path.Combine(outside, key), "%PDF-1.7 outside"u8.ToArray());
+        ReplaceDirectoryWithLink(link, outside);
 
         Stream? escapedStream = null;
         FileStorageException? rejection = null;
@@ -60,8 +61,8 @@ public sealed class LocalFileContentStoreTests : IDisposable
             {
                 await escapedStream.DisposeAsync();
             }
-            File.Delete(link);
-            File.Delete(outside);
+            DeleteDirectoryLink(link);
+            Directory.Delete(outside, recursive: true);
         }
 
         rejection.Should().NotBeNull("a symbolic link must not bypass the configured root");
@@ -72,7 +73,7 @@ public sealed class LocalFileContentStoreTests : IDisposable
     public void Constructor_ConfiguredRootSymbolicLink_IsRejected()
     {
         var outside = CreateOutsideDirectory();
-        Directory.CreateSymbolicLink(_root, outside);
+        CreateDirectoryLink(_root, outside);
         try
         {
             var create = () => CreateStore();
@@ -402,7 +403,20 @@ public sealed class LocalFileContentStoreTests : IDisposable
     private static void ReplaceDirectoryWithLink(string path, string target)
     {
         Directory.Delete(path);
-        Directory.CreateSymbolicLink(path, target);
+        CreateDirectoryLink(path, target);
+    }
+
+    private static void CreateDirectoryLink(string path, string target)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Directory.CreateSymbolicLink(path, target);
+            return;
+        }
+        using var process = Process.Start(new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{path}\" \"{target}\"")
+        { CreateNoWindow = true, UseShellExecute = false }) ?? throw new IOException("Cannot start mklink.");
+        process.WaitForExit();
+        if (process.ExitCode != 0) throw new IOException($"mklink failed with exit code {process.ExitCode}.");
     }
 
     private static void DeleteDirectoryLink(string path)

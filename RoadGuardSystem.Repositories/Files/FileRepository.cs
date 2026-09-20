@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -173,7 +174,7 @@ public sealed class FileRepository : IFileRepository
             stored.MimeType,
             stored.SizeBytes,
             stored.Checksum,
-            request.RetentionUntil?.ToString("yyyy-MM-dd") ?? string.Empty);
+            request.RetentionUntil?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
     }
 }

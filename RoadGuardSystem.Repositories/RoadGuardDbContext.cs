@@ -14,6 +14,7 @@ using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.Repositories.Concurrency;
 
@@ -79,6 +80,12 @@ public class RoadGuardDbContext : DbContext
     public DbSet<RoadSectionVersion> RoadSectionVersions => Set<RoadSectionVersion>();
 
     public DbSet<Warranty> Warranties => Set<Warranty>();
+
+    public DbSet<SurveyPlan> SurveyPlans => Set<SurveyPlan>();
+
+    public DbSet<SurveyPlanPostponement> SurveyPlanPostponements => Set<SurveyPlanPostponement>();
+
+    public DbSet<SurveyRequest> SurveyRequests => Set<SurveyRequest>();
 
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 
@@ -195,6 +202,13 @@ public class RoadGuardDbContext : DbContext
         {
             throw new InvalidOperationException(
                 "Stored files cannot be deleted through the generic persistence path; retention policy must authorize deletion.");
+        }
+
+        if (ChangeTracker.Entries<SurveyPlanPostponement>()
+            .Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
+        {
+            throw new InvalidOperationException(
+                "SurveyPlanPostponements are append-only; create a new postponement record instead.");
         }
 
         // 1. AuditLog append-only

@@ -42,15 +42,31 @@ public sealed class IdempotencyOperationService
         try
         {
             var executionStrategy = _context.Database.CreateExecutionStrategy();
-            return await executionStrategy.ExecuteAsync(
-                () => ExecuteFirstAsync(
+            return await executionStrategy.ExecuteInTransactionAsync(
+                attemptCancellationToken => ExecuteAttemptAsync(
                     actorUserId,
                     projectId,
                     operation,
                     idempotencyKey,
                     requestFingerprint,
                     operationHandler,
-                    cancellationToken));
+                    attemptCancellationToken),
+                async verificationCancellationToken =>
+                {
+                    _context.ChangeTracker.Clear();
+                    var committed = await FindExistingAsync(
+                        actorUserId,
+                        projectId,
+                        operation,
+                        idempotencyKey,
+                        verificationCancellationToken);
+                    return committed is not null &&
+                           string.Equals(
+                               committed.RequestFingerprint,
+                               requestFingerprint,
+                               StringComparison.Ordinal);
+                },
+                cancellationToken);
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
         {
@@ -70,7 +86,7 @@ public sealed class IdempotencyOperationService
         }
     }
 
-    private async Task<IdempotencyOperationResult> ExecuteFirstAsync(
+    private async Task<IdempotencyOperationResult> ExecuteAttemptAsync(
         Guid? actorUserId,
         Guid? projectId,
         string operation,
@@ -79,36 +95,38 @@ public sealed class IdempotencyOperationService
         Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        _context.ChangeTracker.Clear();
+        var existing = await FindExistingAsync(
+            actorUserId,
+            projectId,
+            operation,
+            idempotencyKey,
+            cancellationToken);
+        if (existing is not null)
         {
-            var outcome = await operationHandler(cancellationToken);
-            var record = IdempotencyRecord.Create(
-                actorUserId,
-                projectId,
-                operation,
-                idempotencyKey,
-                requestFingerprint,
-                outcome.OperationId,
-                outcome.OutcomeJson,
-                DateTimeOffset.UtcNow);
-            _context.Set<IdempotencyRecord>().Add(record);
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            return MapExisting(existing, requestFingerprint);
+        }
 
-            return new IdempotencyOperationResult(
-                IdempotencyOperationStatus.Executed,
-                record.OperationId,
-                record.OutcomeJson,
-                record.ActorUserId,
-                record.ProjectId,
-                record.Operation);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(CancellationToken.None);
-            throw;
-        }
+        var outcome = await operationHandler(cancellationToken);
+        var record = IdempotencyRecord.Create(
+            actorUserId,
+            projectId,
+            operation,
+            idempotencyKey,
+            requestFingerprint,
+            outcome.OperationId,
+            outcome.OutcomeJson,
+            DateTimeOffset.UtcNow);
+        _context.Set<IdempotencyRecord>().Add(record);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new IdempotencyOperationResult(
+            IdempotencyOperationStatus.Executed,
+            record.OperationId,
+            record.OutcomeJson,
+            record.ActorUserId,
+            record.ProjectId,
+            record.Operation);
     }
 
     private Task<IdempotencyRecord?> FindExistingAsync(

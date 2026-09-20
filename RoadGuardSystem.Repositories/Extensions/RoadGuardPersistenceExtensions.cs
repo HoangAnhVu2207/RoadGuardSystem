@@ -79,6 +79,9 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<ConsumerEffectService>();
         services.AddScoped<NotificationOutboxConsumer>();
         services.AddScoped<ProjectMembershipReadModel>();
+        services.AddScoped<ProjectWorkPackageReadModel>();
+        services.AddScoped<ProjectCreationPersistenceService>();
+        services.AddScoped<ProjectUpdatePersistenceService>();
         services.AddScoped<RoadSectionVersionPersistenceService>();
         services.AddScoped<WarrantyPersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();

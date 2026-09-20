@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Auditing;
+using RoadGuardSystem.BusinessObjects.Catalogs;
+using RoadGuardSystem.BusinessObjects.Defects;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Files;
@@ -54,6 +56,14 @@ public class RoadGuardDbContext : DbContext
     public DbSet<AccountStatusChangeLog> AccountStatusChangeLogs => Set<AccountStatusChangeLog>();
 
     public DbSet<StoredFile> Files => Set<StoredFile>();
+
+    public DbSet<DefectType> DefectTypes => Set<DefectType>();
+
+    public DbSet<CauseCategory> CauseCategories => Set<CauseCategory>();
+
+    public DbSet<SeverityRuleVersion> SeverityRuleVersions => Set<SeverityRuleVersion>();
+
+    public DbSet<Defect> Defects => Set<Defect>();
 
     public DbSet<Project> Projects => Set<Project>();
 

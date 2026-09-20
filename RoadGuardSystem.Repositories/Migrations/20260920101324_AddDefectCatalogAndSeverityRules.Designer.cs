@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RoadGuardSystem.Repositories;
 
@@ -11,9 +12,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920101324_AddDefectCatalogAndSeverityRules")]
+    partial class AddDefectCatalogAndSeverityRules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -179,31 +182,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_SeverityRuleVersions_VersionNo_Positive", "[VersionNo] > 0");
                         });
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Defects.Defect", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CauseCategoryCode")
-                        .HasMaxLength(80)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
-
-                    b.Property<string>("DefectTypeCode")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CauseCategoryCode");
-
-                    b.HasIndex("DefectTypeCode");
-
-                    b.ToTable("Defects", (string)null);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.StoredFile", b =>
@@ -892,20 +870,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .WithMany()
                         .HasForeignKey("ActorUserId")
                         .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Defects.Defect", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Catalogs.CauseCategory", null)
-                        .WithMany()
-                        .HasForeignKey("CauseCategoryCode")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Catalogs.DefectType", null)
-                        .WithMany()
-                        .HasForeignKey("DefectTypeCode")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.StoredFile", b =>

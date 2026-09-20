@@ -7,6 +7,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Catalogs;
 using RoadGuardSystem.BusinessObjects.Defects;
+using RoadGuardSystem.BusinessObjects.Devices;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Files;
@@ -64,6 +65,8 @@ public class RoadGuardDbContext : DbContext
     public DbSet<SeverityRuleVersion> SeverityRuleVersions => Set<SeverityRuleVersion>();
 
     public DbSet<Defect> Defects => Set<Defect>();
+
+    public DbSet<DroneDevice> DroneDevices => Set<DroneDevice>();
 
     public DbSet<Project> Projects => Set<Project>();
 

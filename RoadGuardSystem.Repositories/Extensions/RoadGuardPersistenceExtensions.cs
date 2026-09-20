@@ -116,6 +116,7 @@ public static class RoadGuardPersistenceExtensions
     {
         services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
         services.AddScoped<ISeedStep, IdentityRoleSeedStep>();
+        services.AddScoped<ISeedStep, DroneDeviceSeedStep>();
         return services;
     }
 }

@@ -43,4 +43,11 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Active = 1,
         Ended = 2
     }
+
+    public enum DroneDeviceStatus : byte
+    {
+        Active = 1,
+        Maintenance = 2,
+        Retired = 3
+    }
 }

@@ -94,6 +94,16 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<SurveyAssignment> SurveyAssignments => Set<SurveyAssignment>();
 
+    public DbSet<Flight> Flights => Set<Flight>();
+
+    public DbSet<SurveyFile> SurveyFiles => Set<SurveyFile>();
+
+    public DbSet<SurveyDataVersion> SurveyDataVersions => Set<SurveyDataVersion>();
+
+    public DbSet<QualityCheck> QualityChecks => Set<QualityCheck>();
+
+    public DbSet<SupplementarySurveyRequest> SupplementarySurveyRequests => Set<SupplementarySurveyRequest>();
+
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 
     public DbSet<HandoverDocument> HandoverDocuments => Set<HandoverDocument>();

@@ -111,4 +111,103 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Completed = 4,
         Cancelled = 5
     }
+
+    public enum SurveyFileType : byte
+    {
+        Unknown = 0,
+        Video = 1,
+        Srt = 2,
+        Photo = 3,
+        Other = 4
+    }
+
+    public enum SurveyFileSyncStatus : byte
+    {
+        Unknown = 0,
+        Local = 1,
+        Queued = 2,
+        Uploading = 3,
+        ServerConfirmed = 4,
+        Invalid = 5
+    }
+
+    public enum SurveyDataVersionStatus : byte
+    {
+        Unknown = 0,
+        Draft = 1,
+        Uploading = 2,
+        ServerConfirmed = 3,
+        Invalid = 4,
+        Superseded = 5
+    }
+
+    public enum SurveyDataIntegrityStatus : byte
+    {
+        Unknown = 0,
+        Pending = 1,
+        Passed = 2,
+        Failed = 3
+    }
+
+    public enum SurveyDataConfirmationActor : byte
+    {
+        Unknown = 0,
+        Backend = 1
+    }
+
+    public enum QualityCheckScope : byte
+    {
+        Unknown = 0,
+        SurveyFile = 1,
+        SurveyDataset = 2
+    }
+
+    public enum QualityCheckExecutionStage : byte
+    {
+        Unknown = 0,
+        ClientPrecheck = 1,
+        ServerValidation = 2
+    }
+
+    public enum QualityCheckType : byte
+    {
+        Unknown = 0,
+        Format = 1,
+        Geolocation = 2,
+        TimeSync = 3,
+        Clarity = 4,
+        Lighting = 5,
+        Coverage = 6,
+        Overlap = 7,
+        Completeness = 8,
+        Other = 9
+    }
+
+    public enum QualityCheckStatus : byte
+    {
+        Unknown = 0,
+        Pending = 1,
+        Passed = 2,
+        Failed = 3,
+        Warning = 4
+    }
+
+    public enum QualityCheckActor : byte
+    {
+        Unknown = 0,
+        DroneApp = 1,
+        Backend = 2
+    }
+
+    public enum SupplementarySurveyRequestStatus : byte
+    {
+        Unknown = 0,
+        Requested = 1,
+        Approved = 2,
+        Assigned = 3,
+        InProgress = 4,
+        Submitted = 5,
+        Rejected = 6,
+        Cancelled = 7
+    }
 }

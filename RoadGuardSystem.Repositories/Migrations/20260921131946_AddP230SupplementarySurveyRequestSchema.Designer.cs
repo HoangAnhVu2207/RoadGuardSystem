@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
@@ -12,9 +13,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921131946_AddP230SupplementarySurveyRequestSchema")]
+    partial class AddP230SupplementarySurveyRequestSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1089,12 +1092,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("Flights", null, t =>
                         {
-                            t.HasTrigger("TR_Flights_ImmutableSurvey");
-
                             t.HasCheckConstraint("CK_Flights_TimestampOrder", "[EndedAt] IS NULL OR [EndedAt] >= [StartedAt]");
                         });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.QualityCheck", b =>
@@ -1382,8 +1381,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("SurveyDataVersions", null, t =>
                         {
-                            t.HasTrigger("TR_SurveyDataVersions_Immutable");
-
                             t.HasCheckConstraint("CK_SurveyDataVersions_IntegrityStatus", "[IntegrityStatus] IN (1, 2, 3)");
 
                             t.HasCheckConstraint("CK_SurveyDataVersions_ServerConfirmation", "([Status] = 3 AND [IntegrityStatus] = 2 AND [ConfirmedAt] IS NOT NULL AND [ConfirmedBy] = 1) OR ([Status] <> 3 AND [ConfirmedAt] IS NULL AND [ConfirmedBy] IS NULL)");
@@ -1394,8 +1391,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_SurveyDataVersions_VersionNo", "[VersionNo] > 0");
                         });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyFile", b =>

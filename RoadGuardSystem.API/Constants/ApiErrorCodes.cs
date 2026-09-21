@@ -27,6 +27,9 @@ public static class ApiErrorCodes
     public const string ProjectCodeConflict = "project_code_conflict";
     public const string ProjectConcurrencyConflict = "concurrency_conflict";
     public const string ProjectClosed = "project_closed";
+    public const string RoadSectionCodeConflict = "road_section_code_conflict";
+    public const string RoadSectionNotFound = "road_section_not_found";
+    public const string RoadSectionConcurrencyConflict = "road_section_concurrency_conflict";
     public const string WarrantyRoadSectionNotFound = "warranty_road_section_not_found";
     public const string WarrantyHandoverDocumentNotFound = "warranty_handover_document_not_found";
     public const string WarrantySourceDocumentNotFound = "warranty_source_document_not_found";

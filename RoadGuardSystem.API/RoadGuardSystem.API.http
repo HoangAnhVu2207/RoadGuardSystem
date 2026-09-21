@@ -100,6 +100,43 @@ Content-Type: application/json
 
 ###
 
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/road-sections
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "code": "RS-NB-001",
+  "name": "Northern bypass section 1",
+  "srid": 32648,
+  "coordinates": [
+    { "x": 500000, "y": 1100000 },
+    { "x": 500100, "y": 1100100 }
+  ],
+  "effectiveFrom": "2026-09-21T08:00:00+07:00",
+  "changeReason": "Initial surveyed alignment",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "srid": 32648,
+  "coordinates": [
+    { "x": 500010, "y": 1100010 },
+    { "x": 500200, "y": 1100200 }
+  ],
+  "effectiveFrom": "2026-10-01T08:00:00+07:00",
+  "changeReason": "Corrected surveyed alignment",
+  "expectedCurrentVersionId": "{{roadSectionVersionId}}",
+  "operationId": "{{$guid}}"
+}
+
+###
+
 PUT {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/primary-project-manager
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json

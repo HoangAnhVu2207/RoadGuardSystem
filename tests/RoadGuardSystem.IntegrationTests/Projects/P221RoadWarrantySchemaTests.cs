@@ -10,6 +10,7 @@ using RoadGuardSystem.Repositories.Spatial;
 using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Projects;
 using RoadGuardSystem.Repositories.Transactions;
 using RoadGuardSystem.Repositories.Warranties;
@@ -39,7 +40,10 @@ public sealed class P221RoadWarrantySchemaTests : IClassFixture<IdentitySqlServe
         await using var context = _fixture.CreateDbContext();
         var (_, section, initialVersion) = await CreateRoadAsync(context, "P221-ROAD-A");
         var nextVersion = CreateVersion(section.Id, 2, true, SpatialConstants.UtmZone48NSrid);
-        var service = new RoadSectionVersionPersistenceService(context, new RoadGuardTransactionService(context));
+        var service = new RoadSectionVersionPersistenceService(
+            context,
+            new RoadGuardTransactionService(context),
+            new IdempotencyOperationService(context));
 
         await service.AddVersionAndMakeCurrentAsync(section.Id, nextVersion);
 
@@ -171,7 +175,10 @@ public sealed class P221RoadWarrantySchemaTests : IClassFixture<IdentitySqlServe
         await context.SaveChangesAsync();
         var section = RoadSection.Create(Guid.NewGuid(), project.Id, code);
         var version = CreateVersion(section.Id, 1, true, SpatialConstants.UtmZone48NSrid);
-        var service = new RoadSectionVersionPersistenceService(context, new RoadGuardTransactionService(context));
+        var service = new RoadSectionVersionPersistenceService(
+            context,
+            new RoadGuardTransactionService(context),
+            new IdempotencyOperationService(context));
         await service.CreateInitialAsync(section, version);
         return (project, section, version);
     }

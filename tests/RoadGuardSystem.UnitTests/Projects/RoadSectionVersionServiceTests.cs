@@ -49,6 +49,14 @@ public sealed class RoadSectionVersionServiceTests
 
         public bool CreateInitialCalled { get; private set; }
 
+        public Task<RoadSectionVersionWriteResult> CreateInitialAsync(
+            RoadSectionInitialVersionWriteRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<RoadSectionVersionWriteResult> CreateNextAsync(
+            RoadSectionNextVersionWriteRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<RoadSectionVersionFacts?> GetInitialFactsAsync(
             Guid projectId,
             CancellationToken cancellationToken = default) => Task.FromResult<RoadSectionVersionFacts?>(_initialFacts);

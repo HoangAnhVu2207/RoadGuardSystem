@@ -654,7 +654,9 @@ if ($contentViolations.Count -gt 0) {
     $errors += $contentViolations
 }
 
-# 6. Pipeline steps verification in expected order
+# 6. Pipeline steps verification. Jobs run independently, so only the SQL
+# lifecycle has a meaningful cross-step order; other required steps may live
+# in their dedicated verify, unit, API, or integration job.
 $pipelineTokens = @(
     "actions/checkout@v4",
     "actions/setup-dotnet@v4",
@@ -675,15 +677,40 @@ $pipelineTokens = @(
     "Cleanup SQL Server container and credential"
 )
 
-$lastIndex = -1
 foreach ($token in $pipelineTokens) {
     $currentIndex = $ciContent.IndexOf($token)
     if ($currentIndex -lt 0) {
         $errors += "CI workflow missing required pipeline token/step: '$token'"
-    } elseif ($currentIndex -lt $lastIndex) {
-        $errors += "CI workflow pipeline step out of sequence: '$token' appeared before previous required step."
-    } else {
-        $lastIndex = $currentIndex
+    }
+}
+
+$integrationMatch = [regex]::Match(
+    $ciContent,
+    '(?ms)^ {2}integration:\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)')
+if (-not $integrationMatch.Success) {
+    $errors += "CI workflow must define an integration job for the managed SQL lifecycle."
+} else {
+    $integrationBody = $integrationMatch.Groups['body'].Value
+    $integrationTokens = @(
+        "Generate ephemeral SQL credential",
+        "Start SQL Server container",
+        "Wait for SQL Server readiness",
+        "dotnet restore",
+        "dotnet build",
+        "Run integration tests",
+        "Validate Seeder",
+        "Cleanup SQL Server container and credential"
+    )
+    $lastIndex = -1
+    foreach ($token in $integrationTokens) {
+        $currentIndex = $integrationBody.IndexOf($token)
+        if ($currentIndex -lt 0) {
+            $errors += "CI workflow integration job missing required lifecycle token/step: '$token'"
+        } elseif ($currentIndex -lt $lastIndex) {
+            $errors += "CI workflow integration lifecycle step out of sequence: '$token' appeared before the previous required step."
+        } else {
+            $lastIndex = $currentIndex
+        }
     }
 }
 

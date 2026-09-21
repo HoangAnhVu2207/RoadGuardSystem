@@ -45,6 +45,12 @@ Rows completed before P1-70 retain their original acceptance meaning. P1-70 supe
 |---|---|---|---|
 | `P1-70` / `Done` / `anh` | TE-01/10; direct owner approval, 2026-09-20 | `AGENTS.md`, `.agents/**`, `.antigravity/**` removal, both plan policy sections, shared prompt, neutral task template, `Directory.Build.props`, agent/documentation verifiers and this worklog. Four slices completed: record transition; rebuild rules/skill; align plans/prompt/compiler; verify. | No controller/Minimal API conversion, feature endpoint, entity/schema/migration/package/runtime behavior, P1-11 implementation, P2-01 CI implementation, merge or push. CA1805/CA1512/CA1000/CA1861 are approved baseline warnings; all other Recommended diagnostics remain errors. |
 
+## Team-lead-approved backend structure and tooling - P1-72
+
+| ID / status / branch | Trace and dependency | In scope / exclusive paths | Out of scope / checks |
+|---|---|---|---|
+| `P1-72` / `In Progress` / `anh` | Team-lead approval, 2026-09-21; no prerequisite task dependency | Backend N-layer structure, repository/service seams, architecture documentation, agent rules and skills, documentation verifier alignment, and architecture-focused tests. Shared planning status is owned by this plan; deferred SQL, timing, container, and hosted-CI verification remain a Huy handoff. | No schema, migration, package, production vertical-slice migration, or historical `Done` evidence rewrite. Run applicable source/documentation checks only; runtime, SQL, timing, and hosted-CI verification remain deferred. |
+
 ## Owner-requested context reduction — P1-09
 
 | ID / status / branch | Trace and dependency | Scope and exclusive paths | Required checks and gate |

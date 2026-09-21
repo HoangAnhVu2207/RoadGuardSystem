@@ -190,17 +190,17 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         context.Sessions.AddRange(activeSession, revokedSession, expiredSession);
         await context.SaveChangesAsync();
 
-        activeSession.IsActive.Should().BeTrue();
+        activeSession.IsActiveAt(DateTimeOffset.UtcNow).Should().BeTrue();
         activeSession.IsRevoked.Should().BeFalse();
-        activeSession.IsExpired.Should().BeFalse();
+        activeSession.IsExpiredAt(DateTimeOffset.UtcNow).Should().BeFalse();
 
-        revokedSession.IsActive.Should().BeFalse();
+        revokedSession.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
         revokedSession.IsRevoked.Should().BeTrue();
-        revokedSession.IsExpired.Should().BeFalse();
+        revokedSession.IsExpiredAt(DateTimeOffset.UtcNow).Should().BeFalse();
 
-        expiredSession.IsActive.Should().BeFalse();
+        expiredSession.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
         expiredSession.IsRevoked.Should().BeFalse();
-        expiredSession.IsExpired.Should().BeTrue();
+        expiredSession.IsExpiredAt(DateTimeOffset.UtcNow).Should().BeTrue();
 
         var fetched = await context.Sessions.AsNoTracking().SingleAsync(s => s.Id == revokedSession.Id);
         fetched.DeviceMetadataJson.Should().Contain("\"platform\":\"Android\"");
@@ -263,8 +263,8 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         // Verify token 1 is revoked and token 2 is active
         await context.Entry(token1).ReloadAsync();
         token1.RevokedAt.Should().NotBeNull();
-        token1.IsActive.Should().BeFalse();
-        token2.IsActive.Should().BeTrue();
+        token1.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
+        token2.IsActiveAt(DateTimeOffset.UtcNow).Should().BeTrue();
 
         // Revoke family
         await repo.RevokeSessionAndFamilyAsync(session.Id);
@@ -274,7 +274,7 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
 
         await context.Entry(token2).ReloadAsync();
         token2.RevokedAt.Should().NotBeNull();
-        token2.IsActive.Should().BeFalse();
+        token2.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
     }
 
     [Fact(DisplayName = "P2-10 Positive: Specialized security logs append and query correctly")]

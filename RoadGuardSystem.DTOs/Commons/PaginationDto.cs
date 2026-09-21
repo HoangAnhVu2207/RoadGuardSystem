@@ -1,26 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
-namespace RoadGuardSystem.bDTOs.Commons
+namespace RoadGuardSystem.DTOs.Commons;
+
+public sealed class PaginationDto
 {
-    public class PaginationDto
-    {
-        private int _pageNumber = 1;
-        private int _pageSize = 10;
+    [Range(1, int.MaxValue)]
+    public int PageNumber { get; set; } = 1;
 
-        public int PageNumber
-        {
-            get => _pageNumber;
-            set => _pageNumber = value < 1 ? 1 : value;
-        }
-
-        public int PageSize
-        {
-            get => _pageSize;
-            set => _pageSize = value < 1 ? 10 : (value > 100 ? 100 : value);
-        }
-    }
+    [Range(1, 100)]
+    public int PageSize { get; set; } = 10;
 }

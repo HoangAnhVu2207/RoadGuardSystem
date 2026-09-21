@@ -1,9 +1,8 @@
 using System;
-using RoadGuardSystem.BusinessObjects.Concurrency;
 
 namespace RoadGuardSystem.BusinessObjects.Identity;
 
-public class RefreshToken : IHasRowVersion
+public class RefreshToken
 {
     public Guid Id { get; set; }
 
@@ -18,11 +17,11 @@ public class RefreshToken : IHasRowVersion
     public byte[] RowVersion { get; set; } = [];
 
     // Derived states
-    public bool IsActive => RevokedAt == null && ExpiresAt > DateTimeOffset.UtcNow;
+    public bool IsActiveAt(DateTimeOffset now) => RevokedAt == null && ExpiresAt > now.ToUniversalTime();
 
     public bool IsRevoked => RevokedAt != null;
 
-    public bool IsExpired => RevokedAt == null && ExpiresAt <= DateTimeOffset.UtcNow;
+    public bool IsExpiredAt(DateTimeOffset now) => RevokedAt == null && ExpiresAt <= now.ToUniversalTime();
 
     // Navigation
     public virtual UserSession Session { get; set; } = null!;

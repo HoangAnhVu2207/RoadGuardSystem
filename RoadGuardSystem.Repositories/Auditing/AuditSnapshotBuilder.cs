@@ -1,6 +1,4 @@
 using System.Text;
-using RoadGuardSystem.BusinessObjects.Auditing;
-
 namespace RoadGuardSystem.Repositories.Auditing;
 
 public static class AuditSnapshotBuilder

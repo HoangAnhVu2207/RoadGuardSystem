@@ -2,7 +2,7 @@ using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
-using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.Repositories.Spatial;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using Xunit;
 

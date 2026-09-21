@@ -12,9 +12,12 @@ using RoadGuardSystem.API.Authentication;
 using RoadGuardSystem.API.Authorization;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.Services.Extensions;
+using RoadGuardSystem.Services.Options;
 using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Projects;
 using RoadGuardSystem.Services.Warranties;
+using RoadGuardSystem.Services.Surveys;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace RoadGuardSystem.API.Extensions;
@@ -57,7 +60,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectWorkPackageService, ProjectWorkPackageService>();
         services.AddScoped<IProjectCreationService, ProjectCreationService>();
         services.AddScoped<IProjectUpdateService, ProjectUpdateService>();
+        services.AddScoped<IPrimaryProjectManagerService, PrimaryProjectManagerService>();
         services.AddScoped<IWarrantyCreationService, WarrantyCreationService>();
+        services.AddScoped<IRoadSectionVersionService, RoadSectionVersionService>();
+        services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProjectAuthorizationMiddlewareResultHandler>();
 

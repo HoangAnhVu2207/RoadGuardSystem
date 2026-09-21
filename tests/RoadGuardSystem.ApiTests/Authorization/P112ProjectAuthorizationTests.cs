@@ -18,7 +18,8 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Authorization;
 
 [Trait("TaskId", "P1-12")]
-public sealed class P112ProjectAuthorizationTests : IClassFixture<AuthenticationSqlServerFixture>
+[Collection(AuthenticationApiFixture.Name)]
+public sealed class P112ProjectAuthorizationTests
 {
     private readonly AuthenticationSqlServerFixture _sql;
 
@@ -209,7 +210,6 @@ public sealed class P112ProjectAuthorizationTests : IClassFixture<Authentication
             1,
             true,
             geometry,
-            32648,
             DateTimeOffset.UtcNow,
             "Initial geometry");
         var warranty = Warranty.Create(

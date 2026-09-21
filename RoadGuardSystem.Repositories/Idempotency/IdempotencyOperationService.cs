@@ -42,31 +42,15 @@ public sealed class IdempotencyOperationService
         try
         {
             var executionStrategy = _context.Database.CreateExecutionStrategy();
-            return await executionStrategy.ExecuteInTransactionAsync(
-                attemptCancellationToken => ExecuteAttemptAsync(
+            return await executionStrategy.ExecuteAsync(
+                () => ExecuteAttemptAsync(
                     actorUserId,
                     projectId,
                     operation,
                     idempotencyKey,
                     requestFingerprint,
                     operationHandler,
-                    attemptCancellationToken),
-                async verificationCancellationToken =>
-                {
-                    _context.ChangeTracker.Clear();
-                    var committed = await FindExistingAsync(
-                        actorUserId,
-                        projectId,
-                        operation,
-                        idempotencyKey,
-                        verificationCancellationToken);
-                    return committed is not null &&
-                           string.Equals(
-                               committed.RequestFingerprint,
-                               requestFingerprint,
-                               StringComparison.Ordinal);
-                },
-                cancellationToken);
+                    cancellationToken));
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
         {
@@ -109,26 +93,73 @@ public sealed class IdempotencyOperationService
             return MapExisting(existing, requestFingerprint);
         }
 
-        var outcome = await operationHandler(cancellationToken);
-        var record = IdempotencyRecord.Create(
+        IdempotencyRecord record;
+        Exception? commitFailure = null;
+        await using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
+        {
+            try
+            {
+                var outcome = await operationHandler(cancellationToken);
+                record = IdempotencyRecord.Create(
+                    actorUserId,
+                    projectId,
+                    operation,
+                    idempotencyKey,
+                    requestFingerprint,
+                    outcome.OperationId,
+                    outcome.OutcomeJson,
+                    DateTimeOffset.UtcNow);
+                _context.Set<IdempotencyRecord>().Add(record);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
+
+            try
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return new IdempotencyOperationResult(
+                    IdempotencyOperationStatus.Executed,
+                    record.OperationId,
+                    record.OutcomeJson,
+                    record.ActorUserId,
+                    record.ProjectId,
+                    record.Operation);
+            }
+            catch (Exception exception)
+            {
+                commitFailure = exception;
+                try
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+                catch
+                {
+                    // The transaction may already be committed. Its durable state is checked below.
+                }
+            }
+        }
+
+        // A post-commit acknowledgement failure is indistinguishable from a failed commit until the
+        // transaction is disposed. Query only after that boundary so uncommitted local writes cannot
+        // be mistaken for a durable replay.
+        _context.ChangeTracker.Clear();
+        var durableRecord = await FindExistingAsync(
             actorUserId,
             projectId,
             operation,
             idempotencyKey,
-            requestFingerprint,
-            outcome.OperationId,
-            outcome.OutcomeJson,
-            DateTimeOffset.UtcNow);
-        _context.Set<IdempotencyRecord>().Add(record);
-        await _context.SaveChangesAsync(cancellationToken);
+            CancellationToken.None);
+        if (durableRecord is not null)
+        {
+            return MapExisting(durableRecord, requestFingerprint);
+        }
 
-        return new IdempotencyOperationResult(
-            IdempotencyOperationStatus.Executed,
-            record.OperationId,
-            record.OutcomeJson,
-            record.ActorUserId,
-            record.ProjectId,
-            record.Operation);
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(commitFailure!).Throw();
+        throw new InvalidOperationException("Commit recovery did not produce an exception.");
     }
 
     private Task<IdempotencyRecord?> FindExistingAsync(

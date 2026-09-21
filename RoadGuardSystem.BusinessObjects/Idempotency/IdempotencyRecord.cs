@@ -41,10 +41,14 @@ public sealed class IdempotencyRecord
         ValidateRequired(idempotencyKey, nameof(idempotencyKey), 200);
         ValidateFingerprint(requestFingerprint, nameof(requestFingerprint));
         ValidateJson(outcomeJson, nameof(outcomeJson));
+        if (operationId == Guid.Empty)
+        {
+            throw new ArgumentException("Operation id must not be empty.", nameof(operationId));
+        }
 
         return new IdempotencyRecord
         {
-            Id = Guid.NewGuid(),
+            Id = operationId,
             ActorUserId = actorUserId,
             ProjectId = projectId,
             Operation = operation.Trim(),
@@ -92,7 +96,10 @@ public sealed class IdempotencyRecord
         try
         {
             using var document = JsonDocument.Parse(json);
-            StructuredJsonValidation.EnsureObjectOrArray(document.RootElement, parameterName);
+            if (document.RootElement.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+            {
+                throw new ArgumentException("JSON root must be an object or array.", parameterName);
+            }
         }
         catch (JsonException exception)
         {

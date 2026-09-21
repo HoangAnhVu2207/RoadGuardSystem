@@ -2,6 +2,16 @@ namespace RoadGuardSystem.BusinessObjects.Messaging;
 
 public sealed class Notification
 {
+    private static readonly string[] SensitiveMarkers =
+    [
+        "password=",
+        "token=",
+        "secret=",
+        "authorization:",
+        "cookie=",
+        "connectionstring="
+    ];
+
     private Notification()
     {
     }
@@ -50,14 +60,14 @@ public sealed class Notification
         {
             Id = id,
             RecipientUserId = recipientUserId,
-            SourceEntityType = NotificationContentValidator.ValidateRequired(
+            SourceEntityType = ValidateRequired(
                 sourceEntityType,
                 nameof(sourceEntityType),
                 80),
             SourceEntityId = sourceEntityId,
-            EventType = NotificationContentValidator.ValidateRequired(eventType, nameof(eventType), 80),
-            Title = NotificationContentValidator.ValidateRequired(title, nameof(title), 200),
-            Body = NotificationContentValidator.ValidateBody(body, nameof(body))
+            EventType = ValidateRequired(eventType, nameof(eventType), 80),
+            Title = ValidateRequired(title, nameof(title), 200),
+            Body = ValidateBody(body, nameof(body))
         };
     }
 
@@ -66,6 +76,35 @@ public sealed class Notification
         if (ReadAt is null)
         {
             ReadAt = readAt.ToUniversalTime();
+        }
+    }
+
+    private static string ValidateRequired(string value, string parameterName, int maxLength)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        var normalized = value.Trim();
+        if (normalized.Length > maxLength)
+        {
+            throw new ArgumentException($"Value exceeds maximum length {maxLength}.", parameterName);
+        }
+
+        RejectSensitiveContent(normalized, parameterName);
+        return normalized;
+    }
+
+    private static string ValidateBody(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        var normalized = value.Trim();
+        RejectSensitiveContent(normalized, parameterName);
+        return normalized;
+    }
+
+    private static void RejectSensitiveContent(string value, string parameterName)
+    {
+        if (SensitiveMarkers.Any(marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException("Notification content must not contain credentials or tokens.", parameterName);
         }
     }
 }

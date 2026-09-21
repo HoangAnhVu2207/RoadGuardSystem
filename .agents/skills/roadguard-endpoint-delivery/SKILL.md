@@ -40,12 +40,22 @@ Write 5-8 lines before implementation:
 
 ## Implementation
 
-- Prefer one vertical-slice file under `Features/<Name>/<Action>.cs`; use a second file only for a meaningful split.
-- Direct `RoadGuardDbContext` access is the target after the architecture-migration task is complete. Until then, preserve the current Controller/Service/Repository boundary.
-- Do not add MediatR, AutoMapper, a new repository, package, or migration unless the approved scope names it.
+- Preserve the accepted flow `Controller -> IService -> IRepository`.
+- Controllers bind HTTP input, invoke one application service, and map the result to response DTOs or stable ProblemDetails. Controllers never access a repository or `RoadGuardDbContext` directly.
+- Services own use-case orchestration, authorization decisions, cross-aggregate policy, state transitions, and DTO mapping. Services never use EF Core, `RoadGuardDbContext`, `HttpContext`, `IActionResult`, or HTTP status codes.
+- Repositories own EF Core/SQL, storage, transactions, retries, idempotency, concurrency, outbox, and persistence backstops. They do not own authorization, workflow policy, business calculations, or HTTP errors.
+- A concrete persistence or read-model class injected into a Service requires an interface at the existing repository boundary. Do not add a repository that has no approved use-case consumer.
+- New code uses one public type per file. New DTOs, entities, and interfaces always use one public type per file. Do not mechanically split untouched legacy files.
+- `RoadGuardSystem.BusinessObjects` is limited to one entity per domain file, `Common/Enums.cs`, and enum extensions in `Common/Extensions/`. Entity-local invariants, factories, normalization, and state transitions are allowed; `*Options`, validators, sanitizers, constants helpers, infrastructure interfaces, EF/HTTP/configuration, and direct clock/random access belong in Services or Repositories.
+- `RoadGuardSystem.DTOs` contains request/response contracts only. Use one public DTO per file from the first addition; data properties/records and validation attributes are allowed. Business/computed logic, data access, clocks/random generation, and Repository/Service/EF/HTTP references are forbidden. Services own DTO mapping.
+- `RoadGuardSystem.Repositories` owns `RoadGuardDbContext`, EF query/write, mappings, transactions, idempotency, rowversion/concurrency, outbox, storage, and persistence backstops. A Service injects persistence/read models only by their interfaces. Repositories return facts, never authorization/scope/workflow/calculation/HTTP decisions, and never reference `RoadGuardSystem.DTOs` in source even though ADR 001 permits the project reference.
+- `RoadGuardSystem.Services` owns use-case orchestration, business/state policy, authorization/scope decisions, stable business result codes, and DTO mapping. Controllers call `IService`; Services use repository interfaces. `HttpContext`, MVC/controller result types, EF Core, and `RoadGuardDbContext` are forbidden in Service source and locked by an architecture test.
+- Respect the verified direct project-reference matrix: `BusinessObjects -> (none)`, `DTOs -> BusinessObjects`, `Repositories -> BusinessObjects, DTOs` under ADR 001 (but no DTO source reference), `Services -> Repositories`, and `API -> Services`. Transitive availability does not authorize a forbidden source dependency.
+- File placement gate: before creating source, run `rg --files` in the target layer, use the closest existing ownership folder, and include the exact path in scope. Repository/Service technical concerns use sibling functional folders (`Extensions`, `Options`, `Factories`, `Generators`, `Configurations`, `Concurrency`, `Transactions`, `Storage`, `Seeding`, `Migrations`); feature seams use the established `Interfaces/<Domain>/` and `Implementations/<Domain>/` layout. Do not invent catch-all folders, another interface/implementation tree, root files, speculative/duplicate files, or empty directories; remove empty legacy folders in the approved relocation scope.
+- Do not add MediatR, AutoMapper, a package, schema change, or migration unless the approved scope names it.
 - Read queries use `AsNoTracking()` and projection. Never return an EF entity.
 - Return TypedResults/ProblemDetails with stable codes. Use async APIs; never `.Result` or `.Wait()`.
-- Add or update `Http/<feature>.http` for every endpoint.
+- Add or update `RoadGuardSystem.API/RoadGuardSystem.API.http` for every endpoint.
 - Keep each new or modified file at most 500 lines.
 
 ## Verification
@@ -63,7 +73,7 @@ Focused, affected-project and full-solution are mutually exclusive breadths. Cho
 
 Reuse a passing result while its source/config/dependencies, test selection and environment are unchanged. After an edit, rerun only the invalidated checks. Do not rerun the same command at handoff or commit merely to make it fresh; a commit is not a test-tier trigger.
 
-Use SQL Server/Testcontainers for SQL Server-specific claims. If the same failure remains after two fix attempts, stop and return the test/build name plus the shortest useful diagnostic; do not broaden scope.
+Use SQL Server/Testcontainers for SQL Server-specific claims. Routine local commands do not collect coverage unless the approved task explicitly measures coverage; routine coverage belongs to CI/release. If the same failure remains after two fix attempts, stop and return the test/build name plus the shortest useful diagnostic; do not broaden scope.
 
 ## Completion
 

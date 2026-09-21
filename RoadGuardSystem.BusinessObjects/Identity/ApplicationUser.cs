@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Identity;
 using RoadGuardSystem.aBusinessObjects.Commons;
-using RoadGuardSystem.BusinessObjects.Concurrency;
 
 namespace RoadGuardSystem.BusinessObjects.Identity;
 
@@ -10,7 +9,7 @@ namespace RoadGuardSystem.BusinessObjects.Identity;
 /// Represents an application user, extending ASP.NET Core Identity.
 /// Mapped to the User concept in the Data Dictionary section 3.1.
 /// </summary>
-public class ApplicationUser : IdentityUser<Guid>, IHasRowVersion
+public class ApplicationUser : IdentityUser<Guid>
 {
     public string DisplayName { get; set; } = string.Empty;
 
@@ -24,7 +23,7 @@ public class ApplicationUser : IdentityUser<Guid>, IHasRowVersion
 
     public DateTimeOffset? SuspendedAt { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; }
 
     public byte[] RowVersion { get; set; } = [];
 

@@ -12,7 +12,8 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Identity;
 
 [Trait("TaskId", "P1-11")]
-public sealed class P111ProfileUpdateTests : IClassFixture<AuthenticationSqlServerFixture>
+[Collection(AuthenticationApiFixture.Name)]
+public sealed class P111ProfileUpdateTests
 {
     private readonly AuthenticationSqlServerFixture _sql;
 

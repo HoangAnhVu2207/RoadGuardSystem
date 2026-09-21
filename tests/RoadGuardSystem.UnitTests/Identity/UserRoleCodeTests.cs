@@ -1,5 +1,6 @@
 using FluentAssertions;
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.BusinessObjects.Identity;
 using Xunit;
 
 namespace RoadGuardSystem.UnitTests.Identity;
@@ -10,7 +11,7 @@ public sealed class UserRoleCodeTests
     [Fact(DisplayName = "P2-10 UserRoleCode has stable byte values")]
     public void UserRoleCode_HasStableByteValues()
     {
-        var enumType = typeof(BaseEntity).Assembly.GetType(
+        var enumType = typeof(ApplicationUser).Assembly.GetType(
             "RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode");
 
         enumType.Should().NotBeNull("P2-10 defines the authoritative domain role enum");

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.Services.Generators;
 using Xunit;
 
 namespace RoadGuardSystem.UnitTests.Authentication;

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using RoadGuardSystem.BusinessObjects.Concurrency;
 
 namespace RoadGuardSystem.Repositories.Concurrency;
 
@@ -9,14 +8,8 @@ public static class RowVersionConvention
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            var rowVersionProperty = entityType.FindProperty(nameof(IHasRowVersion.RowVersion));
+            var rowVersionProperty = entityType.FindProperty("RowVersion");
             if (rowVersionProperty?.ClrType != typeof(byte[]))
-            {
-                continue;
-            }
-
-            if (!typeof(IHasRowVersion).IsAssignableFrom(entityType.ClrType) &&
-                !string.Equals(rowVersionProperty.Name, "RowVersion", StringComparison.Ordinal))
             {
                 continue;
             }

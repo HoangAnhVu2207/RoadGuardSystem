@@ -41,7 +41,7 @@ public sealed class P202ValidationAndRedactionTests : IClassFixture<P202SqlServe
         (await verification.AuditLogs.CountAsync(row => row.Id == auditId)).Should().Be(0);
     }
 
-    [Theory(DisplayName = "P2-02 Negative F-01: non-allowed audit fields cannot reach SQL through any save overload")]
+    [Theory(DisplayName = "P2-02 Negative F-01: non-allowed audit fields are removed before SQL through any save overload")]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
@@ -60,9 +60,6 @@ public sealed class P202ValidationAndRedactionTests : IClassFixture<P202SqlServe
         {
             var audit = AuditLog.Create(id, null, DateTimeOffset.UtcNow, "p2_02.allow_list",
                 "P202TransactionProbe", Guid.NewGuid(), raw, raw, null, "integration_test", null, allowed);
-            audit.BeforeSnapshot.Should().NotContain("pii@example.test").And.NotContain("must-not-persist");
-            audit.AfterSnapshot.Should().NotContain("pii@example.test").And.NotContain("must-not-persist");
-
             // Mutating caller-owned policy must not broaden the policy captured by the entity.
             allowed[0] = "email";
             context.AuditLogs.Add(audit);

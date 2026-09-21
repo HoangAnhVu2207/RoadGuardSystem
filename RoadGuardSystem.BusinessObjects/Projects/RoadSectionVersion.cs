@@ -1,5 +1,4 @@
 using NetTopologySuite.Geometries;
-using RoadGuardSystem.BusinessObjects.Spatial;
 
 namespace RoadGuardSystem.BusinessObjects.Projects;
 
@@ -29,7 +28,6 @@ public sealed class RoadSectionVersion
         int versionNo,
         bool isCurrent,
         LineString geometry,
-        int projectUtmSrid,
         DateTimeOffset effectiveFrom,
         string changeReason)
     {
@@ -49,8 +47,6 @@ public sealed class RoadSectionVersion
         }
 
         ArgumentNullException.ThrowIfNull(geometry);
-        SpatialValidation.EnsureProjectEngineeringGeometry(geometry, projectUtmSrid);
-
         return new RoadSectionVersion
         {
             Id = id,

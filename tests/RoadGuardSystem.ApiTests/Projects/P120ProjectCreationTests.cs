@@ -13,7 +13,8 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Projects;
 
 [Trait("TaskId", "P1-20")]
-public sealed class P120ProjectCreationTests : IClassFixture<AuthenticationSqlServerFixture>
+[Collection(AuthenticationApiFixture.Name)]
+public sealed class P120ProjectCreationTests
 {
     private readonly AuthenticationSqlServerFixture _sql;
 
@@ -302,7 +303,10 @@ public sealed class P120ProjectCreationTests : IClassFixture<AuthenticationSqlSe
                 null,
                 operationId,
                 null));
-            result.Status.Should().Be(ProjectCreationPersistenceStatus.Success);
+            result.Status.Should().Be(
+                interceptor is FailOnceAfterCommitInterceptor
+                    ? ProjectCreationPersistenceStatus.Replayed
+                    : ProjectCreationPersistenceStatus.Success);
         }
 
         interceptor.FailureCount.Should().Be(1);

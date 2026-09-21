@@ -1,8 +1,7 @@
-using RoadGuardSystem.BusinessObjects.Concurrency;
 
 namespace RoadGuardSystem.BusinessObjects.Projects;
 
-public sealed class HandoverDocument : IHasRowVersion
+public sealed class HandoverDocument
 {
     public Guid Id { get; set; }
 

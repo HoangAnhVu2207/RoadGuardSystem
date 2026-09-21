@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using RoadGuardSystem.BusinessObjects.Concurrency;
 
 namespace RoadGuardSystem.BusinessObjects.Identity;
 
-public class UserSession : IHasRowVersion
+public class UserSession
 {
     public Guid Id { get; set; }
 
@@ -21,11 +20,11 @@ public class UserSession : IHasRowVersion
     public byte[] RowVersion { get; set; } = [];
 
     // Derived states - not stored in database
-    public bool IsActive => RevokedAt == null && ExpiresAt > DateTimeOffset.UtcNow;
+    public bool IsActiveAt(DateTimeOffset now) => RevokedAt == null && ExpiresAt > now.ToUniversalTime();
 
     public bool IsRevoked => RevokedAt != null;
 
-    public bool IsExpired => RevokedAt == null && ExpiresAt <= DateTimeOffset.UtcNow;
+    public bool IsExpiredAt(DateTimeOffset now) => RevokedAt == null && ExpiresAt <= now.ToUniversalTime();
 
     // Navigations
     public virtual ApplicationUser User { get; set; } = null!;

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using RoadGuardSystem.BusinessObjects.Identity;
+using RoadGuardSystem.Repositories.Options;
 using Xunit;
 
 namespace RoadGuardSystem.UnitTests.Identity;

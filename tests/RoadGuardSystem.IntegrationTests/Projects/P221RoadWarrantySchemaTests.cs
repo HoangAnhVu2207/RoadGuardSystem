@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Projects;
-using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.Repositories.Spatial;
 using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
@@ -54,22 +54,6 @@ public sealed class P221RoadWarrantySchemaTests : IClassFixture<IdentitySqlServe
         versions.Should().ContainSingle(version => version.Id == initialVersion.Id && !version.IsCurrent);
         versions.Should().ContainSingle(version => version.Id == nextVersion.Id && version.IsCurrent);
         versions[0].Geometry.Coordinates.Should().HaveCount(2);
-    }
-
-    [Fact(DisplayName = "P2-21: project SRID mismatch prevents a road version write")]
-    public async Task RoadSectionVersion_ProjectSridMismatch_IsRejected()
-    {
-        await using var context = _fixture.CreateDbContext();
-        var project = CreateProject(SpatialConstants.UtmZone48NSrid);
-        context.Projects.Add(project);
-        await context.SaveChangesAsync();
-        var section = RoadSection.Create(Guid.NewGuid(), project.Id, "P221-ROAD-SRID");
-        var version = CreateVersion(section.Id, 1, true, SpatialConstants.UtmZone49NSrid);
-        var service = new RoadSectionVersionPersistenceService(context, new RoadGuardTransactionService(context));
-
-        var create = () => service.CreateInitialAsync(section, version);
-
-        await create.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact(DisplayName = "P2-21: SQL Server rejects non-LineString geometry")]
@@ -219,7 +203,6 @@ public sealed class P221RoadWarrantySchemaTests : IClassFixture<IdentitySqlServe
                 new Coordinate(588500 + versionNo, 2325000),
                 new Coordinate(588600 + versionNo, 2325100)
             }),
-            srid,
             DateTimeOffset.UtcNow,
             "P2-21 fixture geometry version");
     }

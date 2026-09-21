@@ -13,12 +13,14 @@ using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.Services.Generators;
 using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Authentication;
 
 [Trait("TaskId", "P1-10")]
-public sealed class AuthenticationFlowTests : IClassFixture<AuthenticationSqlServerFixture>
+[Collection(AuthenticationApiFixture.Name)]
+public sealed class AuthenticationFlowTests
 {
     private readonly AuthenticationSqlServerFixture _sql;
 

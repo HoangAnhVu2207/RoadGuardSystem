@@ -18,11 +18,69 @@ public sealed class ProjectsController : ControllerBase
 {
     private readonly IProjectCreationService _service;
     private readonly IProjectUpdateService _updateService;
+    private readonly IPrimaryProjectManagerService _primaryProjectManagerService;
 
-    public ProjectsController(IProjectCreationService service, IProjectUpdateService updateService)
+    public ProjectsController(
+        IProjectCreationService service,
+        IProjectUpdateService updateService,
+        IPrimaryProjectManagerService primaryProjectManagerService)
     {
         _service = service;
         _updateService = updateService;
+        _primaryProjectManagerService = primaryProjectManagerService;
+    }
+
+    [Authorize]
+    [HttpPut("{projectId:guid}/primary-project-manager")]
+    [ProducesResponseType<ReassignPrimaryProjectManagerResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> ReassignPrimaryProjectManager(
+        Guid projectId,
+        ReassignPrimaryProjectManagerRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actorUserId) ||
+            !TryParseRole(User.FindFirstValue("role"), out var actorRole))
+        {
+            return ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
+        }
+
+        var result = await _primaryProjectManagerService.ReassignAsync(
+            actorUserId,
+            actorRole,
+            projectId,
+            new ReassignPrimaryProjectManagerCommand(
+                request.PrimaryProjectManagerUserId,
+                request.EffectiveFrom ?? default,
+                request.Reason,
+                request.ExpectedCurrentMembershipRowVersion,
+                request.OperationId,
+                CorrelationId()),
+            cancellationToken);
+
+        return result.Status switch
+        {
+            PrimaryProjectManagerReassignmentStatus.Success or PrimaryProjectManagerReassignmentStatus.Replayed when result.Assignment is not null =>
+                Ok(new ReassignPrimaryProjectManagerResponseDto(
+                    result.Assignment.PreviousMembershipId,
+                    result.Assignment.CurrentMembershipId,
+                    result.Assignment.CurrentMembershipRowVersion)),
+            PrimaryProjectManagerReassignmentStatus.Forbidden => ProblemResponse(
+                StatusCodes.Status403Forbidden, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            PrimaryProjectManagerReassignmentStatus.ProjectNotFound or PrimaryProjectManagerReassignmentStatus.ReplacementProjectManagerNotFound => ProblemResponse(
+                StatusCodes.Status404NotFound, ApiErrorCodes.ProjectPrimaryManagerNotFound, "Not found"),
+            PrimaryProjectManagerReassignmentStatus.ProjectClosed => ProblemResponse(
+                StatusCodes.Status409Conflict, ApiErrorCodes.ProjectClosed, "Conflict"),
+            PrimaryProjectManagerReassignmentStatus.StaleConcurrency => ProblemResponse(
+                StatusCodes.Status409Conflict, ApiErrorCodes.ProjectConcurrencyConflict, "Conflict"),
+            PrimaryProjectManagerReassignmentStatus.IdempotentConflict => ProblemResponse(
+                StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Duplicate request"),
+            _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request")
+        };
     }
 
     [Authorize]

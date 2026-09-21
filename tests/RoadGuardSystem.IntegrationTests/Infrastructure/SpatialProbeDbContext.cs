@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.Repositories.Spatial;
 using RoadGuardSystem.Repositories;
 
 namespace RoadGuardSystem.IntegrationTests.Infrastructure;

@@ -1,9 +1,8 @@
 using RoadGuardSystem.aBusinessObjects.Commons;
-using RoadGuardSystem.BusinessObjects.Concurrency;
 
 namespace RoadGuardSystem.BusinessObjects.Projects;
 
-public sealed class ProjectMember : IHasRowVersion
+public sealed class ProjectMember
 {
     public Guid Id { get; set; }
 
@@ -49,5 +48,21 @@ public sealed class ProjectMember : IHasRowVersion
             ValidFrom = validFrom,
             Status = ProjectMemberStatus.Active
         };
+    }
+
+    public void EndPrimaryAssignment(DateOnly validTo)
+    {
+        if (!IsPrimary || RoleCode != UserRoleCode.ProjectManager || Status != ProjectMemberStatus.Active)
+        {
+            throw new InvalidOperationException("Only an active primary project-manager membership can be ended.");
+        }
+
+        if (validTo < ValidFrom)
+        {
+            throw new ArgumentOutOfRangeException(nameof(validTo));
+        }
+
+        ValidTo = validTo;
+        Status = ProjectMemberStatus.Ended;
     }
 }

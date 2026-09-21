@@ -16,7 +16,7 @@ public class ApplicationRole
 
     public string? NormalizedName { get; set; }
 
-    public string? ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString();
+    public string? ConcurrencyStamp { get; set; }
 
     public bool IsActive { get; set; } = true;
 

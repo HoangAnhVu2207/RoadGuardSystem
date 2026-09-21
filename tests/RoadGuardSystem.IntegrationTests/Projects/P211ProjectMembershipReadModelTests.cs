@@ -64,8 +64,8 @@ public sealed class P211ProjectMembershipReadModelTests : IClassFixture<Identity
         ended.Should().BeNull();
     }
 
-    [Fact(DisplayName = "P2-11: a non-Supervisor role mismatch does not grant project membership")]
-    public async Task FindActiveEffectiveAsync_NonSupervisorRoleMismatch_ReturnsNull()
+    [Fact(DisplayName = "P2-11: membership read model returns membership facts without deciding account role")]
+    public async Task FindActiveEffectiveAsync_AccountRoleChanges_ReturnsMembershipFact()
     {
         var data = await ProjectMembershipSqlFixture.CreateAsync(_fixture);
         await using var context = _fixture.CreateDbContext();
@@ -77,8 +77,13 @@ public sealed class P211ProjectMembershipReadModelTests : IClassFixture<Identity
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE [Users] SET [RoleCode] = {"PM"} WHERE [Id] = {data.DroneOperatorId}");
 
-        (await readModel.FindActiveEffectiveAsync(data.DroneOperatorId, data.PrimaryProjectId, EffectiveDate))
-            .Should().BeNull();
+        var membership = await readModel.FindActiveEffectiveAsync(
+            data.DroneOperatorId,
+            data.PrimaryProjectId,
+            EffectiveDate);
+
+        membership.Should().NotBeNull();
+        membership!.RoleCode.Should().Be(UserRoleCode.DroneOperator);
     }
 
     [Fact(DisplayName = "P2-11: membership changes are immediately visible to the read model")]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoadGuard Test Selection"
+  short_description: "Choose RoadGuard build and test breadth"
+  default_prompt: "Use $roadguard-test-selection to select proportionate verification for this RoadGuard change."

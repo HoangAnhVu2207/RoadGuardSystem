@@ -1,10 +1,8 @@
-using RoadGuardSystem.BusinessObjects.Concurrency;
-using RoadGuardSystem.BusinessObjects.Spatial;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.BusinessObjects.Projects;
 
-public sealed class Project : IHasRowVersion
+public sealed class Project
 {
     public Guid Id { get; set; }
 
@@ -41,11 +39,6 @@ public sealed class Project : IHasRowVersion
             throw new ArgumentException("Project id must not be empty.", nameof(id));
         }
 
-        if (engineeringUtmSrid is int srid && !SpatialConstants.IsAllowedProjectUtmSrid(srid))
-        {
-            throw new ArgumentOutOfRangeException(nameof(engineeringUtmSrid));
-        }
-
         if (endDate < startDate)
         {
             throw new ArgumentException("Project end date must not be before its start date.", nameof(endDate));
@@ -72,11 +65,6 @@ public sealed class Project : IHasRowVersion
         DateOnly? startDate,
         DateOnly? endDate)
     {
-        if (engineeringUtmSrid is int srid && !SpatialConstants.IsAllowedProjectUtmSrid(srid))
-        {
-            throw new ArgumentOutOfRangeException(nameof(engineeringUtmSrid));
-        }
-
         if (endDate < startDate)
         {
             throw new ArgumentException("Project end date must not be before its start date.", nameof(endDate));

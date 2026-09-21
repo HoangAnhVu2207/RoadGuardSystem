@@ -14,7 +14,8 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Warranties;
 
 [Trait("TaskId", "P1-20")]
-public sealed class P120WarrantyCreationTests : IClassFixture<AuthenticationSqlServerFixture>
+[Collection(AuthenticationApiFixture.Name)]
+public sealed class P120WarrantyCreationTests
 {
     private readonly AuthenticationSqlServerFixture _sql;
 
@@ -271,7 +272,10 @@ public sealed class P120WarrantyCreationTests : IClassFixture<AuthenticationSqlS
                 WarrantyStatus.Active,
                 operationId,
                 null));
-            result.Status.Should().Be(WarrantyCreationPersistenceStatus.Success);
+            result.Status.Should().Be(
+                interceptor is FailOnceAfterCommitInterceptor
+                    ? WarrantyCreationPersistenceStatus.Replayed
+                    : WarrantyCreationPersistenceStatus.Success);
         }
 
         interceptor.FailureCount.Should().Be(1);

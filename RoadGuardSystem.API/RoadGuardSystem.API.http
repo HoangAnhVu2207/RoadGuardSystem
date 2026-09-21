@@ -97,3 +97,17 @@ Content-Type: application/json
   "status": "ACTIVE",
   "operationId": "{{$guid}}"
 }
+
+###
+
+PUT {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/primary-project-manager
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "primaryProjectManagerUserId": "{{replacementProjectManagerUserId}}",
+  "effectiveFrom": "2026-10-01",
+  "reason": "Supervisor reassigned project ownership",
+  "expectedCurrentMembershipRowVersion": "{{primaryMembershipRowVersion}}",
+  "operationId": "{{$guid}}"
+}

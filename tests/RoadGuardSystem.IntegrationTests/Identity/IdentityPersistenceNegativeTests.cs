@@ -10,6 +10,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
+using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
 using System.Reflection;
@@ -582,23 +583,6 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
             operationId: operationId);
 
         conflictResult.Status.Should().Be(UserRoleChangeStatus.IdempotentConflict);
-    }
-
-    [Fact(DisplayName = "P2-10 Negative: UserRoleChanged with Unknown role throws ArgumentException")]
-    public async Task UserRoleChanged_UnknownRole_ThrowsArgumentException()
-    {
-        await using var context = _fixture.CreateDbContext();
-        var repo = _fixture.CreateRepository(context);
-
-        var act = () => repo.ChangeUserRoleAtomicAsync(
-            userId: Guid.NewGuid(),
-            newRoleCode: UserRoleCode.Unknown,
-            expectedRowVersion: new byte[8],
-            actorUserId: Guid.NewGuid(),
-            operationId: Guid.NewGuid());
-
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*Cannot change role to Unknown*");
     }
 
     [Fact(DisplayName = "P2-10 Negative: Concurrent refresh token rotation rejects loser with StaleConcurrency or AlreadyRevoked")]

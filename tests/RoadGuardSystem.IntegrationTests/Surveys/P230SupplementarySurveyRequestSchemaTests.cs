@@ -87,13 +87,21 @@ public sealed class P230SupplementarySurveyRequestSchemaTests : IClassFixture<Id
         await _fixture.SeedRolesAsync(context);
         var project = new Project
         {
-            Id = Guid.NewGuid(), ProjectCode = $"P230-SUP-{Guid.NewGuid():N}", Name = "P2-30 supplementary fixture",
-            EngineeringUtmSrid = SpatialConstants.UtmZone48NSrid, Status = ProjectStatus.Active, CreatedAt = DateTimeOffset.UtcNow
+            Id = Guid.NewGuid(),
+            ProjectCode = $"P230-SUP-{Guid.NewGuid():N}",
+            Name = "P2-30 supplementary fixture",
+            EngineeringUtmSrid = SpatialConstants.UtmZone48NSrid,
+            Status = ProjectStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
         };
         var manager = new ApplicationUser
         {
-            Id = Guid.NewGuid(), UserName = $"p230_pm_{Guid.NewGuid():N}", DisplayName = "P2-30 manager",
-            PasswordHash = "fixture-password-hash", RoleCode = UserRoleCode.ProjectManager, Status = UserStatus.Active,
+            Id = Guid.NewGuid(),
+            UserName = $"p230_pm_{Guid.NewGuid():N}",
+            DisplayName = "P2-30 manager",
+            PasswordHash = "fixture-password-hash",
+            RoleCode = UserRoleCode.ProjectManager,
+            Status = UserStatus.Active,
             CreatedAt = DateTimeOffset.UtcNow
         };
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"P230-SUP-ROAD-{Guid.NewGuid():N}");

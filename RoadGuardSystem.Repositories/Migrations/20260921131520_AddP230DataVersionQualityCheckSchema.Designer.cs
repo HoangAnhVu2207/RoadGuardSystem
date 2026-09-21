@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
@@ -12,9 +13,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921131520_AddP230DataVersionQualityCheckSchema")]
+    partial class AddP230DataVersionQualityCheckSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1089,12 +1092,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("Flights", null, t =>
                         {
-                            t.HasTrigger("TR_Flights_ImmutableSurvey");
-
                             t.HasCheckConstraint("CK_Flights_TimestampOrder", "[EndedAt] IS NULL OR [EndedAt] >= [StartedAt]");
                         });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.QualityCheck", b =>
@@ -1167,68 +1166,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                             t.HasCheckConstraint("CK_QualityChecks_Status", "[Status] IN (1, 2, 3, 4)");
 
                             t.HasCheckConstraint("CK_QualityChecks_Threshold_Json", "[Threshold] IS NULL OR ISJSON([Threshold]) = 1");
-                        });
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SupplementarySurveyRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("ApprovedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid>("RequestedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("RequestedScope")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RoundNo")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SourcePreservationNote")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.Property<Guid>("SurveyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("SurveyRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("RequestedByUserId");
-
-                    b.HasIndex("SurveyRequestId")
-                        .HasDatabaseName("IX_SupplementarySurveyRequests_SurveyRequestId");
-
-                    b.HasIndex("SurveyId", "RoundNo")
-                        .IsUnique()
-                        .HasDatabaseName("UX_SupplementarySurveyRequests_SurveyRound");
-
-                    b.ToTable("SupplementarySurveyRequests", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_Approval", "([ApprovedByUserId] IS NULL AND [ApprovedAt] IS NULL) OR ([ApprovedByUserId] IS NOT NULL AND [ApprovedAt] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_RequestedScope_JsonObject", "ISJSON([RequestedScope]) = 1 AND LEFT(LTRIM([RequestedScope]), 1) = '{'");
-
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_RoundNo", "[RoundNo] > 0");
-
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7)");
                         });
                 });
 
@@ -1382,8 +1319,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("SurveyDataVersions", null, t =>
                         {
-                            t.HasTrigger("TR_SurveyDataVersions_Immutable");
-
                             t.HasCheckConstraint("CK_SurveyDataVersions_IntegrityStatus", "[IntegrityStatus] IN (1, 2, 3)");
 
                             t.HasCheckConstraint("CK_SurveyDataVersions_ServerConfirmation", "([Status] = 3 AND [IntegrityStatus] = 2 AND [ConfirmedAt] IS NOT NULL AND [ConfirmedBy] = 1) OR ([Status] <> 3 AND [ConfirmedAt] IS NULL AND [ConfirmedBy] IS NULL)");
@@ -1394,8 +1329,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_SurveyDataVersions_VersionNo", "[VersionNo] > 0");
                         });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyFile", b =>
@@ -1870,31 +1803,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyFile", null)
                         .WithMany()
                         .HasForeignKey("SurveyFileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SupplementarySurveyRequest", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("RequestedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.Survey", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyRequestId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
@@ -12,9 +13,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921125553_AddP230FlightSurveyFileSchema")]
+    partial class AddP230FlightSurveyFileSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1089,146 +1092,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("Flights", null, t =>
                         {
-                            t.HasTrigger("TR_Flights_ImmutableSurvey");
-
                             t.HasCheckConstraint("CK_Flights_TimestampOrder", "[EndedAt] IS NULL OR [EndedAt] >= [StartedAt]");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.QualityCheck", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte>("CheckType")
-                        .HasColumnType("tinyint");
-
-                    b.Property<DateTimeOffset>("CheckedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<byte>("CheckedBy")
-                        .HasColumnType("tinyint");
-
-                    b.Property<byte>("ExecutionStage")
-                        .HasColumnType("tinyint");
-
-                    b.Property<Guid?>("InitiatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("MeasuredValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Message")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte>("Scope")
-                        .HasColumnType("tinyint");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.Property<Guid?>("SurveyDataVersionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("SurveyFileId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Threshold")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InitiatedByUserId");
-
-                    b.HasIndex("SurveyDataVersionId")
-                        .HasDatabaseName("IX_QualityChecks_SurveyDataVersionId");
-
-                    b.HasIndex("SurveyFileId")
-                        .HasDatabaseName("IX_QualityChecks_SurveyFileId");
-
-                    b.ToTable("QualityChecks", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_QualityChecks_CheckType", "[CheckType] IN (1, 2, 3, 4, 5, 6, 7, 8, 9)");
-
-                            t.HasCheckConstraint("CK_QualityChecks_CheckedBy", "[CheckedBy] IN (1, 2)");
-
-                            t.HasCheckConstraint("CK_QualityChecks_ExactlyOneTarget", "([Scope] = 1 AND [SurveyFileId] IS NOT NULL AND [SurveyDataVersionId] IS NULL) OR ([Scope] = 2 AND [SurveyFileId] IS NULL AND [SurveyDataVersionId] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_QualityChecks_ExecutionStage", "[ExecutionStage] IN (1, 2)");
-
-                            t.HasCheckConstraint("CK_QualityChecks_MeasuredValue_Json", "[MeasuredValue] IS NULL OR ISJSON([MeasuredValue]) = 1");
-
-                            t.HasCheckConstraint("CK_QualityChecks_Scope", "[Scope] IN (1, 2)");
-
-                            t.HasCheckConstraint("CK_QualityChecks_StageActor", "([ExecutionStage] = 1 AND [CheckedBy] = 1) OR ([ExecutionStage] = 2 AND [CheckedBy] = 2 AND [InitiatedByUserId] IS NULL)");
-
-                            t.HasCheckConstraint("CK_QualityChecks_Status", "[Status] IN (1, 2, 3, 4)");
-
-                            t.HasCheckConstraint("CK_QualityChecks_Threshold_Json", "[Threshold] IS NULL OR ISJSON([Threshold]) = 1");
-                        });
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SupplementarySurveyRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("ApprovedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid>("RequestedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("RequestedScope")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RoundNo")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SourcePreservationNote")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.Property<Guid>("SurveyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("SurveyRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("RequestedByUserId");
-
-                    b.HasIndex("SurveyRequestId")
-                        .HasDatabaseName("IX_SupplementarySurveyRequests_SurveyRequestId");
-
-                    b.HasIndex("SurveyId", "RoundNo")
-                        .IsUnique()
-                        .HasDatabaseName("UX_SupplementarySurveyRequests_SurveyRound");
-
-                    b.ToTable("SupplementarySurveyRequests", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_Approval", "([ApprovedByUserId] IS NULL AND [ApprovedAt] IS NULL) OR ([ApprovedByUserId] IS NOT NULL AND [ApprovedAt] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_RequestedScope_JsonObject", "ISJSON([RequestedScope]) = 1 AND LEFT(LTRIM([RequestedScope]), 1) = '{'");
-
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_RoundNo", "[RoundNo] > 0");
-
-                            t.HasCheckConstraint("CK_SupplementarySurveyRequests_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7)");
                         });
                 });
 
@@ -1345,57 +1209,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_SurveyAssignments_TimestampOrder", "([AcceptedAt] IS NULL OR [AcceptedAt] >= [AssignedAt]) AND ([RejectedAt] IS NULL OR [RejectedAt] >= [AssignedAt]) AND ([EndedAt] IS NULL OR [EndedAt] >= [AssignedAt])");
                         });
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyDataVersion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("ConfirmedAt")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<byte?>("ConfirmedBy")
-                        .HasColumnType("tinyint");
-
-                    b.Property<byte>("IntegrityStatus")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("SourceManifest")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.Property<Guid>("SurveyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("VersionNo")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SurveyId", "VersionNo")
-                        .IsUnique()
-                        .HasDatabaseName("UX_SurveyDataVersions_SurveyVersion");
-
-                    b.ToTable("SurveyDataVersions", null, t =>
-                        {
-                            t.HasTrigger("TR_SurveyDataVersions_Immutable");
-
-                            t.HasCheckConstraint("CK_SurveyDataVersions_IntegrityStatus", "[IntegrityStatus] IN (1, 2, 3)");
-
-                            t.HasCheckConstraint("CK_SurveyDataVersions_ServerConfirmation", "([Status] = 3 AND [IntegrityStatus] = 2 AND [ConfirmedAt] IS NOT NULL AND [ConfirmedBy] = 1) OR ([Status] <> 3 AND [ConfirmedAt] IS NULL AND [ConfirmedBy] IS NULL)");
-
-                            t.HasCheckConstraint("CK_SurveyDataVersions_SourceManifest_JsonArray", "ISJSON([SourceManifest]) = 1 AND LEFT(LTRIM([SourceManifest]), 1) = '['");
-
-                            t.HasCheckConstraint("CK_SurveyDataVersions_Status", "[Status] IN (1, 2, 3, 4, 5)");
-
-                            t.HasCheckConstraint("CK_SurveyDataVersions_VersionNo", "[VersionNo] > 0");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyFile", b =>
@@ -1855,49 +1668,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.QualityCheck", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("InitiatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyDataVersion", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyDataVersionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyFile", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyFileId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SupplementarySurveyRequest", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("RequestedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.Survey", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.Survey", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
@@ -1940,15 +1710,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest", null)
                         .WithMany()
                         .HasForeignKey("SurveyRequestId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyDataVersion", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.Survey", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

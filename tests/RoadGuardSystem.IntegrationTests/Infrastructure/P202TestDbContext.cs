@@ -61,19 +61,13 @@ public sealed class P202TestDbContext : RoadGuardDbContext
 
 public sealed class P202SqlServerFixture : IAsyncLifetime
 {
-    private readonly SqlServerTestFixture _database = new();
+    private readonly SqlServerTestFixture _database = new(createSpatialProbeSchema: false);
 
     public string ConnectionString => _database.ConnectionString;
 
     public async Task InitializeAsync()
     {
         await _database.InitializeAsync();
-
-        await using (var baselineContext = _database.CreateDbContext())
-        {
-            await baselineContext.Database.EnsureDeletedAsync();
-        }
-
         await using (var productionContext = CreateProductionDbContext())
         {
             await productionContext.Database.MigrateAsync();

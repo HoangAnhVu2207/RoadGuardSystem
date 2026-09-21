@@ -21,6 +21,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
 {
     private static readonly SemaphoreSlim SharedContainerLock = new(1, 1);
     private static MsSqlContainer? SharedContainer;
+    private readonly bool _createSpatialProbeSchema;
     private readonly EnvironmentVariableAccessor _environmentAccessor;
     private MsSqlContainer? _container;
     private bool _ownsContainer;
@@ -38,12 +39,16 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
     /// </summary>
     public bool SimulateDropFailure { get; set; }
 
-    public SqlServerTestFixture() : this(null, null)
+    public SqlServerTestFixture() : this(null, null, true)
     {
     }
 
-    internal SqlServerTestFixture(EnvironmentVariableAccessor? environmentAccessor = null, string? masterConnectionString = null)
+    internal SqlServerTestFixture(
+        EnvironmentVariableAccessor? environmentAccessor = null,
+        string? masterConnectionString = null,
+        bool createSpatialProbeSchema = true)
     {
+        _createSpatialProbeSchema = createSpatialProbeSchema;
         _environmentAccessor = environmentAccessor ?? Environment.GetEnvironmentVariable;
         _masterConnectionString = masterConnectionString;
     }
@@ -70,9 +75,11 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
         // Create the isolated test database
         await CreateDatabaseAsync(_databaseName);
 
-        // Initialize schema with SpatialProbeDbContext
-        await using var context = CreateDbContext();
-        await context.Database.EnsureCreatedAsync();
+        if (_createSpatialProbeSchema)
+        {
+            await using var context = CreateDbContext();
+            await context.Database.EnsureCreatedAsync();
+        }
     }
 
     public SpatialProbeDbContext CreateDbContext()

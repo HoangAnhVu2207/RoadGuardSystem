@@ -32,3 +32,119 @@ Content-Type: application/json
   "expectedTargetRowVersion": "{{targetRowVersion}}",
   "operationId": "{{$guid}}"
 }
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/work-package
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "projectCode": "RG-2026-001",
+  "name": "Northern bypass rehabilitation",
+  "description": "Initial project created after handover",
+  "engineeringUtmSrid": 32648,
+  "startDate": "2026-09-01",
+  "endDate": "2027-09-01",
+  "primaryProjectManagerUserId": "{{primaryProjectManagerUserId}}",
+  "handover": {
+    "documentNo": "HD-2026-001",
+    "handoverDate": "2026-08-31",
+    "fileId": null,
+    "notes": "Accepted construction handover"
+  },
+  "operationId": "{{$guid}}"
+}
+
+###
+
+PUT {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated northern bypass",
+  "description": "Updated management metadata",
+  "engineeringUtmSrid": 32649,
+  "startDate": "2026-02-01",
+  "endDate": "2027-02-01",
+  "expectedRowVersion": "{{projectRowVersion}}",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/warranties
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "roadSectionId": null,
+  "handoverDocumentId": "{{handoverDocumentId}}",
+  "handoverDate": "2026-08-31",
+  "warrantyStartDate": "2026-09-01",
+  "warrantyEndDate": "2028-08-31",
+  "retainedValue": 125000000,
+  "scope": "PROJECT",
+  "terms": "Twenty-four month workmanship warranty",
+  "sourceDocumentId": null,
+  "status": "ACTIVE",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/road-sections
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "code": "RS-NB-001",
+  "name": "Northern bypass section 1",
+  "srid": 32648,
+  "coordinates": [
+    { "x": 500000, "y": 1100000 },
+    { "x": 500100, "y": 1100100 }
+  ],
+  "effectiveFrom": "2026-09-21T08:00:00+07:00",
+  "changeReason": "Initial surveyed alignment",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "srid": 32648,
+  "coordinates": [
+    { "x": 500010, "y": 1100010 },
+    { "x": 500200, "y": 1100200 }
+  ],
+  "effectiveFrom": "2026-10-01T08:00:00+07:00",
+  "changeReason": "Corrected surveyed alignment",
+  "expectedCurrentVersionId": "{{roadSectionVersionId}}",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+PUT {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/primary-project-manager
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "primaryProjectManagerUserId": "{{replacementProjectManagerUserId}}",
+  "effectiveFrom": "2026-10-01",
+  "reason": "Supervisor reassigned project ownership",
+  "expectedCurrentMembershipRowVersion": "{{primaryMembershipRowVersion}}",
+  "operationId": "{{$guid}}"
+}

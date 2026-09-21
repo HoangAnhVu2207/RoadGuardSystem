@@ -386,7 +386,7 @@ while ($remaining.Count -gt 0) {
 foreach ($requiredToken in @(
     'Before edits, show:',
     '5-8 line contract',
-    'Http/*.http',
+    'RoadGuardSystem.API/RoadGuardSystem.API.http',
     'at or below 500 lines',
     'Person 1 (`anh`)',
     'Person 2 (`huy`)'

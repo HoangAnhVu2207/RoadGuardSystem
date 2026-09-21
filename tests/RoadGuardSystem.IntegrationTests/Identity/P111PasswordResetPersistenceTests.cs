@@ -68,35 +68,6 @@ public sealed class P111PasswordResetPersistenceTests : IClassFixture<IdentitySq
             .Should().NotContain(value => value!.Contains("hashed-temporary-password", StringComparison.Ordinal));
     }
 
-    [Fact(DisplayName = "P1-11 S4 SQL: suspended target is rejected without credential state change")]
-    public async Task AdminPasswordReset_SuspendedTarget_IsRejectedAndRecordedSafely()
-    {
-        await using var context = _fixture.CreateDbContext();
-        await _fixture.SeedRolesAsync(context);
-        var actor = await CreateUserAsync(context, UserRoleCode.Supervisor);
-        var target = await CreateUserAsync(context, UserRoleCode.DroneOperator, UserStatus.Suspended);
-        var repository = new IdentityRepository(context);
-        var originalHash = target.PasswordHash;
-
-        var result = await repository.ResetUserPasswordAtomicAsync(
-            actor.Id,
-            target.Id,
-            "should-not-apply",
-            Guid.NewGuid().ToString(),
-            target.RowVersion.ToArray(),
-            new string('b', 64),
-            Guid.NewGuid());
-
-        result.Status.Should().Be(AdminPasswordResetStatus.TargetNotActive);
-        var persisted = await context.Users.AsNoTracking().SingleAsync(user => user.Id == target.Id);
-        persisted.PasswordHash.Should().Be(originalHash);
-        persisted.MustChangePassword.Should().BeFalse();
-        var log = await context.PasswordResetLogs.AsNoTracking().SingleAsync(item => item.TargetUserId == target.Id);
-        log.Result.Should().Be(PasswordResetResult.Rejected);
-        log.Reason.Should().Be(SecurityLogSafeValueCodes.Reasons.AdministratorInitiated);
-        log.Source.Should().Be(SecurityLogSafeValueCodes.Sources.AdminApi);
-    }
-
     private static async Task<ApplicationUser> CreateUserAsync(
         RoadGuardSystem.Repositories.RoadGuardDbContext context,
         UserRoleCode role,

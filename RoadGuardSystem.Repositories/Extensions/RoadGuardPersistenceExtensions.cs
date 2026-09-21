@@ -79,10 +79,14 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
         services.AddScoped<NotificationOutboxConsumer>();
-        services.AddScoped<ProjectMembershipReadModel>();
-        services.AddScoped<RoadSectionVersionPersistenceService>();
-        services.AddScoped<WarrantyPersistenceService>();
-        services.AddScoped<SurveyAssignmentPersistenceService>();
+        services.AddScoped<IProjectMembershipRepository, ProjectMembershipReadModel>();
+        services.AddScoped<IProjectWorkPackageRepository, ProjectWorkPackageReadModel>();
+        services.AddScoped<IProjectCreationRepository, ProjectCreationPersistenceService>();
+        services.AddScoped<IProjectUpdateRepository, ProjectUpdatePersistenceService>();
+        services.AddScoped<IPrimaryProjectManagerRepository, PrimaryProjectManagerPersistenceService>();
+        services.AddScoped<IRoadSectionVersionRepository, RoadSectionVersionPersistenceService>();
+        services.AddScoped<IWarrantyRepository, WarrantyPersistenceService>();
+        services.AddScoped<ISurveyAssignmentRepository, SurveyAssignmentPersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));

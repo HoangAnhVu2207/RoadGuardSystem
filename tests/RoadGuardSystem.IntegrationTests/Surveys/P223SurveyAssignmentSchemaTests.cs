@@ -9,7 +9,7 @@ using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
-using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.Repositories.Spatial;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
@@ -148,7 +148,6 @@ public sealed class P223SurveyAssignmentSchemaTests : IClassFixture<IdentitySqlS
                 new Coordinate(588700, 2325200),
                 new Coordinate(588800, 2325300)
             }),
-            SpatialConstants.UtmZone48NSrid,
             DateTimeOffset.UtcNow,
             "Alternate survey scope");
         context.AddRange(otherRoadSection, otherRoadSectionVersion);
@@ -207,9 +206,13 @@ public sealed class P223SurveyAssignmentSchemaTests : IClassFixture<IdentitySqlS
         var service = new SurveyAssignmentPersistenceService(
             context,
             new IdempotencyOperationService(context));
+        var facts = await service.GetReassignmentFactsAsync(request.Id);
+        facts.Should().NotBeNull();
 
         var result = await service.ReassignAsync(
             request.Id,
+            facts!.ProjectId,
+            facts.ActiveAssignmentId,
             replacement,
             scope.ProjectManagerUserId,
             DateTimeOffset.UtcNow,
@@ -218,6 +221,8 @@ public sealed class P223SurveyAssignmentSchemaTests : IClassFixture<IdentitySqlS
             new string('a', 64));
         var replay = await service.ReassignAsync(
             request.Id,
+            facts.ProjectId,
+            facts.ActiveAssignmentId,
             replacement,
             scope.ProjectManagerUserId,
             DateTimeOffset.UtcNow,
@@ -292,9 +297,13 @@ public sealed class P223SurveyAssignmentSchemaTests : IClassFixture<IdentitySqlS
             null,
             null);
         var service = new SurveyAssignmentPersistenceService(context, new IdempotencyOperationService(context));
+        var facts = await service.GetReassignmentFactsAsync(request.Id);
+        facts.Should().NotBeNull();
 
         var result = await service.ReassignAsync(
             request.Id,
+            facts!.ProjectId,
+            facts.ActiveAssignmentId,
             replacement,
             scope.ProjectManagerUserId,
             DateTimeOffset.UtcNow,
@@ -400,7 +409,6 @@ public sealed class P223SurveyAssignmentSchemaTests : IClassFixture<IdentitySqlS
                 new Coordinate(588500, 2325000),
                 new Coordinate(588600, 2325100)
             }),
-            SpatialConstants.UtmZone48NSrid,
             DateTimeOffset.UtcNow,
             "Initial survey scope");
         context.AddRange(project, projectManager, operatorUser, roadSection, version);

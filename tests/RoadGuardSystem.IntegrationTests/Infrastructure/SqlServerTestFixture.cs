@@ -19,6 +19,9 @@ public delegate string? EnvironmentVariableAccessor(string variableName);
 /// </summary>
 public sealed class SqlServerTestFixture : IAsyncLifetime
 {
+    private static readonly SemaphoreSlim SharedContainerLock = new(1, 1);
+    private static MsSqlContainer? SharedContainer;
+    private readonly bool _createSpatialProbeSchema;
     private readonly EnvironmentVariableAccessor _environmentAccessor;
     private MsSqlContainer? _container;
     private bool _ownsContainer;
@@ -36,12 +39,16 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
     /// </summary>
     public bool SimulateDropFailure { get; set; }
 
-    public SqlServerTestFixture() : this(null, null)
+    public SqlServerTestFixture() : this(null, null, true)
     {
     }
 
-    internal SqlServerTestFixture(EnvironmentVariableAccessor? environmentAccessor = null, string? masterConnectionString = null)
+    internal SqlServerTestFixture(
+        EnvironmentVariableAccessor? environmentAccessor = null,
+        string? masterConnectionString = null,
+        bool createSpatialProbeSchema = true)
     {
+        _createSpatialProbeSchema = createSpatialProbeSchema;
         _environmentAccessor = environmentAccessor ?? Environment.GetEnvironmentVariable;
         _masterConnectionString = masterConnectionString;
     }
@@ -68,9 +75,11 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
         // Create the isolated test database
         await CreateDatabaseAsync(_databaseName);
 
-        // Initialize schema with SpatialProbeDbContext
-        await using var context = CreateDbContext();
-        await context.Database.EnsureCreatedAsync();
+        if (_createSpatialProbeSchema)
+        {
+            await using var context = CreateDbContext();
+            await context.Database.EnsureCreatedAsync();
+        }
     }
 
     public SpatialProbeDbContext CreateDbContext()
@@ -219,14 +228,27 @@ END";
             return builder.ConnectionString;
         }
 
-        // 2. If environment variable is unset: use Testcontainers directly (no hardcoded instance strings)
+        // 2. If environment variable is unset: share one Testcontainers instance for this test process.
         try
         {
-            var container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
-            await container.StartAsync();
-            _container = container;
-            _ownsContainer = true;
-            return container.GetConnectionString();
+            await SharedContainerLock.WaitAsync();
+            try
+            {
+                if (SharedContainer is null)
+                {
+                    var container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
+                    await container.StartAsync();
+                    SharedContainer = container;
+                }
+
+                _container = SharedContainer;
+                _ownsContainer = false;
+                return SharedContainer.GetConnectionString();
+            }
+            finally
+            {
+                SharedContainerLock.Release();
+            }
         }
         catch (Exception ex)
         {

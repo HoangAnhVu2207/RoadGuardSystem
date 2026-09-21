@@ -17,11 +17,17 @@ public sealed class ConsumerEffectReceipt
     public DateTimeOffset ProcessedAtUtc { get; private set; }
 
     public static ConsumerEffectReceipt Create(
+        Guid id,
         Guid messageId,
         string consumerName,
         Guid effectId,
         DateTimeOffset processedAt)
     {
+        if (id == Guid.Empty || messageId == Guid.Empty || effectId == Guid.Empty)
+        {
+            throw new ArgumentException("Receipt, message, and effect ids must not be empty.");
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(consumerName);
         if (consumerName.Length > 100)
         {
@@ -30,7 +36,7 @@ public sealed class ConsumerEffectReceipt
 
         return new ConsumerEffectReceipt
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             MessageId = messageId,
             ConsumerName = consumerName.Trim(),
             EffectId = effectId,

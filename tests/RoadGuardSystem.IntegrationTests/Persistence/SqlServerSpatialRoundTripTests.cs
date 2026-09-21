@@ -2,7 +2,7 @@ using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
-using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.Repositories.Spatial;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -168,5 +168,28 @@ WHERE c.object_id = OBJECT_ID('SpatialProbeRecords')
         // ASSERT: Query master sys.databases on the still-living server to confirm database was dropped
         var existsAfter = await _fixture.DatabaseExistsAsync(dbName);
         existsAfter.Should().BeFalse("the test database must be dropped when fixture is disposed");
+    }
+
+    [Fact(DisplayName = "Positive: Empty database fixture does not create spatial probe schema")]
+    public async Task EmptyDatabaseFixture_DoesNotCreateSpatialProbeSchema()
+    {
+        var tempFixture = new SqlServerTestFixture(
+            masterConnectionString: _fixture.MasterConnectionString,
+            createSpatialProbeSchema: false);
+        await tempFixture.InitializeAsync();
+
+        try
+        {
+            await using var context = tempFixture.CreateDbContext();
+            var tableCount = await context.Database.SqlQueryRaw<int>(
+                    "SELECT CAST(COUNT(*) AS int) AS [Value] FROM sys.tables WHERE [name] = 'SpatialProbeRecords'")
+                .SingleAsync();
+
+            tableCount.Should().Be(0);
+        }
+        finally
+        {
+            await tempFixture.DisposeAsync();
+        }
     }
 }

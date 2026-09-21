@@ -1,8 +1,12 @@
 using FluentAssertions;
 using RoadGuardSystem.Repositories.Identity;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.Services.Factories;
+using RoadGuardSystem.Services.Generators;
+using RoadGuardSystem.Services.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Identity;
+using RoadGuardSystem.Repositories.Options;
 using Xunit;
 
 namespace RoadGuardSystem.UnitTests.Authentication;
@@ -338,6 +342,9 @@ public sealed class AuthServiceTests
 
         public Task<UserSecurityState?> GetUserSecurityStateAsync(Guid userId, CancellationToken cancellationToken = default) =>
             Task.FromResult(User);
+
+        public Task<bool> IsRoleActiveAsync(UserRoleCode roleCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
 
         public Task<UserSecurityState?> GetUserSecurityStateByUsernameAsync(string username, CancellationToken cancellationToken = default) =>
             Task.FromResult(User);

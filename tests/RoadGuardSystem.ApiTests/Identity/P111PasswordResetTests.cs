@@ -12,7 +12,8 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Identity;
 
 [Trait("TaskId", "P1-11")]
-public sealed class P111PasswordResetTests : IClassFixture<AuthenticationSqlServerFixture>
+[Collection(AuthenticationApiFixture.Name)]
+public sealed class P111PasswordResetTests
 {
     private readonly AuthenticationSqlServerFixture _sql;
 
@@ -102,6 +103,49 @@ public sealed class P111PasswordResetTests : IClassFixture<AuthenticationSqlServ
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         ProblemCode(await response.Content.ReadAsStringAsync()).Should().Be("access_forbidden");
+    }
+
+    [Fact(DisplayName = "P1-11 S5 Negative: Supervisor cannot reset a suspended target")]
+    public async Task PasswordReset_SuspendedTarget_ReturnsConflictWithoutCredentialChanges()
+    {
+        var supervisorName = $"reset_suspended_supervisor_{Guid.NewGuid():N}";
+        var targetName = $"reset_suspended_target_{Guid.NewGuid():N}";
+        var supervisor = await _sql.CreateUserAsync(supervisorName, "Supervisor1!", UserRoleCode.Supervisor);
+        var target = await _sql.CreateUserAsync(
+            targetName,
+            "Current1!",
+            UserRoleCode.DroneOperator,
+            UserStatus.Suspended);
+        string expectedVersion;
+        string originalPasswordHash;
+        await using (var context = _sql.CreateDbContext())
+        {
+            var persistedTarget = await context.Users.AsNoTracking().SingleAsync(user => user.Id == target.Id);
+            expectedVersion = Convert.ToBase64String(persistedTarget.RowVersion);
+            originalPasswordHash = persistedTarget.PasswordHash!;
+        }
+
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var supervisorClient = factory.CreateClient();
+        await AuthenticateAsync(supervisorClient, supervisorName, "Supervisor1!");
+
+        var response = await supervisorClient.PostAsJsonAsync(
+            $"/api/v1/admin/users/{target.Id}/password-reset",
+            new { expectedTargetRowVersion = expectedVersion, operationId = Guid.NewGuid() });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var body = await response.Content.ReadAsStringAsync();
+        ProblemCode(body).Should().Be(ApiErrorCodes.IdentityUserInactive);
+        body.Should().NotContain("temporaryPassword").And.NotContain("passwordHash");
+
+        await using var verification = _sql.CreateDbContext();
+        var verificationTarget = await verification.Users.AsNoTracking().SingleAsync(user => user.Id == target.Id);
+        verificationTarget.PasswordHash.Should().Be(originalPasswordHash);
+        verificationTarget.MustChangePassword.Should().BeFalse();
+        (await verification.Sessions.CountAsync(session => session.UserId == target.Id)).Should().Be(0);
+        (await verification.PasswordResetLogs.CountAsync(log => log.TargetUserId == target.Id)).Should().Be(0);
+        (await verification.AuditLogs.CountAsync(log => log.EntityId == target.Id && log.EventType == "user_password_reset"))
+            .Should().Be(0);
     }
 
     private static async Task AuthenticateAsync(HttpClient client, string username, string password)

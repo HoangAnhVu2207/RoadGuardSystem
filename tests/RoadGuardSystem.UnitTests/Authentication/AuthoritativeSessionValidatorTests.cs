@@ -211,6 +211,9 @@ public sealed class AuthoritativeSessionValidatorTests
         public Task<UserSecurityState?> GetUserSecurityStateAsync(Guid userId, CancellationToken cancellationToken = default) =>
             ThrowOnRead ? throw new InvalidOperationException("store unavailable") : Task.FromResult(User);
 
+        public Task<bool> IsRoleActiveAsync(UserRoleCode roleCode, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<SessionSecurityState?> GetSessionSecurityStateAsync(Guid sessionId, CancellationToken cancellationToken = default) =>
             ThrowOnRead ? throw new InvalidOperationException("store unavailable") : Task.FromResult(Session);
 

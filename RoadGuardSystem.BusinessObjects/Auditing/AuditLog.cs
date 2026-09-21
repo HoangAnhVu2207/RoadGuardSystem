@@ -55,6 +55,8 @@ public sealed class AuditLog
         {
             throw new ArgumentException("Audit snapshots require an explicit field allow-list.", nameof(snapshotAllowedPropertyNames));
         }
+        ValidateOptionalJson(beforeSnapshot, nameof(beforeSnapshot));
+        ValidateOptionalJson(afterSnapshot, nameof(afterSnapshot));
 
         var audit = new AuditLog
         {
@@ -75,7 +77,6 @@ public sealed class AuditLog
             audit._snapshotAllowedPropertyNames.UnionWith(snapshotAllowedPropertyNames);
         }
 
-        audit.SanitizeSnapshotsForPersistence();
         return audit;
     }
 
@@ -83,10 +84,12 @@ public sealed class AuditLog
     /// Reapplies the captured insertion policy after EF property-entry mutation, before persistence.
     /// This cannot broaden the permitted fields or replace the policy.
     /// </summary>
-    public void SanitizeSnapshotsForPersistence()
+    public void SanitizeSnapshotsForPersistence(
+        Func<string, IReadOnlyCollection<string>, string> sanitizer)
     {
-        BeforeSnapshot = SanitizeOptionalJson(BeforeSnapshot, nameof(BeforeSnapshot));
-        AfterSnapshot = SanitizeOptionalJson(AfterSnapshot, nameof(AfterSnapshot));
+        ArgumentNullException.ThrowIfNull(sanitizer);
+        BeforeSnapshot = SanitizeOptionalJson(BeforeSnapshot, nameof(BeforeSnapshot), sanitizer);
+        AfterSnapshot = SanitizeOptionalJson(AfterSnapshot, nameof(AfterSnapshot), sanitizer);
     }
 
     private static void ValidateRequired(string value, string parameterName, int maxLength)
@@ -98,7 +101,31 @@ public sealed class AuditLog
         }
     }
 
-    private string? SanitizeOptionalJson(string? json, string parameterName)
+    private static void ValidateOptionalJson(string? json, string parameterName)
+    {
+        if (json is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+            {
+                throw new ArgumentException("JSON root must be an object or array.", parameterName);
+            }
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("Value must be valid JSON.", parameterName, exception);
+        }
+    }
+
+    private string? SanitizeOptionalJson(
+        string? json,
+        string parameterName,
+        Func<string, IReadOnlyCollection<string>, string> sanitizer)
     {
         if (json is null)
         {
@@ -107,22 +134,11 @@ public sealed class AuditLog
 
         try
         {
-            return SensitiveJsonSanitizer.ApplyAllowList(json, _snapshotAllowedPropertyNames);
+            return sanitizer(json, _snapshotAllowedPropertyNames);
         }
         catch (JsonException exception)
         {
             throw new ArgumentException("Value must be valid JSON.", parameterName, exception);
-        }
-    }
-}
-
-internal static class StructuredJsonValidation
-{
-    internal static void EnsureObjectOrArray(JsonElement root, string parameterName)
-    {
-        if (root.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
-        {
-            throw new ArgumentException("JSON root must be an object or array.", parameterName);
         }
     }
 }

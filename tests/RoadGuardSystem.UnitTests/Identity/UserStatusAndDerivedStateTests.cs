@@ -39,9 +39,9 @@ public sealed class UserStatusAndDerivedStateTests
             RevokedAt = null
         };
 
-        session.IsActive.Should().BeTrue();
+        session.IsActiveAt(DateTimeOffset.UtcNow).Should().BeTrue();
         session.IsRevoked.Should().BeFalse();
-        session.IsExpired.Should().BeFalse();
+        session.IsExpiredAt(DateTimeOffset.UtcNow).Should().BeFalse();
     }
 
     [Fact(DisplayName = "P2-10 UserSession derived state: Revoked")]
@@ -57,9 +57,9 @@ public sealed class UserStatusAndDerivedStateTests
             RevokedAt = now.AddMinutes(-2)
         };
 
-        session.IsActive.Should().BeFalse();
+        session.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
         session.IsRevoked.Should().BeTrue();
-        session.IsExpired.Should().BeFalse();
+        session.IsExpiredAt(DateTimeOffset.UtcNow).Should().BeFalse();
     }
 
     [Fact(DisplayName = "P2-10 UserSession derived state: Expired")]
@@ -75,8 +75,8 @@ public sealed class UserStatusAndDerivedStateTests
             RevokedAt = null
         };
 
-        session.IsActive.Should().BeFalse();
+        session.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
         session.IsRevoked.Should().BeFalse();
-        session.IsExpired.Should().BeTrue();
+        session.IsExpiredAt(DateTimeOffset.UtcNow).Should().BeTrue();
     }
 }

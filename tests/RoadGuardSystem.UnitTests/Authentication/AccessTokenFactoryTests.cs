@@ -1,6 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using FluentAssertions;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.Services.Factories;
+using RoadGuardSystem.Services.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 

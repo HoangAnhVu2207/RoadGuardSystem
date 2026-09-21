@@ -1,6 +1,6 @@
 using FluentAssertions;
 using NetTopologySuite.Geometries;
-using RoadGuardSystem.BusinessObjects.Spatial;
+using RoadGuardSystem.Repositories.Spatial;
 using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Spatial;

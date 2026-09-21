@@ -1,5 +1,6 @@
 using FluentAssertions;
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.BusinessObjects.Projects;
 using Xunit;
 
 namespace RoadGuardSystem.UnitTests.Smoke;
@@ -15,7 +16,7 @@ public sealed class BusinessObjectsSmokeTests
     public void BusinessObjects_Assembly_LoadsSuccessfully()
     {
         // ARRANGE & ACT
-        var assembly = typeof(BaseEntity).Assembly;
+        var assembly = typeof(Project).Assembly;
 
         // ASSERT
         assembly.Should().NotBeNull();

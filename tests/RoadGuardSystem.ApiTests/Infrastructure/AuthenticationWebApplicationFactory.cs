@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,6 +77,7 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
         builder.ConfigureServices(services =>
         {
             services.AddControllers().AddApplicationPart(typeof(AuthenticationWebApplicationFactory).Assembly);
+            services.Configure<PasswordHasherOptions>(options => options.IterationCount = 10_000);
             _configureTestServices?.Invoke(services);
         });
     }

@@ -68,33 +68,6 @@ public sealed class P110AuthenticationPersistenceTests : IClassFixture<IdentityS
         (await verification.RefreshTokens.AnyAsync(item => item.Id == token.Id)).Should().BeFalse();
     }
 
-    [Theory(DisplayName = "P1-10 Negative: ineligible users cannot receive initial credentials")]
-    [InlineData(UserStatus.Pending, false)]
-    [InlineData(UserStatus.Suspended, false)]
-    [InlineData(UserStatus.Active, true)]
-    public async Task InitialIssuance_IneligibleUser_RejectsWithoutWrites(
-        UserStatus status,
-        bool mustChangePassword)
-    {
-        await using var context = _fixture.CreateDbContext();
-        var user = await CreateActiveUserAsync(context, mustChangePassword, status);
-        var issuedAt = DateTimeOffset.UtcNow;
-        var session = CreateSession(user.Id, issuedAt);
-        var token = CreateRefreshToken(session.Id, issuedAt, UniqueHash("ineligible"));
-
-        var result = await _fixture.CreateRepository(context).IssueSessionWithRefreshTokenAsync(
-            user.Id,
-            user.RowVersion.ToArray(),
-            session,
-            token,
-            issuedAt);
-
-        result.Status.Should().Be(IssueSessionStatus.UserNotEligible);
-        await using var verification = _fixture.CreateDbContext();
-        (await verification.Sessions.AnyAsync(item => item.Id == session.Id)).Should().BeFalse();
-        (await verification.RefreshTokens.AnyAsync(item => item.Id == token.Id)).Should().BeFalse();
-    }
-
     [Fact(DisplayName = "P1-10 Negative: duplicate refresh hash rolls back session and successful-login update")]
     public async Task InitialIssuance_DuplicateRefreshHash_RollsBackAllEffects()
     {

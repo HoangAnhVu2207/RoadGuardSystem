@@ -1,5 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -7,8 +9,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Authentication;
+using RoadGuardSystem.API.Authorization;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.Services.Extensions;
+using RoadGuardSystem.Services.Options;
+using RoadGuardSystem.Services.Authorization;
+using RoadGuardSystem.Services.Projects;
+using RoadGuardSystem.Services.Warranties;
+using RoadGuardSystem.Services.Surveys;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace RoadGuardSystem.API.Extensions;
@@ -39,7 +48,24 @@ public static class ServiceCollectionExtensions
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options => JwtBearerConfiguration.Configure(options, jwtOptions));
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(ProjectAuthorizationPolicies.WorkPackageRead, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.AddRequirements(new ProjectAccessRequirement());
+            });
+        });
+        services.AddScoped<IProjectScopeGuard, ProjectScopeGuard>();
+        services.AddScoped<IProjectWorkPackageService, ProjectWorkPackageService>();
+        services.AddScoped<IProjectCreationService, ProjectCreationService>();
+        services.AddScoped<IProjectUpdateService, ProjectUpdateService>();
+        services.AddScoped<IPrimaryProjectManagerService, PrimaryProjectManagerService>();
+        services.AddScoped<IWarrantyCreationService, WarrantyCreationService>();
+        services.AddScoped<IRoadSectionVersionService, RoadSectionVersionService>();
+        services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
+        services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProjectAuthorizationMiddlewareResultHandler>();
 
         // 1. Health Checks (unversioned process liveness check, no DB or Docker required)
         services.AddHealthChecks();

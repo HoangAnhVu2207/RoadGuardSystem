@@ -13,19 +13,13 @@ namespace RoadGuardSystem.IntegrationTests.Infrastructure;
 
 public sealed class IdentitySqlServerFixture : IAsyncLifetime
 {
-    private readonly SqlServerTestFixture _database = new();
+    private readonly SqlServerTestFixture _database = new(createSpatialProbeSchema: false);
 
     public string ConnectionString => _database.ConnectionString;
 
     public async Task InitializeAsync()
     {
         await _database.InitializeAsync();
-
-        await using (var baselineContext = _database.CreateDbContext())
-        {
-            await baselineContext.Database.EnsureDeletedAsync();
-        }
-
         await using var context = CreateDbContext();
         await context.Database.MigrateAsync();
     }

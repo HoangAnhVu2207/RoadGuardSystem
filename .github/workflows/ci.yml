@@ -2,47 +2,109 @@ name: RoadGuard Continuous Integration
 
 on:
   pull_request:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
   push:
-    branches:
-      - develop
-      - main
-      - anh
-      - huy
+    branches: [develop, main, anh, huy]
+  schedule:
+    - cron: "0 18 * * *"
   workflow_dispatch:
+    inputs:
+      collect_coverage:
+        description: Collect coverage for this run
+        required: false
+        default: false
+        type: boolean
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  SQL_IMAGE: "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04"
 
 jobs:
-  build-and-test:
-    name: Build, Verify, and Test
+  verify:
+    name: Verify source contracts
     runs-on: ubuntu-latest
-
-    env:
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
-      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.401'
+          dotnet-version: "10.0.401"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - run: pwsh -File tests/Documentation/Verify-P102Docs.ps1
+      - run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
+      - run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
+      - run: pwsh -File tests/Security/Verify-DependencySecurity.ps1
+      - run: dotnet restore RoadGuardSystem.slnx
+      - run: dotnet format --verify-no-changes --no-restore
 
-      - name: Verify Documentation Contract
-        run: pwsh -File tests/Documentation/Verify-P102Docs.ps1
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.401"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - run: dotnet restore RoadGuardSystem.slnx
+      - run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+      - if: ${{ github.event_name != 'schedule' && inputs.collect_coverage != true }}
+        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --nologo -v q
+      - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
+        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --results-directory TestResults/UnitTests
+      - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: TestResults/UnitTests/**/coverage.cobertura.xml
 
-      - name: Verify Docker Compose Configuration
-        run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.401"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - run: docker pull ${{ env.SQL_IMAGE }}
+      - run: dotnet restore RoadGuardSystem.slnx
+      - run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+      - if: ${{ github.event_name != 'schedule' && inputs.collect_coverage != true }}
+        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q
+      - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
+        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --results-directory TestResults/ApiTests
+      - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: TestResults/ApiTests/**/coverage.cobertura.xml
 
-      - name: Verify CI Workflow Integrity
-        run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
-
-      - name: Verify Dependency Security
-        run: pwsh -File tests/Security/Verify-DependencySecurity.ps1
-
+  integration:
+    name: SQL integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.401"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
       - name: Generate ephemeral SQL credential
         shell: pwsh
         run: |
@@ -60,7 +122,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to restrict the SQL credential file permissions."
           }
-
       - name: Start SQL Server container
         shell: pwsh
         run: |
@@ -79,7 +140,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to start the SQL Server container."
           }
-
       - name: Wait for SQL Server readiness
         shell: pwsh
         run: |
@@ -99,23 +159,9 @@ jobs:
 
           docker logs roadguard-ci-sqlserver
           throw 'SQL Server readiness timeout after 3 minutes.'
-
-      - name: Restore dependencies
-        run: dotnet restore RoadGuardSystem.slnx
-
-      - name: Verify code formatting
-        run: dotnet format --verify-no-changes
-
-      - name: Build solution (non-incremental)
-        run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
-
-      - name: Run Unit Tests with coverage
-        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/UnitTests
-
-      - name: Run API Tests with coverage
-        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/ApiTests
-
-      - name: Run Integration Tests with coverage
+      - run: dotnet restore RoadGuardSystem.slnx
+      - run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+      - name: Run integration tests
         shell: pwsh
         run: |
           $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
@@ -125,12 +171,12 @@ jobs:
           }
           $password = $credential.Substring('MSSQL_SA_PASSWORD='.Length)
           $env:ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True;"
-          dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
+          if ("${{ github.event_name }}" -eq "schedule" -or "${{ inputs.collect_coverage }}" -eq "true") {
+            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
+          } else {
+            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v q
           }
-
-      - name: Validate Seeder Entry Point
+      - name: Validate Seeder entry point
         shell: pwsh
         run: |
           $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
@@ -169,14 +215,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
-
-      - name: Upload Code Coverage Artifact
+      - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: code-coverage-reports
-          path: TestResults/**/coverage.cobertura.xml
-
+          name: integration-coverage
+          path: TestResults/IntegrationTests/**/coverage.cobertura.xml
       - name: Cleanup SQL Server container and credential
         if: always()
         shell: pwsh

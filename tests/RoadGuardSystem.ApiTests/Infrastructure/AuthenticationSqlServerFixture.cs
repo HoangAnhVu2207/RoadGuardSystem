@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories;
@@ -12,7 +13,10 @@ namespace RoadGuardSystem.ApiTests.Infrastructure;
 
 public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
 {
+    private static readonly SemaphoreSlim SharedContainerLock = new(1, 1);
+    private static MsSqlContainer? SharedContainer;
     private MsSqlContainer? _container;
+    private bool _usesSharedContainer;
     private string? _masterConnectionString;
     private string? _databaseName;
 
@@ -23,9 +27,23 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
         var configured = Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
         if (configured is null)
         {
-            _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
-            await _container.StartAsync();
-            _masterConnectionString = _container.GetConnectionString();
+            await SharedContainerLock.WaitAsync();
+            try
+            {
+                if (SharedContainer is null)
+                {
+                    SharedContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
+                    await SharedContainer.StartAsync();
+                }
+
+                _container = SharedContainer;
+                _usesSharedContainer = true;
+                _masterConnectionString = SharedContainer.GetConnectionString();
+            }
+            finally
+            {
+                SharedContainerLock.Release();
+            }
         }
         else
         {
@@ -89,7 +107,8 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
             SecurityStamp = Guid.NewGuid().ToString("N"),
             CreatedAt = DateTimeOffset.UtcNow
         };
-        user.PasswordHash = new PasswordHasher<ApplicationUser>().HashPassword(user, password);
+        user.PasswordHash = new PasswordHasher<ApplicationUser>(Options.Create(
+            new PasswordHasherOptions { IterationCount = 10_000 })).HashPassword(user, password);
 
         await using var context = CreateDbContext();
         context.Users.Add(user);
@@ -112,7 +131,7 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
         }
         finally
         {
-            if (_container is not null)
+            if (_container is not null && !_usesSharedContainer)
             {
                 await _container.DisposeAsync();
             }

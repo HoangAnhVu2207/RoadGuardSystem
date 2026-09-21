@@ -1,5 +1,4 @@
 using System.Text.Json;
-using RoadGuardSystem.BusinessObjects.Auditing;
 
 namespace RoadGuardSystem.BusinessObjects.Messaging;
 
@@ -33,10 +32,13 @@ public sealed class OutboxMessage
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(payloadJson);
-        string sanitizedPayloadJson;
         try
         {
-            sanitizedPayloadJson = SensitiveJsonSanitizer.Redact(payloadJson);
+            using var document = JsonDocument.Parse(payloadJson);
+            if (document.RootElement.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+            {
+                throw new ArgumentException("Payload JSON root must be an object or array.", nameof(payloadJson));
+            }
         }
         catch (JsonException exception)
         {
@@ -49,7 +51,7 @@ public sealed class OutboxMessage
             MessageType = messageType.Trim(),
             OccurredAtUtc = occurredAt.ToUniversalTime(),
             CorrelationId = correlationId,
-            PayloadJson = sanitizedPayloadJson
+            PayloadJson = payloadJson
         };
     }
 }

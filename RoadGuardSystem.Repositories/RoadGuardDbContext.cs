@@ -13,10 +13,13 @@ using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
-using RoadGuardSystem.BusinessObjects.Spatial;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.Repositories.Concurrency;
+using RoadGuardSystem.Repositories.Auditing;
+using RoadGuardSystem.Repositories.Identity;
+using RoadGuardSystem.Repositories.Options;
+using RoadGuardSystem.Repositories.Spatial;
 
 using Microsoft.Extensions.Options;
 
@@ -225,7 +228,7 @@ public class RoadGuardDbContext : DbContext
 
         foreach (var entry in ChangeTracker.Entries<AuditLog>().Where(entry => entry.State == EntityState.Added))
         {
-            entry.Entity.SanitizeSnapshotsForPersistence();
+            entry.Entity.SanitizeSnapshotsForPersistence(SensitiveJsonSanitizer.ApplyAllowList);
         }
 
         // 2. OutboxMessage sanitization
@@ -351,6 +354,11 @@ public class RoadGuardDbContext : DbContext
         {
             if (entry.State == EntityState.Added)
             {
+                if (entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
+                }
+
                 if (entry.Entity.RoleCode == UserRoleCode.Unknown)
                 {
                     throw new InvalidOperationException("ApplicationUser RoleCode cannot be Unknown.");
@@ -374,6 +382,11 @@ public class RoadGuardDbContext : DbContext
             {
                 throw new InvalidOperationException("Direct modification of ApplicationUser.RoleCode is forbidden. Role mutations must execute through the atomic role change boundary (IIdentityRepository.ChangeUserRoleAtomicAsync).");
             }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<ApplicationRole>().Where(e => e.State == EntityState.Added))
+        {
+            entry.Entity.ConcurrencyStamp ??= Guid.NewGuid().ToString();
         }
     }
 }

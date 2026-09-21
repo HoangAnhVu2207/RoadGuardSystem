@@ -99,7 +99,8 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         SupplementRequired = 7,
         Completed = 8,
         Cancelled = 9,
-        Postponed = 10
+        Postponed = 10,
+        PendingAssignment = 11
     }
 
     public enum SurveyStatus : byte

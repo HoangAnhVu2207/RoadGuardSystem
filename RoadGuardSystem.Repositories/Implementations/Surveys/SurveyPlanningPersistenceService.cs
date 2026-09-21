@@ -153,7 +153,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                         request.SurveyPlanId,
                         request.ActorUserId,
                         request.SurveyType,
-                        SurveyRequestStatus.PendingAssignment,
+                        SurveyRequestStatus.NewAssigned,
                         now,
                         request.DueAt,
                         request.OutputRequirements);

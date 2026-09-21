@@ -14,7 +14,7 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
         {
             table.HasTrigger("TR_SurveyRequests_ScopeIntegrity");
             table.HasCheckConstraint("CK_SurveyRequests_SurveyType", "[SurveyType] IN (1, 2, 3)");
-            table.HasCheckConstraint("CK_SurveyRequests_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)");
+            table.HasCheckConstraint("CK_SurveyRequests_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)");
             table.HasCheckConstraint("CK_SurveyRequests_OutputRequirements_Json", "ISJSON([OutputRequirements]) = 1");
             table.HasCheckConstraint(
                 "CK_SurveyRequests_Cancellation",
@@ -62,7 +62,7 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
             .HasDatabaseName("IX_SurveyRequests_ProjectRoadStatus");
         builder.HasIndex(request => request.SurveyPlanId)
             .IsUnique()
-            .HasFilter("[SurveyPlanId] IS NOT NULL AND [Status] IN (1, 2, 4, 5, 6, 7, 10, 11)")
+            .HasFilter("[SurveyPlanId] IS NOT NULL AND [Status] IN (1, 2, 4, 5, 6, 7, 10)")
             .HasDatabaseName("UX_SurveyRequests_ActivePlan");
         builder.HasOne<Project>()
             .WithMany()

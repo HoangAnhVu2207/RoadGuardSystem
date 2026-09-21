@@ -42,7 +42,7 @@ public sealed class P122SurveyPlanningPersistenceTests
             plan.Id,
             Guid.NewGuid(),
             SurveyType.Periodic,
-            SurveyRequestStatus.PendingAssignment,
+            SurveyRequestStatus.NewAssigned,
             requestedAt,
             dueAt,
             outputRequirements);
@@ -50,7 +50,7 @@ public sealed class P122SurveyPlanningPersistenceTests
         plan.OutputRequirements.Should().Be(outputRequirements);
         request.DueAt.Should().Be(dueAt);
         request.OutputRequirements.Should().Be(outputRequirements);
-        request.Status.Should().Be(SurveyRequestStatus.PendingAssignment);
+        request.Status.Should().Be(SurveyRequestStatus.NewAssigned);
     }
 }
 
@@ -106,7 +106,7 @@ public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<Identi
             Guid.NewGuid());
         var createdRequest = await repository.CreateRequestAsync(request);
         createdRequest.Status.Should().Be(SurveyRequestPersistenceStatus.Success);
-        createdRequest.Request!.Status.Should().Be(SurveyRequestStatus.PendingAssignment);
+        createdRequest.Request!.Status.Should().Be(SurveyRequestStatus.NewAssigned);
 
         var postpone = new SurveyPlanPostponementPersistenceRequest(
             scope.UserId,

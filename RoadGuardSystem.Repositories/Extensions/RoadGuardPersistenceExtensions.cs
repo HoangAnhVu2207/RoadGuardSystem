@@ -80,6 +80,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
         services.AddScoped<NotificationOutboxConsumer>();
+        services.AddScoped<IOutboxWorkRepository, OutboxWorkRepository>();
         services.AddScoped<IProjectMembershipRepository, ProjectMembershipReadModel>();
         services.AddScoped<IProjectWorkPackageRepository, ProjectWorkPackageReadModel>();
         services.AddScoped<IProjectCreationRepository, ProjectCreationPersistenceService>();

@@ -155,6 +155,33 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Backend = 1
     }
 
+    public enum ProcessingJobStatus : byte
+    {
+        Unknown = 0,
+        Queued = 1,
+        Running = 2,
+        RetryableFailure = 3,
+        DataFailure = 4,
+        Completed = 5,
+        Cancelled = 6
+    }
+
+    public enum ProcessingAttemptErrorType : byte
+    {
+        Unknown = 0,
+        Infrastructure = 1,
+        Data = 2,
+        None = 3
+    }
+
+    public enum AIModelVersionStatus : byte
+    {
+        Unknown = 0,
+        Draft = 1,
+        Released = 2,
+        Retired = 3
+    }
+
     public enum QualityCheckScope : byte
     {
         Unknown = 0,
@@ -209,5 +236,13 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Submitted = 5,
         Rejected = 6,
         Cancelled = 7
+    }
+
+    public enum OutboxDeliveryStatus : byte
+    {
+        Pending = 1,
+        Leased = 2,
+        Completed = 3,
+        DeadLetter = 4
     }
 }

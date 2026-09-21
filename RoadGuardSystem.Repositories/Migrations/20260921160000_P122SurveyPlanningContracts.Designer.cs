@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
@@ -12,9 +13,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921160000_P122SurveyPlanningContracts")]
+    partial class P122SurveyPlanningContracts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1589,7 +1592,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasIndex("SurveyPlanId")
                         .IsUnique()
                         .HasDatabaseName("UX_SurveyRequests_ActivePlan")
-                        .HasFilter("[SurveyPlanId] IS NOT NULL AND [Status] IN (1, 2, 4, 5, 6, 7, 10)");
+                        .HasFilter("[SurveyPlanId] IS NOT NULL AND [Status] IN (1, 2, 4, 5, 6, 7, 10, 11)");
 
                     b.HasIndex("ProjectId", "RoadSectionId", "Status")
                         .HasDatabaseName("IX_SurveyRequests_ProjectRoadStatus");
@@ -1602,7 +1605,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_SurveyRequests_OutputRequirements_Json", "ISJSON([OutputRequirements]) = 1");
 
-                            t.HasCheckConstraint("CK_SurveyRequests_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)");
+                            t.HasCheckConstraint("CK_SurveyRequests_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)");
 
                             t.HasCheckConstraint("CK_SurveyRequests_SurveyType", "[SurveyType] IN (1, 2, 3)");
                         });

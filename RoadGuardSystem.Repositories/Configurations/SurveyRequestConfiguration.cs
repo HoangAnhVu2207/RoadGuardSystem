@@ -15,6 +15,7 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
             table.HasTrigger("TR_SurveyRequests_ScopeIntegrity");
             table.HasCheckConstraint("CK_SurveyRequests_SurveyType", "[SurveyType] IN (1, 2, 3)");
             table.HasCheckConstraint("CK_SurveyRequests_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)");
+            table.HasCheckConstraint("CK_SurveyRequests_OutputRequirements_Json", "ISJSON([OutputRequirements]) = 1");
             table.HasCheckConstraint(
                 "CK_SurveyRequests_Cancellation",
                 "([Status] = 9 AND [CancelledAt] IS NOT NULL AND LEN(LTRIM(RTRIM([CancellationReason]))) > 0) " +
@@ -46,6 +47,12 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
             .IsRequired();
         builder.Property(request => request.RequestedAt)
             .HasColumnType("datetimeoffset(7)")
+            .IsRequired();
+        builder.Property(request => request.DueAt)
+            .HasColumnType("datetimeoffset(7)")
+            .IsRequired();
+        builder.Property(request => request.OutputRequirements)
+            .HasColumnType("nvarchar(max)")
             .IsRequired();
         builder.Property(request => request.CancelledAt)
             .HasColumnType("datetimeoffset(7)");

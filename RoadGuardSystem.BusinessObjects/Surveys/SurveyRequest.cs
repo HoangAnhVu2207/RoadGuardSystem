@@ -1,3 +1,4 @@
+using System.Text.Json;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.BusinessObjects.Surveys;
@@ -24,6 +25,10 @@ public sealed class SurveyRequest
 
     public DateTimeOffset RequestedAt { get; private set; }
 
+    public DateTimeOffset DueAt { get; private set; }
+
+    public string OutputRequirements { get; private set; } = "{}";
+
     public DateTimeOffset? CancelledAt { get; private set; }
 
     public string? CancellationReason { get; private set; }
@@ -36,7 +41,9 @@ public sealed class SurveyRequest
         Guid requestedByUserId,
         SurveyType surveyType,
         SurveyRequestStatus status,
-        DateTimeOffset requestedAt)
+        DateTimeOffset requestedAt,
+        DateTimeOffset? dueAt = null,
+        string outputRequirements = "{}")
     {
         if (id == Guid.Empty || projectId == Guid.Empty || roadSectionId == Guid.Empty || requestedByUserId == Guid.Empty)
         {
@@ -53,6 +60,8 @@ public sealed class SurveyRequest
             throw new ArgumentException("Survey request status must be specified.", nameof(status));
         }
 
+        ValidateJson(outputRequirements, nameof(outputRequirements));
+
         return new SurveyRequest
         {
             Id = id,
@@ -62,7 +71,26 @@ public sealed class SurveyRequest
             RequestedByUserId = requestedByUserId,
             SurveyType = surveyType,
             Status = status,
-            RequestedAt = requestedAt.ToUniversalTime()
+            RequestedAt = requestedAt.ToUniversalTime(),
+            DueAt = (dueAt ?? requestedAt).ToUniversalTime(),
+            OutputRequirements = outputRequirements.Trim()
         };
+    }
+
+    private static void ValidateJson(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            if (document.RootElement.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+            {
+                throw new ArgumentException("Output requirements must be a JSON object or array.", parameterName);
+            }
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("Output requirements must be valid JSON.", parameterName, exception);
+        }
     }
 }

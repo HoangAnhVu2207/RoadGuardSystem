@@ -17,6 +17,7 @@ public sealed class SurveyPlanConfiguration : IEntityTypeConfiguration<SurveyPla
                 "[PlannedEndAt] >= [PlannedStartAt]");
             table.HasCheckConstraint("CK_SurveyPlans_SurveyType", "[SurveyType] IN (1, 2, 3)");
             table.HasCheckConstraint("CK_SurveyPlans_Status", "[Status] IN (1, 2, 3, 4, 5)");
+            table.HasCheckConstraint("CK_SurveyPlans_OutputRequirements_Json", "ISJSON([OutputRequirements]) = 1");
         });
 
         builder.HasKey(plan => plan.Id);
@@ -42,6 +43,9 @@ public sealed class SurveyPlanConfiguration : IEntityTypeConfiguration<SurveyPla
         builder.Property(plan => plan.Status)
             .HasConversion<byte>()
             .HasColumnType("tinyint")
+            .IsRequired();
+        builder.Property(plan => plan.OutputRequirements)
+            .HasColumnType("nvarchar(max)")
             .IsRequired();
         builder.HasIndex(plan => new { plan.ProjectId, plan.RoadSectionId, plan.PlannedStartAt })
             .HasDatabaseName("IX_SurveyPlans_ProjectRoadStart");

@@ -11,6 +11,7 @@ using RoadGuardSystem.BusinessObjects.Devices;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Files;
+using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Processing;
 using RoadGuardSystem.BusinessObjects.Projects;
@@ -74,6 +75,12 @@ public class RoadGuardDbContext : DbContext
     public DbSet<SeverityRuleVersion> SeverityRuleVersions => Set<SeverityRuleVersion>();
 
     public DbSet<Defect> Defects => Set<Defect>();
+
+    public DbSet<AIDetection> AIDetections => Set<AIDetection>();
+
+    public DbSet<DefectVerificationLog> DefectVerificationLogs => Set<DefectVerificationLog>();
+
+    public DbSet<FieldInspectionTask> FieldInspectionTasks => Set<FieldInspectionTask>();
 
     public DbSet<DroneDevice> DroneDevices => Set<DroneDevice>();
 

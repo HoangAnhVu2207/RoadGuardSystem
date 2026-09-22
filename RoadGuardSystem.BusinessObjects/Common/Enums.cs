@@ -182,6 +182,53 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Retired = 3
     }
 
+    public enum DefectSeverity : byte
+    {
+        Unknown = 0,
+        Low = 1,
+        Medium = 2,
+        High = 3,
+        Critical = 4
+    }
+
+    public enum DefectStatus : byte
+    {
+        Unknown = 0,
+        Open = 1,
+        Verified = 2,
+        Rejected = 3,
+        Resolved = 4
+    }
+
+    public enum DefectVerificationAction : byte
+    {
+        Unknown = 0,
+        PreliminaryKeep = 1,
+        Adjust = 2,
+        Confirm = 3,
+        Reject = 4,
+        Merge = 5
+    }
+
+    public enum FieldInspectionTaskStatus : byte
+    {
+        Unknown = 0,
+        NewAssigned = 1,
+        Accepted = 2,
+        Rejected = 3,
+        InProgress = 4,
+        SupplementRequired = 5,
+        Submitted = 6,
+        Completed = 7
+    }
+
+    public enum FieldInspectionReviewDecision : byte
+    {
+        Unknown = 0,
+        DefectConfirmed = 1,
+        NoDefect = 2
+    }
+
     public enum QualityCheckScope : byte
     {
         Unknown = 0,

@@ -15,6 +15,8 @@ public sealed class SurveyPlan
 
     public Guid RoadSectionId { get; private set; }
 
+    public Guid? RoadSectionVersionId { get; private set; }
+
     public DateTimeOffset PlannedStartAt { get; private set; }
 
     public DateTimeOffset PlannedEndAt { get; private set; }
@@ -33,7 +35,8 @@ public sealed class SurveyPlan
         DateTimeOffset plannedEndAt,
         SurveyType surveyType,
         SurveyPlanStatus status,
-        string outputRequirements = "{}")
+        string outputRequirements = "{}",
+        Guid? roadSectionVersionId = null)
     {
         if (id == Guid.Empty || projectId == Guid.Empty || roadSectionId == Guid.Empty)
         {
@@ -62,6 +65,7 @@ public sealed class SurveyPlan
             Id = id,
             ProjectId = projectId,
             RoadSectionId = roadSectionId,
+            RoadSectionVersionId = roadSectionVersionId,
             PlannedStartAt = plannedStartAt.ToUniversalTime(),
             PlannedEndAt = plannedEndAt.ToUniversalTime(),
             SurveyType = surveyType,

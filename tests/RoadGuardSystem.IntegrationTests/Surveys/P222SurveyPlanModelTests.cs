@@ -23,7 +23,7 @@ public sealed class P222SurveyPlanModelTests
         plan.Should().NotBeNull();
         var mappedPlan = plan!;
         mappedPlan.GetTableName().Should().Be("SurveyPlans");
-        mappedPlan.GetForeignKeys().Should().HaveCount(2);
+        mappedPlan.GetForeignKeys().Should().HaveCount(3);
         postponement.Should().NotBeNull();
         var mappedPostponement = postponement!;
         mappedPostponement.GetTableName().Should().Be("SurveyPlanPostponements");
@@ -31,7 +31,7 @@ public sealed class P222SurveyPlanModelTests
         request.Should().NotBeNull();
         var mappedRequest = request!;
         mappedRequest.GetTableName().Should().Be("SurveyRequests");
-        mappedRequest.GetForeignKeys().Should().HaveCount(4);
+        mappedRequest.GetForeignKeys().Should().HaveCount(5);
         mappedRequest.GetForeignKeys().Should().ContainSingle(foreignKey =>
             foreignKey.Properties.Single().Name == nameof(SurveyRequest.SurveyPlanId) && !foreignKey.IsRequired);
     }

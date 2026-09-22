@@ -82,6 +82,12 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<FieldInspectionTask> FieldInspectionTasks => Set<FieldInspectionTask>();
 
+    public DbSet<FieldInspectionAssignment> FieldInspectionAssignments => Set<FieldInspectionAssignment>();
+
+    public DbSet<FieldInspectionSession> FieldInspectionSessions => Set<FieldInspectionSession>();
+
+    public DbSet<GroundTruthMeasurement> GroundTruthMeasurements => Set<GroundTruthMeasurement>();
+
     public DbSet<DroneDevice> DroneDevices => Set<DroneDevice>();
 
     public DbSet<Project> Projects => Set<Project>();

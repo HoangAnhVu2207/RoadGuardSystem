@@ -11,7 +11,9 @@ using RoadGuardSystem.BusinessObjects.Devices;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Files;
+using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.BusinessObjects.Processing;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.BusinessObjects.Warranties;
@@ -74,6 +76,12 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<Defect> Defects => Set<Defect>();
 
+    public DbSet<AIDetection> AIDetections => Set<AIDetection>();
+
+    public DbSet<DefectVerificationLog> DefectVerificationLogs => Set<DefectVerificationLog>();
+
+    public DbSet<FieldInspectionTask> FieldInspectionTasks => Set<FieldInspectionTask>();
+
     public DbSet<DroneDevice> DroneDevices => Set<DroneDevice>();
 
     public DbSet<Project> Projects => Set<Project>();
@@ -103,6 +111,14 @@ public class RoadGuardDbContext : DbContext
     public DbSet<QualityCheck> QualityChecks => Set<QualityCheck>();
 
     public DbSet<SupplementarySurveyRequest> SupplementarySurveyRequests => Set<SupplementarySurveyRequest>();
+
+    public DbSet<ProcessingBlock> ProcessingBlocks => Set<ProcessingBlock>();
+
+    public DbSet<ProcessingJob> ProcessingJobs => Set<ProcessingJob>();
+
+    public DbSet<ProcessingAttempt> ProcessingAttempts => Set<ProcessingAttempt>();
+
+    public DbSet<AIModelVersion> AIModelVersions => Set<AIModelVersion>();
 
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 

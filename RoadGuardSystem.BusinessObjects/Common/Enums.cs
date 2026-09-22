@@ -155,6 +155,80 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Backend = 1
     }
 
+    public enum ProcessingJobStatus : byte
+    {
+        Unknown = 0,
+        Queued = 1,
+        Running = 2,
+        RetryableFailure = 3,
+        DataFailure = 4,
+        Completed = 5,
+        Cancelled = 6
+    }
+
+    public enum ProcessingAttemptErrorType : byte
+    {
+        Unknown = 0,
+        Infrastructure = 1,
+        Data = 2,
+        None = 3
+    }
+
+    public enum AIModelVersionStatus : byte
+    {
+        Unknown = 0,
+        Draft = 1,
+        Released = 2,
+        Retired = 3
+    }
+
+    public enum DefectSeverity : byte
+    {
+        Unknown = 0,
+        Low = 1,
+        Medium = 2,
+        High = 3,
+        Critical = 4
+    }
+
+    public enum DefectStatus : byte
+    {
+        Unknown = 0,
+        Open = 1,
+        Verified = 2,
+        Rejected = 3,
+        Resolved = 4
+    }
+
+    public enum DefectVerificationAction : byte
+    {
+        Unknown = 0,
+        PreliminaryKeep = 1,
+        Adjust = 2,
+        Confirm = 3,
+        Reject = 4,
+        Merge = 5
+    }
+
+    public enum FieldInspectionTaskStatus : byte
+    {
+        Unknown = 0,
+        NewAssigned = 1,
+        Accepted = 2,
+        Rejected = 3,
+        InProgress = 4,
+        SupplementRequired = 5,
+        Submitted = 6,
+        Completed = 7
+    }
+
+    public enum FieldInspectionReviewDecision : byte
+    {
+        Unknown = 0,
+        DefectConfirmed = 1,
+        NoDefect = 2
+    }
+
     public enum QualityCheckScope : byte
     {
         Unknown = 0,
@@ -209,5 +283,13 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Submitted = 5,
         Rejected = 6,
         Cancelled = 7
+    }
+
+    public enum OutboxDeliveryStatus : byte
+    {
+        Pending = 1,
+        Leased = 2,
+        Completed = 3,
+        DeadLetter = 4
     }
 }

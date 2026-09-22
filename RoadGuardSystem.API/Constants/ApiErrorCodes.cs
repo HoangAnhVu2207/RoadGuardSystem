@@ -35,4 +35,8 @@ public static class ApiErrorCodes
     public const string WarrantySourceDocumentNotFound = "warranty_source_document_not_found";
     public const string IdentityUserNotFound = "identity_user_not_found";
     public const string IdentityUserInactive = "identity_user_inactive";
+    public const string SurveyPlanNotFound = "survey_plan_not_found";
+    public const string SurveyRequestNotFound = "survey_request_not_found";
+    public const string SurveyValidationFailed = "survey_validation_failed";
+    public const string SurveyInvalidStateTransition = "survey_invalid_state_transition";
 }

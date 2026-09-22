@@ -1023,6 +1023,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("RoadSectionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("RoadSectionVersionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("VersionNo")
                         .HasColumnType("int");
 
@@ -1486,6 +1489,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasIndex("RoadSectionId");
 
+                    b.HasIndex("RoadSectionVersionId");
+
                     b.HasIndex("ProjectId", "RoadSectionId", "PlannedStartAt")
                         .HasDatabaseName("IX_SurveyPlans_ProjectRoadStart");
 
@@ -1571,6 +1576,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("RoadSectionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("RoadSectionVersionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 
@@ -1581,6 +1589,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasColumnType("tinyint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RoadSectionVersionId");
 
                     b.HasIndex("RequestedByUserId");
 
@@ -1848,6 +1858,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("RoadSectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.Flight", b =>
@@ -2035,6 +2050,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", null)
                         .WithMany()
                         .HasForeignKey("SurveyPlanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RoadSectionVersionId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

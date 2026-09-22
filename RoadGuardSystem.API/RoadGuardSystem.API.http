@@ -137,6 +137,48 @@ Content-Type: application/json
 
 ###
 
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-plans
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "plannedStartAt": "2026-10-01T08:00:00Z",
+  "plannedEndAt": "2026-10-01T10:00:00Z",
+  "roadSectionVersionId": "{{roadSectionVersionId}}",
+  "surveyType": 2,
+  "outputRequirements": "{\"formats\":[\"video\",\"srt\"]}",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-requests
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "surveyPlanId": "{{surveyPlanId}}",
+  "roadSectionVersionId": "{{roadSectionVersionId}}",
+  "surveyType": 2,
+  "dueAt": "2026-10-04T17:00:00Z",
+  "outputRequirements": "{\"formats\":[\"video\",\"srt\"]}",
+  "operationId": "{{$guid}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/survey-plans/{{surveyPlanId}}/postpone
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "newPlannedStartAt": "2026-10-01T09:00:00Z",
+  "reason": "Weather delay",
+  "operationId": "{{$guid}}"
+}
+
+###
+
 PUT {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/primary-project-manager
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json

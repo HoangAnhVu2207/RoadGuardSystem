@@ -1,8 +1,8 @@
 using RoadGuardSystem.aBusinessObjects.Commons;
 
-namespace RoadGuardSystem.Repositories.Surveys;
+namespace RoadGuardSystem.DTOs.Surveys;
 
-public sealed record SurveyPlanPersistenceView(
+public sealed record CreateSurveyPlanResponseDto(
     Guid PlanId,
     Guid ProjectId,
     Guid RoadSectionId,

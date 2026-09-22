@@ -35,7 +35,8 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.ActorUserId == Guid.Empty || request.ProjectId == Guid.Empty ||
-            request.RoadSectionId == Guid.Empty || request.OperationId == Guid.Empty)
+            request.RoadSectionId == Guid.Empty || request.RoadSectionVersionId == Guid.Empty ||
+            request.OperationId == Guid.Empty)
         {
             return new(SurveyPlanPersistenceStatus.InvalidInput);
         }
@@ -53,6 +54,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                     await EnsureProjectAndRoadSectionAsync(
                         request.ProjectId,
                         request.RoadSectionId,
+                        request.RoadSectionVersionId,
                         operationCancellationToken);
                     var plan = SurveyPlan.Create(
                         Guid.NewGuid(),
@@ -62,7 +64,8 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                         request.PlannedEndAt,
                         request.SurveyType,
                         SurveyPlanStatus.Planned,
-                        request.OutputRequirements);
+                        request.OutputRequirements,
+                        request.RoadSectionVersionId);
                     _context.SurveyPlans.Add(plan);
                     var now = DateTimeOffset.UtcNow;
                     _context.AuditLogs.Add(AuditLog.Create(
@@ -77,7 +80,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                         "Survey plan created",
                         "P1-22.persistence",
                         request.CorrelationId,
-                        ["projectId", "roadSectionId", "plannedStartAt", "plannedEndAt", "surveyType", "outputRequirementsHash"]));
+                        ["projectId", "roadSectionId", "roadSectionVersionId", "plannedStartAt", "plannedEndAt", "surveyType", "outputRequirementsHash"]));
                     var view = ToPlanView(plan);
                     return (request.OperationId, JsonSerializer.Serialize(view));
                 },
@@ -114,7 +117,8 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.ActorUserId == Guid.Empty || request.ProjectId == Guid.Empty ||
-            request.RoadSectionId == Guid.Empty || request.OperationId == Guid.Empty)
+            request.RoadSectionId == Guid.Empty || request.RoadSectionVersionId == Guid.Empty ||
+            request.OperationId == Guid.Empty)
         {
             return new(SurveyRequestPersistenceStatus.InvalidInput);
         }
@@ -132,6 +136,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                     await EnsureProjectAndRoadSectionAsync(
                         request.ProjectId,
                         request.RoadSectionId,
+                        request.RoadSectionVersionId,
                         operationCancellationToken);
                     if (request.SurveyPlanId is { } planId)
                     {
@@ -139,6 +144,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                             candidate => candidate.Id == planId,
                             operationCancellationToken) ?? throw new ScopeNotFoundException();
                         if (plan.ProjectId != request.ProjectId || plan.RoadSectionId != request.RoadSectionId ||
+                            plan.RoadSectionVersionId != request.RoadSectionVersionId ||
                             plan.SurveyType != request.SurveyType)
                         {
                             throw new ScopeConflictException();
@@ -156,7 +162,8 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                         SurveyRequestStatus.NewAssigned,
                         now,
                         request.DueAt,
-                        request.OutputRequirements);
+                        request.OutputRequirements,
+                        request.RoadSectionVersionId);
                     _context.SurveyRequests.Add(surveyRequest);
                     _context.AuditLogs.Add(AuditLog.Create(
                         Guid.NewGuid(),
@@ -170,7 +177,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                         "Survey request created before operator assignment",
                         "P1-22.persistence",
                         request.CorrelationId,
-                        ["projectId", "roadSectionId", "surveyPlanId", "surveyType", "requestedAt", "dueAt", "outputRequirementsHash"]));
+                        ["projectId", "roadSectionId", "roadSectionVersionId", "surveyPlanId", "surveyType", "requestedAt", "dueAt", "outputRequirementsHash"]));
                     var view = ToRequestView(surveyRequest);
                     return (request.OperationId, JsonSerializer.Serialize(view));
                 },
@@ -295,13 +302,17 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
     private async Task EnsureProjectAndRoadSectionAsync(
         Guid projectId,
         Guid roadSectionId,
+        Guid roadSectionVersionId,
         CancellationToken cancellationToken)
     {
         var scope = await (
                 from project in _context.Projects.AsNoTracking()
                 join roadSection in _context.RoadSections.AsNoTracking()
                     on project.Id equals roadSection.ProjectId
-                where project.Id == projectId && roadSection.Id == roadSectionId
+                join version in _context.RoadSectionVersions.AsNoTracking()
+                    on roadSection.Id equals version.RoadSectionId
+                where project.Id == projectId && roadSection.Id == roadSectionId &&
+                      version.Id == roadSectionVersionId
                 select new { project.Id })
             .SingleOrDefaultAsync(cancellationToken);
         if (scope is null)
@@ -316,6 +327,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
         plan.Id,
         plan.ProjectId,
         plan.RoadSectionId,
+        plan.RoadSectionVersionId,
         plan.PlannedStartAt,
         plan.PlannedEndAt,
         plan.SurveyType,
@@ -326,6 +338,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
         request.Id,
         request.ProjectId,
         request.RoadSectionId,
+        request.RoadSectionVersionId,
         request.SurveyPlanId,
         request.RequestedByUserId,
         request.SurveyType,
@@ -338,6 +351,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
     {
         projectId = plan.ProjectId,
         roadSectionId = plan.RoadSectionId,
+        roadSectionVersionId = plan.RoadSectionVersionId,
         plannedStartAt = plan.PlannedStartAt,
         plannedEndAt = plan.PlannedEndAt,
         surveyType = plan.SurveyType,
@@ -348,6 +362,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
     {
         projectId = request.ProjectId,
         roadSectionId = request.RoadSectionId,
+        roadSectionVersionId = request.RoadSectionVersionId,
         surveyPlanId = request.SurveyPlanId,
         surveyType = request.SurveyType,
         requestedAt = request.RequestedAt,

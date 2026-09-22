@@ -32,6 +32,8 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
         builder.Property(request => request.RoadSectionId)
             .HasColumnType("uniqueidentifier")
             .IsRequired();
+        builder.Property(request => request.RoadSectionVersionId)
+            .HasColumnType("uniqueidentifier");
         builder.Property(request => request.SurveyPlanId)
             .HasColumnType("uniqueidentifier");
         builder.Property(request => request.RequestedByUserId)
@@ -71,6 +73,10 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
         builder.HasOne<RoadSection>()
             .WithMany()
             .HasForeignKey(request => request.RoadSectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<RoadSectionVersion>()
+            .WithMany()
+            .HasForeignKey(request => request.RoadSectionVersionId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<SurveyPlan>()
             .WithMany()

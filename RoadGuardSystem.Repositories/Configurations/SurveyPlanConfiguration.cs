@@ -30,6 +30,8 @@ public sealed class SurveyPlanConfiguration : IEntityTypeConfiguration<SurveyPla
         builder.Property(plan => plan.RoadSectionId)
             .HasColumnType("uniqueidentifier")
             .IsRequired();
+        builder.Property(plan => plan.RoadSectionVersionId)
+            .HasColumnType("uniqueidentifier");
         builder.Property(plan => plan.PlannedStartAt)
             .HasColumnType("datetimeoffset(7)")
             .IsRequired();
@@ -60,6 +62,10 @@ public sealed class SurveyPlanConfiguration : IEntityTypeConfiguration<SurveyPla
         builder.HasOne<RoadSection>()
             .WithMany()
             .HasForeignKey(plan => plan.RoadSectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<RoadSectionVersion>()
+            .WithMany()
+            .HasForeignKey(plan => plan.RoadSectionVersionId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -229,6 +229,38 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         NoDefect = 2
     }
 
+    public enum FieldInspectionAssignmentStatus : byte
+    {
+        Unknown = 0,
+        Active = 1,
+        Rejected = 2,
+        Ended = 3
+    }
+
+    public enum FieldInspectionPurpose : byte
+    {
+        Unknown = 0,
+        DefectVerification = 1,
+        ResearchValidation = 2
+    }
+
+    public enum FieldInspectionSessionStatus : byte
+    {
+        Unknown = 0,
+        Draft = 1,
+        Completed = 2,
+        Imported = 3,
+        Locked = 4
+    }
+
+    public enum MeasurementType : byte
+    {
+        Unknown = 0,
+        DepressionDepth = 1,
+        SlabFaultingHeight = 2,
+        ShoulderErosionExtent = 3
+    }
+
     public enum QualityCheckScope : byte
     {
         Unknown = 0,

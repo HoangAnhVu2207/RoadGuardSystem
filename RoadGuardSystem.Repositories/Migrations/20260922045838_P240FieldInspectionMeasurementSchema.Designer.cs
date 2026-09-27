@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
@@ -12,9 +13,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922045838_P240FieldInspectionMeasurementSchema")]
+    partial class P240FieldInspectionMeasurementSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -659,28 +662,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         {
                             t.HasCheckConstraint("CK_Users_Status", "[Status] IN (1, 2, 3)");
                         });
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordRecoveryRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CorrelationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("RequestedAtUtc")
-                        .HasColumnType("datetimeoffset(7)");
-
-                    b.Property<Guid?>("TargetUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TargetUserId", "RequestedAtUtc");
-
-                    b.ToTable("PasswordRecoveryRequests", (string)null);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordResetLog", b =>
@@ -1735,9 +1716,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("RoadSectionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("RoadSectionVersionId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("VersionNo")
                         .HasColumnType("int");
 
@@ -2201,8 +2179,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasIndex("RoadSectionId");
 
-                    b.HasIndex("RoadSectionVersionId");
-
                     b.HasIndex("ProjectId", "RoadSectionId", "PlannedStartAt")
                         .HasDatabaseName("IX_SurveyPlans_ProjectRoadStart");
 
@@ -2288,9 +2264,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("RoadSectionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("RoadSectionVersionId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 
@@ -2301,8 +2274,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasColumnType("tinyint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("RoadSectionVersionId");
 
                     b.HasIndex("RequestedByUserId");
 
@@ -2498,14 +2469,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
 
                     b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordRecoveryRequest", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("TargetUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordResetLog", b =>
@@ -2812,11 +2775,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("RoadSectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
-                        .WithMany()
-                        .HasForeignKey("RoadSectionVersionId")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.Flight", b =>
@@ -3004,11 +2962,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", null)
                         .WithMany()
                         .HasForeignKey("SurveyPlanId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
-                        .WithMany()
-                        .HasForeignKey("RoadSectionVersionId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

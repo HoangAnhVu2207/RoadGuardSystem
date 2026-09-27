@@ -387,9 +387,9 @@ foreach ($requiredToken in @(
     'Before edits, show:',
     '5-8 line contract',
     'RoadGuardSystem.API/RoadGuardSystem.API.http',
-    'at or below 500 lines',
-    'Person 1 (`anh`)',
-    'Person 2 (`huy`)'
+    'at most 500 lines',
+    'owner named by an approved V2 task',
+    'Person 2 coordinates migration order'
 )) {
     if ($rootAgentRulesContent -notmatch [regex]::Escape($requiredToken)) {
         $errors += "root AGENTS.md missing current workflow token: '$requiredToken'"

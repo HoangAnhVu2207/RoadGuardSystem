@@ -39,7 +39,7 @@ public sealed class OutboxWorkRepository : IOutboxWorkRepository
             var message = await _context.OutboxMessages
                 .FromSqlInterpolated($"""
                     SELECT TOP (1) *
-                    FROM [dbo].[OutboxMessages] WITH (UPDLOCK, READPAST, ROWLOCK)
+                    FROM [dbo].[OutboxMessages] WITH (UPDLOCK, READPAST, READCOMMITTEDLOCK, ROWLOCK)
                     WHERE [DeliveryStatus] NOT IN ({(byte)OutboxDeliveryStatus.Completed}, {(byte)OutboxDeliveryStatus.DeadLetter})
                       AND [DeliveryAttemptCount] < {maxAttempts}
                       AND [NextAttemptAtUtc] <= {normalizedNow}

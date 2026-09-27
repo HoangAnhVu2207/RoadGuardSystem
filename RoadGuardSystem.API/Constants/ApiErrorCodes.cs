@@ -16,6 +16,9 @@ public static class ApiErrorCodes
     public const string PasswordChangeRequired = "auth_password_change_required";
     public const string Unauthorized = "auth_unauthorized";
     public const string SessionRevoked = "auth_session_revoked";
+    public const string RefreshTokenInvalid = "refresh_token_invalid";
+    public const string RefreshTokenExpired = "refresh_token_expired";
+    public const string IdempotencyKeyReused = "idempotency_key_reused";
     public const string ConcurrencyConflict = "auth_concurrency_conflict";
     public const string DuplicateRequest = "duplicate_request";
     public const string EmailConflict = "identity_email_conflict";
@@ -35,4 +38,8 @@ public static class ApiErrorCodes
     public const string WarrantySourceDocumentNotFound = "warranty_source_document_not_found";
     public const string IdentityUserNotFound = "identity_user_not_found";
     public const string IdentityUserInactive = "identity_user_inactive";
+    public const string SurveyPlanNotFound = "survey_plan_not_found";
+    public const string SurveyRequestNotFound = "survey_request_not_found";
+    public const string SurveyValidationFailed = "survey_validation_failed";
+    public const string SurveyInvalidStateTransition = "survey_invalid_state_transition";
 }

@@ -41,7 +41,7 @@ public sealed class P111ProfileReadTests
 
         var login = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            username,
+            email = AuthenticationSqlServerFixture.EmailFor(username),
             password = "Current1!"
         });
         login.StatusCode.Should().Be(HttpStatusCode.OK);

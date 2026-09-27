@@ -13,12 +13,16 @@ ADR 001 defines the project-reference graph. ADR 004 amends its implementation c
 | Layer | Responsibility |
 |---|---|
 | API | HTTP binding, authorization composition, stable ProblemDetails mapping, and DTO responses. |
-| Services | Use-case policy, cross-aggregate decisions, orchestration, and mapping. |
-| Repositories | EF Core, storage, transaction, idempotency, concurrency, outbox, and persistence backstops. |
+| Services | Use-case policy, cross-aggregate decisions, orchestration, mapping, incident/segment state transitions, and PM review decisions. |
+| Repositories | EF Core, storage, transaction, idempotency, concurrency, outbox, immutable media/telemetry facts, and persistence backstops. |
 | BusinessObjects | Entity-local invariants, factory methods, normalization, and pure calculations from local state. |
-| DTOs | Transport request/response shapes and validation attributes. |
+| DTOs | Transport request/response shapes and validation attributes, including versioned AI job/status/result contracts. |
 
 Repositories never choose authorization, workflow outcomes, business calculations, or HTTP errors. Services never use EF Core, `RoadGuardDbContext`, `HttpContext`, or MVC result types. Controllers never access repositories or `RoadGuardDbContext`.
+
+The target product adds a `REPORTER` role and incident-report/case workflow without changing the accepted `Controller -> IService -> IRepository` boundary. AI is an external integration boundary behind a Service-owned adapter contract: BE stores immutable input manifests/results and orchestrates asynchronous jobs; the AI service does not decide Defect, repair approval, `Verified`, or `Closed`.
+
+Segment geometry and target bands are versioned facts. A `RoadSegmentSet` belongs to one `RoadSectionVersion`; PM may create a 100 m or other split/merge draft, but published sets are immutable. Survey coverage is evaluated separately for `SURFACE`, `LEFT_EDGE`, and `RIGHT_EDGE`; raw aircraft GPS, projected route station, camera footprint, and defect location must not be collapsed into one coordinate.
 
 ## Conventions
 

@@ -64,6 +64,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWarrantyCreationService, WarrantyCreationService>();
         services.AddScoped<IRoadSectionVersionService, RoadSectionVersionService>();
         services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
+        services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProjectAuthorizationMiddlewareResultHandler>();
 

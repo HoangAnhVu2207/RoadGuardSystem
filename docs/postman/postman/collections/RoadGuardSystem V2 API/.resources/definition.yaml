@@ -1,0 +1,11 @@
+$kind: collection
+description: RoadGuard V2 API smoke and manual test collection. Select the RoadGuard.local environment and set its local values before running.
+variables:
+  accessToken: ""
+  refreshToken: ""
+  profileRowVersion: ""
+  targetUserId: 00000000-0000-0000-0000-000000000000
+  targetRowVersion: ""
+  projectId: 00000000-0000-0000-0000-000000000000
+  projectRowVersion: ""
+  primaryProjectManagerUserId: 00000000-0000-0000-0000-000000000000

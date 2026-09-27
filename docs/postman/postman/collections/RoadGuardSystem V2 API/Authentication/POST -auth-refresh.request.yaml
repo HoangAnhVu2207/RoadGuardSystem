@@ -1,0 +1,20 @@
+$kind: http-request
+name: POST /auth/refresh
+description: "Purpose: rotate/refresh the active session. Role: authenticated session. Setup: run valid login first. Expected: 200 with replacement tokens. Errors: 401 for expired/revoked refresh token. Data change: session state may rotate."
+url: "{{baseUrl}}/api/v1/auth/refresh"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refreshToken": "{{refreshToken}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Refresh returns 200', function () { pm.response.to.have.status(200); });
+      if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); }
+    language: text/javascript
+order: 3000

@@ -225,6 +225,43 @@ public interface IIdentityRepository
 
     Task RevokeSessionAndFamilyAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
+    Task<LogoutPersistenceResult> RevokeSessionAndFamilyAtomicAsync(
+        Guid userId,
+        Guid sessionId,
+        string idempotencyKey,
+        string requestFingerprint,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<PasswordRecoveryPersistenceResult> CreatePasswordRecoveryRequestAsync(
+        Guid requestId,
+        string normalizedEmail,
+        DateTimeOffset requestedAtUtc,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<PasswordChangePersistenceResult> ChangePasswordAtomicAsync(
+        Guid userId,
+        byte[] expectedUserRowVersion,
+        string newPasswordHash,
+        string newSecurityStamp,
+        string idempotencyKey,
+        string requestFingerprint,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> HasIdempotencyOutcomeAsync(
+        Guid userId,
+        string operation,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
+    Task<string?> GetIdempotencyFingerprintAsync(
+        Guid userId,
+        string operation,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
     Task<UserRoleChangeResult> ChangeUserRoleAtomicAsync(
         Guid userId,
         UserRoleCode newRoleCode,

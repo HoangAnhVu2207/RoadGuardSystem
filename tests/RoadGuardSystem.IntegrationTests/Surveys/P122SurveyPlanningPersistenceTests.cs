@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using NetTopologySuite.Geometries;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Surveys;
@@ -9,6 +10,7 @@ using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Surveys;
+using RoadGuardSystem.Repositories.Spatial;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 
@@ -75,6 +77,7 @@ public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<Identi
             scope.UserId,
             scope.ProjectId,
             scope.RoadSectionId,
+            scope.RoadSectionVersionId,
             startAt,
             startAt.AddHours(2),
             SurveyType.Periodic,
@@ -96,6 +99,7 @@ public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<Identi
             scope.UserId,
             scope.ProjectId,
             scope.RoadSectionId,
+            scope.RoadSectionVersionId,
             createdPlan.Plan.PlanId,
             SurveyType.Periodic,
             DateTimeOffset.UtcNow.AddDays(4),
@@ -145,6 +149,31 @@ public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<Identi
         columns.Should().Be(3);
     }
 
+    [Fact(DisplayName = "P2-22: planning commands reject a road section version outside the scope")]
+    public async Task PlanningCommands_WrongRoadSectionVersion_ReturnScopeConflict()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var scope = await CreateScopeAsync(context);
+        var repository = new SurveyPlanningPersistenceService(context, new IdempotencyOperationService(context));
+        var startAt = DateTimeOffset.UtcNow.AddDays(2);
+
+        var result = await repository.CreatePlanAsync(new SurveyPlanCreationPersistenceRequest(
+            scope.UserId,
+            scope.ProjectId,
+            scope.RoadSectionId,
+            Guid.NewGuid(),
+            startAt,
+            startAt.AddHours(2),
+            SurveyType.Periodic,
+            "{\"formats\":[\"video\"]}",
+            "p122-wrong-version",
+            new string('d', 64),
+            Guid.NewGuid(),
+            Guid.NewGuid()));
+
+        result.Status.Should().Be(SurveyPlanPersistenceStatus.ScopeConflict);
+    }
+
     private async Task<PlanningScope> CreateScopeAsync(RoadGuardDbContext context)
     {
         await _fixture.SeedRolesAsync(context);
@@ -167,10 +196,15 @@ public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<Identi
             CreatedAt = DateTimeOffset.UtcNow
         };
         var roadSection = RoadSection.Create(Guid.NewGuid(), project.Id, $"P122-ROAD-{Guid.NewGuid():N}");
-        context.AddRange(project, user, roadSection);
+        var version = RoadSectionVersion.Create(
+            Guid.NewGuid(), roadSection.Id, 1, true,
+            new GeometryFactory(new PrecisionModel(), SpatialConstants.UtmZone48NSrid)
+                .CreateLineString(new[] { new Coordinate(588500, 2325000), new Coordinate(588600, 2325100) }),
+            DateTimeOffset.UtcNow, "P1-22 planning version");
+        context.AddRange(project, user, roadSection, version);
         await context.SaveChangesAsync();
-        return new(project.Id, roadSection.Id, user.Id);
+        return new(project.Id, roadSection.Id, version.Id, user.Id);
     }
 
-    private sealed record PlanningScope(Guid ProjectId, Guid RoadSectionId, Guid UserId);
+    private sealed record PlanningScope(Guid ProjectId, Guid RoadSectionId, Guid RoadSectionVersionId, Guid UserId);
 }

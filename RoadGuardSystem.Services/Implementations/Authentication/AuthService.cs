@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using RoadGuardSystem.Repositories.Identity;
 using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -47,14 +49,14 @@ public sealed class AuthService : IAuthService
     public async Task<AuthResult> LoginAsync(LoginCommand command, CancellationToken cancellationToken = default)
     {
         if (command is null ||
-            string.IsNullOrWhiteSpace(command.Username) ||
+            string.IsNullOrWhiteSpace(command.Email) ||
             string.IsNullOrWhiteSpace(command.Password))
         {
             return new AuthResult(AuthStatus.InvalidInput);
         }
 
         var metadataValidation = SessionDeviceMetadataValidator.Validate(
-            command.DeviceMetadataJson,
+            null,
             _sessionMetadataOptions);
         if (!metadataValidation.IsValid)
         {
@@ -62,7 +64,7 @@ public sealed class AuthService : IAuthService
         }
 
         var verification = await _credentialVerifier.VerifyAsync(
-            command.Username.Trim(),
+            command.Email.Trim(),
             command.Password,
             cancellationToken);
         var user = verification.User;
@@ -73,11 +75,6 @@ public sealed class AuthService : IAuthService
             return new AuthResult(AuthStatus.InvalidCredentials);
         }
 
-        if (user.MustChangePassword)
-        {
-            return new AuthResult(AuthStatus.PasswordChangeRequired);
-        }
-
         var now = _timeProvider.GetUtcNow();
         var material = RefreshTokenGenerator.Generate();
         var session = new UserSession
@@ -85,7 +82,7 @@ public sealed class AuthService : IAuthService
             Id = Guid.NewGuid(),
             UserId = user.Id,
             IssuedAt = now,
-            DeviceMetadataJson = command.DeviceMetadataJson,
+            DeviceMetadataJson = null,
             ExpiresAt = now.AddHours(_options.SessionLifetimeHours)
         };
         var refreshToken = new RefreshToken
@@ -125,7 +122,7 @@ public sealed class AuthService : IAuthService
         var token = await _identityRepository.FindRefreshTokenByHashAsync(tokenHash, cancellationToken);
         if (token is null)
         {
-            return new AuthResult(AuthStatus.InvalidCredentials);
+            return new AuthResult(AuthStatus.RefreshTokenInvalid);
         }
 
         if (token.RevokedAt is not null)
@@ -140,7 +137,7 @@ public sealed class AuthService : IAuthService
 
         if (token.ExpiresAt <= now)
         {
-            return new AuthResult(AuthStatus.InvalidCredentials);
+            return new AuthResult(AuthStatus.RefreshTokenExpired);
         }
 
         var session = await _identityRepository.GetSessionSecurityStateAsync(token.SessionId, cancellationToken);
@@ -188,9 +185,16 @@ public sealed class AuthService : IAuthService
             return new AuthResult(AuthStatus.SessionRevoked);
         }
 
+        if (rotation.Status == RotateRefreshTokenStatus.SessionRevoked)
+        {
+            return new AuthResult(AuthStatus.SessionRevoked);
+        }
+
         return rotation.Status == RotateRefreshTokenStatus.InvalidToken
-            ? new AuthResult(AuthStatus.InvalidInput)
-            : new AuthResult(AuthStatus.InvalidCredentials);
+            ? new AuthResult(AuthStatus.RefreshTokenInvalid)
+            : rotation.Status == RotateRefreshTokenStatus.Expired
+                ? new AuthResult(AuthStatus.RefreshTokenExpired)
+                : new AuthResult(AuthStatus.RefreshTokenInvalid);
     }
 
     public async Task<AuthResult> LogoutAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -202,6 +206,112 @@ public sealed class AuthService : IAuthService
 
         await _identityRepository.RevokeSessionAndFamilyAsync(sessionId, cancellationToken);
         return new AuthResult(AuthStatus.Success);
+    }
+
+    public async Task<AuthResult> LogoutAsync(
+        Guid userId,
+        Guid sessionId,
+        string idempotencyKey,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty || sessionId == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            return new AuthResult(AuthStatus.InvalidInput);
+        }
+
+        var fingerprint = HashSha256($"user:{userId:N};session:{sessionId:N}");
+        var result = await _identityRepository.RevokeSessionAndFamilyAtomicAsync(
+            userId,
+            sessionId,
+            idempotencyKey.Trim(),
+            fingerprint,
+            correlationId,
+            cancellationToken);
+        return result.IdempotentConflict
+            ? new AuthResult(AuthStatus.IdempotentConflict)
+            : new AuthResult(AuthStatus.Success);
+    }
+
+    public async Task<PasswordRecoveryResult> RequestPasswordRecoveryAsync(
+        PasswordRecoveryCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var requestId = Guid.NewGuid();
+        await _identityRepository.CreatePasswordRecoveryRequestAsync(
+            requestId,
+            command.Email.Trim().ToUpperInvariant(),
+            _timeProvider.GetUtcNow(),
+            command.CorrelationId,
+            cancellationToken);
+        return new PasswordRecoveryResult(requestId);
+    }
+
+    public async Task<AuthResult> ChangePasswordAsync(
+        ChangePasswordCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        if (command is null || command.UserId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(command.CurrentPassword) ||
+            string.IsNullOrWhiteSpace(command.NewPassword) ||
+            string.IsNullOrWhiteSpace(command.IdempotencyKey))
+        {
+            return new AuthResult(AuthStatus.InvalidInput);
+        }
+
+        var requestFingerprint = _passwordChangeFingerprintFactory.Create(command.UserId, command.NewPassword);
+        var durableFingerprint = await _identityRepository.GetIdempotencyFingerprintAsync(
+            command.UserId,
+            "ChangePassword",
+            command.IdempotencyKey.Trim(),
+            cancellationToken);
+        if (durableFingerprint is not null)
+        {
+            return new AuthResult(durableFingerprint == requestFingerprint
+                ? AuthStatus.Success
+                : AuthStatus.IdempotentConflict);
+        }
+
+        var preparation = await _credentialVerifier.PreparePasswordChangeAsync(
+            command.UserId,
+            command.CurrentPassword,
+            command.NewPassword,
+            cancellationToken);
+        if (preparation.Status is PasswordChangePreparationStatus.PolicyRejected or PasswordChangePreparationStatus.ReusedPassword)
+        {
+            return new AuthResult(AuthStatus.PasswordPolicyRejected, ErrorMessage: preparation.ErrorMessage);
+        }
+
+        if (preparation.Status != PasswordChangePreparationStatus.Success || preparation.User is null ||
+            string.IsNullOrWhiteSpace(preparation.NewPasswordHash) ||
+            string.IsNullOrWhiteSpace(preparation.NewSecurityStamp))
+        {
+            return new AuthResult(AuthStatus.InvalidCredentials);
+        }
+
+        var persisted = await _identityRepository.ChangePasswordAtomicAsync(
+            command.UserId,
+            preparation.User.RowVersion,
+            preparation.NewPasswordHash,
+            preparation.NewSecurityStamp,
+            command.IdempotencyKey.Trim(),
+            requestFingerprint,
+            command.CorrelationId,
+            cancellationToken);
+        if (persisted.IdempotentConflict)
+        {
+            return new AuthResult(AuthStatus.IdempotentConflict);
+        }
+
+        if (persisted.StaleConcurrency)
+        {
+            return new AuthResult(AuthStatus.Conflict);
+        }
+
+        return persisted.Succeeded || persisted.IdempotentReplay
+            ? new AuthResult(AuthStatus.Success)
+            : new AuthResult(AuthStatus.InvalidCredentials);
     }
 
     public async Task<AuthResult> CompleteForcedPasswordChangeAsync(
@@ -278,6 +388,11 @@ public sealed class AuthService : IAuthService
                 accessToken,
                 material.Plaintext,
                 issuedAt.AddMinutes(_options.AccessTokenLifetimeMinutes),
-                refreshTokenExpiresAt));
+                refreshTokenExpiresAt,
+                checked(_options.AccessTokenLifetimeMinutes * 60),
+                user));
     }
+
+    private static string HashSha256(string value) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 }

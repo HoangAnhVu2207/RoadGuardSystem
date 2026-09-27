@@ -1,0 +1,2062 @@
+{
+  "version": "V2-API-PLAN-01",
+  "source": "docs/diagram/V2/05_Technical/openapi.yaml",
+  "source_sha256": "dbde8b756bbc1bf83dabfbfe395eb11e53b378e7338815b1f3ca019aa7f3f806",
+  "tasks": [
+    {
+      "id": "V2-P1-001",
+      "owner": 1,
+      "op": "login",
+      "method": "POST",
+      "path": "/auth/login",
+      "file": "Person_1/V2-P1-001_login.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "10",
+      "dependencies": [],
+      "legacy_trace": "P1-10/P2-10"
+    },
+    {
+      "id": "V2-P1-002",
+      "owner": 1,
+      "op": "refreshTokens",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "file": "Person_1/V2-P1-002_refreshTokens.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "10",
+      "dependencies": [
+        "login"
+      ],
+      "legacy_trace": "P1-10/P2-10"
+    },
+    {
+      "id": "V2-P1-003",
+      "owner": 1,
+      "op": "logout",
+      "method": "POST",
+      "path": "/auth/logout",
+      "file": "Person_1/V2-P1-003_logout.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "10",
+      "dependencies": [
+        "login"
+      ],
+      "legacy_trace": "P1-10/P2-10"
+    },
+    {
+      "id": "V2-P1-004",
+      "owner": 1,
+      "op": "requestPasswordRecovery",
+      "method": "POST",
+      "path": "/auth/password-recovery-requests",
+      "file": "Person_1/V2-P1-004_requestPasswordRecovery.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "10",
+      "dependencies": [],
+      "legacy_trace": "P1-10/P2-10"
+    },
+    {
+      "id": "V2-P1-005",
+      "owner": 1,
+      "op": "changePassword",
+      "method": "POST",
+      "path": "/auth/change-password",
+      "file": "Person_1/V2-P1-005_changePassword.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "10",
+      "dependencies": [
+        "login"
+      ],
+      "legacy_trace": "P1-10/P2-10"
+    },
+    {
+      "id": "V2-P1-006",
+      "owner": 1,
+      "op": "registerReporter",
+      "method": "POST",
+      "path": "/auth/reporter-registrations",
+      "file": "Person_1/V2-P1-006_registerReporter.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "13",
+      "dependencies": [],
+      "legacy_trace": "P1-13/P2-13"
+    },
+    {
+      "id": "V2-P1-007",
+      "owner": 1,
+      "op": "verifyReporterOtp",
+      "method": "POST",
+      "path": "/auth/reporter-registrations/verify",
+      "file": "Person_1/V2-P1-007_verifyReporterOtp.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "13",
+      "dependencies": [
+        "registerReporter"
+      ],
+      "legacy_trace": "P1-13/P2-13"
+    },
+    {
+      "id": "V2-P1-008",
+      "owner": 1,
+      "op": "resendReporterOtp",
+      "method": "POST",
+      "path": "/auth/reporter-registrations/resend",
+      "file": "Person_1/V2-P1-008_resendReporterOtp.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "13",
+      "dependencies": [
+        "registerReporter"
+      ],
+      "legacy_trace": "P1-13/P2-13"
+    },
+    {
+      "id": "V2-P1-009",
+      "owner": 1,
+      "op": "acceptInvitation",
+      "method": "POST",
+      "path": "/invitations/accept",
+      "file": "Person_1/V2-P1-009_acceptInvitation.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "10",
+      "dependencies": [
+        "createInvitation"
+      ],
+      "legacy_trace": "P1-10/P2-10"
+    },
+    {
+      "id": "V2-P1-010",
+      "owner": 1,
+      "op": "createInvitation",
+      "method": "POST",
+      "path": "/invitations",
+      "file": "Person_1/V2-P1-010_createInvitation.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P1-011",
+      "owner": 1,
+      "op": "getMe",
+      "method": "GET",
+      "path": "/me",
+      "file": "Person_1/V2-P1-011_getMe.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "11",
+      "dependencies": [],
+      "legacy_trace": "P1-11 / P2-10"
+    },
+    {
+      "id": "V2-P1-012",
+      "owner": 1,
+      "op": "updateMe",
+      "method": "PATCH",
+      "path": "/me",
+      "file": "Person_1/V2-P1-012_updateMe.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "11",
+      "dependencies": [
+        "getMe"
+      ],
+      "legacy_trace": "P1-11 / P2-10"
+    },
+    {
+      "id": "V2-P1-013",
+      "owner": 1,
+      "op": "adminResetPassword",
+      "method": "POST",
+      "path": "/users/{userId}/password-reset",
+      "file": "Person_1/V2-P1-013_adminResetPassword.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "11",
+      "dependencies": [
+        "getAccount"
+      ],
+      "legacy_trace": "P1-11 / P2-10"
+    },
+    {
+      "id": "V2-P1-014",
+      "owner": 1,
+      "op": "updateAccount",
+      "method": "PATCH",
+      "path": "/users/{userId}",
+      "file": "Person_1/V2-P1-014_updateAccount.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q17 (rescue offline)"
+      ],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [
+        "getAccount"
+      ],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P1-015",
+      "owner": 1,
+      "op": "getAccount",
+      "method": "GET",
+      "path": "/users/{userId}",
+      "file": "Person_1/V2-P1-015_getAccount.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-001",
+      "owner": 2,
+      "op": "listNotifications",
+      "method": "GET",
+      "path": "/notifications",
+      "file": "Person_2/V2-P2-001_listNotifications.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-002",
+      "owner": 2,
+      "op": "readNotification",
+      "method": "POST",
+      "path": "/notifications/{notificationId}/read",
+      "file": "Person_2/V2-P2-002_readNotification.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [
+        "getNotification"
+      ],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P1-016",
+      "owner": 1,
+      "op": "listProjects",
+      "method": "GET",
+      "path": "/projects",
+      "file": "Person_1/V2-P1-016_listProjects.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "20",
+      "dependencies": [],
+      "legacy_trace": "P1-20/P2-20"
+    },
+    {
+      "id": "V2-P1-017",
+      "owner": 1,
+      "op": "createProject",
+      "method": "POST",
+      "path": "/projects",
+      "file": "Person_1/V2-P1-017_createProject.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "20",
+      "dependencies": [],
+      "legacy_trace": "P1-20/P2-20"
+    },
+    {
+      "id": "V2-P1-018",
+      "owner": 1,
+      "op": "getProject",
+      "method": "GET",
+      "path": "/projects/{projectId}",
+      "file": "Person_1/V2-P1-018_getProject.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "20",
+      "dependencies": [],
+      "legacy_trace": "P1-20/P2-20"
+    },
+    {
+      "id": "V2-P1-019",
+      "owner": 1,
+      "op": "updateProject",
+      "method": "PATCH",
+      "path": "/projects/{projectId}",
+      "file": "Person_1/V2-P1-019_updateProject.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "20",
+      "dependencies": [
+        "getProject"
+      ],
+      "legacy_trace": "P1-20/P2-20"
+    },
+    {
+      "id": "V2-P1-020",
+      "owner": 1,
+      "op": "closeProject",
+      "method": "POST",
+      "path": "/projects/{projectId}/close",
+      "file": "Person_1/V2-P1-020_closeProject.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "24",
+      "dependencies": [
+        "getProject"
+      ],
+      "legacy_trace": "P1-24 / P2-53 (open-work persistence)"
+    },
+    {
+      "id": "V2-P1-021",
+      "owner": 1,
+      "op": "setMembership",
+      "method": "POST",
+      "path": "/projects/{projectId}/memberships",
+      "file": "Person_1/V2-P1-021_setMembership.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [
+        "getProject"
+      ],
+      "legacy_trace": "P1-12, P1-20 / P2-11, P2-20"
+    },
+    {
+      "id": "V2-P1-022",
+      "owner": 1,
+      "op": "listCrews",
+      "method": "GET",
+      "path": "/projects/{projectId}/crews",
+      "file": "Person_1/V2-P1-022_listCrews.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "20",
+      "dependencies": [],
+      "legacy_trace": "P1-20/P2-20"
+    },
+    {
+      "id": "V2-P1-023",
+      "owner": 1,
+      "op": "createCrew",
+      "method": "POST",
+      "path": "/projects/{projectId}/crews",
+      "file": "Person_1/V2-P1-023_createCrew.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [
+        "getProject"
+      ],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-003",
+      "owner": 2,
+      "op": "createRouteDraft",
+      "method": "POST",
+      "path": "/projects/{projectId}/route-drafts",
+      "file": "Person_2/V2-P2-003_createRouteDraft.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q13"
+      ],
+      "wave": 2,
+      "old": "21",
+      "dependencies": [],
+      "legacy_trace": "P1-21/P2-21"
+    },
+    {
+      "id": "V2-P2-004",
+      "owner": 2,
+      "op": "getRouteVersion",
+      "method": "GET",
+      "path": "/route-versions/{routeVersionId}",
+      "file": "Person_2/V2-P2-004_getRouteVersion.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "20",
+      "dependencies": [],
+      "legacy_trace": "P1-20/P2-20"
+    },
+    {
+      "id": "V2-P2-005",
+      "owner": 2,
+      "op": "updateRouteDraft",
+      "method": "PUT",
+      "path": "/route-versions/{routeVersionId}/draft",
+      "file": "Person_2/V2-P2-005_updateRouteDraft.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q13"
+      ],
+      "wave": 2,
+      "old": "21",
+      "dependencies": [
+        "getRouteVersion"
+      ],
+      "legacy_trace": "P1-21/P2-21"
+    },
+    {
+      "id": "V2-P2-006",
+      "owner": 2,
+      "op": "confirmRoute",
+      "method": "POST",
+      "path": "/route-versions/{routeVersionId}/confirm",
+      "file": "Person_2/V2-P2-006_confirmRoute.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "21",
+      "dependencies": [
+        "getRouteVersion"
+      ],
+      "legacy_trace": "P1-21/P2-21"
+    },
+    {
+      "id": "V2-P2-007",
+      "owner": 2,
+      "op": "previewSegmentSet",
+      "method": "POST",
+      "path": "/projects/{projectId}/segment-set-previews",
+      "file": "Person_2/V2-P2-007_previewSegmentSet.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "21",
+      "dependencies": [
+        "getRouteVersion"
+      ],
+      "legacy_trace": "P1-21/P2-21"
+    },
+    {
+      "id": "V2-P2-008",
+      "owner": 2,
+      "op": "publishSegmentSet",
+      "method": "POST",
+      "path": "/segment-sets/{segmentSetId}/publish",
+      "file": "Person_2/V2-P2-008_publishSegmentSet.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "21",
+      "dependencies": [
+        "getSegmentSet"
+      ],
+      "legacy_trace": "P1-21/P2-21"
+    },
+    {
+      "id": "V2-P2-009",
+      "owner": 2,
+      "op": "createBranch",
+      "method": "POST",
+      "path": "/projects/{projectId}/branches",
+      "file": "Person_2/V2-P2-009_createBranch.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q18"
+      ],
+      "wave": 2,
+      "old": "21",
+      "dependencies": [],
+      "legacy_trace": "P1-21/P2-21"
+    },
+    {
+      "id": "V2-P2-010",
+      "owner": 2,
+      "op": "createSlab",
+      "method": "POST",
+      "path": "/projects/{projectId}/slabs",
+      "file": "Person_2/V2-P2-010_createSlab.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q10",
+        "Q18"
+      ],
+      "wave": 2,
+      "old": "21",
+      "dependencies": [],
+      "legacy_trace": "P1-21/P2-21"
+    },
+    {
+      "id": "V2-P1-024",
+      "owner": 1,
+      "op": "createReport",
+      "method": "POST",
+      "path": "/reports",
+      "file": "Person_1/V2-P1-024_createReport.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-025",
+      "owner": 1,
+      "op": "listOwnReports",
+      "method": "GET",
+      "path": "/reports",
+      "file": "Person_1/V2-P1-025_listOwnReports.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-026",
+      "owner": 1,
+      "op": "getOwnReport",
+      "method": "GET",
+      "path": "/reports/{reportId}",
+      "file": "Person_1/V2-P1-026_getOwnReport.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-027",
+      "owner": 1,
+      "op": "supplementReport",
+      "method": "POST",
+      "path": "/reports/{reportId}/supplements",
+      "file": "Person_1/V2-P1-027_supplementReport.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [
+        "getOwnReport"
+      ],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-028",
+      "owner": 1,
+      "op": "listCases",
+      "method": "GET",
+      "path": "/projects/{projectId}/cases",
+      "file": "Person_1/V2-P1-028_listCases.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-029",
+      "owner": 1,
+      "op": "getCase",
+      "method": "GET",
+      "path": "/cases/{caseId}",
+      "file": "Person_1/V2-P1-029_getCase.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-030",
+      "owner": 1,
+      "op": "triageCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/triage",
+      "file": "Person_1/V2-P1-030_triageCase.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [
+        "getCase"
+      ],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-031",
+      "owner": 1,
+      "op": "linkReports",
+      "method": "POST",
+      "path": "/cases/{caseId}/report-links",
+      "file": "Person_1/V2-P1-031_linkReports.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q09"
+      ],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [
+        "getCase"
+      ],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-032",
+      "owner": 1,
+      "op": "concludeCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/conclusion",
+      "file": "Person_1/V2-P1-032_concludeCase.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [
+        "getCase"
+      ],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-033",
+      "owner": 1,
+      "op": "publishCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/publish",
+      "file": "Person_1/V2-P1-033_publishCase.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [
+        "getCase"
+      ],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-034",
+      "owner": 1,
+      "op": "closeMixedCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/close",
+      "file": "Person_1/V2-P1-034_closeMixedCase.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [
+        "getCase"
+      ],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+    },
+    {
+      "id": "V2-P1-035",
+      "owner": 1,
+      "op": "listDefects",
+      "method": "GET",
+      "path": "/projects/{projectId}/defects",
+      "file": "Person_1/V2-P1-035_listDefects.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "32",
+      "dependencies": [],
+      "legacy_trace": "P1-32/P2-32"
+    },
+    {
+      "id": "V2-P1-036",
+      "owner": 1,
+      "op": "createPreliminaryDefect",
+      "method": "POST",
+      "path": "/projects/{projectId}/defects",
+      "file": "Person_1/V2-P1-036_createPreliminaryDefect.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "32",
+      "dependencies": [],
+      "legacy_trace": "P1-32/P2-32"
+    },
+    {
+      "id": "V2-P1-037",
+      "owner": 1,
+      "op": "getDefect",
+      "method": "GET",
+      "path": "/defects/{defectId}",
+      "file": "Person_1/V2-P1-037_getDefect.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "32",
+      "dependencies": [],
+      "legacy_trace": "P1-32/P2-32"
+    },
+    {
+      "id": "V2-P1-038",
+      "owner": 1,
+      "op": "assessDefect",
+      "method": "POST",
+      "path": "/defects/{defectId}/assessments",
+      "file": "Person_1/V2-P1-038_assessDefect.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "32",
+      "dependencies": [
+        "getDefect"
+      ],
+      "legacy_trace": "P1-32/P2-32"
+    },
+    {
+      "id": "V2-P1-039",
+      "owner": 1,
+      "op": "verifyDefect",
+      "method": "POST",
+      "path": "/defects/{defectId}/verification",
+      "file": "Person_1/V2-P1-039_verifyDefect.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "32",
+      "dependencies": [
+        "getDefect"
+      ],
+      "legacy_trace": "P1-32/P2-32"
+    },
+    {
+      "id": "V2-P1-040",
+      "owner": 1,
+      "op": "assessRecurrence",
+      "method": "POST",
+      "path": "/defects/{defectId}/recurrence-assessments",
+      "file": "Person_1/V2-P1-040_assessRecurrence.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "32",
+      "dependencies": [
+        "getDefect"
+      ],
+      "legacy_trace": "P1-32/P2-32"
+    },
+    {
+      "id": "V2-P1-041",
+      "owner": 1,
+      "op": "setWorkOrder",
+      "method": "PUT",
+      "path": "/projects/{projectId}/work-order",
+      "file": "Person_1/V2-P1-041_setWorkOrder.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [
+        "getWorkOrder"
+      ],
+      "legacy_trace": "P1-60/P2-60"
+    },
+    {
+      "id": "V2-P1-042",
+      "owner": 1,
+      "op": "getWorkOrder",
+      "method": "GET",
+      "path": "/projects/{projectId}/work-order",
+      "file": "Person_1/V2-P1-042_getWorkOrder.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-60/P2-60"
+    },
+    {
+      "id": "V2-P1-043",
+      "owner": 1,
+      "op": "createPolicyVersion",
+      "method": "POST",
+      "path": "/projects/{projectId}/policy-versions",
+      "file": "Person_1/V2-P1-043_createPolicyVersion.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "50",
+      "dependencies": [],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)"
+    },
+    {
+      "id": "V2-P1-044",
+      "owner": 1,
+      "op": "getPolicyVersion",
+      "method": "GET",
+      "path": "/policy-versions/{policyVersionId}",
+      "file": "Person_1/V2-P1-044_getPolicyVersion.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "50",
+      "dependencies": [],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)"
+    },
+    {
+      "id": "V2-P1-045",
+      "owner": 1,
+      "op": "activatePolicyVersion",
+      "method": "POST",
+      "path": "/policy-versions/{policyVersionId}/activate",
+      "file": "Person_1/V2-P1-045_activatePolicyVersion.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q02",
+        "Q03"
+      ],
+      "wave": 3,
+      "old": "50",
+      "dependencies": [
+        "getPolicyVersion"
+      ],
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)"
+    },
+    {
+      "id": "V2-P1-046",
+      "owner": 1,
+      "op": "createInspectionTask",
+      "method": "POST",
+      "path": "/projects/{projectId}/inspection-tasks",
+      "file": "Person_1/V2-P1-046_createInspectionTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [
+        "getPolicyVersion"
+      ],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-047",
+      "owner": 1,
+      "op": "createInspectionBatch",
+      "method": "POST",
+      "path": "/projects/{projectId}/inspection-batches",
+      "file": "Person_1/V2-P1-047_createInspectionBatch.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "BR-10 (gom tuần)"
+      ],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-048",
+      "owner": 1,
+      "op": "getInspectionTask",
+      "method": "GET",
+      "path": "/inspection-tasks/{taskId}",
+      "file": "Person_1/V2-P1-048_getInspectionTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-049",
+      "owner": 1,
+      "op": "acceptInspectionTask",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/accept",
+      "file": "Person_1/V2-P1-049_acceptInspectionTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [
+        "getInspectionTask"
+      ],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-050",
+      "owner": 1,
+      "op": "declineInspectionTask",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/decline",
+      "file": "Person_1/V2-P1-050_declineInspectionTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [
+        "getInspectionTask"
+      ],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-051",
+      "owner": 1,
+      "op": "submitInspection",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/sessions",
+      "file": "Person_1/V2-P1-051_submitInspection.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [
+        "getInspectionTask",
+        "getFileMetadata"
+      ],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-052",
+      "owner": 1,
+      "op": "evaluateFastTrack",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/evaluations",
+      "file": "Person_1/V2-P1-052_evaluateFastTrack.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q03",
+        "FE-GAP-05 (offline)"
+      ],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [
+        "submitInspection",
+        "getPolicyVersion"
+      ],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-053",
+      "owner": 1,
+      "op": "createRepairPackage",
+      "method": "POST",
+      "path": "/projects/{projectId}/repair-packages",
+      "file": "Person_1/V2-P1-053_createRepairPackage.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "50",
+      "dependencies": [],
+      "legacy_trace": "P1-50/P2-50"
+    },
+    {
+      "id": "V2-P1-054",
+      "owner": 1,
+      "op": "submitRepairPackage",
+      "method": "POST",
+      "path": "/repair-packages/{packageId}/submit",
+      "file": "Person_1/V2-P1-054_submitRepairPackage.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "50",
+      "dependencies": [
+        "getRepairPackage"
+      ],
+      "legacy_trace": "P1-50/P2-50"
+    },
+    {
+      "id": "V2-P1-055",
+      "owner": 1,
+      "op": "decideRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/decisions",
+      "file": "Person_1/V2-P1-055_decideRepairItem.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "51",
+      "dependencies": [
+        "getRepairItem"
+      ],
+      "legacy_trace": "P1-51/P2-51"
+    },
+    {
+      "id": "V2-P1-056",
+      "owner": 1,
+      "op": "assignRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/assignments",
+      "file": "Person_1/V2-P1-056_assignRepairItem.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "52",
+      "dependencies": [
+        "getRepairItem"
+      ],
+      "legacy_trace": "P1-52/P2-52"
+    },
+    {
+      "id": "V2-P1-057",
+      "owner": 1,
+      "op": "reassignRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/reassignments",
+      "file": "Person_1/V2-P1-057_reassignRepairItem.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q04"
+      ],
+      "wave": 4,
+      "old": "52",
+      "dependencies": [
+        "getRepairItem"
+      ],
+      "legacy_trace": "P1-52/P2-52"
+    },
+    {
+      "id": "V2-P1-058",
+      "owner": 1,
+      "op": "startRepairAttempt",
+      "method": "POST",
+      "path": "/repair-attempts",
+      "file": "Person_1/V2-P1-058_startRepairAttempt.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q02/Q03 (Fast Track)",
+        "Q04 (đổi đội offline)"
+      ],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [
+        "getRepairItem",
+        "evaluateFastTrack"
+      ],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P1-059",
+      "owner": 1,
+      "op": "submitRepairAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/submit",
+      "file": "Person_1/V2-P1-059_submitRepairAttempt.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [
+        "getRepairAttempt",
+        "getFileMetadata"
+      ],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P1-060",
+      "owner": 1,
+      "op": "reviewRepairAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/review",
+      "file": "Person_1/V2-P1-060_reviewRepairAttempt.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [
+        "getRepairAttempt"
+      ],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P1-061",
+      "owner": 1,
+      "op": "acceptApprovalAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/acceptance",
+      "file": "Person_1/V2-P1-061_acceptApprovalAttempt.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [
+        "getRepairAttempt"
+      ],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P1-062",
+      "owner": 1,
+      "op": "createEmergencyTask",
+      "method": "POST",
+      "path": "/projects/{projectId}/emergency-tasks",
+      "file": "Person_1/V2-P1-062_createEmergencyTask.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q18"
+      ],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P2-011",
+      "owner": 2,
+      "op": "createSurveyTask",
+      "method": "POST",
+      "path": "/projects/{projectId}/survey-tasks",
+      "file": "Person_2/V2-P2-011_createSurveyTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-012",
+      "owner": 2,
+      "op": "getSurveyTask",
+      "method": "GET",
+      "path": "/survey-tasks/{taskId}",
+      "file": "Person_2/V2-P2-012_getSurveyTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-013",
+      "owner": 2,
+      "op": "acceptSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/accept",
+      "file": "Person_2/V2-P2-013_acceptSurveyTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [
+        "getSurveyTask"
+      ],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-014",
+      "owner": 2,
+      "op": "declineSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/decline",
+      "file": "Person_2/V2-P2-014_declineSurveyTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [
+        "getSurveyTask"
+      ],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-015",
+      "owner": 2,
+      "op": "cancelSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/cancel",
+      "file": "Person_2/V2-P2-015_cancelSurveyTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [
+        "getSurveyTask"
+      ],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-016",
+      "owner": 2,
+      "op": "reassignSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/reassign",
+      "file": "Person_2/V2-P2-016_reassignSurveyTask.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [
+        "getSurveyTask"
+      ],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-017",
+      "owner": 2,
+      "op": "requestSurveySupplement",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/supplements",
+      "file": "Person_2/V2-P2-017_requestSurveySupplement.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [
+        "getSurveyTask"
+      ],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-018",
+      "owner": 2,
+      "op": "setSurveyAccessPoint",
+      "method": "PUT",
+      "path": "/survey-tasks/{taskId}/access-point",
+      "file": "Person_2/V2-P2-018_setSurveyAccessPoint.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q12"
+      ],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [
+        "getSurveyTask"
+      ],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-019",
+      "owner": 2,
+      "op": "submitDataset",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/datasets",
+      "file": "Person_2/V2-P2-019_submitDataset.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [
+        "getSurveyTask",
+        "getFileMetadata"
+      ],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-020",
+      "owner": 2,
+      "op": "getDatasetCoverage",
+      "method": "GET",
+      "path": "/datasets/{datasetId}/coverage",
+      "file": "Person_2/V2-P2-020_getDatasetCoverage.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-021",
+      "owner": 2,
+      "op": "confirmBaseline",
+      "method": "POST",
+      "path": "/projects/{projectId}/baselines",
+      "file": "Person_2/V2-P2-021_confirmBaseline.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q11"
+      ],
+      "wave": 3,
+      "old": "42",
+      "dependencies": [
+        "getDatasetCoverage"
+      ],
+      "legacy_trace": "P1-42/P2-42"
+    },
+    {
+      "id": "V2-P2-022",
+      "owner": 2,
+      "op": "exportMission",
+      "method": "POST",
+      "path": "/projects/{projectId}/mission-exports",
+      "file": "Person_2/V2-P2-022_exportMission.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q14",
+        "Q18"
+      ],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P2-023",
+      "owner": 2,
+      "op": "createUploadSession",
+      "method": "POST",
+      "path": "/uploads",
+      "file": "Person_2/V2-P2-023_createUploadSession.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "30",
+      "dependencies": [],
+      "legacy_trace": "P1-30/P2-30"
+    },
+    {
+      "id": "V2-P2-024",
+      "owner": 2,
+      "op": "getUploadPartUrls",
+      "method": "POST",
+      "path": "/uploads/{uploadId}/part-urls",
+      "file": "Person_2/V2-P2-024_getUploadPartUrls.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "30",
+      "dependencies": [
+        "getUploadSession"
+      ],
+      "legacy_trace": "P1-30/P2-30"
+    },
+    {
+      "id": "V2-P2-025",
+      "owner": 2,
+      "op": "completeUpload",
+      "method": "POST",
+      "path": "/uploads/{uploadId}/complete",
+      "file": "Person_2/V2-P2-025_completeUpload.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "30",
+      "dependencies": [
+        "getUploadSession"
+      ],
+      "legacy_trace": "P1-30/P2-30"
+    },
+    {
+      "id": "V2-P2-026",
+      "owner": 2,
+      "op": "getUploadSession",
+      "method": "GET",
+      "path": "/uploads/{uploadId}",
+      "file": "Person_2/V2-P2-026_getUploadSession.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "30",
+      "dependencies": [],
+      "legacy_trace": "P1-30/P2-30"
+    },
+    {
+      "id": "V2-P2-027",
+      "owner": 2,
+      "op": "getFileMetadata",
+      "method": "GET",
+      "path": "/files/{fileId}",
+      "file": "Person_2/V2-P2-027_getFileMetadata.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "30",
+      "dependencies": [],
+      "legacy_trace": "P1-30/P2-30"
+    },
+    {
+      "id": "V2-P2-028",
+      "owner": 2,
+      "op": "downloadFile",
+      "method": "GET",
+      "path": "/files/{fileId}/content",
+      "file": "Person_2/V2-P2-028_downloadFile.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 1,
+      "old": "30",
+      "dependencies": [],
+      "legacy_trace": "P1-30/P2-30"
+    },
+    {
+      "id": "V2-P2-029",
+      "owner": 2,
+      "op": "syncOperations",
+      "method": "POST",
+      "path": "/sync/batches",
+      "file": "Person_2/V2-P2-029_syncOperations.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q04",
+        "Q17",
+        "FE-GAP-05/07/08/10"
+      ],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [
+        "submitInspection",
+        "startRepairAttempt",
+        "submitRepairAttempt",
+        "getInspectionSnapshot"
+      ],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P2-030",
+      "owner": 2,
+      "op": "createProcessingJob",
+      "method": "POST",
+      "path": "/processing-jobs",
+      "file": "Person_2/V2-P2-030_createProcessingJob.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "31",
+      "dependencies": [
+        "getDatasetCoverage"
+      ],
+      "legacy_trace": "P1-31/P2-31"
+    },
+    {
+      "id": "V2-P2-031",
+      "owner": 2,
+      "op": "getProcessingJob",
+      "method": "GET",
+      "path": "/processing-jobs/{jobId}",
+      "file": "Person_2/V2-P2-031_getProcessingJob.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "31",
+      "dependencies": [],
+      "legacy_trace": "P1-31/P2-31"
+    },
+    {
+      "id": "V2-P2-032",
+      "owner": 2,
+      "op": "retryProcessingJob",
+      "method": "POST",
+      "path": "/processing-jobs/{jobId}/retry",
+      "file": "Person_2/V2-P2-032_retryProcessingJob.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "31",
+      "dependencies": [
+        "getProcessingJob"
+      ],
+      "legacy_trace": "P1-31/P2-31"
+    },
+    {
+      "id": "V2-P2-033",
+      "owner": 2,
+      "op": "receiveAiResult",
+      "method": "POST",
+      "path": "/internal/processing-jobs/{jobId}/results",
+      "file": "Person_2/V2-P2-033_receiveAiResult.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "31",
+      "dependencies": [
+        "getProcessingJob"
+      ],
+      "legacy_trace": "P1-31/P2-31"
+    },
+    {
+      "id": "V2-P2-034",
+      "owner": 2,
+      "op": "createValidationRun",
+      "method": "POST",
+      "path": "/projects/{projectId}/validation-runs",
+      "file": "Person_2/V2-P2-034_createValidationRun.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "63",
+      "dependencies": [
+        "getDatasetCoverage"
+      ],
+      "legacy_trace": "P1-63/P2-63"
+    },
+    {
+      "id": "V2-P2-035",
+      "owner": 2,
+      "op": "getValidationResult",
+      "method": "GET",
+      "path": "/validation-runs/{runId}",
+      "file": "Person_2/V2-P2-035_getValidationResult.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "63",
+      "dependencies": [],
+      "legacy_trace": "P1-63/P2-63"
+    },
+    {
+      "id": "V2-P2-036",
+      "owner": 2,
+      "op": "reviewTrainingLabel",
+      "method": "POST",
+      "path": "/labels/{labelId}/review",
+      "file": "Person_2/V2-P2-036_reviewTrainingLabel.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "GAP-01"
+      ],
+      "wave": 5,
+      "old": "65",
+      "dependencies": [],
+      "legacy_trace": "P1-65/P2-65"
+    },
+    {
+      "id": "V2-P2-037",
+      "owner": 2,
+      "op": "getDashboard",
+      "method": "GET",
+      "path": "/projects/{projectId}/dashboard",
+      "file": "Person_2/V2-P2-037_getDashboard.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-60/P2-60"
+    },
+    {
+      "id": "V2-P2-038",
+      "owner": 2,
+      "op": "getProjectTimeline",
+      "method": "GET",
+      "path": "/projects/{projectId}/timeline",
+      "file": "Person_2/V2-P2-038_getProjectTimeline.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "60",
+      "dependencies": [],
+      "legacy_trace": "P1-60/P2-60"
+    },
+    {
+      "id": "V2-P2-039",
+      "owner": 2,
+      "op": "createExport",
+      "method": "POST",
+      "path": "/exports",
+      "file": "Person_2/V2-P2-039_createExport.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "61",
+      "dependencies": [
+        "downloadFile"
+      ],
+      "legacy_trace": "P1-61/P2-61"
+    },
+    {
+      "id": "V2-P2-040",
+      "owner": 2,
+      "op": "getExport",
+      "method": "GET",
+      "path": "/exports/{exportId}",
+      "file": "Person_2/V2-P2-040_getExport.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "61",
+      "dependencies": [],
+      "legacy_trace": "P1-61/P2-61"
+    },
+    {
+      "id": "V2-P2-041",
+      "owner": 2,
+      "op": "listAuditEvents",
+      "method": "GET",
+      "path": "/audit-events",
+      "file": "Person_2/V2-P2-041_listAuditEvents.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-042",
+      "owner": 2,
+      "op": "createModelVersion",
+      "method": "POST",
+      "path": "/model-versions",
+      "file": "Person_2/V2-P2-042_createModelVersion.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "65",
+      "dependencies": [],
+      "legacy_trace": "P1-65/P2-65"
+    },
+    {
+      "id": "V2-P2-043",
+      "owner": 2,
+      "op": "activateModelVersion",
+      "method": "POST",
+      "path": "/model-versions/{modelVersionId}/activate",
+      "file": "Person_2/V2-P2-043_activateModelVersion.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "65",
+      "dependencies": [
+        "getModelVersion"
+      ],
+      "legacy_trace": "P1-65/P2-65"
+    },
+    {
+      "id": "V2-P2-044",
+      "owner": 2,
+      "op": "retireModelVersion",
+      "method": "POST",
+      "path": "/model-versions/{modelVersionId}/retire",
+      "file": "Person_2/V2-P2-044_retireModelVersion.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "65",
+      "dependencies": [
+        "getModelVersion"
+      ],
+      "legacy_trace": "P1-65/P2-65"
+    },
+    {
+      "id": "V2-P2-045",
+      "owner": 2,
+      "op": "createDevice",
+      "method": "POST",
+      "path": "/devices",
+      "file": "Person_2/V2-P2-045_createDevice.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "65",
+      "dependencies": [],
+      "legacy_trace": "P1-65/P2-65"
+    },
+    {
+      "id": "V2-P2-046",
+      "owner": 2,
+      "op": "listDefectTypes",
+      "method": "GET",
+      "path": "/catalog/defect-types",
+      "file": "Person_2/V2-P2-046_listDefectTypes.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-047",
+      "owner": 2,
+      "op": "updateDefectType",
+      "method": "PUT",
+      "path": "/catalog/defect-types/{code}",
+      "file": "Person_2/V2-P2-047_updateDefectType.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-048",
+      "owner": 2,
+      "op": "getReminderConfig",
+      "method": "GET",
+      "path": "/reminder-configuration",
+      "file": "Person_2/V2-P2-048_getReminderConfig.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-049",
+      "owner": 2,
+      "op": "setReminderConfig",
+      "method": "PUT",
+      "path": "/reminder-configuration",
+      "file": "Person_2/V2-P2-049_setReminderConfig.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [
+        "getReminderConfig"
+      ],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-050",
+      "owner": 2,
+      "op": "requestDeletion",
+      "method": "POST",
+      "path": "/retention/deletion-requests",
+      "file": "Person_2/V2-P2-050_requestDeletion.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "retention matrix"
+      ],
+      "wave": 5,
+      "old": "62",
+      "dependencies": [],
+      "legacy_trace": "P1-62/P2-62"
+    },
+    {
+      "id": "V2-P2-051",
+      "owner": 2,
+      "op": "decideDeletion",
+      "method": "POST",
+      "path": "/retention/deletion-requests/{requestId}/decision",
+      "file": "Person_2/V2-P2-051_decideDeletion.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "retention matrix"
+      ],
+      "wave": 5,
+      "old": "62",
+      "dependencies": [
+        "getDeletionRequest"
+      ],
+      "legacy_trace": "P1-62/P2-62"
+    },
+    {
+      "id": "V2-P2-052",
+      "owner": 2,
+      "op": "setLegalHold",
+      "method": "PUT",
+      "path": "/projects/{projectId}/legal-hold",
+      "file": "Person_2/V2-P2-052_setLegalHold.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "62",
+      "dependencies": [],
+      "legacy_trace": "P1-62/P2-62"
+    },
+    {
+      "id": "V2-P1-063",
+      "owner": 1,
+      "op": "listMyInspectionTasks",
+      "method": "GET",
+      "path": "/me/inspection-tasks",
+      "file": "Person_1/V2-P1-063_listMyInspectionTasks.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-064",
+      "owner": 1,
+      "op": "listMyRepairItems",
+      "method": "GET",
+      "path": "/me/repair-items",
+      "file": "Person_1/V2-P1-064_listMyRepairItems.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P2-053",
+      "owner": 2,
+      "op": "listMySurveyTasks",
+      "method": "GET",
+      "path": "/me/survey-tasks",
+      "file": "Person_2/V2-P2-053_listMySurveyTasks.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "23",
+      "dependencies": [],
+      "legacy_trace": "P1-23/P2-23"
+    },
+    {
+      "id": "V2-P1-065",
+      "owner": 1,
+      "op": "getInspectionSnapshot",
+      "method": "GET",
+      "path": "/inspection-tasks/{taskId}/snapshot",
+      "file": "Person_1/V2-P1-065_getInspectionSnapshot.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "FE-GAP-07"
+      ],
+      "wave": 4,
+      "old": "40",
+      "dependencies": [
+        "getInspectionTask"
+      ],
+      "legacy_trace": "P1-40/P2-40"
+    },
+    {
+      "id": "V2-P1-066",
+      "owner": 1,
+      "op": "setDefectSlabLinks",
+      "method": "PUT",
+      "path": "/defects/{defectId}/slab-links",
+      "file": "Person_1/V2-P1-066_setDefectSlabLinks.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "Q10"
+      ],
+      "wave": 3,
+      "old": "32",
+      "dependencies": [
+        "getDefect"
+      ],
+      "legacy_trace": "P1-32/P2-32"
+    },
+    {
+      "id": "V2-P2-054",
+      "owner": 2,
+      "op": "createSurveyPlan",
+      "method": "POST",
+      "path": "/projects/{projectId}/survey-plans",
+      "file": "Person_2/V2-P2-054_createSurveyPlan.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "22",
+      "dependencies": [],
+      "legacy_trace": "P1-22/P2-22"
+    },
+    {
+      "id": "V2-P2-055",
+      "owner": 2,
+      "op": "postponeSurveyPlan",
+      "method": "POST",
+      "path": "/survey-plans/{planId}/postpone",
+      "file": "Person_2/V2-P2-055_postponeSurveyPlan.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 3,
+      "old": "22",
+      "dependencies": [
+        "createSurveyPlan"
+      ],
+      "legacy_trace": "P1-22/P2-22"
+    },
+    {
+      "id": "V2-P2-056",
+      "owner": 2,
+      "op": "exportApprovedLabels",
+      "method": "POST",
+      "path": "/training-exports",
+      "file": "Person_2/V2-P2-056_exportApprovedLabels.md",
+      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
+      "gates": [
+        "GAP-01"
+      ],
+      "wave": 2,
+      "old": "65",
+      "dependencies": [],
+      "legacy_trace": "P1-65/P2-65"
+    },
+    {
+      "id": "V2-P2-057",
+      "owner": 2,
+      "op": "listAdminJobs",
+      "method": "GET",
+      "path": "/admin/processing-jobs",
+      "file": "Person_2/V2-P2-057_listAdminJobs.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "65",
+      "dependencies": [],
+      "legacy_trace": "P1-65/P2-65"
+    },
+    {
+      "id": "V2-P2-058",
+      "owner": 2,
+      "op": "getAsyncJob",
+      "method": "GET",
+      "path": "/jobs/{jobId}",
+      "file": "Person_2/V2-P2-058_getAsyncJob.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "31",
+      "dependencies": [],
+      "legacy_trace": "P1-31/P2-31"
+    },
+    {
+      "id": "V2-P1-067",
+      "owner": 1,
+      "op": "getRepairItem",
+      "method": "GET",
+      "path": "/repair-items/{itemId}",
+      "file": "Person_1/V2-P1-067_getRepairItem.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P1-068",
+      "owner": 1,
+      "op": "getRepairAttempt",
+      "method": "GET",
+      "path": "/repair-attempts/{attemptId}",
+      "file": "Person_1/V2-P1-068_getRepairAttempt.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [],
+      "legacy_trace": "P1-53/P2-53"
+    },
+    {
+      "id": "V2-P1-069",
+      "owner": 1,
+      "op": "getRepairPackage",
+      "method": "GET",
+      "path": "/repair-packages/{packageId}",
+      "file": "Person_1/V2-P1-069_getRepairPackage.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "50",
+      "dependencies": [],
+      "legacy_trace": "P1-50/P2-50"
+    },
+    {
+      "id": "V2-P2-059",
+      "owner": 2,
+      "op": "getSegmentSet",
+      "method": "GET",
+      "path": "/segment-sets/{segmentSetId}",
+      "file": "Person_2/V2-P2-059_getSegmentSet.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "20",
+      "dependencies": [],
+      "legacy_trace": "P1-20/P2-20"
+    },
+    {
+      "id": "V2-P2-060",
+      "owner": 2,
+      "op": "getDeletionRequest",
+      "method": "GET",
+      "path": "/retention/deletion-requests/{requestId}",
+      "file": "Person_2/V2-P2-060_getDeletionRequest.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 5,
+      "old": "62",
+      "dependencies": [],
+      "legacy_trace": "P1-62/P2-62"
+    },
+    {
+      "id": "V2-P2-061",
+      "owner": 2,
+      "op": "getModelVersion",
+      "method": "GET",
+      "path": "/model-versions/{modelVersionId}",
+      "file": "Person_2/V2-P2-061_getModelVersion.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P2-062",
+      "owner": 2,
+      "op": "getNotification",
+      "method": "GET",
+      "path": "/notifications/{notificationId}",
+      "file": "Person_2/V2-P2-062_getNotification.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 2,
+      "old": "64",
+      "dependencies": [],
+      "legacy_trace": "P1-64/P2-64"
+    },
+    {
+      "id": "V2-P1-070",
+      "owner": 1,
+      "op": "reviseRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/revisions",
+      "file": "Person_1/V2-P1-070_reviseRepairItem.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "51",
+      "dependencies": [
+        "getRepairItem"
+      ],
+      "legacy_trace": "P1-51/P2-51"
+    },
+    {
+      "id": "V2-P1-071",
+      "owner": 1,
+      "op": "startReworkAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/rework-attempts",
+      "file": "Person_1/V2-P1-071_startReworkAttempt.md",
+      "status": "NEEDS_REPO_CHECK",
+      "gates": [],
+      "wave": 4,
+      "old": "53",
+      "dependencies": [
+        "getRepairAttempt"
+      ],
+      "legacy_trace": "P1-53/P2-53"
+    }
+  ]
+}

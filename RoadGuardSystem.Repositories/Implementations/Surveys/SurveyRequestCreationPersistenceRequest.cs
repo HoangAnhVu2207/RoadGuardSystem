@@ -4,6 +4,7 @@ public sealed record SurveyRequestCreationPersistenceRequest(
     Guid ActorUserId,
     Guid ProjectId,
     Guid RoadSectionId,
+    Guid RoadSectionVersionId,
     Guid? SurveyPlanId,
     RoadGuardSystem.aBusinessObjects.Commons.SurveyType SurveyType,
     DateTimeOffset DueAt,

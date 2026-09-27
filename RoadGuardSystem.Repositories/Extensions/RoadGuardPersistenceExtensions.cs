@@ -128,11 +128,18 @@ public static class RoadGuardPersistenceExtensions
     /// <summary>
     /// Registers the database seeder framework and any registered seed steps.
     /// </summary>
-    public static IServiceCollection AddRoadGuardSeeding(this IServiceCollection services)
+    public static IServiceCollection AddRoadGuardSeeding(
+        this IServiceCollection services,
+        bool includeDevelopmentUsers = false)
     {
         services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
         services.AddScoped<ISeedStep, IdentityRoleSeedStep>();
         services.AddScoped<ISeedStep, DroneDeviceSeedStep>();
+        if (includeDevelopmentUsers)
+        {
+            services.AddScoped<ISeedStep, PostmanUserSeedStep>();
+        }
+
         return services;
     }
 }

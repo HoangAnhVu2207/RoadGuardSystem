@@ -243,7 +243,7 @@ public sealed class P112ProjectAuthorizationTests
 
     private static async Task<string> AuthenticateAsync(HttpClient client, string username, string password)
     {
-        var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { username, password });
+        var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = AuthenticationSqlServerFixture.EmailFor(username), password });
         login.EnsureSuccessStatusCode();
         var tokens = await login.Content.ReadFromJsonAsync<JsonElement>();
         var accessToken = tokens.GetProperty("accessToken").GetString()!;

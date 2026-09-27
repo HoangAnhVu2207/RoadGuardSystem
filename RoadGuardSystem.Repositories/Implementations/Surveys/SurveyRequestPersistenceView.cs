@@ -6,6 +6,7 @@ public sealed record SurveyRequestPersistenceView(
     Guid RequestId,
     Guid ProjectId,
     Guid RoadSectionId,
+    Guid? RoadSectionVersionId,
     Guid? SurveyPlanId,
     Guid RequestedByUserId,
     SurveyType SurveyType,

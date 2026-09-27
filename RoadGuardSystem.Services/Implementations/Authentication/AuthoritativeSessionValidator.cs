@@ -65,4 +65,15 @@ public sealed class AuthoritativeSessionValidator
             return AuthoritativeSessionValidation.Unauthorized;
         }
     }
+
+    public Task<bool> HasCommittedReplayAsync(
+        Guid userId,
+        string operation,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default) =>
+        _identityRepository.HasIdempotencyOutcomeAsync(
+            userId,
+            operation,
+            idempotencyKey,
+            cancellationToken);
 }

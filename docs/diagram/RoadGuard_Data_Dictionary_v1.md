@@ -1,14 +1,14 @@
 # RoadGuard — Data Dictionary v1
 
-> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
+> Thiết kế đích đồng bộ ngày 22/09/2026 theo [Incident/Segment](RoadGuard_Incident_Segment_Design_v1.md) và [AI/Edge](RoadGuard_AI_Segment_Edge_Design_v1.md). Các bảng/cột mới và thay đổi nullable dưới đây là thiết kế đề xuất, không phải xác nhận code hoặc migration đã có. Mốc bàn giao backend/mock AI ngày 18/09/2026 tại [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md) là lịch sử; thiết kế đích bổ sung adapter AI ngoài qua hợp đồng có phiên bản. Research Validation vẫn bắt buộc trong phạm vi nghiên cứu; mock không chứng minh độ chính xác thực nghiệm.
 
 Tài liệu này là từ điển dữ liệu mức logic cho RoadGuard. Nó được lập từ:
 
-- `Build/RoadGuard_Domain_Model_v1.md`;
-- `Build/RoadGuard_Entity_List_v2.md`;
-- `V2/Dac_ta_UseCase_v2.md`;
-- `V2/User_Stories_Acceptance_Criteria_v2.md`;
-- `V2/Mo_ta_chi_tiet_cac_luong_RoadGuard_v2.md`;
+- [Domain Model](RoadGuard_Domain_Model_v1.md);
+- [Domain Model entity list](RoadGuard_Domain_Model_v1.md);
+- [Use Case](Dac_ta_UseCase_v2.md);
+- [User Stories](User_Stories_Acceptance_Criteria_v2.md);
+- [Incident/segment workflow](RoadGuard_Incident_Segment_Design_v1.md);
 - đề cương nghiên cứu `RoadGuard_Contractor_Warranty_Inspection_phuonglhk.md`.
 
 ## 1. Phạm vi và cách đọc
@@ -20,7 +20,7 @@ Ký hiệu nguồn:
 | Mã | Ý nghĩa |
 |---|---|
 | `SRC` | Có căn cứ trực tiếp từ User Story/Use Case hoặc quy tắc đã nêu trong Domain Model. |
-| `DEC` | Quyết định thiết kế đã chốt: audit log riêng, Warranty riêng, QualityCheck hai cấp, SupplementarySurveyRequest độc lập và đo thực địa bắt buộc trước xác minh chính thức. |
+| `DEC` | Quyết định thiết kế đã chốt: audit log riêng, Warranty riêng, QualityCheck hai cấp, SupplementarySurveyRequest độc lập và đo vật lý khi quy tắc đo yêu cầu; nhánh kiểm chứng ban đầu được chọn drone hoặc thực địa. |
 | `PROP` | Đề xuất cần xác nhận khi chốt schema/API; không được hiểu là yêu cầu nghiệp vụ đã được nguồn bắt buộc. |
 
 ## 2. Quy ước dữ liệu dùng chung
@@ -102,16 +102,20 @@ Trong Data Dictionary, trường `GEOMETRY(...)` là kiểu logic; DDL SQL Serve
 
 ### 3.1 Auth & Access
 
-#### `User` — tài khoản người dùng nội bộ
+#### `User` — tài khoản nội bộ và Reporter
 
 | Trường | Kiểu | Null | Khóa/Tham chiếu | Nguồn | Định nghĩa và ràng buộc |
 |---|---|---:|---|---|---|
 | `id` | UUID | Không | PK | SRC | Định danh tài khoản. |
 | `username` | VARCHAR(100) | Không | UQ | SRC | Tên đăng nhập duy nhất. |
 | `email` | VARCHAR(254) | Có | UQ khi có | PROP | Email nhận thông báo/khôi phục. |
+| `email_confirmed` | BOOLEAN | Không |  | SRC | Identity email confirmation flag; Reporter không được đăng nhập hoặc gửi report khi false. Tài khoản nội bộ do Admin provision có thể được xác nhận theo seed/provisioning policy. |
+| `email_confirmed_at` | TIMESTAMPTZ | Có |  | PROP | Thời điểm OTP được xác minh thành công; do server ghi, không cho client tự gửi. |
+| `registration_source` | ENUM | Không |  | SRC | `ADMIN_PROVISIONED` hoặc `REPORTER_SELF_SERVICE`; chỉ Reporter được dùng nhánh self-service. |
 | `display_name` | VARCHAR(200) | Không |  | SRC | Tên hiển thị. |
 | `password_hash` | TEXT | Không |  | PROP | Hash mật khẩu; không bao giờ trả về API/log. |
-| `role_code` | ENUM | Không | FK `Role.code` | SRC | Vai trò toàn hệ thống authoritative, một trong bốn mã chuẩn. Chỉ Supervisor/Admin được đổi; thay đổi phát `UserRoleChanged`, ghi audit và thu hồi toàn bộ phiên/token đang hoạt động. |
+| `role_code` | ENUM | Không | FK `Role.code` | SRC | Vai trò toàn hệ thống authoritative, một trong năm mã chuẩn của thiết kế đích. Chỉ Supervisor/Admin được đổi; thay đổi phát `UserRoleChanged`, ghi audit và thu hồi toàn bộ phiên/token đang hoạt động. |
+| `reporter_type` | ENUM | Có |  | PROP | Citizen/InvestorRepresentative (`CITIZEN`, `INVESTOR_REPRESENTATIVE`); bắt buộc khi role REPORTER. |
 | `status` | ENUM | Không |  | SRC | `ACTIVE`, `SUSPENDED`, `PENDING`; suspended chặn đăng nhập/reset. |
 | `must_change_password` | BOOLEAN | Không |  | SRC | Đặt `true` sau reset bắt buộc đổi ở lần đăng nhập kế tiếp. |
 | `last_login_at` | TIMESTAMPTZ | Có |  | PROP | Lần đăng nhập thành công gần nhất. |
@@ -122,9 +126,28 @@ Trong Data Dictionary, trường `GEOMETRY(...)` là kiểu logic; DDL SQL Serve
 
 | Trường | Kiểu | Null | Khóa/Tham chiếu | Nguồn | Định nghĩa |
 |---|---|---:|---|---|---|
-| `code` | VARCHAR(40) | Không | PK | SRC | `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`. |
+| `code` | VARCHAR(40) | Không | PK | SRC | `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`, `REPORTER`. Runtime hiện có bốn role; `Reporter = 5` là đề xuất thêm, giữ nguyên giá trị 1–4. |
 | `name` | VARCHAR(100) | Không |  | SRC | Tên hiển thị vai trò. |
 | `is_active` | BOOLEAN | Không |  | PROP | Không cho gán mới nếu false; không xóa lịch sử. |
+
+#### `EmailVerificationChallenge` — OTP xác minh email Reporter
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Nguồn | Định nghĩa và ràng buộc |
+|---|---|---:|---|---|---|
+| `id` | UUID | Không | PK | SRC | Định danh challenge/registration intent. |
+| `user_id` | UUID | Không | FK `User.id` | SRC | Chỉ trỏ tới User có `role_code = REPORTER` và `status = PENDING` khi tạo. |
+| `email` | VARCHAR(254) | Không |  | SRC | Gmail đã canonicalize; chỉ `gmail.com` hoặc `googlemail.com`. Snapshot dùng để chống đổi email giữa các lần gửi. |
+| `purpose` | ENUM | Không |  | SRC | `REPORTER_EMAIL_VERIFICATION`; không dùng challenge này cho reset password. |
+| `code_hash` | TEXT | Không |  | SRC | Hash/HMAC của OTP; không lưu OTP plaintext. |
+| `expires_at` | TIMESTAMPTZ | Không |  | SRC | Hạn dùng ngắn, mục tiêu 10 phút và cấu hình được. |
+| `attempt_count` | INTEGER | Không |  | SRC | Số lần verify đã thử; vượt giới hạn thì challenge bị khóa. |
+| `max_attempts` | INTEGER | Không |  | PROP | Snapshot giới hạn tại lúc tạo để thay đổi config không làm đổi nghĩa lịch sử. |
+| `resend_after` | TIMESTAMPTZ | Không |  | SRC | Cooldown tối thiểu trước khi gửi lại. |
+| `consumed_at` | TIMESTAMPTZ | Có |  | SRC | Ghi khi OTP hợp lệ được dùng; challenge đã consume/expire không dùng lại. |
+| `provider_message_id` | VARCHAR(200) | Có |  | PROP | Correlation ID từ Gmail adapter; không chứa nội dung OTP. |
+| `created_at` | TIMESTAMPTZ | Không |  | SRC | Thời điểm tạo challenge. |
+
+Challenge là append-only về nội dung bảo mật; verify/resend tạo event/challenge mới hoặc cập nhật các counter được phép trong transaction. Rate-limit theo email canonical, IP/device fingerprint và registration intent; phản hồi public không tiết lộ email đã tồn tại.
 
 #### `Session` / `RefreshToken` — phiên xác thực
 
@@ -203,6 +226,8 @@ Không thêm `password`, `password_hash`, reset token hoặc secret vào entity 
 | `end_date` | DATE | Có |  | PROP | Ngày kết thúc thực tế. |
 | `created_at` | TIMESTAMPTZ | Không |  | SRC | Thời điểm tạo. |
 
+Reporter truy cập bằng quyền sở hữu IncidentReport và các sự kiện đã công bố; không cần ProjectMember và không có quyền xem toàn dự án. reporter_type chỉ phân loại người gửi, không cấp thêm quyền.
+
 #### `ProjectMember`
 
 | Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
@@ -210,13 +235,13 @@ Không thêm `password`, `password_hash`, reset token hoặc secret vào entity 
 | `id` | UUID | Không | PK | Bản ghi phân quyền dự án. |
 | `project_id` | UUID | Không | FK `Project.id` | Dự án được gán. |
 | `user_id` | UUID | Không | FK `User.id` | Người được gán. |
-| `role_code` | ENUM | Không | FK `Role.code` | Vai trò authoritative trong dự án. Trong MVP, với non-Supervisor phải bằng `User.role_code` hiện tại và phù hợp policy của thao tác. |
+| `role_code` | ENUM | Không | FK `Role.code` | Vai trò authoritative trong dự án. Trong MVP, với vai trò tác nghiệp non-Supervisor phải bằng `User.role_code` hiện tại và phù hợp policy của thao tác. |
 | `is_primary` | BOOLEAN | Không |  | Đánh dấu PM chính; mỗi dự án tối đa một bản ghi active. |
 | `valid_from` | DATE | Không |  | Ngày hiệu lực. |
 | `valid_to` | DATE | Có |  | Ngày hết hiệu lực. |
 | `status` | ENUM | Không |  | `ACTIVE`, `ENDED`. |
 
-Quy tắc authorization MVP: `User.role_code` là nguồn vai trò toàn hệ thống; `ProjectMember.role_code` là nguồn quyền trong project và phải khớp `User.role_code` đối với non-Supervisor. Supervisor chỉ được miễn membership sau khi backend tải và xác nhận role hiện tại từ kho dữ liệu. Thay đổi role toàn hệ thống phát `UserRoleChanged` và thu hồi toàn bộ Session/RefreshToken trong cùng transaction; thay đổi, hết hạn hoặc kết thúc `ProjectMember` có hiệu lực ngay ở request kế tiếp vì backend kiểm tra membership phía server, không tin role/project claim của client. Mọi thay đổi phải ghi `AuditLog` append-only.
+Quy tắc authorization MVP: `User.role_code` là nguồn vai trò toàn hệ thống; `ProjectMember.role_code` là nguồn quyền trong project và phải khớp `User.role_code` đối với vai trò tác nghiệp non-Supervisor. Supervisor chỉ được miễn membership sau khi backend tải và xác nhận role hiện tại từ kho dữ liệu. Thay đổi role toàn hệ thống phát `UserRoleChanged` và thu hồi toàn bộ Session/RefreshToken trong cùng transaction; thay đổi, hết hạn hoặc kết thúc `ProjectMember` có hiệu lực ngay ở request kế tiếp vì backend kiểm tra membership phía server, không tin role/project claim của client. Mọi thay đổi phải ghi `AuditLog` append-only.
 
 #### `RoadSection` và `RoadSectionVersion`
 
@@ -231,6 +256,8 @@ Quy tắc authorization MVP: `User.role_code` là nguồn vai trò toàn hệ th
 | `RoadSectionVersion` | `version_no` | INTEGER | Không | UQ `(road_section_id, version_no)` | Số phiên bản tăng dần. |
 | `RoadSectionVersion` | `is_current` | BOOLEAN | Không | UQ filtered theo `road_section_id` | Marker version hiện hành; transaction tạo/chuyển version bảo đảm đúng một marker. |
 | `RoadSectionVersion` | `geometry` | GEOMETRY(LineString) | Không | SPATIAL | Hình học đoạn tại thời điểm version. |
+| `RoadSectionVersion` | `geometry_status` | ENUM | Không |  | DRAFT hoặc CONFIRMED; hai điểm đầu/cuối chỉ là nháp nếu chưa mô tả tuyến thực. |
+| `RoadSectionVersion` | `station_origin_m` | DECIMAL(14,3) | Không |  | Lý trình gốc; offsets tính dọc hình học mét, không nội suy đều lat/lon. |
 | `RoadSectionVersion` | `effective_from` | TIMESTAMPTZ | Không |  | Thời điểm có hiệu lực. |
 | `RoadSectionVersion` | `change_reason` | TEXT | Không |  | Lý do tạo version. |
 
@@ -299,6 +326,7 @@ Ràng buộc: `warranty_end_date >= warranty_start_date`; không gộp nhiều g
 | `SurveyRequest` | `road_section_id` | UUID | Không | FK `RoadSection.id` | Phạm vi khảo sát. |
 | `SurveyRequest` | `survey_plan_id` | UUID | Có | FK `SurveyPlan.id` | Kế hoạch nguồn nếu có. |
 | `SurveyRequest` | `requested_by_user_id` | UUID | Không | FK `User.id` | Người tạo yêu cầu. |
+| `SurveyRequest` | `incident_case_id` | UUID | Có | FK `IncidentCase.id` | Nguồn phản ánh tùy chọn; baseline/định kỳ không cần phản ánh. |
 | `SurveyRequest` | `survey_type` | ENUM | Không |  | `ORIGINAL`, `PERIODIC`, `SUPPLEMENTARY`. |
 | `SurveyRequest` | `status` | ENUM | Không |  | State machine theo US-05. |
 | `SurveyRequest` | `requested_at` | TIMESTAMPTZ | Không |  | Thời điểm tạo. |
@@ -403,19 +431,21 @@ Mọi lượt bổ sung giữ liên kết tới Survey/context và không xóa/g
 
 #### Đo đạc thực tế sản phẩm và Research Validation
 
-`FieldInspectionTask` và `FieldInspectionAssignment` quản lý workflow bắt buộc của sản phẩm. `FieldInspectionSession` và `GroundTruthMeasurement` được dùng chung cho xác minh lỗi và nghiên cứu; `purpose` cùng các ràng buộc FK phân tách hai mục đích. Dữ liệu nghiên cứu có thể nhập từ Excel/giấy nhưng phải có định danh và liên kết đầy đủ.
+`FieldInspectionTask` và `FieldInspectionAssignment` quản lý nhánh kiểm tra trực tiếp hoặc đo vật lý bắt buộc theo loại lỗi/quy tắc đo. PM có thể kết luận từ bằng chứng drone đủ tin cậy; không buộc mọi lỗi có task thực địa. `FieldInspectionSession` và `GroundTruthMeasurement` được dùng chung cho xác minh lỗi và nghiên cứu; `purpose` cùng các ràng buộc FK phân tách hai mục đích. Dữ liệu nghiên cứu có thể nhập từ Excel/giấy nhưng phải có định danh và liên kết đầy đủ.
 
 ##### `FieldInspectionTask`
 
 | Trường | Kiểu SQL Server | Null | Khóa/Tham chiếu | Nguồn | Định nghĩa |
 |---|---|---:|---|---|---|
-| `id` | `uniqueidentifier` | Không | PK | SRC/DEC | Nhiệm vụ PM giao Repair Crew đo một Preliminary Defect. |
+| `id` | `uniqueidentifier` | Không | PK | SRC/DEC | Nhiệm vụ PM giao Repair Crew kiểm tra IncidentCase hoặc đo Preliminary Defect; không cần tạo Survey giả. |
+| `source_type` | ENUM | Không |  | PROP | INCIDENT_CASE hoặc DEFECT; đúng một FK nguồn tương ứng non-null. |
+| `incident_case_id` | UUID | Có | FK `IncidentCase.id` | PROP | Nguồn phản ánh đã điều phối; bắt buộc khi source_type = INCIDENT_CASE. |
 | `task_code` | `nvarchar(80)` | Không | UQ | DEC | Mã nhiệm vụ ổn định. |
 | `project_id` | `uniqueidentifier` | Không | FK `Project.id` | SRC | Dự án của nhiệm vụ. |
-| `defect_id` | `uniqueidentifier` | Không | FK `Defect.id` | SRC/DEC | Phải trỏ `Defect OPEN` khi tạo nhiệm vụ. |
-| `survey_id` | `uniqueidentifier` | Không | FK `Survey.id` | SRC | Khảo sát sinh phát hiện AI sơ bộ. |
-| `road_section_version_id` | `uniqueidentifier` | Không | FK `RoadSectionVersion.id` | SRC | Phải khớp version trên Defect. |
-| `required_measurement_type` | `tinyint` | Không |  | SRC | Loại phép đo Repair Crew phải thực hiện. |
+| `defect_id` | `uniqueidentifier` | Có | FK `Defect.id` | PROP | Bắt buộc khi source_type = DEFECT; trỏ lỗi OPEN. Null khi nguồn INCIDENT_CASE. |
+| `survey_id` | `uniqueidentifier` | Có | FK `Survey.id` | PROP | Chỉ điền khi có khảo sát nguồn thực; không bắt buộc cho nguồn phản ánh. |
+| `road_section_version_id` | `uniqueidentifier` | Không | FK `RoadSectionVersion.id` | SRC | Phải khớp tuyến đã điều phối của IncidentCase hoặc Defect; chỉ giao task khi đã xác định project/tuyến. |
+| `required_measurement_type` | `tinyint` | Có |  | PROP | Có khi quy tắc yêu cầu số đo vật lý; kiểm tra trực quan có thể null. |
 | `measurement_scope` | `nvarchar(max)` | Không | `ISJSON = 1` | SRC | Vị trí/phạm vi và các điểm cần đo. |
 | `instructions` | `nvarchar(1000)` | Có |  | SRC | Dụng cụ, phương pháp hoặc hướng dẫn hiện trường. |
 | `missing_information` | `nvarchar(1000)` | Có |  | SRC | Thông tin PM cần xác minh thêm. |
@@ -451,7 +481,7 @@ Mỗi task chỉ có tối đa một assignment `ACTIVE`. Repair Crew chỉ đư
 | `field_inspection_task_id` | `uniqueidentifier` | Có | FK `FieldInspectionTask.id` | SRC/DEC | Bắt buộc với `DEFECT_VERIFICATION`; phải null với `RESEARCH_VALIDATION`. |
 | `project_id` | `uniqueidentifier` | Không | FK `Project.id` | SRC/Research | Dự án. |
 | `road_section_version_id` | `uniqueidentifier` | Không | FK `RoadSectionVersion.id` | SRC/Research | Hình học tại thời điểm đo. |
-| `survey_id` | `uniqueidentifier` | Có | FK `Survey.id` | SRC/Research | Bắt buộc với xác minh sản phẩm; tùy chọn cho nghiên cứu. |
+| `survey_id` | `uniqueidentifier` | Có | FK `Survey.id` | SRC/Research | Theo Survey nguồn thật của task; nullable cho kiểm tra trực tiếp từ IncidentCase và nghiên cứu. |
 | `session_code` | `nvarchar(80)` | Không | UQ | SRC/Research | Mã phiên/đợt đo. |
 | `inspector_user_id` | `uniqueidentifier` | Có | FK `User.id` | SRC/Research | Bắt buộc là Repair Crew đang được giao khi xác minh; có thể null khi import nghiên cứu. |
 | `inspector_name` | `nvarchar(200)` | Không |  | SRC/Research | Tên người đo tại thời điểm thực hiện. |
@@ -470,7 +500,7 @@ Mỗi task chỉ có tối đa một assignment `ACTIVE`. Repair Crew chỉ đư
 | `sample_id` | `nvarchar(100)` | Không | UQ trong session | SRC/Research | Mã mẫu duy nhất, dùng để ghép paired data. |
 | `road_section_version_id` | `uniqueidentifier` | Không | FK `RoadSectionVersion.id` | SRC/Research | Đoạn đường tương ứng. |
 | `survey_id` | `uniqueidentifier` | Có | FK `Survey.id` | SRC/Research | Survey dùng đối chiếu. |
-| `defect_id` | `uniqueidentifier` | Có | FK `Defect.id` | SRC/Research | Bắt buộc trỏ `Defect OPEN` khi purpose là `DEFECT_VERIFICATION`; có thể null khi nghiên cứu. |
+| `defect_id` | `uniqueidentifier` | Có | FK `Defect.id` | SRC/Research | Bắt buộc với task nguồn DEFECT, trỏ đúng lỗi nguồn; nullable khi task nguồn INCIDENT_CASE chưa có lỗi và khi nghiên cứu. |
 | `measurement_type` | `tinyint` | Không |  | SRC/Research | `DEPRESSION_DEPTH`, `SLAB_FAULTING_HEIGHT`, `SHOULDER_EROSION_EXTENT`. |
 | `value` | `decimal(19,6)` | Không |  | SRC/Research | Giá trị đo gốc, không làm tròn mất độ chính xác. |
 | `unit` | `nvarchar(20)` | Không |  | SRC/Research | Đơn vị, khuyến nghị `mm` cho độ sâu/chiều cao. |
@@ -535,12 +565,20 @@ Các entity research này là immutable/append-only sau khi khóa phiên hoặc 
 | Entity | Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
 |---|---|---|---:|---|---|
 | `ProcessingBlock` | `id` | UUID | Không | PK | Khối backend chia từ một data version. |
-| `ProcessingBlock` | `survey_data_version_id` | UUID | Không | FK `SurveyDataVersion.id` | Dữ liệu nguồn. |
+| `ProcessingBlock` | `survey_data_version_id` | UUID | Không | FK `SurveyDataVersion.id` | Dataset đã xác nhận; block không trộn dataset. |
 | `ProcessingBlock` | `block_no` | INTEGER | Không | UQ trong version | Số thứ tự khối. |
-| `ProcessingBlock` | `range_metadata` | JSONB | Không |  | Phạm vi thời gian/tọa độ của khối. |
+| `ProcessingBlock` | `segment_set_id` | UUID | Không | FK `RoadSegmentSet.id` | Bộ segment snapshot lúc tạo block. |
+| `ProcessingBlock` | `road_segment_id` | UUID | Không | FK `RoadSegment.id` | Segment chính; context overlap lưu riêng trong manifest. |
+| `ProcessingBlock` | `target_band` | ENUM | Không |  | SURFACE, LEFT_EDGE, RIGHT_EDGE. |
+| `ProcessingBlock` | `range_metadata` | JSONB | Không |  | Primary/context offsets, interval IDs, observed footprint và quality; context overlap có thể dùng chung frame lân cận. |
 | `ProcessingJob` | `id` | UUID | Không | PK | Tác vụ xử lý AI cho một block. |
 | `ProcessingJob` | `processing_block_id` | UUID | Không | FK `ProcessingBlock.id` | Block nguồn. |
-| `ProcessingJob` | `model_version_id` | UUID | Không | FK `AIModelVersion.id` | Model chạy tác vụ. |
+| `ProcessingJob` | `model_version_id` | UUID | Không | FK `AIModelVersion.id` | Model chạy tác vụ; đổi model tạo job mới. |
+| `ProcessingJob` | `processing_input_manifest_id` | UUID | Có | FK `ProcessingInputManifest.id`, UQ | Manifest immutable; phải tồn tại trước dispatch, tránh payload thay đổi giữa retry. |
+| `ProcessingJob` | `idempotency_key` | VARCHAR(160) | Không | UQ fingerprint | BackendJobId + input/model/config; payload khác cùng key bị từ chối. |
+| `ProcessingJob` | `context_overlap_metadata` | JSONB | Có |  | Phạm vi context xử lý ngoài segment chính, nguồn interval/không lặp frame. |
+| `ProcessingJob` | `result_provenance` | JSONB | Có |  | Input checksum, attempt, AI job ID, output checksum, model/config và mapping về segment/band; immutable mỗi result. |
+| `ProcessingJob` | `deduplication_key` | VARCHAR(160) | Có | UQ theo input/detection | Khóa chống job/detection lặp khi retry hoặc nhận result muộn. |
 | `ProcessingJob` | `status` | ENUM | Không |  | `QUEUED`, `RUNNING`, `RETRYABLE_FAILURE`, `DATA_FAILURE`, `COMPLETED`, `CANCELLED`. |
 | `ProcessingJob` | `started_at` | TIMESTAMPTZ | Có |  | Bắt đầu xử lý. |
 | `ProcessingJob` | `completed_at` | TIMESTAMPTZ | Có |  | Kết thúc. |
@@ -576,7 +614,12 @@ Các entity research này là immutable/append-only sau khi khóa phiên hoặc 
 | `processing_job_id` | UUID | Không | FK `ProcessingJob.id` | Job tạo kết quả. |
 | `model_version_id` | UUID | Không | FK `AIModelVersion.id` | Model bất biến đã dùng. |
 | `road_section_version_id` | UUID | Có | FK `RoadSectionVersion.id` | Hình học tham chiếu. |
-| `geometry` | GEOMETRY(Point/Polygon) | Có | SPATIAL | Vị trí/biên dạng phát hiện. |
+| `geometry` | GEOMETRY(Point/Polygon) | Có | SPATIAL | Vị trí lỗi chỉ khi có căn cứ; null/unknown nếu không định vị được. |
+| `aircraft_location` | GEOMETRY(Point) | Có | SPATIAL WGS84 | GPS thiết bị tại timestamp, không phải vị trí lỗi. |
+| `projected_station_m` | DECIMAL(14,3) | Có |  | Lý trình chiếu lên tuyến, method/confidence lưu riêng. |
+| `defect_location_method` | ENUM | Không |  | UNKNOWN, PROJECTED_STATION, OBSERVED_FOOTPRINT, PM_CONFIRMED; không tự lấy aircraft GPS. |
+| `location_uncertainty_m` | DECIMAL(14,3) | Có |  | Sai số/độ tin cậy khi biết. |
+| `camera_pose_json` | JSONB | Có |  | Pose/calibration/footprint nếu có; null nghĩa unknown. |
 | `defect_type_code` | VARCHAR(80) | Có | FK `DefectType.code` | Loại lỗi dự kiến. |
 | `confidence` | DECIMAL(6,5) | Không | 0..1 | Độ tin cậy AI. |
 | `estimated_width` | DECIMAL(12,3) | Có |  | Ước lượng 2D. |
@@ -587,24 +630,27 @@ Các entity research này là immutable/append-only sau khi khóa phiên hoặc 
 
 | Entity | Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
 |---|---|---|---:|---|---|
-| `Defect` | `id` | UUID | Không | PK | Lỗi nghiệp vụ; `OPEN` là Preliminary Defect, `VERIFIED` là hư hỏng chính thức sau đo đạt. |
+| `Defect` | `id` | UUID | Không | PK | Lỗi nghiệp vụ; `OPEN` là Preliminary Defect, `VERIFIED` là hư hỏng được PM xác nhận trước sửa (DefectVerified), từ bằng chứng drone hoặc thực địa đạt điều kiện; khác IncidentCase Verified sau sửa. |
 | `Defect` | `project_id` | UUID | Không | FK `Project.id` | Dự án. |
 | `Defect` | `road_section_version_id` | UUID | Không | FK `RoadSectionVersion.id` | Version hình học tại kỳ phát hiện. |
 | `Defect` | `source_ai_detection_id` | UUID | Có | FK `AIDetection.id` | Phát hiện AI nguồn nếu có. |
 | `Defect` | `defect_type_code` | VARCHAR(80) | Không | FK `DefectType.code` | Loại lỗi. |
 | `Defect` | `cause_category_code` | VARCHAR(80) | Có | FK `CauseCategory.code` | Nhóm nguyên nhân. |
 | `Defect` | `severity` | ENUM | Không |  | `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`. |
-| `Defect` | `status` | ENUM | Không |  | `OPEN`, `VERIFIED`, `REJECTED`, `RESOLVED`; không cho `OPEN` vào đợt sửa. |
-| `Defect` | `geometry` | GEOMETRY(Point/Line/Polygon) | Không | SPATIAL | Vị trí lỗi. |
+| `Defect` | `status` | ENUM | Không |  | `OPEN`, `VERIFIED`, `REJECTED`, `RESOLVED`; `VERIFIED` mang nghĩa **DefectVerified trước sửa** và không phải IncidentCase Verified sau sửa. |
+| `Defect` | `geometry` | GEOMETRY(Point/Line/Polygon) | Có | SPATIAL | Vị trí lỗi có căn cứ; unknown/ước lượng không được giả bằng GPS drone. |
 | `Defect` | `reported_at` | TIMESTAMPTZ | Không |  | Thời điểm ghi nhận. |
 | `DefectVerificationLog` | `id` | UUID | Không | PK | Lịch sử quyết định PM, append-only. |
 | `DefectVerificationLog` | `defect_id` | UUID | Có | FK `Defect.id` | Đích khi log quyết định trên Preliminary Defect/hư hỏng. |
 | `DefectVerificationLog` | `ai_detection_id` | UUID | Có | FK `AIDetection.id` | Đích khi PM loại/giữ chờ một phát hiện AI trước khi tạo Defect. |
+| `DefectVerificationLog` | `source_type` | ENUM | Không |  | DRONE_REVIEW hoặc FIELD_INSPECTION; nguồn quyết định. |
+| `DefectVerificationLog` | `survey_data_version_id` | UUID | Có | FK `SurveyDataVersion.id` | Bắt buộc khi DRONE_REVIEW; version đã xác nhận. |
+| `DefectVerificationLog` | `evidence_snapshot` | JSONB | Không |  | File/checksum, frame/time hoặc session/measurement IDs và kết luận PM; chỉ nguồn trong phạm vi. |
 | `DefectVerificationLog` | `action` | ENUM | Không |  | `PRELIMINARY_KEEP`, `ADJUST`, `CONFIRM`, `REJECT`, `MERGE`. |
 | `DefectVerificationLog` | `before_snapshot` | JSONB | Có |  | Giá trị trước quyết định. |
 | `DefectVerificationLog` | `after_snapshot` | JSONB | Có |  | Giá trị sau quyết định. |
 | `DefectVerificationLog` | `severity_rule_version_id` | UUID | Có | FK `SeverityRuleVersion.id` | Rule version tại thời điểm tính severity. |
-| `DefectVerificationLog` | `field_inspection_task_id` | UUID | Có | FK `FieldInspectionTask.id` | Bắt buộc với `CONFIRM` và với `REJECT` khi trạng thái trước là `OPEN`. |
+| `DefectVerificationLog` | `field_inspection_task_id` | UUID | Có | FK `FieldInspectionTask.id` | Bắt buộc khi source_type = FIELD_INSPECTION; có thể null với DRONE_REVIEW đủ bằng chứng. CONFIRM/REJECT đều cần nguồn và evidence_snapshot. |
 | `DefectVerificationLog` | `verified_by_user_id` | UUID | Không | FK `User.id` | PM thực hiện. |
 | `DefectVerificationLog` | `reason` | TEXT | Không |  | Lý do bắt buộc. |
 | `DefectMergeDecision` | `id` | UUID | Không | PK | Quyết định gộp/giữ riêng. |
@@ -661,13 +707,12 @@ Các entity research này là immutable/append-only sau khi khóa phiên hoặc 
 | `RepairBatchVersion` | `repair_batch_id` | UUID | Không | FK `RepairBatch.id` | Đợt gốc. |
 | `RepairBatchVersion` | `version_no` | INTEGER | Không | UQ trong batch | Số version. |
 | `RepairBatchVersion` | `status` | ENUM | Không |  | `DRAFT`, `PENDING_APPROVAL`, `REVISION_REQUIRED`, `APPROVED`, `REJECTED`. |
-| `RepairBatchVersion` | `estimated_total_cost` | DECIMAL(19,2) | Không |  | Tổng dự toán snapshot bằng tổng `RepairItem.estimated_cost` trong version, tính bằng VND; không nhập thủ công. |
 | `RepairBatchVersion` | `submitted_at` | TIMESTAMPTZ | Có |  | Thời điểm trình. |
 | `RepairBatchVersion` | `approved_at` | TIMESTAMPTZ | Có |  | Thời điểm duyệt. |
 | `RepairItem` | `id` | UUID | Không | PK | Lỗi trong một version; version mới copy item mới. |
 | `RepairItem` | `repair_batch_version_id` | UUID | Không | FK `RepairBatchVersion.id` | Version sở hữu. |
-| `RepairItem` | `defect_id` | UUID | Không | FK `Defect.id` | Chỉ `Defect VERIFIED` có task đo `COMPLETED`/`DEFECT_CONFIRMED`. |
-| `RepairItem` | `estimated_cost` | DECIMAL(19,2) | Không |  | Chi phí dự toán, tính bằng VND. |
+| `RepairItem` | `defect_id` | UUID | Không | FK `Defect.id` | Chỉ Defect VERIFIED được PM xác nhận; task COMPLETED/DEFECT_CONFIRMED bắt buộc khi quy tắc yêu cầu đo vật lý. |
+| `RepairItem` | `repair_method_summary` | TEXT | Không |  | Phương án sửa tổng quát PM nhập; không phải quy trình thi công/BOM. |
 | `RepairItem` | `status` | ENUM | Không |  | Trạng thái theo lỗi. |
 | `RepairApprovalDecision` | `id` | UUID | Không | PK | Quyết định duyệt/trả theo item. |
 | `RepairApprovalDecision` | `repair_batch_version_id` | UUID | Không | FK `RepairBatchVersion.id` | Version được xét. |
@@ -685,7 +730,6 @@ Các entity research này là immutable/append-only sau khi khóa phiên hoặc 
 | `RepairProgress` | `id` | UUID | Không | PK | Bản ghi tiến độ append-only. |
 | `RepairProgress` | `repair_item_id` | UUID | Không | FK `RepairItem.id` | Lỗi đang thi công. |
 | `RepairProgress` | `status` | ENUM | Không |  | `NOT_STARTED`, `IN_PROGRESS`, `SUBMITTED`, `REVISION_REQUIRED`, `COMPLETED`. |
-| `RepairProgress` | `actual_cost` | DECIMAL(19,2) | Có |  | Chi phí thực tế, tính bằng VND. |
 | `RepairProgress` | `recorded_by_user_id` | UUID | Không | FK `User.id` | Người ghi. |
 | `RepairProgress` | `recorded_at` | TIMESTAMPTZ | Không |  | Thời điểm ghi. |
 | `RepairEvidence` | `id` | UUID | Không | PK | Bằng chứng ảnh/tệp theo lỗi. |
@@ -708,7 +752,7 @@ Các entity research này là immutable/append-only sau khi khóa phiên hoặc 
 | `RepairInspectionResult` | `inspected_at` | TIMESTAMPTZ | Không |  | Thời điểm kiểm tra. |
 | `RepairInspectionResult` | `reason` | TEXT | Có |  | Bắt buộc khi FAILED. |
 
-Ràng buộc rút gọn `UD-06`: PM chỉ nhập `RepairItem.estimated_cost`; không có cột biện pháp, vật liệu, khối lượng hoặc ưu tiên. `estimated_cost >= 0`, `actual_cost >= 0` khi có; `(repair_batch_version_id, defect_id)` là duy nhất. Backend tính và lưu `estimated_total_cost` khi tạo/trình version.
+Ràng buộc `UD-06` theo thiết kế mới: PM nhập `RepairItem.repair_method_summary` (phương án tổng quát); không quản lý dữ liệu tài chính, BOM, vật liệu, khối lượng/đơn giá chi tiết hay giai đoạn thi công. `(repair_batch_version_id, defect_id)` là duy nhất. Version đã trình/duyệt được giữ bất biến.
 
 ### 3.7 File, Evidence, Audit và Export
 
@@ -802,6 +846,242 @@ CHECK bắt buộc đúng một trong các FK nghiệp vụ đích là non-null;
 | `RetentionDeletionLog` | `deleted_scope_snapshot` | JSONB | Không |  | Phạm vi thực tế đã xóa. |
 | `RetentionDeletionLog` | `error_message` | TEXT | Có |  | Lỗi nếu có. |
 
+### 3.2a Tiếp nhận phản ánh và hồ sơ sự cố
+
+#### `IncidentCase` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Hồ sơ được tạo khi gửi phản ánh; nhiều phản ánh có thể được PM liên kết cùng hồ sơ. |
+| `project_id` | UUID | Có | FK `Project.id` | Null khi New chưa điều phối; phải có trước Assigned và giao tác nghiệp. |
+| `road_section_version_id` | UUID | Có | FK `RoadSectionVersion.id` | Tuyến xác nhận khi điều phối; không tự gán sai tuyến. |
+| `assigned_pm_user_id` | UUID | Có | FK `User.id` | PM phụ trách; bắt buộc từ Assigned. |
+| `status` | ENUM | Không |  | NEW, ASSIGNED, OPEN, FIXED, RETEST, VERIFIED, CLOSED. |
+| `closure_reason` | ENUM | Có |  | REPAIRED, NO_DEFECT, DUPLICATE, OUT_OF_SCOPE; bắt buộc khi Closed. |
+| `closure_note` | TEXT | Có |  | Lý do PM nhập khi đóng không sửa; Supervisor đóng sau sửa đạt. |
+| `related_case_id` | UUID | Có | FK `IncidentCase.id` | Hồ sơ chính khi trùng hoặc hồ sơ cũ khi tái phát; không tự trỏ chính nó. |
+| `related_case_type` | ENUM | Có |  | DUPLICATE hoặc RECURRENCE, đi cùng related_case_id. |
+| `closed_at` | TIMESTAMPTZ | Có |  | Thời điểm đóng. |
+| `closed_by_user_id` | UUID | Có | FK `User.id` | PM đóng không sửa; Supervisor xác nhận đóng sau sửa. |
+
+#### `IncidentReport` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Nguồn gửi gốc; không gộp xóa nội dung khi trùng. |
+| `reporter_user_id` | UUID | Không | FK `User.id` | Reporter đăng nhập, quyền xem theo owner. |
+| `incident_case_id` | UUID | Không | FK `IncidentCase.id` | Gửi tạo case New; nhiều report có thể liên kết case chính sau phân loại. |
+| `project_id` | UUID | Có | FK `Project.id` | Chưa biết dự án vẫn tiếp nhận; khi định tuyến phải khớp case. |
+| `reporter_type` | ENUM | Không |  | Snapshot CITIZEN hoặc INVESTOR_REPRESENTATIVE, không tăng quyền. |
+| `description` | TEXT | Không |  | Nội dung người gửi. |
+| `submitted_at` | TIMESTAMPTZ | Không |  | Thời điểm server nhận; báo cáo đã gửi cần ít nhất một ReportPhoto hợp lệ. |
+
+#### `ReportPhoto` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Ảnh và tọa độ riêng; mỗi hiệu chỉnh tạo revision mới. |
+| `incident_report_id` | UUID | Không | FK `IncidentReport.id` | Phản ánh sở hữu. |
+| `file_id` | UUID | Không | FK `File.id` | Ảnh gốc đã xác nhận checksum. |
+| `location` | GEOMETRY(Point) | Không |  | Vị trí lỗi do Reporter xác nhận; WGS84, lat [-90,90], lon [-180,180]. |
+| `coordinate_source` | ENUM | Không |  | DEVICE_CAPTURE, EXIF, MANUAL; Manual không có độ chính xác tự đặt. |
+| `original_location` | GEOMETRY(Point) | Có |  | Giữ tọa độ gốc thiết bị/EXIF nếu có, tách vị trí lỗi đã chọn. |
+| `original_coordinate_source` | ENUM | Có |  | Nguồn tọa độ gốc, không ghi đè khi sửa. |
+| `captured_at` | TIMESTAMPTZ | Có |  | Thời điểm chụp nếu có, không dùng thời điểm upload thay thế. |
+| `submitted_at` | TIMESTAMPTZ | Không |  | Thời điểm nhận ảnh. |
+| `accuracy_m` | DECIMAL(12,3) | Có |  | Độ chính xác thiết bị báo, >=0; null nếu không có/nhập tay. |
+| `supersedes_photo_id` | UUID | Có | FK `ReportPhoto.id` | Revision trước cùng report/file; ảnh gốc và lịch sử giữ nguyên. |
+| `confirmed_by_user_id` | UUID | Không | FK `User.id` | Người xác nhận hiệu chỉnh, được audit. |
+| `confirmed_at` | TIMESTAMPTZ | Không |  | Thời điểm xác nhận vị trí. |
+
+#### `ReportStatusEvent` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Sự kiện công khai append-only, tách lịch sử nội bộ. |
+| `incident_report_id` | UUID | Không | FK `IncidentReport.id` | Chỉ owner được đọc. |
+| `incident_case_id` | UUID | Không | FK `IncidentCase.id` | Case thực tế tại thời điểm sự kiện, giữ nguồn sau gộp. |
+| `event_code` | ENUM | Không |  | SUBMITTED, RECEIVING, ACCEPTED, VERIFYING, DEFECT_FOUND, NO_DEFECT, AWAITING_REPAIR, REPAIRING, RETESTING, REPAIRED, DUPLICATE, OUT_OF_SCOPE. |
+| `public_message` | TEXT | Không |  | Nội dung được phép công bố; NO_DEFECT cần lý do PM, không lộ dữ liệu sửa chữa nội bộ/PII. |
+| `published_by_user_id` | UUID | Có | FK `User.id` | PM công bố kết luận/kết quả; null chỉ sự kiện hệ thống như SUBMITTED. |
+| `occurred_at` | TIMESTAMPTZ | Không |  | Thời điểm sự kiện thực; không tạo tiến độ giả. |
+
+#### `ReportStatusEventPhoto` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Liên kết ảnh sau sửa được PM chọn công bố. |
+| `report_status_event_id` | UUID | Không | FK `ReportStatusEvent.id` | Sự kiện REPAIRED đã được phép công bố. |
+| `repair_evidence_id` | UUID | Không | FK `RepairEvidence.id` | Chỉ AFTER, server xác nhận, đúng Defect/phạm vi report; UQ cùng event. |
+| `caption` | TEXT | Có |  | Chú thích công khai, không ảnh nội bộ tùy ý. |
+
+#### `IncidentCaseHistory` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Append-only cả chuyển trạng thái và đổi người phụ trách. |
+| `incident_case_id` | UUID | Không | FK `IncidentCase.id` | Hồ sơ nguồn. |
+| `from_status` | ENUM | Có |  | Null tại tạo mới; giữ cùng status nếu chỉ đổi PM. |
+| `to_status` | ENUM | Không |  | Trạng thái sau sự kiện. |
+| `from_pm_user_id` | UUID | Có | FK `User.id` | PM trước. |
+| `to_pm_user_id` | UUID | Có | FK `User.id` | PM sau. |
+| `actor_user_id` | UUID | Có | FK `User.id` | Người/hệ thống gây sự kiện. |
+| `reason` | TEXT | Không |  | Lý do và kết luận; chi tiết nội bộ không tự trả Reporter. |
+| `evidence_snapshot` | JSONB | Có |  | ID/checksum review, phê duyệt, repair item hoặc kết quả nghiệm thu liên quan. |
+| `occurred_at` | TIMESTAMPTZ | Không |  | UTC, không chỉnh sửa lịch sử. |
+
+#### `IncidentCaseDefect` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Liên kết hồ sơ và lỗi, giữ một Defect dù có nhiều phản ánh. |
+| `incident_case_id` | UUID | Không | FK `IncidentCase.id` | Hồ sơ; UQ cặp case/defect. |
+| `defect_id` | UUID | Không | FK `Defect.id` | Lỗi được PM liên kết, không tự tạo VERIFIED từ report. |
+| `is_required` | BOOLEAN | Không |  | Lỗi bắt buộc xử lý trước khi case Fixed/Verified. |
+| `linked_at` | TIMESTAMPTZ | Không |  | Thời điểm liên kết. |
+
+### 3.2b Phân đoạn tuyến có phiên bản
+
+#### `RoadSegmentSet` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Bộ phân đoạn có phiên bản, đề xuất tên canonical; SegmentSetId trong manifest trỏ đây. |
+| `road_section_version_id` | UUID | Không | FK `RoadSectionVersion.id` | Một phiên bản tuyến xác nhận. |
+| `version_no` | INTEGER | Không |  | UQ (road_section_version_id, version_no). |
+| `status` | ENUM | Không |  | DRAFT, PUBLISHED, SUPERSEDED; nội dung bộ đã công bố bất biến. |
+| `target_length_m` | DECIMAL(14,3) | Không |  | >0, cho phép 100/250/500/1000m hoặc giá trị hợp lệ khác, trộn độ dài sau sửa. |
+| `published_at` | TIMESTAMPTZ | Có |  | Thời điểm công bố. |
+| `published_by_user_id` | UUID | Có | FK `User.id` | PM có quyền dự án; geometry tuyến được xác nhận riêng. |
+
+#### `RoadSegment` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | ID bất biến thuộc bộ; không dùng code để thay FK. |
+| `segment_set_id` | UUID | Không | FK `RoadSegmentSet.id` | Bộ sở hữu. |
+| `road_section_version_id` | UUID | Không | FK `RoadSectionVersion.id` | Phải bằng version của bộ. |
+| `code` | VARCHAR(80) | Không |  | UQ trong bộ. |
+| `sequence` | INTEGER | Không |  | Thứ tự theo chiều tăng lý trình, UQ trong bộ. |
+| `start_offset_m` | DECIMAL(14,3) | Không |  | Khoảng cách dọc tuyến từ đầu, >=0. |
+| `end_offset_m` | DECIMAL(14,3) | Không |  | > start_offset_m, không vượt chiều dài tuyến. |
+| `geometry` | GEOMETRY(LineString) | Không |  | Cắt từ tuyến, đầu/cuối suy ra, SRID kỹ thuật đã biết. |
+| `length_m` | DECIMAL(14,3) | Không |  | EndOffset-StartOffset, chiều dài dọc geometry. |
+
+#### `RoadSegmentMapping` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Ánh xạ trước/sau append-only khi chia/gộp/chỉnh biên. |
+| `source_segment_id` | UUID | Không | FK `RoadSegment.id` | Segment bộ cũ. |
+| `target_segment_id` | UUID | Không | FK `RoadSegment.id` | Segment bộ mới; UQ cặp source/target/mapping_version. |
+| `mapping_version` | INTEGER | Không |  | Phiên bản quy tắc ánh xạ. |
+| `source_start_offset_m` | DECIMAL(14,3) | Không |  | Đầu khoảng giao trong hệ offset tuyến cũ. |
+| `source_end_offset_m` | DECIMAL(14,3) | Không |  | Cuối khoảng giao. |
+| `target_start_offset_m` | DECIMAL(14,3) | Không |  | Đầu khoảng tương ứng tuyến mới. |
+| `target_end_offset_m` | DECIMAL(14,3) | Không |  | Cuối khoảng tương ứng. |
+| `method` | VARCHAR(100) | Không |  | SAME_GEOMETRY_OVERLAP hoặc mapping tuyến mới được kiểm chứng riêng. |
+| `provenance` | JSONB | Không |  | Nguồn, người/thời điểm xác nhận, confidence; không ghi đè job/result cũ. |
+
+### 3.3a Phạm vi khảo sát và video theo vùng quan sát
+
+#### `SurveyWorkItem` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Một segment trong một yêu cầu khảo sát, có thể nhiều lượt/video. |
+| `survey_request_id` | UUID | Không | FK `SurveyRequest.id` | Nhiệm vụ giao Operator, baseline/định kỳ vẫn độc lập incident. |
+| `road_segment_id` | UUID | Không | FK `RoadSegment.id` | Segment trong bộ PUBLISHED; giữ nguyên sau giao. |
+| `due_at` | TIMESTAMPTZ | Không |  | Hạn của phạm vi. |
+| `requirements` | JSONB | Không |  | Chất lượng, planned flight corridor và bản đồ; không bắt drone nằm trên tim tuyến. |
+
+#### `SurveyCoverageRequirement` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Một vùng quan sát bắt buộc của work item; ít nhất một dòng khi giao. |
+| `survey_work_item_id` | UUID | Không | FK `SurveyWorkItem.id` | Work item có một hoặc nhiều band. |
+| `target_band` | ENUM | Không |  | SURFACE, LEFT_EDGE, RIGHT_EDGE; trái/phải theo chiều tăng lý trình. |
+| `carriageway_code` | VARCHAR(80) | Có |  | Phần đường khi cần phân biệt; PM xác nhận mép mục tiêu. |
+| `quality_requirements` | JSONB | Không |  | Tiêu chí nhìn thấy vùng; UQ (work_item, target_band, carriageway). |
+
+#### `SurveyCoverageResult` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Đánh giá riêng cho mỗi band/dataset, có lịch sử. |
+| `coverage_requirement_id` | UUID | Không | FK `SurveyCoverageRequirement.id` | Vùng yêu cầu. |
+| `survey_data_version_id` | UUID | Không | FK `SurveyDataVersion.id` | Dataset của Survey thuộc đúng SurveyRequest. |
+| `assessment_no` | INTEGER | Không |  | UQ (requirement, dataset, assessment_no); append-only. |
+| `status` | ENUM | Không |  | SUFFICIENT, PARTIAL, INSUFFICIENT, UNKNOWN; không suy từ AI COMPLETED. |
+| `coverage_details` | JSONB | Không |  | Khoảng nhìn thấy/thiếu, mờ/che khuất/GPS và nguồn bằng chứng. |
+| `assessed_at` | TIMESTAMPTZ | Không |  | Thời điểm đánh giá. |
+
+#### `SurveyVideoInterval` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Ánh xạ bất biến video gốc -> band/segment/dataset. |
+| `coverage_requirement_id` | UUID | Không | FK `SurveyCoverageRequirement.id` | Segment+band tác nghiệp; một video có nhiều dòng ánh xạ. |
+| `survey_data_version_id` | UUID | Không | FK `SurveyDataVersion.id` | Dataset xác nhận chứa file nguồn. |
+| `survey_file_id` | UUID | Không | FK `SurveyFile.id` | VIDEO gốc của đúng Survey/lượt bay; checksum qua File/SurveyFile. |
+| `start_time_ms` | INTEGER | Không |  | >=0 theo video gốc. |
+| `end_time_ms` | INTEGER | Không |  | > start, <= duration, có thể nhiều khoảng rời cho cùng band. |
+| `station_start_m` | DECIMAL(14,3) | Có |  | Lý trình dự kiến khi có căn cứ. |
+| `station_end_m` | DECIMAL(14,3) | Có |  | Không nối giả qua mất GPS. |
+| `positioning_method` | VARCHAR(100) | Không |  | Telemetry/time match, footprint hoặc PM review; thiếu thì UNKNOWN. |
+| `positioning_confidence` | DECIMAL(6,5) | Có |  | 0..1 khi đánh giá được. |
+| `source_metadata` | JSONB | Không |  | Raw aircraft GPS+timestamp+accuracy, telemetry File/checksum, đồng bộ thời gian; projected station+cross-track riêng; pose/calibration/observed ROI nullable; phân biệt nguồn thiếu. |
+| `supersedes_interval_id` | UUID | Có | FK `SurveyVideoInterval.id` | Hiệu chỉnh tạo ánh xạ mới, job cũ giữ ID cũ. |
+
+### 3.4a Manifest AI và liên kết quan sát
+
+#### `ProcessingInputManifest` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Snapshot bất biến của input AI, không tạo hệ job song song. |
+| `processing_job_id` | UUID | Không | FK `ProcessingJob.id` | UQ, một manifest cho job; phải có trước dispatch. |
+| `contract_version` | VARCHAR(40) | Không |  | Phiên bản hợp đồng. |
+| `checksum` | CHECKSUM | Không |  | Fingerprint nội dung không gồm URL tạm thời. |
+| `survey_data_version_id` | UUID | Không | FK `SurveyDataVersion.id` | Dataset SERVER_CONFIRMED, khớp block. |
+| `road_section_version_id` | UUID | Không | FK `RoadSectionVersion.id` | Tuyến snapshot. |
+| `segment_set_id` | UUID | Không | FK `RoadSegmentSet.id` | Bộ snapshot, không tự chuyển khi chia lại. |
+| `road_segment_id` | UUID | Không | FK `RoadSegment.id` | Phạm vi chính của block, khớp bộ/tuyến. |
+| `target_band` | ENUM | Không |  | SURFACE, LEFT_EDGE, RIGHT_EDGE. |
+| `model_version_id` | UUID | Không | FK `AIModelVersion.id` | Model bất biến khớp job. |
+| `preprocessing_version` | VARCHAR(80) | Không |  | Version tiền xử lý/cấu hình; thay đổi tạo job mới. |
+| `manifest_payload` | JSONB | Không |  | Project/Survey/CorrelationId, CRS/đơn vị, primary+context offsets, interval IDs/File/checksum, telemetry/time alignment, pose thiếu nêu rõ, requested defect types, quality; không có PII hoặc dữ liệu sửa chữa nội bộ. |
+| `created_at` | TIMESTAMPTZ | Không |  | Được lưu bền vững trước worker dispatch. |
+
+#### `DefectObservation` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Nhóm quan sát vào cùng lỗi, giữ raw detection. |
+| `defect_id` | UUID | Không | FK `Defect.id` | Một lỗi có nhiều quan sát qua frame/block/lượt bay. |
+| `ai_detection_id` | UUID | Không | FK `AIDetection.id` | UQ: một quan sát chỉ thuộc một lỗi hiện hành; sửa nhóm lưu audit. |
+| `linked_by_user_id` | UUID | Không | FK `User.id` | PM xác nhận nhóm; gần tọa độ không tự là cùng lỗi. |
+| `linked_at` | TIMESTAMPTZ | Không |  | Thời điểm, không xóa nguồn result. |
+
+#### `DefectSegment` — thiết kế đích
+
+| Trường | Kiểu | Null | Khóa/Tham chiếu | Định nghĩa |
+|---|---|---:|---|---|
+| `id` | UUID | Không | PK | Một lỗi liên quan nhiều segment, không nhân đôi sửa chữa. |
+| `defect_id` | UUID | Không | FK `Defect.id` | Lỗi nguồn; UQ (defect, segment, mapping_version). |
+| `road_segment_id` | UUID | Không | FK `RoadSegment.id` | Segment của bộ được ánh xạ. |
+| `mapping_version` | INTEGER | Không |  | Ánh xạ mới không ghi đè bản cũ. |
+| `is_primary` | BOOLEAN | Không |  | Tối đa một segment chính mỗi lỗi/bộ/version mapping; có thể chưa chọn nếu mơ hồ. |
+| `location_status` | ENUM | Không |  | CONFIRMED, ESTIMATED, UNKNOWN; candidate không tự thành confirmed. |
+| `provenance` | JSONB | Không |  | Station/geometry, confidence, source observation IDs và quy tắc/PM xác nhận. |
+
+Quy tắc mới dùng chung: gửi report tạo case New, chưa biết project vẫn nhận; Assigned cần PM/project. Case và report lịch sử độc lập; report trùng theo case chính, lịch sử case cũ giữ nguyên. ReportStatusEvent là view công khai do sự kiện thật tạo, không ánh xạ máy móc từ status Open. REPAIRED cần case VERIFIED, mọi lỗi bắt buộc đạt nghiệm thu, ảnh AFTER phù hợp và PM công bố; Fixed chưa đủ. NO_DEFECT cần lý do PM, khác DUPLICATE/OUT_OF_SCOPE. Chỉ Supervisor đóng case đã sửa sau Verified; Crew không tự Verified/Closed. Retest thất bại quay Open; từ chối đề xuất sửa không tự đóng case.
+
+Bộ segment công bố phải phủ tuyến không hở/chồng: [start,end), segment cuối chứa điểm cuối. Chia/gộp/kéo biên tạo bộ mới và RoadSegmentMapping; đổi geometry tạo RoadSectionVersion mới. Không gán phát hiện chỉ biết segment cũ cho tất cả segment con. Job/manifest/interval/repair lịch sử giữ phiên bản gốc. RouteCapture trước tuyến chuẩn là mở rộng riêng chưa có trong runtime; không bỏ FK của khảo sát chuẩn để giả hỗ trợ.
+
+Một SurveyWorkItem có nhiều band và nhiều video/lượt; SurveyVideoInterval trỏ đúng dataset/file/Survey/Request và band của work item. Nguồn GPS, station chiếu và vị trí lỗi tách biệt; pose/định vị thiếu để unknown. Bay lệch chủ đích không tự là GPS sai. Coverage đo phần đường thực nhìn thấy, mỗi band/dataset riêng; không dùng thành công upload/AI để suy ra đủ phủ hoặc NO_DEFECT. ProcessingInputManifest snapshot interval IDs đã xác nhận; tải lại URL hết hạn giữ File/checksum/input identity. Mỗi block có context overlap; nhóm quan sát cần xét loại, bên, lý trình và bằng chứng, không chỉ khoảng cách.
+
 ## 4. Enum và trạng thái chuẩn
 
 Đây là bộ giá trị logic đề xuất cho API/database. Tên hiển thị tiếng Việt có thể đặt ở lớp i18n, không dùng làm giá trị lưu trữ. Với C#, các enum trạng thái/scope nên khai báo `enum : byte` và gán số cố định; EF Core lưu thành SQL Server `tinyint`. Nếu có enum cần hơn 255 giá trị thì dùng `enum` mặc định `int` và SQL Server `int`.
@@ -826,11 +1106,23 @@ public enum QualityCheckStatus : byte
 }
 ```
 
-Không đổi hoặc sắp xếp lại số đã phát hành. Khi thêm giá trị, thêm số mới ở cuối; migration CSDL không cần đổi kiểu cột nhưng phải cập nhật validation/API/client.
+Không đổi hoặc sắp xếp lại số đã phát hành. Runtime hiện có Supervisor=1, ProjectManager=2, DroneOperator=3, RepairCrew=4; Reporter=5 là đề xuất chưa triển khai. Các enum mới là hợp đồng thiết kế; phải kiểm tra schema, validation/API/client trước triển khai, không suy ra migration đã có.
 
 | Nhóm | Giá trị |
 |---|---|
+| Role (thiết kế đích) | `SUPERVISOR`=1, `PM`=2, `DRONE_OPERATOR`=3, `REPAIR_CREW`=4, `REPORTER`=5 (đề xuất) |
+| Reporter type | `CITIZEN`, `INVESTOR_REPRESENTATIVE` |
+| Incident case status | `NEW`, `ASSIGNED`, `OPEN`, `FIXED`, `RETEST`, `VERIFIED`, `CLOSED` (hiển thị New → Assigned → Open → Fixed → Retest → Verified → Closed) |
+| Incident closure reason | `REPAIRED`, `NO_DEFECT`, `DUPLICATE`, `OUT_OF_SCOPE` |
+| Report public event | `SUBMITTED`, `RECEIVING`, `ACCEPTED`, `VERIFYING`, `DEFECT_FOUND`, `NO_DEFECT`, `AWAITING_REPAIR`, `REPAIRING`, `RETESTING`, `REPAIRED`, `DUPLICATE`, `OUT_OF_SCOPE` |
+| Target band | `SURFACE`, `LEFT_EDGE`, `RIGHT_EDGE` (Surface/LeftEdge/RightEdge) |
+| Coverage | `SUFFICIENT`, `PARTIAL`, `INSUFFICIENT`, `UNKNOWN` |
+| Segment set | `DRAFT`, `PUBLISHED`, `SUPERSEDED` |
+| Field task source | `INCIDENT_CASE`, `DEFECT` |
+| Verification source | `DRONE_REVIEW`, `FIELD_INSPECTION` |
 | User status | `ACTIVE`, `SUSPENDED`, `PENDING` |
+| Registration source | `ADMIN_PROVISIONED`, `REPORTER_SELF_SERVICE` |
+| Email verification purpose | `REPORTER_EMAIL_VERIFICATION` |
 | Project status | `PLANNING`, `ACTIVE`, `CLOSED` |
 | Survey request status | `NEW_ASSIGNED`, `ACCEPTED`, `REJECTED`, `REASSIGNED`, `IN_PROGRESS`, `SUBMITTED`, `SUPPLEMENT_REQUIRED`, `COMPLETED`, `CANCELLED`, `POSTPONED` |
 | Quality check status | `PENDING`, `PASSED`, `FAILED`, `WARNING` |
@@ -840,13 +1132,16 @@ Không đổi hoặc sắp xếp lại số đã phát hành. Khi thêm giá tr�
 | Measurement type | `DEPRESSION_DEPTH`, `SLAB_FAULTING_HEIGHT`, `SHOULDER_EROSION_EXTENT` |
 | Field inspection task status | `NEW_ASSIGNED`, `ACCEPTED`, `REJECTED`, `IN_PROGRESS`, `SUPPLEMENT_REQUIRED`, `SUBMITTED`, `COMPLETED` |
 | Field inspection assignment status | `ACTIVE`, `REJECTED`, `ENDED` |
+| Field inspection source | `INCIDENT_CASE`, `DEFECT` |
+| Defect location method | `UNKNOWN`, `PROJECTED_STATION`, `OBSERVED_FOOTPRINT`, `PM_CONFIRMED` |
 | Field inspection purpose | `DEFECT_VERIFICATION`, `RESEARCH_VALIDATION` |
 | Field inspection review decision | `DEFECT_CONFIRMED`, `NO_DEFECT` |
 | Derived measurement source | `SURFACE_MODEL`, `DSM`, `MANUAL_DERIVED`, `OTHER` |
 | Measurement validation sample | `INCLUDED`, `EXCLUDED`, `OUTLIER` |
 | Research record status | `DRAFT`, `COMPLETED`, `IMPORTED`, `LOCKED`, `PUBLISHED`, `SUPERSEDED` |
 | Processing status | `QUEUED`, `RUNNING`, `RETRYABLE_FAILURE`, `DATA_FAILURE`, `COMPLETED`, `CANCELLED` |
-| Defect status | `OPEN`, `VERIFIED`, `REJECTED`, `RESOLVED` |
+| Defect status (pre-repair) | `OPEN`, `VERIFIED` (DefectVerified), `REJECTED`, `RESOLVED` |
+| Incident case lifecycle (post-repair Verified) | `NEW`, `ASSIGNED`, `OPEN`, `FIXED`, `RETEST`, `VERIFIED`, `CLOSED` |
 | Repair batch version | `DRAFT`, `PENDING_APPROVAL`, `REVISION_REQUIRED`, `APPROVED`, `REJECTED` |
 | Retention status | `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`, `EXECUTED`, `BLOCKED` |
 
@@ -867,12 +1162,13 @@ Không tự ý đổi tên enum ở API sau khi triển khai; nếu cần đổi
 11. Mỗi `GroundTruthMeasurement` phải có `sample_id` duy nhất trong session, measurement type, value, unit, instrument, observer, time, location và bằng chứng hoặc lý do thiếu.
 12. Mỗi `MeasurementValidationSample` phải ghép đúng một ground truth với một derived measurement cùng `sample_id` và cùng measurement type; không ghép theo thứ tự nhập liệu.
 13. `MeasurementValidationRun.sample_count` chỉ đếm mẫu `INCLUDED`; mẫu `OUTLIER`/`EXCLUDED` phải giữ nguyên và có lý do.
-14. Mỗi `Defect OPEN` được PM giữ lại phải có `FieldInspectionTask`; một task chỉ có tối đa một `FieldInspectionAssignment ACTIVE`.
-15. `FieldInspectionSession.purpose = DEFECT_VERIFICATION` bắt buộc có `field_inspection_task_id`, `survey_id`, Repair Crew hợp lệ và các phép đo trỏ đúng `defect_id`; `RESEARCH_VALIDATION` phải để `field_inspection_task_id` null.
-16. `DefectVerificationLog` phải có đúng một trong `ai_detection_id` hoặc `defect_id`. Chỉ PM được hoàn tất task và chuyển `Defect OPEN` sang `VERIFIED`/`REJECTED`; `VERIFIED` yêu cầu task `COMPLETED`, quyết định `DEFECT_CONFIRMED` và có session/phép đo đã gửi hoặc khóa.
-17. Chỉ tạo `RepairItem` cho `Defect VERIFIED` thỏa điều kiện đo đạt; chặn lỗi `OPEN`, `REJECTED`, task chưa hoàn tất hoặc đang yêu cầu bổ sung.
+14. PM chọn drone hoặc thực địa; số đo vật lý vẫn bắt buộc khi loại lỗi/quy tắc yêu cầu hoặc bằng chứng chưa đủ. Mỗi task có tối đa một FieldInspectionAssignment ACTIVE.
+15. Session DEFECT_VERIFICATION cần task và Crew được giao; survey_id chỉ theo nguồn thật. Task DEFECT cần defect_id; task INCIDENT_CASE có thể chưa có Defect/Survey. RESEARCH_VALIDATION để task null và không tự kết luận nghiệp vụ.
+16. DefectVerificationLog có đúng một đích ai_detection_id hoặc defect_id. PM CONFIRM/REJECT cần source_type và evidence_snapshot; FIELD_INSPECTION cần task hoàn tất, DRONE_REVIEW cần dataset đã xác nhận và bằng chứng gốc. Nếu bắt buộc đo, chỉ VERIFIED sau task COMPLETED/DEFECT_CONFIRMED và số đo đã gửi/khóa.
+17. Chỉ tạo RepairItem cho Defect VERIFIED, đủ mọi điều kiện đo áp dụng; chặn OPEN/REJECTED và các yêu cầu bằng chứng/đo còn thiếu. Giao sửa chỉ từ version hiện hành được Supervisor duyệt.
 18. Research Validation Track không tự tạo/chuyển trạng thái `Defect`, không tự chuyển `Warranty` và không thay thế quyết định PM trong workflow TN01–TN06, TN12/AI13.
-19. PM chỉ nhập `RepairItem.estimated_cost`; hệ thống tính `RepairBatchVersion.estimated_total_cost` từ các item. Không lưu biện pháp, vật liệu, khối lượng hoặc ưu tiên trên `RepairItem`.
+19. PM nhập repair_method_summary; phương án được snapshot theo version duyệt; không có dữ liệu tài chính, BOM hoặc giai đoạn thi công.
+20. `FieldInspectionTask.source_type` phải có đúng một trong `incident_case_id`/`defect_id`; task INCIDENT_CASE được phép null `survey_id` và `defect_id`, task DEFECT phải có `defect_id` và chỉ có survey nếu nguồn thật. Không tạo Survey giả.
 
 ## 6. Chính sách bảo mật, PII và lưu trữ — đề xuất để review
 
@@ -884,7 +1180,7 @@ Các chính sách dưới đây là đề xuất kỹ thuật, không tự kết
 |---|---|---|
 | `PUBLIC` | Mã loại lỗi/nguyên nhân đã công bố, tài liệu không nhạy cảm | Có thể hiển thị sau khi kiểm tra phạm vi. |
 | `INTERNAL` | Mã dự án, trạng thái xử lý, metadata thiết bị | Chỉ người dùng đã đăng nhập và có quyền dự án. |
-| `CONFIDENTIAL` | Bản đồ đoạn đường, ảnh/video khảo sát, chi phí, Warranty, Repair | Mã hóa khi truyền/lưu; kiểm soát theo project và vai trò; không public URL. |
+| `CONFIDENTIAL` | Bản đồ đoạn đường, ảnh/video khảo sát, Warranty, Repair | Mã hóa khi truyền/lưu; kiểm soát theo project và vai trò; không public URL. |
 | `RESTRICTED` | `password_hash`, token hash, PII, audit snapshot có thông tin cá nhân, legal hold | Chỉ service/role tối thiểu; che/mã hóa; cấm ghi log ứng dụng; truy cập phải có audit. |
 
 ### 6.2 Identity, secret và quyền truy cập
@@ -953,13 +1249,13 @@ Các chính sách dưới đây là đề xuất kỹ thuật, không tự kết
 | Version hình học | `RoadSectionVersion`, `road_section_version_id` | US-03 mục 3 |
 | Hủy yêu cầu khảo sát | `SurveyDataVersion.status` | US-05 mục 5 |
 | Retry xử lý | `ProcessingAttempt.error_type` | US-07, US-18 |
-| Đo thực địa bắt buộc | `FieldInspectionTask`, `FieldInspectionAssignment`, `FieldInspectionSession.purpose` | `UD-05`, AI13, TN01–TN06, TN12, US-20 |
+| Đo vật lý bắt buộc theo điều kiện; Research Validation độc lập | `FieldInspectionTask`, `FieldInspectionAssignment`, `FieldInspectionSession.purpose` | `UD-05`, AI13, TN01–TN06, TN12, US-20 |
 | Xác minh hư hỏng chính thức | `Defect.status`, `DefectVerificationLog.field_inspection_task_id`, `GroundTruthMeasurement.defect_id` | `UD-05`, AI04-AI07, TN05, US-08, US-20 |
 | Giữ lịch sử sửa chữa | `RepairBatchVersion`, `RepairItem`, `RepairEvidence` | US-11 đến US-14 |
-| Rút gọn chi phí sửa chữa | `RepairItem.estimated_cost`, `RepairBatchVersion.estimated_total_cost` | `UD-06`, SC02-SC03, US-11 |
+| Phương án sửa tổng quát | `RepairItem.repair_method_summary`, `RepairBatchVersion` | `UD-06`, SC02-SC03, US-11 |
 | Ground truth nghiên cứu | `FieldInspectionSession`, `GroundTruthMeasurement` | Đề cương, RS01-RS03 |
 | Đối chiếu measurement uncertainty | `DerivedMeasurement`, `MeasurementValidationRun`, `MeasurementValidationSample` | Đề cương, RS04-RS06 |
 
 ## 8. Trạng thái tài liệu
 
-Đây là bản Data Dictionary logic v1 để review. Các trường gắn `PROP` là đề xuất triển khai, cần xác nhận trước khi đóng băng DDL. Các quyết định `DEC` là yêu cầu thiết kế đã chốt và phải được giữ nguyên khi chuyển sang ERD, API contract và migration. Workflow đo thực địa TN01–TN06, TN12/AI13 thuộc hệ thống sản phẩm hiện tại; Research Validation là mục đích độc lập dùng chung cấu trúc số đo nhưng không tự kết luận nghiệp vụ.
+Đây là bản Data Dictionary logic v1 để review. Các trường gắn `PROP` là đề xuất triển khai, cần xác nhận trước khi đóng băng DDL. Các quyết định `DEC` là yêu cầu thiết kế đã chốt và phải được giữ nguyên khi chuyển sang ERD, API contract và migration. Workflow TN01–TN06, TN12/AI13 được giữ cho nhánh thực địa/đo bắt buộc theo điều kiện. Kiểm chứng drone đủ bằng chứng và nguồn phản ánh trực tiếp là thiết kế mở rộng; Research Validation vẫn độc lập, không tự kết luận nghiệp vụ.

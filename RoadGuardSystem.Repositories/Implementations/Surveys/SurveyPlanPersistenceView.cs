@@ -6,6 +6,7 @@ public sealed record SurveyPlanPersistenceView(
     Guid PlanId,
     Guid ProjectId,
     Guid RoadSectionId,
+    Guid? RoadSectionVersionId,
     DateTimeOffset PlannedStartAt,
     DateTimeOffset PlannedEndAt,
     SurveyType SurveyType,

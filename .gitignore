@@ -10,6 +10,8 @@
 # .NET build and test outputs
 **/bin/
 **/obj/
+**/__pycache__/
+*.pyc
 TestResults/
 artifacts/
 coverage/

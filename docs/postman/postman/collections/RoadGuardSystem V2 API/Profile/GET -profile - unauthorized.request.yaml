@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /profile - unauthorized
+description: "Purpose: verify authorization enforcement. Role: none. Setup: no token. Expected: 401 ProblemDetails/stable error. Data change: none."
+url: "{{baseUrl}}/api/v1/profile"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: pm.test('Unauthorized profile returns 401', function () { pm.response.to.have.status(401); });
+    language: text/javascript
+order: 2000

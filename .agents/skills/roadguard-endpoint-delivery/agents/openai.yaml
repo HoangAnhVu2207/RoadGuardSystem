@@ -1,4 +1,8 @@
 interface:
   display_name: "RoadGuard Endpoint Delivery"
-  short_description: "Plan and deliver one RoadGuard API slice"
-  default_prompt: "Use $roadguard-endpoint-delivery to scope and deliver one RoadGuard endpoint."
+  short_description: "Deliver one RoadGuard API through all N-layers"
+  default_prompt: "Use $roadguard-endpoint-delivery to implement the assigned RoadGuard V2 API task after comparing its proposed contract with current source; for local smoke, enable the Development-only DbInitializer and verify with real seeded accounts."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+policy:
+  allow_implicit_invocation: true

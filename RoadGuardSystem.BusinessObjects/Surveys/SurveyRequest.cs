@@ -15,6 +15,8 @@ public sealed class SurveyRequest
 
     public Guid RoadSectionId { get; private set; }
 
+    public Guid? RoadSectionVersionId { get; private set; }
+
     public Guid? SurveyPlanId { get; private set; }
 
     public Guid RequestedByUserId { get; private set; }
@@ -43,7 +45,8 @@ public sealed class SurveyRequest
         SurveyRequestStatus status,
         DateTimeOffset requestedAt,
         DateTimeOffset? dueAt = null,
-        string outputRequirements = "{}")
+        string outputRequirements = "{}",
+        Guid? roadSectionVersionId = null)
     {
         if (id == Guid.Empty || projectId == Guid.Empty || roadSectionId == Guid.Empty || requestedByUserId == Guid.Empty)
         {
@@ -67,6 +70,7 @@ public sealed class SurveyRequest
             Id = id,
             ProjectId = projectId,
             RoadSectionId = roadSectionId,
+            RoadSectionVersionId = roadSectionVersionId,
             SurveyPlanId = surveyPlanId,
             RequestedByUserId = requestedByUserId,
             SurveyType = surveyType,

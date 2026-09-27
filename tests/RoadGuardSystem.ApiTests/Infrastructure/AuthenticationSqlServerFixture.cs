@@ -101,6 +101,8 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
             UserName = username,
             NormalizedUserName = username.ToUpperInvariant(),
             DisplayName = username,
+            Email = EmailFor(username),
+            NormalizedEmail = EmailFor(username).ToUpperInvariant(),
             RoleCode = role,
             Status = status,
             MustChangePassword = mustChangePassword,
@@ -115,6 +117,11 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
         await context.SaveChangesAsync();
         return user;
     }
+
+    public static string EmailFor(string username) =>
+        username.Contains('@', StringComparison.Ordinal)
+            ? username
+            : $"{username}@example.test";
 
     public async Task DisposeAsync()
     {

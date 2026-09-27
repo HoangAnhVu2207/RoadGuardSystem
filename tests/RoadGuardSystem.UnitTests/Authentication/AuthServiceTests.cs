@@ -12,7 +12,7 @@ using Xunit;
 namespace RoadGuardSystem.UnitTests.Authentication;
 
 [Trait("TaskId", "P1-10")]
-public sealed class AuthServiceTests
+public sealed partial class AuthServiceTests
 {
     [Theory(DisplayName = "P1-10 F-03: fingerprint key configuration fails closed when invalid")]
     [InlineData(null)]
@@ -55,8 +55,8 @@ public sealed class AuthServiceTests
         afterRotation.Should().Be(beforeRotation);
     }
 
-    [Fact(DisplayName = "P1-10 Negative: forced-change login returns no credentials")]
-    public async Task Login_ForcedChangeAccount_ReturnsRequiredWithoutCredentials()
+    [Fact(DisplayName = "V2-P1-001: forced-change login returns credentials with the required flag")]
+    public async Task Login_ForcedChangeAccount_ReturnsCredentialsWithRequiredFlag()
     {
         var user = ActiveUser(mustChangePassword: true);
         var service = CreateService(new StubIdentityRepository(), new StubCredentialVerifier
@@ -64,10 +64,11 @@ public sealed class AuthServiceTests
             Verification = new CredentialVerificationResult(CredentialVerificationStatus.Success, user)
         });
 
-        var result = await service.LoginAsync(new LoginCommand("field.user", "Current1!", null));
+        var result = await service.LoginAsync(new LoginCommand("field.user@example.test", "Current1!"));
 
-        result.Status.Should().Be(AuthStatus.PasswordChangeRequired);
-        result.Tokens.Should().BeNull();
+        result.Status.Should().Be(AuthStatus.Success);
+        result.Tokens.Should().NotBeNull();
+        result.Tokens!.User.MustChangePassword.Should().BeTrue();
     }
 
     [Fact(DisplayName = "P1-10 Positive: valid login persists only the refresh hash and returns credentials")]
@@ -81,9 +82,8 @@ public sealed class AuthServiceTests
         });
 
         var result = await service.LoginAsync(new LoginCommand(
-            "field.user",
-            "Current1!",
-            "{\"schema_version\":1,\"platform\":\"Web\"}"));
+            "field.user@example.test",
+            "Current1!"));
 
         result.Status.Should().Be(AuthStatus.Success);
         result.Tokens.Should().NotBeNull();
@@ -91,7 +91,7 @@ public sealed class AuthServiceTests
         repository.IssuedRefreshToken.Should().NotBeNull();
         repository.IssuedRefreshToken!.TokenHash.Should().Be(RefreshTokenGenerator.Hash(result.Tokens!.RefreshToken));
         repository.IssuedRefreshToken.TokenHash.Should().NotContain(result.Tokens.RefreshToken);
-        repository.IssuedSession!.DeviceMetadataJson.Should().Be("{\"schema_version\":1,\"platform\":\"Web\"}");
+        repository.IssuedSession!.DeviceMetadataJson.Should().BeNull();
     }
 
     [Fact(DisplayName = "P1-10 VG-04: login expiry values use the configured access session and refresh lifetimes")]
@@ -109,7 +109,7 @@ public sealed class AuthServiceTests
                 ActiveUser())
         }, options);
 
-        var result = await service.LoginAsync(new LoginCommand("field.user", "Current1!", null));
+        var result = await service.LoginAsync(new LoginCommand("field.user@example.test", "Current1!"));
 
         result.Status.Should().Be(AuthStatus.Success);
         result.Tokens!.AccessTokenExpiresAt.Should().Be(TestNow.AddMinutes(7));
@@ -297,6 +297,10 @@ public sealed class AuthServiceTests
             string currentPassword,
             string newPassword,
             CancellationToken cancellationToken = default) => Task.FromResult(PasswordPreparation);
+
+        public Task<PasswordChangePreparationResult> PreparePasswordChangeAsync(
+            Guid userId, string currentPassword, string newPassword,
+            CancellationToken cancellationToken = default) => Task.FromResult(PasswordPreparation);
     }
 
     private sealed class StubIdentityRepository : IIdentityRepository
@@ -314,6 +318,10 @@ public sealed class AuthServiceTests
         public Guid? ReplayRevokedTokenId { get; private set; }
         public Guid? RevokedSessionId { get; private set; }
         public Guid? PasswordChangeUserId { get; private set; }
+        public string? RecoveryEmail { get; private set; }
+        public LogoutPersistenceResult LogoutAtomicResult { get; init; } = new();
+        public PasswordChangePersistenceResult V2PasswordChangeResult { get; init; } = new(Succeeded: true);
+        public string? IdempotencyFingerprint { get; init; }
 
         public Task<UserProfileState?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default) =>
             Task.FromResult<UserProfileState?>(null);
@@ -420,6 +428,28 @@ public sealed class AuthServiceTests
             RevokedSessionId = sessionId;
             return Task.CompletedTask;
         }
+
+        public Task<LogoutPersistenceResult> RevokeSessionAndFamilyAtomicAsync(
+            Guid userId, Guid sessionId, string idempotencyKey, string requestFingerprint,
+            Guid? correlationId = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(LogoutAtomicResult);
+
+        public Task<PasswordRecoveryPersistenceResult> CreatePasswordRecoveryRequestAsync(
+            Guid requestId, string normalizedEmail, DateTimeOffset requestedAtUtc,
+            Guid? correlationId = null, CancellationToken cancellationToken = default)
+        {
+            RecoveryEmail = normalizedEmail;
+            return Task.FromResult(new PasswordRecoveryPersistenceResult(requestId, false, 0));
+        }
+
+        public Task<PasswordChangePersistenceResult> ChangePasswordAtomicAsync(
+            Guid userId, byte[] expectedUserRowVersion, string newPasswordHash,
+            string newSecurityStamp, string idempotencyKey, string requestFingerprint,
+            Guid? correlationId = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(V2PasswordChangeResult);
+
+        public Task<bool> HasIdempotencyOutcomeAsync(Guid userId, string operation, string idempotencyKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<string?> GetIdempotencyFingerprintAsync(Guid userId, string operation, string idempotencyKey, CancellationToken cancellationToken = default) => Task.FromResult(IdempotencyFingerprint);
 
         public Task<UserRoleChangeResult> ChangeUserRoleAtomicAsync(
             Guid userId,

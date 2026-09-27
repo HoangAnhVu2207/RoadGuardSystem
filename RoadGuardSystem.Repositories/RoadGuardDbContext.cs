@@ -66,6 +66,8 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<AccountStatusChangeLog> AccountStatusChangeLogs => Set<AccountStatusChangeLog>();
 
+    public DbSet<PasswordRecoveryRequest> PasswordRecoveryRequests => Set<PasswordRecoveryRequest>();
+
     public DbSet<StoredFile> Files => Set<StoredFile>();
 
     public DbSet<DefectType> DefectTypes => Set<DefectType>();

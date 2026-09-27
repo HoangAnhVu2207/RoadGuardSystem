@@ -9,6 +9,7 @@ Normative Specification (2026-09-17)
 - **Approved by:** Product Owner (Decision P1-02)
 - **Trace:** Architecture / Task P1-02 (Foundation post P1-00 and P1-01)
 - **Implementation Baseline:** Configured in `RoadGuardSystem.API/Extensions/ServiceCollectionExtensions.cs` and `RoadGuardSystem.API/Constants/ApiErrorCodes.cs`
+- **Target workflow additions:** Incident/report, segment, coverage, and asynchronous AI codes below are design contracts; they are not claimed to exist in the current constants or controllers.
 
 ---
 
@@ -133,6 +134,28 @@ Authentication and identity endpoints add the following stable domain codes. The
 | **`identity_user_inactive`** | 409 | The target identity is suspended or otherwise not eligible for an administrative password reset. |
 | **`duplicate_request`** | 409 | An idempotency operation ID was previously used with a different request fingerprint. |
 | **`identity_email_conflict`** | 409 | The requested profile email is already assigned to another user. |
+
+The target incident/segment/AI design reserves these domain codes. Implementations must use the exact lowercase names, ProblemDetails envelope, and correlation rules above:
+
+| Error Code | HTTP Status | Meaning and Trigger |
+|---|---:|---|
+| **`report_not_owned`** | 403 | Reporter attempted to read or mutate a report/case that is not linked to the authenticated Reporter. |
+| **`report_photo_location_required`** | 422 | An attached report photo has neither confirmed device/EXIF coordinates nor a manually selected location. |
+| **`incident_invalid_state_transition`** | 409 | An IncidentCase command is not allowed from its current lifecycle state. |
+| **`incident_no_defect_reason_required`** | 422 | PM attempted to publish `NO_DEFECT` without a reason. |
+| **`segment_set_immutable`** | 409 | A published RoadSegmentSet or a job-referenced segment was modified in place instead of versioning it. |
+| **`segment_geometry_invalid`** | 422 | Segment ranges have a gap, overlap, invalid length, wrong route version, or geometry outside the route. |
+| **`survey_band_coverage_insufficient`** | 422 | The requested surface/left-edge/right-edge band is missing, obscured, or below its quality requirements. |
+| **`processing_manifest_conflict`** | 409 | The same idempotency identity was reused with a different manifest, scope, model, or configuration. |
+| **`processing_result_invalid`** | 422 | AI output does not match the input manifest, model/version, evidence range, schema, or coordinate contract. |
+| **`processing_not_complete`** | 409 | A caller requested downstream use while required processing blocks remain pending, partial, or failed. |
+| **`reporter_email_invalid`** | 422 | Reporter registration used an address outside the approved Gmail domain or an invalid email format. |
+| **`reporter_otp_invalid`** | 422 | OTP is malformed or does not match the active verification challenge. |
+| **`reporter_otp_expired`** | 422 | OTP challenge is expired or already consumed. |
+| **`reporter_otp_locked`** | 429 | OTP challenge exceeded its attempt limit or the registration intent is rate-limited. |
+| **`reporter_otp_resend_cooldown`** | 429 | Reporter requested another OTP before the configured cooldown elapsed. |
+| **`reporter_email_verification_required`** | 403 | Reporter account is still pending email verification. |
+| **`email_provider_unavailable`** | 503 | Gmail delivery adapter is unavailable; account remains pending and no token is issued. |
 
 ---
 

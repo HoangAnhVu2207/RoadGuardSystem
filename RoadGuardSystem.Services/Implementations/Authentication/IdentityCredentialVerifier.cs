@@ -16,17 +16,17 @@ public sealed class IdentityCredentialVerifier : ICredentialVerifier
     }
 
     public async Task<CredentialVerificationResult> VerifyAsync(
-        string username,
+        string email,
         string password,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             return new CredentialVerificationResult(CredentialVerificationStatus.InvalidCredentials);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var user = await _userManager.FindByNameAsync(username.Trim());
+        var user = await _userManager.FindByEmailAsync(email.Trim());
         if (user is null)
         {
             await _userManager.CheckPasswordAsync(
@@ -99,6 +99,57 @@ public sealed class IdentityCredentialVerifier : ICredentialVerifier
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        return new PasswordChangePreparationResult(
+            PasswordChangePreparationStatus.Success,
+            Snapshot(user),
+            _userManager.PasswordHasher.HashPassword(user, newPassword),
+            Guid.NewGuid().ToString("N"));
+    }
+
+    public async Task<PasswordChangePreparationResult> PreparePasswordChangeAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(currentPassword) ||
+            string.IsNullOrWhiteSpace(newPassword))
+        {
+            return new PasswordChangePreparationResult(PasswordChangePreparationStatus.InvalidCredentials);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return new PasswordChangePreparationResult(PasswordChangePreparationStatus.InvalidCredentials);
+        }
+
+        if (!await _userManager.CheckPasswordAsync(user, currentPassword))
+        {
+            return new PasswordChangePreparationResult(PasswordChangePreparationStatus.InvalidCredentials);
+        }
+
+        if (_userManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash!, newPassword) !=
+            PasswordVerificationResult.Failed)
+        {
+            return new PasswordChangePreparationResult(
+                PasswordChangePreparationStatus.ReusedPassword,
+                ErrorMessage: "The replacement password must differ from the current password.");
+        }
+
+        foreach (var validator in _userManager.PasswordValidators)
+        {
+            var validation = await validator.ValidateAsync(_userManager, user, newPassword);
+            if (!validation.Succeeded)
+            {
+                return new PasswordChangePreparationResult(
+                    PasswordChangePreparationStatus.PolicyRejected,
+                    ErrorMessage: "The replacement password does not satisfy the password policy.");
+            }
+        }
+
         return new PasswordChangePreparationResult(
             PasswordChangePreparationStatus.Success,
             Snapshot(user),

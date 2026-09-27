@@ -11,7 +11,7 @@ namespace RoadGuardSystem.UnitTests.Authentication;
 [Trait("TaskId", "P1-10")]
 public sealed class IdentityCredentialVerifierTests
 {
-    [Fact(DisplayName = "P1-10 F-07: unknown and known-wrong credentials execute the same password verification boundary")]
+    [Fact(DisplayName = "V2-P1-001: unknown and known-wrong email credentials use the same password boundary")]
     public async Task Verify_UnknownAndKnownWrongPassword_UseSamePasswordHashBoundary()
     {
         var user = new ApplicationUser
@@ -19,6 +19,8 @@ public sealed class IdentityCredentialVerifierTests
             Id = Guid.NewGuid(),
             UserName = "known.user",
             NormalizedUserName = "KNOWN.USER",
+            Email = "known.user@example.test",
+            NormalizedEmail = "KNOWN.USER@EXAMPLE.TEST",
             DisplayName = "Known User"
         };
         var passwordHasher = new CountingPasswordHasher();
@@ -26,11 +28,11 @@ public sealed class IdentityCredentialVerifierTests
         using var userManager = CreateUserManager(new InMemoryPasswordUserStore(user), passwordHasher);
         var verifier = new IdentityCredentialVerifier(userManager);
 
-        var knownWrong = await verifier.VerifyAsync("known.user", "Wrong1!");
+        var knownWrong = await verifier.VerifyAsync("known.user@example.test", "Wrong1!");
         var knownWrongVerifyCount = passwordHasher.VerifyCount;
         passwordHasher.Reset();
 
-        var unknown = await verifier.VerifyAsync("missing.user", "Wrong1!");
+        var unknown = await verifier.VerifyAsync("missing.user@example.test", "Wrong1!");
 
         knownWrong.Status.Should().Be(CredentialVerificationStatus.InvalidCredentials);
         unknown.Status.Should().Be(CredentialVerificationStatus.InvalidCredentials);
@@ -73,7 +75,7 @@ public sealed class IdentityCredentialVerifierTests
         public void Reset() => VerifyCount = 0;
     }
 
-    private sealed class InMemoryPasswordUserStore : IUserPasswordStore<ApplicationUser>
+    private sealed class InMemoryPasswordUserStore : IUserPasswordStore<ApplicationUser>, IUserEmailStore<ApplicationUser>
     {
         private readonly ApplicationUser _user;
 
@@ -89,6 +91,36 @@ public sealed class IdentityCredentialVerifierTests
                 normalizedUserName,
                 _user.NormalizedUserName,
                 StringComparison.Ordinal) ? _user : null);
+
+        public Task<ApplicationUser?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken) =>
+            Task.FromResult(string.Equals(normalizedEmail, _user.NormalizedEmail, StringComparison.Ordinal) ? _user : null);
+
+        public Task<string?> GetEmailAsync(ApplicationUser user, CancellationToken cancellationToken) =>
+            Task.FromResult(user.Email);
+
+        public Task<bool> GetEmailConfirmedAsync(ApplicationUser user, CancellationToken cancellationToken) =>
+            Task.FromResult(user.EmailConfirmed);
+
+        public Task<string?> GetNormalizedEmailAsync(ApplicationUser user, CancellationToken cancellationToken) =>
+            Task.FromResult(user.NormalizedEmail);
+
+        public Task SetEmailAsync(ApplicationUser user, string? email, CancellationToken cancellationToken)
+        {
+            user.Email = email;
+            return Task.CompletedTask;
+        }
+
+        public Task SetEmailConfirmedAsync(ApplicationUser user, bool confirmed, CancellationToken cancellationToken)
+        {
+            user.EmailConfirmed = confirmed;
+            return Task.CompletedTask;
+        }
+
+        public Task SetNormalizedEmailAsync(ApplicationUser user, string? normalizedEmail, CancellationToken cancellationToken)
+        {
+            user.NormalizedEmail = normalizedEmail;
+            return Task.CompletedTask;
+        }
 
         public Task<string?> GetPasswordHashAsync(ApplicationUser user, CancellationToken cancellationToken) =>
             Task.FromResult(user.PasswordHash);

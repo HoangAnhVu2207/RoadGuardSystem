@@ -661,6 +661,28 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordRecoveryRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedNever()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CorrelationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RequestedAtUtc")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<Guid?>("TargetUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetUserId", "RequestedAtUtc");
+
+                    b.ToTable("PasswordRecoveryRequests", (string)null);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordResetLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2254,6 +2276,14 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordRecoveryRequest", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordResetLog", b =>

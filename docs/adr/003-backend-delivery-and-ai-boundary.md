@@ -1,31 +1,35 @@
-# ADR 003: Backend acceptance now, real AI integration later
+# ADR 003: Backend acceptance with an external AI integration boundary
 
 ## Status and authority
 
 Date: 2026-09-18. Task: P2-03. Owner: Person 2 / Huy branch; shared documentation correction requested by the repository owner.
 
-Accepted scope clarification from this conversation: develop and accept the backend; Android belongs to FE; AI will be attached later. The requested target is approximately two weeks. This ADR implements that clarification without declaring future production tasks complete. Detailed endpoint names and new schema decisions remain in their assigned tasks; unresolved decisions below are not silently approved.
+Accepted scope clarification from this conversation: develop and accept the backend; Android belongs to FE; an external AI backend will be connected through a versioned adapter contract. A deterministic mock remains the local fallback. This ADR does not claim that the external service, transport, model or GPU deployment is already implemented. Detailed endpoint names and new schema decisions remain in their assigned tasks; unresolved decisions below are not silently approved.
 
-This supplements [ADR 001](001-backend-boundary.md) and [ADR 002](002-authentication.md). It does not alter published enums, existing field nullability or approved role/session rules. The Data Dictionary retains precedence over ERD/Domain Model, Use Cases and User Stories. Exactly two execution plans remain under `planning/`.
+This supplements [ADR 001](001-backend-boundary.md) and [ADR 002](002-authentication.md). It does not alter published enums, existing field nullability or approved role/session rules. The Data Dictionary retains precedence over ERD/Domain Model, Use Cases and User Stories for the persistence concepts it defines.
+
+### V2 planning amendment (2026-09-27)
+
+[ADR 006](006-v2-endpoint-ownership-and-persistence-coordination.md) replaces the legacy horizontal task assignments below for new V2 delivery. Scheduling and active ownership come from `planning/V2/task_manifest.json` and the assigned `planning/V2/Person_*/V2-*.md` task. Legacy P1/P2 dependencies and estimates in this ADR remain historical evidence and do not reserve a layer to a person.
 
 ## Acceptance boundaries
 
 | Deliverable | Backend acceptance in this iteration | External follow-up |
 |---|---|---|
 | MVP workflows | Implement all backend acceptance criteria for US-01–US-20, including authorization, versioning, audit, retries and SQL constraints; verify through API/SQL tests and exported contracts | FE Android/Web implementation and whole-product UI integration |
-| Processing / AI | Durable job orchestration, versioned request/result contract, deterministic fake and result validation; provenance identifies mock source/model | Python transport adapter, trained models, GPU/inference deployment, actual vision/DSM processing and model accuracy |
+| Processing / AI | Durable job orchestration, immutable segment/band input manifest, versioned request/result contract, deterministic fake, external adapter seam and result validation | External AI deployment, trained models, GPU/inference operations and model accuracy; transport selection remains an implementation decision |
 | Research Validation | Import and validate pairs, compute error metrics, preserve uncertainty metadata, version runs and export reproducible reports using controlled fixtures or available external data | Field sampling, physical measurements and actual derived measurements; scientific interpretation of real-world accuracy |
 | Offline work | Scoped work-package reads, resumable uploads, retry-safe commands, current permission checks and durable server acknowledgement | Local database, background queue, connectivity/UI behavior and deleting device copies |
 
-Operational field verification remains mandatory: mock detection -> PM retains -> OPEN Defect and required inspection task -> submitted measurement -> PM VERIFIED/REJECTED. Deferring AI does not remove US-20 or permit mock processing to verify defects automatically.
+Operational field verification remains a PM decision: AI detection may lead to PM review and physical inspection when the evidence requires it; neither mock nor external AI automatically verifies a Defect. The separate research validation track still requires controlled ground-truth measurement.
 
 Backend software acceptance can be completed before a real dataset/AI service exists. Mock/golden fixtures prove software behavior only; they must not be presented as field-trial findings. Full product/AI research acceptance is a different, later integration claim.
 
 ## Chosen approach and alternatives
 
-Use the existing ASP.NET Core / SQL Server solution with one adapter boundary and a deterministic fake. Replacing the fake later must not change domain transitions, public job identities or evidence history. Keep the existing local storage boundary and generic worker/outbox design; this ADR does not introduce a broker, microservice or cloud vendor dependency.
+Use the existing ASP.NET Core / SQL Server solution with one adapter boundary, a deterministic fake and a future external AI implementation. The BE admits jobs asynchronously, stores input/result provenance, scopes each processing block to segment and target band, and keeps the original video/telemetry immutable. Replacing the fake with the external service must not change domain transitions, public job identities or evidence history. Keep the existing local storage boundary and generic worker/outbox design; this ADR does not introduce a broker, microservice or cloud vendor dependency.
 
-Rejected for this iteration: developing the real Python/vision stack, which the owner explicitly excludes. Also rejected: removing processing/research contracts entirely, which would leave the backend unable to exercise its required workflows or integrate AI later.
+Rejected for this iteration: implementing the Python vision model, GPU deployment, or claiming model accuracy. Also rejected: removing processing/research contracts entirely, which would leave the backend unable to exercise its required workflows or integrate the external AI service.
 
 ## Backend contracts to implement in assigned tasks
 
@@ -53,7 +57,7 @@ Rejected for this iteration: developing the real Python/vision stack, which the 
 - Uncertainty is distinct from bias/MAE/RMSE. Store an externally supplied uncertainty estimate with its method/assumptions where provided. Never fabricate `0`, rename RMSE to uncertainty or silently pick a confidence-interval method. A computed uncertainty method requires the decision below before that slice is implemented.
 - Research APIs/reports must not create or transition Defect or Warranty. Verify absence of operational writes as well as correct metrics. Label synthetic datasets and missing real-world validation clearly in fixture/export provenance.
 
-## Dependency and ownership corrections
+## Historical dependency and ownership corrections
 
 1. `P2-02 -> P2-10 -> P2-20 -> P2-11 -> P1-12`, with P1-10 also preceding P1-12. Parent arrows mean prerequisite first. P2-04 File schema precedes project handover records.
 2. Extract early File/storage (`P2-04`), defect catalog/rule schema (`P2-05`), DroneDevice (`P2-06`) and Notification (`P2-07`) prerequisites. Late administration tasks reuse them; they do not establish these shapes a second time.
@@ -80,7 +84,7 @@ For P2-21, the owner also approved nullable `Project.engineering_utm_srid` with 
 
 ## Evidence, status and schedule
 
-The current status table in each person plan is the source of scheduling state. Historical worklogs retain their original outcomes and commands. A plan can record a subsequent owner decision with its provenance, but this is not a fresh test run. P2-00 is owner-confirmed Done per the current plan; its old Ready for cross-review log is historical. P1-03's old synchronization warning is superseded by integration baseline 20ff1d3. P2-01 remains Ready for Codex review; actual hosted CI/Compose proof is still required where specified, and is not replaced by this documentation task.
+For new V2 work, the assigned V2 task and manifest are the source of scheduling state. Historical worklogs and the original person plans retain their original outcomes and commands. A plan can record a subsequent owner decision with its provenance, but this is not a fresh test run. P2-00 is owner-confirmed Done per the legacy plan; its old Ready for cross-review log is historical. P1-03's old synchronization warning is superseded by integration baseline 20ff1d3. P2-01 remains Ready for Codex review in the legacy record; actual hosted CI/Compose proof is still required where specified and is not replaced by this documentation task.
 
 Before this correction the original estimates totaled 72 person-days excluding the remaining P2-01 review. Those plans already assumed mock AI; deferring real AI is not a new 72-day reduction. New prerequisite tasks redistribute existing work, and original task estimates are historical sizing, not additive promises after splitting. Re-estimate from completed slices at the day-2 checkpoint. The two-week target does not waive any acceptance gate or authorize automatically reducing scope.
 

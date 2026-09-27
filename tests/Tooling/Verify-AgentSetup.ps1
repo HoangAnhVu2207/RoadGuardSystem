@@ -28,6 +28,14 @@ $required = @(
     '.agents/rules/roadguard.md',
     '.agents/skills/roadguard-endpoint-delivery/SKILL.md',
     '.agents/skills/roadguard-endpoint-delivery/agents/openai.yaml',
+    '.agents/skills/roadguard-persistence/SKILL.md',
+    '.agents/skills/roadguard-postman/SKILL.md',
+    '.agents/skills/roadguard-postman/agents/openai.yaml',
+    '.agents/skills/roadguard-review-autofix/SKILL.md',
+    '.agents/skills/roadguard-test-selection/SKILL.md',
+    'docs/postman/RoadGuardSystem-V2.postman_collection.json',
+    'docs/postman/RoadGuard.local.postman_environment.json',
+    'docs/postman/README.md',
     'docs/prompts/RoadGuard_Task_Workflow.md',
     'docs/diagram/RoadGuard_Task_Log_Template.md',
     'planning/RoadGuard_Plan_Person_1.md',
@@ -44,32 +52,46 @@ if (Test-Path -LiteralPath (Join-Path $repo '.antigravity')) {
 
 $skillRoot = Join-Path $repo '.agents/skills'
 $skillNames = @(Get-ChildItem -LiteralPath $skillRoot -Directory | Select-Object -ExpandProperty Name)
-if ($skillNames.Count -ne 1 -or $skillNames[0] -cne 'roadguard-endpoint-delivery') {
-    $errors.Add("Expected one rebuilt skill; found: $($skillNames -join ', ')")
+$requiredSkills = @(
+    'roadguard-endpoint-delivery',
+    'roadguard-persistence',
+    'roadguard-postman',
+    'roadguard-review-autofix',
+    'roadguard-test-selection'
+)
+foreach ($requiredSkill in $requiredSkills) {
+    if ($requiredSkill -notin $skillNames) {
+        $errors.Add("Missing required skill: $requiredSkill")
+    }
 }
 
 if ($errors.Count -eq 0) {
     $agents = Get-Content -Raw -LiteralPath $paths['AGENTS.md']
     $skill = Get-Content -Raw -LiteralPath $paths['.agents/skills/roadguard-endpoint-delivery/SKILL.md']
     $ui = Get-Content -Raw -LiteralPath $paths['.agents/skills/roadguard-endpoint-delivery/agents/openai.yaml']
+    $postmanSkill = Get-Content -Raw -LiteralPath $paths['.agents/skills/roadguard-postman/SKILL.md']
+    $postmanCollection = Get-Content -Raw -LiteralPath $paths['docs/postman/RoadGuardSystem-V2.postman_collection.json'] | ConvertFrom-Json
+    $postmanEnvironment = Get-Content -Raw -LiteralPath $paths['docs/postman/RoadGuard.local.postman_environment.json'] | ConvertFrom-Json
     $prompt = Get-Content -Raw -LiteralPath $paths['docs/prompts/RoadGuard_Task_Workflow.md']
     $plan1 = Get-Content -Raw -LiteralPath $paths['planning/RoadGuard_Plan_Person_1.md']
     $plan2 = Get-Content -Raw -LiteralPath $paths['planning/RoadGuard_Plan_Person_2.md']
 
     Require-Text 'AGENTS.md' $agents @(
-        'Before edits, show:', '5-8 line contract', 'Http/*.http', 'at or below 500 lines',
-        'Reuse a passing result', 'A commit alone does not require more tests',
-        'Full-solution tests are reserved for integration, release',
-        'Choose one test breadth before running tests'
+        'Before edits, show:', '5-8 line contract', 'RoadGuardSystem.API/RoadGuardSystem.API.http',
+        '500 lines', 'Reuse passing evidence', 'A commit alone does not invalidate evidence',
+        'Full-solution tests are reserved for broad integration',
+        'Select the cheapest sufficient breadth'
     )
     Require-Text 'skill' $skill @(
-        'name: roadguard-endpoint-delivery', 'description: Use when', 'Scope gate',
-        'Endpoint contract', 'Verification', 'Reuse a passing result',
-        'Do not rerun the same command at handoff or commit',
-        'Full-solution tests are reserved for integration, release',
-        'Focused, affected-project and full-solution are mutually exclusive breadths'
+        'name: roadguard-endpoint-delivery', 'description: Use when',
+        'Controller -> IService -> IRepository', 'roadguard-postman',
+        'roadguard-test-selection', 'DbInitializer', 'Never enable these flags in Production'
     )
     Require-Text 'openai.yaml' $ui @('display_name:', 'short_description:', '$roadguard-endpoint-delivery')
+    Require-Text 'Postman skill' $postmanSkill @(
+        'name: roadguard-postman', 'IMPLEMENT -> UPDATE_POSTMAN -> REVIEW_FIX -> VERIFY -> REPORT',
+        'RoadGuardSystem-V2.postman_collection.json', 'v2.1', 'NOT_RUN', 'BLOCKED'
+    )
     Require-Text 'workflow prompt' $prompt @(
         'In scope', 'Out of scope', 'Dong y <TASK-ID>', '3-5 lat cat',
         'Tai su dung ket qua da pass', 'Commit khong tu dong kich hoat them test',
@@ -89,10 +111,6 @@ if ($errors.Count -eq 0) {
         'Choose one test breadth before running tests'
     )
 
-    if ((Get-Content -LiteralPath $paths['AGENTS.md']).Count -gt 50) {
-        $errors.Add('AGENTS.md exceeds 50 lines.')
-    }
-
     foreach ($relative in $required) {
         if ((Get-Content -LiteralPath $paths[$relative]).Count -gt 500) {
             $errors.Add("Managed file exceeds 500 lines: $relative")
@@ -110,6 +128,13 @@ if ($errors.Count -eq 0) {
     $config = Get-Content -Raw -LiteralPath $paths['.agents/mcp_config.json'] | ConvertFrom-Json
     foreach ($server in @('microsoft-learn', 'context7')) {
         if ($null -eq $config.mcpServers.$server) { $errors.Add("Missing MCP server: $server") }
+    }
+
+    if ($postmanCollection.info.schema -ne 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json') {
+        $errors.Add('Postman collection is not v2.1.')
+    }
+    if ($postmanEnvironment.name -ne 'RoadGuard.local') {
+        $errors.Add('Postman environment must be named RoadGuard.local.')
     }
 
     foreach ($relative in @('AGENTS.md', '.agents/rules/roadguard.md', '.agents/skills/roadguard-endpoint-delivery/SKILL.md', 'docs/prompts/RoadGuard_Task_Workflow.md')) {

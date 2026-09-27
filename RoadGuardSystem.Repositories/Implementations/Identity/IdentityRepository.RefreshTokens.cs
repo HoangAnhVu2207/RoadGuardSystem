@@ -283,4 +283,93 @@ public sealed partial class IdentityRepository
             }
         }
     }
+
+    public async Task<LogoutPersistenceResult> RevokeSessionAndFamilyAtomicAsync(
+        Guid userId,
+        Guid sessionId,
+        string idempotencyKey,
+        string requestFingerprint,
+        Guid? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty || sessionId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(requestFingerprint))
+        {
+            return new LogoutPersistenceResult(IdempotentConflict: true);
+        }
+
+        const string operation = "Logout";
+        var existing = await FindIdempotencyRecordAsync(userId, operation, idempotencyKey, cancellationToken);
+        if (existing is not null)
+        {
+            return new LogoutPersistenceResult(
+                IdempotentReplay: existing.RequestFingerprint == requestFingerprint,
+                IdempotentConflict: existing.RequestFingerprint != requestFingerprint);
+        }
+
+        var strategy = _context.Database.CreateExecutionStrategy();
+        try
+        {
+            return await strategy.ExecuteInTransactionAsync(
+                async attemptCancellationToken =>
+                {
+                    _context.ChangeTracker.Clear();
+                    var durable = await FindIdempotencyRecordAsync(
+                        userId, operation, idempotencyKey, attemptCancellationToken);
+                    if (durable is not null)
+                    {
+                        return new LogoutPersistenceResult(
+                            IdempotentReplay: durable.RequestFingerprint == requestFingerprint,
+                            IdempotentConflict: durable.RequestFingerprint != requestFingerprint);
+                    }
+
+                    var session = await _context.Sessions
+                        .Include(candidate => candidate.RefreshTokens)
+                        .SingleOrDefaultAsync(candidate =>
+                            candidate.Id == sessionId && candidate.UserId == userId,
+                            attemptCancellationToken);
+                    var now = DateTimeOffset.UtcNow;
+                    if (session is not null)
+                    {
+                        session.RevokedAt ??= now;
+                        foreach (var token in session.RefreshTokens.Where(token => token.RevokedAt is null))
+                        {
+                            token.RevokedAt = now;
+                        }
+                    }
+
+                    _context.IdempotencyRecords.Add(IdempotencyRecord.Create(
+                        userId,
+                        null,
+                        operation,
+                        idempotencyKey,
+                        requestFingerprint,
+                        Guid.NewGuid(),
+                        "{\"status\":\"completed\"}",
+                        now));
+                    _context.AuditLogs.Add(AuditLog.Create(
+                        Guid.NewGuid(), userId, now, "auth_logout", "Session", sessionId,
+                        null, null, null, "IdentityRepository", correlationId));
+
+                    await _context.SaveChangesAsync(attemptCancellationToken);
+                    return new LogoutPersistenceResult();
+                },
+                async verificationCancellationToken =>
+                {
+                    _context.ChangeTracker.Clear();
+                    return await FindIdempotencyRecordAsync(
+                        userId, operation, idempotencyKey, verificationCancellationToken) is not null;
+                },
+                cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            _context.ChangeTracker.Clear();
+            var winner = await FindIdempotencyRecordAsync(userId, operation, idempotencyKey, CancellationToken.None);
+            if (winner is null) throw;
+            return new LogoutPersistenceResult(
+                IdempotentReplay: winner.RequestFingerprint == requestFingerprint,
+                IdempotentConflict: winner.RequestFingerprint != requestFingerprint);
+        }
+    }
 }

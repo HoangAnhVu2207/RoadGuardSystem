@@ -1,18 +1,19 @@
 # User Story và Acceptance Criteria - RoadGuard / CÁT TƯỜNG
 
-> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
+> Thiết kế mục tiêu đồng bộ 22/09/2026; các phần Reporter, IncidentCase, segment, coverage và AI ngoài là đề xuất chưa triển khai. Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
 
 ## 1. Mục đích và phạm vi
 
-Tài liệu này chuyển đặc tả use case trong `UseCase/Dac_ta_UseCase.md` thành các User Story lớn theo nhóm nghiệp vụ. Mỗi story giữ mã chức năng nguồn để truy vết và có Acceptance Criteria theo dạng **Given / When / Then**.
+Tài liệu này chuyển đặc tả use case trong [Dac_ta_UseCase_v2.md](Dac_ta_UseCase_v2.md) thành các User Story lớn theo nhóm nghiệp vụ. Mỗi story giữ mã chức năng nguồn để truy vết và có Acceptance Criteria theo dạng **Given / When / Then**.
 
-Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android App cho Drone Operator/Repair Crew, Web Dashboard cho Supervisor/PM, Backend C# + SQL Server/SQL Server Spatial theo `Build/RoadGuard_Data_Dictionary_v1.md`, và xử lý AI mock ở Phase 1 hoặc AI Service Python khi đã kết nối.
+Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android App cho Drone Operator/Repair Crew/Reporter, Web Dashboard cho Supervisor/PM, Backend C# + SQL Server/SQL Server Spatial theo [RoadGuard_Data_Dictionary_v1.md](RoadGuard_Data_Dictionary_v1.md), và hệ AI ngoài qua adapter/job bất đồng bộ. Mock chỉ để kiểm thử hợp đồng, luôn gắn nguồn; các phần mới là thiết kế chưa triển khai.
 
 ### 1.1 Ngoài phạm vi MVP
 
-- `AI13` và `TN01-TN06`, `TN12` về đo đạc thực tế do Repair Crew thực hiện là bước bắt buộc trong MVP đối với mọi phát hiện sơ bộ được PM giữ lại để xác minh.
+- `AI13` và `TN01-TN06`, `TN12` là luồng đo thực địa khi PM cần số đo vật lý hoặc bằng chứng chưa đủ; không phải tiền điều kiện chung cho mọi phát hiện. Ground truth nghiên cứu `RS01–RS06` vẫn bắt buộc và độc lập.
 - `AI02` (ảnh trực giao/mô hình bề mặt) và các phép đo phụ thuộc pipeline nâng cao: không phải điều kiện nghiệm thu MVP sản phẩm. Tuy nhiên, **Research Validation Track của đề cương là bắt buộc**: phải thu thập ground truth vật lý cho mẫu depression/slab faulting và đối chiếu với số đo drone để báo cáo measurement uncertainty.
 - Điều khiển thiết bị bay; hệ thống chỉ tiếp nhận dữ liệu do thiết bị bay tạo ra.
+- Reporter là vai trò thứ năm, subtype `CITIZEN` hoặc `INVESTOR_REPRESENTATIVE`; gửi và xem phản ánh của mình qua ownership, không cần membership dự án hoặc quyền xem dữ liệu sửa chữa nội bộ.
 - Cam kết độ chính xác địa lý, độ sâu hoặc thời điểm hỏng chỉ từ đầu ra YOLO/bounding box.
 
 ### 1.1A Phần nghiên cứu bắt buộc nhưng tách khỏi MVP sản phẩm
@@ -35,9 +36,10 @@ Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android A
 | Vai trò | Trách nhiệm trong MVP |
 |---|---|
 | Supervisor (Admin) | Tạo dự án, nhập tuyến/đoạn đường, phân công PM, duyệt đợt sửa, xác nhận hoàn tất, quản trị tài khoản/cấu hình/nhật ký/dữ liệu. |
-| PM | Lập kế hoạch và yêu cầu khảo sát, điều phối Drone Operator, rà soát phát hiện AI sơ bộ, bắt buộc giao đo thực địa, xác minh hư hỏng chính thức từ kết quả đo, lập và theo dõi đợt sửa, kiểm tra báo cáo hoàn thành, trình Supervisor. |
+| PM | Lập kế hoạch và yêu cầu khảo sát, điều phối Drone Operator, rà soát phát hiện AI sơ bộ, chọn drone hoặc giao đo thực địa khi cần căn cứ vật lý, xác minh hư hỏng từ bằng chứng phù hợp, lập và theo dõi đợt sửa, kiểm tra báo cáo hoàn thành, trình Supervisor. |
 | Drone Operator | Nhận nhiệm vụ, nhập video/SRT, kiểm tra chất lượng, tải dữ liệu và thực hiện bay bổ sung khi được phân công. |
-| Repair Crew | Đội trưởng nhận đợt sửa hoặc nhiệm vụ đo đạc thực tế khi được PM giao, tổ chức thành viên không có tài khoản riêng, ghi số đo/bằng chứng, tiến độ và báo cáo hoàn thành. |
+| Repair Crew | Đội trưởng nhận đợt sửa hoặc nhiệm vụ đo đạc khi PM giao, tổ chức thành viên không có tài khoản riêng, ghi số đo/bằng chứng khi cần, tiến độ và báo cáo hoàn thành. |
+| Reporter | Citizen hoặc InvestorRepresentative; gửi phản ánh, xác nhận vị trí từng ảnh, bổ sung bằng chứng và xem tiến độ/kết quả công bố của chính mình. Không có quyền project membership. |
 
 ### 1.3 Quy tắc chung áp dụng cho mọi story
 
@@ -56,6 +58,7 @@ Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android A
 | ID | Nhóm | User Story | Mã chức năng |
 |---|---|---|---|
 | US-01 | Truy cập | Đăng nhập, hồ sơ, quyền và thông báo theo vai trò | CN01-CN04, CN10 |
+| US-27 | Truy cập | Reporter tự đăng ký Gmail và xác minh OTP | CN11-CN12 |
 | US-02 | Truy cập | Làm việc ngoại tuyến và đồng bộ an toàn | CN05-CN09 |
 | US-03 | Dự án | Quản lý dự án, tuyến/đoạn, bàn giao và nhân sự | DA01-DA05, DA12 |
 | US-04 | Dự án | Lập kế hoạch khảo sát và xác nhận baseline | DA06-DA11 |
@@ -70,7 +73,7 @@ Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android A
 | US-13 | Thi công | Tiếp nhận đợt sửa, ghi tiến độ và bằng chứng | HT01-HT08, HT14-HT15 |
 | US-14 | Thi công | Kiểm tra, sửa lại và xác nhận hoàn tất | HT09-HT13 |
 | US-20 | Đo đạc thực tế | Đo đạc bắt buộc và xác minh hư hỏng chính thức | AI13, TN01-TN06, TN12 |
-| US-15 | Báo cáo | Dashboard quản lý dự án, chi phí và rủi ro | BC01-BC05 |
+| US-15 | Báo cáo | Dashboard quản lý dự án, tiến độ sửa chữa và rủi ro | BC01-BC05 |
 | US-16 | Báo cáo | Xuất hồ sơ, nguồn gốc và tra cứu lưu trữ | BC06-BC10 |
 | US-17 | Quản trị | Quản lý tài khoản, quyền, danh mục và nhắc việc | QT01-QT05 |
 | US-18 | Quản trị | Quản trị mô hình AI, tác vụ và thiết bị | QT06-QT10 |
@@ -124,6 +127,33 @@ Là một người dùng nội bộ (Supervisor, PM, Drone Operator hoặc Repai
 - Không cho phép dùng phiên cũ sau khi mật khẩu bị Admin đặt lại.
 
 **Mã truy vết:** `CN01-CN04`, `CN10`, `QT02`, `QT09`.
+
+### US-27 - Reporter tự đăng ký và xác minh Gmail OTP
+
+**User Story**  
+Là người dân hoặc đại diện chủ đầu tư chưa có tài khoản, tôi muốn tự đăng ký bằng Gmail và xác minh mã OTP để có tài khoản Reporter gửi phản ánh mà không cần Admin tạo hộ.
+
+**Acceptance Criteria**
+
+1. **Tạo đăng ký pending**
+   - **When** người dùng gửi Gmail hợp lệ (`gmail.com` hoặc `googlemail.com`), display name, `ReporterType`, mật khẩu, confirm password và idempotency key
+   - **Then** hệ thống tạo hoặc tiếp tục một registration intent với `User.status = PENDING`, `role_code = REPORTER`, `email_confirmed = false`; không cấp access/refresh token.
+2. **Gửi OTP**
+   - Hệ thống tạo OTP bằng nguồn ngẫu nhiên bảo mật, chỉ lưu hash/HMAC, hạn dùng ngắn, số lần thử tối đa và cooldown resend; adapter Gmail trả provider correlation ID nhưng không lưu code plaintext.
+   - Response public không tiết lộ email đã tồn tại, trạng thái account hoặc provider detail.
+3. **Xác minh OTP**
+   - **Given** challenge chưa hết hạn, chưa consume và còn lượt thử
+   - **When** Reporter gửi đúng OTP
+   - **Then** hệ thống consume challenge một lần trong transaction, đặt `email_confirmed = true`, `email_confirmed_at`, chuyển User thành `ACTIVE` và có thể trả token pair chuẩn.
+4. **Từ chối an toàn**
+   - OTP sai, hết hạn, đã dùng, sai purpose hoặc vượt giới hạn trả error ổn định, không làm account thành Active và không tiết lộ thông tin tài khoản khác.
+5. **Resend và retry**
+   - Resend trước cooldown bị chặn; resend hợp lệ vô hiệu hóa challenge cũ và tạo challenge mới. Retry cùng idempotency key trả cùng registration outcome; payload khác cùng key bị từ chối.
+6. **Bảo mật và phân quyền**
+   - Reporter tự đăng ký chỉ tạo role `REPORTER`; không tạo ProjectMember, không được chọn PM/Supervisor/DroneOperator/RepairCrew và không được gửi report trước khi verify.
+   - Không log password, OTP, refresh token, Gmail provider secret hoặc nội dung email; audit chỉ lưu intent, thời điểm, kết quả và correlation ID.
+
+**Mã truy vết:** `CN11`, `CN12`, `QT09`, `US-01`.
 
 ### US-02 - Làm việc ngoại tuyến và đồng bộ an toàn
 
@@ -284,7 +314,7 @@ Là Drone Operator, tôi muốn sao chép video vào thiết bị, bổ sung SRT
    - **Then** hệ thống gom đúng lần khảo sát, lưu trạng thái từng tệp và xếp hàng tải khi ngoại tuyến.
 6. **Xác nhận máy chủ và xử lý**
    - **When** máy chủ nhận đủ và kiểm tra toàn vẹn thành công
-   - **Then** dữ liệu chuyển sang xử lý; Backend tạo tác vụ AI mock ở Phase 1 hoặc gọi AI Service Python khi được cấu hình.
+   - **Then** dữ liệu chuyển sang xử lý; Backend lưu manifest/job bền vững theo dataset + segment + TargetBand + model/config, trả 202 + JobId; worker gọi AI ngoài hoặc mock có nhãn nguồn, retry/dedup theo fingerprint.
 7. **Theo dõi**
    - Drone Operator và PM xem được trạng thái `Tiếp nhận`, `Đang xử lý`, `Hoàn tất`, `Lỗi` hoặc `Cần bổ sung`, cùng thông báo lỗi có thể hành động.
 
@@ -389,7 +419,7 @@ Là PM, tôi muốn duyệt loại và vùng nhãn đã hiệu chỉnh trước 
 ### US-11 - Lập, trình, duyệt và trình lại đợt sửa
 
 **User Story**  
-Là PM, tôi muốn chỉ chọn các lỗi đã đo đạc đạt và xác minh chính thức, nhập chi phí sửa chữa dự kiến cho từng lỗi rồi trình toàn bộ đợt cho Supervisor; là Supervisor, tôi muốn duyệt hoặc trả lại từng lỗi với lý do để kiểm soát phạm vi và ngân sách.
+Là PM, tôi muốn chỉ chọn các lỗi đã đo đạc đạt và xác minh chính thức, nhập phương án sửa tổng quát rồi trình toàn bộ đợt cho Supervisor; là Supervisor, tôi muốn duyệt hoặc trả lại từng lỗi với lý do để kiểm soát phạm vi và phương án.
 
 **Acceptance Criteria**
 
@@ -397,12 +427,12 @@ Là PM, tôi muốn chỉ chọn các lỗi đã đo đạc đạt và xác minh
    - **Given** lỗi đã hoàn tất đo đạc thực tế, kết quả/bằng chứng đã được PM chấp nhận, đã xác minh chính thức và chưa thuộc đợt đang thực hiện khác
    - **When** PM chọn nhiều lỗi
    - **Then** hệ thống tạo bản nháp đợt và chặn lỗi bị giao trùng.
-2. **Chi phí sửa chữa dự kiến**
-   - PM chỉ nhập chi phí dự kiến cho từng lỗi; không nhập biện pháp, vật liệu, khối lượng hoặc mức ưu tiên. Hệ thống tự tính tổng và tính lại khi danh sách lỗi hoặc chi phí thay đổi.
+2. **Phương án sửa tổng quát**
+   - PM nhập phương án sửa tổng quát cho phạm vi lỗi; không nhập dữ liệu tài chính, vật liệu, định mức hoặc giai đoạn thi công chi tiết.
 3. **Trình duyệt**
    - **Given** các trường bắt buộc, bằng chứng và phạm vi đã đủ
    - **When** PM trình
-   - **Then** hệ thống khóa phiên bản trình, chuyển `Chờ duyệt` và lưu toàn bộ danh sách lỗi/chi phí tại thời điểm trình.
+   - **Then** hệ thống khóa phiên bản trình, chuyển `Chờ duyệt` và lưu toàn bộ danh sách lỗi/phương án tại thời điểm trình.
 4. **Duyệt cả đợt**
    - **When** Supervisor duyệt
    - **Then** phiên bản hiện tại chuyển `Đã duyệt`; chỉ phiên bản này mới đủ điều kiện phân công Repair Crew.
@@ -420,7 +450,7 @@ Là PM, tôi muốn chỉ chọn các lỗi đã đo đạc đạt và xác minh
 ### US-12 - Phân công và bàn giao Repair Crew
 
 **User Story**  
-Là PM, tôi muốn giao đích danh một đội trưởng cho đợt đã duyệt và bàn giao khi cần để việc thi công luôn gắn với đúng danh sách lỗi và chi phí được phê duyệt.
+Là PM, tôi muốn giao đích danh một đội trưởng cho đợt đã duyệt và bàn giao khi cần để việc thi công luôn gắn với đúng danh sách lỗi và phương án được phê duyệt.
 
 **Acceptance Criteria**
 
@@ -430,31 +460,31 @@ Là PM, tôi muốn giao đích danh một đội trưởng cho đợt đã duy�
 3. Một đội trưởng có thể nhận nhiều đợt; Repair Crew không tự nhận đợt của đội khác.
 4. **When** PM đổi đội trưởng
    **Then** phải lưu người cũ, người mới, lý do và lịch sử bàn giao; bằng chứng đã gửi vẫn gắn đúng lỗi/đợt.
-5. Thay đổi người được phân công không làm thay đổi chi phí đã duyệt; nếu cần sửa danh sách lỗi hoặc chi phí thì phải tạo phiên bản trình duyệt mới.
+5. Thay đổi người được phân công không làm thay đổi phiên bản đã duyệt; nếu cần sửa danh sách lỗi hoặc phương án thì phải tạo phiên bản trình duyệt mới.
 
 **Mã truy vết:** `SC10-SC11`, quy tắc phân công tại mục 3.
 
 ### US-13 - Tiếp nhận đợt sửa, ghi tiến độ và bằng chứng
 
 **User Story**  
-Là đội trưởng Repair Crew, tôi muốn xem đợt đã duyệt, tổ chức thành viên, ghi ảnh trước/sau, tiến độ và chi phí thực tế kể cả khi ngoại tuyến để gửi báo cáo có đủ bằng chứng cho PM.
+Là đội trưởng Repair Crew, tôi muốn xem đợt đã duyệt, tổ chức thành viên, ghi ảnh trước/sau và tiến độ kể cả khi ngoại tuyến để gửi báo cáo có đủ bằng chứng cho PM.
 
 **Acceptance Criteria**
 
 1. **Tiếp nhận**
    - **Given** đợt đã được phân công và chưa tiếp nhận
    - **When** đội trưởng xác nhận
-   - **Then** được xem danh sách lỗi, lịch, chi phí đã duyệt và yêu cầu bằng chứng; đợt chuyển sang trạng thái đang thực hiện.
+   - **Then** được xem danh sách lỗi, phương án đã duyệt và yêu cầu bằng chứng; đợt chuyển sang trạng thái đang thực hiện.
 2. **Từ chối trước khi nhận**
    - **When** đội trưởng từ chối trước khi tiếp nhận
-   - **Then** lý do là bắt buộc, đợt trả về PM để phân công lại; không hủy đợt và không đổi phạm vi/chi phí.
+   - **Then** lý do là bắt buộc, đợt trả về PM để phân công lại; không hủy đợt hoặc đổi phạm vi.
    - Sau khi đã nhận, đang thi công hoặc đã có bằng chứng thì không được tự từ chối.
 3. **Hướng dẫn hiện trường**
    - Ứng dụng hiển thị vị trí, tọa độ, bản đồ, ảnh tham chiếu và độ chính xác/ước lượng khi có.
 4. **Phân việc nội bộ**
    - Đội trưởng ghi kế hoạch và phân việc cho thành viên; thành viên không cần tài khoản riêng và không được tạo quyền hệ thống mới.
 5. **Bằng chứng theo lỗi**
-   - Ảnh trước/sau, thời gian, vị trí, ghi chú và chi phí thực tế được gắn riêng từng lỗi; bản gốc không bị ghi đè.
+   - Ảnh trước/sau, thời gian, vị trí, ghi chú và kết quả thực hiện được gắn riêng từng lỗi; bản gốc không bị ghi đè.
 6. **Lỗi phát sinh**
    - **When** phát hiện lỗi mới ngoài phạm vi
    - **Then** Repair Crew tạo báo cáo phát sinh cho PM; hệ thống không tự thêm vào đợt đã duyệt.
@@ -464,7 +494,7 @@ Là đội trưởng Repair Crew, tôi muốn xem đợt đã duyệt, tổ ch�
    - **Then** báo cáo chuyển tới PM theo từng lỗi và khóa phiên bản gửi.
    - Thiếu ảnh bắt buộc hoặc còn tệp chưa đồng bộ phải chặn gửi chính thức và chỉ rõ mục thiếu.
 8. **Lịch sử**
-   - Repair Crew, PM và Supervisor xem được lịch sử tiến độ, bằng chứng và chi phí trong phạm vi quyền.
+   - Repair Crew, PM và Supervisor xem được lịch sử tiến độ và bằng chứng trong phạm vi quyền.
 
 **Mã truy vết:** `HT01-HT08`, `HT14`, `HT15`, `CN05-CN09`.
 
@@ -477,14 +507,14 @@ Là PM, tôi muốn kiểm tra kết quả theo từng lỗi và trình Supervis
 
 1. **PM kiểm tra**
    - **When** PM mở báo cáo
-   - **Then** đối chiếu chi phí dự kiến đã duyệt, bằng chứng trước/sau và chi phí thực tế cho từng lỗi, ghi `Đạt` hoặc `Chưa đạt` kèm nhận xét.
+   - **Then** đối chiếu phương án đã duyệt, bằng chứng trước/sau và kết quả thực hiện cho từng lỗi, ghi `Đạt` hoặc `Chưa đạt` kèm nhận xét.
 2. **Trả sửa lại**
    - **When** PM hoặc Supervisor đánh dấu chưa đạt
    - **Then** chỉ rõ lỗi và lý do, trả đúng Repair Crew đang phụ trách; lỗi đạt không bị kéo ngược trạng thái chỉ vì lỗi khác chưa đạt.
 3. **Trình Supervisor**
    - **Given** PM đã kiểm tra các lỗi đủ điều kiện
    - **When** PM trình
-   - **Then** hệ thống lưu kết quả từng lỗi, chi phí thực tế và phiên bản báo cáo để Supervisor xem.
+   - **Then** hệ thống lưu kết quả từng lỗi và phiên bản báo cáo để Supervisor xem.
 4. **Xác nhận cuối**
    - **When** Supervisor xác nhận một lỗi đạt
    - **Then** lỗi chuyển `Đã hoàn tất`; khi còn lỗi chưa đạt, đợt vẫn không đóng.
@@ -495,55 +525,51 @@ Là PM, tôi muốn kiểm tra kết quả theo từng lỗi và trình Supervis
    - **Given** mọi lỗi trong phạm vi đã được Supervisor xác nhận đạt
    - **Then** đợt chuyển `Hoàn tất`, lưu người/thời điểm và khóa kết quả nghiệp vụ theo chính sách lịch sử.
 7. **Vượt phạm vi**
-   - Nếu phát sinh lỗi ngoài danh sách hoặc chi phí thực tế vượt chi phí duyệt, hệ thống chặn hoàn tất phần vượt và yêu cầu PM lập hồ sơ điều chỉnh/trình lại.
+   - Nếu phát sinh lỗi ngoài danh sách, hệ thống chặn hoàn tất phần vượt phạm vi và yêu cầu PM lập hồ sơ điều chỉnh/trình lại.
 
 **Mã truy vết:** `HT09-HT13`.
 
-### US-20 - Đo đạc thực tế bắt buộc và xác minh hư hỏng chính thức
+### US-20 - Đo đạc thực tế theo nhu cầu và xác minh hư hỏng chính thức
 
 **User Story**  
-Là PM, tôi muốn bắt buộc giao Repair Crew đo đạc tại hiện trường cho mọi `Preliminary Defect` được giữ lại, để đánh giá số đo và bằng chứng trước khi xác minh hư hỏng chính thức.
+Là PM, tôi muốn chọn drone hoặc giao Repair Crew kiểm chứng; khi cần số đo vật lý hoặc bằng chứng bổ sung, tôi muốn giao và đánh giá phép đo trước quyết định liên quan.
 
 **Acceptance Criteria**
 
-1. **Tạo nhiệm vụ đo đạc**
-   - **Given** PM đã giữ lại một phát hiện trong danh sách `Preliminary Defect`
-   - **When** PM hoàn tất rà soát phát hiện sơ bộ
-   - **Then** PM bắt buộc giao nhiệm vụ đo; hệ thống ghi phạm vi, loại phép đo, thời hạn, lý do và liên kết tới `Survey`/`RoadSectionVersion`/`AIDetection` hoặc phát hiện sơ bộ; chỉ Repair Crew được phân công thực hiện.
-2. **Tiếp nhận hoặc từ chối**
-   - **When** đội trưởng Repair Crew nhận nhiệm vụ
-   - **Then** nhiệm vụ chuyển sang `Đã nhận` và hiển thị hướng dẫn, vị trí, loại đo, dụng cụ/phương pháp yêu cầu.
-   - Nếu từ chối trước khi nhận, lý do là bắt buộc và PM phải phân công lại; sau khi đã nhận không được tự hủy nhiệm vụ.
-3. **Ghi số đo ngoại tuyến**
-   - Repair Crew có thể nhập khi mất mạng; mỗi phép đo phải có `measurement_type` thuộc danh mục Data Dictionary (`DEPRESSION_DEPTH`, `SLAB_FAULTING_HEIGHT`, `SHOULDER_EROSION_EXTENT`), `value`, `unit`, `instrument_name`, `measurement_method`, `measured_by`, `measured_at`, vị trí GPS `geography(4326)` và `evidence_file_id` hoặc lý do thiếu bằng chứng.
-   - Bản nháp chưa đồng bộ phải hiển thị rõ và không được coi là kết quả máy chủ đã xác nhận.
-4. **Chuẩn hóa bản ghi**
-   - **When** Repair Crew gửi kết quả
-   - **Then** hệ thống chuẩn hóa vào `FieldInspectionSession` và `GroundTruthMeasurement`, giữ `sample_id`/định danh, `road_section_version_id`, nguồn dữ liệu và lịch sử chỉnh sửa; không ghi đè bản đo cũ.
-5. **PM đánh giá**
-   - **When** PM xem kết quả
-   - **Then** PM kiểm tra đơn vị, dụng cụ, phương pháp, thời điểm, SRID/vị trí, bằng chứng và mức phù hợp với phạm vi được giao; có thể chấp nhận, yêu cầu bổ sung hoặc loại phát hiện có lý do.
-   - **When** PM chấp nhận kết quả đo và xác nhận có hư hỏng
-   - **Then** hệ thống chuyển `Defect` từ `OPEN` sang `VERIFIED`, ghi log xác minh và liên kết phát hiện AI, nhiệm vụ đo, số đo cùng bằng chứng đã chấp nhận; lỗi trở thành ứng viên cho đợt sửa chữa.
-6. **Không tự động kết luận hoặc đi đường tắt**
-   - Kết quả đo không tự tạo/sửa `Defect`, không tự chuyển trạng thái `Warranty`; quyết định xác minh chính thức thuộc PM.
-   - Hệ thống chặn đưa phát hiện vào đợt sửa nếu nhiệm vụ đo chưa hoàn tất, kết quả chưa được PM chấp nhận hoặc lỗi chưa ở trạng thái `VERIFIED`.
-   - Nếu cần nghiên cứu accuracy, PM/nghiên cứu viên có thể ghép với `DerivedMeasurement` qua `MeasurementValidationSample`; track nghiên cứu phải giữ mục đích và định danh riêng.
-7. **Audit và quyền truy cập**
-   - Mọi giao việc, tiếp nhận/từ chối, gửi, chấp nhận và yêu cầu bổ sung phải lưu người, thời điểm, lý do, trạng thái và nguồn; Repair Crew chỉ xem nhiệm vụ thuộc phạm vi được giao.
+1. **Chọn cách kiểm chứng**
+   - Given PM giữ lại `Preliminary Defect` hoặc IncidentCase cần xác minh
+   - When PM xem phạm vi, độ tin cậy và căn cứ hiện có
+   - Then PM chọn drone hoặc Crew kiểm tra trực tiếp; kiểm tra từ phản ánh chưa có Survey/Defect được xác nhận vẫn hợp lệ.
+2. **Giao đo khi cần**
+   - Given quyết định cần depression depth, slab faulting, shoulder extent hoặc bằng chứng thực địa chưa đủ
+   - When PM giao nhiệm vụ
+   - Then hệ thống ghi nguồn IncidentCase/Defect, phạm vi, loại đo, thời hạn và liên kết Survey/RoadSectionVersion khi có; không bắt tạo Survey giả.
+   - Nếu không cần số đo vật lý, PM không bị chặn xác minh chỉ vì chưa có nhiệm vụ đo.
+3. **Ghi và chuẩn hóa**
+   - Repair Crew nhập ngoại tuyến các trường đo, vị trí `geography(4326)`, dụng cụ/phương pháp, người/thời điểm và bằng chứng; bản chưa đồng bộ không phải kết quả máy chủ.
+   - Khi gửi, hệ thống tạo phiên bản `FieldInspectionSession`/`GroundTruthMeasurement`, không ghi đè bản cũ.
+4. **PM kết luận**
+   - PM kiểm tra bằng chứng drone/thực địa; nếu có nhiệm vụ đo thì kiểm tra đơn vị, dụng cụ, phương pháp, vị trí và độ phù hợp.
+   - PM có thể chấp nhận `Defect` chuyển `OPEN` → `VERIFIED` khi căn cứ đủ, kèm số đo đã chấp nhận nếu quyết định cần đo; hoặc yêu cầu bổ sung/chuyển `REJECTED` có lý do.
+5. **Không tự động kết luận**
+   - AI chạy xong, `No detections` hoặc số đo không tự tạo/sửa `Defect`, chuyển `Warranty`, tạo lệnh sửa hoặc công bố `NO_DEFECT`; PM quyết định.
+   - Chỉ lỗi đã `VERIFIED` và mọi phép đo bắt buộc theo nhu cầu đã hoàn tất/được chấp nhận mới đủ điều kiện vào đợt sửa.
+6. **Audit, quyền và nghiên cứu**
+   - Giao, nhận/từ chối, gửi, chấp nhận và yêu cầu bổ sung lưu người/thời điểm/lý do/nguồn; Crew chỉ xem nhiệm vụ được giao.
+   - `RS01–RS06` ground truth nghiên cứu vẫn bắt buộc, độc lập với việc có cần đo hỗ trợ nghiệp vụ hay không.
 
 **Mã truy vết:** `AI13`, `TN01-TN06`, `TN12`, `CN05-CN09`.
 
-### US-15 - Dashboard quản lý dự án, chi phí và rủi ro
+### US-15 - Dashboard quản lý dự án, tiến độ sửa chữa và rủi ro
 
 **User Story**  
-Là Supervisor hoặc PM, tôi muốn xem dashboard theo phạm vi quyền để theo dõi tình trạng bảo hành, lỗi còn mở, chi phí, khảo sát và rủi ro cần ưu tiên.
+Là Supervisor hoặc PM, tôi muốn xem dashboard theo phạm vi quyền để theo dõi tình trạng bảo hành, lỗi còn mở, tiến độ sửa chữa, khảo sát và rủi ro cần ưu tiên.
 
 **Acceptance Criteria**
 
 1. Supervisor xem tổng quan toàn danh mục; PM chỉ xem các dự án được giao.
 2. Dashboard hiển thị trạng thái dự án, khảo sát, lỗi còn mở, dự án sắp hết hạn bảo hành và các việc cần xử lý.
-3. Chi phí được tách tối thiểu thành dự toán chờ duyệt, dự toán đã duyệt và chi phí thực tế; tổng không cộng trùng phiên bản.
+3. Tiến độ sửa chữa hiển thị theo đợt, lỗi, trạng thái bằng chứng và việc cần PM/Supervisor xử lý.
 4. Chỉ báo rủi ro cao/hư hỏng phát triển nhanh hiển thị kèm nguồn dữ liệu, kỳ khảo sát và độ tin cậy; không trình bày như dự báo chắc chắn.
 5. Supervisor có thể so sánh dự án/kỳ khảo sát theo phạm vi và loại mặt đường tương thích; dữ liệu thiếu tương thích phải được cảnh báo.
 6. Mọi con số trên dashboard có liên kết tới hồ sơ nguồn hoặc bộ lọc đã áp dụng.
@@ -560,7 +586,7 @@ Là Supervisor hoặc PM, tôi muốn xuất báo cáo và hồ sơ bằng chứ
 1. Người dùng chỉ chọn được dự án, đoạn, lỗi và khoảng thời gian trong phạm vi quyền.
 2. **When** xuất báo cáo
    **Then** hệ thống lưu bộ lọc, người xuất, thời điểm, trạng thái và phiên bản dữ liệu được dùng.
-3. Hồ sơ tổng hợp gồm, khi có: bàn giao, khảo sát/baseline, ảnh gốc, loại và số đo lỗi, độ không chắc chắn, quyết định xác minh, sửa chữa, chi phí và lịch sử duyệt.
+3. Hồ sơ tổng hợp gồm, khi có: bàn giao, khảo sát/baseline, ảnh gốc, loại và số đo lỗi, độ không chắc chắn, quyết định xác minh, phương án sửa, bằng chứng sau sửa và lịch sử duyệt.
 4. Tệp xuất kèm nguồn gốc: mã tệp, checksum/dấu kiểm tra toàn vẹn, thời gian, tác giả, phiên bản mô hình và lịch sử sửa đổi.
 5. Dữ liệu thiếu hoặc bằng chứng chưa có phải được ghi rõ trong báo cáo; hệ thống không tạo cảm giác hồ sơ đầy đủ.
 6. Phương án xuất MVP hỗ trợ PDF tổng hợp và ZIP dữ liệu gốc/bảng kê khi cấu hình cho phép; lỗi tạo tệp phải báo rõ và không làm mất dữ liệu nguồn.
@@ -576,7 +602,7 @@ Là Supervisor (Admin), tôi muốn quản lý vòng đời tài khoản, quyề
 **Acceptance Criteria**
 
 1. **Tài khoản**
-   - Admin tạo/cập nhật/ngừng sử dụng tài khoản, gán một trong bốn vai trò và ghi nhật ký thay đổi.
+   - Admin tạo/cập nhật/ngừng sử dụng tài khoản, gán một trong năm vai trò và ghi nhật ký thay đổi.
 2. **Ngừng tài khoản có việc mở**
    - **When** tài khoản bị ngừng sử dụng
    - **Then** hệ thống thu hồi phiên, chặn đăng nhập mới, giữ lịch sử, lập danh sách việc cần bàn giao và thông báo người có quyền phân công lại.
@@ -672,7 +698,12 @@ Một User Story chỉ được xem là hoàn thành khi:
 
 | Mã chức năng | User Story MVP | Ghi chú |
 |---|---|---|
+| `PA01`-`PA07` | US-21, US-22, US-23 | Reporter, IncidentReport/Case, public timeline, checking and published repair result. |
+| `DA13`-`DA16` | US-24 | Polyline/segment versioning and RouteCapture design. |
+| `KS15`, `KS16` | US-25 | Target bands and coverage separate from AI/job status. |
+| `AI15`-`AI17` | US-26 | External async jobs, immutable manifest, retry/dedup and context overlap. |
 | `CN01`, `CN02`, `CN03`, `CN04`, `CN10` | US-01 | Đăng nhập, hồ sơ, phạm vi, thông báo, đặt lại mật khẩu. |
+| `CN11`, `CN12` | US-27 | Reporter tự đăng ký Gmail, gửi/resend và xác minh OTP trước khi kích hoạt. |
 | `CN05`, `CN06`, `CN07`, `CN08`, `CN09` | US-02 | Ngoại tuyến, nháp, đồng bộ, kiểm tra toàn vẹn, dọn bản sao. |
 | `DA01`, `DA02`, `DA03`, `DA04`, `DA05`, `DA12` | US-03 | Dự án, tuyến/đoạn, bàn giao, bảo hành, nhân sự, đóng dự án. |
 | `DA06`, `DA07`, `DA08`, `DA09`, `DA10`, `DA11` | US-04 | Kế hoạch, nhắc việc, yêu cầu, hoãn, baseline, theo dõi tình trạng. |
@@ -682,12 +713,12 @@ Một User Story chỉ được xem là hoàn thành khi:
 | `AI01`, `AI04`, `AI05`, `AI06`, `AI07` | US-08 | Xem, xác nhận, hiệu chỉnh, loại bỏ, lịch sử xác minh. |
 | `AI08`, `AI09`, `AI10`, `AI11`, `AI12` | US-09 | Gộp, đối sánh kỳ, baseline, diễn biến, cảnh báo. |
 | `AI14` | US-10 | Duyệt nhãn huấn luyện. |
-| `SC01`, `SC02`, `SC03`, `SC04`, `SC05`, `SC06`, `SC07`, `SC08`, `SC09`, `SC12` | US-11 | Lập, tính chi phí, trình, duyệt, trả và trình lại. |
+| `SC01`, `SC02`, `SC03`, `SC04`, `SC05`, `SC06`, `SC07`, `SC08`, `SC09`, `SC12` | US-11 | Lập, kiểm tra phương án, trình, duyệt, trả và trình lại. |
 | `SC10`, `SC11` | US-12 | Phân công và bàn giao Repair Crew. |
 | `HT01`, `HT02`, `HT03`, `HT04`, `HT05`, `HT06`, `HT07`, `HT08`, `HT14`, `HT15` | US-13 | Tiếp nhận, hướng dẫn, phân việc, bằng chứng, báo cáo, từ chối. |
 | `HT09`, `HT10`, `HT11`, `HT12`, `HT13` | US-14 | Kiểm tra, trả sửa, trình, xác nhận, sửa lại. |
 | `AI13`, `TN01`, `TN02`, `TN03`, `TN04`, `TN05`, `TN06`, `TN12` | US-20 | Giao, thực hiện, gửi và đánh giá đo đạc thực tế; không tự kết luận bảo hành. |
-| `BC01`, `BC02`, `BC03`, `BC04`, `BC05` | US-15 | Dashboard dự án, chi phí, rủi ro, so sánh. |
+| `BC01`, `BC02`, `BC03`, `BC04`, `BC05` | US-15 | Dashboard dự án, tiến độ sửa chữa, rủi ro, so sánh. |
 | `BC06`, `BC07`, `BC08`, `BC09`, `BC10` | US-16 | Xuất báo cáo, hồ sơ bằng chứng, nguồn gốc, lưu trữ. |
 | `QT01`, `QT02`, `QT03`, `QT04`, `QT05` | US-17 | Tài khoản, quyền, danh mục, quy tắc, nhắc việc. |
 | `QT06`, `QT07`, `QT08`, `QT09`, `QT10` | US-18 | Mô hình, nhãn, tác vụ, nhật ký, thiết bị. |
@@ -701,5 +732,5 @@ Một User Story chỉ được xem là hoàn thành khi:
 
 ## 7. Liên kết nguồn
 
-- Đặc tả use case nguồn: `UseCase/Dac_ta_UseCase.md`.
+- Đặc tả use case nguồn: [Dac_ta_UseCase_v2.md](Dac_ta_UseCase_v2.md).
 - Các mã chức năng trong tài liệu này giữ nguyên mã `CN`, `DA`, `KS`, `AI`, `SC`, `HT`, `BC`, `QT` của đặc tả nguồn để dùng khi phân tích, thiết kế, lập trình và kiểm thử.

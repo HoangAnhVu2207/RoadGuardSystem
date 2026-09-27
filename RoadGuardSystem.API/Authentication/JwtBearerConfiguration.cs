@@ -71,12 +71,32 @@ internal static class JwtBearerConfiguration
             context.HttpContext.RequestAborted);
         if (validation != AuthoritativeSessionValidation.Success)
         {
+            if (validation == AuthoritativeSessionValidation.SessionRevoked &&
+                ReplayOperation(context.HttpContext.Request.Path) is { } operation &&
+                context.HttpContext.Request.Headers.TryGetValue("Idempotency-Key", out var values) &&
+                !string.IsNullOrWhiteSpace(values.ToString()) &&
+                await validator.HasCommittedReplayAsync(
+                    userId,
+                    operation,
+                    values.ToString(),
+                    context.HttpContext.RequestAborted))
+            {
+                return;
+            }
+
             context.HttpContext.Items[AuthErrorCodeItemKey] = validation == AuthoritativeSessionValidation.SessionRevoked
                 ? ApiErrorCodes.SessionRevoked
                 : ApiErrorCodes.Unauthorized;
             context.Fail("Authoritative session validation failed.");
         }
     }
+
+    private static string? ReplayOperation(PathString path) => path.Value switch
+    {
+        var value when value?.EndsWith("/auth/logout", StringComparison.OrdinalIgnoreCase) == true => "Logout",
+        var value when value?.EndsWith("/auth/change-password", StringComparison.OrdinalIgnoreCase) == true => "ChangePassword",
+        _ => null
+    };
 
     private static async Task WriteChallengeAsync(JwtBearerChallengeContext context)
     {

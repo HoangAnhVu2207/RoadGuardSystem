@@ -1,0 +1,178 @@
+{
+  "info": {
+    "_postman_id": "8f2ef1e9-6f14-4d4b-8c7d-7c2a4f5d1a20",
+    "name": "RoadGuardSystem V2 API",
+    "description": "RoadGuard V2 API smoke and manual test collection. Select the RoadGuard.local environment and set its local values before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "profileRowVersion", "value": "", "type": "string" },
+    { "key": "targetUserId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "targetRowVersion", "value": "", "type": "string" },
+    { "key": "projectId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "projectRowVersion", "value": "", "type": "string" },
+    { "key": "primaryProjectManagerUserId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "description": "Purpose: confirm the API is reachable. Role: none. Setup: select RoadGuard.local and set baseUrl. Expected: 200 (or 204). Data change: none.",
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Health is available', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "POST /auth/login - valid",
+          "request": {
+            "description": "Purpose: authenticate the selected seeded account. Role: any seeded role. Setup: set authEmail/authPassword in the environment. Expected: 200 with accessToken, refreshToken and user. Errors: 400/401 for invalid input. Data change: creates a session.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Login returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); pm.collectionVariables.set('profileRowVersion', b.user.rowVersion); pm.collectionVariables.set('targetUserId', b.user.id); }"] } }]
+        },
+        {
+          "name": "POST /auth/login - invalid credentials",
+          "request": {
+            "description": "Purpose: verify credential rejection. Role: none. Setup: API reachable. Expected: 401 and stable auth error without tokens. Data change: none.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"invalid-password\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid login returns 401', function () { pm.response.to.have.status(401); });"] } }]
+        },
+        {
+          "name": "POST /auth/refresh",
+          "request": {
+            "description": "Purpose: rotate/refresh the active session. Role: authenticated session. Setup: run valid login first. Expected: 200 with replacement tokens. Errors: 401 for expired/revoked refresh token. Data change: session state may rotate.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "refresh"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Refresh returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); }"] } }]
+        },
+        {
+          "name": "POST /auth/password-recovery-requests",
+          "request": {
+            "description": "Purpose: request password recovery. Role: unauthenticated caller. Setup: set a permitted email. Expected: 202 without credential disclosure. Data change: creates a recovery request.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{authEmail}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/password-recovery-requests", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "password-recovery-requests"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Recovery returns 202', function () { pm.response.to.have.status(202); });", "pm.test('No credential disclosure', function () { pm.expect(pm.response.text()).to.not.match(/passwordHash|temporaryPassword/i); });"] } }]
+        },
+        {
+          "name": "POST /auth/change-password - destructive",
+          "request": {
+            "description": "Purpose: change the current user's password. Role: authenticated user. Setup: run login; set replacementPassword; use a disposable account and fresh Idempotency-Key. Expected: 204. Errors: 400/401/409 per contract. Data change: destructive credential/session change.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"{{authPassword}}\",\n  \"newPassword\": \"{{replacementPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "change-password"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Password change returns 204', function () { pm.response.to.have.status(204); });"] } }]
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "description": "Purpose: revoke the active session. Role: authenticated user. Setup: run login first; use a fresh Idempotency-Key. Expected: 204. Data change: session revocation.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Logout returns 204', function () { pm.response.to.have.status(204); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "GET /profile",
+          "request": {
+            "description": "Purpose: read the current user's profile. Role: authenticated user. Setup: run valid login first. Expected: 200 with profile and rowVersion. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/profile", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Profile returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) pm.collectionVariables.set('profileRowVersion', pm.response.json().rowVersion);"] } }]
+        },
+        {
+          "name": "GET /profile - unauthorized",
+          "request": {
+            "description": "Purpose: verify authorization enforcement. Role: none. Setup: no token. Expected: 401 ProblemDetails/stable error. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/profile", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Unauthorized profile returns 401', function () { pm.response.to.have.status(401); });"] } }]
+        },
+        {
+          "name": "PUT /profile",
+          "request": {
+            "description": "Purpose: update the current profile. Role: authenticated user. Setup: run GET /profile and use its rowVersion; use a fresh operationId. Expected: 200 or documented 409 conflict. Data change: updates profile.",
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Postman Test User\",\n  \"email\": \"{{authEmail}}\",\n  \"expectedRowVersion\": \"{{profileRowVersion}}\",\n  \"operationId\": \"{{$guid}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/profile", "host": ["{{baseUrl}}"], "path": ["api", "v1", "profile"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Profile update returns 200 or 409', function () { pm.expect([200, 409]).to.include(pm.response.code); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Project and admin examples",
+      "item": [
+        {
+          "name": "POST /admin/users/{userId}/password-reset",
+          "request": {
+            "description": "Purpose: exercise administrative password reset. Role: Supervisor/admin policy. Setup: authenticate an allowed role and provide targetUserId/targetRowVersion from a permitted response. Expected: documented success or 400/403/404/409. Data change: destructive target credential change.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"expectedTargetRowVersion\": \"{{targetRowVersion}}\",\n  \"operationId\": \"{{$guid}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{targetUserId}}/password-reset", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "users", "{{targetUserId}}", "password-reset"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reset returns a documented result', function () { pm.expect([200, 400, 403, 404, 409]).to.include(pm.response.code); });", "pm.test('Password hash is not returned', function () { pm.expect(pm.response.text()).to.not.match(/passwordHash/i); });"] } }]
+        },
+        {
+          "name": "POST /projects",
+          "request": {
+            "description": "Purpose: create a project smoke record. Role: project-management policy. Setup: authenticate an allowed role and set primaryProjectManagerUserId; run only with disposable data. Expected: 201 or documented validation/authorization/conflict error. Data change: creates project.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"projectCode\": \"RG-POSTMAN-{{$timestamp}}\",\n  \"name\": \"Postman smoke project\",\n  \"description\": \"Created by Postman\",\n  \"engineeringUtmSrid\": 32648,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2027-09-01\",\n  \"primaryProjectManagerUserId\": \"{{primaryProjectManagerUserId}}\",\n  \"handover\": { \"documentNo\": \"HD-POSTMAN-{{$timestamp}}\", \"handoverDate\": \"2026-08-31\", \"fileId\": null, \"notes\": \"Postman smoke test\" },\n  \"operationId\": \"{{$guid}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/projects", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Project create returns an expected result', function () { pm.expect([201, 400, 403, 404, 409]).to.include(pm.response.code); });", "if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('projectId', b.projectId); pm.collectionVariables.set('projectRowVersion', b.rowVersion); }"] } }]
+        },
+        {
+          "name": "GET /projects/{projectId}/work-package",
+          "request": {
+            "description": "Purpose: read a project's work package. Role: authenticated user with project scope. Setup: set projectId from a permitted response. Expected: 200 or 401/403/404. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/work-package", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects", "{{projectId}}", "work-package"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Work package returns an expected result', function () { pm.expect([200, 401, 403, 404]).to.include(pm.response.code); });"] } }]
+        }
+      ]
+    }
+  ]
+}

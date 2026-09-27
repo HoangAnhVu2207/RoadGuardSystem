@@ -1,0 +1,10 @@
+name: RoadGuard.local
+values:
+  - key: baseUrl
+    value: 'http://localhost:5112'
+  - key: authEmail
+    value: ''
+  - key: authPassword
+    value: ''
+  - key: replacementPassword
+    value: ''

@@ -66,17 +66,18 @@ public sealed class P111PasswordResetTests
         using var targetClient = factory.CreateClient();
         (await targetClient.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            username = targetName,
+            email = AuthenticationSqlServerFixture.EmailFor(targetName),
             password = "Current1!"
         })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         var forced = await targetClient.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            username = targetName,
+            email = AuthenticationSqlServerFixture.EmailFor(targetName),
             password = temporaryPassword
         });
-        forced.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        ProblemCode(await forced.Content.ReadAsStringAsync()).Should().Be(ApiErrorCodes.PasswordChangeRequired);
+        forced.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var forcedBody = JsonDocument.Parse(await forced.Content.ReadAsStringAsync());
+        forcedBody.RootElement.GetProperty("mustChangePassword").GetBoolean().Should().BeTrue();
     }
 
     [Fact(DisplayName = "P1-11 S5 Negative: non-Supervisor cannot reset a target user")]
@@ -150,7 +151,7 @@ public sealed class P111PasswordResetTests
 
     private static async Task AuthenticateAsync(HttpClient client, string username, string password)
     {
-        var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { username, password });
+        var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = AuthenticationSqlServerFixture.EmailFor(username), password });
         login.StatusCode.Should().Be(HttpStatusCode.OK);
         using var body = JsonDocument.Parse(await login.Content.ReadAsStringAsync());
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(

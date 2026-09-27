@@ -223,6 +223,12 @@ public sealed class AuthoritativeSessionValidatorTests
             return Task.CompletedTask;
         }
 
+        public Task<LogoutPersistenceResult> RevokeSessionAndFamilyAtomicAsync(Guid userId, Guid sessionId, string idempotencyKey, string requestFingerprint, Guid? correlationId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PasswordRecoveryPersistenceResult> CreatePasswordRecoveryRequestAsync(Guid requestId, string normalizedEmail, DateTimeOffset requestedAtUtc, Guid? correlationId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PasswordChangePersistenceResult> ChangePasswordAtomicAsync(Guid userId, byte[] expectedUserRowVersion, string newPasswordHash, string newSecurityStamp, string idempotencyKey, string requestFingerprint, Guid? correlationId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<bool> HasIdempotencyOutcomeAsync(Guid userId, string operation, string idempotencyKey, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<string?> GetIdempotencyFingerprintAsync(Guid userId, string operation, string idempotencyKey, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+
         public Task<UserSecurityState?> GetUserSecurityStateByUsernameAsync(string username, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<RefreshTokenSecurityState?> FindRefreshTokenByHashAsync(string tokenHash, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<RotateRefreshTokenResult> RotateRefreshTokenAsync(Guid oldTokenId, byte[] expectedRowVersion, RoadGuardSystem.BusinessObjects.Identity.RefreshToken newToken, CancellationToken cancellationToken = default) => throw new NotSupportedException();

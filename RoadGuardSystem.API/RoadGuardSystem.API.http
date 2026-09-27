@@ -1,5 +1,51 @@
 @RoadGuardSystem.API_HostAddress = http://localhost:5112
 
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{authEmail}}",
+  "password": "{{authPassword}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/logout
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/password-recovery-requests
+Content-Type: application/json
+
+{
+  "email": "{{authEmail}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/change-password
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{authPassword}}",
+  "newPassword": "{{replacementPassword}}"
+}
+
+###
+
 GET {{RoadGuardSystem.API_HostAddress}}/weatherforecast/
 Accept: application/json
 

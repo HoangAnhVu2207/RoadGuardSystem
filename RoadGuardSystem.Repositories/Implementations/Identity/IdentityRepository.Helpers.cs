@@ -8,6 +8,32 @@ namespace RoadGuardSystem.Repositories.Identity;
 
 public sealed partial class IdentityRepository
 {
+    public Task<bool> HasIdempotencyOutcomeAsync(
+        Guid userId,
+        string operation,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default) =>
+        _context.IdempotencyRecords.AsNoTracking().AnyAsync(record =>
+            record.ActorUserId == userId &&
+            record.ProjectId == null &&
+            record.Operation == operation &&
+            record.IdempotencyKey == idempotencyKey,
+            cancellationToken);
+
+    public Task<string?> GetIdempotencyFingerprintAsync(
+        Guid userId,
+        string operation,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default) =>
+        _context.IdempotencyRecords.AsNoTracking()
+            .Where(record =>
+                record.ActorUserId == userId &&
+                record.ProjectId == null &&
+                record.Operation == operation &&
+                record.IdempotencyKey == idempotencyKey)
+            .Select(record => record.RequestFingerprint)
+            .SingleOrDefaultAsync(cancellationToken);
+
     private static bool IsUniqueConstraintViolation(DbUpdateException exception)
     {
         Exception? current = exception;

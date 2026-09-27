@@ -1,4 +1,8 @@
 interface:
-  display_name: "RoadGuard Test Selection"
-  short_description: "Choose RoadGuard build and test breadth"
-  default_prompt: "Use $roadguard-test-selection to select proportionate verification for this RoadGuard change."
+  display_name: "RoadGuard Focused Verification"
+  short_description: "Choose sufficient tests with fresh binaries"
+  default_prompt: "Use $roadguard-test-selection to select and run sufficient fresh verification for the current RoadGuard changes."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+policy:
+  allow_implicit_invocation: true

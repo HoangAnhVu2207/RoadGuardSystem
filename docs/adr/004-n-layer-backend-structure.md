@@ -10,6 +10,10 @@ Accepted (2026-09-21)
 - **Approved by:** Team Lead, 2026-09-21
 - **Trace:** P1-71B draft accepted by the Team Lead; P1-72 applies the approved follow-ups.
 
+### Ownership amendment (2026-09-27)
+
+[ADR 006](006-v2-endpoint-ownership-and-persistence-coordination.md) supersedes Section 4's person-based ownership for new V2 work. The N-layer architecture and file conventions in this ADR remain accepted. Vertical endpoint ownership does not authorize direct Controller-to-Repository or direct `RoadGuardDbContext` access.
+
 ---
 
 ## Context
@@ -61,9 +65,9 @@ The Team Lead approved this decision and assigned both ownership scopes to the `
 
 ### 4. Ownership
 
-**Proposal:** `huy` owns production project-reference changes, repository moves, `RoadGuardDbContext`, EF mappings, migrations, and SQL-backed architecture enforcement. `anh` owns Services/API/DTO organization and non-schema dependency tests. Any change spanning both sets is split into separately approved tasks with an explicit shared-hotspot sequence.
+**Superseded for new V2 work by ADR 006:** the owner named by an approved V2 endpoint task owns its complete required N-layer slice, including directly required entity, mapping, migration, and SQL-test changes. `RoadGuardDbContext`, mappings, migration snapshot, project references, shared DI, errors, OpenAPI, seed, Docker, and CI remain serialized shared hotspots. Person 2 coordinates migration ordering, SQL integration, seed, Docker, CI, and release evidence but does not exclusively own persistence implementation.
 
-- Confirmed by Team Lead on behalf of the P1-72 implementation scope.
+- The original horizontal ownership decision remains historical evidence for P1-72.
 
 ### 5. P1-20 and schema freeze
 
@@ -101,7 +105,7 @@ Repository durability mechanisms are valid even when they coordinate several wri
 
 ### B. Retain and incrementally standardize N-layer
 
-**Advantages:** matches all 11 current endpoint actions and the accepted project graph; preserves P1-20 work; keeps SQL ownership with `huy`; and addresses the seven concrete Service injections found without requiring a blanket repository rewrite.
+**Advantages:** matches all 11 current endpoint actions and the accepted project graph; preserves P1-20 work; keeps SQL mechanisms in Repositories; and addresses the seven concrete Service injections found without requiring a blanket repository rewrite.
 
 **Disadvantages:** retains mapping/interface ceremony and more files per feature. AI work must load contracts across layers, so naming and one-public-type rules need consistent enforcement.
 
@@ -134,11 +138,11 @@ Repository durability mechanisms are valid even when they coordinate several wri
 - Any entity, enum, or `RoadGuardDbContext` namespace change can affect the EF model snapshot even without an intended schema change; those namespaces are frozen for structure-only batches.
 - Phase 1 found misplaced business decisions that require behavior-preserving feature tasks and characterization tests. A folder move alone does not resolve them.
 
-### AI Context and Token Cost
+### AI Context and Token Budget
 
-- Alternative A is cheapest for a single new endpoint after migration, but the migration itself has high one-time context and verification cost.
-- Alternative B has moderate recurring cost because Controller, Service, interface, implementation, DTO, and tests may need to be read together; stable naming and one-type conventions constrain that cost.
-- Alternative C has the highest near-term cost because hundreds of declarations and references would churn while behavior remains unchanged.
+- Alternative A needs the least context for a single new endpoint after migration, but the migration itself has a high one-time context and verification burden.
+- Alternative B needs recurring context because Controller, Service, interface, implementation, DTO, and tests may need to be read together; stable naming and one-type conventions constrain that burden.
+- Alternative C has the highest near-term change surface because hundreds of declarations and references would churn while behavior remains unchanged.
 
 ---
 
@@ -171,7 +175,7 @@ Reopen this decision only when measured evidence satisfies an owner-defined trig
 - Median files changed per endpoint exceeds: ______
 - Median implementation/review time per endpoint exceeds: ______
 - N-layer mapping defects per release exceed: ______
-- AI prompt/context cost per endpoint exceeds: ______
+- AI prompt/context budget per endpoint exceeds: ______
 - Number of endpoints suitable for a vertical-slice pilot reaches: ______
 - A pilot demonstrates at least ______ improvement without weakening authorization, idempotency, SQL, or ownership checks.
 

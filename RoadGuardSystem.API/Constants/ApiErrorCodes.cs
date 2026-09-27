@@ -16,6 +16,9 @@ public static class ApiErrorCodes
     public const string PasswordChangeRequired = "auth_password_change_required";
     public const string Unauthorized = "auth_unauthorized";
     public const string SessionRevoked = "auth_session_revoked";
+    public const string RefreshTokenInvalid = "refresh_token_invalid";
+    public const string RefreshTokenExpired = "refresh_token_expired";
+    public const string IdempotencyKeyReused = "idempotency_key_reused";
     public const string ConcurrencyConflict = "auth_concurrency_conflict";
     public const string DuplicateRequest = "duplicate_request";
     public const string EmailConflict = "identity_email_conflict";

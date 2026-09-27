@@ -1,12 +1,14 @@
 # RoadGuard - Entity Relationship Diagram v1
 
-> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md).
+> Thiết kế đích đồng bộ ngày 22/09/2026 theo [RoadGuard_Incident_Segment_Design_v1.md](RoadGuard_Incident_Segment_Design_v1.md) và [RoadGuard_AI_Segment_Edge_Design_v1.md](RoadGuard_AI_Segment_Edge_Design_v1.md). Các entity/cột mới là đề xuất logical schema; không tuyên bố code hoặc migration đã có. Phần historical schema giữ tên cũ khi cần truy vết và được đánh dấu dưới đây. Mốc backend/mock AI ngày 18/09/2026 tại [ADR 003](../adr/003-backend-delivery-and-ai-boundary.md) không thay thế hợp đồng AI có phiên bản.
 
-ERD logic nay duoc tong hop tu:
+ERD logic nay duoc tong hop tu (Data Dictionary la nguon authoritative cho thiet ke dich):
 
 - `RoadGuard_Data_Dictionary_v1.md`;
-- `RoadGuard_Domain_Model_v1.md`;
-- `RoadGuard_Entity_List_v2.md`.
+- `RoadGuard_Data_Dictionary_v1.md` (nguồn tên trường mới);
+- `RoadGuard_Incident_Segment_Design_v1.md`;
+- `RoadGuard_AI_Segment_Edge_Design_v1.md`;
+- `RoadGuard_Domain_Model_v1.md` và `RoadGuard_Entity_List_v2.md` (lịch sử nền).
 
 Data Dictionary la nguon chinh cho ten cot, khoa va nullability. Domain Model va Entity List duoc dung de xac dinh ownership, versioning va cac invariant lien aggregate.
 
@@ -29,6 +31,172 @@ Ghi chu:
 - `AUDIT_LOG.entity_id` va `NOTIFICATION.source_entity_id` la tham chieu da hinh co chu dich, khong phai FK vat ly.
 - `EVIDENCE` dung cac FK nullable rieng va bat buoc dung mot FK dich co gia tri.
 
+## 2. Thiết kế đích Incident, Segment, Coverage và AI
+
+Sơ đồ này là nguồn cardinality cho các phần historical diagrams bên dưới. `IncidentCase` tạo cùng lúc khi `IncidentReport` gửi (project có thể null); Reporter xem report của mình và các `ReportStatusEvent` đã công bố, không cần `ProjectMember`. Segment/job/video đều giữ version đã chụp lúc tạo.
+
+```mermaid
+erDiagram
+    USER ||--o{ INCIDENT_REPORT : submits
+    USER ||--o{ EMAIL_VERIFICATION_CHALLENGE : verifies_email
+    INCIDENT_CASE ||--o{ INCIDENT_REPORT : groups
+    INCIDENT_REPORT ||--|{ REPORT_PHOTO : includes
+    FILE ||--o{ REPORT_PHOTO : stores
+    INCIDENT_REPORT ||--o{ REPORT_STATUS_EVENT : publishes
+    INCIDENT_CASE ||--o{ REPORT_STATUS_EVENT : scopes
+    REPORT_STATUS_EVENT ||--o{ REPORT_STATUS_EVENT_PHOTO : publishes
+    REPAIR_EVIDENCE ||--o{ REPORT_STATUS_EVENT_PHOTO : supports_after_photo
+    INCIDENT_CASE ||--o{ INCIDENT_CASE_HISTORY : changes
+    INCIDENT_CASE ||--o{ INCIDENT_CASE_DEFECT : links
+    DEFECT ||--o{ INCIDENT_CASE_DEFECT : appears_in
+    PROJECT o|--o{ INCIDENT_CASE : routes
+    ROAD_SECTION_VERSION o|--o{ INCIDENT_CASE : anchors
+    ROAD_SECTION_VERSION ||--o{ ROAD_SEGMENT_SET : versions
+    ROAD_SEGMENT_SET ||--|{ ROAD_SEGMENT : contains
+    ROAD_SEGMENT ||--o{ ROAD_SEGMENT_MAPPING : source_or_target
+    SURVEY_REQUEST ||--o{ SURVEY_WORK_ITEM : scopes
+    ROAD_SEGMENT ||--o{ SURVEY_WORK_ITEM : assigned_scope
+    SURVEY_WORK_ITEM ||--|{ SURVEY_COVERAGE_REQUIREMENT : requires_band
+    SURVEY_COVERAGE_REQUIREMENT ||--o{ SURVEY_COVERAGE_RESULT : assessed_per_dataset
+    SURVEY_COVERAGE_REQUIREMENT ||--o{ SURVEY_VIDEO_INTERVAL : maps_video
+    SURVEY_DATA_VERSION ||--o{ SURVEY_VIDEO_INTERVAL : contains
+    SURVEY_FILE ||--o{ SURVEY_VIDEO_INTERVAL : source_video
+    SURVEY_DATA_VERSION ||--o{ PROCESSING_BLOCK : partitions
+    PROCESSING_BLOCK ||--o{ PROCESSING_JOB : runs
+    PROCESSING_JOB ||--|| PROCESSING_INPUT_MANIFEST : snapshots
+    ROAD_SEGMENT_SET ||--o{ PROCESSING_INPUT_MANIFEST : snapshots_set
+    ROAD_SEGMENT ||--o{ PROCESSING_INPUT_MANIFEST : snapshots_segment
+    AI_MODEL_VERSION ||--o{ PROCESSING_INPUT_MANIFEST : model_scope
+    PROCESSING_JOB ||--o{ AI_DETECTION : produces
+    AI_DETECTION ||--o{ DEFECT_OBSERVATION : observed_as
+    DEFECT ||--o{ DEFECT_OBSERVATION : groups_observations
+    DEFECT ||--o{ DEFECT_SEGMENT : crosses
+    ROAD_SEGMENT ||--o{ DEFECT_SEGMENT : affected_segment
+    INCIDENT_CASE o|--o{ FIELD_INSPECTION_TASK : source_case
+    DEFECT o|--o{ FIELD_INSPECTION_TASK : source_defect
+    SURVEY o|--o{ FIELD_INSPECTION_TASK : optional_survey
+    DEFECT ||--o{ DEFECT_VERIFICATION_LOG : verified
+    AI_DETECTION o|--o{ DEFECT_VERIFICATION_LOG : reviewed
+
+    INCIDENT_REPORT {
+        uuid id PK
+        uuid incident_case_id FK
+        uuid project_id FK
+        uuid reporter_user_id FK
+        string reporter_type
+    }
+    EMAIL_VERIFICATION_CHALLENGE {
+        uuid id PK
+        uuid user_id FK
+        string email
+        string purpose
+        string code_hash
+        datetime expires_at
+        int attempt_count
+        datetime resend_after
+        datetime consumed_at
+        string provider_message_id
+    }
+    INCIDENT_CASE {
+        uuid id PK
+        uuid project_id FK
+        uuid road_section_version_id FK
+        string status
+        uuid related_case_id FK
+    }
+    REPORT_PHOTO {
+        uuid id PK
+        uuid incident_report_id FK
+        uuid file_id FK
+        spatial location
+        string coordinate_source
+        datetime captured_at
+        decimal accuracy_m
+    }
+    REPORT_STATUS_EVENT {
+        uuid id PK
+        uuid incident_report_id FK
+        uuid incident_case_id FK
+        string event_code
+    }
+    REPORT_STATUS_EVENT_PHOTO {
+        uuid id PK
+        uuid report_status_event_id FK
+        uuid repair_evidence_id FK
+    }
+    ROAD_SEGMENT_SET {
+        uuid id PK
+        uuid road_section_version_id FK
+        int version_no UK
+        decimal target_length_m
+        string status
+    }
+    ROAD_SEGMENT {
+        uuid id PK
+        uuid segment_set_id FK
+        decimal start_offset_m
+        decimal end_offset_m
+        spatial geometry
+    }
+    ROAD_SEGMENT_MAPPING {
+        uuid id PK
+        uuid source_segment_id FK
+        uuid target_segment_id FK
+        int mapping_version
+        json provenance
+    }
+    SURVEY_WORK_ITEM {
+        uuid id PK
+        uuid survey_request_id FK
+        uuid road_segment_id FK
+    }
+    SURVEY_COVERAGE_REQUIREMENT {
+        uuid id PK
+        uuid survey_work_item_id FK
+        string target_band
+    }
+    SURVEY_COVERAGE_RESULT {
+        uuid id PK
+        uuid coverage_requirement_id FK
+        uuid survey_data_version_id FK
+        string status
+    }
+    SURVEY_VIDEO_INTERVAL {
+        uuid id PK
+        uuid coverage_requirement_id FK
+        uuid survey_data_version_id FK
+        uuid survey_file_id FK
+        int start_time_ms
+        int end_time_ms
+        json source_metadata
+    }
+    PROCESSING_INPUT_MANIFEST {
+        uuid id PK
+        uuid processing_job_id FK UK
+        uuid survey_data_version_id FK
+        uuid segment_set_id FK
+        uuid road_segment_id FK
+        uuid model_version_id FK
+        string target_band
+        string checksum
+        json source_metadata
+        json context_overlap
+    }
+    DEFECT_OBSERVATION {
+        uuid id PK
+        uuid defect_id FK
+        uuid ai_detection_id FK
+        string deduplication_key UK
+        json provenance
+    }
+    DEFECT_SEGMENT {
+        uuid id PK
+        uuid defect_id FK
+        uuid road_segment_id FK
+        string location_status
+    }
+```
+
 ## 2. Luong nghiep vu cot loi
 
 ```mermaid
@@ -45,10 +213,11 @@ erDiagram
     PROCESSING_BLOCK ||--o{ PROCESSING_JOB : runs
     PROCESSING_JOB ||--o{ AI_DETECTION : produces
     AI_DETECTION o|--o| DEFECT : originates
-    DEFECT ||--o{ FIELD_INSPECTION_TASK : requires
+    INCIDENT_CASE ||--o{ FIELD_INSPECTION_TASK : sources_case
+    DEFECT o|--o{ FIELD_INSPECTION_TASK : sources_defect
     FIELD_INSPECTION_TASK o|--o{ FIELD_INSPECTION_SESSION : collects
     FIELD_INSPECTION_SESSION ||--o{ GROUND_TRUTH_MEASUREMENT : contains
-    DEFECT ||--o{ GROUND_TRUTH_MEASUREMENT : verifies
+    DEFECT o|--o{ GROUND_TRUTH_MEASUREMENT : optional_target
     DEFECT ||--o{ REPAIR_ITEM : selected_for
     REPAIR_BATCH ||--o{ REPAIR_BATCH_VERSION : versions
     REPAIR_BATCH_VERSION ||--o{ REPAIR_ITEM : contains
@@ -143,6 +312,7 @@ erDiagram
     FIELD_INSPECTION_TASK {
         uuid id PK
         uuid project_id FK
+        uuid incident_case_id FK
         uuid defect_id FK
         uuid survey_id FK
         uuid road_section_version_id FK
@@ -178,20 +348,18 @@ erDiagram
         uuid id PK
         uuid repair_batch_id FK
         int version_no UK
-        decimal estimated_total_cost
         string status
     }
     REPAIR_ITEM {
         uuid id PK
         uuid repair_batch_version_id FK
         uuid defect_id FK
-        decimal estimated_cost
+        string repair_method_summary
         string status
     }
     REPAIR_PROGRESS {
         uuid id PK
         uuid repair_item_id FK
-        decimal actual_cost
         string status
     }
     REPAIR_EVIDENCE {
@@ -235,6 +403,7 @@ erDiagram
     ROLE {
         string code PK
         string name
+        int proposed_code
         boolean is_active
     }
     USER {
@@ -338,6 +507,8 @@ erDiagram
         uuid id PK
     }
 ```
+
+`ROLE` giữ mã runtime 1–4; thiết kế đích thêm `REPORTER` với mã đề xuất 5, không reorder/đổi giá trị cũ. Reporter authorization dựa ownership IncidentReport/public events, không cần PROJECT_MEMBER.
 
 ## 4. Survey va Quality
 
@@ -491,8 +662,9 @@ Rang buoc `QUALITY_CHECK`: dung mot trong `survey_file_id` va `survey_data_versi
 ```mermaid
 erDiagram
     PROJECT ||--o{ FIELD_INSPECTION_TASK : owns
-    DEFECT ||--o{ FIELD_INSPECTION_TASK : requires
-    SURVEY ||--o{ FIELD_INSPECTION_TASK : originates
+    INCIDENT_CASE ||--o{ FIELD_INSPECTION_TASK : sources_case
+    DEFECT o|--o{ FIELD_INSPECTION_TASK : sources_defect
+    SURVEY o|--o{ FIELD_INSPECTION_TASK : optional_source
     ROAD_SECTION_VERSION ||--o{ FIELD_INSPECTION_TASK : anchors
     USER ||--o{ FIELD_INSPECTION_TASK : assigns
     USER o|--o{ FIELD_INSPECTION_TASK : reviews
@@ -524,6 +696,8 @@ erDiagram
         uuid defect_id FK
         uuid survey_id FK
         uuid road_section_version_id FK
+        string source_type
+        uuid incident_case_id FK
         string required_measurement_type
         datetime due_at
         string status
@@ -617,7 +791,7 @@ erDiagram
     }
 ```
 
-Voi `purpose = DEFECT_VERIFICATION`, `field_inspection_task_id`, `survey_id` va lien ket `defect_id` tren phep do la bat buoc. Voi `purpose = RESEARCH_VALIDATION`, `field_inspection_task_id` phai rong va ket qua khong tu dong thay doi `DEFECT` hoac `WARRANTY`.
+Với `purpose = DEFECT_VERIFICATION`, task và assignment Crew là bắt buộc; `survey_id` chỉ bắt buộc nếu nguồn là Survey, còn task INCIDENT_CASE được phép null survey/defect. `RESEARCH_VALIDATION` để task null và không tự thay đổi `DEFECT`/`WARRANTY`. Số đo vật lý chỉ bắt buộc khi rule/loại lỗi yêu cầu hoặc bằng chứng chưa đủ.
 
 ## 6. Processing, AI va Defect
 
@@ -640,7 +814,8 @@ erDiagram
     DEFECT o|--o{ DEFECT_VERIFICATION_LOG : target
     AI_DETECTION o|--o{ DEFECT_VERIFICATION_LOG : target
     SEVERITY_RULE_VERSION o|--o{ DEFECT_VERIFICATION_LOG : applies
-    FIELD_INSPECTION_TASK o|--o{ DEFECT_VERIFICATION_LOG : supports
+    FIELD_INSPECTION_TASK o|--o{ DEFECT_VERIFICATION_LOG : field_source
+    SURVEY_DATA_VERSION o|--o{ DEFECT_VERIFICATION_LOG : drone_source
     USER ||--o{ DEFECT_VERIFICATION_LOG : verifies
     DEFECT ||--o{ DEFECT_MERGE_DECISION : source
     DEFECT o|--o{ DEFECT_MERGE_DECISION : target
@@ -656,14 +831,22 @@ erDiagram
     PROCESSING_BLOCK {
         uuid id PK
         uuid survey_data_version_id FK
+        uuid segment_set_id FK
+        uuid road_segment_id FK
         int block_no UK
+        string target_band
         json range_metadata
     }
     PROCESSING_JOB {
         uuid id PK
         uuid processing_block_id FK
         uuid model_version_id FK
+        uuid processing_input_manifest_id FK UK
+        string idempotency_key UK
         string status
+        json context_overlap_metadata
+        json result_provenance
+        string deduplication_key
         string error_code
     }
     PROCESSING_ATTEMPT {
@@ -689,6 +872,10 @@ erDiagram
         string defect_type_code FK
         decimal confidence
         spatial geometry
+        spatial aircraft_location
+        decimal projected_station_m
+        string defect_location_method
+        json camera_pose
     }
     DEFECT {
         uuid id PK
@@ -813,13 +1000,11 @@ erDiagram
         uuid repair_batch_id FK
         int version_no UK
         string status
-        decimal estimated_total_cost
     }
     REPAIR_ITEM {
         uuid id PK
         uuid repair_batch_version_id FK
         uuid defect_id FK
-        decimal estimated_cost
         string status
     }
     REPAIR_APPROVAL_DECISION {
@@ -842,7 +1027,6 @@ erDiagram
         uuid repair_item_id FK
         uuid recorded_by_user_id FK
         string status
-        decimal actual_cost
         datetime recorded_at
     }
     REPAIR_EVIDENCE {
@@ -881,7 +1065,7 @@ erDiagram
     }
 ```
 
-`REPAIR_ITEM` chi duoc tao cho `DEFECT.status = VERIFIED` da hoan tat do thuc dia. Cap `(repair_batch_version_id, defect_id)` la duy nhat. PM chi nhap `estimated_cost`; he thong tinh `estimated_total_cost` cua version.
+`REPAIR_ITEM` chỉ tạo cho `DEFECT.status = VERIFIED` và đủ điều kiện đo áp dụng. PM nhập `repair_method_summary`; không có dữ liệu tài chính, BOM/vật liệu/khối lượng/giai đoạn thi công. Cặp `(repair_batch_version_id, defect_id)` duy nhất; giao sửa chỉ từ version được Supervisor duyệt. Case Verified sau sửa là trạng thái riêng của `INCIDENT_CASE`.
 
 ## 8. File, Evidence, Audit va Export
 
@@ -1004,8 +1188,8 @@ Quan he giua `DATA_RETENTION_REQUEST` va `LEGAL_HOLD` la kiem tra lien aggregate
 
 1. `SURVEY` va `DEFECT` phai neo vao dung `ROAD_SECTION_VERSION` tai thoi diem phat sinh.
 2. Chi Backend/System Worker duoc chuyen `SURVEY_DATA_VERSION` sang `SERVER_CONFIRMED` sau khi cac kiem tra server bat buoc dat.
-3. Moi `DEFECT OPEN` duoc giu lai phai co nhiem vu do thuc dia; chi PM duoc chuyen sang `VERIFIED` hoac `REJECTED` sau khi danh gia ket qua.
-4. `REPAIR_ITEM` chi nhan `DEFECT VERIFIED` co task `COMPLETED` va `review_decision = DEFECT_CONFIRMED`.
+3. PM chọn DRONE_REVIEW hoặc FIELD_INSPECTION; `DEFECT OPEN` không mặc định cần task thực địa. DRONE_REVIEW phải có dataset đã xác nhận và evidence; FIELD_INSPECTION cần task hoàn tất khi rule yêu cầu.
+4. `REPAIR_ITEM` chỉ nhận `DEFECT VERIFIED`; task COMPLETED/DEFECT_CONFIRMED và GroundTruth là điều kiện theo loại lỗi/rule, không áp dụng máy móc cho mọi defect.
 5. Entity versioned khong cap nhat noi dung da trinh/xac nhan tai cho; phai tao version moi.
 6. Mot project chi co toi da mot `PROJECT_MEMBER` PM chinh dang active tai mot thoi diem.
 7. Moi task do thuc dia chi co toi da mot `FIELD_INSPECTION_ASSIGNMENT ACTIVE`.

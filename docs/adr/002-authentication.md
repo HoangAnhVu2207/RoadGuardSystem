@@ -11,6 +11,18 @@ Accepted (2026-09-17)
 - **Trace:** Architecture / Task P1-02 (Foundation post P1-00 and P1-01)
 - **Downstream Context:** Architectural foundation for use cases CN01 (Login / Logout), CN02 (Profile), CN03 (Assigned Project / Work Scope), CN10 (Password Reset), QT01 (Account Suspension), QT02 (Role and Project Access Management), and User Stories US-01/US-17. (Note: P1-02 establishes architectural policy and contracts only; production implementation is assigned to P1-10, P2-10, P1-11, P1-12, P2-11, and P1-64).
 
+### Amendment — Reporter self-registration and Gmail OTP (2026-09-22)
+
+The target authentication flow now includes Reporter self-registration. Reporter supplies a Gmail address (`gmail.com` or `googlemail.com`), display name, ReporterType and password; the backend creates a `PENDING` Reporter account and sends a short-lived one-time code to that address. The account cannot log in, submit a report or receive an access token until the OTP is verified. Verification consumes the challenge atomically, marks the email confirmed, activates the account, and may issue the normal access/refresh token pair.
+
+This is email OTP delivery, not Google OAuth or Google Sign-In. Gmail API/SMTP is an external delivery provider behind an `IEmailSender`/verification adapter; provider credentials and sender policy are deployment configuration. The backend stores only a hash of the OTP, expiry, attempt count, consumed time and provider correlation metadata. It never stores or logs the plaintext OTP. Resend and verify endpoints are rate-limited, idempotent for the same registration intent, and fail closed on abuse or provider ambiguity. Internal roles remain internally provisioned credentials managed by Admin; self-registration can create only `REPORTER`.
+
+### Delivery ownership and contract amendment (2026-09-27)
+
+[ADR 006](006-v2-endpoint-ownership-and-persistence-coordination.md) supersedes the fixed Person 1/Person 2 implementation assignments below for new V2 work. The owner of each authentication V2 task owns its complete approved endpoint slice, including directly required persistence and migration work. Legacy P1/P2 task references remain historical traceability.
+
+The lower-case error codes in this ADR describe the current legacy contract. The V2 OpenAPI proposes uppercase codes such as `CREDENTIAL_INVALID`, `TOKEN_EXPIRED`, and `SESSION_REVOKED`. An endpoint task must record and approve the compatibility delta before changing emitted codes; the V2 draft alone does not migrate the runtime contract.
+
 ---
 
 ## Context
@@ -18,6 +30,7 @@ Accepted (2026-09-17)
 The RoadGuard System requires a robust, secure, and auditable authentication and session management mechanism. Users access the platform via diverse client form factors:
 1. Field personnel (`Drone Operator`, `Repair Crew`) using the Android Mobile Application (`RoadGuard Mobile`), frequently operating in variable network conditions.
 2. Project Managers (`PM`) and System Supervisors (`Supervisor`) using the Web Dashboard (`RoadGuard Dashboard`).
+3. Reporters (`Citizen` or `InvestorRepresentative`) using a Reporter-facing web/mobile flow to submit and follow their own incident reports. Reporter authorization is report/case scoped and does not grant access to project-wide operational data.
 
 Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `RoadGuard_Domain_Model_v1.md` specify database entities for `Session`, `RefreshToken`, `PasswordResetLog`, and `AccountStatusChangeLog`. Furthermore, safety-critical road inspection workflows demand strict multi-tenant project isolation and instantaneous session revocation upon account suspension (QT01), password reset (CN10), logout (CN01), or security compromise.
 
@@ -31,6 +44,7 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `R
    - User account lifecycle and credential verification will be built on ASP.NET Core Identity abstractions.
    - Passwords must be hashed using the Microsoft standard `PasswordHasher<TUser>` (implementing PBKDF2 with HMAC-SHA256/SHA512 and adaptive iteration counts matching framework defaults).
    - Custom, proprietary, or home-grown cryptographic algorithms are strictly prohibited.
+   - Reporter self-registration uses the same password policy and Identity user store. Registration starts with `User.status = PENDING`, `role_code = REPORTER`, and `email_confirmed = false`.
 
 2. **JWT Bearer + Rotating Opaque Refresh-Token Model:**
    - The API uses a token-based authentication model:
@@ -50,7 +64,7 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `R
      - `jti` (JWT ID): Unique token instance UUID.
      - `exp`, `iat`, `nbf`: Standard temporal claims.
      - **`sid` (Session ID):** Standard session identifier matching the database `Session.id`. Every authenticated access token must carry this claim.
-     - **`role`:** Machine-readable role claim using Data Dictionary codes: `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`. Display labels may remain "Supervisor", "PM", "Drone Operator", and "Repair Crew" in user interfaces, but serialized role claims must strictly use these four stable uppercase codes. The claim is a snapshot, never the authorization source of truth; current server-side `User.role_code` is authoritative. Per owner decision Option A (2026-09-18), task **P2-10** defines domain enum `UserRoleCode : byte` in `BusinessObjects.Commons` (`Unknown = 0`, `Supervisor = 1`, `ProjectManager = 2`, `DroneOperator = 3`, `RepairCrew = 4`), which EF Core maps to canonical `Role.code` strings (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`) referencing `Role.code` directly without artificial join tables.
+     - **`role`:** Machine-readable role claim using Data Dictionary codes: `SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`, and target `REPORTER`. Display labels may remain "Supervisor", "PM", "Drone Operator", "Repair Crew", and "Reporter" in user interfaces, but serialized role claims use stable uppercase codes. The claim is a snapshot, never the authorization source of truth; current server-side `User.role_code` is authoritative. The target domain enum reserves `Reporter = 5`; this documentation update does not claim that the current runtime enum, role seed, or migration has changed.
 
 2. **Session Persistence and Logical State:**
    - Each successful login creates a `Session` record linked to the user account, capturing issuance time (`issued_at`), optional versioned device metadata (`device_metadata_json`), expiration time (`expires_at`), and optional revocation time (`revoked_at`).
@@ -60,7 +74,7 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `R
      - `ACTIVE`: `revoked_at IS NULL AND expires_at > UtcNow`
      - `REVOKED`: `revoked_at IS NOT NULL`
      - `EXPIRED`: `revoked_at IS NULL AND expires_at <= UtcNow`
-   - Any future database schema additions or column adjustments are strictly reserved for Person 2 under task **P2-10**.
+   - Future database schema additions or column adjustments follow ADR 006: the assigned V2 endpoint owner may make the directly required change only within an approved scope and shared migration sequence. P2-10 remains historical ownership evidence.
 
 3. **Per-Request Authoritative Session and Account Validation (Instant Revocation):**
    - Every incoming authenticated API request must be intercepted by authentication/authorization middleware to verify that:
@@ -77,6 +91,13 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `R
      - **Account Suspension (QT01):** Sets `revoked_at = UtcNow` across all active sessions and refresh tokens for the user and records an append-only entry in `AccountStatusChangeLog`.
      - **Global Role Change (QT02):** Emits `UserRoleChanged`, records an append-only audit event, and atomically revokes all active sessions and refresh tokens for the user so the new role is obtained only through a fresh login.
      - **Replay Attack Detection:** Immediately revokes the entire session and token family (detailed below).
+
+5. **Reporter Registration and Email OTP:**
+   - `POST /api/v1/auth/reporter/register` accepts a Gmail address, display name, `ReporterType`, password, confirm password and idempotency key. It creates or resumes one pending registration intent; it never issues a token.
+   - `POST /api/v1/auth/reporter/verify-email` accepts the registration identifier and OTP. A valid, unexpired code with attempts remaining is consumed once inside the same transaction that confirms the account. A replayed, expired, malformed or over-limit code returns a stable error without revealing whether another account exists.
+   - `POST /api/v1/auth/reporter/resend-otp` creates a new challenge only after cooldown/rate-limit checks. Older challenges become unusable for the same intent. Provider failures leave the account pending and are retryable without activating it.
+   - OTP is generated with a cryptographically secure random source, stored as a keyed/hash value with a short expiry (target 10 minutes), max-attempt limit and purpose binding (`REPORTER_EMAIL_VERIFICATION`). Exact limits are configuration and must be tested, not hard-coded in the domain.
+   - Duplicate email registration does not disclose account existence. The service returns the same public response for an existing pending/active Gmail address, while the repository records an idempotent result and the audit/security log records the internal reason.
 
 5. **Strict Caching and Authoritative Verification Policy:**
    - A positive (ACTIVE) session cache may **only** be introduced if backed by a security-stamp/session-version mechanism or an invalidation protocol provably guaranteed never to return a stale `ACTIVE` state after revocation.
@@ -119,7 +140,7 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `R
 
 2. **Authoritative Server-Side Membership Guard:**
    - The global Supervisor exemption applies only after the current server-side `User.role_code` has been verified as `SUPERVISOR`; a JWT claim alone never grants the exemption.
-   - For all other actors, every query and command targeting project-scoped resources must derive the owning project from the server-side resource and verify an active, currently effective `ProjectMember` record for that user and project before loading or mutating protected data.
+   - For all other internal project actors, every query and command targeting project-scoped resources must derive the owning project from the server-side resource and verify an active, currently effective `ProjectMember` record for that user and project before loading or mutating protected data. Reporter access is report/case scoped: the server checks the reporter identity against the report/case linkage and never treats the Reporter role as a `ProjectMember`.
    - `ProjectMember.role_code` is authoritative inside the project. For the MVP it must equal the current `User.role_code` and satisfy the endpoint's required role; mismatched role records are invalid and must not grant access.
    - Client-provided claims, request headers, or token claims specifying project affiliation are untrusted hints; the backend must execute an authoritative check against the project membership store.
    - Ending, expiring, or changing a membership has immediate effect because membership is checked on every request; project identifiers and membership roles must not be cached in JWTs as authorization authority.
@@ -127,20 +148,20 @@ Product specifications in `RoadGuard_Data_Dictionary_v1.md` (Section 3.1) and `R
 
 ---
 
-### 5. Layer Placement of Responsibilities
+### 6. Layer Placement of Responsibilities
 
-To maintain Clean Architecture boundaries and avoid conflating concerns:
+To maintain Clean Architecture boundaries and avoid conflating concerns, the table records architectural placement and historical Phase 1 assignments. New V2 delivery ownership follows ADR 006.
 
-| Layer | Project | Responsibilities | Assigned Task |
+| Layer | Project | Responsibilities | Historical Phase 1 Assignment |
 |---|---|---|---|
 | **Domain** | `BusinessObjects` | Domain user and role foundation (`ApplicationUser`, `ApplicationRole`). Future role/status enums and domain types are owned by P2-10. | **P1-00** (foundation) / **P2-10** (future enums) |
-| **Persistence** | `Repositories` | EF Core Identity persistence (`RoadGuardDbContext` with custom `RoadGuardUserStore` and `RoadGuardRoleStore`), table mappings (`sessions`, `refresh_tokens`, `password_reset_logs`, `account_status_change_logs`), `device_metadata_json` schema/`ISJSON` constraint, entities, and database migrations/seeding (P2-10); authoritative active/effective project-membership read model (P2-11). | **P2-10**, **P2-11** |
-| **Application** | `Services` | Authentication orchestration, credential verification, token generation, refresh rotation, replay detection, session invalidation (P1-10); profile updates, Admin password-reset and forced session-revocation flows (P1-11); server-side project membership authorization services and policies (P1-12); Admin global-role changes, `UserRoleChanged` audit, and atomic credential revocation (P1-64). | **P1-10**, **P1-11**, **P1-12**, **P1-64** |
-| **Presentation** | `API` | JWT Bearer authentication handler configuration, token extraction, correlation middleware, and authentication controllers (`AuthController`, login/logout/refresh endpoints). | **P1-10** |
+| **Persistence** | `Repositories` | EF Core Identity persistence (`RoadGuardDbContext` with custom `RoadGuardUserStore` and `RoadGuardRoleStore`), table mappings (`sessions`, `refresh_tokens`, `password_reset_logs`, `account_status_change_logs`, `email_verification_challenges`), `device_metadata_json`/OTP hash constraints, entities, migrations/seeding (P2-10/P2-13); authoritative active/effective project-membership read model (P2-11). | **P2-10**, **P2-11**, **P2-13** |
+| **Application** | `Services` | Authentication orchestration, credential verification, token generation, refresh rotation, replay detection, session invalidation (P1-10); Reporter registration/Gmail-domain policy/OTP verification and resend (P1-13); profile updates, Admin password-reset and forced session-revocation flows (P1-11); server-side project membership authorization services and policies (P1-12); Admin global-role changes, `UserRoleChanged` audit, and atomic credential revocation (P1-64). | **P1-10**, **P1-11**, **P1-12**, **P1-13**, **P1-64** |
+| **Presentation** | `API` | JWT Bearer authentication handler configuration, token extraction, correlation middleware, and authentication controllers (`AuthController`, login/logout/refresh plus Reporter registration/verify/resend endpoints). | **P1-10**, **P1-13** |
 
 ---
 
-### 6. Security, Secret Handling, and Logging Policy
+### 7. Security, Secret Handling, and Logging Policy
 
 1. **Transport Security:**
    - HTTPS / TLS 1.2+ is mandatory across all environments. Unencrypted HTTP requests must be rejected.
@@ -159,12 +180,11 @@ To maintain Clean Architecture boundaries and avoid conflating concerns:
 
 ---
 
-### 7. Deferred and Out-of-Scope Capabilities
+### 8. Deferred and Out-of-Scope Capabilities
 
 1. **Google OAuth / External SSO:**
-   - Google Authentication (OAuth 2.0 / OpenID Connect) is **Out of Scope and Deferred** for Phase 1.
-   - System specifications (`Dac_ta_UseCase_v2.md` CN01–CN03, CN10 and `User_Stories_Acceptance_Criteria_v2.md` US-01) specify internally provisioned credentials (username + password; email is currently a PROP field in the Data Dictionary and is not yet an approved login identifier).
-   - The existing package references in the solution (`Google.Apis.Auth` in `RoadGuardSystem.Services` and `Microsoft.AspNetCore.Authentication.Google` in `RoadGuardSystem.API`) represent technical debt and are not activated. They are scheduled for formal audit and removal during Task **P1-10** or a designated dependency cleanup task. The separate P1-00 correction removes only the unused legacy `Microsoft.AspNetCore.Identity` 2.3.1 package that introduced a High advisory; it does not activate or remove Google authentication.
+   - Google OAuth/OpenID Connect and “Sign in with Google” remain out of scope. Gmail OTP means sending a verification email to a Gmail address; it does not grant Google identity tokens.
+   - Gmail API or SMTP is selected only as the email delivery provider for P1-13 after provider credentials, sender identity, quotas and secret storage are approved. The provider must sit behind an adapter so tests use a deterministic fake sender.
 
 ---
 
@@ -194,13 +214,17 @@ To maintain Clean Architecture boundaries and avoid conflating concerns:
 - **Defense-in-Depth:** Refresh token rotation combined with token-family replay detection protects mobile users against credential theft.
 - **Auditability:** Complete, append-only history of password changes (CN10) and account suspensions (QT01).
 
-### Follow-up Task Allocations
+### Historical Phase 1 Follow-up Task Allocations
+
+The allocations below record the original plan and do not control new V2 delivery; ADR 006 and the assigned V2 task now determine implementation ownership.
 - **P1-00 (Person 1):** Foundation domain `ApplicationUser` and `ApplicationRole` (already established).
-- **P2-10 (Person 2):** Implement EF Core Identity persistence, `IdentityDbContext`, mapping configurations for `sessions` (including nullable `device_metadata_json`, SQL Server `ISJSON` constraint, write-once behavior, and schema validation), `refresh_tokens`, `password_reset_logs`, and `account_status_change_logs`; add the migration with downgrade/recovery notes and SQL Server integration tests; seed roles (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`); and evaluate future domain enums.
+- **P2-10 (Person 2):** Implement EF Core Identity persistence, `IdentityDbContext`, mapping configurations for `sessions` (including nullable `device_metadata_json`, SQL Server `ISJSON` constraint, write-once behavior, and schema validation), `refresh_tokens`, `password_reset_logs`, and `account_status_change_logs`; add the migration with downgrade/recovery notes and SQL Server integration tests; seed the approved role set (`SUPERVISOR`, `PM`, `DRONE_OPERATOR`, `REPAIR_CREW`, and target `REPORTER` when the role slice is authorized); and evaluate future domain enums.
+- **P2-13 (Person 2):** Extend identity persistence for self-service Reporter registration: preserve role codes 1–4, add/seed `REPORTER` code 5, map email confirmation/registration source and `EmailVerificationChallenge`, and enforce SQL uniqueness, expiry, attempt, consume and concurrency backstops without storing OTP plaintext or provider secrets.
 - **P1-10 (Person 1):** Implement application authentication service (`IAuthService`), login/logout/refresh endpoints (`AuthController`), password hashing, and clean up inactive Google package dependencies.
+- **P1-13 (Person 1):** Implement Reporter register/verify/resend endpoints and service contract, Gmail-only validation, `IEmailSender`/Gmail adapter with deterministic fake, rate-limit/idempotency/error mapping and token issuance only after verification. This task does not implement Google OAuth/Sign-in.
 - **P1-11 (Person 1):** Implement user profile updates, Admin password reset, and session revocation flows.
 - **P1-12 (Person 1):** Implement server-side project membership validation service, authorization policy handlers, and the API security matrix including HTTP 401/403 and cross-project tests.
-- **P2-11 (Person 2):** Implement the authoritative active/effective `ProjectMember.role_code` read model and SQL integration fixtures/tests only. API policies, tokens, HTTP 401/403 behavior and API tests remain exclusively in P1-12, as assigned by the current person plans.
+- **P2-11 (Person 2):** Implement the authoritative active/effective `ProjectMember.role_code` read model and SQL integration fixtures/tests only. Under the historical plan, API policies, tokens, HTTP 401/403 behavior and API tests were assigned to P1-12.
 - **P1-64 (Person 1):** Implement Admin global-role changes, append-only audit, `UserRoleChanged`, and atomic revocation of all active sessions and refresh tokens.
 
 ---
@@ -210,3 +234,4 @@ To maintain Clean Architecture boundaries and avoid conflating concerns:
 1. **JWT Signing Algorithm and Key Strategy:** Choice between symmetric HMAC-SHA256 (pre-shared secret) versus asymmetric RSA/ECDSA (public/private key pair) and the key rotation/retiral mechanism is deferred to task P1-10 security design.
 2. **Distributed Cache Selection:** Evaluation of distributed cache backend (Redis vs. SQL Server cache vs. in-memory) for session lookup caching will be finalized during production infrastructure deployment.
 3. **Multi-Factor Authentication (MFA):** TOTP/SMS-based two-factor authentication is deferred to future project releases.
+4. **Gmail delivery mechanism:** P1-13 must choose Gmail API or SMTP/Workspace relay after deployment owner approval. The adapter contract and fake sender are implementation requirements; provider credentials, quota and sender identity are environment-specific.

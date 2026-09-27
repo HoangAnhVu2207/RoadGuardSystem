@@ -1,0 +1,29 @@
+$kind: http-request
+name: POST /projects
+description: "Purpose: create a project smoke record. Role: project-management policy. Setup: authenticate an allowed role and set primaryProjectManagerUserId; run only with disposable data. Expected: 201 or documented validation/authorization/conflict error. Data change: creates project."
+url: "{{baseUrl}}/api/v1/projects"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "projectCode": "RG-POSTMAN-{{$timestamp}}",
+      "name": "Postman smoke project",
+      "description": "Created by Postman",
+      "engineeringUtmSrid": 32648,
+      "startDate": "2026-09-01",
+      "endDate": "2027-09-01",
+      "primaryProjectManagerUserId": "{{primaryProjectManagerUserId}}",
+      "handover": { "documentNo": "HD-POSTMAN-{{$timestamp}}", "handoverDate": "2026-08-31", "fileId": null, "notes": "Postman smoke test" },
+      "operationId": "{{$guid}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Project create returns an expected result', function () { pm.expect([201, 400, 403, 404, 409]).to.include(pm.response.code); });
+      if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('projectId', b.projectId); pm.collectionVariables.set('projectRowVersion', b.rowVersion); }
+    language: text/javascript
+order: 2000

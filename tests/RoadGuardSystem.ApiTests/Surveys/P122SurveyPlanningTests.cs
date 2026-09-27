@@ -166,7 +166,7 @@ public sealed class P122SurveyPlanningTests
 
     private static async Task AuthenticateAsync(HttpClient client, string username, string password)
     {
-        var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { username, password });
+        var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = AuthenticationSqlServerFixture.EmailFor(username), password });
         login.EnsureSuccessStatusCode();
         var body = await login.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());

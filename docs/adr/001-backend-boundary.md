@@ -10,6 +10,10 @@ Accepted (2026-09-17)
 - **Approved by:** Product Owner (Decision P1-02)
 - **Trace:** Architecture / Task P1-02 (Foundation post P1-00 and P1-01)
 
+### Ownership amendment (2026-09-27)
+
+[ADR 006](006-v2-endpoint-ownership-and-persistence-coordination.md) supersedes person-exclusive implementation ownership in this ADR. Layer ownership below defines architectural responsibility; it does not reserve a layer to one person. The owner of an approved V2 endpoint task may change every directly required layer, including persistence and migrations, while preserving these boundaries and serializing shared hotspots.
+
 ---
 
 ## Context
@@ -35,15 +39,15 @@ Furthermore, clear product and system boundaries must be established between the
    - The current solution repository contains only the ASP.NET Core backend Web API, domain model, application services, and persistence layers.
    - External clients and services—specifically the Android Mobile Application (`RoadGuard Mobile`), Web Management Dashboard (`RoadGuard Dashboard`), and Python AI Defect Analysis Service—are external systems interacting with the backend strictly via well-defined public API contracts or adapter interfaces.
 
-2. **Phase 1 AI Adapter Architecture:**
-   - In Phase 1, road inspection defect analysis uses an in-process, deterministic mock adapter contract (to be formally defined in task **P1-31** under US-07 and KS10–KS13) that produces predictable, repeatable detection results for development, testing, and CI validation.
-   - Domain logic and application services in `RoadGuardSystem` must depend exclusively on domain abstractions defined in `BusinessObjects` or `Services`, and must **never** depend directly on the mock implementation or on Python-specific transports (such as raw sockets, Python interop, or gRPC endpoints).
-   - In subsequent phases, integration with the external Python AI service will be accomplished by introducing an out-of-process adapter implementing the contract defined in P1-31 without altering domain workflows.
+2. **Versioned AI Adapter Architecture:**
+   - RoadGuard supports an external AI backend through one versioned adapter contract. A deterministic in-process mock remains available for local development and acceptance tests when the external service is unavailable; mock provenance must be explicit.
+   - The adapter submits an immutable input manifest scoped to a `SurveyDataVersion`, `RoadSectionVersion`, segment set/segment, target band (`SURFACE`, `LEFT_EDGE`, or `RIGHT_EDGE`), source video intervals, telemetry and model/configuration versions. The external service returns an asynchronous job/result with the same identities and validated detection evidence.
+   - Domain logic and application services depend on the adapter contract, never on Python-specific transports, raw sockets, GPU clients, or a concrete mock/external implementation. Replacing the mock with the external AI backend must not alter incident/defect/repair decisions or overwrite source evidence. The processing adapter and job boundary are implemented through the P1-31 contract and its later external provider slice.
 
 3. **Drone Operations Boundary:**
    - The backend **never directly controls, navigates, or monitors drones**.
-   - Flight planning, hardware control, and image/sensor capture are handled by external drone hardware and mobile field applications.
-   - The backend receives only finalized, geotagged survey captures and associated metadata submitted by authorized field personnel via standard API endpoints.
+   - Flight planning, hardware control, and image/sensor capture are handled by external drone hardware and mobile field applications. PM still creates baseline, periodic, or incident-driven survey plans/requests.
+   - The backend receives finalized captures and associated metadata submitted by authorized field personnel. It keeps raw aircraft GPS, projected route station, camera/observed footprint, and defect location as separate facts; a deliberate lateral flight offset for an edge band is not automatically a GPS error.
 
 4. **Warranty Liability Boundary:**
    - The backend **never automatically concludes or infers contractual warranty liability**.
@@ -52,7 +56,7 @@ Furthermore, clear product and system boundaries must be established between the
 
 5. **Research Validation Boundary:**
    - Research validation surveys conducted for academic or model calibration purposes are logically isolated from operational defect management.
-   - Research surveys must never automatically create or transition operational `Defect` or `Warranty` records.
+   - Research surveys must never automatically create or transition operational `Defect` or `Warranty` records. Operational field measurement remains conditional on the evidence/decision policy; it is required when PM needs physical confirmation, while the separate research ground-truth track remains mandatory.
 
 ---
 
@@ -98,7 +102,7 @@ The solution enforces project references and dependency directions as implemente
 
 3. **`Repositories` (`RoadGuardSystem.cRepositories`):**
    - **Owns:** EF Core, `DbContext` (`RoadGuardDbContext`), entity type configurations (`IEntityTypeConfiguration<T>`), database migrations, SQL Server provider configurations with NetTopologySuite spatial extensions, storage implementations, and **repository interfaces used by Services**.
-   - **Identity Persistence:** In accordance with P1-00 review finding F1 and the repository division of responsibility, EF Core Identity persistence and IdentityDbContext configuration are owned exclusively by `Repositories` and assigned to Person 2 under task **P2-10**. Under approved Option A, `RoadGuardDbContext` maps canonical `users` (Guid PK) and `roles` (string `code` PK) with custom `UserStore` and `RoleStore` adapting to the string role key without artificial join tables.
+   - **Identity Persistence:** In accordance with P1-00 review finding F1, EF Core Identity persistence and IdentityDbContext configuration are owned architecturally by `Repositories`. The legacy P2-10 assignment is historical; new V2 work follows ADR 006. Under approved Option A, `RoadGuardDbContext` maps canonical `users` (Guid PK) and `roles` (string `code` PK) with custom `UserStore` and `RoleStore` adapting to the string role key without artificial join tables.
    - **Strict Prohibitions:** Must never reference `API` or external transport layers.
 
 4. **`Services` (`RoadGuardSystem.dServices`):**
@@ -175,9 +179,9 @@ The solution enforces project references and dependency directions as implemente
 ### Positive
 - **Strict Boundary Enforcement:** Architectural tests (`DependencyGraphChecker`) automatically verify that no forbidden references or packages enter the codebase.
 - **Testability & Determinism:** The Phase 1 deterministic AI adapter contract enables comprehensive unit, integration, and API testing without relying on external Python services or GPU hardware.
-- **Clear Team Division:** Distinct ownership boundaries between Person 1 (Domain, Services, API) and Person 2 (Repositories, SQL Server, EF Core Migrations, Identity persistence) prevent merge conflicts and coordination overhead.
+- **Clear Layer Division:** Architectural responsibility remains separated by layer. ADR 006 assigns delivery vertically per V2 endpoint and prevents conflicts through explicit shared-hotspot reservation and migration sequencing.
 
-### Trade-offs & Operational Costs
+### Trade-offs & Operational Considerations
 - **Mapping Overhead:** Data must be explicitly mapped between domain entities and DTOs using strongly typed mappers.
 - **Dual Identity Separation:** Maintaining domain `ApplicationUser` in `BusinessObjects` while implementing EF Core `UserStore` in `Repositories` (P2-10) requires disciplined coordination between Person 1 and Person 2.
 

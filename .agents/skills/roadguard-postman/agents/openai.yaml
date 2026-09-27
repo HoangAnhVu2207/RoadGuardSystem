@@ -1,0 +1,8 @@
+interface:
+  display_name: "RoadGuard Postman Workflow"
+  short_description: "Keep API collections aligned with RoadGuard changes"
+  default_prompt: "Use $roadguard-postman to update and verify the RoadGuard Postman collection for the current API task."
+  icon_small: "../roadguard-endpoint-delivery/assets/icon.svg"
+  icon_large: "../roadguard-endpoint-delivery/assets/icon.svg"
+policy:
+  allow_implicit_invocation: true

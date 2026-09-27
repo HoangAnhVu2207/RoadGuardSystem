@@ -1,14 +1,24 @@
 using Asp.Versioning.ApiExplorer;
 using RoadGuardSystem.API.Extensions;
 using RoadGuardSystem.API.Middlewares;
+using RoadGuardSystem.Repositories.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddApiPlatformServices(builder.Configuration, builder.Environment.IsProduction());
+builder.Services.AddRoadGuardSeeding(
+    includeDevelopmentUsers: builder.Environment.IsDevelopment() &&
+        builder.Configuration.GetValue("RoadGuardDatabase:SeedDevelopmentUsers", false));
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment() &&
+    app.Configuration.GetValue("RoadGuardDatabase:InitializeOnStartup", false))
+{
+    await DbInitializer.InitializeAsync(app.Services);
+}
 
 // 1. Correlation ID middleware runs earliest so all downstream errors/responses have correlation ID
 app.UseMiddleware<CorrelationIdMiddleware>();

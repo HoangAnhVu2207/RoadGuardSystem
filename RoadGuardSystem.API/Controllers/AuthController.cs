@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,7 @@ using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.DTOs.Authentication;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.API.Controllers;
 
@@ -27,15 +29,13 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType<AuthTokenResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<IActionResult> Login(LoginRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _authService.LoginAsync(
             new LoginCommand(
-                request.Username!,
-                request.Password!,
-                request.DeviceMetadata?.GetRawText()),
+                request.Email!,
+                request.Password!),
             cancellationToken);
         return MapResult(result);
     }
@@ -80,14 +80,73 @@ public sealed class AuthController : ControllerBase
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
-    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    public async Task<IActionResult> Logout(
+        [FromHeader(Name = "Idempotency-Key"), Required] string? idempotencyKey,
+        CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(User.FindFirstValue("sid"), out var sessionId))
+        if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var userId) ||
+            !Guid.TryParse(User.FindFirstValue("sid"), out var sessionId))
         {
             return AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
         }
 
-        var result = await _authService.LogoutAsync(sessionId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            return AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request");
+        }
+
+        var result = await _authService.LogoutAsync(
+            userId,
+            sessionId,
+            idempotencyKey,
+            CorrelationId(),
+            cancellationToken);
+        return MapResult(result, noContentOnSuccess: true);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("password-recovery-requests")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    public async Task<IActionResult> RequestPasswordRecovery(
+        PasswordRecoveryRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.RequestPasswordRecoveryAsync(
+            new PasswordRecoveryCommand(request.Email!, CorrelationId()),
+            cancellationToken);
+        return Accepted($"/api/v1/auth/password-recovery-requests/{result.RequestId:D}");
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> ChangePassword(
+        ChangePasswordRequestDto request,
+        [FromHeader(Name = "Idempotency-Key"), Required] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var userId))
+        {
+            return AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
+        }
+
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            return AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request");
+        }
+
+        var result = await _authService.ChangePasswordAsync(
+            new ChangePasswordCommand(
+                userId,
+                request.CurrentPassword!,
+                request.NewPassword!,
+                idempotencyKey,
+                CorrelationId()),
+            cancellationToken);
         return MapResult(result, noContentOnSuccess: true);
     }
 
@@ -97,14 +156,23 @@ public sealed class AuthController : ControllerBase
         AuthStatus.Success => Ok(new AuthTokenResponseDto(
             result.Tokens!.AccessToken,
             result.Tokens.RefreshToken,
-            result.Tokens.AccessTokenExpiresAt,
-            result.Tokens.RefreshTokenExpiresAt)),
+            "Bearer",
+            result.Tokens.ExpiresIn,
+            result.Tokens.User.MustChangePassword,
+            new AuthActorResponseDto(
+                result.Tokens.User.Id,
+                result.Tokens.User.DisplayName,
+                ToV2Role(result.Tokens.User.RoleCode),
+                Convert.ToBase64String(result.Tokens.User.RowVersion)))),
         AuthStatus.InvalidInput => AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request"),
         AuthStatus.InvalidCredentials => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "Unauthorized"),
         AuthStatus.PasswordChangeRequired => AuthProblem(StatusCodes.Status403Forbidden, ApiErrorCodes.PasswordChangeRequired, "Password change required"),
         AuthStatus.PasswordPolicyRejected => AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Password policy rejected"),
         AuthStatus.NotRequired => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict, "Password change is not required"),
         AuthStatus.SessionRevoked => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.SessionRevoked, "Session revoked"),
+        AuthStatus.RefreshTokenInvalid => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.RefreshTokenInvalid, "Invalid refresh token"),
+        AuthStatus.RefreshTokenExpired => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.RefreshTokenExpired, "Expired refresh token"),
+        AuthStatus.IdempotentConflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.IdempotencyKeyReused, "Idempotency key reused"),
         AuthStatus.Conflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict, "Conflict"),
         _ => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized")
     };
@@ -140,4 +208,13 @@ public sealed class AuthController : ControllerBase
         Guid.TryParse(HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString(), out var value)
             ? value
             : null;
+
+    private static string ToV2Role(UserRoleCode roleCode) => roleCode switch
+    {
+        UserRoleCode.Supervisor => "SUPERVISOR",
+        UserRoleCode.ProjectManager => "PM",
+        UserRoleCode.DroneOperator => "OPERATOR",
+        UserRoleCode.RepairCrew => "CREW",
+        _ => throw new ArgumentOutOfRangeException(nameof(roleCode), roleCode, "Role is not supported by the V2 actor contract.")
+    };
 }

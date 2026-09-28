@@ -25,4 +25,4 @@ Select actual test names with scoped rg before execution. If discovery is ambigu
 
 Read only the setup relevant to the fixture: local SQL vs existing Testcontainers. Do not disable security, skip SQL or alter host configuration to hide a missing dependency. Build unavailable because the pinned SDK is missing is a blocked check, not permission to edit global.json.
 
-Minimal evidence record: task; changed source/config and dependency scope; command/config/filter; executed/pass/fail/required-skip counts; SQL/runtime environment; smoke/effect result; valid reused evidence. A new commit alone does not invalidate a passing test; changed relevant inputs do.
+Minimal evidence record follows `planning/V2/TASK_LIFECYCLE.md`: task/source checkpoint; changed source/config and dependency scope; command/config/filter; executed/pass/fail/required-skip counts; SQL/runtime environment; smoke/effect result; valid reused/invalidated evidence and unverified risk. A new commit alone does not invalidate a passing test; changed relevant inputs do.

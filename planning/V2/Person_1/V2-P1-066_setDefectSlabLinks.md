@@ -2,8 +2,12 @@
 
 ## V2(3) status
 
-- decisionRefs: none
-- requirementRefs: register crosswalk; task-specific references remain authoritative
+- deliveryStatus: TODO
+- decisionRefs: D09, D10, D12, 33A
+- requirementRefs: FR-10
+- diagramRefs: PF-02, PF-06, SQ-04, DD/ERD
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+
 - contractStatus: PROPOSED_CONTRACT
 - implementationStatus: NEEDS_REPO_CHECK
 - verificationStatus: NOT_RUN
@@ -15,9 +19,18 @@
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `PUT /api/v1/defects/{defectId}/slab-links`; operationId `setDefectSlabLinks`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
-- **Contract:** CONDITIONAL; OpenAPI 0.1.1-draft-review1. Không xem draft là quyết định nghiệp vụ đã duyệt.
+- **Contract:** CONDITIONAL; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-10; nhóm kế hoạch cũ P1-32/P2-32 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W3; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
+
+## Source evidence
+
+- Decision register: planning/V2/V2-3_DECISION_REGISTER.md (D09, D10, D12, 33A)
+- Requirements/trace: FR-10
+- Diagrams/state: PF-02, PF-06, SQ-04, DD/ERD
+- Canonical contract: operationId setDefectSlabLinks, path /defects/{defectId}/slab-links, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
 

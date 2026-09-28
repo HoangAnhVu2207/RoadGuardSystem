@@ -1,9 +1,9 @@
 interface:
   display_name: RoadGuard Team Leader Review
   short_description: Review changed code and safely fix before pushing
-  default_prompt: Use $roadguard-review-autofix to review and fix the current task
-    in this same conversation, preserve approved decisions, and report push readiness
-    without pushing.
+  default_prompt: Use $roadguard-review-autofix to restore the current task checkpoint,
+    review and safely fix its diff in this conversation, update invalidated Postman/tests
+    and task completion evidence, and report push readiness without pushing.
   icon_small: assets/icon.svg
   icon_large: assets/icon.svg
 policy:

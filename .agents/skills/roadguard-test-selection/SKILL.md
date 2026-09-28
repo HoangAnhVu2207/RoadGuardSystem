@@ -5,7 +5,7 @@ description: Use when selecting or running sufficient RoadGuard build, endpoint,
 
 # RoadGuard test selection
 
-Read the assigned scope, applicable AGENTS, changed paths and behavior risk. Reuse already-read rules and valid evidence. This skill chooses verification, not permission to broaden implementation. Read [commands and evidence](references/commands.md) only when preparing commands or diagnosing build/test selection.
+Read the assigned scope, applicable AGENTS, `planning/V2/TASK_LIFECYCLE.md`, task source checkpoint, changed paths and behavior risk. Reuse already-read rules and still-valid evidence. This skill chooses verification, not permission to broaden implementation. Read [commands and evidence](references/commands.md) only when preparing commands or diagnosing build/test selection.
 
 ## Choose breadth once from known impact
 
@@ -35,4 +35,4 @@ Build each required test project once, then run its selected tests with matching
 - Use SQL Server/Testcontainers for SQL Server-specific claims. Mocks/SQLite cannot prove rowversion, spatial behavior, constraints or rollback semantics.
 - Keep normal logs quiet; inspect a bounded diagnostic around the actual failure. No local coverage unless explicitly required. Do not re-run unchanged successful commands at handoff or commit.
 - After two unsuccessful fixes for the same failure, reassess evidence and scope before another attempt. Continue only with a materially new supported diagnosis inside authorization; otherwise report the minimal blocker. Do not weaken assertions, skip required tests or expand implementation to obtain green output.
-- Report exact command, configuration, count, environment, result and unverified items. Never call a static skill review an executed backend test.
+- Report exact command, configuration, count, environment, result and unverified items in task completion history. State which evidence was reused or invalidated. Never call a static skill review an executed backend test or set an API task `DONE` from docs checks.

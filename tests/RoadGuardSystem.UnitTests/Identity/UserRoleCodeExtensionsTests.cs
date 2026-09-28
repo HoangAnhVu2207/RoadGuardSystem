@@ -12,6 +12,7 @@ public sealed class UserRoleCodeExtensionsTests
     [InlineData(UserRoleCode.ProjectManager, "PM")]
     [InlineData(UserRoleCode.DroneOperator, "DRONE_OPERATOR")]
     [InlineData(UserRoleCode.RepairCrew, "REPAIR_CREW")]
+    [InlineData(UserRoleCode.Reporter, "REPORTER")]
     public void ToDbCode_ValidCode_ReturnsCanonicalString(UserRoleCode role, string expectedDbCode)
     {
         role.ToDbCode().Should().Be(expectedDbCode);
@@ -36,6 +37,7 @@ public sealed class UserRoleCodeExtensionsTests
     [InlineData("PM", UserRoleCode.ProjectManager)]
     [InlineData("DRONE_OPERATOR", UserRoleCode.DroneOperator)]
     [InlineData("REPAIR_CREW", UserRoleCode.RepairCrew)]
+    [InlineData("REPORTER", UserRoleCode.Reporter)]
     public void FromDbCode_ValidString_ReturnsEnum(string dbCode, UserRoleCode expectedRole)
     {
         UserRoleCodeExtensions.FromDbCode(dbCode).Should().Be(expectedRole);

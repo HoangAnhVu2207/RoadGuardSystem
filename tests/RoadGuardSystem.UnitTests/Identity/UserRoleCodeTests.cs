@@ -22,7 +22,8 @@ public sealed class UserRoleCodeTests
             "Supervisor",
             "ProjectManager",
             "DroneOperator",
-            "RepairCrew");
-        Enum.GetValues(enumType).Cast<byte>().Should().Equal(0, 1, 2, 3, 4);
+            "RepairCrew",
+            "Reporter");
+        Enum.GetValues(enumType).Cast<byte>().Should().Equal(0, 1, 2, 3, 4, 5);
     }
 }

@@ -1,5 +1,7 @@
 # Coverage, phần kế thừa và thiếu contract
 
+> Alignment 2026-09-28: all 133 task files retain their IDs/owners and now carry source/requirement/diagram/decision metadata plus `deliveryStatus=TODO`. This is planning evidence, not implementation or verification evidence.
+
 > **V2(3) overlay — 2026-09-28:** D01-D28 và backlog ngoài baseline được theo dõi tại [decision register](V2-3_DECISION_REGISTER.md). Các trạng thái trong tài liệu này là trạng thái tài liệu/plan, không phải runtime PASS.
 
 ## Phạm vi kiểm chứng
@@ -38,7 +40,7 @@ Các mục này **không bị bỏ khỏi dự án**. Không tự bịa URL đ�
 
 ## V2(3) capability gaps outside the baseline
 
-The following remain explicit workstreams rather than being forced into a misleading 133-operation mapping: company policy framework and exceptions; authority-specific reopen; partial publication and Report-Defect projection; PM detection group/split/match review; handover/conflict/rescue records; BEFORE-loss incident, curing and traffic release; BE-AI service manifest/candidate/artifact receipts; FastAPI workers; Web/Android/ops delivery. See the register for owner boundary and dependency type.
+The following remain explicit workstreams rather than being forced into a misleading 133-operation mapping: company policy framework and exceptions; authority-specific reopen; partial publication and Report-Defect projection; PM detection group/split/match review; handover/conflict/rescue records; BEFORE-loss incident, curing and traffic release; BE-AI service manifest/candidate/artifact receipts; FastAPI workers; Web/Android/ops delivery. See the register for owner boundary and dependency type. Contract proposals are tracked separately from implementation/verification.
 
 The following baseline tasks have independent fixtures but require a later end-to-end path: `getMe`, project/route/segment GETs, inspection snapshot, repair/task reads, job reads and retention reads. A missing producer is a data-fixture or integration dependency, not a reason to invent a cycle in the operation graph.
 

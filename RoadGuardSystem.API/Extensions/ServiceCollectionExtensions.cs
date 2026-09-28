@@ -18,6 +18,7 @@ using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Projects;
 using RoadGuardSystem.Services.Warranties;
 using RoadGuardSystem.Services.Surveys;
+using RoadGuardSystem.Services.Inspections;
 using RoadGuardSystem.Services.Messaging;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -66,6 +67,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoadSectionVersionService, RoadSectionVersionService>();
         services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
         services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
+        services.AddScoped<IInspectionTaskQueryService, InspectionTaskQueryService>();
         services.AddScoped<ISurveyV2Service, SurveyV2Service>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();

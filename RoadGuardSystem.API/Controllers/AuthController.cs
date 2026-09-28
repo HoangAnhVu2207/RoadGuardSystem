@@ -215,6 +215,7 @@ public sealed class AuthController : ControllerBase
         UserRoleCode.ProjectManager => "PM",
         UserRoleCode.DroneOperator => "OPERATOR",
         UserRoleCode.RepairCrew => "CREW",
+        UserRoleCode.Reporter => "REPORTER",
         _ => throw new ArgumentOutOfRangeException(nameof(roleCode), roleCode, "Role is not supported by the V2 actor contract.")
     };
 }

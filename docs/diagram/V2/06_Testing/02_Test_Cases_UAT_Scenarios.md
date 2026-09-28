@@ -929,7 +929,7 @@ Với AC có Given/When/Then, thiết lập Given, thực hiện When, kiểm t�
 
 **Oracle từ nguồn:**
 
-**Given** PM đã đổi nhiệm vụ nhưng máy chưa nhận; **When** sync bản cũ; **Then** [ĐỀ XUẤT Q04] giữ snapshot/bằng chứng, báo xung đột cho PM, không last-write-wins.
+**Given** PM đã đổi nhiệm vụ nhưng máy chưa nhận; **When** sync bản cũ; **Then** theo D05 giữ snapshot/bằng chứng, báo conflict cho PM, không last-write-wins hoặc tự nghiệm thu.
 
 **Thực hiện:** (1) ghi fixture/role/version theo điều kiện trên; (2) thao tác chức năng hoặc nhánh When; (3) kiểm từng kết quả và biến thể được nêu, đọc lại dữ liệu/lịch sử theo quyền; (4) ghi Actual, evidence và defect ID nếu lệch. Chưa có actual.
 
@@ -1443,7 +1443,7 @@ Supervisor (Admin) chỉ xuất tập đã duyệt, kèm phiên bản và quyề
 
 **Oracle từ nguồn:**
 
-**Given** đội cũ ngoại tuyến; **When** định giao cùng phạm vi; **Then** [ĐỀ XUẤT Q04] cần xác nhận dừng/bàn giao, không tự coi lệnh thu hồi đã nhận.
+**Given** đội cũ ngoại tuyến; **When** định giao cùng phạm vi; **Then** theo D05 cần xác nhận dừng/bàn giao trước khi đội mới start, không tự coi lệnh thu hồi đã nhận.
 
 **Thực hiện:** (1) ghi fixture/role/version theo điều kiện trên; (2) thao tác chức năng hoặc nhánh When; (3) kiểm từng kết quả và biến thể được nêu, đọc lại dữ liệu/lịch sử theo quyền; (4) ghi Actual, evidence và defect ID nếu lệch. Chưa có actual.
 
@@ -2402,7 +2402,7 @@ Sau khi dự án đóng, Supervisor/PM vẫn tra cứu được hồ sơ trong p
 
 **Oracle từ nguồn:**
 
-**Given** PM có số đo/ảnh; **When** lập và giao sửa; **Then** hành động riêng sau đo, thứ tự do PM, nhánh theo quyết định; Fast Track sau gom Q01 còn mở.
+**Given** PM có số đo/ảnh đạt; **When** lập và giao sửa; **Then** tạo task sửa riêng sau đo; có thể Fast Track nếu đủ policy/quyền; không đổi hồi tố batch MEASURE_ONLY.
 
 **Thực hiện:** (1) ghi fixture/role/version theo điều kiện trên; (2) thao tác chức năng hoặc nhánh When; (3) kiểm từng kết quả và biến thể được nêu, đọc lại dữ liệu/lịch sử theo quyền; (4) ghi Actual, evidence và defect ID nếu lệch. Chưa có actual.
 

@@ -1032,7 +1032,7 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
     }
 
     [Fact(DisplayName = "P2-10 Negative: IdentityRoleSeedStep concurrent execution from independent contexts succeeds")]
-    public async Task IdentityRoleSeedStep_ConcurrentExecutions_SucceedWithoutDuplicateKeyErrors()
+    public async Task IdentityRoleSeedStep_ConcurrentExecutions_SeedFiveRolesWithoutDuplicateKeyErrors()
     {
         await using var context1 = _fixture.CreateDbContext();
         await using var context2 = _fixture.CreateDbContext();
@@ -1047,7 +1047,7 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
 
         await using var verifyContext = _fixture.CreateDbContext();
         var roleCount = await verifyContext.Roles.CountAsync();
-        roleCount.Should().Be(4);
+        roleCount.Should().Be(5);
     }
 
     [Fact(DisplayName = "P2-10 Negative: PermitRoleMutationScope is non-public and cannot be called by external callers")]

@@ -1,6 +1,6 @@
 # User Story và Acceptance Criteria - RoadGuard / CÁT TƯỜNG
 
-> Thiết kế mục tiêu đồng bộ 22/09/2026; các phần Reporter, IncidentCase, segment, coverage và AI ngoài là đề xuất chưa triển khai. Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../08_Delivery/04_Missing_Referenced_Documents.md#missing-01).
+> Thiết kế mục tiêu đồng bộ 22/09/2026; các phần Reporter, IncidentCase, segment, coverage và AI ngoài là đề xuất chưa triển khai. Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../../../adr/003-backend-delivery-and-ai-boundary.md).
 
 > **[THÊM UC-D29 — R3 ngày 26/09/2026]** Sửa trực tiếp story/AC cũ. Giữ mã cũ; phần **BỎ** là điều kiện ngừng áp dụng; **THAY THẾ** chỉ rõ dùng AC nào thay; **THÊM** là story/AC mới. US-21–26 trước chỉ có ở trace được bổ sung thân; US-28–32 giữ mã và ý nghĩa Sprint 1, không dùng lại cho nghiệp vụ khác. US-33–41 là mã mới. AC ký hiệu US-xx-AC-nn thuộc bản R3, không nhận là test đã chạy.
 >
@@ -195,7 +195,7 @@ Là người dân hoặc đại diện chủ đầu tư chưa có tài khoản, 
 - **US-02-AC-02:** **Given** Fast Track có quyền theo nhiệm vụ/policy; **When** mất mạng lâu; **Then** không tự hết quyền vì thời gian; token server hết hạn không xóa nháp và khi sync có thể cần xác thực lại.
 - **US-02-AC-03:** **Given** báo cáo đã gửi/xếp hàng; **When** có mạng và app được phép chạy; **Then** tự tiếp tục, retry không tạo bản ghi trùng; nháp chưa gửi không tự nộp.
 - **US-02-AC-04:** **Given** thiếu tệp hoặc checksum sai; **When** server kiểm toàn vẹn; **Then** không đánh dấu an toàn/đủ nghiệm thu, không cho dọn tệp chưa an toàn.
-- **US-02-AC-05:** **Given** PM đã đổi nhiệm vụ nhưng máy chưa nhận; **When** sync bản cũ; **Then** [ĐỀ XUẤT Q04] giữ snapshot/bằng chứng, báo xung đột cho PM, không last-write-wins.
+- **US-02-AC-05:** **Given** PM đã đổi nhiệm vụ nhưng máy chưa nhận; **When** sync bản cũ; **Then** theo D05 giữ snapshot/bằng chứng, đưa vào conflict cho PM, không last-write-wins hoặc tự nghiệm thu.
 
 **Truy vết:** CN05–CN09; BR-15/16/19/20; FR-22.
 
@@ -410,7 +410,7 @@ Là PM, tôi muốn duyệt loại và vùng nhãn đã hiệu chỉnh trước 
 - **US-12-AC-01:** **Given** item APPROVAL_TRACK chưa APPROVED; **When** giao thi công; **Then** bị chặn; item đã duyệt có thể giao không chờ item khác.
 - **US-12-AC-02:** **Given** Fast Track hoặc chỉ-đo được giao; **When** Crew mở; **Then** thấy loại quyền rõ, không dùng số lỗi để tự quyết được sửa.
 - **US-12-AC-03:** **Given** PM đổi đội/thứ tự; **When** lưu; **Then** giữ lịch sử, báo bên liên quan; [ĐỀ XUẤT] hiển thị bản đã nhận.
-- **US-12-AC-04:** **Given** đội cũ ngoại tuyến; **When** định giao cùng phạm vi; **Then** [ĐỀ XUẤT Q04] cần xác nhận dừng/bàn giao, không tự coi lệnh thu hồi đã nhận.
+- **US-12-AC-04:** **Given** đội cũ ngoại tuyến; **When** định giao cùng phạm vi; **Then** D05 yêu cầu xác nhận dừng/bàn giao trước khi đội mới start, không tự coi lệnh thu hồi đã nhận.
 
 **Truy vết:** SC10–SC11; BR-03/23/24; FR-20.
 
@@ -803,7 +803,7 @@ Là PM, tôi muốn lập yêu cầu xóa hồ sơ đã hết hạn; là Supervi
 **Acceptance Criteria R3**
 
 - **US-35-AC-01:** **Given** 10 lỗi có 5 lỗi nhỏ trong đợt gom chỉ-đo; **When** Crew xác nhận năm lỗi đạt policy; **Then** chỉ đo/chụp/báo, không sửa ngay.
-- **US-35-AC-02:** **Given** PM có số đo/ảnh; **When** lập và giao sửa; **Then** hành động riêng sau đo, thứ tự do PM, nhánh theo quyết định; Fast Track sau gom Q01 còn mở.
+- **US-35-AC-02:** **Given** PM có số đo/ảnh đạt; **When** lập và giao sửa; **Then** tạo task sửa riêng sau đo; có thể Fast Track nếu đủ policy/quyền; task MEASURE_ONLY không bị đổi hồi tố.
 - **US-35-AC-03:** **Given** có thêm report giữa tuần; **When** refresh dữ liệu; **Then** [ĐỀ XUẤT] không tự đổi loại nhiệm vụ đã giao; không tự buộc chờ đủ bảy ngày.
 
 **Truy vết:** TN07/TN01/SC14; BR-09/10; FR-16.

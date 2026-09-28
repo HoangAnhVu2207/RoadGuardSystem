@@ -172,9 +172,9 @@ jobs:
           $password = $credential.Substring('MSSQL_SA_PASSWORD='.Length)
           $env:ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True;"
           if ("${{ github.event_name }}" -eq "schedule" -or "${{ inputs.collect_coverage }}" -eq "true") {
-            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
+            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v n --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
           } else {
-            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v q
+            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v n
           }
       - name: Validate Seeder entry point
         shell: pwsh

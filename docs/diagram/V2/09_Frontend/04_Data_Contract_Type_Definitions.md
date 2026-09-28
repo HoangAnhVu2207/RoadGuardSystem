@@ -6,8 +6,8 @@
 
 | Tệp | Vai trò |
 |---|---|
-| `contracts/openapi.baseline.yaml` | Snapshot OpenAPI R3 cập nhật REVIEW-01: 133 operations, 153 schemas; auth401 delta ghi trong báo cáo review |
-| `contracts/api.schemas.json` | JSON Schema 2020-12 bundle từ toàn bộ 153 schemas, `$defs`; `$ref` nội bộ đã đổi đường dẫn |
+| `contracts/openapi.baseline.yaml` | Snapshot OpenAPI alignment: 133 operations, 154 schemas; runtime `NOT_ENABLED` |
+| `contracts/api.schemas.json` | JSON Schema 2020-12 bundle từ toàn bộ 154 schemas, `$defs`; `$ref` nội bộ đã đổi đường dẫn |
 | `contracts/api.types.ts` | Structural TypeScript types từ schema, không phải HTTP SDK hoặc runtime validator |
 | `contracts/local.types.ts` | Local queue/media/partition types đề xuất; không gửi nguyên object này vào API |
 | `contracts/realtime.proposed.schema.json` | Event hint đề xuất, chưa có server transport |

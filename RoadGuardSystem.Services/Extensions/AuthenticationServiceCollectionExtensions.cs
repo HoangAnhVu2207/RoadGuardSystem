@@ -31,9 +31,18 @@ public static class AuthenticationServiceCollectionExtensions
             .Bind(configuration.GetRequiredSection(PasswordChangeFingerprintOptions.SectionName))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<PasswordChangeFingerprintOptions>, PasswordChangeFingerprintOptionsValidator>();
+        services.AddOptions<IdentityOnboardingOptions>()
+            .Bind(configuration.GetSection(IdentityOnboardingOptions.SectionName));
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IIdentityMessageSender, GmailIdentityMessageSender>();
         services.AddScoped<ICredentialVerifier, IdentityCredentialVerifier>();
         services.AddScoped<AuthoritativeSessionValidator>();
+        services.AddScoped<IIdentityV2Service>(provider =>
+            new IdentityV2Service(
+                provider.GetRequiredService<Repositories.Identity.IIdentityRepository>(),
+                provider.GetRequiredService<Repositories.Identity.IIdentityV2Repository>(),
+                provider.GetRequiredService<IPasswordHasher<ApplicationUser>>()));
+        services.AddScoped<IIdentityOnboardingService, IdentityOnboardingService>();
         services.AddScoped<IIdentityService>(provider =>
             new IdentityService(
                 provider.GetRequiredService<Repositories.Identity.IIdentityRepository>(),

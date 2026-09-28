@@ -8,6 +8,9 @@
 
 
   <ItemGroup>
+    <Content Include="EmailAssets\hoanghai-logo.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <Folder Include="Controllers\" />
     <Folder Include="Middlewares\" />
     <Folder Include="Extensions\" />

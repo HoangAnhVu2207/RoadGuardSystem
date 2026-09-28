@@ -358,3 +358,75 @@ Accept: application/json
 GET {{RoadGuardSystem.API_HostAddress}}/api/v1/me/inspection-tasks?cursor=invalid&limit=50
 Authorization: Bearer {{accessToken}}
 Accept: application/json
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/me/survey-tasks?limit=50
+Authorization: Bearer {{operatorAccessToken}}
+Accept: application/json
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-tasks/{{surveyTaskId}}/accept
+Authorization: Bearer {{operatorAccessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{surveyTaskVersion}}"
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-tasks/{{surveyTaskId}}/decline
+Authorization: Bearer {{operatorAccessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{surveyTaskVersion}}"
+Content-Type: application/json
+
+{
+  "reason": "Operator unavailable for the scheduled window"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-tasks/{{surveyTaskId}}/cancel
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{surveyTaskVersion}}"
+Content-Type: application/json
+
+{
+  "reason": "Scope was superseded by a new route version"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-tasks/{{surveyTaskId}}/reassign
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{surveyTaskVersion}}"
+Content-Type: application/json
+
+{
+  "operatorId": "{{operatorId2}}",
+  "reason": "Reassign to the operator covering this corridor",
+  "dueAt": "2026-10-05T17:00:00Z"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-tasks/{{surveyTaskId}}/supplements
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{surveyTaskVersion}}"
+Content-Type: application/json
+
+{
+  "scope": [
+    {
+      "routeVersionId": "{{roadSectionVersionId}}",
+      "segmentSetId": "{{segmentSetId}}",
+      "segmentIds": ["{{segmentId}}"],
+      "targetBand": "SURFACE"
+    }
+  ],
+  "reason": "Coverage gap requires a supplementary pass",
+  "operatorId": "{{operatorId}}"
+}

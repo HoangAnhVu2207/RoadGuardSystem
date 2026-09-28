@@ -2,18 +2,19 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D14, D15, D16, D17, D20, D21, D22
 - requirementRefs: FR-26
 - diagramRefs: PF-07, SQ-06, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED
+- implementationStatus: IMPLEMENTED
+- verificationStatus: VERIFIED
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
+
+Current evidence: assigned operator accepted a NEW_ASSIGNED task with 200 and returned a new ETag; missing idempotency/concurrency headers returned 428; focused build/tests and Postman static validation pass.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.

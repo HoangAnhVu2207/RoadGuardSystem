@@ -91,6 +91,84 @@ public sealed class SurveyV2Controller : ControllerBase
         };
     }
 
+    [Authorize]
+    [HttpGet("me/survey-tasks")]
+    public async Task<IActionResult> ListMyTasks([FromQuery] string? cursor, [FromQuery] int? limit, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (role != UserRoleCode.DroneOperator) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+        if (limit is < 1 or > 100) return ProblemResponse(400, ApiErrorCodes.ValidationError, "Limit must be between 1 and 100");
+        var page = await _service.ListMyTasksAsync(actor, role, cursor, limit, cancellationToken);
+        return page is null ? ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid survey task list parameters") : Ok(page);
+    }
+
+    [Authorize]
+    [HttpPost("survey-tasks/{taskId:guid}/accept")]
+    public async Task<IActionResult> AcceptTask(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        return MapTaskMutation(await _service.AcceptTaskAsync(actor, role, taskId, idempotencyKey, ifMatch, CorrelationId(), cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("survey-tasks/{taskId:guid}/decline")]
+    public async Task<IActionResult> DeclineTask(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, SurveyTaskReasonV2RequestDto request, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        return MapTaskMutation(await _service.DeclineTaskAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("survey-tasks/{taskId:guid}/cancel")]
+    public async Task<IActionResult> CancelTask(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, SurveyTaskReasonV2RequestDto request, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        return MapTaskMutation(await _service.CancelTaskAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("survey-tasks/{taskId:guid}/reassign")]
+    public async Task<IActionResult> ReassignTask(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, ReassignSurveyTaskV2RequestDto request, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        return MapTaskMutation(await _service.ReassignTaskAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("survey-tasks/{taskId:guid}/supplements")]
+    public async Task<IActionResult> RequestSupplement(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, SupplementSurveyTaskV2RequestDto request, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        var result = await _service.RequestSupplementAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken);
+        var response = MapTaskMutation(result);
+        if (result.Task is not null && response is ObjectResult { StatusCode: 200 })
+        {
+            response = Created($"/api/v1/survey-tasks/{result.Task.Id}/supplements", result.Task);
+        }
+        return response;
+    }
+
+    private ObjectResult MapTaskMutation(SurveyV2ServiceResult result)
+    {
+        if (result.Task is not null) Response.Headers.ETag = $"\"{result.Task.Version}\"";
+        return result.Status switch
+        {
+            SurveyV2ServiceStatus.Success or SurveyV2ServiceStatus.Replayed when result.Task is not null => Ok(result.Task),
+            SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            SurveyV2ServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.SurveyRequestNotFound, "Not found"),
+            SurveyV2ServiceStatus.ConcurrencyConflict => ProblemResponse(412, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
+            SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
+            SurveyV2ServiceStatus.OperatorNotFound => ProblemResponse(404, ApiErrorCodes.IdentityUserNotFound, "Operator not found"),
+            SurveyV2ServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.SurveyInvalidStateTransition, "Survey task transition is not allowed"),
+            _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Survey task validation failed")
+        };
+    }
+
     private bool TryGetActor(out Guid id, out UserRoleCode role)
     {
         id = Guid.Empty; role = UserRoleCode.Unknown;

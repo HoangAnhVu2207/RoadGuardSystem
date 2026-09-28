@@ -67,6 +67,84 @@ public sealed class SurveyV2Service : ISurveyV2Service
         return new(SurveyV2ServiceStatus.Success, Task: ToTask(task));
     }
 
+    public async Task<SurveyTaskPageV2ResponseDto?> ListMyTasksAsync(Guid actorUserId, UserRoleCode role, string? cursor, int? limit, CancellationToken cancellationToken = default)
+    {
+        if (actorUserId == Guid.Empty || role != UserRoleCode.DroneOperator) return null;
+        var pageSize = limit ?? 50;
+        if (pageSize is < 1 or > 100) return null;
+        try
+        {
+            var page = await _repository.ListMyTasksAsync(actorUserId, cursor, pageSize, cancellationToken);
+            return new(page.Items.Select(item => ToTask(item)!).ToArray(), page.NextCursor, page.AsOf);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    public Task<SurveyV2ServiceResult> AcceptTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
+        => MutateTaskAsync(actorUserId, role, taskId, "accept", null, null, null, null, idempotencyKey, expectedVersion, correlationId, cancellationToken);
+
+    public Task<SurveyV2ServiceResult> DeclineTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, SurveyTaskReasonV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
+        => MutateTaskAsync(actorUserId, role, taskId, "decline", request?.Reason, null, null, null, idempotencyKey, expectedVersion, correlationId, cancellationToken);
+
+    public Task<SurveyV2ServiceResult> CancelTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, SurveyTaskReasonV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
+        => MutateTaskAsync(actorUserId, role, taskId, "cancel", request?.Reason, null, null, null, idempotencyKey, expectedVersion, correlationId, cancellationToken);
+
+    public Task<SurveyV2ServiceResult> ReassignTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, ReassignSurveyTaskV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
+        => MutateTaskAsync(actorUserId, role, taskId, "reassign", request?.Reason, request?.OperatorId, request?.DueAt, null, idempotencyKey, expectedVersion, correlationId, cancellationToken);
+
+    public Task<SurveyV2ServiceResult> RequestSupplementAsync(Guid actorUserId, UserRoleCode role, Guid taskId, SupplementSurveyTaskV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
+    {
+        if (request is null) return Task.FromResult(new SurveyV2ServiceResult(SurveyV2ServiceStatus.InvalidInput));
+        return MutateTaskAsync(actorUserId, role, taskId, "supplement", request.Reason, request.OperatorId, null, JsonSerializer.Serialize(request.Scope), idempotencyKey, expectedVersion, correlationId, cancellationToken);
+    }
+
+    private async Task<SurveyV2ServiceResult> MutateTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, string operation, string? reason, Guid? operatorId, DateTimeOffset? dueAt, string? scopeJson, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken)
+    {
+        if (actorUserId == Guid.Empty || taskId == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(SurveyV2ServiceStatus.InvalidInput);
+        var task = await _repository.GetTaskAsync(taskId, cancellationToken);
+        if (task is null) return new(SurveyV2ServiceStatus.NotFound);
+        var operatorOperation = operation is "accept" or "decline";
+        if (operatorOperation)
+        {
+            if (role != UserRoleCode.DroneOperator || task.OperatorId != actorUserId) return new(SurveyV2ServiceStatus.Forbidden);
+        }
+        else
+        {
+            if (role != UserRoleCode.ProjectManager || !await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
+        }
+
+        if (operation is "decline" or "cancel" or "reassign" or "supplement" && string.IsNullOrWhiteSpace(reason)) return new(SurveyV2ServiceStatus.InvalidInput);
+        if (operation is "reassign" or "supplement" && (!operatorId.HasValue || operatorId == Guid.Empty)) return new(SurveyV2ServiceStatus.InvalidInput);
+        if (operation == "supplement")
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(scopeJson) || !ValidScope(JsonSerializer.Deserialize<IReadOnlyList<BandScopeDto>>(scopeJson) ?? [])) return new(SurveyV2ServiceStatus.InvalidInput);
+            }
+            catch (JsonException)
+            {
+                return new(SurveyV2ServiceStatus.InvalidInput);
+            }
+        }
+
+        var fingerprint = Fingerprint($"{operation}|{taskId:N}|{reason}|{operatorId:N}|{dueAt:O}|{scopeJson}|{expectedVersion}");
+        var result = await _repository.MutateTaskAsync(new(actorUserId, taskId, operation, reason, operatorId, dueAt, scopeJson, expectedVersion.Trim().Trim('"'), idempotencyKey, fingerprint, correlationId), cancellationToken);
+        return result.Status switch
+        {
+            SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, Task: ToTask(result.Task)),
+            SurveyV2PersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, Task: ToTask(result.Task)),
+            SurveyV2PersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound),
+            SurveyV2PersistenceStatus.ConcurrencyConflict => new(SurveyV2ServiceStatus.ConcurrencyConflict),
+            SurveyV2PersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict),
+            SurveyV2PersistenceStatus.OperatorNotFound => new(SurveyV2ServiceStatus.OperatorNotFound),
+            SurveyV2PersistenceStatus.InvalidInput => new(SurveyV2ServiceStatus.InvalidInput),
+            _ => new(SurveyV2ServiceStatus.Conflict)
+        };
+    }
+
     private async Task<bool> InScope(Guid actor, UserRoleCode role, Guid project, CancellationToken token) => await _scopeGuard.AuthorizeAsync(actor, role, project, token) is not null;
     private static bool IsManager(Guid id, UserRoleCode role) => id != Guid.Empty && role == UserRoleCode.ProjectManager;
     private static bool TryType(string value, out SurveyType type) { type = value?.Trim().ToUpperInvariant() switch { "BASELINE" => SurveyType.Original, "PERIODIC" => SurveyType.Periodic, "AD_HOC" => SurveyType.Supplementary, _ => SurveyType.Unknown }; return type != SurveyType.Unknown; }

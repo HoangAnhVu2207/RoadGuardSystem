@@ -1,5 +1,17 @@
 # V2-P2-003 — Nhập GPX/tim và width
 
+## V2(3) status
+
+- decisionRefs: D17
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: REVIEWED
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: ordered points/GPX, CRS and route version
+
+
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/projects/{projectId}/route-drafts`; operationId `createRouteDraft`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
@@ -9,7 +21,7 @@
 
 ## 1. Cần làm và tại sao
 
-Nhập GPX/tim và width. Nhập GPX/tim và width Điều kiện chưa chốt: Q13.
+Nhập GPX/tim hoặc ordered points và width; lưu CRS/source/route version. D17/D21 đã chọn hướng; bytes GPX và calibration thực tế vẫn là dữ liệu cần kiểm.
 
 Đầu ra: một endpoint thật có response theo schema, kiểm quyền và dữ liệu bền vững phù hợp. API này phục vụ FR-05, FR-06; FE có thể gọi riêng bằng HTTP và xác minh kết quả.
 
@@ -19,7 +31,7 @@ Chỉ triển khai hoặc sửa phần thiếu của operation này. Tái dùng 
 
 Đọc `AGENTS.md`, `.agents/rules/roadguard.md`, ba skill endpoint-delivery/persistence/test-selection và ADR hiện hành trước khi coding. Đối chiếu task với source/migration/test hiện có; nếu khác bản plan, ghi current/proposed delta và xử lý theo chỉ dẫn repo/user.
 
-**Gate:** Q13.
+**Gate:** D17/D21; UNKNOWN CRS/order phải dừng import, không đoán.
 Gate áp dụng đúng phần hành vi còn mở. Có thể làm scaffolding/test phần đã chốt, nhưng không đánh Done toàn task hoặc bật hành vi chưa duyệt.
 
 **API liên quan / phụ thuộc tích hợp:** Không có dependency API cứng được chỉ định; seed trực tiếp fixture hợp lệ để test độc lập..

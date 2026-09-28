@@ -987,3 +987,7 @@ Một User Story chỉ được xem là hoàn thành khi:
 | Lỗi gõ “từিসে chối”, “Supervisor từ chức” | Sửa biên tập | “từ chối”; không đổi nghiệp vụ |
 
 Các story US-01/05/06/07/09/10/15/16/17/18/19/27 giữ phần không bị thay đổi; ghi chú chung R3 áp dụng phạm vi quyền/offline. Nguồn User Story cũ và Research RS01–RS06 không bị xóa. Chưa chạy acceptance test; không đánh dấu bất kỳ story mới là Done. Công bố từng phần, gộp 1–2 m, mở lại case Supervisor, Q01 và tiêu chí SRT còn chờ chốt, không tự coi Then đề xuất là yêu cầu đã duyệt.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

@@ -35,3 +35,7 @@ Chưa có source code, actual response samples, deployment hostname, auth provid
 ## REVIEW-01 provenance
 
 Manifest nguồn original mô tả input trước review. Canonical/snapshot hiện được sửa có chủ đích ở auth401 và info.version; hash mới trong contracts/contract.lock.json và báo cáo review. Không dùng hash nguồn cũ để chứng nhận contract hiện hành.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

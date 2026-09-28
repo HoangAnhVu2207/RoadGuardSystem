@@ -2909,8 +2909,10 @@ paths:
       x-fr:
       - FR-15
       x-readiness: CONDITIONAL
-      description: 'Vai trò PM activate là đề xuất; fail closed POLICY_NOT_CONFIGURED trước khi Q02/Q03 chốt; không tự thêm
-        Supervisor gate. Điều kiện chưa chốt: Q02/Q03.'
+      description: 'Supervisor ban hành khung công ty; PM activate trong giới hạn khung và project profile. Fail closed POLICY_NOT_CONFIGURED khi thiếu hồ sơ/ngưỡng kỹ thuật; không thêm duyệt từng sửa Fast Track. D03 đã chốt quyền, D04/E vẫn yêu cầu căn cứ method.'
+      x-open-decisions:
+      - D03
+      - D04
       responses:
         '200':
           description: Thành công; trạng thái nghiệp vụ ở payload.
@@ -5318,8 +5320,10 @@ paths:
       x-fr:
       - FR-29
       x-readiness: PROPOSED_CONTRACT
-      description: Không public network mặc định; service token audience/attempt binding; dedup callback; raw+schema+checksum
-        kiểm trước publish result.
+      description: 'Không public network mặc định; service identity audience/attempt binding; dedup callback; raw+schema+checksum kiểm trước ingest. Callback không phải FE endpoint và không cấp quyền ghi nghiệp vụ trực tiếp. PM trigger pipeline; artifact VERIFIED mới cho phép bước matching.'
+      x-open-decisions:
+      - D12
+      - D13
       responses:
         '200':
           description: Thành công; trạng thái nghiệp vụ ở payload.
@@ -8820,7 +8824,7 @@ components:
       required:
       - publicMessage
       - afterFileIds
-      description: Chỉ toàn case Verified đủ điều kiện nền; partial publication Q08 chưa hỗ trợ.
+      description: PM có thể công bố từng defect đã đạt cho đúng Reporter liên quan; public projection không lộ nguồn khác. Case tổng vẫn có thể mở. D10 yêu cầu Report-Defect mapping và quyền xem riêng.
     EmergencyCreate:
       type: object
       additionalProperties: false
@@ -9286,7 +9290,7 @@ components:
             maximum: 1
           minItems: 4
           maxItems: 4
-          description: '[x,y,width,height] normalized; server also checks x+w<=1,y+h<=1.'
+          description: '[x,y,width,height] normalized; server also checks x+w<=1,y+h<=1. Happy-path fixture dùng [0.1,0.2,0.3,0.4]; [1,1,1,1] chỉ là negative geometry.'
         estimatedPosition:
           $ref: '#/components/schemas/Position'
       required:

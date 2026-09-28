@@ -1,5 +1,17 @@
 # V2-P1-058 — Bắt đầu lần sửa đủ quyền
 
+## V2(3) status
+
+- decisionRefs: D08
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: PROPOSED_DELTA
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: BEFORE durability and curing/traffic states
+
+
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/repair-attempts`; operationId `startRepairAttempt`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.

@@ -57,3 +57,7 @@ Bàn giao diff, migration/recovery, dependencies và phần còn blocked.
 ## 7. Gắn vào bộ tài liệu đã sắp xếp
 
 Trong `RoadGuard_Docs/README.md`, thêm liên kết đến `09_Frontend/01_FE_Scope_Implementation_Guide.md` và các mục02–13. Không cần đổi tên các file đã bàn giao trước. Nếu bạn chưa chạy lệnh sắp xếp cũ, vẫn dùng được gói này độc lập vì mọi link nội bộ là relative và contracts có snapshot nguồn. Manifest của gói FE là manifest riêng, không sửa manifest gói BA cũ.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

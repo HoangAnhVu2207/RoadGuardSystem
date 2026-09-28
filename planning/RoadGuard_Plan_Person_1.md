@@ -1,5 +1,7 @@
 # RoadGuard execution plan — Person 1
 
+> **V2(3) overlay (2026-09-28):** Apply [the decision register](V2/V2-3_DECISION_REGISTER.md). D01-D28 are business decisions, not proof of implementation. Each V2 task must carry contract/implementation/verification status separately; reopened, partial publication, handover, BEFORE incident, curing and traffic release are backlog capabilities until their contracts are reviewed.
+
 Owner: Person 1 (`anh`, endpoint/API primary). Baseline: 16/09/2026; lightweight endpoint workflow adopted 20/09/2026.
 
 This is one of exactly two execution plans. Historical `Done` rows and their worklogs are immutable evidence. New work follows `AGENTS.md`: show scope first, wait for the owner's approval in the same session, then implement one small slice. A blocked product task may coexist with an owner-approved tooling task only when their exclusive files do not overlap.

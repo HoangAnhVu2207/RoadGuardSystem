@@ -1,5 +1,17 @@
 # V2-P1-045 — Cho policy sẵn dùng
 
+## V2(3) status
+
+- decisionRefs: D03
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: REVIEWED
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: activation stays fail-closed when technical basis is missing
+
+
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/policy-versions/{policyVersionId}/activate`; operationId `activatePolicyVersion`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
@@ -9,7 +21,7 @@
 
 ## 1. Cần làm và tại sao
 
-Cho policy sẵn dùng. Vai trò PM activate là đề xuất; fail closed POLICY_NOT_CONFIGURED trước khi Q02/Q03 chốt; không tự thêm Supervisor gate. Điều kiện chưa chốt: Q02/Q03.
+Cho policy sẵn dùng. Supervisor ban hành khung công ty; PM activate trong giới hạn khung và project profile. Fail closed POLICY_NOT_CONFIGURED khi thiếu hồ sơ/ngưỡng kỹ thuật; không thêm duyệt từng sửa Fast Track. D03-D04 đã chốt boundary, phần căn cứ method vẫn là gate.
 
 Đầu ra: một endpoint thật có response theo schema, kiểm quyền và dữ liệu bền vững phù hợp. API này phục vụ FR-15; FE có thể gọi riêng bằng HTTP và xác minh kết quả.
 
@@ -46,7 +58,7 @@ Mã lỗi HTTP trong draft: `400`, `401`, `403`, `404`, `409`, `412`, `413`, `41
 ## 4. Làm như thế nào
 
 1. Đối chiếu `activatePolicyVersion` với route/service hiện tại và ghi kết luận reuse/extend/new trong worklog. Kiểm tra migration snapshot trước thiết kế bảng. Model ứng viên: PolicyVersion và snapshot: cần xác minh implementation.
-2. Policy đã dùng phải bất biến; task tham chiếu version cụ thể, không tự chuyển sang policy mới nhất. Quyền activate và rule evaluation phải theo quyết định Q02/Q03.
+2. Policy đã dùng phải bất biến; task tham chiếu version cụ thể, không tự chuyển sang policy mới nhất. Quyền activate và rule evaluation kiểm khung Supervisor, giới hạn project và hồ sơ method; thiếu dữ liệu trả POLICY_NOT_CONFIGURED.
 3. Controller nhận DTO/headers, gọi service qua interface; service điều phối invariant và authorization; repository chịu query/transaction. Không trả EF entity ra API. Đặt validation field rõ để FE map lỗi.
 4. Với mutation, chốt ranh giới transaction giữa business data, idempotency receipt, audit và outbox cần thiết. Rollback không để effect một phần. Với GET, không gây business mutation; projection chỉ chứa field được phép.
 5. Nếu operation khai báo If-Match, dùng strong ETag theo version; thiếu trả 428, stale trả 412 theo contract. Nếu khai báo Idempotency-Key, cùng key+payload phải replay kết quả, khác payload phải conflict; không tạo effect lần hai. Không ép header này lên operation không khai báo.

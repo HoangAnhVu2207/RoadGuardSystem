@@ -1,6 +1,10 @@
-# RoadGuard — kế hoạch giao việc theo API V2
+# RoadGuard — kế hoạch giao việc theo API V2(3)
 
-Bản phân công ngày 2026-09-27: **133 task = 133 operation**, Person 1 (anh): **71**, Person 2 (huy): **62**. Mỗi task có một owner chịu trách nhiệm toàn bộ endpoint và tự test được API đó. Số task không biểu thị cùng khối lượng; chưa có ước lượng đáng tin cậy trước khi đọc source.
+Bản phân công nền ngày 2026-09-27: **133 task = 133 operation**, Person 1 (anh): **71**, Person 2 (huy): **62**. V2(3) giữ các ID này làm baseline, không coi 133 là trần. Mỗi task có một owner chịu trách nhiệm toàn bộ endpoint và tự test được API đó. Số task không biểu thị cùng khối lượng; chưa có ước lượng đáng tin cậy trước khi đọc source.
+
+## Overlay rà soát 2026-09-28
+
+Đọc [decision register V2(3)](V2-3_DECISION_REGISTER.md) trước khi nhận task. Register áp dụng D01-D28, tách `contractStatus`, `implementationStatus`, `verificationStatus`, `dependencyType` và `workstream`, đồng thời ghi backlog ngoài 133. Đây là **overlay planning**, không phải ZIP đầy đủ docs; canonical design nằm ở `docs/diagram/V2`.
 
 ## Cách đưa vào dự án
 
@@ -39,11 +43,13 @@ Mỗi API một owner; controller chung, DTO/common errors, DI, DbContext, mappi
 
 ## Gate bắt buộc
 
-- Q02/Q03: policy activate/quy tắc Fast Track chưa chốt; fail closed, không tự thêm Supervisor gate.
+- Q02: khung công ty và quyền PM đã được quyết định; Q03 vẫn cần hồ sơ/ngưỡng kỹ thuật theo method. Fail closed khi thiếu căn cứ, không tự thêm duyệt từng sửa Fast Track.
 - Q04/Q17: conflict đổi đội và dữ liệu còn trên máy khi tài khoản bị khóa. Core revoke/dedup/durability vẫn test được; E2E rescue/conflict chưa thể nghiệm thu.
 - BR-10: gom tuần là đề xuất; BR-09 core của FR-16 vẫn tách được.
-- Sync chỉ ba kind hiện có; FAST_TRACK_EVALUATE là NOT_ENABLED proposal. Chưa được bật chỉ vì có tài liệu offline mô tả.
+- Sync phải mô tả đầy đủ INSPECTION_SUBMIT -> FAST_TRACK_EVALUATE -> REPAIR_START -> REPAIR_SUBMIT; tên kind mới chưa phải runtime support cho tới khi schema, ordering, replay và fixture được duyệt.
 - Retention/legal hold, Q10/Q11/Q12/Q13/Q14/Q18 và GAP01: áp dụng gate chi tiết trong task. Không tự chọn TTL, threshold, approval hoặc delete rule.
+
+Q07/Q08, Q09/33A, Q10/Q12/Q13/34A, Q11 và Q14 được crosswalk theo ý nghĩa trong register; không đóng gate chỉ vì số câu trùng nhau.
 
 ## Kiểm thử và Done
 

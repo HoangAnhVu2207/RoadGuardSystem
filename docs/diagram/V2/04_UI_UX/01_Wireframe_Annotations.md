@@ -86,3 +86,7 @@ Không dùng màu đơn độc để truyền đạt trạng thái. Label tiến
 ## 12.6 Kiểm chứng thiết kế
 
 PO/UX walkthrough WF-05→06→08 cho Fast Track; WF-05→07→08 cho gom đợt; WF-09 cho thiếu telemetry; WF-03→04→08 cho Reporter; WF-11 qua restart/offline. QA kiểm TC-F01–37, các TC-A tương ứng và UAT-01–12. Mọi field mới không tìm thấy DD ghi đề xuất schema trong CR, không tự mở rộng backend scope. Chi tiết hiển thị/bố cục là đề xuất; quy tắc nguồn vẫn là chuẩn.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

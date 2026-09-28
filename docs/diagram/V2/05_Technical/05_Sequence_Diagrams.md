@@ -211,3 +211,7 @@ sequenceDiagram
 | Xóa tệp approved nhưng hold xuất hiện | Chặn trước effect; không coi approve là execute | Recheck hold trong serialization/lock quyết định delete, fail BLOCKED; object version/backup theo retention |
 
 Để tránh race hold-vs-delete, job và API hold phải dùng cùng khóa/transaction trạng thái deletion gate; chỉ authorization cấp deletion lease khi không hold. Chính sách khả năng phục hồi object sau effect cần Ops/P2 chốt; không hứa rollback physical delete bằng SQL rollback. Không có sequence thanh toán vì thanh toán không thuộc scope RoadGuard.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

@@ -53,6 +53,10 @@ Role không đủ để cấp quyền một hành động. Backend còn phải k
 
 ## 3. Cấu trúc và mục lục
 
+### AI service handoff
+
+Contract riêng cho AI engineer nằm tại [AI_Integration](AI_Integration/README.md). Đây là service-to-service proposal, không phải public BE API và không thay thế `receiveAiResult` trong canonical BE OpenAPI.
+
 | Thư mục | Nội dung | Người dùng chính |
 |---|---|---|
 | `01_Overview` | Bối cảnh và mô tả dự án | Tất cả |
@@ -64,6 +68,7 @@ Role không đủ để cấp quyền một hành động. Backend còn phải k
 | `07_Change_Management` | Đề nghị thay đổi và lịch sử use case | BA, PO, BE, FE |
 | `08_Delivery` | Chỉ mục/kiểm tra cũ, manifest và báo cáo sắp xếp | Người bàn giao/review |
 | `09_Frontend` | FE integration, offline, types, config, fixtures và tests | FE, mobile, BE tích hợp |
+| `AI_Integration` | FastAPI dispatch/poll/cancel/matching, callback receipt, schemas và fixtures | AI engineer, P2 adapter, BE integration |
 
 ### 01–04. Tổng quan, yêu cầu, dữ liệu và giao diện
 

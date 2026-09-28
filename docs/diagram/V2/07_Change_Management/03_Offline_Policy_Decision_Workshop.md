@@ -33,3 +33,7 @@ Chỉ sau quyết định approved, contract cập nhật và tests pass mới g
 | Retention matrix | Có thể mở rộng sau, nhưng thời hạn giữ/xóa evidence, legal hold và dedup ledger cần chốt trước release các chức năng liên quan. Không xếp toàn bộ retention vào backlog xanh nếu app đã dọn/xóa hoặc retry muộn |
 | Route track drone | Đã có GAP-02; tạo FR riêng khi Q14/Q15/Q18 và phạm vi Sprint2 chốt. Không tự thêm vào Sprint1 |
 | US-10 duyệt nhãn | GAP-01/CR-017 đã có. Chốt bổ sung trace vào FR-36 hay FR riêng; không tự tạo FR-38 khi PO chưa chọn cách quản lý scope |
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

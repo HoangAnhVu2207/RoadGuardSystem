@@ -1,5 +1,17 @@
 # V2-P2-018 — Xác nhận điểm tiếp cận
 
+## V2(3) status
+
+- decisionRefs: D16
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: REVIEWED
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: destination is distinct from route centerline
+
+
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `PUT /api/v1/survey-tasks/{taskId}/access-point`; operationId `setSurveyAccessPoint`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
@@ -9,7 +21,7 @@
 
 ## 1. Cần làm và tại sao
 
-Xác nhận điểm tiếp cận. Xác nhận điểm tiếp cận Điều kiện chưa chốt: Q12.
+Xác nhận điểm tiếp cận do PM đặt/kéo ghim/nhập; Crew/Operator chỉ đề nghị chỉnh. Destination là điểm riêng, không phải route centerline. D16 đã chốt hướng.
 
 Đầu ra: một endpoint thật có response theo schema, kiểm quyền và dữ liệu bền vững phù hợp. API này phục vụ FR-32; FE có thể gọi riêng bằng HTTP và xác minh kết quả.
 
@@ -19,7 +31,7 @@ Chỉ triển khai hoặc sửa phần thiếu của operation này. Tái dùng 
 
 Đọc `AGENTS.md`, `.agents/rules/roadguard.md`, ba skill endpoint-delivery/persistence/test-selection và ADR hiện hành trước khi coding. Đối chiếu task với source/migration/test hiện có; nếu khác bản plan, ghi current/proposed delta và xử lý theo chỉ dẫn repo/user.
 
-**Gate:** Q12.
+**Gate:** D16; lưu source và actor, không suy từ GPS lỗi.
 Gate áp dụng đúng phần hành vi còn mở. Có thể làm scaffolding/test phần đã chốt, nhưng không đánh Done toàn task hoặc bật hành vi chưa duyệt.
 
 **API liên quan / phụ thuộc tích hợp:** [V2-P2-012 — getSurveyTask](../Person_2/V2-P2-012_getSurveyTask.md).

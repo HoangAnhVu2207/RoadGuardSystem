@@ -1,5 +1,7 @@
 # RoadGuard execution plan — Person 2
 
+> **V2(3) overlay (2026-09-28):** Apply [the decision register](V2/V2-3_DECISION_REGISTER.md). P2 owns persistence and BE-AI adapter boundaries for its endpoint slices, not external FastAPI/Android/Web implementation. Segment/video↔telemetry mapping, offline evaluation ordering, artifact provenance and retention execution remain explicit contract/integration gates.
+
 Owner: Person 2 (`huy`, data/integration/operations primary). Baseline: 16/09/2026; lightweight endpoint workflow adopted 20/09/2026.
 
 This is one of exactly two execution plans. Historical `Done` rows and their worklogs are immutable evidence. New work follows `AGENTS.md`: show scope first, wait for owner approval in the same session, then implement one small slice. Person 2 owns entity shape, `DbContext`, migrations, SQL-specific verification and delivery infrastructure.

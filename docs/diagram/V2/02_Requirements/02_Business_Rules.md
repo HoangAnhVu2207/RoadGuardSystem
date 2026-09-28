@@ -421,3 +421,7 @@ Dùng cùng danh sách Q01–Q18 tại RoadGuard_Mo_Ta_Chi_Tiet_Du_An.md §21. C
 ## 6. Quản lý thay đổi
 
 Thay BR phải ghi nguồn quyết định, phiên bản trước/sau, đối tượng bị ảnh hưởng và hiệu lực. Không đánh giá lại lịch sử bằng policy mới rồi ghi đè kết luận cũ. RoadGuard_UseCase_Change_Log.md là log bàn giao P1/P2; tài liệu này là sổ luật hiện hành trong thiết kế mục tiêu, không thay worklog backend.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

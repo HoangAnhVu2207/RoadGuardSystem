@@ -1,5 +1,17 @@
 # V2-P2-010 — Định nghĩa tấm thật/dự kiến
 
+## V2(3) status
+
+- decisionRefs: none
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: PROPOSED_CONTRACT
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: Confirm current source and preserve compatibility before implementation.
+
+
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/projects/{projectId}/slabs`; operationId `createSlab`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
@@ -9,7 +21,7 @@
 
 ## 1. Cần làm và tại sao
 
-Định nghĩa tấm thật/dự kiến. Định nghĩa tấm thật/dự kiến Điều kiện chưa chốt: Q10/Q18.
+Định nghĩa tấm thật/dự kiến với nhãn provisional khi thiếu hồ sơ. Không mặc định mọi tấm dài 4m và không bắt Report phải có slab. D14 đã chốt hướng; độ chính xác dữ liệu vẫn là gate riêng.
 
 Đầu ra: một endpoint thật có response theo schema, kiểm quyền và dữ liệu bền vững phù hợp. API này phục vụ FR-10; FE có thể gọi riêng bằng HTTP và xác minh kết quả.
 
@@ -19,7 +31,7 @@ Chỉ triển khai hoặc sửa phần thiếu của operation này. Tái dùng 
 
 Đọc `AGENTS.md`, `.agents/rules/roadguard.md`, ba skill endpoint-delivery/persistence/test-selection và ADR hiện hành trước khi coding. Đối chiếu task với source/migration/test hiện có; nếu khác bản plan, ghi current/proposed delta và xử lý theo chỉ dẫn repo/user.
 
-**Gate:** Q10; Q18.
+**Gate:** D14; Q18 chỉ là phase/coverage gate, không đóng mọi subflow.
 Gate áp dụng đúng phần hành vi còn mở. Có thể làm scaffolding/test phần đã chốt, nhưng không đánh Done toàn task hoặc bật hành vi chưa duyệt.
 
 **API liên quan / phụ thuộc tích hợp:** Không có dependency API cứng được chỉ định; seed trực tiếp fixture hợp lệ để test độc lập..

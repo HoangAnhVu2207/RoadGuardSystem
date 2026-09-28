@@ -178,12 +178,12 @@ JSON Schema kiểm shape/type/basic range; application service/DB kiểm nghiệ
 
 1. Mọi ID trong command cùng project/context/version hợp lệ; FK tồn tại chưa đủ. Reporter không tự chọn role/project membership/ownerId. PM không cập nhật tài khoản Supervisor qua project API.
 2. INSPECT_AND_REPAIR phải có policy áp dụng, một lỗi nhỏ nằm phạm vi được giao, PM block=false, đủ phép đo/BEFORE; batch nhiều lỗi luôn MEASURE_ONLY. `Evaluation.ELIGIBLE` không ghi đè task mode hoặc assignment.
-3. Item APPROVAL_TRACK phải có Defect VERIFIED, evidence và decision APPROVE trước giao thi công. Fast Track không buộc PM VERIFIED/duyệt từng số đo trước sửa.
+3. Item APPROVAL_TRACK phải có Defect VERIFIED, evidence và decision APPROVE trước giao thi công. Fast Track không buộc PM VERIFIED/duyệt từng số đo trước sửa; đợt gom ban đầu chỉ đo, sau đó PM tạo/giao nhánh sửa riêng theo policy đã được Supervisor ban hành.
 4. `ReviewAttempt.ACCEPT` bởi PM: Fast Track đóng theo thẩm quyền + outbox thông báo; APPROVAL_TRACK chỉ ghi PM kiểm đạt, chưa phải nghiệm thu Supervisor. Payload `RepairAttempt.status` là trạng thái aggregate attempt, **không suy ra item/case đã đóng**; đọc acceptanceStatus/branch. Endpoint acceptance Supervisor từ chối dùng cho FT.
 5. Thiếu BEFORE trước sửa chặn app bắt đầu; nếu thực tế đã sửa rồi mất BEFORE thì giữ ngoại lệ Q06, không upload AFTER rồi gắn BEFORE để qua validate. AFTER chưa VERIFIED thì submit chính thức chưa thành công.
 6. REJECT proposal giữ Defect mở; công bố toàn case cần điều kiện nền Case Verified + phần bắt buộc đạt + PM chọn ảnh. Không hỗ trợ partial publication/reopen khi Q07/08 chưa chốt.
 7. Vị trí SRT, quality và coverage là ba trạng thái riêng; baseline chỉ cặp segment/band đủ điều kiện. No detections không tự NO_DEFECT hoặc đủ coverage.
-8. Job/result phải khớp dataset/manifest/model/config/scope; old attempt không thay kết quả current. Callback service chỉ được đúng job/attempt, không quyền ghi Defect chính thức.
+8. Job/result phải khớp dataset/manifest/model/config/scope; old attempt không thay kết quả current. Callback service chỉ được đúng job/attempt, không quyền ghi Defect chính thức. Upload không tự chạy AI: PM trigger VIDEO_ANALYSIS, artifact VERIFIED mới mở DUPLICATE_MATCHING; PM quyết định gộp/tách/giữ qua BE.
 9. `periodFrom < periodTo`, `endMeters > startMeters`, ranh segment không hở/chồng; bề rộng phải dương; SRID nguồn/metric có căn cứ. GeoJSON luôn WGS84, không đổi nhãn để giả transform.
 10. Hold kiểm tại lúc đề nghị/duyệt và ngay trước xóa. Duyệt xóa không đồng nghĩa object đã xóa; job lỗi giữ trạng thái/audit và retry có kiểm.
 

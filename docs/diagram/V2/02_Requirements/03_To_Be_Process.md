@@ -259,3 +259,7 @@ flowchart TD
 | GIỮ quyền PM chọn thứ tự | Gợi ý không tự xếp lại; PM chọn từng lỗi và Crew. |
 
 Đối chiếu chi tiết theo [UseCase](04_Use_Cases.md), [User Stories + AC](05_User_Stories_Acceptance_Criteria.md), [Data Dictionary](../03_Data/01_Data_Dictionary.md) và [log P1/P2](../07_Change_Management/02_Use_Case_Change_Log.md). Sơ đồ hỗ trợ review nghiệp vụ; không là bằng chứng hệ thống đã triển khai hoặc thử nghiệm thực địa.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

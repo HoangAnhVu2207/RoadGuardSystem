@@ -1,5 +1,9 @@
 # RoadGuard — Hồ sơ bàn giao
 
+## V2(3) review overlay — 2026-09-28
+
+The current package is a documentation overlay. D01-D28 and pilot/configuration status are recorded in `planning/V2/V2-3_DECISION_REGISTER.md`; this folder records regenerated canonical/snapshot artifacts and review evidence. Historical `*.original.*` files remain immutable. Manifest revision `V2(3)-REVIEW-02` does not claim backend, AI provider, browser/device or performance verification.
+
 Ngày 27/09/2026. README ở thư mục gốc là điểm bắt đầu cho BE/FE.
 
 | Tệp | Vai trò |

@@ -504,3 +504,7 @@ FR-* ở §3 trỏ tới US-* và BR-*. To-Be dùng PF-*; User Stories gắn FR 
 Giữ Q01–Q18 của mô tả dự án làm sổ quyết định nghiệp vụ. PERF-TBD, MAP-TBD, OPS-TBD, AI-TBD và ma trận thiết bị là thông số SRS còn mở. Không ban hành SRS “đã nghiệm thu đầy đủ” trước khi chốt các phần áp dụng. Có thể triển khai phần đã rõ theo task độc lập; không tự giải quyết điểm quyền/đóng hồ sơ còn mở bằng code.
 
 P1 sở hữu API/service/DTO; P2 schema/mapping/migration/repository; FE local queue/map/UX; AI model/adapter/validation phối hợp BE. Giữ trạng thái Done cũ, tạo delta sau đối chiếu checkout. Lần này chỉ sửa tài liệu, không cài thư viện, đổi stack, chạy model hoặc nâng cấp code.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

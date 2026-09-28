@@ -1,7 +1,7 @@
 {
-  "version": "V2-API-PLAN-01",
+  "version": "V2-API-PLAN-03",
   "source": "docs/diagram/V2/05_Technical/openapi.yaml",
-  "source_sha256": "dbde8b756bbc1bf83dabfbfe395eb11e53b378e7338815b1f3ca019aa7f3f806",
+  "source_sha256": "a98f43c662e574b37b2619b25e25b894419a0f0725c8af7e66c2c3c7e3143992",
   "tasks": [
     {
       "id": "V2-P1-001",
@@ -15,7 +15,15 @@
       "wave": 1,
       "old": "10",
       "dependencies": [],
-      "legacy_trace": "P1-10/P2-10"
+      "legacy_trace": "P1-10/P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-002",
@@ -31,7 +39,15 @@
       "dependencies": [
         "login"
       ],
-      "legacy_trace": "P1-10/P2-10"
+      "legacy_trace": "P1-10/P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-003",
@@ -47,7 +63,15 @@
       "dependencies": [
         "login"
       ],
-      "legacy_trace": "P1-10/P2-10"
+      "legacy_trace": "P1-10/P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-004",
@@ -61,7 +85,15 @@
       "wave": 2,
       "old": "10",
       "dependencies": [],
-      "legacy_trace": "P1-10/P2-10"
+      "legacy_trace": "P1-10/P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-005",
@@ -77,7 +109,15 @@
       "dependencies": [
         "login"
       ],
-      "legacy_trace": "P1-10/P2-10"
+      "legacy_trace": "P1-10/P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-006",
@@ -91,7 +131,15 @@
       "wave": 2,
       "old": "13",
       "dependencies": [],
-      "legacy_trace": "P1-13/P2-13"
+      "legacy_trace": "P1-13/P2-13",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-007",
@@ -107,7 +155,15 @@
       "dependencies": [
         "registerReporter"
       ],
-      "legacy_trace": "P1-13/P2-13"
+      "legacy_trace": "P1-13/P2-13",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-008",
@@ -123,7 +179,15 @@
       "dependencies": [
         "registerReporter"
       ],
-      "legacy_trace": "P1-13/P2-13"
+      "legacy_trace": "P1-13/P2-13",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-009",
@@ -139,7 +203,15 @@
       "dependencies": [
         "createInvitation"
       ],
-      "legacy_trace": "P1-10/P2-10"
+      "legacy_trace": "P1-10/P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-010",
@@ -153,7 +225,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-011",
@@ -167,7 +247,15 @@
       "wave": 1,
       "old": "11",
       "dependencies": [],
-      "legacy_trace": "P1-11 / P2-10"
+      "legacy_trace": "P1-11 / P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-012",
@@ -183,7 +271,15 @@
       "dependencies": [
         "getMe"
       ],
-      "legacy_trace": "P1-11 / P2-10"
+      "legacy_trace": "P1-11 / P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-013",
@@ -199,7 +295,15 @@
       "dependencies": [
         "getAccount"
       ],
-      "legacy_trace": "P1-11 / P2-10"
+      "legacy_trace": "P1-11 / P2-10",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-014",
@@ -217,7 +321,17 @@
       "dependencies": [
         "getAccount"
       ],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q17 (rescue offline)"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-015",
@@ -231,7 +345,15 @@
       "wave": 1,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-001",
@@ -245,7 +367,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-002",
@@ -261,7 +391,15 @@
       "dependencies": [
         "getNotification"
       ],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-016",
@@ -275,7 +413,15 @@
       "wave": 1,
       "old": "20",
       "dependencies": [],
-      "legacy_trace": "P1-20/P2-20"
+      "legacy_trace": "P1-20/P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-017",
@@ -289,7 +435,15 @@
       "wave": 2,
       "old": "20",
       "dependencies": [],
-      "legacy_trace": "P1-20/P2-20"
+      "legacy_trace": "P1-20/P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-018",
@@ -303,7 +457,15 @@
       "wave": 1,
       "old": "20",
       "dependencies": [],
-      "legacy_trace": "P1-20/P2-20"
+      "legacy_trace": "P1-20/P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-019",
@@ -319,7 +481,15 @@
       "dependencies": [
         "getProject"
       ],
-      "legacy_trace": "P1-20/P2-20"
+      "legacy_trace": "P1-20/P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-020",
@@ -335,7 +505,15 @@
       "dependencies": [
         "getProject"
       ],
-      "legacy_trace": "P1-24 / P2-53 (open-work persistence)"
+      "legacy_trace": "P1-24 / P2-53 (open-work persistence)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-021",
@@ -351,7 +529,15 @@
       "dependencies": [
         "getProject"
       ],
-      "legacy_trace": "P1-12, P1-20 / P2-11, P2-20"
+      "legacy_trace": "P1-12, P1-20 / P2-11, P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-022",
@@ -365,7 +551,15 @@
       "wave": 2,
       "old": "20",
       "dependencies": [],
-      "legacy_trace": "P1-20/P2-20"
+      "legacy_trace": "P1-20/P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-023",
@@ -381,7 +575,15 @@
       "dependencies": [
         "getProject"
       ],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-003",
@@ -397,7 +599,22 @@
       "wave": 2,
       "old": "21",
       "dependencies": [],
-      "legacy_trace": "P1-21/P2-21"
+      "legacy_trace": "P1-21/P2-21",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q13"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D17",
+        "D21"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-004",
@@ -411,7 +628,15 @@
       "wave": 2,
       "old": "20",
       "dependencies": [],
-      "legacy_trace": "P1-20/P2-20"
+      "legacy_trace": "P1-20/P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-005",
@@ -429,7 +654,21 @@
       "dependencies": [
         "getRouteVersion"
       ],
-      "legacy_trace": "P1-21/P2-21"
+      "legacy_trace": "P1-21/P2-21",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q13"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D21"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-006",
@@ -445,7 +684,15 @@
       "dependencies": [
         "getRouteVersion"
       ],
-      "legacy_trace": "P1-21/P2-21"
+      "legacy_trace": "P1-21/P2-21",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-007",
@@ -461,7 +708,20 @@
       "dependencies": [
         "getRouteVersion"
       ],
-      "legacy_trace": "P1-21/P2-21"
+      "legacy_trace": "P1-21/P2-21",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-008",
@@ -477,7 +737,15 @@
       "dependencies": [
         "getSegmentSet"
       ],
-      "legacy_trace": "P1-21/P2-21"
+      "legacy_trace": "P1-21/P2-21",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-009",
@@ -493,7 +761,17 @@
       "wave": 2,
       "old": "21",
       "dependencies": [],
-      "legacy_trace": "P1-21/P2-21"
+      "legacy_trace": "P1-21/P2-21",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q18"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-010",
@@ -510,7 +788,18 @@
       "wave": 2,
       "old": "21",
       "dependencies": [],
-      "legacy_trace": "P1-21/P2-21"
+      "legacy_trace": "P1-21/P2-21",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q10",
+        "Q18"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-024",
@@ -524,7 +813,15 @@
       "wave": 3,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-025",
@@ -538,7 +835,15 @@
       "wave": 3,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-026",
@@ -552,7 +857,15 @@
       "wave": 3,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-027",
@@ -568,7 +881,15 @@
       "dependencies": [
         "getOwnReport"
       ],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-028",
@@ -582,7 +903,15 @@
       "wave": 3,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-029",
@@ -596,7 +925,15 @@
       "wave": 3,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-030",
@@ -612,7 +949,15 @@
       "dependencies": [
         "getCase"
       ],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-031",
@@ -630,7 +975,17 @@
       "dependencies": [
         "getCase"
       ],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q09"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-032",
@@ -646,7 +1001,15 @@
       "dependencies": [
         "getCase"
       ],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-033",
@@ -662,7 +1025,19 @@
       "dependencies": [
         "getCase"
       ],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-034",
@@ -678,7 +1053,15 @@
       "dependencies": [
         "getCase"
       ],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (report/case bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-035",
@@ -692,7 +1075,15 @@
       "wave": 3,
       "old": "32",
       "dependencies": [],
-      "legacy_trace": "P1-32/P2-32"
+      "legacy_trace": "P1-32/P2-32",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-036",
@@ -706,7 +1097,15 @@
       "wave": 3,
       "old": "32",
       "dependencies": [],
-      "legacy_trace": "P1-32/P2-32"
+      "legacy_trace": "P1-32/P2-32",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-037",
@@ -720,7 +1119,15 @@
       "wave": 3,
       "old": "32",
       "dependencies": [],
-      "legacy_trace": "P1-32/P2-32"
+      "legacy_trace": "P1-32/P2-32",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-038",
@@ -736,7 +1143,15 @@
       "dependencies": [
         "getDefect"
       ],
-      "legacy_trace": "P1-32/P2-32"
+      "legacy_trace": "P1-32/P2-32",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-039",
@@ -752,7 +1167,15 @@
       "dependencies": [
         "getDefect"
       ],
-      "legacy_trace": "P1-32/P2-32"
+      "legacy_trace": "P1-32/P2-32",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-040",
@@ -768,7 +1191,19 @@
       "dependencies": [
         "getDefect"
       ],
-      "legacy_trace": "P1-32/P2-32"
+      "legacy_trace": "P1-32/P2-32",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D09"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-041",
@@ -784,7 +1219,15 @@
       "dependencies": [
         "getWorkOrder"
       ],
-      "legacy_trace": "P1-60/P2-60"
+      "legacy_trace": "P1-60/P2-60",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-042",
@@ -798,7 +1241,15 @@
       "wave": 3,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-60/P2-60"
+      "legacy_trace": "P1-60/P2-60",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-043",
@@ -812,7 +1263,20 @@
       "wave": 3,
       "old": "50",
       "dependencies": [],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D03",
+        "D04"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-044",
@@ -826,7 +1290,15 @@
       "wave": 3,
       "old": "50",
       "dependencies": [],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-045",
@@ -845,7 +1317,23 @@
       "dependencies": [
         "getPolicyVersion"
       ],
-      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)"
+      "legacy_trace": "P1-HF-01 / P2-HF-01 (V2 policy bổ sung)",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q02",
+        "Q03"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D03",
+        "D04"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-046",
@@ -861,7 +1349,15 @@
       "dependencies": [
         "getPolicyVersion"
       ],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-047",
@@ -877,7 +1373,17 @@
       "wave": 4,
       "old": "40",
       "dependencies": [],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "BR-10 (gom tuần)"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-048",
@@ -891,7 +1397,15 @@
       "wave": 4,
       "old": "40",
       "dependencies": [],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-049",
@@ -907,7 +1421,15 @@
       "dependencies": [
         "getInspectionTask"
       ],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-050",
@@ -923,7 +1445,15 @@
       "dependencies": [
         "getInspectionTask"
       ],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-051",
@@ -940,7 +1470,15 @@
         "getInspectionTask",
         "getFileMetadata"
       ],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-052",
@@ -960,7 +1498,23 @@
         "submitInspection",
         "getPolicyVersion"
       ],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q03",
+        "FE-GAP-05 (offline)"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D02",
+        "D07"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-053",
@@ -974,7 +1528,15 @@
       "wave": 4,
       "old": "50",
       "dependencies": [],
-      "legacy_trace": "P1-50/P2-50"
+      "legacy_trace": "P1-50/P2-50",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-054",
@@ -990,7 +1552,15 @@
       "dependencies": [
         "getRepairPackage"
       ],
-      "legacy_trace": "P1-50/P2-50"
+      "legacy_trace": "P1-50/P2-50",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-055",
@@ -1006,7 +1576,15 @@
       "dependencies": [
         "getRepairItem"
       ],
-      "legacy_trace": "P1-51/P2-51"
+      "legacy_trace": "P1-51/P2-51",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-056",
@@ -1022,7 +1600,15 @@
       "dependencies": [
         "getRepairItem"
       ],
-      "legacy_trace": "P1-52/P2-52"
+      "legacy_trace": "P1-52/P2-52",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-057",
@@ -1040,7 +1626,21 @@
       "dependencies": [
         "getRepairItem"
       ],
-      "legacy_trace": "P1-52/P2-52"
+      "legacy_trace": "P1-52/P2-52",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q04"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D05"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-058",
@@ -1060,7 +1660,23 @@
         "getRepairItem",
         "evaluateFastTrack"
       ],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q02/Q03 (Fast Track)",
+        "Q04 (đổi đội offline)"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D08",
+        "D11"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-059",
@@ -1077,7 +1693,19 @@
         "getRepairAttempt",
         "getFileMetadata"
       ],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D08"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-060",
@@ -1093,7 +1721,20 @@
       "dependencies": [
         "getRepairAttempt"
       ],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D08",
+        "D11"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-061",
@@ -1109,7 +1750,19 @@
       "dependencies": [
         "getRepairAttempt"
       ],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D11"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-062",
@@ -1125,7 +1778,17 @@
       "wave": 4,
       "old": "53",
       "dependencies": [],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q18"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-011",
@@ -1139,7 +1802,15 @@
       "wave": 3,
       "old": "23",
       "dependencies": [],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-012",
@@ -1153,7 +1824,15 @@
       "wave": 3,
       "old": "23",
       "dependencies": [],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-013",
@@ -1169,7 +1848,15 @@
       "dependencies": [
         "getSurveyTask"
       ],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-014",
@@ -1185,7 +1872,15 @@
       "dependencies": [
         "getSurveyTask"
       ],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-015",
@@ -1201,7 +1896,15 @@
       "dependencies": [
         "getSurveyTask"
       ],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-016",
@@ -1217,7 +1920,15 @@
       "dependencies": [
         "getSurveyTask"
       ],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-017",
@@ -1233,7 +1944,15 @@
       "dependencies": [
         "getSurveyTask"
       ],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-018",
@@ -1251,7 +1970,21 @@
       "dependencies": [
         "getSurveyTask"
       ],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q12"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D16"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-019",
@@ -1268,7 +2001,19 @@
         "getSurveyTask",
         "getFileMetadata"
       ],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D20"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-020",
@@ -1282,7 +2027,15 @@
       "wave": 3,
       "old": "23",
       "dependencies": [],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-021",
@@ -1300,7 +2053,17 @@
       "dependencies": [
         "getDatasetCoverage"
       ],
-      "legacy_trace": "P1-42/P2-42"
+      "legacy_trace": "P1-42/P2-42",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q11"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-022",
@@ -1317,7 +2080,18 @@
       "wave": 3,
       "old": "23",
       "dependencies": [],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q14",
+        "Q18"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-023",
@@ -1331,7 +2105,15 @@
       "wave": 2,
       "old": "30",
       "dependencies": [],
-      "legacy_trace": "P1-30/P2-30"
+      "legacy_trace": "P1-30/P2-30",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-024",
@@ -1347,7 +2129,15 @@
       "dependencies": [
         "getUploadSession"
       ],
-      "legacy_trace": "P1-30/P2-30"
+      "legacy_trace": "P1-30/P2-30",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-025",
@@ -1363,7 +2153,15 @@
       "dependencies": [
         "getUploadSession"
       ],
-      "legacy_trace": "P1-30/P2-30"
+      "legacy_trace": "P1-30/P2-30",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-026",
@@ -1377,7 +2175,15 @@
       "wave": 2,
       "old": "30",
       "dependencies": [],
-      "legacy_trace": "P1-30/P2-30"
+      "legacy_trace": "P1-30/P2-30",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-027",
@@ -1391,7 +2197,15 @@
       "wave": 1,
       "old": "30",
       "dependencies": [],
-      "legacy_trace": "P1-30/P2-30"
+      "legacy_trace": "P1-30/P2-30",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-028",
@@ -1405,7 +2219,15 @@
       "wave": 1,
       "old": "30",
       "dependencies": [],
-      "legacy_trace": "P1-30/P2-30"
+      "legacy_trace": "P1-30/P2-30",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-029",
@@ -1428,7 +2250,23 @@
         "submitRepairAttempt",
         "getInspectionSnapshot"
       ],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q04",
+        "Q17",
+        "FE-GAP-05/07/08/10"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D24"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-030",
@@ -1444,7 +2282,20 @@
       "dependencies": [
         "getDatasetCoverage"
       ],
-      "legacy_trace": "P1-31/P2-31"
+      "legacy_trace": "P1-31/P2-31",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D12",
+        "D13"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-031",
@@ -1458,7 +2309,15 @@
       "wave": 5,
       "old": "31",
       "dependencies": [],
-      "legacy_trace": "P1-31/P2-31"
+      "legacy_trace": "P1-31/P2-31",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-032",
@@ -1474,7 +2333,15 @@
       "dependencies": [
         "getProcessingJob"
       ],
-      "legacy_trace": "P1-31/P2-31"
+      "legacy_trace": "P1-31/P2-31",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-033",
@@ -1490,7 +2357,20 @@
       "dependencies": [
         "getProcessingJob"
       ],
-      "legacy_trace": "P1-31/P2-31"
+      "legacy_trace": "P1-31/P2-31",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D12",
+        "D13"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-034",
@@ -1506,7 +2386,15 @@
       "dependencies": [
         "getDatasetCoverage"
       ],
-      "legacy_trace": "P1-63/P2-63"
+      "legacy_trace": "P1-63/P2-63",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-035",
@@ -1520,7 +2408,15 @@
       "wave": 5,
       "old": "63",
       "dependencies": [],
-      "legacy_trace": "P1-63/P2-63"
+      "legacy_trace": "P1-63/P2-63",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-036",
@@ -1536,7 +2432,17 @@
       "wave": 5,
       "old": "65",
       "dependencies": [],
-      "legacy_trace": "P1-65/P2-65"
+      "legacy_trace": "P1-65/P2-65",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "GAP-01"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-037",
@@ -1550,7 +2456,15 @@
       "wave": 5,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-60/P2-60"
+      "legacy_trace": "P1-60/P2-60",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-038",
@@ -1564,7 +2478,15 @@
       "wave": 5,
       "old": "60",
       "dependencies": [],
-      "legacy_trace": "P1-60/P2-60"
+      "legacy_trace": "P1-60/P2-60",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-039",
@@ -1580,7 +2502,15 @@
       "dependencies": [
         "downloadFile"
       ],
-      "legacy_trace": "P1-61/P2-61"
+      "legacy_trace": "P1-61/P2-61",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-040",
@@ -1594,7 +2524,15 @@
       "wave": 5,
       "old": "61",
       "dependencies": [],
-      "legacy_trace": "P1-61/P2-61"
+      "legacy_trace": "P1-61/P2-61",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-041",
@@ -1608,7 +2546,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-042",
@@ -1622,7 +2568,15 @@
       "wave": 2,
       "old": "65",
       "dependencies": [],
-      "legacy_trace": "P1-65/P2-65"
+      "legacy_trace": "P1-65/P2-65",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-043",
@@ -1638,7 +2592,15 @@
       "dependencies": [
         "getModelVersion"
       ],
-      "legacy_trace": "P1-65/P2-65"
+      "legacy_trace": "P1-65/P2-65",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-044",
@@ -1654,7 +2616,15 @@
       "dependencies": [
         "getModelVersion"
       ],
-      "legacy_trace": "P1-65/P2-65"
+      "legacy_trace": "P1-65/P2-65",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-045",
@@ -1668,7 +2638,15 @@
       "wave": 2,
       "old": "65",
       "dependencies": [],
-      "legacy_trace": "P1-65/P2-65"
+      "legacy_trace": "P1-65/P2-65",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-046",
@@ -1682,7 +2660,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-047",
@@ -1696,7 +2682,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-048",
@@ -1710,7 +2704,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-049",
@@ -1726,7 +2728,15 @@
       "dependencies": [
         "getReminderConfig"
       ],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-050",
@@ -1742,7 +2752,21 @@
       "wave": 5,
       "old": "62",
       "dependencies": [],
-      "legacy_trace": "P1-62/P2-62"
+      "legacy_trace": "P1-62/P2-62",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "retention matrix"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D27"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-051",
@@ -1760,7 +2784,21 @@
       "dependencies": [
         "getDeletionRequest"
       ],
-      "legacy_trace": "P1-62/P2-62"
+      "legacy_trace": "P1-62/P2-62",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "retention matrix"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D27"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P2-052",
@@ -1774,7 +2812,19 @@
       "wave": 5,
       "old": "62",
       "dependencies": [],
-      "legacy_trace": "P1-62/P2-62"
+      "legacy_trace": "P1-62/P2-62",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [
+        "D27"
+      ],
+      "requirementRefs": [
+        "V2(3)-register"
+      ]
     },
     {
       "id": "V2-P1-063",
@@ -1788,7 +2838,15 @@
       "wave": 4,
       "old": "40",
       "dependencies": [],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-064",
@@ -1802,7 +2860,15 @@
       "wave": 4,
       "old": "53",
       "dependencies": [],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-053",
@@ -1816,7 +2882,15 @@
       "wave": 3,
       "old": "23",
       "dependencies": [],
-      "legacy_trace": "P1-23/P2-23"
+      "legacy_trace": "P1-23/P2-23",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-065",
@@ -1834,7 +2908,17 @@
       "dependencies": [
         "getInspectionTask"
       ],
-      "legacy_trace": "P1-40/P2-40"
+      "legacy_trace": "P1-40/P2-40",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "FE-GAP-07"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-066",
@@ -1852,7 +2936,17 @@
       "dependencies": [
         "getDefect"
       ],
-      "legacy_trace": "P1-32/P2-32"
+      "legacy_trace": "P1-32/P2-32",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "Q10"
+      ],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-054",
@@ -1866,7 +2960,15 @@
       "wave": 3,
       "old": "22",
       "dependencies": [],
-      "legacy_trace": "P1-22/P2-22"
+      "legacy_trace": "P1-22/P2-22",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-055",
@@ -1882,7 +2984,15 @@
       "dependencies": [
         "createSurveyPlan"
       ],
-      "legacy_trace": "P1-22/P2-22"
+      "legacy_trace": "P1-22/P2-22",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-056",
@@ -1898,7 +3008,17 @@
       "wave": 2,
       "old": "65",
       "dependencies": [],
-      "legacy_trace": "P1-65/P2-65"
+      "legacy_trace": "P1-65/P2-65",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [
+        "GAP-01"
+      ],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-057",
@@ -1912,7 +3032,15 @@
       "wave": 2,
       "old": "65",
       "dependencies": [],
-      "legacy_trace": "P1-65/P2-65"
+      "legacy_trace": "P1-65/P2-65",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-058",
@@ -1926,7 +3054,15 @@
       "wave": 5,
       "old": "31",
       "dependencies": [],
-      "legacy_trace": "P1-31/P2-31"
+      "legacy_trace": "P1-31/P2-31",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-067",
@@ -1940,7 +3076,15 @@
       "wave": 4,
       "old": "53",
       "dependencies": [],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-068",
@@ -1954,7 +3098,15 @@
       "wave": 4,
       "old": "53",
       "dependencies": [],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-069",
@@ -1968,7 +3120,15 @@
       "wave": 4,
       "old": "50",
       "dependencies": [],
-      "legacy_trace": "P1-50/P2-50"
+      "legacy_trace": "P1-50/P2-50",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-059",
@@ -1982,7 +3142,15 @@
       "wave": 2,
       "old": "20",
       "dependencies": [],
-      "legacy_trace": "P1-20/P2-20"
+      "legacy_trace": "P1-20/P2-20",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-060",
@@ -1996,7 +3164,15 @@
       "wave": 5,
       "old": "62",
       "dependencies": [],
-      "legacy_trace": "P1-62/P2-62"
+      "legacy_trace": "P1-62/P2-62",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-061",
@@ -2010,7 +3186,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P2-062",
@@ -2024,7 +3208,15 @@
       "wave": 2,
       "old": "64",
       "dependencies": [],
-      "legacy_trace": "P1-64/P2-64"
+      "legacy_trace": "P1-64/P2-64",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "data-fixture",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-070",
@@ -2040,7 +3232,15 @@
       "dependencies": [
         "getRepairItem"
       ],
-      "legacy_trace": "P1-51/P2-51"
+      "legacy_trace": "P1-51/P2-51",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     },
     {
       "id": "V2-P1-071",
@@ -2056,7 +3256,18 @@
       "dependencies": [
         "getRepairAttempt"
       ],
-      "legacy_trace": "P1-53/P2-53"
+      "legacy_trace": "P1-53/P2-53",
+      "contractStatus": "PROPOSED_CONTRACT",
+      "implementationStatus": "NEEDS_REPO_CHECK",
+      "verificationStatus": "NOT_RUN",
+      "blockers": [],
+      "dependencyType": "contract",
+      "workstream": "BE",
+      "decisionRefs": [],
+      "requirementRefs": []
     }
-  ]
+  ],
+  "overlay": "planning/V2/V2-3_DECISION_REGISTER.md",
+  "baselineOperations": 133,
+  "backlogOutsideBaseline": "tracked in V2-3_DECISION_REGISTER.md"
 }

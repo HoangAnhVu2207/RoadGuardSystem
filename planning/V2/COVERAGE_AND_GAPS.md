@@ -1,5 +1,7 @@
 # Coverage, phần kế thừa và thiếu contract
 
+> **V2(3) overlay — 2026-09-28:** D01-D28 và backlog ngoài baseline được theo dõi tại [decision register](V2-3_DECISION_REGISTER.md). Các trạng thái trong tài liệu này là trạng thái tài liệu/plan, không phải runtime PASS.
+
 ## Phạm vi kiểm chứng
 
 133 operation trong OpenAPI REVIEW-01 được ánh xạ 1–1 vào 133 task. Không có task mới chỉ làm DB hoặc nhiều endpoint. API phụ thuộc xuất hiện trong nội dung để tích hợp, không là output thứ hai của task. Toàn bộ request/response/schema trích từ YAML draft, không suy ra từ tên class.
@@ -33,6 +35,12 @@ Các mục này **không bị bỏ khỏi dự án**. Không tự bịa URL đ�
 - P2-67/release: migration từ DB hiện tại, SQL integration/concurrency, backup/restore, CI, secret/config, job recovery, rollback/release evidence. Giao người tích hợp P2, P1 cùng kiểm contract/business acceptance.
 - Giữ IDs retired P2-12/24/33/43/54/66; ID mới dùng tiền tố V2 để không tái sử dụng.
 - Wireframe/FE offline app implementation không được biến thành backend endpoint task. FE test phải dựa trên API đã có và quyết định đã chốt.
+
+## V2(3) capability gaps outside the baseline
+
+The following remain explicit workstreams rather than being forced into a misleading 133-operation mapping: company policy framework and exceptions; authority-specific reopen; partial publication and Report-Defect projection; PM detection group/split/match review; handover/conflict/rescue records; BEFORE-loss incident, curing and traffic release; BE-AI service manifest/candidate/artifact receipts; FastAPI workers; Web/Android/ops delivery. See the register for owner boundary and dependency type.
+
+The following baseline tasks have independent fixtures but require a later end-to-end path: `getMe`, project/route/segment GETs, inspection snapshot, repair/task reads, job reads and retention reads. A missing producer is a data-fixture or integration dependency, not a reason to invent a cycle in the operation graph.
 
 ## Crosswalk theo operation
 

@@ -105,3 +105,7 @@ Giữ envelope Error và field `code`; không thêm `subCode` hoặc đổi sang
 | Legacy | AUTH_REQUIRED | Fallback login; không suy là token hết hạn để auto refresh |
 
 `retryable:false` ở auth nghĩa không generic retry request cũ; TOKEN_EXPIRED có nhánh phục hồi auth riêng. Khi xác định session revoked thì không ưu tiên code expired chỉ vì JWT cũng hết hạn. Unknown401 không loop refresh. 403 không refresh. Thêm WWW-Authenticate cho bearer protected API; login/refresh không giả đang yêu cầu access bearer. Refresh timeout sau rotation vẫn unknown outcome; sub-codes không tự giải quyết vấn đề này.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

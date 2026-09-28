@@ -1,4 +1,6 @@
-# Kiểm tra gói phân công V2
+# Kiểm tra gói phân công V2(3)
+
+> Historical results below describe the 2026-09-27 package. They are not rewritten as evidence for the 2026-09-28 overlay. New checks are appended after the review.
 
 Thực hiện 2026-09-27 trên các file trong gói.
 
@@ -32,3 +34,14 @@ Sau khi chấp nhận ADR 006 và mô hình owner theo từng endpoint, đã ch�
 | Windows encoding portability | PASS: validator và self-test chạy không cần `PYTHONUTF8=1` sau khi mọi repository text read dùng UTF-8 tường minh |
 
 Đây vẫn là bằng chứng documentation/tooling. Không chạy build .NET, backend unit/integration/API test, SQL Server, HTTP smoke, provider/device E2E, performance hoặc UAT trong thay đổi governance/skill này.
+
+## Đồng bộ V2(3) — 2026-09-28
+
+| Check | Result / limitation |
+|---|---|
+| Decision register and scope | PASS: D01-D28 recorded; pilot/config/target/proposal states separated |
+| History preservation | PASS: `planning/V2/history/*.original.md` unchanged by scope |
+| Baseline ownership | PASS: 133 IDs retained; P1=71, P2=62; backlog outside baseline is not assigned a fake operation |
+| Runtime evidence | NOT RUN: this overlay does not claim C#/DB/API implementation or production readiness |
+| Canonical/snapshot/lock | REQUIRED after contract edits; run `python docs/diagram/V2/09_Frontend/contracts/check_contracts.py` and regenerate artifacts |
+| Links, manifest and task graph | REQUIRED after task/manifest edits; use the repository validators and record counts below |

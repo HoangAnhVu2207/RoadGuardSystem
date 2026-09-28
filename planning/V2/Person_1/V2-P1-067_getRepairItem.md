@@ -1,5 +1,17 @@
 # V2-P1-067 — Item và approval/acceptance riêng
 
+## V2(3) status
+
+- decisionRefs: none
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: PROPOSED_CONTRACT
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: Confirm current source and preserve compatibility before implementation.
+
+
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `GET /api/v1/repair-items/{itemId}`; operationId `getRepairItem`.
 - **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.

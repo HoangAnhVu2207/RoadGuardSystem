@@ -1,5 +1,17 @@
 # V2-P1-044 — Đọc policy được cấp
 
+## V2(3) status
+
+- decisionRefs: none
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: PROPOSED_CONTRACT
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: Confirm current source and preserve compatibility before implementation.
+
+
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `GET /api/v1/policy-versions/{policyVersionId}`; operationId `getPolicyVersion`.
 - **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
@@ -44,7 +56,7 @@ Mã lỗi HTTP trong draft: `400`, `401`, `403`, `404`, `429`, `500`, `503`. Ch�
 ## 4. Làm như thế nào
 
 1. Đối chiếu `getPolicyVersion` với route/service hiện tại và ghi kết luận reuse/extend/new trong worklog. Kiểm tra migration snapshot trước thiết kế bảng. Model ứng viên: PolicyVersion và snapshot: cần xác minh implementation.
-2. Policy đã dùng phải bất biến; task tham chiếu version cụ thể, không tự chuyển sang policy mới nhất. Quyền activate và rule evaluation phải theo quyết định Q02/Q03.
+2. Policy đã dùng phải bất biến; task tham chiếu version cụ thể, không tự chuyển sang policy mới nhất. Response phải phân biệt khung Supervisor, profile dự án và trạng thái hồ sơ/ngưỡng theo D03-D04.
 3. Controller nhận DTO/headers, gọi service qua interface; service điều phối invariant và authorization; repository chịu query/transaction. Không trả EF entity ra API. Đặt validation field rõ để FE map lỗi.
 4. Với mutation, chốt ranh giới transaction giữa business data, idempotency receipt, audit và outbox cần thiết. Rollback không để effect một phần. Với GET, không gây business mutation; projection chỉ chứa field được phép.
 5. Nếu operation khai báo If-Match, dùng strong ETag theo version; thiếu trả 428, stale trả 412 theo contract. Nếu khai báo Idempotency-Key, cùng key+payload phải replay kết quả, khác payload phải conflict; không tạo effect lần hai. Không ép header này lên operation không khai báo.

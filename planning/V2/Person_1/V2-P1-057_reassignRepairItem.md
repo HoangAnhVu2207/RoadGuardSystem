@@ -1,5 +1,17 @@
 # V2-P1-057 — Đổi đội có lịch sử
 
+## V2(3) status
+
+- decisionRefs: D05
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: PROPOSED_DELTA
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: handover acknowledgement and race prevention
+
+
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/repair-items/{itemId}/reassignments`; operationId `reassignRepairItem`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.

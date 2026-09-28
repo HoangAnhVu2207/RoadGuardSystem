@@ -1,5 +1,17 @@
 # V2-P1-060 — PM review; đóng Fast Track khi đạt
 
+## V2(3) status
+
+- decisionRefs: D08
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: PROPOSED_DELTA
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: review/traffic release separated from repair completion
+
+
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/repair-attempts/{attemptId}/review`; operationId `reviewRepairAttempt`.
 - **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.

@@ -1,5 +1,17 @@
 # V2-P2-007 — Preview chia segment
 
+## V2(3) status
+
+- decisionRefs: D21
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: REVIEWED
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: no gap/overlap; PM may keep or merge remainder
+
+
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/projects/{projectId}/segment-set-previews`; operationId `previewSegmentSet`.
 - **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.

@@ -628,3 +628,7 @@ Các đường dẫn Incident/Segment, AI/Edge và ADR còn lại là nguồn th
 | UC-D29 | Các tài liệu mới không có trace | BR/FR/US/PF, ghi chú trực tiếp và log P1/P2 | Toàn bộ R3 |
 
 Không xóa mã chức năng cũ; các điều kiện bị bỏ được nêu tại chỗ thay thế và bảng này. Research RS01–RS06 giữ nguyên. Chưa chạy kiểm thử phần mềm; không sửa trạng thái Done backend.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

@@ -1542,3 +1542,7 @@ Dùng cùng mã Q của tài liệu mô tả, không tạo một bộ quyết đ
 - Q15–Q18: ghi GPS điện thoại, lỗi ngoài bảo hành/trước baseline, phạm vi Sprint và thứ tự triển khai.
 
 Không có giá trị tùy tiện để lấp TBD. Các chức năng không phụ thuộc TBD có thể tiếp tục triển khai sau review; gate quyền và nghiệm thu phụ thuộc quyết định chưa chốt phải được giữ rõ trong contract.
+
+## V2(3) amendment — 2026-09-28
+
+This document follows `planning/V2/V2-3_DECISION_REGISTER.md`. D01-D28 are approved business decisions; `APPROVED_PILOT_CONFIG` and `APPROVED_TARGET` are not empirical verification. The document must distinguish `contractStatus`, `implementationStatus`, and `verificationStatus`. Reporter email/password plus one-time email OTP is the approved authentication flow; web cookie transport, pilot limits, retention and performance values remain configuration/target registers. Fast Track uses measurement-only intake followed by a separately authorized PM repair task; policy framework, reopen, partial publication, handover/conflict, BEFORE incident, curing and traffic release remain explicit contracts. Offline evaluation and AI two-stage processing are proposed until schema, fixtures and runtime/provider evidence pass.

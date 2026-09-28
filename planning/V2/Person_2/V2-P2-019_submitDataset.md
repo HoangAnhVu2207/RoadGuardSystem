@@ -1,5 +1,17 @@
 # V2-P2-019 — Nộp video/telemetry
 
+## V2(3) status
+
+- decisionRefs: D20
+- requirementRefs: register crosswalk; task-specific references remain authoritative
+- contractStatus: PROPOSED_DELTA
+- implementationStatus: NEEDS_REPO_CHECK
+- verificationStatus: NOT_RUN
+- dependencyType: contract
+- workstream: BE
+- blockers: explicit video to telemetry mapping and segment history
+
+
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/survey-tasks/{taskId}/datasets`; operationId `submitDataset`.
 - **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.

@@ -30,7 +30,11 @@ public sealed class Notification
 
     public string Body { get; private set; } = string.Empty;
 
+    public DateTimeOffset OccurredAtUtc { get; private set; }
+
     public DateTimeOffset? ReadAt { get; private set; }
+
+    public byte[] RowVersion { get; private set; } = [];
 
     public static Notification Create(
         Guid id,
@@ -39,7 +43,8 @@ public sealed class Notification
         Guid sourceEntityId,
         string eventType,
         string title,
-        string body)
+        string body,
+        DateTimeOffset occurredAtUtc)
     {
         if (id == Guid.Empty)
         {
@@ -56,6 +61,11 @@ public sealed class Notification
             throw new ArgumentException("Source entity id must not be empty.", nameof(sourceEntityId));
         }
 
+        if (occurredAtUtc == default)
+        {
+            throw new ArgumentException("Occurred at must be provided.", nameof(occurredAtUtc));
+        }
+
         return new Notification
         {
             Id = id,
@@ -67,7 +77,8 @@ public sealed class Notification
             SourceEntityId = sourceEntityId,
             EventType = ValidateRequired(eventType, nameof(eventType), 80),
             Title = ValidateRequired(title, nameof(title), 200),
-            Body = ValidateBody(body, nameof(body))
+            Body = ValidateBody(body, nameof(body)),
+            OccurredAtUtc = occurredAtUtc.ToUniversalTime()
         };
     }
 

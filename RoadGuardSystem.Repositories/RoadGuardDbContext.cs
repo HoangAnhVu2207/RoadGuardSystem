@@ -103,14 +103,20 @@ public class RoadGuardDbContext : DbContext
     public DbSet<RoadSection> RoadSections => Set<RoadSection>();
 
     public DbSet<RoadSectionVersion> RoadSectionVersions => Set<RoadSectionVersion>();
+    public DbSet<RoadSegmentSet> RoadSegmentSets => Set<RoadSegmentSet>();
+    public DbSet<RoadSegment> RoadSegments => Set<RoadSegment>();
 
     public DbSet<Warranty> Warranties => Set<Warranty>();
 
     public DbSet<SurveyPlan> SurveyPlans => Set<SurveyPlan>();
 
+    public DbSet<SurveyPlanScope> SurveyPlanScopes => Set<SurveyPlanScope>();
+
     public DbSet<SurveyPlanPostponement> SurveyPlanPostponements => Set<SurveyPlanPostponement>();
 
     public DbSet<SurveyRequest> SurveyRequests => Set<SurveyRequest>();
+
+    public DbSet<SurveyRequestScope> SurveyRequestScopes => Set<SurveyRequestScope>();
 
     public DbSet<Survey> Surveys => Set<Survey>();
 

@@ -42,4 +42,6 @@ public static class ApiErrorCodes
     public const string SurveyRequestNotFound = "survey_request_not_found";
     public const string SurveyValidationFailed = "survey_validation_failed";
     public const string SurveyInvalidStateTransition = "survey_invalid_state_transition";
+    public const string NotificationNotFound = "notification_not_found";
+    public const string NotificationConcurrencyConflict = "notification_concurrency_conflict";
 }

@@ -5,6 +5,14 @@ using RoadGuardSystem.Repositories.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile(
+        "appsettings.Development.local.json",
+        optional: true,
+        reloadOnChange: true);
+}
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddApiPlatformServices(builder.Configuration, builder.Environment.IsProduction());

@@ -15,6 +15,7 @@ using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Storage;
 using RoadGuardSystem.Repositories.Surveys;
 using RoadGuardSystem.Repositories.Inspections;
+using RoadGuardSystem.Repositories.Implementations.Surveys;
 using RoadGuardSystem.Repositories.Interfaces.Surveys;
 
 namespace RoadGuardSystem.Repositories.Extensions;
@@ -93,6 +94,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<ISurveyDataValidationAdmissionRepository, SurveyDataValidationAdmissionPersistenceService>();
         services.AddScoped<ISurveyPlanningRepository, SurveyPlanningPersistenceService>();
         services.AddScoped<IInspectionTaskReadRepository, InspectionTaskReadRepository>();
+        services.AddScoped<ISurveyV2Repository, SurveyV2PersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddScoped<IIdentityV2Repository, IdentityRepository>();
         services.AddScoped<IIdentityOnboardingRepository, IdentityOnboardingRepository>();

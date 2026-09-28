@@ -31,6 +31,8 @@ public sealed class SurveyRequest
 
     public string OutputRequirements { get; private set; } = "{}";
 
+    public byte[] RowVersion { get; private set; } = [];
+
     public DateTimeOffset? CancelledAt { get; private set; }
 
     public string? CancellationReason { get; private set; }

@@ -27,6 +27,8 @@ public sealed class SurveyPlan
 
     public string OutputRequirements { get; private set; } = "{}";
 
+    public byte[] RowVersion { get; private set; } = [];
+
     public static SurveyPlan Create(
         Guid id,
         Guid projectId,

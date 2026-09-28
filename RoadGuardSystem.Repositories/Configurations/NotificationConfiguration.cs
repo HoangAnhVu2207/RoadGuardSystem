@@ -35,8 +35,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.Property(notification => notification.Body)
             .HasColumnType("nvarchar(max)")
             .IsRequired();
+        builder.Property(notification => notification.OccurredAtUtc)
+            .HasColumnType("datetimeoffset(7)")
+            .IsRequired();
         builder.Property(notification => notification.ReadAt)
             .HasColumnType("datetimeoffset(7)");
+        builder.HasIndex(notification => new { notification.RecipientUserId, notification.OccurredAtUtc, notification.Id })
+            .HasDatabaseName("IX_Notifications_RecipientOccurredAtId");
         builder.HasIndex(notification => new
         {
             notification.RecipientUserId,

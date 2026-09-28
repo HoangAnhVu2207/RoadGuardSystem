@@ -49,6 +49,10 @@ public sealed class SurveyPlanConfiguration : IEntityTypeConfiguration<SurveyPla
         builder.Property(plan => plan.OutputRequirements)
             .HasColumnType("nvarchar(max)")
             .IsRequired();
+        builder.Property(plan => plan.RowVersion)
+            .IsRowVersion()
+            .IsConcurrencyToken()
+            .ValueGeneratedOnAddOrUpdate();
         builder.HasIndex(plan => new { plan.ProjectId, plan.RoadSectionId, plan.PlannedStartAt })
             .HasDatabaseName("IX_SurveyPlans_ProjectRoadStart");
         builder.HasIndex(plan => new { plan.ProjectId, plan.RoadSectionId, plan.SurveyType })

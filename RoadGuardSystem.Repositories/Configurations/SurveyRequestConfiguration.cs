@@ -60,6 +60,10 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
             .HasColumnType("datetimeoffset(7)");
         builder.Property(request => request.CancellationReason)
             .HasColumnType("nvarchar(max)");
+        builder.Property(request => request.RowVersion)
+            .IsRowVersion()
+            .IsConcurrencyToken()
+            .ValueGeneratedOnAddOrUpdate();
         builder.HasIndex(request => new { request.ProjectId, request.RoadSectionId, request.Status })
             .HasDatabaseName("IX_SurveyRequests_ProjectRoadStatus");
         builder.HasIndex(request => request.SurveyPlanId)

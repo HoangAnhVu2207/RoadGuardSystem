@@ -80,7 +80,8 @@ public sealed class P207NotificationPersistenceTests : IClassFixture<IdentitySql
             Guid.NewGuid(),
             "assignment.reassigned",
             "Assignment updated",
-            "token=credential-value");
+            "token=credential-value",
+            DateTimeOffset.UtcNow);
 
         create.Should().Throw<ArgumentException>();
     }
@@ -141,5 +142,6 @@ public sealed class P207NotificationPersistenceTests : IClassFixture<IdentitySql
             sourceEntityId ?? Guid.NewGuid(),
             "assignment.reassigned",
             "Assignment updated",
-            "Your assigned work has changed.");
+            "Your assigned work has changed.",
+            DateTimeOffset.UtcNow);
 }

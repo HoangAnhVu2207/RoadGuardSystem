@@ -14,6 +14,7 @@ using RoadGuardSystem.Repositories.Warranties;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Storage;
 using RoadGuardSystem.Repositories.Surveys;
+using RoadGuardSystem.Repositories.Implementations.Surveys;
 using RoadGuardSystem.Repositories.Interfaces.Surveys;
 
 namespace RoadGuardSystem.Repositories.Extensions;
@@ -80,6 +81,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
         services.AddScoped<NotificationOutboxConsumer>();
+        services.AddScoped<INotificationRepository, NotificationPersistenceService>();
         services.AddScoped<IOutboxWorkRepository, OutboxWorkRepository>();
         services.AddScoped<IProjectMembershipRepository, ProjectMembershipReadModel>();
         services.AddScoped<IProjectWorkPackageRepository, ProjectWorkPackageReadModel>();
@@ -91,6 +93,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<ISurveyAssignmentRepository, SurveyAssignmentPersistenceService>();
         services.AddScoped<ISurveyDataValidationAdmissionRepository, SurveyDataValidationAdmissionPersistenceService>();
         services.AddScoped<ISurveyPlanningRepository, SurveyPlanningPersistenceService>();
+        services.AddScoped<ISurveyV2Repository, SurveyV2PersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));

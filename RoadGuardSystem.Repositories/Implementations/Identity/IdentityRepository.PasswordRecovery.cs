@@ -46,7 +46,8 @@ public sealed partial class IdentityRepository
                     requestId,
                     "password_recovery_requested",
                     "Password recovery requested",
-                    "An active account requires password recovery review."));
+                    "An active account requires password recovery review.",
+                    DateTimeOffset.UtcNow));
             }
 
             notificationCount = supervisorIds.Count;

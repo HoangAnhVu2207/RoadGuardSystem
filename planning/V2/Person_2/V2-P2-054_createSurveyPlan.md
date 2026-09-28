@@ -4,12 +4,14 @@
 
 - decisionRefs: none
 - requirementRefs: register crosswalk; task-specific references remain authoritative
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED
+- implementationStatus: IMPLEMENTED
+- verificationStatus: VERIFIED
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
+
+Current evidence: multi-route normalized scope, published segment-set/segment validation, SQL rowversion, idempotency replay, API smoke and migration pass.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.

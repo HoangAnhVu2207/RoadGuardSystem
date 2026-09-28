@@ -236,3 +236,95 @@ Content-Type: application/json
   "expectedCurrentMembershipRowVersion": "{{primaryMembershipRowVersion}}",
   "operationId": "{{$guid}}"
 }
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/notifications?limit=25
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/notifications/{{notificationId}}/read
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{notificationVersion}}"
+Accept: application/json
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/notifications/{{notificationId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/survey-plans
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "scope": [
+    {
+      "routeVersionId": "{{roadSectionVersionId}}",
+      "segmentSetId": "{{segmentSetId}}",
+      "segmentIds": ["{{segmentId}}"],
+      "targetBand": "SURFACE"
+    },
+    {
+      "routeVersionId": "{{roadSectionVersionId2}}",
+      "segmentSetId": "{{segmentSetId2}}",
+      "segmentIds": ["{{segmentId2}}"],
+      "targetBand": "LEFT_EDGE"
+    }
+  ],
+  "plannedAt": "2026-10-01T08:00:00Z",
+  "surveyType": "BASELINE"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-plans/{{surveyPlanId}}/postpone
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{surveyPlanVersion}}"
+Content-Type: application/json
+
+{
+  "reason": "Weather delay"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/survey-tasks
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "scope": [
+    {
+      "routeVersionId": "{{roadSectionVersionId}}",
+      "segmentSetId": "{{segmentSetId}}",
+      "segmentIds": ["{{segmentId}}"],
+      "targetBand": "SURFACE"
+    },
+    {
+      "routeVersionId": "{{roadSectionVersionId2}}",
+      "segmentSetId": "{{segmentSetId2}}",
+      "segmentIds": ["{{segmentId2}}"],
+      "targetBand": "LEFT_EDGE"
+    }
+  ],
+  "surveyType": "BASELINE",
+  "operatorId": "{{operatorId}}",
+  "dueAt": "2026-10-04T17:00:00Z",
+  "accessPoint": { "point": { "longitude": 106.7, "latitude": 10.8 }, "source": "MANUAL" }
+}
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-tasks/{{surveyTaskId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json

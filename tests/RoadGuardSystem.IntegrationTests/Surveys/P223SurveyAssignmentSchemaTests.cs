@@ -249,7 +249,8 @@ public sealed class P223SurveyAssignmentSchemaTests : IClassFixture<IdentitySqlS
             request.Id,
             "survey_request.reassigned",
             "Survey request reassigned",
-            "A survey request has been reassigned to you.");
+            "A survey request has been reassigned to you.",
+            DateTimeOffset.UtcNow);
         var consumer = new NotificationOutboxConsumer(context, new ConsumerEffectService(context));
         await consumer.ConsumeAsync(result.OutboxMessageId, notification);
         await consumer.ConsumeAsync(result.OutboxMessageId, notification);

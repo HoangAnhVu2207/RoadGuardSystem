@@ -7,6 +7,8 @@
   },
   "variable": [
     { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "operatorEmail", "value": "operator.postman@example.test", "type": "string" },
+    { "key": "operatorPassword", "value": "", "type": "string" },
     { "key": "refreshToken", "value": "", "type": "string" },
     { "key": "profileRowVersion", "value": "", "type": "string" },
     { "key": "targetUserId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
@@ -24,6 +26,10 @@
     { "key": "surveyPostponeIdempotencyKey", "value": "survey-postpone-local-001", "type": "string" },
     { "key": "surveyTaskIdempotencyKey", "value": "survey-task-local-001", "type": "string" },
     { "key": "surveyTaskId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "surveyTaskVersion", "value": "", "type": "string" },
+    { "key": "surveyTaskCursor", "value": "", "type": "string" },
+    { "key": "operatorAccessToken", "value": "", "type": "string" },
+    { "key": "operatorId2", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
     { "key": "operatorId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
     { "key": "roadSectionVersionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
     { "key": "roadSectionVersionId2", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
@@ -72,6 +78,17 @@
             "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid login returns 401', function () { pm.response.to.have.status(401); });"] } }]
+        },
+        {
+          "name": "POST /auth/login - operator",
+          "request": {
+            "description": "Purpose: obtain a separate operator token for survey-task assignment workflows. Role: Drone Operator. Setup: set operatorEmail/operatorPassword from the Development seed without committing the password. Expected: 200 with accessToken. Data change: creates a session.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{operatorEmail}}\",\n  \"password\": \"{{operatorPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Operator login returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) pm.collectionVariables.set('operatorAccessToken', pm.response.json().accessToken);"] } }]
         },
         {
           "name": "POST /auth/refresh",
@@ -281,7 +298,7 @@
             "body": { "mode": "raw", "raw": "{\n  \"scope\": [\n    { \"routeVersionId\": \"{{roadSectionVersionId}}\", \"segmentSetId\": \"{{segmentSetId}}\", \"segmentIds\": [\"{{segmentId}}\"], \"targetBand\": \"SURFACE\" },\n    { \"routeVersionId\": \"{{roadSectionVersionId2}}\", \"segmentSetId\": \"{{segmentSetId2}}\", \"segmentIds\": [\"{{segmentId2}}\"], \"targetBand\": \"LEFT_EDGE\" }\n  ],\n  \"surveyType\": \"BASELINE\",\n  \"operatorId\": \"{{operatorId}}\",\n  \"dueAt\": \"2026-10-04T17:00:00Z\",\n  \"accessPoint\": { \"point\": { \"longitude\": 106.7, \"latitude\": 10.8 }, \"source\": \"MANUAL\" }\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/survey-tasks", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects", "{{projectId}}", "survey-tasks"] }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Survey task create returns an expected result', function () { pm.expect([201, 400, 403, 404, 409, 422]).to.include(pm.response.code); });", "if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('surveyTaskId', b.id); }"] } }]
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Survey task create returns an expected result', function () { pm.expect([201, 400, 403, 404, 409, 422]).to.include(pm.response.code); });", "if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('surveyTaskId', b.id); pm.collectionVariables.set('surveyTaskVersion', b.version); }"] } }]
         },
         {
           "name": "GET /survey-tasks/{taskId}",
@@ -292,6 +309,101 @@
             "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}"] }
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Survey task read returns an expected result', function () { pm.expect([200, 401, 403, 404]).to.include(pm.response.code); });"] } }]
+        },
+        {
+          "name": "GET /me/survey-tasks",
+          "request": {
+            "description": "Purpose: list tasks assigned to the authenticated operator. Role: Operator. Setup: use operatorAccessToken; run create task as PM first when a live fixture is needed. Expected: 200 SurveyTaskPage, 400 for invalid cursor/limit, 403 for another role. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/survey-tasks?limit=50", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "survey-tasks"], "query": [{ "key": "limit", "value": "50" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('My survey tasks list returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.expect(b).to.have.property('items'); if (b.items.length > 0) { pm.collectionVariables.set('surveyTaskId', b.items[0].id); pm.collectionVariables.set('surveyTaskVersion', b.items[0].version); } if (b.nextCursor) pm.collectionVariables.set('surveyTaskCursor', b.nextCursor); }"] } }]
+        },
+        {
+          "name": "POST /survey-tasks/{taskId}/accept",
+          "request": {
+            "description": "Purpose: accept an assigned survey task. Role: Operator who owns the active assignment. Setup: run list/read as operator and use surveyTaskVersion from the response. Expected: 200 with ETag, 412 for stale If-Match, 409 for idempotency conflict, 428 when preconditions are missing. Data change: assignment and task state transition.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }, { "key": "Idempotency-Key", "value": "survey-task-accept-{{$guid}}" }, { "key": "If-Match", "value": "\"{{surveyTaskVersion}}\"" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/accept", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}", "accept"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Accept survey task returns an expected result', function () { pm.expect([200, 403, 404, 409, 412, 422]).to.include(pm.response.code); });", "if (pm.response.code === 200) pm.collectionVariables.set('surveyTaskVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "POST /survey-tasks/{taskId}/decline",
+          "request": {
+            "description": "Purpose: decline an assigned survey task. Role: Operator who owns the active assignment. Setup: use a fresh unaccepted task and current version. Expected: 200 or documented 403/404/409/412/422. Data change: records rejection reason and ends assignment.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }, { "key": "Idempotency-Key", "value": "survey-task-decline-{{$guid}}" }, { "key": "If-Match", "value": "\"{{surveyTaskVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Operator unavailable for the scheduled window\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/decline", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}", "decline"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Decline survey task returns an expected result', function () { pm.expect([200, 403, 404, 409, 412, 422]).to.include(pm.response.code); });", "if (pm.response.code === 200) pm.collectionVariables.set('surveyTaskVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "POST /survey-tasks/{taskId}/cancel",
+          "request": {
+            "description": "Purpose: cancel an open survey task. Role: Project Manager with project scope. Setup: use a fresh task and current version. Expected: 200 or documented 403/404/409/412/422. Data change: marks the task cancelled with a reason.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "survey-task-cancel-{{$guid}}" }, { "key": "If-Match", "value": "\"{{surveyTaskVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Scope was superseded by a new route version\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}", "cancel"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Cancel survey task returns an expected result', function () { pm.expect([200, 403, 404, 409, 412, 422]).to.include(pm.response.code); });", "if (pm.response.code === 200) pm.collectionVariables.set('surveyTaskVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "POST /survey-tasks/{taskId}/reassign",
+          "request": {
+            "description": "Purpose: replace the active operator while preserving assignment history. Role: Project Manager with project scope. Setup: set operatorId2 to another active seeded operator and use current version. Expected: 200 or documented 403/404/409/412/422. Data change: ends the old assignment and creates a new one.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "survey-task-reassign-{{$guid}}" }, { "key": "If-Match", "value": "\"{{surveyTaskVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"operatorId\": \"{{operatorId2}}\",\n  \"reason\": \"Reassign to the operator covering this corridor\",\n  \"dueAt\": \"2026-10-05T17:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/reassign", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}", "reassign"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reassign survey task returns an expected result', function () { pm.expect([200, 403, 404, 409, 412, 422]).to.include(pm.response.code); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('surveyTaskVersion', b.version); pm.collectionVariables.set('operatorId', b.operatorId); }"] } }]
+        },
+        {
+          "name": "POST /survey-tasks/{taskId}/supplements",
+          "request": {
+            "description": "Purpose: request a supplementary survey scope. Role: Project Manager with project scope. Setup: task must have a related Survey row, use current version and valid published scope. Expected: 201 or documented 403/404/409/412/422. Data change: records a supplementary request and marks the task supplement-required.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "survey-task-supplement-{{$guid}}" }, { "key": "If-Match", "value": "\"{{surveyTaskVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"scope\": [{ \"routeVersionId\": \"{{roadSectionVersionId}}\", \"segmentSetId\": \"{{segmentSetId}}\", \"segmentIds\": [\"{{segmentId}}\"], \"targetBand\": \"SURFACE\" }],\n  \"reason\": \"Coverage gap requires a supplementary pass\",\n  \"operatorId\": \"{{operatorId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/supplements", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}", "supplements"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Supplement request returns an expected result', function () { pm.expect([201, 403, 404, 409, 412, 422]).to.include(pm.response.code); });", "if ([200, 201].includes(pm.response.code)) pm.collectionVariables.set('surveyTaskVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "GET /me/survey-tasks - forbidden role",
+          "request": {
+            "description": "Purpose: verify that a non-operator cannot read the operator task list. Role: Project Manager or Supervisor. Setup: use accessToken from a non-operator login. Expected: 403 with access_forbidden. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/survey-tasks", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "survey-tasks"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Non-operator task list returns 403', function () { pm.response.to.have.status(403); });"] } }]
+        },
+        {
+          "name": "POST /survey-tasks/{taskId}/accept - validation",
+          "request": {
+            "description": "Purpose: verify mutation preconditions are required. Role: Operator. Setup: authenticate as operator; omit Idempotency-Key and If-Match. Expected: 428 with no database effect. Data change: none.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/accept", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}", "accept"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Missing mutation preconditions return 428', function () { pm.response.to.have.status(428); });"] } }]
+        },
+        {
+          "name": "POST /survey-tasks/{taskId}/reassign - forbidden role",
+          "request": {
+            "description": "Purpose: verify an operator cannot reassign a survey task. Role: Operator. Setup: use operatorAccessToken and a valid task id. Expected: 403 with no assignment change. Data change: none.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }, { "key": "Idempotency-Key", "value": "survey-task-reassign-forbidden-{{$guid}}" }, { "key": "If-Match", "value": "\"{{surveyTaskVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"operatorId\": \"{{operatorId2}}\",\n  \"reason\": \"Should be forbidden for operator\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/reassign", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-tasks", "{{surveyTaskId}}", "reassign"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Operator reassign returns 403', function () { pm.response.to.have.status(403); });"] } }]
         },
         {
           "name": "POST /projects/{projectId}/survey-plans - unauthorized",

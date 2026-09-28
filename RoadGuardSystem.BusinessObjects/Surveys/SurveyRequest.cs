@@ -83,6 +83,78 @@ public sealed class SurveyRequest
         };
     }
 
+    public void Accept()
+    {
+        EnsureMutable();
+        if (Status != SurveyRequestStatus.NewAssigned && Status != SurveyRequestStatus.Reassigned)
+        {
+            throw new InvalidOperationException("Only a newly assigned survey request can be accepted.");
+        }
+
+        Status = SurveyRequestStatus.Accepted;
+    }
+
+    public void MarkRejected()
+    {
+        EnsureMutable();
+        if (Status != SurveyRequestStatus.NewAssigned && Status != SurveyRequestStatus.Reassigned)
+        {
+            throw new InvalidOperationException("Only a newly assigned survey request can be rejected.");
+        }
+
+        Status = SurveyRequestStatus.Rejected;
+    }
+
+    public void MarkReassigned()
+    {
+        EnsureMutable();
+        if (Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed or SurveyRequestStatus.Submitted)
+        {
+            throw new InvalidOperationException("A completed survey request cannot be reassigned.");
+        }
+
+        Status = SurveyRequestStatus.Reassigned;
+    }
+
+    public void MarkSupplementRequired()
+    {
+        EnsureMutable();
+        if (Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed)
+        {
+            throw new InvalidOperationException("A closed survey request cannot require a supplement.");
+        }
+
+        Status = SurveyRequestStatus.SupplementRequired;
+    }
+
+    public void Cancel(string reason, DateTimeOffset cancelledAt)
+    {
+        EnsureMutable();
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed or SurveyRequestStatus.Submitted)
+        {
+            throw new InvalidOperationException("Only an open survey request can be cancelled.");
+        }
+
+        Status = SurveyRequestStatus.Cancelled;
+        CancelledAt = cancelledAt.ToUniversalTime();
+        CancellationReason = reason.Trim();
+    }
+
+    public void ChangeDueAt(DateTimeOffset dueAt)
+    {
+        EnsureMutable();
+        DueAt = dueAt.ToUniversalTime();
+    }
+
+    private void EnsureMutable()
+    {
+        if (Status == SurveyRequestStatus.Unknown)
+        {
+            throw new InvalidOperationException("Survey request status is invalid.");
+        }
+    }
+
     private static void ValidateJson(string value, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);

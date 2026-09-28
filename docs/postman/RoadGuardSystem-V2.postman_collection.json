@@ -25,7 +25,9 @@
     { "key": "invitationAcceptKey", "value": "invitation-accept-runner", "type": "string" },
     { "key": "updateMeKey", "value": "update-me-runner", "type": "string" },
     { "key": "updateAccountKey", "value": "update-account-runner", "type": "string" },
-    { "key": "passwordResetKey", "value": "password-reset-runner", "type": "string" }
+    { "key": "passwordResetKey", "value": "password-reset-runner", "type": "string" },
+    { "key": "logoutKey", "value": "logout-runner", "type": "string" },
+    { "key": "changePasswordKey", "value": "change-password-runner", "type": "string" }
     ,{ "key": "inspectionCursor", "value": "", "type": "string" }
     ,{ "key": "inspectionLimit", "value": "50", "type": "string" }
     ,{ "key": "roadSectionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
@@ -169,7 +171,7 @@
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Login returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); pm.collectionVariables.set('profileRowVersion', b.user.rowVersion); pm.collectionVariables.set('targetUserId', b.user.id); }"] } }]
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Login returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); pm.collectionVariables.set('profileRowVersion', b.user.version); pm.collectionVariables.set('targetUserId', b.user.id); }"] } }]
         },
         {
           "name": "POST /auth/login - invalid credentials",
@@ -202,14 +204,14 @@
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{authEmail}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/auth/password-recovery-requests", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "password-recovery-requests"] }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Recovery returns 202', function () { pm.response.to.have.status(202); });", "pm.test('No credential disclosure', function () { pm.expect(pm.response.text()).to.not.match(/passwordHash|temporaryPassword/i); });"] } }]
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Recovery returns 202', function () { pm.response.to.have.status(202); });", "pm.test('Recovery returns Location', function () { pm.expect(pm.response.headers.get('Location')).to.match(/^\\/api\\/v1\\/auth\\/password-recovery-requests\\//); });", "pm.test('No credential disclosure', function () { pm.expect(pm.response.text()).to.not.match(/passwordHash|temporaryPassword/i); });"] } }]
         },
         {
           "name": "POST /auth/change-password - destructive",
           "request": {
             "description": "Purpose: change the current user's password. Role: authenticated user. Setup: run login; set replacementPassword; use a disposable account and fresh Idempotency-Key. Expected: 204. Errors: 400/401/409 per contract. Data change: destructive credential/session change.",
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{changePasswordKey}}" }, { "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"{{authPassword}}\",\n  \"newPassword\": \"{{replacementPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "change-password"] }
           },
@@ -220,7 +222,7 @@
           "request": {
             "description": "Purpose: revoke the active session. Role: authenticated user. Setup: run login first; use a fresh Idempotency-Key. Expected: 204. Data change: session revocation.",
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{logoutKey}}" }],
             "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Logout returns 204', function () { pm.response.to.have.status(204); });"] } }]

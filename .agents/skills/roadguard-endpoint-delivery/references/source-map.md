@@ -2,6 +2,8 @@
 
 Recheck paths in the active checkout; the archive is evidence of structure, not of current runtime health.
 
+For V2 work, read `AGENTS.md` -> `.agents/rules/roadguard.md` -> `planning/V2/TASK_LIFECYCLE.md` -> assigned task/checkpoint -> `planning/V2/V2-3_DECISION_REGISTER.md` -> only referenced requirement/diagram/contract/DD/ERD/source/test sections. Record exact headings/IDs in the task's `Source evidence`.
+
 | Root folder | Project file | Responsibility |
 |---|---|---|
 | RoadGuardSystem.BusinessObjects | RoadGuardSystem.aBusinessObjects.csproj | Domain entities and existing enum/extension files |

@@ -1,7 +1,7 @@
 interface:
   display_name: "RoadGuard Endpoint Delivery"
   short_description: "Deliver one RoadGuard API through all N-layers"
-  default_prompt: "Use $roadguard-endpoint-delivery to implement the assigned RoadGuard V2 API task after comparing its proposed contract with current source; for local smoke, enable the Development-only DbInitializer and verify with real seeded accounts."
+  default_prompt: "Use $roadguard-endpoint-delivery to read the assigned task checkpoint and current decision sources, record Source evidence, implement the approved RoadGuard V2 API slice, verify it, and update task completion status without asking again for already-approved scope."
   icon_small: "./assets/icon.svg"
   icon_large: "./assets/icon.svg"
 policy:

@@ -32,8 +32,8 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         _fixture = fixture;
     }
 
-    [Fact(DisplayName = "P2-10 Positive: Four canonical roles seeded deterministically and idempotently")]
-    public async Task RoleSeed_Idempotent_SeedsFourCanonicalRoles()
+    [Fact(DisplayName = "P2-10 Positive: Five canonical roles seeded deterministically and idempotently")]
+    public async Task RoleSeed_Idempotent_SeedsFiveCanonicalRoles()
     {
         await using var context = _fixture.CreateDbContext();
 
@@ -41,7 +41,7 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         await step.SeedAsync(context, CancellationToken.None);
 
         var roles = await context.Roles.AsNoTracking().ToListAsync();
-        roles.Should().HaveCount(4);
+        roles.Should().HaveCount(5);
 
         var supervisor = roles.Single(r => r.Code == UserRoleCode.Supervisor);
         supervisor.Name.Should().Be("Supervisor");
@@ -62,7 +62,7 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         // Idempotency: execute seed again
         await step.SeedAsync(context, CancellationToken.None);
         var rolesAfterSecondRun = await context.Roles.AsNoTracking().ToListAsync();
-        rolesAfterSecondRun.Should().HaveCount(4);
+        rolesAfterSecondRun.Should().HaveCount(5);
     }
 
     [Fact(DisplayName = "P2-10 Positive: User creation with null and non-null email round-trips and advances rowversion")]
@@ -807,14 +807,14 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
 
         await using var verifyContext = _fixture.CreateDbContext();
         var rolesCount = await verifyContext.Roles.CountAsync();
-        rolesCount.Should().Be(4);
+        rolesCount.Should().Be(5);
 
         // Second execution: idempotent replay
         var exitCode2 = await RoadGuardSystem.Seeder.Program.RunAsync(Array.Empty<string>(), envLookup);
         exitCode2.Should().Be(0);
 
         var rolesCountAfter = await verifyContext.Roles.CountAsync();
-        rolesCountAfter.Should().Be(4);
+        rolesCountAfter.Should().Be(5);
     }
 
     [Fact(DisplayName = "P2-06: AddRoadGuardSeeding registers identity and drone device seed steps")]

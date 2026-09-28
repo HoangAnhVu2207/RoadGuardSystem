@@ -5,7 +5,7 @@ description: Use when a RoadGuard task changes EF Core queries, mappings, atomic
 
 # RoadGuard persistence
 
-Read applicable AGENTS, the endpoint scope/contract and only its entity, repository interface/implementation, mapping and SQL fixture. Read [risk cases](references/risk-cases.md) only for touched mechanisms. Reuse existing persistence primitives instead of generating parallel transaction/idempotency frameworks.
+Read applicable AGENTS, `planning/V2/TASK_LIFECYCLE.md`, the assigned task `Source evidence`, current decision/DD/ERD rows and only its entity, repository interface/implementation, mapping and SQL fixture. Record current EF/migration evidence separately from target/proposed model. Read [risk cases](references/risk-cases.md) only for touched mechanisms. Reuse existing persistence primitives instead of generating parallel transaction/idempotency frameworks.
 
 ## Preserve boundaries and ownership
 
@@ -24,4 +24,4 @@ The approved V2 task owner owns the directly required persistence slice under AD
 5. Apply new migrations only when schema changes are needed and authorized. Inspect generated SQL/snapshot for accidental drop/rename/namespace churn; do not edit applied migrations. Keep file relocation separate from model changes and preserve persisted IDs/enums.
 6. Propagate cancellation; let established exception/result translation handle expected SQL conflicts. Do not leak provider exceptions/secrets, swallow cancellation, or wrap every error into success.
 
-Use `roadguard-test-selection` for sufficient SQL Server tests. Require actual database evidence for uniqueness, rollback, rowversion and spatial behavior. Finish with changed persistence paths, migration effects, tested races and unresolved gates; do not claim endpoint completion solely because a repository test passed.
+Use `roadguard-test-selection` for sufficient SQL Server tests. Require actual database evidence for uniqueness, rollback, rowversion and spatial behavior. Append persistence evidence and remaining gates to the assigned task completion history; do not claim endpoint completion solely because a repository test passed or a target ERD exists.

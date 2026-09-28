@@ -18,6 +18,15 @@
 - Use `.agents/skills/roadguard-postman/SKILL.md` whenever an API is added, changed, removed, or prepared for manual/collection-run testing; update the existing collection in the same task.
 - Repository rules and accepted ADRs win over skill defaults. Skills do not expand task scope or approve proposed product behavior.
 
+## Source Evidence And Task Lifecycle
+
+- Read `planning/V2/TASK_LIFECYCLE.md` for every V2 API or governance task. The task file is the durable checkpoint for resume/compaction; do not rely on chat memory alone.
+- Before edits, record `Source evidence` in the task: exact path plus heading/ID for decisions, BR/FR/UC/US/AC, PF/SQ/state, OpenAPI operation/schema, DD/ERD and current source/tests actually used. Record the base revision and canonical contract hash when relevant; do not hash unrelated files.
+- Use `deliveryStatus` only for task progress (`TODO`, `IN_PROGRESS`, `PARTIAL`, `BLOCKED`, `DONE`, `REOPENED`). Keep it separate from contract, implementation and verification status.
+- Move to `IN_PROGRESS` when approved work starts. After each slice, immediately append completion history with changed files, acceptance evidence, exact checks/results, reused/invalidated evidence, side effects and unverified risks; mirror status in the operation manifest or governance index.
+- Mark `DONE` only when every required gate in the approved scope passes. Use `PARTIAL` or `BLOCKED` with exact affected tasks/gates when required evidence is missing. Reopening appends history and preserves prior DONE evidence.
+- Historical task rows, completion records and PASS evidence are append-only in meaning. Never rewrite them to make current validation appear older or broader than it is.
+
 ## Endpoint Contract And Delivery
 
 - Before implementation, write a 5-8 line contract: route/method, actor/scope, input/validation, success output/status, stable errors, business/state rule, persistence/idempotency/concurrency, and audit/sensitive-data handling when relevant.
@@ -73,5 +82,6 @@
 
 - Report changed files, selected verification breadth and reason, exact commands/configuration/filter, executed/pass/fail/required-skip counts, environment, smoke/durable-effect result, reused evidence, invalidated checks rerun, unverified risks, and commit hash only if committed.
 - Update only the assigned task status/evidence after its required gates pass. Never mark Done from a template, static skill validation, zero-test run, or unresolved blocker.
+- Do not wait for the owner to remind you to update status. Follow `planning/V2/TASK_LIFECYCLE.md` and update the assigned task/index as soon as its gate result is known.
 - Commit only on the assigned `anh` or `huy` branch. Stage explicit paths and inspect status/diffs first.
 - Merge, rebase, pull, push, tags, branch/worktree changes, stash, destructive restore, migration application, and data deletion require explicit owner approval.

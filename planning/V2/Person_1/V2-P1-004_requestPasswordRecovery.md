@@ -2,22 +2,44 @@
 
 ## V2(3) status
 
-- decisionRefs: none
-- requirementRefs: register crosswalk; task-specific references remain authoritative
+- deliveryStatus: DONE
+- decisionRefs: D25, 36A, 37
+- requirementRefs: FR-01
+- diagramRefs: SQ-06, DD/ERD
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: IMPLEMENTED_REUSED
+- verificationStatus: PASS_EXTERNAL_SMOKE
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: None for this task.
+
+## Completion evidence (2026-09-29, owner anh)
+
+- Reused `AuthController.RequestPasswordRecovery` -> `IAuthService.RequestPasswordRecoveryAsync` -> durable `PasswordRecoveryRequest` repository path.
+- AC: neutral 202 response, `Location` resource URI, normalized durable request and no account enumeration covered by API tests.
+- Checks: API build PASS; focused API auth 37/37 PASS; focused unit auth 50/50 PASS; Postman static collection check PASS with `Location` assertion.
+- Postman/HTTP: recovery request remains public and contains no secret; no Reporter registration or web-cookie scope added.
+- External smoke: PASS for known and unknown email; both returned neutral 202 with Location, empty body, and durable recovery rows.
+- Smoke command: `powershell -NoProfile -ExecutionPolicy Bypass -File planning/V2/Governance/V2-P1-001-005-auth-smoke.ps1`; result `AUTH_SMOKE_PASS`.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/auth/password-recovery-requests`; operationId `requestPasswordRecovery`.
 - **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
-- **Contract:** PROPOSED_CONTRACT; OpenAPI 0.1.1-draft-review1. Không xem draft là quyết định nghiệp vụ đã duyệt.
+- **Contract:** PROPOSED_CONTRACT; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-01; nhóm kế hoạch cũ P1-10/P2-10 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W2; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
+
+## Source evidence
+
+- Decision register: planning/V2/V2-3_DECISION_REGISTER.md (D25, 36A, 37)
+- Requirements/trace: FR-01
+- Diagrams/state: SQ-06, DD/ERD
+- Canonical contract: operationId requestPasswordRecovery, path /auth/password-recovery-requests, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
 

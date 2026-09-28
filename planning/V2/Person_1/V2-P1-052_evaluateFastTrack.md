@@ -2,8 +2,12 @@
 
 ## V2(3) status
 
-- decisionRefs: D02
-- requirementRefs: register crosswalk; task-specific references remain authoritative
+- deliveryStatus: TODO
+- decisionRefs: D02, D07, 32A
+- requirementRefs: FR-18
+- diagramRefs: PF-03, PF-04, PF-05, SQ-01, DD/ERD
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+
 - contractStatus: PROPOSED_DELTA
 - implementationStatus: NEEDS_REPO_CHECK
 - verificationStatus: NOT_RUN
@@ -15,9 +19,18 @@
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/inspection-tasks/{taskId}/evaluations`; operationId `evaluateFastTrack`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
-- **Contract:** PROPOSED_CONTRACT; OpenAPI 0.1.1-draft-review1. Không xem draft là quyết định nghiệp vụ đã duyệt.
+- **Contract:** PROPOSED_DELTA; OpenAPI 0.2.0-draft-alignment. Đây là thiết kế đã phản ánh D02/D07 nhưng chưa bật runtime.
 - **Trace:** FR-18; nhóm kế hoạch cũ P1-40/P2-40 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W4; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
+
+## Source evidence
+
+- Decision register: planning/V2/V2-3_DECISION_REGISTER.md (D02, D07, 32A)
+- Requirements/trace: FR-18
+- Diagrams/state: PF-03, PF-04, PF-05, SQ-01, DD/ERD
+- Canonical contract: operationId evaluateFastTrack, path /inspection-tasks/{taskId}/evaluations, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
 
@@ -68,7 +81,7 @@ Mã lỗi HTTP trong draft: `400`, `401`, `403`, `404`, `409`, `413`, `415`, `42
 5. Nếu operation khai báo If-Match, dùng strong ETag theo version; thiếu trả 428, stale trả 412 theo contract. Nếu khai báo Idempotency-Key, cùng key+payload phải replay kết quả, khác payload phải conflict; không tạo effect lần hai. Không ép header này lên operation không khai báo.
 6. Đăng ký DI và migration bổ sung tối thiểu nếu thực sự cần. Không sửa migration đã áp dụng, enum persisted hoặc contract dùng chung ngoài phạm vi mà chưa ghi change. Shared files phải được giữ quyền sửa theo README.
 
-Chỉ dùng policy version của task và measurement hợp lệ, không policy latest. Chưa chốt Q03 thì không cho kết quả eligible thực thi. Offline FAST_TRACK_EVALUATE chưa là SyncOperation hợp lệ.
+Chỉ dùng policy version của task và measurement hợp lệ, không policy latest. Chưa chốt Q03 thì không cho kết quả eligible thực thi. Offline `FAST_TRACK_EVALUATE` đã có trong union draft của `SyncOperation`, nhưng vẫn `PROPOSED_DELTA`/`NOT_ENABLED` cho đến khi ordering, fixtures, permission replay và runtime compatibility được kiểm chứng.
 
 **Source ứng viên đã thấy trong cây thư mục (chưa đọc nội dung):**
 
@@ -87,7 +100,7 @@ Chỉ dùng policy version của task và measurement hợp lệ, không policy 
 | T05 | Cùng key+payload gọi hai lần, đồng thời và sau mất response; cùng key đổi payload | Replay theo contract; đúng một effect nghiệp vụ; key khác payload trả conflict, không ghi thêm |
 | T06 | Inject lỗi trước commit và sau commit trước trả response; retry theo cùng identity | Trước commit rollback; sau commit không nhân effect, audit hoặc notification; không ACK dữ liệu chưa bền vững |
 | T08 | Rủi ro nghiệp vụ riêng | Crew chưa nhận/không được giao không nộp; file chưa verified không là evidence hợp lệ; retry cùng session không nhân phép đo; đo offline không tự mất vì token hết hạn. |
-| T09 | Biên nghiệp vụ của operation | Chỉ dùng policy version của task và measurement hợp lệ, không policy latest. Chưa chốt Q03 thì không cho kết quả eligible thực thi. Offline FAST_TRACK_EVALUATE chưa là SyncOperation hợp lệ. |
+| T09 | Biên nghiệp vụ của operation | Chỉ dùng policy version của task và measurement hợp lệ, không policy latest. Chưa chốt Q03 thì không cho kết quả eligible thực thi. Offline `FAST_TRACK_EVALUATE` thuộc union draft nhưng vẫn `PROPOSED_DELTA`/`NOT_ENABLED` cho đến khi replay ordering, snapshot, permission và runtime compatibility được kiểm chứng. |
 | T10 | Chạy khi quyết định/gate chưa được duyệt | Không thực thi nhánh chưa chốt; test bị block phải ghi BLOCKED, không báo PASS hoặc giả success |
 
 Các invariant không có HTTP/sub-code rõ trong schema cần được chốt trong contract delta trước khi test thành acceptance; không dùng test để tự quyết nghiệp vụ.
@@ -153,7 +166,7 @@ operation:
   x-permission-policy: inspection.assigned
   x-fr:
   - FR-18
-  x-readiness: PROPOSED_CONTRACT
+  x-readiness: PROPOSED_DELTA
   description: Online evaluation; Android tính cùng rules từ snapshot khi offline;
     không yêu cầu gọi server trước sửa offline.
   responses:

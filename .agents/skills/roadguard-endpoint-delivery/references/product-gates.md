@@ -1,21 +1,25 @@
-# Read only the heading matching the task
+# Product gate routing
 
-## Authentication and public reporting
+Do not keep a frozen copy of RoadGuard product decisions in this skill. Read the current row in `planning/V2/V2-3_DECISION_REGISTER.md`, then the exact requirement/diagram/contract heading it references. Historical `OPEN`, `REVIEW-01` and task snapshot text cannot override a later approved decision.
 
-Use authoritative active user/session/membership checks from existing services; do not trust stale role claims alone. Separate login credential failure, token expiry and revocation only through a approved contract delta; current legacy error names remain in use until migration. Refresh only for the agreed expiry code, not every 401. Hash refresh/OTP secrets and avoid logging credentials. Reporter registration is Gmail OTP with pending account and one-time verification before token issuance; Google OAuth is outside that use case. Reporter coordinates are per-photo source/accuracy facts, not upload-device GPS. Public projections must not reveal internal case notes or another reporter's data.
+## Authentication and reporting
 
-## Workflow / offline / repair
+Read D25, 36A and 37 plus ADR 002 and current source. Separate approved target transport/config from runtime compatibility. Reporter public projection follows D10 and must not expose another report source or internal case notes.
 
-Keep IncidentCase, Defect, Survey and Repair states separate. Defect VERIFIED is pre-repair confirmation; case VERIFIED denotes passed retest. Fast Track follows task/policy eligibility → Crew repair → PM review/close → notification to Supervisor; do not insert Supervisor pre-repair approval. Approval Track requires its own approved item/assignment. Preserve attempt and evidence history; repair method is a general summary, not finance/construction-detail scope.
+## Policy, inspection and repair
 
-Verify current decision status in V2 docs. REVIEW-01 recorded Q02/Q03 policy activation/evaluation, Q04 offline reassignment conflict and Q17 suspended-account data recovery as OPEN. BR-10 weekly grouping was proposed; BR-09 core remains distinct. Do not hard-code unanswered decisions. Fail closed only for the unresolved branch; proceed with independently approved work.
+Read D02-D11, 32A and Appendix E rows. Batch work remains `MEASURE_ONLY`; repair after batch requires a new authorized task. Supervisor owns company framework, PM configures within it, and Q03 method/material thresholds remain a technical gate. Keep physical completion, curing/traffic release and acceptance distinct.
 
-Offline receipt must survive restart/retry, identify client operation independently of batch and ACK only committed work. Revalidate current authority and assigned snapshot; never silently last-write-wins, discard pending data or accept revoked permissions. Token expiry is not a task TTL. Snapshot/evidence contract gaps block claims of full offline readiness. The draft sync contract has INSPECTION_SUBMIT, REPAIR_START, REPAIR_SUBMIT; FAST_TRACK_EVALUATE was a NOT_ENABLED proposal. Confirm current contract before adding kinds.
+## Offline and conflict
 
-## Spatial / survey / files
+Read D05-D06, D24 and 42A plus the sync proposal. Handover/rescue authority is approved; acknowledgement/intake/receipt/security and runtime support may still be proposed. Preserve original actor/source, current server authorization and per-operation durable outcomes. A kind name in a proposal is not runtime support.
 
-Keep route/version and published segment sets immutable. Separate aircraft GPS, route station, camera footprint and defect position. Preserve configured SRID and units; longitude/latitude cannot be used as meters. Assess coverage by dataset, segment and SURFACE/LEFT_EDGE/RIGHT_EDGE band. Upload complete does not imply verified file/dataset; server integrity/QC governs downstream eligibility. Enforce scope/ownership on attachment and download, not merely on upload creation.
+## Spatial, survey and files
 
-## Async processing / research / retention
+Read D14-D22, 38, 39A and 43A. Keep route versions immutable, distinguish aircraft/defect/destination position, and preserve video-telemetry identity/history. Approved pilot limits are configuration, not provider verification. Real CRS/parser/calibration evidence remains separate.
 
-Use immutable versioned manifests, durable job/outbox and attempt-correlated callbacks. AI results are candidate detections; no detections does not automatically mean PM no-defect approval. Deterministic/imported research data is valid when labeled; do not build or claim real AI inference/training without scope. Preserve ground truth pairing, exclusions, provenance and metrics without rewriting operational measurements. Recheck legal hold at deletion execution; absent approved retention rules must not become guessed TTLs.
+## AI, research and retention
+
+Read D12-D13, 33A-35A, 40-41A and the AI contract status. PM triggers analysis and decides proposals; AI never owns business transitions. Preserve immutable manifest/attempt/receipt provenance. Retention without a determinable warranty end remains `WAITING_RETENTION_BASIS`; legal hold is rechecked at execution.
+
+If a needed behavior is absent from the register, finish independent work and report the exact missing decision, conflicting sources, recommendation and affected tasks. Do not invent a production default.

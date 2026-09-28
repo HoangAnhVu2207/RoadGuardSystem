@@ -5,7 +5,7 @@ description: Use when a RoadGuard API is added, changed, removed, or prepared fo
 
 # RoadGuard Postman workflow
 
-Use this skill with endpoint delivery whenever an API contract changes. Read only `AGENTS.md`, the directly changed controller/DTO/auth policy and its immediate service/repository dependency, the actual DbInitializer/seed files, and the existing Postman artifacts.
+Use this skill with endpoint delivery whenever an API contract changes. Read `AGENTS.md`, `planning/V2/TASK_LIFECYCLE.md`, the assigned task/Source evidence, directly changed controller/DTO/auth policy and immediate dependency, actual DbInitializer/seed and existing Postman artifacts.
 
 ## Required workflow
 
@@ -19,4 +19,4 @@ Follow `IMPLEMENT -> UPDATE_POSTMAN -> REVIEW_FIX -> VERIFY -> REPORT`. Postman 
 6. Write meaningful assertions for status, content type/payload, stable error codes, authorization and idempotency where the contract supports them. Do not claim Postman proves SQL rollback or concurrency without backend evidence.
 7. Validate JSON, v2.1 schema fields, duplicate request names/IDs, unresolved variables, URLs, headers, bodies and dependency references. If runtime execution is unavailable, report `NOT_RUN` or `BLOCKED` with the reason.
 
-After `roadguard-review-autofix` changes an API contract, re-run this update for affected requests before reporting completion. Do not ask the user to repeat “add Postman” for a normal API task; ask only for a missing contract, business decision or required permission.
+After `roadguard-review-autofix` changes an API contract, re-run this update for affected requests before reporting completion. Record static/runtime Postman evidence separately in task completion history and update `verificationStatus` honestly. Do not ask the user to repeat “add Postman” for a normal API task; ask only for a missing contract, business decision or required permission.

@@ -2,7 +2,7 @@
 
 **Phiên bản:** TECH-R3-2026-09-26-v1 • **Trạng thái:** thiết kế đề xuất dựa trên bộ RoadGuard R3. Chưa có repository, ERD hiện hành, OpenAPI thực tế hoặc môi trường chạy để đối chiếu. Không khẳng định endpoint/code/transaction dưới đây đã được triển khai.
 
-**Ưu tiên nguồn:** quyết định CHỐT/KẾ THỪA trong bộ tài liệu R3 giữ nguyên; chi tiết kỹ thuật mới cần P1/P2/FE/AI review. Q01–Q18 giữ mở theo Mô tả dự án §21. Không tự sửa enum số, chuyển DB, nâng framework hoặc đổi trạng thái Done từ các bản thiết kế này.
+**Ưu tiên nguồn:** [decision register](../../../../planning/V2/V2-3_DECISION_REGISTER.md) áp dụng D01-D28/32-44; chỉ gate kỹ thuật được register giữ lại còn mở. Không tự sửa enum số, chuyển DB, nâng framework hoặc đổi runtime/Done từ thiết kế.
 
 ## 7.1 Quyết định nền và chi tiết đề xuất
 

@@ -200,10 +200,10 @@ public sealed class SurveyV2PersistenceService : ISurveyV2Repository
         var items = requestedScope;
         var routeVersionIds = items.Select(item => item.RouteVersionId).Distinct().ToArray();
         var resolved = await (from project in _context.Projects.AsNoTracking()
-                               join section in _context.RoadSections.AsNoTracking() on project.Id equals section.ProjectId
-                               join version in _context.RoadSectionVersions.AsNoTracking() on section.Id equals version.RoadSectionId
-                               where project.Id == projectId && routeVersionIds.Contains(version.Id)
-                               select new { RouteVersionId = version.Id, RoadSectionId = section.Id })
+                              join section in _context.RoadSections.AsNoTracking() on project.Id equals section.ProjectId
+                              join version in _context.RoadSectionVersions.AsNoTracking() on section.Id equals version.RoadSectionId
+                              where project.Id == projectId && routeVersionIds.Contains(version.Id)
+                              select new { RouteVersionId = version.Id, RoadSectionId = section.Id })
             .ToDictionaryAsync(value => value.RouteVersionId, value => value.RoadSectionId, cancellationToken);
         if (resolved.Count != routeVersionIds.Length)
         {

@@ -123,9 +123,14 @@ public sealed class P2SurveyV2ApiTests
     {
         var response = await client.PostAsJsonAsync("/api/v1/projects", new
         {
-            projectCode = $"P2V2-{Guid.NewGuid():N}", name = "P2 V2 API project", engineeringUtmSrid = 32648,
-            startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = managerId,
-            handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid()
+            projectCode = $"P2V2-{Guid.NewGuid():N}",
+            name = "P2 V2 API project",
+            engineeringUtmSrid = 32648,
+            startDate = "2026-09-01",
+            endDate = "2027-09-01",
+            primaryProjectManagerUserId = managerId,
+            handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
+            operationId = Guid.NewGuid()
         });
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
@@ -135,9 +140,12 @@ public sealed class P2SurveyV2ApiTests
     {
         var response = await client.PostAsJsonAsync($"/api/v1/projects/{projectId}/road-sections", new
         {
-            code = $"RS-{Guid.NewGuid():N}", srid = 32648,
+            code = $"RS-{Guid.NewGuid():N}",
+            srid = 32648,
             coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500100d, y = 1100100d } },
-            effectiveFrom = "2026-09-21T08:00:00+07:00", changeReason = "Initial alignment", operationId = Guid.NewGuid()
+            effectiveFrom = "2026-09-21T08:00:00+07:00",
+            changeReason = "Initial alignment",
+            operationId = Guid.NewGuid()
         });
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roadSectionVersionId").GetGuid();

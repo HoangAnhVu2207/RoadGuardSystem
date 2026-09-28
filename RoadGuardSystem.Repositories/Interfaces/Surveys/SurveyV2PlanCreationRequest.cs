@@ -1,5 +1,6 @@
 using RoadGuardSystem.aBusinessObjects.Commons;
 namespace RoadGuardSystem.Repositories.Surveys;
+
 public sealed record SurveyV2PlanCreationRequest(
     Guid ActorUserId,
     Guid ProjectId,

@@ -1,8 +1,8 @@
 {
-  "contractVersion": "0.1.1-draft-review1",
-  "sha256": "651bca15663414bb92a02ee9f1f28d99c0b60aaa69b3def68a9a5498fc59b50a",
+  "contractVersion": "0.2.0-draft-alignment",
+  "sha256": "65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab",
   "canonical": "05_Technical/openapi.yaml",
   "snapshot": "09_Frontend/contracts/openapi.baseline.yaml",
-  "approval": "Owner-approved for P2-001, P2-002, P2-062, P2-054, P2-055, P2-011 and P2-012 on 2026-09-28.",
-  "review": "V2(3) 2026-09-28"
+  "approval": "Proposed design delta; business decisions are in the decision register, contract/runtime remain unenabled.",
+  "review": "V2 ALIGN 2026-09-28"
 }

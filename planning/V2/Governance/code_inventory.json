@@ -1,0 +1,2002 @@
+{
+  "generated": "2026-09-28",
+  "base": "49c7eae",
+  "method": "case-insensitive operation token scan",
+  "rows": [
+    {
+      "id": "V2-P1-001",
+      "owner": 1,
+      "operationId": "login",
+      "method": "POST",
+      "path": "/auth/login",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": true
+      },
+      "classification": "REUSE_CANDIDATE",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-002",
+      "owner": 1,
+      "operationId": "refreshTokens",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "layerHits": {
+        "api": false,
+        "service": true,
+        "repository": true,
+        "tests": true
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-003",
+      "owner": 1,
+      "operationId": "logout",
+      "method": "POST",
+      "path": "/auth/logout",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": true
+      },
+      "classification": "REUSE_CANDIDATE",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-004",
+      "owner": 1,
+      "operationId": "requestPasswordRecovery",
+      "method": "POST",
+      "path": "/auth/password-recovery-requests",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": true
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-005",
+      "owner": 1,
+      "operationId": "changePassword",
+      "method": "POST",
+      "path": "/auth/change-password",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": true
+      },
+      "classification": "REUSE_CANDIDATE",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-006",
+      "owner": 1,
+      "operationId": "registerReporter",
+      "method": "POST",
+      "path": "/auth/reporter-registrations",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": false
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-007",
+      "owner": 1,
+      "operationId": "verifyReporterOtp",
+      "method": "POST",
+      "path": "/auth/reporter-registrations/verify",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": false
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-008",
+      "owner": 1,
+      "operationId": "resendReporterOtp",
+      "method": "POST",
+      "path": "/auth/reporter-registrations/resend",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": false
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-009",
+      "owner": 1,
+      "operationId": "acceptInvitation",
+      "method": "POST",
+      "path": "/invitations/accept",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": false
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-010",
+      "owner": 1,
+      "operationId": "createInvitation",
+      "method": "POST",
+      "path": "/invitations",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": false
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-011",
+      "owner": 1,
+      "operationId": "getMe",
+      "method": "GET",
+      "path": "/me",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": true
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-012",
+      "owner": 1,
+      "operationId": "updateMe",
+      "method": "PATCH",
+      "path": "/me",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": true
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-013",
+      "owner": 1,
+      "operationId": "adminResetPassword",
+      "method": "POST",
+      "path": "/users/{userId}/password-reset",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-014",
+      "owner": 1,
+      "operationId": "updateAccount",
+      "method": "PATCH",
+      "path": "/users/{userId}",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": true
+      },
+      "classification": "REUSE_CANDIDATE",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-015",
+      "owner": 1,
+      "operationId": "getAccount",
+      "method": "GET",
+      "path": "/users/{userId}",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": true,
+        "tests": true
+      },
+      "classification": "REUSE_CANDIDATE",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-001",
+      "owner": 2,
+      "operationId": "listNotifications",
+      "method": "GET",
+      "path": "/notifications",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-002",
+      "owner": 2,
+      "operationId": "readNotification",
+      "method": "POST",
+      "path": "/notifications/{notificationId}/read",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-016",
+      "owner": 1,
+      "operationId": "listProjects",
+      "method": "GET",
+      "path": "/projects",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-017",
+      "owner": 1,
+      "operationId": "createProject",
+      "method": "POST",
+      "path": "/projects",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": true
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-018",
+      "owner": 1,
+      "operationId": "getProject",
+      "method": "GET",
+      "path": "/projects/{projectId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-019",
+      "owner": 1,
+      "operationId": "updateProject",
+      "method": "PATCH",
+      "path": "/projects/{projectId}",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": true
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-020",
+      "owner": 1,
+      "operationId": "closeProject",
+      "method": "POST",
+      "path": "/projects/{projectId}/close",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-021",
+      "owner": 1,
+      "operationId": "setMembership",
+      "method": "POST",
+      "path": "/projects/{projectId}/memberships",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-022",
+      "owner": 1,
+      "operationId": "listCrews",
+      "method": "GET",
+      "path": "/projects/{projectId}/crews",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-023",
+      "owner": 1,
+      "operationId": "createCrew",
+      "method": "POST",
+      "path": "/projects/{projectId}/crews",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-003",
+      "owner": 2,
+      "operationId": "createRouteDraft",
+      "method": "POST",
+      "path": "/projects/{projectId}/route-drafts",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-004",
+      "owner": 2,
+      "operationId": "getRouteVersion",
+      "method": "GET",
+      "path": "/route-versions/{routeVersionId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-005",
+      "owner": 2,
+      "operationId": "updateRouteDraft",
+      "method": "PUT",
+      "path": "/route-versions/{routeVersionId}/draft",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-006",
+      "owner": 2,
+      "operationId": "confirmRoute",
+      "method": "POST",
+      "path": "/route-versions/{routeVersionId}/confirm",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-007",
+      "owner": 2,
+      "operationId": "previewSegmentSet",
+      "method": "POST",
+      "path": "/projects/{projectId}/segment-set-previews",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-008",
+      "owner": 2,
+      "operationId": "publishSegmentSet",
+      "method": "POST",
+      "path": "/segment-sets/{segmentSetId}/publish",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-009",
+      "owner": 2,
+      "operationId": "createBranch",
+      "method": "POST",
+      "path": "/projects/{projectId}/branches",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-010",
+      "owner": 2,
+      "operationId": "createSlab",
+      "method": "POST",
+      "path": "/projects/{projectId}/slabs",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-024",
+      "owner": 1,
+      "operationId": "createReport",
+      "method": "POST",
+      "path": "/reports",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-025",
+      "owner": 1,
+      "operationId": "listOwnReports",
+      "method": "GET",
+      "path": "/reports",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-026",
+      "owner": 1,
+      "operationId": "getOwnReport",
+      "method": "GET",
+      "path": "/reports/{reportId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-027",
+      "owner": 1,
+      "operationId": "supplementReport",
+      "method": "POST",
+      "path": "/reports/{reportId}/supplements",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-028",
+      "owner": 1,
+      "operationId": "listCases",
+      "method": "GET",
+      "path": "/projects/{projectId}/cases",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-029",
+      "owner": 1,
+      "operationId": "getCase",
+      "method": "GET",
+      "path": "/cases/{caseId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-030",
+      "owner": 1,
+      "operationId": "triageCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/triage",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-031",
+      "owner": 1,
+      "operationId": "linkReports",
+      "method": "POST",
+      "path": "/cases/{caseId}/report-links",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-032",
+      "owner": 1,
+      "operationId": "concludeCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/conclusion",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-033",
+      "owner": 1,
+      "operationId": "publishCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/publish",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-034",
+      "owner": 1,
+      "operationId": "closeMixedCase",
+      "method": "POST",
+      "path": "/cases/{caseId}/close",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-035",
+      "owner": 1,
+      "operationId": "listDefects",
+      "method": "GET",
+      "path": "/projects/{projectId}/defects",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-036",
+      "owner": 1,
+      "operationId": "createPreliminaryDefect",
+      "method": "POST",
+      "path": "/projects/{projectId}/defects",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-037",
+      "owner": 1,
+      "operationId": "getDefect",
+      "method": "GET",
+      "path": "/defects/{defectId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-038",
+      "owner": 1,
+      "operationId": "assessDefect",
+      "method": "POST",
+      "path": "/defects/{defectId}/assessments",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-039",
+      "owner": 1,
+      "operationId": "verifyDefect",
+      "method": "POST",
+      "path": "/defects/{defectId}/verification",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-040",
+      "owner": 1,
+      "operationId": "assessRecurrence",
+      "method": "POST",
+      "path": "/defects/{defectId}/recurrence-assessments",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-041",
+      "owner": 1,
+      "operationId": "setWorkOrder",
+      "method": "PUT",
+      "path": "/projects/{projectId}/work-order",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-042",
+      "owner": 1,
+      "operationId": "getWorkOrder",
+      "method": "GET",
+      "path": "/projects/{projectId}/work-order",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-043",
+      "owner": 1,
+      "operationId": "createPolicyVersion",
+      "method": "POST",
+      "path": "/projects/{projectId}/policy-versions",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-044",
+      "owner": 1,
+      "operationId": "getPolicyVersion",
+      "method": "GET",
+      "path": "/policy-versions/{policyVersionId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-045",
+      "owner": 1,
+      "operationId": "activatePolicyVersion",
+      "method": "POST",
+      "path": "/policy-versions/{policyVersionId}/activate",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-046",
+      "owner": 1,
+      "operationId": "createInspectionTask",
+      "method": "POST",
+      "path": "/projects/{projectId}/inspection-tasks",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-047",
+      "owner": 1,
+      "operationId": "createInspectionBatch",
+      "method": "POST",
+      "path": "/projects/{projectId}/inspection-batches",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-048",
+      "owner": 1,
+      "operationId": "getInspectionTask",
+      "method": "GET",
+      "path": "/inspection-tasks/{taskId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-049",
+      "owner": 1,
+      "operationId": "acceptInspectionTask",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/accept",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-050",
+      "owner": 1,
+      "operationId": "declineInspectionTask",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/decline",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-051",
+      "owner": 1,
+      "operationId": "submitInspection",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/sessions",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-052",
+      "owner": 1,
+      "operationId": "evaluateFastTrack",
+      "method": "POST",
+      "path": "/inspection-tasks/{taskId}/evaluations",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-053",
+      "owner": 1,
+      "operationId": "createRepairPackage",
+      "method": "POST",
+      "path": "/projects/{projectId}/repair-packages",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-054",
+      "owner": 1,
+      "operationId": "submitRepairPackage",
+      "method": "POST",
+      "path": "/repair-packages/{packageId}/submit",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-055",
+      "owner": 1,
+      "operationId": "decideRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/decisions",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-056",
+      "owner": 1,
+      "operationId": "assignRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/assignments",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-057",
+      "owner": 1,
+      "operationId": "reassignRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/reassignments",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-058",
+      "owner": 1,
+      "operationId": "startRepairAttempt",
+      "method": "POST",
+      "path": "/repair-attempts",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-059",
+      "owner": 1,
+      "operationId": "submitRepairAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/submit",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-060",
+      "owner": 1,
+      "operationId": "reviewRepairAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/review",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-061",
+      "owner": 1,
+      "operationId": "acceptApprovalAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/acceptance",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-062",
+      "owner": 1,
+      "operationId": "createEmergencyTask",
+      "method": "POST",
+      "path": "/projects/{projectId}/emergency-tasks",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-011",
+      "owner": 2,
+      "operationId": "createSurveyTask",
+      "method": "POST",
+      "path": "/projects/{projectId}/survey-tasks",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-012",
+      "owner": 2,
+      "operationId": "getSurveyTask",
+      "method": "GET",
+      "path": "/survey-tasks/{taskId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-013",
+      "owner": 2,
+      "operationId": "acceptSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/accept",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-014",
+      "owner": 2,
+      "operationId": "declineSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/decline",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-015",
+      "owner": 2,
+      "operationId": "cancelSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/cancel",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-016",
+      "owner": 2,
+      "operationId": "reassignSurveyTask",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/reassign",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-017",
+      "owner": 2,
+      "operationId": "requestSurveySupplement",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/supplements",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-018",
+      "owner": 2,
+      "operationId": "setSurveyAccessPoint",
+      "method": "PUT",
+      "path": "/survey-tasks/{taskId}/access-point",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-019",
+      "owner": 2,
+      "operationId": "submitDataset",
+      "method": "POST",
+      "path": "/survey-tasks/{taskId}/datasets",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-020",
+      "owner": 2,
+      "operationId": "getDatasetCoverage",
+      "method": "GET",
+      "path": "/datasets/{datasetId}/coverage",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-021",
+      "owner": 2,
+      "operationId": "confirmBaseline",
+      "method": "POST",
+      "path": "/projects/{projectId}/baselines",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-022",
+      "owner": 2,
+      "operationId": "exportMission",
+      "method": "POST",
+      "path": "/projects/{projectId}/mission-exports",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-023",
+      "owner": 2,
+      "operationId": "createUploadSession",
+      "method": "POST",
+      "path": "/uploads",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-024",
+      "owner": 2,
+      "operationId": "getUploadPartUrls",
+      "method": "POST",
+      "path": "/uploads/{uploadId}/part-urls",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-025",
+      "owner": 2,
+      "operationId": "completeUpload",
+      "method": "POST",
+      "path": "/uploads/{uploadId}/complete",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-026",
+      "owner": 2,
+      "operationId": "getUploadSession",
+      "method": "GET",
+      "path": "/uploads/{uploadId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-027",
+      "owner": 2,
+      "operationId": "getFileMetadata",
+      "method": "GET",
+      "path": "/files/{fileId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-028",
+      "owner": 2,
+      "operationId": "downloadFile",
+      "method": "GET",
+      "path": "/files/{fileId}/content",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-029",
+      "owner": 2,
+      "operationId": "syncOperations",
+      "method": "POST",
+      "path": "/sync/batches",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-030",
+      "owner": 2,
+      "operationId": "createProcessingJob",
+      "method": "POST",
+      "path": "/processing-jobs",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-031",
+      "owner": 2,
+      "operationId": "getProcessingJob",
+      "method": "GET",
+      "path": "/processing-jobs/{jobId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-032",
+      "owner": 2,
+      "operationId": "retryProcessingJob",
+      "method": "POST",
+      "path": "/processing-jobs/{jobId}/retry",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-033",
+      "owner": 2,
+      "operationId": "receiveAiResult",
+      "method": "POST",
+      "path": "/internal/processing-jobs/{jobId}/results",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-034",
+      "owner": 2,
+      "operationId": "createValidationRun",
+      "method": "POST",
+      "path": "/projects/{projectId}/validation-runs",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-035",
+      "owner": 2,
+      "operationId": "getValidationResult",
+      "method": "GET",
+      "path": "/validation-runs/{runId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-036",
+      "owner": 2,
+      "operationId": "reviewTrainingLabel",
+      "method": "POST",
+      "path": "/labels/{labelId}/review",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-037",
+      "owner": 2,
+      "operationId": "getDashboard",
+      "method": "GET",
+      "path": "/projects/{projectId}/dashboard",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-038",
+      "owner": 2,
+      "operationId": "getProjectTimeline",
+      "method": "GET",
+      "path": "/projects/{projectId}/timeline",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-039",
+      "owner": 2,
+      "operationId": "createExport",
+      "method": "POST",
+      "path": "/exports",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-040",
+      "owner": 2,
+      "operationId": "getExport",
+      "method": "GET",
+      "path": "/exports/{exportId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-041",
+      "owner": 2,
+      "operationId": "listAuditEvents",
+      "method": "GET",
+      "path": "/audit-events",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-042",
+      "owner": 2,
+      "operationId": "createModelVersion",
+      "method": "POST",
+      "path": "/model-versions",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-043",
+      "owner": 2,
+      "operationId": "activateModelVersion",
+      "method": "POST",
+      "path": "/model-versions/{modelVersionId}/activate",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-044",
+      "owner": 2,
+      "operationId": "retireModelVersion",
+      "method": "POST",
+      "path": "/model-versions/{modelVersionId}/retire",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-045",
+      "owner": 2,
+      "operationId": "createDevice",
+      "method": "POST",
+      "path": "/devices",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-046",
+      "owner": 2,
+      "operationId": "listDefectTypes",
+      "method": "GET",
+      "path": "/catalog/defect-types",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-047",
+      "owner": 2,
+      "operationId": "updateDefectType",
+      "method": "PUT",
+      "path": "/catalog/defect-types/{code}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-048",
+      "owner": 2,
+      "operationId": "getReminderConfig",
+      "method": "GET",
+      "path": "/reminder-configuration",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-049",
+      "owner": 2,
+      "operationId": "setReminderConfig",
+      "method": "PUT",
+      "path": "/reminder-configuration",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-050",
+      "owner": 2,
+      "operationId": "requestDeletion",
+      "method": "POST",
+      "path": "/retention/deletion-requests",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-051",
+      "owner": 2,
+      "operationId": "decideDeletion",
+      "method": "POST",
+      "path": "/retention/deletion-requests/{requestId}/decision",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-052",
+      "owner": 2,
+      "operationId": "setLegalHold",
+      "method": "PUT",
+      "path": "/projects/{projectId}/legal-hold",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-063",
+      "owner": 1,
+      "operationId": "listMyInspectionTasks",
+      "method": "GET",
+      "path": "/me/inspection-tasks",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-064",
+      "owner": 1,
+      "operationId": "listMyRepairItems",
+      "method": "GET",
+      "path": "/me/repair-items",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-053",
+      "owner": 2,
+      "operationId": "listMySurveyTasks",
+      "method": "GET",
+      "path": "/me/survey-tasks",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-065",
+      "owner": 1,
+      "operationId": "getInspectionSnapshot",
+      "method": "GET",
+      "path": "/inspection-tasks/{taskId}/snapshot",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-066",
+      "owner": 1,
+      "operationId": "setDefectSlabLinks",
+      "method": "PUT",
+      "path": "/defects/{defectId}/slab-links",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-054",
+      "owner": 2,
+      "operationId": "createSurveyPlan",
+      "method": "POST",
+      "path": "/projects/{projectId}/survey-plans",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": true
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-055",
+      "owner": 2,
+      "operationId": "postponeSurveyPlan",
+      "method": "POST",
+      "path": "/survey-plans/{planId}/postpone",
+      "layerHits": {
+        "api": true,
+        "service": true,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "PARTIAL",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-056",
+      "owner": 2,
+      "operationId": "exportApprovedLabels",
+      "method": "POST",
+      "path": "/training-exports",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-057",
+      "owner": 2,
+      "operationId": "listAdminJobs",
+      "method": "GET",
+      "path": "/admin/processing-jobs",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-058",
+      "owner": 2,
+      "operationId": "getAsyncJob",
+      "method": "GET",
+      "path": "/jobs/{jobId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-067",
+      "owner": 1,
+      "operationId": "getRepairItem",
+      "method": "GET",
+      "path": "/repair-items/{itemId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-068",
+      "owner": 1,
+      "operationId": "getRepairAttempt",
+      "method": "GET",
+      "path": "/repair-attempts/{attemptId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-069",
+      "owner": 1,
+      "operationId": "getRepairPackage",
+      "method": "GET",
+      "path": "/repair-packages/{packageId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-059",
+      "owner": 2,
+      "operationId": "getSegmentSet",
+      "method": "GET",
+      "path": "/segment-sets/{segmentSetId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-060",
+      "owner": 2,
+      "operationId": "getDeletionRequest",
+      "method": "GET",
+      "path": "/retention/deletion-requests/{requestId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-061",
+      "owner": 2,
+      "operationId": "getModelVersion",
+      "method": "GET",
+      "path": "/model-versions/{modelVersionId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P2-062",
+      "owner": 2,
+      "operationId": "getNotification",
+      "method": "GET",
+      "path": "/notifications/{notificationId}",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-070",
+      "owner": 1,
+      "operationId": "reviseRepairItem",
+      "method": "POST",
+      "path": "/repair-items/{itemId}/revisions",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    },
+    {
+      "id": "V2-P1-071",
+      "owner": 1,
+      "operationId": "startReworkAttempt",
+      "method": "POST",
+      "path": "/repair-attempts/{attemptId}/rework-attempts",
+      "layerHits": {
+        "api": false,
+        "service": false,
+        "repository": false,
+        "tests": false
+      },
+      "classification": "NO_SYMBOL_FOUND",
+      "note": "symbol scan only; task-level contract/runtime verification required"
+    }
+  ]
+}

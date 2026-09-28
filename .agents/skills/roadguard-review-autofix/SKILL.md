@@ -15,7 +15,7 @@ Khi được gọi để review–fix, tự sửa lỗi rõ ràng trong task và
 
 Dùng workflow nối tiếp `IMPLEMENT → UPDATE_POSTMAN → REVIEW_FIX → VERIFY → REPORT` khi diff có API contract. Không yêu cầu mở chat mới, agent thứ hai hoặc đọc lại project. Khi người dùng yêu cầu code rồi review, dùng workflow implementation hiện có; sau phần code, cập nhật các request Postman bị ảnh hưởng trước review/fix. Nếu chỉ được yêu cầu review, không tự nhận task implementation mới.
 
-Giữ một checkpoint ngắn trong context; chỉ ghi vào worklog đã được cho phép khi cần chống mất context:
+Giữ checkpoint trong task theo `planning/V2/TASK_LIFECYCLE.md`; `Source evidence` và completion history là bản bền vững, không chỉ nằm trong chat:
 
 ```text
 Task / owner / branch / base SHA / phạm vi review:
@@ -26,7 +26,7 @@ Quyết định OPEN và giới hạn quyền:
 Checks đã chạy: source/config/filter/environment, kết quả:
 ```
 
-Sau compaction, khôi phục checkpoint và kiểm tra trạng thái/diff hiện tại; không coi lời “đã làm/pass” trước đó là bằng chứng nếu thiếu phạm vi, nguồn hoặc inputs đã đổi. Không suy ra file không thuộc task chỉ vì Agent không nhớ đã sửa. Không suy ra mọi dirty file đều do task hiện tại.
+Sau compaction, đọc task/checkpoint rồi kiểm tra trạng thái/diff hiện tại; chỉ reread nguồn bị invalidated. Không coi lời “đã làm/pass” trước đó là bằng chứng nếu thiếu phạm vi, nguồn hoặc inputs đã đổi. Không suy ra file không thuộc task chỉ vì Agent không nhớ đã sửa. Không suy ra mọi dirty file đều do task hiện tại.
 
 Ở chế độ review, đối chiếu code với AC/BR được duyệt, không dùng ý định của chính mình khi code làm tiêu chuẩn. Tìm phản ví dụ cho nhánh thay đổi: null, boundary, sai quyền, retry, cạnh tranh, rollback. Nếu method/route/body/auth/error code thay đổi, kiểm tra collection/environment/README đã được cập nhật và không có request trùng hoặc biến chưa khai báo. Đây là tự review cùng context, không tự nhận là review độc lập.
 
@@ -100,7 +100,7 @@ Dùng scoped `rg -n` tìm tên symbol/callsite trong layer liên quan; kết qu�
 3. Kiểm hành vi và effects, không chỉ status: SQL thật cho concurrency/rowversion/rollback; API-host smoke cho auth/contract. Dùng lại evidence khi source, config, dependency, selection và môi trường không đổi; rerun phần auto-fix làm mất hiệu lực.
 4. Test fail vì code: sửa nguyên nhân xác định và chạy lại phần ảnh hưởng. Môi trường SQL/Docker không sẵn: ghi `BLOCKED_ENV`, giữ nguyên assertion/gate; không gọi đó là lỗi logic hoặc PASS. Không giả dữ liệu test, skip gate, tắt auth hay áp migration lên DB thật để vượt kiểm tra.
 5. Sau hai lần sửa không giải quyết cùng failure, chỉ tiếp tục nếu có chẩn đoán mới có bằng chứng và vẫn trong scope; nếu không, báo blocker ngắn. Token budget không là lý do tuyên bố pass khi kiểm tra chưa đủ.
-6. Chụp lại HEAD/index/working delta và file liên đới đã đọc. Nếu người/agent khác đổi input trong lúc review, rà lại đúng delta mới và invalidated checks. Kết luận gắn với snapshot được kiểm; không tự chứng nhận changes xuất hiện sau đó.
+6. Chụp lại HEAD/index/working delta và file liên đới đã đọc. Nếu input đổi trong lúc review, rà đúng delta mới và invalidated checks. Ghi ledger/checks/blockers vào task completion history, đặt `DONE/PARTIAL/BLOCKED` theo lifecycle và đồng bộ index/manifest; không tự chứng nhận changes xuất hiện sau snapshot.
 
 ## Bước 6 — Báo cáo Team Leader
 

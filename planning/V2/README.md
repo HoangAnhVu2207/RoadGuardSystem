@@ -2,6 +2,12 @@
 
 Bản phân công nền ngày 2026-09-27: **133 task = 133 operation**, Person 1 (anh): **71**, Person 2 (huy): **62**. V2(3) giữ các ID này làm baseline, không coi 133 là trần. Mỗi task có một owner chịu trách nhiệm toàn bộ endpoint và tự test được API đó. Số task không biểu thị cùng khối lượng; chưa có ước lượng đáng tin cậy trước khi đọc source.
 
+## Alignment overlay 2026-09-28
+
+`task_manifest.json` revision `V2-ALIGN-2026-09-28` keeps 133 unique operations and owner totals P1=71/P2=62. Every task now carries `deliveryStatus`, separate decision/requirement/diagram refs and a source checkpoint; all 133 remain `TODO` + `NEEDS_REPO_CHECK` + `NOT_RUN` until source/runtime verification. This metadata alignment is not implementation evidence.
+
+Use [TASK_LIFECYCLE](TASK_LIFECYCLE.md) for status transitions and completion history, and [governance tasks](Governance/README.md) for the docs/model/contract alignment sequence. `DONE` is never inferred from a generated snapshot or static validator.
+
 ## Overlay rà soát 2026-09-28
 
 Đọc [decision register V2(3)](V2-3_DECISION_REGISTER.md) trước khi nhận task. Register áp dụng D01-D28, tách `contractStatus`, `implementationStatus`, `verificationStatus`, `dependencyType` và `workstream`, đồng thời ghi backlog ngoài 133. Đây là **overlay planning**, không phải ZIP đầy đủ docs; canonical design nằm ở `docs/diagram/V2`.
@@ -21,7 +27,7 @@ Gói ZIP có hai thư mục gốc `planning/` và `docs/`. Giải nén ra thư m
 
 P1 trước đây chủ yếu API/service, P2 chủ yếu persistence. Theo ADR 006, kế hoạch mới giao dọc theo từng API: owner được sửa mọi lớp cần thiết của endpoint mình nhận, bao gồm persistence/schema/migration khi scope đã duyệt yêu cầu. Đây là ownership giao việc, không thay kiến trúc `Controller -> IService -> IRepository`. Giữ nguyên history Done; không yêu cầu làm lại. Các task hạ tầng cũ không bị đổi thành API giả và vẫn ở checklist release.
 
-Cây thư mục chỉ chứng minh tên file hiện diện, không chứng minh route, hành vi hoặc test đang pass. Các DTO/road section/legacy auth đã có phải được đối chiếu với contract draft. Đặc biệt `auth_unauthorized` và code uppercase, PagedResponse và cursor, road-section và route-version không được đổi phá tương thích âm thầm. Khi khác nhau: ghi current/proposed, ảnh hưởng FE, adapter/migration/versioning và người duyệt; giữ runtime hiện tại cho tới khi delta được chốt.
+Cây thư mục chỉ chứng minh tên file hiện diện, không chứng minh route, hành vi hoặc test đang pass. Các DTO/road section/legacy auth đã có phải được đối chiếu với contract draft. Đặc biệt `auth_unauthorized` và code uppercase, PagedResponse và cursor, road-section và route-version không được đổi phá tương thích âm thầm. Khi khác nhau: ghi current/proposed, ảnh hưởng FE, adapter/migration/versioning và người duyệt; giữ runtime hiện tại cho tới khi delta được chốt. Decision register hiện hành thắng nhãn OPEN lịch sử đúng phạm vi nhưng không biến contract draft thành runtime.
 
 ## Ownership và tránh xung đột
 
@@ -43,9 +49,9 @@ Mỗi API một owner; controller chung, DTO/common errors, DI, DbContext, mappi
 
 ## Gate bắt buộc
 
-- Q02: khung công ty và quyền PM đã được quyết định; Q03 vẫn cần hồ sơ/ngưỡng kỹ thuật theo method. Fail closed khi thiếu căn cứ, không tự thêm duyệt từng sửa Fast Track.
-- Q04/Q17: conflict đổi đội và dữ liệu còn trên máy khi tài khoản bị khóa. Core revoke/dedup/durability vẫn test được; E2E rescue/conflict chưa thể nghiệm thu.
-- BR-10: gom tuần là đề xuất; BR-09 core của FR-16 vẫn tách được.
+- Q02: D03 đã chốt khung công ty và quyền PM; Q03 vẫn cần hồ sơ/ngưỡng kỹ thuật theo method. Fail closed khi thiếu căn cứ, không tự thêm duyệt từng sửa Fast Track.
+- Q04/Q17: D05/D06/42A đã chốt business authority cho handover/conflict/rescue. E2E vẫn chờ wire lifecycle, security, atomic race và device/key tests; core revoke/dedup/durability kiểm riêng.
+- BR-10: 32A đã chốt PM tự gom và reminder hằng tuần; hệ thống không tự tạo/giao task hoặc cấp quyền sửa.
 - Sync phải mô tả đầy đủ INSPECTION_SUBMIT -> FAST_TRACK_EVALUATE -> REPAIR_START -> REPAIR_SUBMIT; tên kind mới chưa phải runtime support cho tới khi schema, ordering, replay và fixture được duyệt.
 - Retention/legal hold, Q10/Q11/Q12/Q13/Q14/Q18 và GAP01: áp dụng gate chi tiết trong task. Không tự chọn TTL, threshold, approval hoặc delete rule.
 
@@ -55,7 +61,7 @@ Q07/Q08, Q09/33A, Q10/Q12/Q13/34A, Q11 và Q14 được crosswalk theo ý nghĩa
 
 Mỗi task có input/output, role/policy, dependency, cách triển khai, HTTP template và test dương/âm theo risk. Template chưa có seed thật nên chưa phải request đã chạy. Test schema/status thôi chưa đủ; mutation phải kiểm effect bền vững và retry; read kiểm scope/projection. Chọn một breadth test phù hợp, build test project hiện tại trước khi dùng `--no-build`, và dùng lại bằng chứng chỉ khi input/binary/environment không đổi; full suite dành integration/release hoặc thay đổi shared rộng. Tuân theo AGENTS và ba skill endpoint-delivery/persistence/test-selection trong repo sau khi nhận source. Không nâng SDK theo suy đoán; cây hiện có net8.0, cần đọc global.json/csproj.
 
-Contract guard trong docs: `python docs/diagram/V2/09_Frontend/contracts/check_contracts.py` (đọc hướng dẫn script trước dùng trong CI hiện tại). Đây là kiểm tra docs, không thay test backend.
+Contract guard trong docs: `python docs/diagram/V2/09_Frontend/contracts/check_contracts.py` (đọc hướng dẫn script trước dùng trong CI hiện tại). Đây là kiểm tra docs, không thay test backend. Sau alignment, canonical contract SHA-256 là `65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab`; version `0.2.0-draft-alignment`, runtime `NOT_ENABLED`.
 
 ## Đối chiếu source để chốt delta
 
@@ -70,4 +76,4 @@ Sự hiện diện của source không biến bản V2 thành code audit hoặc 
 
 ## Kiểm tra gói
 
-[Coverage/gap](COVERAGE_AND_GAPS.md), [manifest](task_manifest.json), [validation](VALIDATION.md). Gói giữ snapshot docs REVIEW-01; source OpenAPI SHA-256: `dbde8b756bbc1bf83dabfbfe395eb11e53b378e7338815b1f3ca019aa7f3f806`.
+[Coverage/gap](COVERAGE_AND_GAPS.md), [manifest](task_manifest.json), [validation](VALIDATION.md). Gói giữ snapshot docs alignment; source OpenAPI SHA-256: `65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab`.

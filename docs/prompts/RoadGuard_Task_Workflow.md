@@ -1,13 +1,13 @@
 # RoadGuard - 3 prompt dung chung cho moi task
 
-Quy tac hien hanh nam trong [AGENTS.md](../../AGENTS.md). Cac task `Done` va worklog cu la lich su bat bien. Luon bat dau bang Prompt 1; chi dung Prompt 2 sau khi owner dong y; dung Prompt 3 de kiem tra va ban giao.
+Quy tac hien hanh nam trong [AGENTS.md](../../AGENTS.md); trang thai va completion record theo [TASK_LIFECYCLE](../../planning/V2/TASK_LIFECYCLE.md). Cac task `Done` va worklog cu la lich su bat bien. Luon bat dau bang Prompt 1; chi dung Prompt 2 sau khi owner dong y; dung Prompt 3 de kiem tra va ban giao.
 
 ## Prompt 1 - nhan task, phan loai va chot scope
 
 ```text
 Chuan bi RoadGuard task <TASK-ID hoac MO-TA>, owner <anh|huy>, chua sua file.
 
-Doc git status, task row trong planning neu co, dependency thuc te, file lien quan va quy tac repository. Tu phan loai:
+Doc git status, task row/checkpoint, decision register, dependency thuc te, file lien quan va quy tac repository. Lap bang Source evidence bang path + heading/ID cho requirement/diagram/contract/DD/ERD/source/test se dung. Tu phan loai:
 - Task nho: mot muc tieu ro rang, mot owner, scope va dependency da ro, co the hoan thanh va kiem tra trong mot lat cat, khong co migration/package/xoa du lieu/tac dong ngoai chua duoc phep.
 - Task lon: co nhieu output doc lap, nhieu owner/shared hotspot, can thay doi schema/migration, anh huong nhieu project hoac phai lam theo thu tu.
 
@@ -34,7 +34,7 @@ Khong sua file cho den khi owner dong y ro rang trong phien nay. Khong hoi nguoi
 ```text
 Thuc thi RoadGuard <TASK-ID>/<SLICE> dung scope da duoc owner dong y.
 
-Truoc khi sua, doc lai git status, task row, dependency va cac file se cham. Neu checkout hoac scope da thay doi, dung va bao xung dot; khong tu mo rong scope.
+Truoc khi sua, doc lai git status, task row/sourceCheckpoint, dependency va cac file se cham. Cap nhat deliveryStatus=IN_PROGRESS va Source evidence ngay trong task, dong bo index/manifest. Neu checkout hoac scope da thay doi, dung va bao xung dot; khong tu mo rong scope.
 
 Viet delivery contract 5-8 dong phu hop voi task, gom: tac nhan/trigger, input va validation, output thanh cong, loi on dinh, quy tac nghiep vu, persistence/idempotency/concurrency neu co, quyen/audit/du lieu nhay cam neu co, va bang chung de coi la xong. Neu la endpoint, dong dau phai ghi method + route va actor/quyen.
 
@@ -44,7 +44,7 @@ Chon bac re nhat du chung minh thay doi: tai lieu/tooling chi dung verifier/link
 
 Tai su dung ket qua da pass khi source/config/dependency, pham vi test va moi truong lien quan khong doi. Sau moi lan sua, chi chay lai check bi thay doi do lam mat hieu luc; khong chay lai cung lenh o buoc ban giao hoac commit chi de lay ket qua moi. Commit khong tu dong kich hoat them test.
 
-Neu cung mot loi van con sau hai lan sua, dung, bao ten check va chan doan ngan; khong thu lan ba va khong mo rong scope.
+Neu cung mot loi van con sau hai lan sua, dung, bao ten check va chan doan ngan; khong thu lan ba va khong mo rong scope. Sau moi lat cat, ghi completion history va cap nhat DONE/PARTIAL/BLOCKED ngay; khong cho nguoi dung nhac.
 ```
 
 ## Prompt 3 - kiem tra, sua trong scope va ban giao
@@ -64,7 +64,7 @@ Tra ket qua gon:
 - Rui ro con lai / blocker
 - Lat cat tiep theo neu task lon
 
-Chi cap nhat task row/worklog neu scope cho phep. Khong sua lich su `Done`; khong commit, merge, rebase, pull, push, tag, stash hoac doi branch/worktree khi chua duoc owner dong y.
+Bat buoc cap nhat task va index/manifest theo TASK_LIFECYCLE trong scope V2 da giao: append completion history, source/evidence/checks/side effects/unverified; dat DONE chi khi du gate, PARTIAL/BLOCKED neu con gate. Neu task DONE bi invalidated, dat REOPENED va giu entry cu. Khong sua lich su `Done`; khong commit, merge, rebase, pull, push, tag, stash hoac doi branch/worktree khi chua duoc owner dong y.
 ```
 
 ## Thang kiem tra tham chieu

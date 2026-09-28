@@ -77,6 +77,7 @@ public sealed partial class IdentityRepository
                     }
 
                     var now = DateTimeOffset.UtcNow;
+                    var previousMustChangePassword = target.MustChangePassword;
                     target.PasswordHash = newPasswordHash;
                     target.SecurityStamp = newSecurityStamp;
                     target.MustChangePassword = true;
@@ -125,7 +126,7 @@ public sealed partial class IdentityRepository
                         "user_password_reset",
                         "User",
                         targetUserId,
-                        "{\"must_change_password\":false}",
+                        $"{{\"must_change_password\":{previousMustChangePassword.ToString().ToLowerInvariant()}}}",
                         "{\"must_change_password\":true}",
                         null,
                         "IdentityRepository",

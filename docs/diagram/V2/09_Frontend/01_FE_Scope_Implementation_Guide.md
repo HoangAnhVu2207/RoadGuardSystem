@@ -30,7 +30,7 @@ Permission UI là hướng dẫn, BE là enforcement. Role không đủ để qu
 3. Mỗi ý định có operation ID/key ổn định; timeout/cancel không chứng minh rollback.
 4. Không gửi local temp ID hoặc unknown enum để bypass type checking.
 5. BEFORE đúng nguồn được gắn trước sửa; không đổi AFTER thành BEFORE; ảnh tái dùng giữ provenance.
-6. Không silent overwrite khi policy/assignment/version đổi; Q04/Q17 còn mở.
+6. Không silent overwrite khi policy/assignment/version đổi; áp dụng D05/D06/42A và giữ contract/runtime gate cho conflict/rescue.
 7. Fast Track đủ điều kiện không chờ PM duyệt từng số đo; PM kiểm/đóng và báo Supervisor.
 8. Notification/realtime/cache không là nguồn cấp quyền hay ACK.
 9. Offline store partition account/môi trường; logout không xóa bằng chứng chưa sync.

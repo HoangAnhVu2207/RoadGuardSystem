@@ -2,8 +2,12 @@
 
 ## V2(3) status
 
-- decisionRefs: D27
-- requirementRefs: register crosswalk; task-specific references remain authoritative
+- deliveryStatus: TODO
+- decisionRefs: 41A, 42A
+- requirementRefs: FR-35
+- diagramRefs: SQ-05, DD/ERD
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+
 - contractStatus: REVIEWED
 - implementationStatus: NEEDS_REPO_CHECK
 - verificationStatus: NOT_RUN
@@ -15,9 +19,18 @@
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/retention/deletion-requests`; operationId `requestDeletion`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
-- **Contract:** PROPOSED_CONTRACT; OpenAPI 0.1.1-draft-review1. Không xem draft là quyết định nghiệp vụ đã duyệt.
+- **Contract:** PROPOSED_CONTRACT; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-35; nhóm kế hoạch cũ P1-62/P2-62 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W5; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
+
+## Source evidence
+
+- Decision register: planning/V2/V2-3_DECISION_REGISTER.md (41A, 42A)
+- Requirements/trace: FR-35
+- Diagrams/state: SQ-05, DD/ERD
+- Canonical contract: operationId requestDeletion, path /retention/deletion-requests, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
 

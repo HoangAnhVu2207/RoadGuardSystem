@@ -1,7 +1,7 @@
 {
-  "version": "V2-API-PLAN-03",
-  "source": "docs/diagram/V2/05_Technical/openapi.yaml",
-  "source_sha256": "a98f43c662e574b37b2619b25e25b894419a0f0725c8af7e66c2c3c7e3143992",
+  "version": "V2-ALIGN-2026-09-28",
+  "source": "docs/diagram/V2/05_Technical/openapi.yaml + V2-3_DECISION_REGISTER.md",
+  "source_sha256": "65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab",
   "tasks": [
     {
       "id": "V2-P1-001",
@@ -10,20 +10,32 @@
       "method": "POST",
       "path": "/auth/login",
       "file": "Person_1/V2-P1-001_login.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 1,
       "old": "10",
       "dependencies": [],
       "legacy_trace": "P1-10/P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
+      "implementationStatus": "IMPLEMENTED_REUSED",
+      "verificationStatus": "PASS_EXTERNAL_SMOKE",
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "DONE",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-P1-001-005-AUTH-CHECKPOINT / baseline 49c7eae / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-002",
@@ -32,7 +44,7 @@
       "method": "POST",
       "path": "/auth/refresh",
       "file": "Person_1/V2-P1-002_refreshTokens.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 1,
       "old": "10",
@@ -41,13 +53,25 @@
       ],
       "legacy_trace": "P1-10/P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
+      "implementationStatus": "IMPLEMENTED_REUSED",
+      "verificationStatus": "PASS_EXTERNAL_SMOKE",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "DONE",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-P1-001-005-AUTH-CHECKPOINT / baseline 49c7eae / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-003",
@@ -56,7 +80,7 @@
       "method": "POST",
       "path": "/auth/logout",
       "file": "Person_1/V2-P1-003_logout.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 1,
       "old": "10",
@@ -65,13 +89,25 @@
       ],
       "legacy_trace": "P1-10/P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
+      "implementationStatus": "IMPLEMENTED_REUSED",
+      "verificationStatus": "PASS_EXTERNAL_SMOKE",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "DONE",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-P1-001-005-AUTH-CHECKPOINT / baseline 49c7eae / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-004",
@@ -80,20 +116,32 @@
       "method": "POST",
       "path": "/auth/password-recovery-requests",
       "file": "Person_1/V2-P1-004_requestPasswordRecovery.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 2,
       "old": "10",
       "dependencies": [],
       "legacy_trace": "P1-10/P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
+      "implementationStatus": "IMPLEMENTED_REUSED",
+      "verificationStatus": "PASS_EXTERNAL_SMOKE",
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "DONE",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-P1-001-005-AUTH-CHECKPOINT / baseline 49c7eae / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-005",
@@ -102,7 +150,7 @@
       "method": "POST",
       "path": "/auth/change-password",
       "file": "Person_1/V2-P1-005_changePassword.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 2,
       "old": "10",
@@ -111,13 +159,25 @@
       ],
       "legacy_trace": "P1-10/P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
+      "implementationStatus": "IMPLEMENTED_REUSED",
+      "verificationStatus": "PASS_EXTERNAL_SMOKE",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "DONE",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-P1-001-005-AUTH-CHECKPOINT / baseline 49c7eae / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-006",
@@ -138,8 +198,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-03",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-007",
@@ -162,8 +235,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-03",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-008",
@@ -186,8 +272,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-03",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-009",
@@ -210,8 +309,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-02",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-010",
@@ -232,8 +344,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-02",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-011",
@@ -254,8 +379,20 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-012",
@@ -278,8 +415,20 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-013",
@@ -302,8 +451,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01",
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-014",
@@ -330,8 +492,21 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-36",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-015",
@@ -352,8 +527,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-36",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-001",
@@ -374,8 +562,18 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-34"
+      ],
+      "diagramRefs": [
+        null,
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-002",
@@ -398,8 +596,18 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-34"
+      ],
+      "diagramRefs": [
+        null,
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-016",
@@ -420,8 +628,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-01",
+        "FR-04"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-017",
@@ -442,8 +664,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-04"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-018",
@@ -464,8 +699,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-04"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-019",
@@ -488,8 +736,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-04"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-020",
@@ -512,8 +773,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-04"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-021",
@@ -536,8 +810,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-01",
+        "FR-04"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-022",
@@ -558,8 +845,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-20"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-023",
@@ -582,8 +882,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-20"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-003",
@@ -608,13 +921,25 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D17",
-        "D21"
+        "D18",
+        "D21",
+        "D22",
+        "39A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-05",
+        "FR-06"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "PF-07",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-004",
@@ -635,8 +960,25 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D17",
+        "D18",
+        "D21",
+        "D22",
+        "39A"
+      ],
+      "requirementRefs": [
+        "FR-05",
+        "FR-06"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "PF-07",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-005",
@@ -663,12 +1005,24 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D21"
+        "D17",
+        "D18",
+        "D21",
+        "D22",
+        "39A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-06"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "PF-07",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-006",
@@ -691,8 +1045,24 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D17",
+        "D18",
+        "D21",
+        "D22",
+        "39A"
+      ],
+      "requirementRefs": [
+        "FR-07"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "PF-07",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-007",
@@ -715,13 +1085,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D21",
-        "D22"
+        "D25",
+        "36A",
+        "37"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-08",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-008",
@@ -744,8 +1122,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-08",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-009",
@@ -770,8 +1161,24 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D17",
+        "D18",
+        "D21",
+        "D22",
+        "39A"
+      ],
+      "requirementRefs": [
+        "FR-09"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "PF-07",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-010",
@@ -798,8 +1205,23 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-10"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-024",
@@ -820,8 +1242,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-11"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-025",
@@ -842,8 +1277,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-11"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-026",
@@ -864,8 +1312,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-25"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-027",
@@ -888,8 +1349,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-11",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-028",
@@ -910,8 +1384,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-029",
@@ -932,8 +1419,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-030",
@@ -956,8 +1456,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-031",
@@ -984,8 +1497,21 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-12"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-032",
@@ -1008,8 +1534,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-033",
@@ -1032,12 +1571,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D10"
+        "D10",
+        "D19"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-25"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-034",
@@ -1060,8 +1608,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10",
+        "D19"
+      ],
+      "requirementRefs": [
+        "FR-23"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-035",
@@ -1082,8 +1643,24 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-10",
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-036",
@@ -1104,8 +1681,23 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-037",
@@ -1126,8 +1718,23 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-038",
@@ -1150,8 +1757,23 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-14"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-039",
@@ -1174,8 +1796,23 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-13"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-040",
@@ -1198,12 +1835,23 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D09"
+        "D09",
+        "D10",
+        "D12",
+        "33A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-24"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-041",
@@ -1226,8 +1874,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-14"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-042",
@@ -1248,8 +1909,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D19",
+        "D23",
+        "D24"
+      ],
+      "requirementRefs": [
+        "FR-14"
+      ],
+      "diagramRefs": [
+        "PF-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-043",
@@ -1270,13 +1944,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D03",
         "D04"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-15"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-044",
@@ -1297,8 +1980,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D03",
+        "D04"
+      ],
+      "requirementRefs": [
+        "FR-15"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-045",
@@ -1327,13 +2024,22 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D03",
         "D04"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-15"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-046",
@@ -1356,8 +2062,25 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-17",
+        "FR-18",
+        "FR-20"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-047",
@@ -1382,8 +2105,25 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-16",
+        "BR-10",
+        "BR-09"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-048",
@@ -1404,8 +2144,24 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-17",
+        "FR-22"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-049",
@@ -1428,8 +2184,23 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-17"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-050",
@@ -1452,8 +2223,23 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-17"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-051",
@@ -1477,8 +2263,23 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-17"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-052",
@@ -1508,13 +2309,23 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D02",
-        "D07"
+        "D07",
+        "32A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-18"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-053",
@@ -1535,8 +2346,24 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-19"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-054",
@@ -1559,8 +2386,24 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-19"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-055",
@@ -1583,8 +2426,24 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-19"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-056",
@@ -1607,8 +2466,24 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-20"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-057",
@@ -1635,12 +2510,24 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D05"
+        "D08",
+        "D09",
+        "D11",
+        "35A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-20"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-058",
@@ -1670,13 +2557,25 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D08",
-        "D11"
+        "D09",
+        "D11",
+        "35A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-18",
+        "FR-21"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-059",
@@ -1700,12 +2599,24 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D08"
+        "D08",
+        "D09",
+        "D11",
+        "35A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-21"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-060",
@@ -1728,13 +2639,24 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D08",
-        "D11"
+        "D09",
+        "D11",
+        "35A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-23"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-061",
@@ -1757,12 +2679,20 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D11"
+        "D12",
+        "D13",
+        "34A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-23"
+      ],
+      "diagramRefs": [
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-062",
@@ -1787,8 +2717,21 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-37",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-011",
@@ -1809,8 +2752,25 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-012",
@@ -1831,8 +2791,25 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-013",
@@ -1855,8 +2832,25 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-014",
@@ -1879,8 +2873,25 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-015",
@@ -1903,8 +2914,25 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-016",
@@ -1927,8 +2955,25 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-017",
@@ -1951,8 +2996,21 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-26",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-018",
@@ -1979,12 +3037,25 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D16"
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-32"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-019",
@@ -2008,12 +3079,25 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D20"
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-27"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-020",
@@ -2034,8 +3118,25 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-28"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-021",
@@ -2062,8 +3163,25 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-30"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-022",
@@ -2090,8 +3208,25 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-33"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-023",
@@ -2112,8 +3247,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D38",
+        "D43A",
+        "42A"
+      ],
+      "requirementRefs": [
+        "FR-21",
+        "FR-27"
+      ],
+      "diagramRefs": [
+        "PF-08",
+        "SQ-03",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-024",
@@ -2136,8 +3285,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D38",
+        "D43A",
+        "42A"
+      ],
+      "requirementRefs": [
+        "FR-22",
+        "FR-27"
+      ],
+      "diagramRefs": [
+        "PF-08",
+        "SQ-03",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-025",
@@ -2160,8 +3323,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D38",
+        "D43A",
+        "42A"
+      ],
+      "requirementRefs": [
+        "FR-21",
+        "FR-27"
+      ],
+      "diagramRefs": [
+        "PF-08",
+        "SQ-03",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-026",
@@ -2182,8 +3359,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D38",
+        "D43A",
+        "42A"
+      ],
+      "requirementRefs": [
+        "FR-22",
+        "FR-27"
+      ],
+      "diagramRefs": [
+        "PF-08",
+        "SQ-03",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-027",
@@ -2204,8 +3395,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-21",
+        "FR-35",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-028",
@@ -2226,8 +3431,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D38",
+        "D43A",
+        "42A"
+      ],
+      "requirementRefs": [
+        "FR-01",
+        "FR-35"
+      ],
+      "diagramRefs": [
+        "PF-08",
+        "SQ-03",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-029",
@@ -2261,12 +3480,23 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D24"
+        "D05",
+        "D06",
+        "D24",
+        "42A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-22"
+      ],
+      "diagramRefs": [
+        "PF-08",
+        "SQ-01",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-030",
@@ -2289,13 +3519,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D12",
-        "D13"
+        "D13",
+        "33A",
+        "34A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-29"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-031",
@@ -2316,8 +3555,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-29"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-032",
@@ -2340,8 +3593,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-29"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-033",
@@ -2364,13 +3631,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
         "D12",
-        "D13"
+        "D13",
+        "33A",
+        "34A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-29"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-034",
@@ -2393,8 +3669,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-31"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-035",
@@ -2415,8 +3705,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-31"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-036",
@@ -2441,8 +3745,22 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-037",
@@ -2463,8 +3781,19 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-34"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-038",
@@ -2485,8 +3814,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-34",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-039",
@@ -2509,8 +3851,19 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-35"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-040",
@@ -2531,8 +3884,19 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-35"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-041",
@@ -2553,8 +3917,19 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-042",
@@ -2575,8 +3950,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-043",
@@ -2599,8 +3988,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-044",
@@ -2623,8 +4026,22 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-045",
@@ -2645,8 +4062,20 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-046",
@@ -2667,8 +4096,23 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-047",
@@ -2689,8 +4133,23 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-048",
@@ -2711,8 +4170,20 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-049",
@@ -2735,8 +4206,20 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-050",
@@ -2761,12 +4244,19 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D27"
+        "41A",
+        "42A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-35"
+      ],
+      "diagramRefs": [
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-051",
@@ -2793,12 +4283,19 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D27"
+        "41A",
+        "42A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-35"
+      ],
+      "diagramRefs": [
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-052",
@@ -2819,12 +4316,19 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
+      "deliveryStatus": "TODO",
       "decisionRefs": [
-        "D27"
+        "41A",
+        "42A"
       ],
       "requirementRefs": [
-        "V2(3)-register"
-      ]
+        "FR-35"
+      ],
+      "diagramRefs": [
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-063",
@@ -2845,8 +4349,24 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-17",
+        "FR-22"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-064",
@@ -2867,8 +4387,24 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-20"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-053",
@@ -2889,8 +4425,25 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-065",
@@ -2917,8 +4470,25 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D02",
+        "D07",
+        "32A"
+      ],
+      "requirementRefs": [
+        "FR-15",
+        "FR-18",
+        "FR-22"
+      ],
+      "diagramRefs": [
+        "PF-03",
+        "PF-04",
+        "PF-05",
+        "SQ-01",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-066",
@@ -2945,8 +4515,23 @@
       ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D09",
+        "D10",
+        "D12",
+        "33A"
+      ],
+      "requirementRefs": [
+        "FR-10"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "PF-06",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-054",
@@ -2967,8 +4552,26 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26",
+        "FR-30"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-055",
@@ -2991,8 +4594,25 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "requirementRefs": [
+        "FR-26"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-056",
@@ -3017,8 +4637,19 @@
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-02",
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-057",
@@ -3039,8 +4670,20 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-058",
@@ -3061,8 +4704,27 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D05",
+        "D06",
+        "D24",
+        "42A"
+      ],
+      "requirementRefs": [
+        "FR-29",
+        "FR-31",
+        "FR-33",
+        "FR-35",
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-08",
+        "SQ-01",
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-067",
@@ -3083,8 +4745,25 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-20",
+        "FR-23"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-068",
@@ -3105,8 +4784,25 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-21",
+        "FR-23"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-069",
@@ -3127,8 +4823,24 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-19"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-059",
@@ -3149,8 +4861,21 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D25",
+        "36A",
+        "37"
+      ],
+      "requirementRefs": [
+        "FR-08",
+        "FR-01"
+      ],
+      "diagramRefs": [
+        "SQ-06",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-060",
@@ -3171,8 +4896,19 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "41A",
+        "42A"
+      ],
+      "requirementRefs": [
+        "FR-35"
+      ],
+      "diagramRefs": [
+        "SQ-05",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-061",
@@ -3193,8 +4929,22 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "33A",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-36"
+      ],
+      "diagramRefs": [
+        "PF-07",
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P2-062",
@@ -3215,8 +4965,18 @@
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D10"
+      ],
+      "requirementRefs": [
+        "FR-34"
+      ],
+      "diagramRefs": [
+        null,
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-070",
@@ -3239,8 +4999,24 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D08",
+        "D09",
+        "D11",
+        "35A"
+      ],
+      "requirementRefs": [
+        "FR-19"
+      ],
+      "diagramRefs": [
+        "PF-05",
+        "PF-06",
+        "SQ-01",
+        "SQ-02",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     },
     {
       "id": "V2-P1-071",
@@ -3263,8 +5039,20 @@
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "decisionRefs": [],
-      "requirementRefs": []
+      "deliveryStatus": "TODO",
+      "decisionRefs": [
+        "D12",
+        "D13",
+        "34A"
+      ],
+      "requirementRefs": [
+        "FR-24"
+      ],
+      "diagramRefs": [
+        "SQ-04",
+        "DD/ERD"
+      ],
+      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
     }
   ],
   "overlay": "planning/V2/V2-3_DECISION_REGISTER.md",

@@ -2,8 +2,12 @@
 
 ## V2(3) status
 
-- decisionRefs: D24
-- requirementRefs: register crosswalk; task-specific references remain authoritative
+- deliveryStatus: TODO
+- decisionRefs: D05, D06, D24, 42A
+- requirementRefs: FR-22
+- diagramRefs: PF-08, SQ-01, SQ-06, DD/ERD
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+
 - contractStatus: PROPOSED_DELTA
 - implementationStatus: NEEDS_REPO_CHECK
 - verificationStatus: NOT_RUN
@@ -15,9 +19,18 @@
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/sync/batches`; operationId `syncOperations`.
 - **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
-- **Contract:** PROPOSED_CONTRACT; OpenAPI 0.1.1-draft-review1. Không xem draft là quyết định nghiệp vụ đã duyệt.
+- **Contract:** PROPOSED_DELTA; OpenAPI 0.2.0-draft-alignment. Union có `FAST_TRACK_EVALUATE` ở mức thiết kế; runtime chưa bật.
 - **Trace:** FR-22; nhóm kế hoạch cũ P1-40/P2-40 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W4; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
+
+## Source evidence
+
+- Decision register: planning/V2/V2-3_DECISION_REGISTER.md (D05, D06, D24, 42A)
+- Requirements/trace: FR-22
+- Diagrams/state: PF-08, SQ-01, SQ-06, DD/ERD
+- Canonical contract: operationId syncOperations, path /sync/batches, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
 
@@ -174,7 +187,7 @@ operation:
   x-permission-policy: sync.actorScope
   x-fr:
   - FR-22
-  x-readiness: PROPOSED_CONTRACT
+  x-readiness: PROPOSED_DELTA
   description: Envelope hợp lệ trả 200 với từng APPLIED/DUPLICATE/CONFLICT/REJECTED;
     invalid envelope 422; không ACK toàn batch chỉ vì nhận HTTP. Current revocation
     không cho ghi quyền cũ; giữ local và conflict; Q04/17 xử lý có kiểm soát.

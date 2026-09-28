@@ -8,6 +8,7 @@ public static class UserRoleCodeExtensions
     public const string ProjectManagerDbCode = "PM";
     public const string DroneOperatorDbCode = "DRONE_OPERATOR";
     public const string RepairCrewDbCode = "REPAIR_CREW";
+    public const string ReporterDbCode = "REPORTER";
 
     public static string ToDbCode(this UserRoleCode role)
     {
@@ -17,6 +18,7 @@ public static class UserRoleCodeExtensions
             UserRoleCode.ProjectManager => ProjectManagerDbCode,
             UserRoleCode.DroneOperator => DroneOperatorDbCode,
             UserRoleCode.RepairCrew => RepairCrewDbCode,
+            UserRoleCode.Reporter => ReporterDbCode,
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, $"Unknown or invalid UserRoleCode '{role}' cannot be mapped to a canonical database role code.")
         };
     }
@@ -34,6 +36,7 @@ public static class UserRoleCodeExtensions
             ProjectManagerDbCode => UserRoleCode.ProjectManager,
             DroneOperatorDbCode => UserRoleCode.DroneOperator,
             RepairCrewDbCode => UserRoleCode.RepairCrew,
+            ReporterDbCode => UserRoleCode.Reporter,
             _ => throw new ArgumentOutOfRangeException(nameof(dbCode), dbCode, $"Unsupported database role code '{dbCode}'.")
         };
     }

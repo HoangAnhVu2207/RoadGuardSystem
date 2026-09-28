@@ -8,8 +8,8 @@ description: Use when implementing, fixing, reviewing, or smoke-testing one assi
 ## Load only the working slice
 
 1. Locate the actual RoadGuard root; run `git status --short --branch`. If given an archive instead of a checkout, say so; do not invent branch/commit evidence.
-2. Read root and applicable nested `AGENTS.md`, `.agents/rules/roadguard.md`, and the assigned task. Read relevant ADR 001/004 sections for architecture decisions, not their historical narrative. Reuse unchanged context already read in this session.
-3. Resolve V2 tasks under `planning/V2/Person_*/`; otherwise use the assigned row in the two original plans. Load only referenced FR/BR/API/schema sections from `docs/diagram/V2`. Read transitive schema references needed for this endpoint, not all 133 task files or the full YAML.
+2. Read root and applicable nested `AGENTS.md`, `.agents/rules/roadguard.md`, `planning/V2/TASK_LIFECYCLE.md`, and the assigned task. Restore its source checkpoint/current diff before rereading only invalidated sources. Read relevant ADR 001/004/006 sections for architecture/ownership, not their historical narrative.
+3. Resolve V2 tasks under `planning/V2/Person_*/`; otherwise use the assigned legacy row. Read the decision register and only referenced FR/BR/UC/US/AC, PF/SQ/state, OpenAPI schemas and DD/ERD concepts. Record them in the task's `Source evidence` table before editing; do not read all 133 tasks or treat a historical OPEN label as current authority.
 4. Use scoped `rg --files` and `rg -n` to find the nearest controller, service/interface, DTO, repository seam and focused test. Read those methods plus collaborators needed to understand effects. Expand only for an unresolved symbol, invariant, failure or shared impact. Exclude bin/obj/.git/TestResults, historical logs and secrets from broad searches.
 5. Read [source map](references/source-map.md) for exact layer placement. For auth, offline, spatial, AI or unresolved V2 behavior, read only the relevant heading in [product gates](references/product-gates.md).
 
@@ -31,7 +31,7 @@ Packages, migration, data or external side effects:
 Reply: Dong y <TASK-ID>
 ```
 
-Honor explicit task authorization already given; do not request it again. A `PROPOSED_CONTRACT`, `NEEDS_REPO_CHECK`, or `BLOCKED_SLICE` task is not implementation approval and does not silently override current runtime behavior or accepted decisions.
+Honor explicit task authorization already given; do not request it again. A `PROPOSED_CONTRACT`, `NEEDS_REPO_CHECK`, or `BLOCKED_SLICE` task is not implementation approval and does not silently override current runtime behavior or accepted decisions. When authorized work starts, set `deliveryStatus` to `IN_PROGRESS`, record base/source checkpoint and mirror it in the manifest; preserve historical completion entries.
 
 For a multi-API request, deliver bounded endpoint slices in dependency order within the authorized scope. Keep historical Done evidence intact. Before editing, record 5–8 lines: method/route, actor/scope, input validation, success body/status, errors, state transition, concurrency/retry, audit/privacy.
 
@@ -53,4 +53,4 @@ Compare running/source contract with draft docs. Explicitly resolve PUT/PATCH, P
 
 Use `roadguard-test-selection` before running commands. Build fresh selected test binaries before `--no-build`. Run the Postman static validation required by `roadguard-postman`; verify the endpoint on a real host/test fixture when the task allows it and inspect status, body, relevant headers and durable effects. A mocked service is not SQL/concurrency evidence. Keep output short; retain full failure logs locally and read the first relevant failure. Reuse valid unchanged evidence and rerun only invalidated checks.
 
-Report outcome, changed paths, actual commands/pass counts, reused evidence and remaining blockers. Never claim tests ran from a template or zero-test run. Do not mark Done while a required gate remains open. Preserve unrelated work; do not commit/publish or perform destructive operations beyond session authorization.
+Report outcome, changed paths, actual commands/pass counts, reused/invalidated evidence and remaining blockers. Immediately append `Completion history` and set `DONE`, `PARTIAL` or `BLOCKED` under `TASK_LIFECYCLE.md`; mirror manifest status. Never claim tests ran from a template or zero-test run, and never mark API `DONE` from docs/static checks alone. Preserve unrelated work; do not commit/publish or perform destructive operations beyond session authorization.

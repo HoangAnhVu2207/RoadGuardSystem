@@ -1,6 +1,6 @@
 # Đặc tả use case RoadGuard / CÁT TƯỜNG
 
-> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../08_Delivery/04_Missing_Referenced_Documents.md#missing-01).
+> Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../../../adr/003-backend-delivery-and-ai-boundary.md).
 
 Phiên bản **UC-2026-09-26-R3** — cập nhật trực tiếp từ R2 theo quyết định ngày 26/09/2026. Chỉ sửa tài liệu, chưa xác nhận backend đã có luồng mới.
 
@@ -35,7 +35,7 @@ flowchart TD
 | Android | Kotlin | Upload video/SRT, nhiệm vụ, ảnh trước/sau, sync |
 | Web Dashboard | (chưa bắt buộc chốt framework) | Quản lý dự án, xác minh AI, duyệt đợt, báo cáo |
 
-Backend sở hữu nghiệp vụ, lưu trữ và điều phối job; AI là hệ thống tích hợp bên ngoài qua adapter/hợp đồng có phiên bản. Python là hướng triển khai trước đây, không ràng buộc nhà cung cấp mới. Mock vẫn dùng để kiểm thử hợp đồng và phải ghi rõ nguồn mock; không tự xác nhận hư hỏng. Xem [thiết kế phản ánh/segment](../08_Delivery/04_Missing_Referenced_Documents.md#missing-07) và [thiết kế AI/edge](../08_Delivery/04_Missing_Referenced_Documents.md#missing-05).
+Backend sở hữu nghiệp vụ, lưu trữ và điều phối job; AI là hệ thống tích hợp bên ngoài qua adapter/hợp đồng có phiên bản. Python là hướng triển khai trước đây, không ràng buộc nhà cung cấp mới. Mock vẫn dùng để kiểm thử hợp đồng và phải ghi rõ nguồn mock; không tự xác nhận hư hỏng. Nguồn lịch sử: [thiết kế phản ánh/segment](../../RoadGuard_Incident_Segment_Design_v1.md) và [thiết kế AI/edge](../../RoadGuard_AI_Segment_Edge_Design_v1.md); các proposal này không chứng minh runtime.
 
 ### 1.2 Tác nhân
 
@@ -577,7 +577,7 @@ Các trạng thái ở bảng là đề xuất tên chuẩn cho thiết kế d�
 
 > **[BỎ/THAY THẾ UC-D23/25/29]** O-01 về có được sửa offline đã trả lời: được, không giới hạn thời gian mất mạng. O-02 quyền đóng đã có quyết định theo nhánh. Không tiếp tục hỏi lại hai câu này; chỉ giữ ngoại lệ kỹ thuật/nghiệp vụ thật sự còn mở.
 
-Dùng Q01–Q18 tại mô tả dự án §21: nhánh sửa sau đợt gom; quyền phát hành/nội dung policy; xung đột offline; đo lại toàn đợt hay phần thiếu; mất BEFORE; mở lại hồ sơ Supervisor; công bố từng phần; gộp 1–2 m; dữ liệu tấm; SRT/coverage; điểm tiếp cận; CRS/tuyến mẫu; thiết bị và track drone; recorder điện thoại; phạm vi bảo hành/baseline; bàn giao dữ liệu tài khoản ngừng; phân kỳ phần mới.
+Dùng ID Q01–Q18 tại mô tả dự án §21 qua [decision register](../../../../planning/V2/V2-3_DECISION_REGISTER.md). D02-D19 đã chốt business behavior tương ứng; Q03 technical dossier, CRS/parser/calibration, wire schema và runtime tests còn gate theo từng dòng, không quay lại nhãn OPEN chung.
 
 **Đã chốt, không tự đổi:** PM lập policy; ngoại tuyến vô thời hạn; đợt gom chỉ đo; Crew không vượt kết luận nghiêm trọng; lỗi mới chỉ ghi nhận; gợi ý không tự sắp thứ tự; vùng ví dụ tổng 12 m.
 
@@ -598,9 +598,8 @@ Ràng buộc: RS01–RS06 chỉ là bằng chứng đánh giá độ tin cậy c
 
 ## 10. Nguồn đồng bộ và trạng thái thiết kế
 
-- [Thiết kế phản ánh và segment](../08_Delivery/04_Missing_Referenced_Documents.md#missing-07).
-- [Thiết kế AI, segment và hai mép](../08_Delivery/04_Missing_Referenced_Documents.md#missing-05).
-- [User stories và AC](05_User_Stories_Acceptance_Criteria.md), [Domain model](../08_Delivery/04_Missing_Referenced_Documents.md#missing-03), [Data Dictionary](../03_Data/01_Data_Dictionary.md), [ERD](../08_Delivery/04_Missing_Referenced_Documents.md#missing-04).
+- Nguồn lịch sử: [Thiết kế phản ánh và segment](../../RoadGuard_Incident_Segment_Design_v1.md), [Thiết kế AI, segment và hai mép](../../RoadGuard_AI_Segment_Edge_Design_v1.md), [Domain model v1](../../RoadGuard_Domain_Model_v1.md) và [ERD v1](../../RoadGuard_ERD_v1.md).
+- Nguồn V2 đang bảo trì: [User stories và AC](05_User_Stories_Acceptance_Criteria.md) và [Data Dictionary](../03_Data/01_Data_Dictionary.md).
 
 Giữ nguyên mã CN/DA01–DA12/KS01–KS14/AI01–AI14/TN/SC/HT/BC/QT/RS hiện có; mã mới không đổi nghĩa ID lịch sử. Các quyền, entity, trạng thái và hợp đồng mới ở tài liệu này là thiết kế để triển khai sau, không phải bằng chứng endpoint hoặc migration đã tồn tại. Đề cương được nêu tên là căn cứ lịch sử, chưa có bản tệp trong checkout này để tạo liên kết.
 

@@ -1,7 +1,7 @@
 interface:
   display_name: "RoadGuard SQL Persistence"
   short_description: "Implement durable SQL persistence within N-layers"
-  default_prompt: "Use $roadguard-persistence to implement the approved persistence slice required by this RoadGuard V2 endpoint task."
+  default_prompt: "Use $roadguard-persistence to compare current EF/migrations with the documented target, implement only the approved persistence slice, verify SQL risks, and record evidence in the assigned task."
   icon_small: "./assets/icon.svg"
   icon_large: "./assets/icon.svg"
 policy:

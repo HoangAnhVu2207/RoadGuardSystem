@@ -5,7 +5,7 @@
 ## 1. Nguồn dự án đã đọc
 
 - RoadGuard_FRD_SRS(1).md: FR-01/03/17–27, phần offline-first, polling MVP, tech direction.
-- RoadGuard_Business_Rules(1).md: giữ các quy tắc và Q01–Q18 chưa chốt.
+- RoadGuard_Business_Rules(1).md: nguồn lịch sử; Q01-Q18 được crosswalk với D01-D28/32-44 trong decision register.
 - Data_Dictionary.md: §9.4 evidence/attempt, §9.5 snapshot/sync/destination, Q04/Q17.
 - RoadGuard_05_Auth_Permission_Model.md: actor/scope/session, offline và upload trust boundary.
 - RoadGuard_08_Error_Handling_Convention.md: error/code, idempotency, sync outcomes, local errors.
@@ -30,7 +30,7 @@ Các nguồn không quyết định threshold/TTL/quota của RoadGuard. Mọi c
 
 ## 3. Thiếu dữ liệu hiện tại
 
-Chưa có source code, actual response samples, deployment hostname, auth provider, rate quota, file-size limits, supported browser/device list, quyết định BFF/PWA hoặc conflict Q04/Q17. Đã ghi cụ thể trong tài liệu12. JSON Schema/TS và fixtures hỗ trợ phát triển type-safe nhưng chưa thay provider/consumer contract tests thực tế.
+Chưa có actual response samples, deployment hostname/provider, supported device matrix hoặc provider contract tests. D24/36A/37/38 và D05/D06/42A đã chốt scope/config/authority tương ứng; implementation compatibility, multipart detail và conflict/rescue wire lifecycle vẫn cần kiểm chứng. JSON Schema/TS/fixtures không thay provider/consumer tests.
 
 ## REVIEW-01 provenance
 

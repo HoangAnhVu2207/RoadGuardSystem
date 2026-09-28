@@ -5,6 +5,9 @@ info:
   description: >-
     Proposed service-to-service contract. BE remains the business authority;
     AI returns proposals and immutable processing receipts.
+  x-contract-status: PROPOSED_DELTA
+  x-business-decision-source: planning/V2/V2-3_DECISION_REGISTER.md (D12-D13, 33A)
+  x-runtime-status: NOT_ENABLED
 servers:
   - url: https://ai.example.invalid
     description: Placeholder; provided by deployment configuration.

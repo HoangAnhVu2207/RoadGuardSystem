@@ -1,10 +1,12 @@
 # RoadGuard AI service integration contract
 
-**Status:** `PROPOSED_CONTRACT`  
-**Version:** `ai-contract-0.1.0`  
+**Status:** `PROPOSED_DELTA_NOT_ENABLED`  
+**Version:** `ai-contract-2.0-draft`  
 **Owner boundary:** AI engineer owns the FastAPI implementation and model workers. RoadGuard BE owns business authorization, job/attempt identity, file verification, manifest provenance, persistence, and acceptance/publication decisions.
 
 This is a separate service contract. It is not an addition to the 133 public BE operations until the product owner reviews the routes and assigns implementation tasks. The AI service must never write RoadGuard business tables or decide whether a defect is accepted, repaired, published, or merged.
+
+Business authority for the two-stage PM-triggered flow is D12/D13 and project-scoped matching is D33A. See [BE-AI contract crosswalk](../05_Technical/Proposals/AI_BE_Contract_Crosswalk.md). Transport, provider, real-file, timeout/retry and runtime verification remain separate gates.
 
 ## What is already in the BE baseline
 

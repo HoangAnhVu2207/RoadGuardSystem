@@ -68,6 +68,12 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<PasswordRecoveryRequest> PasswordRecoveryRequests => Set<PasswordRecoveryRequest>();
 
+    public DbSet<ReporterRegistrationIntent> ReporterRegistrationIntents => Set<ReporterRegistrationIntent>();
+
+    public DbSet<StaffInvitation> StaffInvitations => Set<StaffInvitation>();
+
+    public DbSet<StaffInvitationProject> StaffInvitationProjects => Set<StaffInvitationProject>();
+
     public DbSet<StoredFile> Files => Set<StoredFile>();
 
     public DbSet<DefectType> DefectTypes => Set<DefectType>();

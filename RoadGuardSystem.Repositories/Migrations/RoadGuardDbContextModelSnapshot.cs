@@ -664,7 +664,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.PasswordRecoveryRequest", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CorrelationId")
@@ -777,6 +776,154 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         {
                             t.HasCheckConstraint("CK_RefreshTokens_TokenHash_NotEmpty", "LEN(LTRIM(RTRIM([TokenHash]))) >= 32");
                         });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.ReporterRegistrationIntent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<DateTimeOffset?>("EmailConfirmedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<int>("OtpGeneration")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OtpHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.Property<byte>("ReporterType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset>("ResendAvailableAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("IX_ReporterRegistrationIntents_Email");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ReporterRegistrationIntents", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ReporterRegistrationIntents_ReporterType", "[ReporterType] IN (1, 2)");
+                        });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.StaffInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<string>("RoleCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("IX_StaffInvitations_Email");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_StaffInvitations_TokenHash");
+
+                    b.ToTable("StaffInvitations", (string)null);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.StaffInvitationProject", b =>
+                {
+                    b.Property<Guid>("InvitationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("InvitationId", "ProjectId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("StaffInvitationProjects", (string)null);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.UserSession", b =>
@@ -1735,9 +1882,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("RoadSectionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("RoadSectionVersionId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("VersionNo")
                         .HasColumnType("int");
 
@@ -2191,6 +2335,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("RoadSectionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("RoadSectionVersionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 
@@ -2302,11 +2449,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoadSectionVersionId");
-
                     b.HasIndex("RequestedByUserId");
 
                     b.HasIndex("RoadSectionId");
+
+                    b.HasIndex("RoadSectionVersionId");
 
                     b.HasIndex("SurveyPlanId")
                         .IsUnique()
@@ -2535,6 +2682,38 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
 
                     b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.ReporterRegistrationIntent", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.StaffInvitation", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.StaffInvitationProject", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.StaffInvitation", null)
+                        .WithMany()
+                        .HasForeignKey("InvitationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.UserSession", b =>
@@ -2812,11 +2991,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("RoadSectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
-                        .WithMany()
-                        .HasForeignKey("RoadSectionVersionId")
-                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.Flight", b =>
@@ -2970,6 +3144,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("RoadSectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlanPostponement", b =>
@@ -3001,14 +3180,14 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", null)
-                        .WithMany()
-                        .HasForeignKey("SurveyPlanId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
                         .WithMany()
                         .HasForeignKey("RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyPlanId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

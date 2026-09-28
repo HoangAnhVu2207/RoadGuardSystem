@@ -13,9 +13,135 @@
     { "key": "targetRowVersion", "value": "", "type": "string" },
     { "key": "projectId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
     { "key": "projectRowVersion", "value": "", "type": "string" },
-    { "key": "primaryProjectManagerUserId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+    { "key": "primaryProjectManagerUserId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "registrationIntentId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "invitationId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "invitationVersion", "value": "", "type": "string" },
+    { "key": "actorVersion", "value": "", "type": "string" },
+    { "key": "reporterRegistrationKey", "value": "reporter-registration-runner", "type": "string" },
+    { "key": "reporterVerificationKey", "value": "reporter-verification-runner", "type": "string" },
+    { "key": "reporterResendKey", "value": "reporter-resend-runner", "type": "string" },
+    { "key": "invitationCreateKey", "value": "invitation-create-runner", "type": "string" },
+    { "key": "invitationAcceptKey", "value": "invitation-accept-runner", "type": "string" },
+    { "key": "updateMeKey", "value": "update-me-runner", "type": "string" },
+    { "key": "updateAccountKey", "value": "update-account-runner", "type": "string" },
+    { "key": "passwordResetKey", "value": "password-reset-runner", "type": "string" }
+    ,{ "key": "inspectionCursor", "value": "", "type": "string" }
+    ,{ "key": "inspectionLimit", "value": "50", "type": "string" }
+    ,{ "key": "roadSectionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+    ,{ "key": "roadSectionVersionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+    ,{ "key": "surveyPlanId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+    ,{ "key": "surveyRequestId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+    ,{ "key": "surveyPlanCreateKey", "value": "survey-plan-runner", "type": "string" }
+    ,{ "key": "surveyRequestCreateKey", "value": "survey-request-runner", "type": "string" }
+    ,{ "key": "surveyPostponeKey", "value": "survey-postpone-runner", "type": "string" }
   ],
   "item": [
+    {
+      "name": "Survey planning (ordered)",
+      "item": [
+        {
+          "name": "POST /projects/{projectId}/road-sections/{roadSectionId}/survey-plans - success",
+          "request": {
+            "description": "Purpose: create a survey plan. Role: Project Manager with effective project scope. Setup: set projectId, roadSectionId and roadSectionVersionId from permitted fixtures; use a fresh Idempotency-Key. Expected: 201 plan and Location. Data change: plan, audit and idempotency receipt.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{surveyPlanCreateKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"plannedStartAt\": \"2026-10-01T08:00:00Z\",\n  \"plannedEndAt\": \"2026-10-01T10:00:00Z\",\n  \"roadSectionVersionId\": \"{{roadSectionVersionId}}\",\n  \"surveyType\": 2,\n  \"outputRequirements\": \"{\\\"formats\\\":[\\\"video\\\",\\\"srt\\\"]}\",\n  \"operationId\": \"{{$guid}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-plans", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects", "{{projectId}}", "road-sections", "{{roadSectionId}}", "survey-plans"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Survey plan create returns 201', function () { pm.response.to.have.status(201); });", "if (pm.response.code === 201) pm.collectionVariables.set('surveyPlanId', pm.response.json().planId);"] } }]
+        },
+        {
+          "name": "POST /projects/{projectId}/road-sections/{roadSectionId}/survey-requests - success",
+          "request": {
+            "description": "Purpose: create a survey request from the plan. Role: Project Manager with effective project scope. Setup: run plan create first. Expected: 201 request. Data change: request, audit and idempotency receipt.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{surveyRequestCreateKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"surveyPlanId\": \"{{surveyPlanId}}\",\n  \"roadSectionVersionId\": \"{{roadSectionVersionId}}\",\n  \"surveyType\": 2,\n  \"dueAt\": \"2026-10-04T17:00:00Z\",\n  \"outputRequirements\": \"{\\\"formats\\\":[\\\"video\\\",\\\"srt\\\"]}\",\n  \"operationId\": \"{{$guid}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-requests", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects", "{{projectId}}", "road-sections", "{{roadSectionId}}", "survey-requests"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Survey request create returns 201', function () { pm.response.to.have.status(201); });", "if (pm.response.code === 201) pm.collectionVariables.set('surveyRequestId', pm.response.json().requestId);"] } }]
+        },
+        {
+          "name": "POST /projects/{projectId}/survey-plans/{surveyPlanId}/postpone - success",
+          "request": {
+            "description": "Purpose: postpone an existing plan and append its reason. Role: Project Manager with effective project scope. Setup: run plan create first; use a fresh Idempotency-Key. Expected: 200 postponement. Data change: plan status/date, append-only postponement, audit and idempotency receipt.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{surveyPostponeKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"newPlannedStartAt\": \"2026-10-02T08:00:00Z\",\n  \"reason\": \"Weather delay\",\n  \"operationId\": \"{{$guid}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/survey-plans/{{surveyPlanId}}/postpone", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects", "{{projectId}}", "survey-plans", "{{surveyPlanId}}", "postpone"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Survey postpone returns 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST /projects/{projectId}/road-sections/{roadSectionId}/survey-plans - unauthorized",
+          "request": {
+            "description": "Purpose: verify bearer authentication is required. Role: none. Setup: no token. Expected: 401. Data change: none.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-plans", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects", "{{projectId}}", "road-sections", "{{roadSectionId}}", "survey-plans"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Unauthorized survey plan returns 401', function () { pm.response.to.have.status(401); });"] } }]
+        },
+        {
+          "name": "POST /projects/{projectId}/road-sections/{roadSectionId}/survey-plans - idempotency conflict",
+          "request": {
+            "description": "Purpose: verify same idempotency key with changed payload is rejected. Role: Project Manager. Setup: run the success request first, then change the date while reusing surveyPlanCreateKey. Expected: 409 duplicate/idempotency conflict. Data change: none on conflict.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{surveyPlanCreateKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"plannedStartAt\": \"2026-11-01T08:00:00Z\",\n  \"plannedEndAt\": \"2026-11-01T10:00:00Z\",\n  \"roadSectionVersionId\": \"{{roadSectionVersionId}}\",\n  \"surveyType\": 2,\n  \"outputRequirements\": \"{\\\"formats\\\":[\\\"video\\\"]}\",\n  \"operationId\": \"{{$guid}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-plans", "host": ["{{baseUrl}}"], "path": ["api", "v1", "projects", "{{projectId}}", "road-sections", "{{roadSectionId}}", "survey-plans"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Changed idempotency payload returns 409', function () { pm.expect([409, 422]).to.include(pm.response.code); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Inspection tasks",
+      "item": [
+        {
+          "name": "GET /me/inspection-tasks - success",
+          "request": {
+            "description": "Purpose: list inspection tasks actively assigned to the current repair crew. Role: Repair Crew with effective project membership. Setup: login as the seeded crew account and set accessToken; optionally set inspectionCursor from a prior response. Expected: 200 InspectionTaskPage. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/inspection-tasks?limit={{inspectionLimit}}&cursor={{inspectionCursor}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "inspection-tasks"], "query": [{ "key": "limit", "value": "{{inspectionLimit}}" }, { "key": "cursor", "value": "{{inspectionCursor}}", "disabled": true }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Inspection task list returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.expect(b).to.have.property('items'); pm.expect(b).to.have.property('asOf'); if (b.nextCursor) pm.collectionVariables.set('inspectionCursor', b.nextCursor); }"] } }]
+        },
+        {
+          "name": "GET /me/inspection-tasks - unauthorized",
+          "request": {
+            "description": "Purpose: verify bearer authentication is required. Role: none. Setup: none. Expected: 401 ProblemDetails. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/inspection-tasks?limit={{inspectionLimit}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "inspection-tasks"], "query": [{ "key": "limit", "value": "{{inspectionLimit}}" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Unauthenticated inspection task list returns 401', function () { pm.response.to.have.status(401); });"] } }]
+        },
+        {
+          "name": "GET /me/inspection-tasks - wrong role",
+          "request": {
+            "description": "Purpose: verify role policy rejects a non-crew actor. Role: Project Manager/operator. Setup: set accessToken to a non-crew seeded token. Expected: 403 ProblemDetails. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/inspection-tasks?limit={{inspectionLimit}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "inspection-tasks"], "query": [{ "key": "limit", "value": "{{inspectionLimit}}" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Wrong role inspection task list returns 403', function () { pm.response.to.have.status(403); });"] } }]
+        },
+        {
+          "name": "GET /me/inspection-tasks - invalid cursor",
+          "request": {
+            "description": "Purpose: verify cursor validation. Role: Repair Crew. Setup: login as seeded crew; no data mutation. Expected: 400 validation ProblemDetails. Data change: none.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/inspection-tasks?cursor=invalid&limit={{inspectionLimit}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me", "inspection-tasks"], "query": [{ "key": "cursor", "value": "invalid" }, { "key": "limit", "value": "{{inspectionLimit}}" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid cursor returns 400', function () { pm.response.to.have.status(400); });"] } }]
+        }
+      ]
+    },
     {
       "name": "Health",
       "item": [
@@ -98,6 +224,149 @@
             "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Logout returns 204', function () { pm.response.to.have.status(204); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Reporter onboarding (ordered)",
+      "item": [
+        {
+          "name": "POST /auth/reporter-registrations - success",
+          "request": {
+            "description": "Purpose: create a pending Reporter registration and send OTP. Role: public. Setup: configure IdentityOnboarding secret/message provider and set reporterEmail/reporterPassword. Expected: 202 RegistrationIntent and Location. Data change: pending user, OTP hash and idempotency receipt.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{reporterRegistrationKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{reporterEmail}}\",\n  \"password\": \"{{reporterPassword}}\",\n  \"displayName\": \"Postman Reporter\",\n  \"reporterType\": \"CITIZEN\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Registration returns 202', function () { pm.response.to.have.status(202); });", "pm.test('Registration response is safe', function () { pm.expect(pm.response.text()).to.not.match(/password|otp/i); });", "if (pm.response.code === 202) pm.collectionVariables.set('registrationIntentId', pm.response.json().intentId);"] } }]
+        },
+        {
+          "name": "POST /auth/reporter-registrations - validation",
+          "request": {
+            "description": "Purpose: reject non-Gmail Reporter registration. Role: public. Setup: none. Expected: 400 validation response and no durable user. Data change: none.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"invalid@example.test\",\n  \"password\": \"{{reporterPassword}}\",\n  \"displayName\": \"Invalid Reporter\",\n  \"reporterType\": \"CITIZEN\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid Reporter registration returns 400', function () { pm.response.to.have.status(400); });"] } }]
+        },
+        {
+          "name": "POST /auth/reporter-registrations/verify - success",
+          "request": {
+            "description": "Purpose: consume the mailbox OTP once and issue Reporter tokens. Role: public intent holder. Setup: run registration, copy OTP from the configured mailbox into reporterOtp. Expected: 200 TokenPair. Data change: activates account and creates one session.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{reporterVerificationKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"intentId\": \"{{registrationIntentId}}\",\n  \"otp\": \"{{reporterOtp}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations/verify", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations", "verify"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('OTP verification returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); }"] } }]
+        },
+        {
+          "name": "POST /auth/reporter-registrations/verify - invalid OTP",
+          "request": {
+            "description": "Purpose: reject an invalid OTP without issuing credentials. Role: public intent holder. Setup: use a pending registrationIntentId. Expected: 400/404/429 without tokens. Data change: failed-attempt counter only.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"intentId\": \"{{registrationIntentId}}\",\n  \"otp\": \"000000\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations/verify", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations", "verify"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid OTP is rejected', function () { pm.expect([400, 404, 429]).to.include(pm.response.code); });", "pm.test('No token leak', function () { pm.expect(pm.response.text()).to.not.match(/accessToken|refreshToken/i); });"] } }]
+        },
+        {
+          "name": "POST /auth/reporter-registrations/resend",
+          "request": {
+            "description": "Purpose: resend OTP after cooldown. Role: public intent holder. Setup: pending registration; wait for resendAfterSeconds. Expected: 202, or 429 during cooldown. Data change: replaces OTP hash and advances generation once per key.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{reporterResendKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"intentId\": \"{{registrationIntentId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations/resend", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations", "resend"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Resend respects cooldown', function () { pm.expect([202, 429]).to.include(pm.response.code); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Invitations (ordered)",
+      "item": [
+        {
+          "name": "POST /invitations - success",
+          "request": {
+            "description": "Purpose: Supervisor creates a one-time staff invitation. Role: Supervisor. Setup: login as seeded Supervisor, store its token in supervisorAccessToken, set invitationEmail. Expected: 201 with ETag and Location. Data change: invitation/token hash/idempotency receipt.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{supervisorAccessToken}}" }, { "key": "Idempotency-Key", "value": "{{invitationCreateKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{invitationEmail}}\",\n  \"displayName\": \"Invited Operator\",\n  \"role\": \"OPERATOR\",\n  \"projectIds\": []\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/invitations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invitations"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invitation create returns 201', function () { pm.response.to.have.status(201); });", "pm.test('Invitation token is not returned', function () { pm.expect(pm.response.text()).to.not.match(/invitationToken/i); });", "if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('invitationId', b.id); pm.collectionVariables.set('invitationVersion', b.version); }"] } }]
+        },
+        {
+          "name": "POST /invitations - wrong role",
+          "request": {
+            "description": "Purpose: prove a non-Supervisor cannot invite. Role: authenticated non-Supervisor. Setup: set operatorAccessToken. Expected: 403 and no invitation. Data change: none.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{invitationEmail}}\",\n  \"displayName\": \"Invited Operator\",\n  \"role\": \"OPERATOR\",\n  \"projectIds\": []\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/invitations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invitations"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Non-Supervisor invite returns 403', function () { pm.response.to.have.status(403); });"] } }]
+        },
+        {
+          "name": "POST /invitations/accept - success and replay",
+          "request": {
+            "description": "Purpose: accept a one-time invitation and support same-key replay. Role: public invitation holder. Setup: run create, copy token from mailbox into invitationToken, set invitationPassword. Expected: 200 TokenPair on first call and same-key replay. Data change: creates account/memberships/session once.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{invitationAcceptKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"invitationToken\": \"{{invitationToken}}\",\n  \"displayName\": \"Invited Operator\",\n  \"password\": \"{{invitationPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/invitations/accept", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invitations", "accept"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invitation accept returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('targetUserId', b.user.id); pm.collectionVariables.set('targetRowVersion', b.user.version); pm.environment.set('operatorAccessToken', b.accessToken); }"] } }]
+        }
+      ]
+    },
+    {
+      "name": "V2 identity and accounts (ordered)",
+      "item": [
+        {
+          "name": "GET /me",
+          "request": { "description": "Purpose: read the authoritative current actor. Role: authenticated. Setup: login first. Expected: 200 Actor. Data change: none.", "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{baseUrl}}/api/v1/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('GET me returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) pm.collectionVariables.set('actorVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "GET /me - unauthorized",
+          "request": { "description": "Purpose: prove bearer is required. Role: none. Setup: none. Expected: 401. Data change: none.", "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('GET me without token returns 401', function () { pm.response.to.have.status(401); });"] } }]
+        },
+        {
+          "name": "PATCH /me - success",
+          "request": { "description": "Purpose: update displayName with optimistic concurrency and idempotency. Role: authenticated self. Setup: run GET /me. Expected: 200 Actor. Data change: display name and one audit/idempotency record.", "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{updateMeKey}}" }, { "key": "If-Match", "value": "\"{{actorVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Updated V2 Profile\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('PATCH me returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) pm.collectionVariables.set('actorVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "PATCH /me - stale version",
+          "request": { "description": "Purpose: reject stale optimistic concurrency. Role: authenticated self. Setup: login first. Expected: 412. Data change: none.", "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "If-Match", "value": "\"AAAAAAAAAAA=\"" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Must Not Persist\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "me"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Stale PATCH me returns 412', function () { pm.response.to.have.status(412); });"] } }]
+        },
+        {
+          "name": "GET /users/{userId}",
+          "request": { "description": "Purpose: Supervisor reads an account and ETag. Role: Supervisor. Setup: set targetUserId and supervisorAccessToken. Expected: 200 Actor + ETag. Data change: none.", "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{supervisorAccessToken}}" }], "url": { "raw": "{{baseUrl}}/api/v1/users/{{targetUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "{{targetUserId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Account read returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) pm.collectionVariables.set('targetRowVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "GET /users/{userId} - wrong role",
+          "request": { "description": "Purpose: prove non-Supervisor cannot read admin account projection. Role: non-Supervisor. Setup: operatorAccessToken and targetUserId. Expected: 403. Data change: none.", "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }], "url": { "raw": "{{baseUrl}}/api/v1/users/{{targetUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "{{targetUserId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Wrong role account read returns 403', function () { pm.response.to.have.status(403); });"] } }]
+        },
+        {
+          "name": "PATCH /users/{userId}",
+          "request": { "description": "Purpose: change role/status with concurrency and revoke sessions. Role: Supervisor. Setup: run GET account; use disposable invited account. Expected: 200 Actor. Data change: role/status, session revocation, audit and idempotency receipt. Q17 rescue remains outside this request.", "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{supervisorAccessToken}}" }, { "key": "Idempotency-Key", "value": "{{updateAccountKey}}" }, { "key": "If-Match", "value": "\"{{targetRowVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"SUSPENDED\",\n  \"role\": \"OPERATOR\",\n  \"reason\": \"ADMINISTRATIVE_LOCK\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/users/{{targetUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "{{targetUserId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Account update returns 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST /users/{userId}/password-reset - destructive",
+          "request": { "description": "Purpose: reset a disposable active account without echoing the secret. Role: Supervisor. Setup: target must be ACTIVE; set replacementPassword and supervisorAccessToken. Expected: 204. Data change: credential replacement, forced change, session revocation, audit/idempotency.", "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{supervisorAccessToken}}" }, { "key": "Idempotency-Key", "value": "{{passwordResetKey}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"temporaryPassword\": \"{{replacementPassword}}\",\n  \"reason\": \"ADMINISTRATOR_INITIATED\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/users/{{targetUserId}}/password-reset", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "{{targetUserId}}", "password-reset"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Password reset returns 204', function () { pm.response.to.have.status(204); });", "pm.test('Password is not echoed', function () { pm.expect(pm.response.text()).to.equal(''); });"] } }]
         }
       ]
     },

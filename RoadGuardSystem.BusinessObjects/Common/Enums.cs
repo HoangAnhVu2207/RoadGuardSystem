@@ -12,7 +12,15 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Supervisor = 1,
         ProjectManager = 2,
         DroneOperator = 3,
-        RepairCrew = 4
+        RepairCrew = 4,
+        Reporter = 5
+    }
+
+    public enum ReporterType : byte
+    {
+        Unknown = 0,
+        Citizen = 1,
+        InvestorRepresentative = 2
     }
 
     public enum UserStatus : byte

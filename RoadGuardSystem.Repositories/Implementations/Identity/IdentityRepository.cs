@@ -1,6 +1,6 @@
 namespace RoadGuardSystem.Repositories.Identity;
 
-public sealed partial class IdentityRepository : IIdentityRepository
+public sealed partial class IdentityRepository : IIdentityRepository, IIdentityV2Repository
 {
     private readonly RoadGuardDbContext _context;
 

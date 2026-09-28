@@ -46,6 +46,116 @@ Content-Type: application/json
 
 ###
 
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/reporter-registrations
+Idempotency-Key: {{reporterRegistrationKey}}
+Content-Type: application/json
+
+{
+  "email": "{{reporterEmail}}",
+  "password": "{{reporterPassword}}",
+  "displayName": "Postman Reporter",
+  "reporterType": "CITIZEN"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/reporter-registrations/verify
+Idempotency-Key: {{reporterVerificationKey}}
+Content-Type: application/json
+
+{
+  "intentId": "{{registrationIntentId}}",
+  "otp": "{{reporterOtp}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/reporter-registrations/resend
+Idempotency-Key: {{reporterResendKey}}
+Content-Type: application/json
+
+{
+  "intentId": "{{registrationIntentId}}"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/invitations
+Authorization: Bearer {{supervisorAccessToken}}
+Idempotency-Key: {{invitationCreateKey}}
+Content-Type: application/json
+
+{
+  "email": "{{invitationEmail}}",
+  "displayName": "Invited Operator",
+  "role": "OPERATOR",
+  "projectIds": []
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/invitations/accept
+Idempotency-Key: {{invitationAcceptKey}}
+Content-Type: application/json
+
+{
+  "invitationToken": "{{invitationToken}}",
+  "displayName": "Invited Operator",
+  "password": "{{invitationPassword}}"
+}
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
+PATCH {{RoadGuardSystem.API_HostAddress}}/api/v1/me
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{updateMeKey}}
+If-Match: "{{actorVersion}}"
+Content-Type: application/json
+
+{
+  "displayName": "Updated V2 Profile"
+}
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/users/{{targetUserId}}
+Authorization: Bearer {{supervisorAccessToken}}
+Accept: application/json
+
+###
+
+PATCH {{RoadGuardSystem.API_HostAddress}}/api/v1/users/{{targetUserId}}
+Authorization: Bearer {{supervisorAccessToken}}
+Idempotency-Key: {{updateAccountKey}}
+If-Match: "{{targetRowVersion}}"
+Content-Type: application/json
+
+{
+  "status": "SUSPENDED",
+  "role": "OPERATOR",
+  "reason": "ADMINISTRATIVE_LOCK"
+}
+
+###
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/users/{{targetUserId}}/password-reset
+Authorization: Bearer {{supervisorAccessToken}}
+Idempotency-Key: {{passwordResetKey}}
+Content-Type: application/json
+
+{
+  "temporaryPassword": "{{replacementPassword}}",
+  "reason": "ADMINISTRATOR_INITIATED"
+}
+
+###
+
 GET {{RoadGuardSystem.API_HostAddress}}/weatherforecast/
 Accept: application/json
 
@@ -236,3 +346,15 @@ Content-Type: application/json
   "expectedCurrentMembershipRowVersion": "{{primaryMembershipRowVersion}}",
   "operationId": "{{$guid}}"
 }
+
+###
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/me/inspection-tasks?limit=50
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Invalid cursor should return 400
+
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/me/inspection-tasks?cursor=invalid&limit=50
+Authorization: Bearer {{accessToken}}
+Accept: application/json

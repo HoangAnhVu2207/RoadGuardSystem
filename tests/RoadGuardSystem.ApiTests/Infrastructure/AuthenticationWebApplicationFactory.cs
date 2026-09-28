@@ -65,6 +65,9 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
         builder.UseSetting(
             "PasswordChangeFingerprint:Key",
             Convert.ToBase64String(Enumerable.Repeat((byte)91, 32).ToArray()));
+        builder.UseSetting(
+            "IdentityOnboarding:Secret",
+            Convert.ToBase64String(Enumerable.Repeat((byte)37, 32).ToArray()));
         if (_maxPlatformLength.HasValue)
         {
             builder.UseSetting("SessionDeviceMetadata:MaxPlatformLength", _maxPlatformLength.Value.ToString());

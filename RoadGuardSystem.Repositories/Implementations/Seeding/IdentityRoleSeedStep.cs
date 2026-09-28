@@ -10,7 +10,7 @@ namespace RoadGuardSystem.Repositories.Seeding;
 
 /// <summary>
 /// Idempotent seed step that provisions the four canonical roles:
-/// SUPERVISOR, PM, DRONE_OPERATOR, and REPAIR_CREW.
+/// SUPERVISOR, PM, DRONE_OPERATOR, REPAIR_CREW, and REPORTER.
 /// </summary>
 public sealed class IdentityRoleSeedStep : ISeedStep
 {
@@ -23,7 +23,8 @@ public sealed class IdentityRoleSeedStep : ISeedStep
         (UserRoleCodeExtensions.SupervisorDbCode, "Supervisor"),
         (UserRoleCodeExtensions.ProjectManagerDbCode, "Project Manager"),
         (UserRoleCodeExtensions.DroneOperatorDbCode, "Drone Operator"),
-        (UserRoleCodeExtensions.RepairCrewDbCode, "Repair Crew")
+        (UserRoleCodeExtensions.RepairCrewDbCode, "Repair Crew"),
+        (UserRoleCodeExtensions.ReporterDbCode, "Reporter")
     };
 
     public async Task SeedAsync(RoadGuardDbContext context, CancellationToken cancellationToken = default)

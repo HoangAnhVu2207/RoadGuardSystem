@@ -95,6 +95,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<ISurveyPlanningRepository, SurveyPlanningPersistenceService>();
         services.AddScoped<IInspectionTaskReadRepository, InspectionTaskReadRepository>();
         services.AddScoped<ISurveyV2Repository, SurveyV2PersistenceService>();
+        services.AddScoped<INotificationRepository, NotificationPersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddScoped<IIdentityV2Repository, IdentityRepository>();
         services.AddScoped<IIdentityOnboardingRepository, IdentityOnboardingRepository>();

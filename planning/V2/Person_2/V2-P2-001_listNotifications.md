@@ -7,7 +7,7 @@
 - contractStatus: APPROVED
 - implementationStatus: IMPLEMENTED
 - verificationStatus: VERIFIED
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - dependencyType: contract
 - workstream: BE
 - blockers: none
@@ -15,10 +15,20 @@
 
 ## Source evidence
 
-- Metadata comparison: `planning/V2/task_manifest.json` entry `V2-P2-001` records `TODO`, while this task's inherited `Current evidence` prose claims verified behavior without a lifecycle completion record containing revision, commands and counts.
-- Resolution: retain `deliveryStatus: TODO` without treating either source as implementation proof; the historical prose remains below for the endpoint owner to revalidate. This metadata repair does not change owner, operation, contract, implementation, verification or completion history.
+- Implementation lineage: `08b5a884` introduced the endpoint slice and tests; it is contained in `origin/develop@5537a584` through `317a3e4`.
+- Fresh verification: the 2026-09-29 20:20 +07:00 completion record below replaces the earlier metadata-only uncertainty; it does not rewrite the inherited evidence claim.
 
 Current evidence: owner-scoped list with cursor/limit validation, stable ordering, SQL projection, API smoke and Postman validation pass.
+
+### 2026-09-29 20:20 +07:00 - DONE
+
+- Scope/result: Integrated implementation `08b5a884` from `origin/develop@5537a584` and reverified it on the merged source.
+- Files: notification Controller/Service/Repository, this task and manifest metadata.
+- Acceptance criteria: owner scope, projection/pagination and durable notification behavior covered by focused tests.
+- Verification: API build PASS (135 warnings/0 errors); P2 notification+survey API 2/2; notification+survey unit 5/5; notification SQL 5/5; Postman static 74 requests/102 variables/0 unresolved refs.
+- Reused/invalidated evidence: commit lineage retained; runtime evidence refreshed after integration.
+- Side effects: isolated SQL fixtures only; no live/shared DB, push or reverse merge.
+- Unverified/blockers: none task-specific; Postman result is static evidence.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.

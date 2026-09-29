@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D38, D43A, 42A
 - requirementRefs: FR-22, FR-27
 - diagramRefs: PF-08, SQ-03, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED_OWNER_RUNTIME_DELTA
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PASS_SQL_API_MINIO
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -29,8 +29,9 @@
 - Requirements/trace: FR-22, FR-27
 - Diagrams/state: PF-08, SQ-03, DD/ERD
 - Canonical contract: operationId getUploadSession, path /uploads/{uploadId}, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
-- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: no UploadSession entity/read controller existed; P2 implementation adds a projected session read with rowversion ETag and owner/project authorization.
+- Checkpoint: base 5e878212055d3f389a9fc65697ed04ba6a4194bb; migration reconciliation and the separate upload migration now exist and are applied by SQL test fixtures.
+- Owner runtime delta: Reporter is explicitly excluded from these six upload endpoints until its auth/runtime slice is approved; supported roles are SUPERVISOR, PM, OPERATOR and CREW.
 
 ## 1. Cần làm và tại sao
 
@@ -227,3 +228,36 @@ schemas:
     - expiresAt
     - version
 ```
+
+## Completion history
+
+### 2026-09-29 00:00 +07:00 - BLOCKED
+
+- Scope/result: Source review completed; no upload-session read endpoint or session model exists.
+- Files: No production files changed; task and manifest status updated.
+- Acceptance criteria: Not started; durable status/version/ownership cannot be read from current schema.
+- Verification: `git diff --check` PASS; API/runtime/SQL/Postman checks NOT_RUN because no implementation exists.
+- Reused/invalidated evidence: Existing `StoredFile` metadata is insufficient for session state.
+- Side effects: No package, migration, schema, data, external system, commit or push.
+- Unverified/blockers: Need approved UploadSession/UploadPart schema, scope relation and version semantics.
+
+### 2026-09-29 06:30 +07:00 - PARTIAL
+
+- Scope/result: Session read endpoint returns project/owner-authorized status and quoted ETag from the session rowversion.
+- Files: Shared upload API/controller/service/repository/domain/.http/Postman paths in working tree; no migration retained.
+- Acceptance criteria: Contract surface/static boundary implemented; durable session state and authorization need SQL smoke evidence.
+- Verification: API build PASS (0 warnings, 0 errors); `git diff --check` PASS; Postman static check PASS.
+- Reused/invalidated evidence: Existing StoredFile metadata cannot evidence session persistence.
+- Side effects: No data or migration applied.
+- Unverified/blockers: Resolve migration baseline drift before database-backed verification.
+
+### 2026-09-29 07:00 +07:00 - PARTIAL
+
+- Migration: UploadSessions/FileScopes/UploadParts are now persisted by the separate upload migration after snapshot reconciliation.
+- Verification: SQL Testcontainers migration/workflow tests PASS (2); API-host SQL test PASS (1), including projected read and ETag lifecycle.
+
+### 2026-09-29 14:34 +07:00 - DONE
+
+- Provider smoke: `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio` PASS (1) read the current session rowversion after real part upload and used it for `If-Match` completion.
+- Durable effect: session state progressed through `VERIFYING` to `VERIFIED` on SQL Server Testcontainers and its response projection remained owner/project scoped.
+- Remaining blocker: provider-backed runtime smoke remains BLOCKED_ENV because no usable local MinIO image or configured endpoint is available.

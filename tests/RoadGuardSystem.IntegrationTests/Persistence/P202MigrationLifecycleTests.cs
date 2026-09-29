@@ -11,6 +11,22 @@ namespace RoadGuardSystem.IntegrationTests.Persistence;
 [Trait("TaskId", "P2-02")]
 public sealed class P202MigrationLifecycleTests
 {
+    [Fact(DisplayName = "P2-02 Positive: current EF model matches the latest migration snapshot")]
+    public async Task CurrentModel_HasNoPendingMigrationChanges()
+    {
+        var fixture = new SqlServerTestFixture();
+        await fixture.InitializeAsync();
+        try
+        {
+            await using var context = CreateContext(fixture.ConnectionString);
+            context.Database.HasPendingModelChanges().Should().BeFalse();
+        }
+        finally
+        {
+            await fixture.DisposeAsync();
+        }
+    }
+
     [Fact(DisplayName = "P2-02 Positive: migration applies to empty database downgrades and reapplies")]
     public async Task Migration_AppliesDowngradesAndReapplies()
     {

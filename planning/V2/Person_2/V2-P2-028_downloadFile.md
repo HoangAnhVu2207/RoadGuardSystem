@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D38, D43A, 42A
 - requirementRefs: FR-01, FR-35
 - diagramRefs: PF-08, SQ-03, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED_OWNER_RUNTIME_DELTA
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PASS_SQL_API_MINIO
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -29,8 +29,9 @@
 - Requirements/trace: FR-01, FR-35
 - Diagrams/state: PF-08, SQ-03, DD/ERD
 - Canonical contract: operationId downloadFile, path /files/{fileId}/content, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
-- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: LocalFileContentStore exposed no authorized download gateway; P2 implementation adds a scoped MinIO stream gateway for verified objects only.
+- Checkpoint: base 5e878212055d3f389a9fc65697ed04ba6a4194bb; migration reconciliation and the separate upload migration now exist and are applied by SQL test fixtures.
+- Owner runtime delta: Reporter is explicitly excluded from these six upload endpoints until its auth/runtime slice is approved; supported roles are SUPERVISOR, PM, OPERATOR and CREW.
 
 ## 1. Cần làm và tại sao
 
@@ -194,3 +195,36 @@ operation:
       format: uuid
 schemas: {}
 ```
+
+## Completion history
+
+### 2026-09-29 00:00 +07:00 - BLOCKED
+
+- Scope/result: Source review completed; no download controller/service/repository gateway exists.
+- Files: No production files changed; task and manifest status updated.
+- Acceptance criteria: Not started; current storage boundary cannot enforce every required read scope through an API.
+- Verification: `git diff --check` PASS; API/runtime/SQL/Postman checks NOT_RUN because no implementation exists.
+- Reused/invalidated evidence: LocalFileContentStore tests prove storage safety, not API authorization or gateway behavior.
+- Side effects: No package, migration, schema, data, external system, commit or push.
+- Unverified/blockers: Need approved file scope linkage, gateway/provider behavior and real smoke evidence.
+
+### 2026-09-29 06:30 +07:00 - PARTIAL
+
+- Scope/result: Download gateway authorizes FileScope on each request and streams only a VERIFIED object; no signed GET URL is issued.
+- Files: Shared upload API/controller/service/repository/storage/.http/Postman paths in working tree; no migration retained.
+- Acceptance criteria: Contract surface/static boundary implemented; range stream behavior, MinIO read and scope enforcement need runtime evidence.
+- Verification: API build PASS (0 warnings, 0 errors); `git diff --check` PASS; Postman static check PASS.
+- Reused/invalidated evidence: Existing LocalFileContentStore checks do not prove MinIO gateway behavior.
+- Side effects: AWSSDK.S3 added; no MinIO endpoint or secret committed.
+- Unverified/blockers: Resolve migration baseline drift, then run MinIO/SQL smoke.
+
+### 2026-09-29 07:00 +07:00 - PARTIAL
+
+- Review fix: v1 download no longer enables HTTP range processing because the task leaves ranges for a later contract.
+- Verification: SQL Testcontainers migration/workflow tests PASS (2); API-host SQL test PASS (1), including verified gateway download and wrong-scope denial.
+
+### 2026-09-29 14:34 +07:00 - DONE
+
+- Provider smoke: `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio` PASS (1) downloaded the exact bytes from a verified MinIO object through the authorized API gateway.
+- Contract: v1 remains whole-file only; no independent signed GET and no unsupported range behavior were introduced.
+- Remaining blocker: actual MinIO object read smoke remains BLOCKED_ENV because no usable local image or configured endpoint is available.

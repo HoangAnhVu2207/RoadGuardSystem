@@ -2,18 +2,29 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D14, D15, D16, D17, D20, D21, D22
 - requirementRefs: FR-26
 - diagramRefs: PF-07, SQ-06, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED
+- implementationStatus: IMPLEMENTED
+- verificationStatus: VERIFIED
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
+
+Current evidence: project-scoped PM cancelled a task before a verified dataset with 200; persistence guard blocks cancellation after server-confirmed data; focused build/tests and Postman static validation pass.
+
+### 2026-09-29 20:20 +07:00 - DONE
+
+- Scope/result: Integrated workflow `f67e8b5` from `origin/develop@5537a584` and reverified merged source.
+- Files: survey Controller/Service/Repository, this task and manifest metadata.
+- Acceptance criteria: task-specific behavior above covered by focused API/service/SQL tests.
+- Verification: API build PASS (135 warnings/0 errors); P2 API 2/2; P2 unit 5/5; P2 survey SQL 2/2; Postman static 74 requests/102 variables/0 unresolved refs.
+- Reused/invalidated evidence: commit lineage retained; runtime evidence refreshed after integration.
+- Side effects: isolated SQL fixtures only; no live/shared DB, push or reverse merge.
+- Unverified/blockers: none task-specific; Postman result is static evidence.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.

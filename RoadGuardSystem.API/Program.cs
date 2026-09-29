@@ -2,6 +2,8 @@ using Asp.Versioning.ApiExplorer;
 using RoadGuardSystem.API.Extensions;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.Repositories.Extensions;
+using RoadGuardSystem.Repositories.Options;
+using RoadGuardSystem.API.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,12 @@ builder.Services.AddApiPlatformServices(builder.Configuration, builder.Environme
 builder.Services.AddRoadGuardSeeding(
     includeDevelopmentUsers: builder.Environment.IsDevelopment() &&
         builder.Configuration.GetValue("RoadGuardDatabase:SeedDevelopmentUsers", false));
+
+if (builder.Environment.IsDevelopment() &&
+    !string.IsNullOrWhiteSpace(builder.Configuration[$"{MinioStorageOptions.SectionName}:Endpoint"]))
+{
+    builder.Services.AddHostedService<UploadVerificationWorker>();
+}
 
 var app = builder.Build();
 

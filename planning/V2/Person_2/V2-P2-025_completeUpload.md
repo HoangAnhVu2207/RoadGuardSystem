@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D38, D43A, 42A
 - requirementRefs: FR-21, FR-27
 - diagramRefs: PF-08, SQ-03, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED_OWNER_RUNTIME_DELTA
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PASS_SQL_API_MINIO
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -29,8 +29,9 @@
 - Requirements/trace: FR-21, FR-27
 - Diagrams/state: PF-08, SQ-03, DD/ERD
 - Canonical contract: operationId completeUpload, path /uploads/{uploadId}/complete, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
-- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: no complete-upload lifecycle, rowversion session or verification worker existed; P2 implementation adds the approved VERIFYING -> VERIFIED/FAILED path.
+- Checkpoint: base 5e878212055d3f389a9fc65697ed04ba6a4194bb; migration reconciliation and the separate upload migration now exist and are applied by SQL test fixtures.
+- Owner runtime delta: Reporter is explicitly excluded from these six upload endpoints until its auth/runtime slice is approved; supported roles are SUPERVISOR, PM, OPERATOR and CREW.
 
 ## 1. Cần làm và tại sao
 
@@ -303,3 +304,37 @@ schemas:
     - expiresAt
     - version
 ```
+
+## Completion history
+
+### 2026-09-29 00:00 +07:00 - BLOCKED
+
+- Scope/result: Source review completed; no complete-upload endpoint, session aggregate or verification worker exists.
+- Files: No production files changed; task and manifest status updated.
+- Acceptance criteria: Not started; VERIFYING/VERIFIED lifecycle, part ledger and durable idempotency are missing.
+- Verification: `git diff --check` PASS; API/runtime/SQL/Postman checks NOT_RUN because no implementation exists.
+- Reused/invalidated evidence: Existing immutable file storage tests do not prove multipart completion or concurrency.
+- Side effects: No package, migration, schema, data, external system, commit or push.
+- Unverified/blockers: Need approved session rowversion/ETag, part verification worker, provider contract and SQL transaction tests.
+
+### 2026-09-29 06:30 +07:00 - PARTIAL
+
+- Scope/result: Complete endpoint requires Idempotency-Key and If-Match, persists completed part ETags and transitions only to VERIFYING; worker reads object, MIME, size and SHA-256 before VERIFIED or FAILED.
+- Files: Shared upload API/controller/service/repository/domain/storage/config/.http/Postman paths in working tree; no migration retained.
+- Acceptance criteria: Contract surface/static boundary implemented; rowversion, transaction, idempotency replay and worker durable effects need SQL/MinIO evidence.
+- Verification: API build PASS (0 warnings, 0 errors); `git diff --check` PASS; Postman static check PASS.
+- Reused/invalidated evidence: Existing file storage checks do not prove multipart completion.
+- Side effects: AWSSDK.S3 added; no MinIO endpoint or secret committed.
+- Unverified/blockers: Resolve migration baseline drift, then create approved migration and run SQL Server plus MinIO smoke.
+
+### 2026-09-29 07:00 +07:00 - PARTIAL
+
+- Review fix: stale, valid `If-Match` now maps to the approved precondition result instead of a generic conflict; idempotency receipts for create/part URLs/complete use distinct primary keys.
+- Verification: SQL Testcontainers migration/workflow tests PASS (2); API-host SQL test PASS (1), including VERIFYING -> VERIFIED with a test storage boundary.
+
+### 2026-09-29 14:34 +07:00 - DONE
+
+- Provider smoke: `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio` PASS (1) with actual signed PUT, returned MinIO ETag and SQL Server Testcontainers.
+- Durable flow: complete returned `202 VERIFYING`; the verification service completed the multipart object, recalculated MIME/size/SHA-256 and persisted `VERIFIED`.
+- Concurrency/idempotency evidence remains covered by the focused SQL workflow tests PASS (2) and API test PASS (1).
+- Remaining blocker: real MinIO multipart completion and provider worker smoke is BLOCKED_ENV because no usable local image or configured endpoint is available.

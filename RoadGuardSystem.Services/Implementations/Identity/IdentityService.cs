@@ -56,6 +56,22 @@ public sealed class IdentityService : IIdentityService
             return new ProfileUpdateResult(ProfileUpdateStatus.InvalidInput);
         }
 
+        var currentProfile = await _identityRepository.GetUserProfileAsync(userId, cancellationToken);
+        if (currentProfile is null)
+        {
+            return new ProfileUpdateResult(ProfileUpdateStatus.UserNotFound);
+        }
+
+        if (!string.Equals(
+                currentProfile.Email?.Trim(),
+                command.Email?.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return new ProfileUpdateResult(
+                ProfileUpdateStatus.InvalidInput,
+                Message: "Login email cannot be changed through the legacy profile endpoint.");
+        }
+
         var result = await _identityRepository.UpdateUserProfileAtomicAsync(
             userId,
             command.DisplayName,

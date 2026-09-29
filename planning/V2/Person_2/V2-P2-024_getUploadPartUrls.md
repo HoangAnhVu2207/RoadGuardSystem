@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D38, D43A, 42A
 - requirementRefs: FR-22, FR-27
 - diagramRefs: PF-08, SQ-03, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED_OWNER_RUNTIME_DELTA
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PASS_SQL_API_MINIO
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -29,8 +29,9 @@
 - Requirements/trace: FR-22, FR-27
 - Diagrams/state: PF-08, SQ-03, DD/ERD
 - Canonical contract: operationId getUploadPartUrls, path /uploads/{uploadId}/part-urls, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
-- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: no upload-part ledger or signed-provider seam existed; P2 implementation adds durable part issuance/completion records and S3-compatible pre-signing through the repository boundary.
+- Checkpoint: base 5e878212055d3f389a9fc65697ed04ba6a4194bb; migration reconciliation and the separate upload migration now exist and are applied by SQL test fixtures.
+- Owner runtime delta: Reporter is explicitly excluded from these six upload endpoints until its auth/runtime slice is approved; supported roles are SUPERVISOR, PM, OPERATOR and CREW.
 
 ## 1. Cần làm và tại sao
 
@@ -261,3 +262,37 @@ schemas:
     required:
     - partNumbers
 ```
+
+## Completion history
+
+### 2026-09-29 00:00 +07:00 - BLOCKED
+
+- Scope/result: Source review completed; no upload-session or part-url endpoint exists.
+- Files: No production files changed; task and manifest status updated.
+- Acceptance criteria: Not started; session ledger, ownership and provider URL contract are missing.
+- Verification: `git diff --check` PASS; API/runtime/SQL/Postman checks NOT_RUN because no implementation exists.
+- Reused/invalidated evidence: Existing file storage boundary remains valid; no part-url evidence exists.
+- Side effects: No package, migration, schema, data, external system, commit or push.
+- Unverified/blockers: Need approved part ledger, signed URL/provider, CORS/ETag and TTL/part-size configuration.
+
+### 2026-09-29 06:30 +07:00 - PARTIAL
+
+- Scope/result: Owner-approved signed MinIO PUT part URL endpoint and durable part ledger implementation added; URLs expire after 15 minutes and are not persisted or logged.
+- Files: Shared upload API/controller/service/repository/domain/storage/config/.http/Postman paths in working tree; no migration retained.
+- Acceptance criteria: Contract surface/static boundary implemented; durable part schema and actual presigned PUT evidence remain unproven.
+- Verification: API build PASS (0 warnings, 0 errors); `git diff --check` PASS; Postman static check PASS.
+- Reused/invalidated evidence: Existing local immutable storage did not prove multipart behavior.
+- Side effects: AWSSDK.S3 added; no MinIO endpoint or secret committed.
+- Unverified/blockers: Resolve migration baseline drift, then test MinIO signed PUT and SQL part ledger.
+
+### 2026-09-29 07:00 +07:00 - PARTIAL
+
+- Migration: upload part ledger is in `P2AddUploadSessionsAndFileScopes`; reconciliation migration avoids recreating historical auth tables.
+- Verification: SQL Testcontainers migration/workflow tests PASS (2); API-host SQL test PASS (1).
+
+### 2026-09-29 14:34 +07:00 - DONE
+
+- Provider smoke: `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio` PASS (1) with local MinIO and SQL Server Testcontainers.
+- Durable flow: a signed one-part PUT URL was issued from the persisted multipart upload ID and used for a successful real `PUT`; its ETag was supplied to complete.
+- Remaining risk: no separate interactive Swagger run; API-host smoke validates the same signed-URL dependency and durable effect.
+- Remaining blocker: real MinIO presigned PUT smoke is BLOCKED_ENV because no usable local image or configured endpoint is available.

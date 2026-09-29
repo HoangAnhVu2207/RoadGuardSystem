@@ -39,7 +39,7 @@ public sealed class P2V2SurveyServiceTests
     }
 
     [Fact]
-    public async Task CreateTaskAsync_NonPm_DoesNotPersist()
+    public async Task CreateTaskAsync_NonPm_ReturnsForbiddenWithoutPersisting()
     {
         var repository = new RecordingRepository();
         var service = new SurveyV2Service(repository, new FixedScopeGuard(Guid.NewGuid(), UserRoleCode.DroneOperator));
@@ -52,7 +52,7 @@ public sealed class P2V2SurveyServiceTests
             "task-key",
             null);
 
-        result.Status.Should().Be(SurveyV2ServiceStatus.InvalidInput);
+        result.Status.Should().Be(SurveyV2ServiceStatus.Forbidden);
         repository.TaskRequest.Should().BeNull();
     }
 
@@ -111,6 +111,10 @@ public sealed class P2V2SurveyServiceTests
         public Task<SurveyV2PlanPersistenceResult> PostponePlanAsync(SurveyV2PlanPostponementRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new SurveyV2PlanPersistenceResult(SurveyV2PersistenceStatus.InvalidInput));
         public Task<SurveyV2TaskPersistenceResult> CreateTaskAsync(SurveyV2TaskCreationRequest request, CancellationToken cancellationToken = default) { TaskRequest = request; return Task.FromResult(new SurveyV2TaskPersistenceResult(SurveyV2PersistenceStatus.InvalidInput)); }
         public Task<SurveyV2TaskPersistenceView?> GetTaskAsync(Guid taskId, CancellationToken cancellationToken = default) => Task.FromResult(ReadTask);
+        public Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, CancellationToken cancellationToken = default)
+            => Task.FromResult(new SurveyV2TaskPagePersistenceResult([], null, DateTimeOffset.UtcNow));
+        public Task<SurveyV2TaskPersistenceResult> MutateTaskAsync(SurveyV2TaskMutationRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new SurveyV2TaskPersistenceResult(SurveyV2PersistenceStatus.InvalidInput));
         public Task<Guid?> GetPlanProjectIdAsync(Guid planId, CancellationToken cancellationToken = default) => Task.FromResult<Guid?>(null);
     }
 

@@ -1,0 +1,194 @@
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.BusinessObjects.Files;
+using RoadGuardSystem.BusinessObjects.Identity;
+using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.IntegrationTests.Infrastructure;
+using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Files;
+using RoadGuardSystem.Repositories.Idempotency;
+using RoadGuardSystem.Repositories.Implementations.Files;
+using RoadGuardSystem.Repositories.Storage;
+using Xunit;
+
+namespace RoadGuardSystem.IntegrationTests.Files;
+
+[Trait("TaskId", "P2-023/P2-024/P2-025/P2-026/P2-027/P2-028")]
+public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerFixture>
+{
+    private readonly IdentitySqlServerFixture _fixture;
+
+    public UploadPersistenceSqlTests(IdentitySqlServerFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
+    [Fact]
+    public async Task UploadMigration_CreatesScopedTablesAndConcurrencyToken()
+    {
+        await using var context = _fixture.CreateDbContext();
+
+        var objects = await context.Database.SqlQueryRaw<int>(
+            "SELECT CAST((SELECT COUNT(*) FROM sys.tables WHERE [name] IN ('FileScopes', 'UploadSessions', 'UploadParts')) AS int) AS [Value]")
+            .SingleAsync();
+        var rowVersions = await context.Database.SqlQueryRaw<int>(
+            "SELECT CAST((SELECT COUNT(*) FROM sys.columns WHERE [object_id] = OBJECT_ID('UploadSessions') AND [name] = 'RowVersion' AND [system_type_id] = 189) AS int) AS [Value]")
+            .SingleAsync();
+
+        objects.Should().Be(3);
+        rowVersions.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UploadFlow_ReplaysCreateRejectsStaleVersionAndVerifiesCompletedObject()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var user = await AddUserAsync(context);
+        var project = await AddProjectAsync(context);
+        var checksum = new string('a', 64);
+        var storage = new DeterministicUploadStorage(new(16, checksum, "application/pdf"));
+        var repository = new UploadPersistenceService(context, new IdempotencyOperationService(context), storage);
+        var request = new UploadCreatePersistenceRequest(
+            user.Id,
+            project.Id,
+            null,
+            "DOCUMENT",
+            "evidence.pdf",
+            "application/pdf",
+            16,
+            checksum,
+            8 * 1024 * 1024,
+            DateTimeOffset.UtcNow.AddHours(24),
+            $"create-{Guid.NewGuid():N}",
+            new string('b', 64),
+            Guid.NewGuid());
+
+        var created = await repository.CreateAsync(request);
+        var replayed = await repository.CreateAsync(request);
+
+        created.Status.Should().Be(UploadPersistenceStatus.Success);
+        replayed.Status.Should().Be(UploadPersistenceStatus.Replayed);
+        replayed.Session!.Id.Should().Be(created.Session!.Id);
+        (await context.IdempotencyRecords.CountAsync(record => record.Operation == "UploadSessionCreated" && record.IdempotencyKey == request.IdempotencyKey))
+            .Should().Be(1);
+
+        var urls = await repository.GetPartUrlsAsync(
+            user.Id,
+            project.Id,
+            created.Session.Id,
+            [1],
+            $"parts-{Guid.NewGuid():N}",
+            new string('c', 64),
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow.AddMinutes(15));
+        urls.Status.Should().Be(UploadPersistenceStatus.Success);
+        urls.Parts.Should().ContainSingle();
+
+        var current = await repository.GetSessionAsync(created.Session.Id);
+        current.Should().NotBeNull();
+
+        var stale = await repository.CompleteAsync(new(
+            user.Id,
+            project.Id,
+            created.Session.Id,
+            Convert.ToBase64String(Enumerable.Repeat((byte)255, 8).ToArray()),
+            [new CompletedStoragePart(1, "etag-1")],
+            checksum,
+            $"complete-stale-{Guid.NewGuid():N}",
+            new string('d', 64),
+            Guid.NewGuid()));
+        stale.Status.Should().Be(UploadPersistenceStatus.ConcurrencyConflict);
+
+        var completed = await repository.CompleteAsync(new(
+            user.Id,
+            project.Id,
+            created.Session.Id,
+            current!.Version,
+            [new CompletedStoragePart(1, "etag-1")],
+            checksum,
+            $"complete-{Guid.NewGuid():N}",
+            new string('e', 64),
+            Guid.NewGuid()));
+        completed.Status.Should().Be(UploadPersistenceStatus.Success);
+        completed.Session!.Status.Should().Be("VERIFYING");
+
+        (await repository.VerifyNextAsync()).Should().Be(UploadPersistenceStatus.Success);
+        var file = await repository.GetFileMetadataAsync(created.Session.FileId);
+        file.Should().NotBeNull();
+        file!.Status.Should().Be("VERIFIED");
+        storage.CompleteCalls.Should().Be(1);
+    }
+
+    private async Task<ApplicationUser> AddUserAsync(RoadGuardDbContext context)
+    {
+        await _fixture.SeedRolesAsync(context);
+        var userName = $"upload-user-{Guid.NewGuid():N}";
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            DisplayName = "Upload SQL fixture user",
+            PasswordHash = "fixture-password-hash",
+            RoleCode = UserRoleCode.DroneOperator,
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        return user;
+    }
+
+    private static async Task<Project> AddProjectAsync(RoadGuardDbContext context)
+    {
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            ProjectCode = $"UPLOAD-{Guid.NewGuid():N}",
+            Name = "Upload SQL fixture project",
+            Status = ProjectStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        context.Projects.Add(project);
+        await context.SaveChangesAsync();
+        return project;
+    }
+
+    private sealed class DeterministicUploadStorage : IUploadObjectStorage
+    {
+        private readonly UploadObjectVerification _verification;
+
+        public DeterministicUploadStorage(UploadObjectVerification verification)
+        {
+            _verification = verification;
+        }
+
+        public int CompleteCalls { get; private set; }
+
+        public Task<string> InitiateAsync(string objectKey, string mediaType, CancellationToken cancellationToken = default)
+            => Task.FromResult($"upload-{objectKey}");
+
+        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(
+            string objectKey,
+            string uploadId,
+            IReadOnlyList<int> partNumbers,
+            DateTimeOffset expiresAt,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<PresignedUploadPart>>(
+                partNumbers.Select(partNumber => new PresignedUploadPart(partNumber, $"https://storage.test/{uploadId}/{partNumber}", expiresAt)).ToArray());
+
+        public Task<UploadObjectVerification> CompleteAndVerifyAsync(
+            string objectKey,
+            string uploadId,
+            IReadOnlyList<CompletedStoragePart> parts,
+            CancellationToken cancellationToken = default)
+        {
+            CompleteCalls++;
+            return Task.FromResult(_verification);
+        }
+
+        public Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default)
+            => Task.FromResult<Stream>(new MemoryStream());
+    }
+}

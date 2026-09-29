@@ -139,6 +139,15 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Invalid = 5
     }
 
+    public enum UploadSessionStatus : byte
+    {
+        Pending = 1,
+        Uploading = 2,
+        Verifying = 3,
+        Verified = 4,
+        Failed = 5
+    }
+
     public enum SurveyDataVersionStatus : byte
     {
         Unknown = 0,

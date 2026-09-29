@@ -14,9 +14,9 @@
 | Finding | Lifecycle | Current evidence / next gate |
 |---|---|---|
 | RV-12 inspection version/read projection/migration | `DONE` | Fresh isolated SQL API 4/4 plus exact-baseline upgrade SQL 1/1; V2-P1-063 overall task status is unchanged |
-| SMTP retry and pending recovery | `BLOCKED_SLICE` | Decision table below identifies the durable delivery and pending-account recovery choices still required |
-| Email compatibility | `BLOCKED_SLICE` | Decision table below scopes ownership/authorization for login-email changes |
-| Future PM semantics | `BLOCKED_SLICE` | Requires explicit business decision; current PM replay evidence does not decide future-PM policy |
+| SMTP retry and pending recovery | `BLOCKED_SCHEMA` | Decisions recorded; durable delivery completion/token reference and verification-bound pending-password state require an explicitly reviewed schema/migration artifact |
+| Email compatibility | `DONE` | Legacy profile rejects normalized login-email changes; unchanged email/profile updates remain supported; API tests 3/3 |
+| Future PM semantics | `DONE` | New PM reassignment accepts current UTC date only; durable replay remains allowed; focused unit tests 2/2 |
 | Project mapping | `BLOCKED_SLICE` | Current route/DTO and canonical ProjectCreate differ; compatibility decision is listed below |
 | RV-17 seeder ownership | `DONE` | Immutable ID/dependency collision rejected without attaching children; locally edited mutable data preserved |
 | RV-18 seeder lifecycle/scope | `DONE` | Accepted assignment plus plan/request scope rows; SQL projection reads the seeded V2 scope |
@@ -177,7 +177,15 @@
 | RV-11 future PM | Current reassignment ends the old active primary immediately while the replacement may have a future `ValidFrom`; membership reads correctly enforce effective dates. V2 requires one effective primary PM and dated handover/history but does not define scheduled activation. | Future-dated reassignment creates a period with no effective PM unless scheduling semantics and activation ownership exist. | Minimal option: reject `effectiveDate > today` and keep atomic same-day handover. Alternative: add explicit scheduled state/activation worker in a separately approved scope. | Decide whether future reassignment is unsupported for now or is a scheduled workflow; if scheduled, identify who may cancel/change it and when old/new authority switches. |
 | RV-13 project mapping | Runtime `POST /api/v1/projects` uses the legacy DTO/graph, while approved OpenAPI `ProjectCreate` requires `code`, `primaryPmId`, `handoverDate`, `warrantyEndDate`, `handoverFileIds` and `Idempotency-Key`, returning canonical `Project`. V2-P1-017 remains unverified. | The exact route cannot simultaneously promise incompatible required bodies/responses without an explicit compatibility rule; handover files and warranty graph mapping are not established by current runtime. | Implement the canonical DTO/atomic graph on the V2 route and retain legacy compatibility only through an explicitly named/versioned transition path; do not modify OpenAPI to match legacy code. | Approve breaking replacement versus a separately versioned legacy route, plus the authoritative mapping for handover document number/files, warranty start/end and primary-PM effective date. |
 
-- Overall lifecycle remains `PARTIAL`. The five rows above stay `BLOCKED_SLICE` pending owner decisions; independent verified fixes remain intact.
+- Overall lifecycle remains `PARTIAL`. Four rows above now have owner decisions and proceed as focused deltas; Project mapping remains `BLOCKED_SLICE` pending explicit field mapping. Independent verified fixes remain intact.
+
+## Owner decisions 2026-09-29
+
+- `RV-03/RV-05 SMTP retry`: a retry reuses the same logical token only while that token remains valid; it must not silently rotate identity or report a failed first delivery as completed.
+- `RV-04 pending recovery`: a replacement password remains pending and becomes the account password only after verification of the corresponding recovery/registration challenge; an unverified request does not mutate the active password.
+- `RV-07 email ownership`: the legacy profile endpoint may update display data but must reject a normalized login-email change; unchanged email remains compatible. A dedicated verified email-change flow is outside this scope.
+- `RV-11 future PM`: reassignment accepts only the current effective date. Future-dated scheduling is unsupported until a separately approved activation/cancellation workflow exists.
+- `RV-13 Project mapping`: still blocked; no field mapping was supplied for `POST /projects`, so no business delta is inferred.
 
 ### 2026-09-29 19:57 +07:00 - PARTIAL / DOCS_PASS
 

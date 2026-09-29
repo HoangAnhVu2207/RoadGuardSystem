@@ -340,6 +340,46 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.FileScope", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<Guid?>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FileScopes_FileId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ProjectId", "OwnerUserId")
+                        .HasDatabaseName("IX_FileScopes_ProjectId_OwnerUserId");
+
+                    b.ToTable("FileScopes", (string)null);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.StoredFile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -396,6 +436,119 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.UploadPart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ETag")
+                        .HasMaxLength(512)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(512)");
+
+                    b.Property<int>("PartNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UploadSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("UrlExpiresAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<DateTimeOffset?>("UrlIssuedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadSessionId", "PartNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_UploadParts_Session_PartNumber");
+
+                    b.ToTable("UploadParts", (string)null);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.UploadSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExpectedChecksumSha256")
+                        .IsRequired()
+                        .HasColumnType("char(64)");
+
+                    b.Property<long>("ExpectedSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(512)");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PartSizeBytes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("StorageUploadId")
+                        .HasMaxLength(1024)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(1024)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileId");
+
+                    b.HasIndex("ObjectKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_UploadSessions_ObjectKey");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("Status", "ExpiresAt")
+                        .HasDatabaseName("IX_UploadSessions_Status_ExpiresAt");
+
+                    b.ToTable("UploadSessions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_UploadSessions_ExpectedSizeBytes_Positive", "[ExpectedSizeBytes] > 0");
+
+                            t.HasCheckConstraint("CK_UploadSessions_PartSizeBytes_Positive", "[PartSizeBytes] > 0");
+                        });
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Idempotency.IdempotencyRecord", b =>
@@ -2765,12 +2918,57 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.FileScope", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.StoredFile", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UploadedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.UploadPart", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.UploadSession", null)
+                        .WithMany()
+                        .HasForeignKey("UploadSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.UploadSession", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.AccountStatusChangeLog", b =>

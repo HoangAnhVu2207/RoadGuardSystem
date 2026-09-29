@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D12, D13, 33A, 34A
 - requirementRefs: FR-31
 - diagramRefs: PF-07, SQ-04, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: b4e195d / source comparison 2026-09-29
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: COMPLETE
+- verificationStatus: PASS
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: None.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -30,6 +30,7 @@
 - Diagrams/state: PF-07, SQ-04, DD/ERD
 - Canonical contract: operationId createValidationRun, path /projects/{projectId}/validation-runs, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Source comparison 2026-09-29: GroundTruthMeasurement exists, but no corresponding derived-measurement, validation-run/result or project-scoped validation repository/API seam exists.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -138,7 +139,36 @@ Content-Type: application/json
 }
 ```
 
+## Completion history
+
+### 2026-09-29 15:59 +07:00 - BLOCKED
+
+- Scope/result: Compared `createValidationRun` with FR-31 and current measurement source. No endpoint was added because the request references validation entities and pairing rules absent from the schema.
+- Files: Read `GroundTruthMeasurement` mapping/tests, RoadGuardDbContext and OpenAPI ValidationRun schemas; no production or Postman files changed.
+- Acceptance criteria: Not executable: pairs, model version, dataset split and resulting job cannot be persisted/replayed with project scope under the current model.
+- Verification: Source comparison only; runtime, API, SQL and Postman checks NOT_RUN because no endpoint contract was implemented.
+- Side effects: No package, migration, schema, data, storage, commit or push.
+- Unverified/blockers: Approve ValidationRun/derived measurement schema and metric/exclusion policy before implementation.
+
+### 2026-09-29 19:07 +07:00 - Contract hardening
+
+- Fixed direct contract violations: an empty pair list is rejected by the `ValidationRun` invariant, and only PM reaches validation persistence; a Supervisor now receives forbidden behavior without a persistence call.
+- Evidence: focused unit authorization regression and SQL Server validation foundation tests pass. The Development smoke that accepted arbitrary pair IDs remains the proof that completion criteria are not met.
+- Remaining blocker: `DatasetSplit` has no canonical entity/mapping in current source, and `DerivedMeasurement` plus immutable `MeasurementValidationSample` provenance are absent. The source does not authorize inventing their relationship; therefore `P2-034` and `P2-035` remain `PARTIAL`.
+
+### 2026-09-29 20:19 +07:00 - DONE
+
+- Added `DerivedMeasurement`, immutable `MeasurementValidationSample`, SQL constraints/FKs and a rowversion on `ValidationRun` via `20260929125522_P2ValidationMeasurementProvenance`.
+- Create now validates project scope, matching sample ID/road version/measurement type and published derived provenance before atomically writing run, samples, idempotency, audit and outbox.
+- Development smoke: PM received `202 QUEUED` and ETag for run `500795c0-121e-4b78-b787-12d68c93f138`; the durable worker completed it from its outbox message. Supervisor smoke remains `403` without persistence.
+- Verification: focused SQL Server integration tests, domain/service regression tests and API build passed.
+
 ## 7. Done và bằng chứng
+
+### 2026-09-29 - PARTIAL
+
+- A queued validation endpoint, persistence aggregate and outbox exist, and Development smoke returned 202.
+- Blocker: smoke proved arbitrary non-existent pair IDs are accepted. DerivedMeasurement and immutable sample provenance must be implemented before the operation can meet RS04-RS06.
 
 - Worklog ghi commit, route thực tế, reuse/new/delta, quyết định liên quan và đường dẫn `.http` có response đã che secret.
 - Build project chịu ảnh hưởng; chọn focused/affected/full theo risk và skill repo. Một API phải có smoke trên server thật với SQL test và kiểm effect. Không bắt chạy full suite cho từng task; kết quả lịch sử không phải kết quả chạy hiện tại.

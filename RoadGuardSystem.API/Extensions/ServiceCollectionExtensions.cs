@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Authentication;
 using RoadGuardSystem.API.Authorization;
+using RoadGuardSystem.API.BackgroundServices;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.Services.Authentication;
 using RoadGuardSystem.Services.Extensions;
@@ -19,6 +20,8 @@ using RoadGuardSystem.Services.Projects;
 using RoadGuardSystem.Services.Warranties;
 using RoadGuardSystem.Services.Surveys;
 using RoadGuardSystem.Services.Inspections;
+using RoadGuardSystem.Services.Processing;
+using RoadGuardSystem.Services.Implementations.Processing;
 using RoadGuardSystem.Services.Files;
 using RoadGuardSystem.Services.Implementations.Files;
 using RoadGuardSystem.Services.Messaging;
@@ -51,13 +54,20 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => JwtBearerConfiguration.Configure(options, jwtOptions));
+            .AddJwtBearer(options => JwtBearerConfiguration.Configure(options, jwtOptions))
+            .AddJwtBearer(AiServiceJwtBearerConfiguration.Scheme, options => AiServiceJwtBearerConfiguration.Configure(options, jwtOptions));
         services.AddAuthorization(options =>
         {
             options.AddPolicy(ProjectAuthorizationPolicies.WorkPackageRead, policy =>
             {
                 policy.RequireAuthenticatedUser();
                 policy.AddRequirements(new ProjectAccessRequirement());
+            });
+            options.AddPolicy("AiCallback", policy =>
+            {
+                policy.AddAuthenticationSchemes(AiServiceJwtBearerConfiguration.Scheme);
+                policy.RequireAuthenticatedUser();
+                policy.RequireClaim("client_type", "AI_SERVICE");
             });
         });
         services.AddScoped<IProjectScopeGuard, ProjectScopeGuard>();
@@ -71,8 +81,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
         services.AddScoped<IInspectionTaskQueryService, InspectionTaskQueryService>();
         services.AddScoped<ISurveyV2Service, SurveyV2Service>();
+        services.AddScoped<IProcessingV2Service, ProcessingV2Service>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddHostedService<ValidationRunWorker>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProjectAuthorizationMiddlewareResultHandler>();
 

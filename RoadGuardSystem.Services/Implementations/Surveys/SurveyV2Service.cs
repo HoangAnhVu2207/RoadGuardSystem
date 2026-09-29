@@ -104,6 +104,57 @@ public sealed class SurveyV2Service : ISurveyV2Service
         return MutateTaskAsync(actorUserId, role, taskId, "supplement", request.Reason, request.OperatorId, null, JsonSerializer.Serialize(request.Scope), idempotencyKey, expectedVersion, correlationId, cancellationToken);
     }
 
+    public async Task<SurveyV2ServiceResult> SubmitDatasetAsync(Guid actorUserId, UserRoleCode role, Guid taskId, SubmitDatasetRequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
+    {
+        if (actorUserId == Guid.Empty || role != UserRoleCode.DroneOperator || taskId == Guid.Empty || request is null ||
+            request.VideoFileIds is not { Count: > 0 } || request.TelemetryFileIds is null || request.RecordedAt == default ||
+            request.DeviceId is not { } deviceId || deviceId == Guid.Empty || request.Scope is null || !ValidScope(request.Scope) ||
+            string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion))
+        {
+            return new(SurveyV2ServiceStatus.InvalidInput);
+        }
+
+        var task = await _repository.GetTaskAsync(taskId, cancellationToken);
+        if (task is null) return new(SurveyV2ServiceStatus.NotFound);
+        if (task.OperatorId != actorUserId) return new(SurveyV2ServiceStatus.Forbidden);
+        var scopeJson = JsonSerializer.Serialize(request.Scope);
+        var fingerprint = Fingerprint($"{taskId:N}|{string.Join(',', request.VideoFileIds.Order())}|{string.Join(',', request.TelemetryFileIds.Order())}|{request.RecordedAt:O}|{deviceId:N}|{scopeJson}|{expectedVersion}");
+        var result = await _repository.SubmitDatasetAsync(new SurveyDatasetSubmissionRequest(
+            actorUserId, taskId, request.VideoFileIds, request.TelemetryFileIds, request.RecordedAt, deviceId,
+            scopeJson, expectedVersion.Trim().Trim('"'), idempotencyKey, fingerprint, correlationId), cancellationToken);
+        return result.Status switch
+        {
+            SurveyDatasetPersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, Dataset: ToDataset(result.Dataset)),
+            SurveyDatasetPersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, Dataset: ToDataset(result.Dataset)),
+            SurveyDatasetPersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound),
+            SurveyDatasetPersistenceStatus.ConcurrencyConflict => new(SurveyV2ServiceStatus.ConcurrencyConflict),
+            SurveyDatasetPersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict),
+            SurveyDatasetPersistenceStatus.Conflict => new(SurveyV2ServiceStatus.Conflict),
+            _ => new(SurveyV2ServiceStatus.InvalidInput)
+        };
+    }
+
+    public async Task<DatasetCoverageServiceResult> GetDatasetCoverageAsync(Guid actorUserId, UserRoleCode role, Guid datasetId, CancellationToken cancellationToken = default)
+    {
+        if (actorUserId == Guid.Empty || datasetId == Guid.Empty || role is not (UserRoleCode.DroneOperator or UserRoleCode.ProjectManager or UserRoleCode.Supervisor)) return new(SurveyV2ServiceStatus.Forbidden);
+        var dataset = await _repository.GetDatasetAccessAsync(datasetId, cancellationToken);
+        if (dataset is null) return new(SurveyV2ServiceStatus.NotFound);
+        if (role == UserRoleCode.DroneOperator && dataset.OperatorId != actorUserId) return new(SurveyV2ServiceStatus.Forbidden);
+        if (role != UserRoleCode.DroneOperator && !await InScope(actorUserId, role, dataset.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
+        try
+        {
+            var scope = JsonSerializer.Deserialize<IReadOnlyList<BandScopeDto>>(dataset.ScopeJson, ResponseJsonOptions);
+            if (scope is null || !ValidScope(scope)) return new(SurveyV2ServiceStatus.InvalidInput);
+            return new(SurveyV2ServiceStatus.Success, new DatasetCoverageResponseDto(dataset.DatasetId,
+                scope.Select(value => new DatasetCoverageItemDto(value, "UNKNOWN", "UNKNOWN", "UNKNOWN", ["position_evidence_not_available", "quality_evidence_not_available"])).ToArray(),
+                "coverage-not-evaluated.v1"));
+        }
+        catch (JsonException)
+        {
+            return new(SurveyV2ServiceStatus.InvalidInput);
+        }
+    }
+
     private async Task<SurveyV2ServiceResult> MutateTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, string operation, string? reason, Guid? operatorId, DateTimeOffset? dueAt, string? scopeJson, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken)
     {
         if (actorUserId == Guid.Empty || taskId == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(SurveyV2ServiceStatus.InvalidInput);
@@ -176,6 +227,8 @@ public sealed class SurveyV2Service : ISurveyV2Service
         }
         catch (JsonException) { return null; }
     }
+    private static DatasetResponseDto? ToDataset(SurveyDatasetPersistenceView? value)
+        => value is null ? null : new(value.Id, value.SurveyTaskId, value.DataVersionId, value.IntegrityStatus, value.TelemetryStatus, value.Version);
     private static bool ValidScope(IReadOnlyList<BandScopeDto> scope)
         => scope.All(item => item.RouteVersionId != Guid.Empty && item.SegmentSetId != Guid.Empty && item.SegmentIds is { Count: > 0 } && item.SegmentIds.All(id => id != Guid.Empty) && item.TargetBand is "SURFACE" or "LEFT_EDGE" or "RIGHT_EDGE");
     private static bool ValidPosition(PositionDto? position)

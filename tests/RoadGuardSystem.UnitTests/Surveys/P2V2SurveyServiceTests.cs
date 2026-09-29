@@ -116,6 +116,10 @@ public sealed class P2V2SurveyServiceTests
         public Task<SurveyV2TaskPersistenceResult> MutateTaskAsync(SurveyV2TaskMutationRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(new SurveyV2TaskPersistenceResult(SurveyV2PersistenceStatus.InvalidInput));
         public Task<Guid?> GetPlanProjectIdAsync(Guid planId, CancellationToken cancellationToken = default) => Task.FromResult<Guid?>(null);
+        public Task<SurveyDatasetPersistenceResult> SubmitDatasetAsync(SurveyDatasetSubmissionRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new SurveyDatasetPersistenceResult(SurveyDatasetPersistenceStatus.InvalidInput));
+        public Task<SurveyDatasetAccessView?> GetDatasetAccessAsync(Guid datasetId, CancellationToken cancellationToken = default)
+            => Task.FromResult<SurveyDatasetAccessView?>(null);
     }
 
     private sealed class FixedScopeGuard(Guid projectId, UserRoleCode role) : IProjectScopeGuard

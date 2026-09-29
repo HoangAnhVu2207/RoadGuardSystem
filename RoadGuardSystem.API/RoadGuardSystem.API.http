@@ -512,3 +512,101 @@ Content-Type: application/json
 GET {{RoadGuardSystem.API_HostAddress}}/api/v1/files/{{uploadFileId}}
 Authorization: Bearer {{operatorAccessToken}}
 Accept: application/json
+
+### V2-P2-019 submit a verified dataset as its assigned operator
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/survey-tasks/{{surveyTaskId}}/datasets
+Authorization: Bearer {{operatorAccessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{surveyTaskVersion}}"
+Content-Type: application/json
+
+{
+  "videoFileIds": ["{{uploadFileId}}"],
+  "telemetryFileIds": [],
+  "recordedAt": "2026-09-29T08:00:00Z",
+  "deviceId": "{{droneDeviceId}}",
+  "scope": [{ "routeVersionId": "{{roadSectionVersionId}}", "segmentSetId": "{{segmentSetId}}", "segmentIds": ["{{segmentId}}"], "targetBand": "SURFACE" }]
+}
+
+### V2-P2-020 dataset coverage returns UNKNOWN when no coverage evidence exists
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/datasets/{{datasetId}}/coverage
+Authorization: Bearer {{operatorAccessToken}}
+Accept: application/json
+
+### V2-P2-030 queue an immutable processing job
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/processing-jobs
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "datasetId": "{{datasetId}}",
+  "scope": { "routeVersionId": "{{roadSectionVersionId}}", "segmentSetId": "{{segmentSetId}}", "segmentIds": ["{{segmentId}}"], "targetBand": "SURFACE" },
+  "modelVersionId": "{{modelVersionId}}",
+  "preprocessingVersion": "video-preprocess-1",
+  "configVersion": "roadguard-ai-config-1",
+  "mode": "MOCK"
+}
+
+### V2-P2-031 read processing job
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/processing-jobs/{{processingJobId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### V2-P2-032 retry processing job only after a retryable failure
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/processing-jobs/{{processingJobId}}/retry
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{processingJobVersion}}"
+Content-Type: application/json
+
+{ "reason": "Transient worker failure was remediated" }
+
+### V2-P2-033 AI service callback; requires a bearer with client_type AI_SERVICE
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/internal/processing-jobs/{{processingJobId}}/results
+Authorization: Bearer {{aiServiceAccessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "jobAttemptId": "{{processingAttemptId}}",
+  "manifestHash": "{{processingManifestHash}}",
+  "modelVersionId": "{{modelVersionId}}",
+  "mode": "MOCK",
+  "rawResultFileId": "{{aiRawResultFileId}}",
+  "checksumSha256": "{{aiRawResultChecksumSha256}}",
+  "detections": []
+}
+
+### V2-P2-034 queue a validation run
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/validation-runs
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "pairs": [{ "groundTruthId": "{{groundTruthId}}", "derivedMeasurementId": "{{derivedMeasurementId}}" }],
+  "modelVersionId": "{{modelVersionId}}",
+  "datasetSplitId": "{{datasetSplitId}}",
+  "measurementType": "DEPRESSION_DEPTH",
+  "unit": "mm"
+}
+
+### V2-P2-034 forbidden: Supervisor cannot create validation runs
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects/{{projectId}}/validation-runs
+Authorization: Bearer {{supervisorAccessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "pairs": [{ "groundTruthId": "{{groundTruthId}}", "derivedMeasurementId": "{{derivedMeasurementId}}" }],
+  "modelVersionId": "{{modelVersionId}}",
+  "datasetSplitId": "{{datasetSplitId}}",
+  "measurementType": "DEPRESSION_DEPTH",
+  "unit": "mm"
+}
+
+### V2-P2-035 read validation result
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/validation-runs/{{validationRunId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json

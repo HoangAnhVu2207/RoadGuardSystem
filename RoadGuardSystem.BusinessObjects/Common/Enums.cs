@@ -191,6 +191,39 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         None = 3
     }
 
+    public enum ValidationRunStatus : byte
+    {
+        Unknown = 0,
+        Queued = 1,
+        Completed = 2,
+        Failed = 3
+    }
+
+    public enum DerivedMeasurementSourceType : byte
+    {
+        Unknown = 0,
+        SurfaceModel = 1,
+        Dsm = 2,
+        ManualDerived = 3,
+        Other = 4
+    }
+
+    public enum DerivedMeasurementStatus : byte
+    {
+        Unknown = 0,
+        Draft = 1,
+        Published = 2,
+        Superseded = 3
+    }
+
+    public enum ValidationSampleInclusionStatus : byte
+    {
+        Unknown = 0,
+        Included = 1,
+        Excluded = 2,
+        Outlier = 3
+    }
+
     public enum AIModelVersionStatus : byte
     {
         Unknown = 0,

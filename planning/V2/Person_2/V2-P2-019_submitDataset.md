@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D14, D15, D16, D17, D20, D21, D22
 - requirementRefs: FR-27
 - diagramRefs: PF-07, SQ-06, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: b4e195d / source comparison 2026-09-29
 
 - contractStatus: PROPOSED_DELTA
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: COMPLETE
+- verificationStatus: PASS
 - dependencyType: contract
 - workstream: BE
-- blockers: explicit video to telemetry mapping and segment history
+- blockers: None; owner approved target persistence and contract decisions on 2026-09-29. Runtime evidence remains required.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -30,6 +30,7 @@
 - Diagrams/state: PF-07, SQ-06, DD/ERD
 - Canonical contract: operationId submitDataset, path /survey-tasks/{taskId}/datasets, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Source comparison 2026-09-29: SurveyDataVersion and SurveyFile persistence exists, but no dataset controller/service/repository API seam or approved mapping from UploadedFile/FileScope to a survey task dataset.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -147,7 +148,23 @@ Content-Type: application/json
 }
 ```
 
+## Completion history
+
+### 2026-09-29 15:59 +07:00 - BLOCKED
+
+- Scope/result: Compared `submitDataset` against FR-27, D17/D20, OpenAPI and current source. No API was added because the proposed request cannot be durably mapped to the existing SurveyFile/SurveyDataVersion model without a new approved identity/history contract.
+- Files: Read `SurveyDataVersion.cs`, `SurveyFile.cs`, `StoredFile.cs`, `FileScope.cs`, `SurveyDataValidationAdmissionPersistenceService.cs`, and `SurveyV2Controller.cs`; no production or Postman files changed.
+- Acceptance criteria: Not executable: task-scoped upload file mapping, task If-Match target and primary-segment/telemetry history are not defined in the approved runtime model.
+- Verification: Source comparison only; runtime, API, SQL and Postman checks NOT_RUN because no endpoint contract was implemented.
+- Side effects: No package, migration, schema, data, storage, commit or push.
+- Unverified/blockers: Approve the dataset aggregate/mapping and its rowversion/idempotency boundary before implementation.
+
 ## 7. Done và bằng chứng
+
+### 2026-09-29 - DONE
+
+- Delivered `POST /api/v1/survey-tasks/{taskId}/datasets` with verified file, assignment, scope, idempotency and If-Match checks.
+- Evidence: local Development SQL Server and MinIO smoke returned 201 with durable Survey, SurveyDataVersion, SurveyFile and audit effects; focused integration suite passed.
 
 - Worklog ghi commit, route thực tế, reuse/new/delta, quyết định liên quan và đường dẫn `.http` có response đã che secret.
 - Build project chịu ảnh hưởng; chọn focused/affected/full theo risk và skill repo. Một API phải có smoke trên server thật với SQL test và kiểm effect. Không bắt chạy full suite cho từng task; kết quả lịch sử không phải kết quả chạy hiện tại.

@@ -320,6 +320,76 @@
       "key": "uploadPartEtag",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "datasetId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "droneDeviceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "modelVersionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "processingJobId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "processingJobVersion",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "processingAttemptId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "processingManifestHash",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "aiServiceAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "aiRawResultFileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "aiRawResultChecksumSha256",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "groundTruthId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "derivedMeasurementId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "datasetSplitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "validationRunId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -4233,6 +4303,455 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Out-of-scope file metadata returns 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dataset and processing (ordered)",
+      "item": [
+        {
+          "name": "POST /survey-tasks/{taskId}/datasets",
+          "request": {
+            "description": "P2-019. Assigned operator submits verified survey file IDs. Requires current survey task version. Captures datasetId and version on 201.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{operatorAccessToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "dataset-submit-{{$guid}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{surveyTaskVersion}}\""
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"videoFileIds\": [\"{{uploadFileId}}\"],\n  \"telemetryFileIds\": [],\n  \"recordedAt\": \"2026-09-29T08:00:00Z\",\n  \"deviceId\": \"{{droneDeviceId}}\",\n  \"scope\": [{\"routeVersionId\":\"{{roadSectionVersionId}}\",\"segmentSetId\":\"{{segmentSetId}}\",\"segmentIds\":[\"{{segmentId}}\"],\"targetBand\":\"SURFACE\"}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/datasets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "survey-tasks",
+                "{{surveyTaskId}}",
+                "datasets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dataset submit has an expected status', function () { pm.expect([201,403,404,409,412,422]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) { var b=pm.response.json(); pm.collectionVariables.set('datasetId', b.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /datasets/{datasetId}/coverage",
+          "request": {
+            "description": "P2-020. Coverage is UNKNOWN until position/quality evidence exists.",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{operatorAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/datasets/{{datasetId}}/coverage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "datasets",
+                "{{datasetId}}",
+                "coverage"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dataset coverage returns 200 or a documented access result', function () { pm.expect([200,403,404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /processing-jobs",
+          "request": {
+            "description": "P2-030. PM/Supervisor queues an immutable processing manifest. Captures job ID/version on 202.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "processing-create-{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"datasetId\":\"{{datasetId}}\",\"scope\":{\"routeVersionId\":\"{{roadSectionVersionId}}\",\"segmentSetId\":\"{{segmentSetId}}\",\"segmentIds\":[\"{{segmentId}}\"],\"targetBand\":\"SURFACE\"},\"modelVersionId\":\"{{modelVersionId}}\",\"preprocessingVersion\":\"video-preprocess-1\",\"configVersion\":\"roadguard-ai-config-1\",\"mode\":\"MOCK\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/processing-jobs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "processing-jobs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Processing create has an expected status', function () { pm.expect([202,403,404,409,422]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 202) { var b=pm.response.json(); pm.collectionVariables.set('processingJobId', b.id); pm.collectionVariables.set('processingJobVersion', b.version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /processing-jobs/{jobId}",
+          "request": {
+            "description": "P2-031. Reads project-scoped processing job.",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/processing-jobs/{{processingJobId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "processing-jobs",
+                "{{processingJobId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Processing read has an expected status', function () { pm.expect([200,403,404]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('processingJobVersion', pm.response.json().version);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /processing-jobs/{jobId}/retry",
+          "request": {
+            "description": "P2-032. Only a retryable failure with current If-Match can retry.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "processing-retry-{{$guid}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{processingJobVersion}}\""
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Transient worker failure remediated\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/processing-jobs/{{processingJobId}}/retry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "processing-jobs",
+                "{{processingJobId}}",
+                "retry"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Processing retry has an expected status', function () { pm.expect([200,403,404,409,412,422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /internal/processing-jobs/{jobId}/results",
+          "request": {
+            "description": "P2-033. Internal callback only; token must carry client_type AI_SERVICE. Requires the exact active attempt and immutable manifest hash.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aiServiceAccessToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "ai-result-{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jobAttemptId\":\"{{processingAttemptId}}\",\"manifestHash\":\"{{processingManifestHash}}\",\"modelVersionId\":\"{{modelVersionId}}\",\"mode\":\"MOCK\",\"rawResultFileId\":\"{{aiRawResultFileId}}\",\"checksumSha256\":\"{{aiRawResultChecksumSha256}}\",\"detections\":[]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/internal/processing-jobs/{{processingJobId}}/results",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "internal",
+                "processing-jobs",
+                "{{processingJobId}}",
+                "results"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AI callback has an expected status', function () { pm.expect([200,401,403,404,409,422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /projects/{projectId}/validation-runs",
+          "request": {
+            "description": "P2-034. PM queues a validation run from immutable pair IDs.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "validation-create-{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"pairs\":[{\"groundTruthId\":\"{{groundTruthId}}\",\"derivedMeasurementId\":\"{{derivedMeasurementId}}\"}],\"modelVersionId\":\"{{modelVersionId}}\",\"datasetSplitId\":\"{{datasetSplitId}}\",\"measurementType\":\"DEPRESSION_DEPTH\",\"unit\":\"mm\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/validation-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "validation-runs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validation create has an expected status', function () { pm.expect([202,403,409,422]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 202) pm.collectionVariables.set('validationRunId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /projects/{projectId}/validation-runs - forbidden",
+          "request": {
+            "description": "P2-034 negative case. Supervisor is not authorized to create a validation run.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supervisorAccessToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "validation-forbidden-{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"pairs\":[{\"groundTruthId\":\"{{groundTruthId}}\",\"derivedMeasurementId\":\"{{derivedMeasurementId}}\"}],\"modelVersionId\":\"{{modelVersionId}}\",\"datasetSplitId\":\"{{datasetSplitId}}\",\"measurementType\":\"DEPRESSION_DEPTH\",\"unit\":\"mm\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/validation-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "validation-runs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Supervisor is forbidden', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /validation-runs/{runId}",
+          "request": {
+            "description": "P2-035. PM/Supervisor reads durable validation result/provenance summary.",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/validation-runs/{{validationRunId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "validation-runs",
+                "{{validationRunId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validation read has an expected status', function () { pm.expect([200,403,404]).to.include(pm.response.code); });"
                 ]
               }
             }

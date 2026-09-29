@@ -106,7 +106,7 @@ internal static class JwtBearerConfiguration
         _ => null
     };
 
-    private static async Task WriteChallengeAsync(JwtBearerChallengeContext context)
+    internal static async Task WriteChallengeAsync(JwtBearerChallengeContext context)
     {
         context.HandleResponse();
         var errorCode = context.HttpContext.Items[AuthErrorCodeItemKey] as string ?? ApiErrorCodes.Unauthorized;

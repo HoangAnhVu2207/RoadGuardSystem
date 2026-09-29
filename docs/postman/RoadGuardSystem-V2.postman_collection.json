@@ -58,6 +58,14 @@
     ,{ "key": "surveyPlanCreateKey", "value": "survey-plan-runner", "type": "string" }
     ,{ "key": "surveyRequestCreateKey", "value": "survey-request-runner", "type": "string" }
     ,{ "key": "surveyPostponeKey", "value": "survey-postpone-runner", "type": "string" }
+    ,{ "key": "uploadId", "value": "", "type": "string" }
+    ,{ "key": "uploadFileId", "value": "", "type": "string" }
+    ,{ "key": "uploadVersion", "value": "", "type": "string" }
+    ,{ "key": "uploadCreateKey", "value": "upload-create-local-001", "type": "string" }
+    ,{ "key": "uploadPartUrlsKey", "value": "upload-part-urls-local-001", "type": "string" }
+    ,{ "key": "uploadCompleteKey", "value": "upload-complete-local-001", "type": "string" }
+    ,{ "key": "uploadChecksumSha256", "value": "", "type": "string" }
+    ,{ "key": "uploadPartEtag", "value": "", "type": "string" }
   ],
   "item": [
     {
@@ -706,6 +714,95 @@
             "url": { "raw": "{{baseUrl}}/api/v1/survey-plans/{{surveyPlanId}}/postpone", "host": ["{{baseUrl}}"], "path": ["api", "v1", "survey-plans", "{{surveyPlanId}}", "postpone"] }
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Missing precondition returns 428', function () { pm.response.to.have.status(428); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Upload and file (ordered)",
+      "item": [
+        {
+          "name": "POST /uploads - create session",
+          "request": {
+            "description": "Purpose: create a project-scoped multipart upload session. Role: Supervisor, PM, Operator or Crew with effective project membership. Setup: configure Development MinIO locally and set projectId/checksum for the actual 8 MiB test file. Expected: 201, ETag, id and fileId. Data change: file scope, immutable file record, session, audit and idempotency receipt.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{uploadCreateKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"purpose\": \"DOCUMENT\",\n  \"projectId\": \"{{projectId}}\",\n  \"targetId\": null,\n  \"fileName\": \"upload-smoke.pdf\",\n  \"mediaType\": \"application/pdf\",\n  \"sizeBytes\": 8388608,\n  \"checksumSha256\": \"{{uploadChecksumSha256}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/uploads", "host": ["{{baseUrl}}"], "path": ["api", "v1", "uploads"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Upload create returns 201', function () { pm.response.to.have.status(201); });", "if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('uploadId', b.id); pm.collectionVariables.set('uploadFileId', b.fileId); pm.collectionVariables.set('uploadVersion', b.version); }"] } }]
+        },
+        {
+          "name": "POST /uploads/{uploadId}/part-urls - success",
+          "request": {
+            "description": "Purpose: issue a signed MinIO PUT URL for an issued part. Role: upload owner or authorized project actor. Setup: create the session first. Expected: 200 with one short-lived URL; use that URL outside the collection to PUT the exact part bytes and save its returned ETag. Signed URLs are intentionally not stored as variables or examples.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{uploadPartUrlsKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"partNumbers\": [1] }", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/uploads/{{uploadId}}/part-urls", "host": ["{{baseUrl}}"], "path": ["api", "v1", "uploads", "{{uploadId}}", "part-urls"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Part URL request returns 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST /uploads/{uploadId}/complete - verification request",
+          "request": {
+            "description": "Purpose: admit a completed multipart manifest for asynchronous verification. Setup: PUT every part to MinIO with each returned signed URL, then set uploadPartEtag and the current uploadVersion. Expected: 202 VERIFYING and a new ETag. Data change: persisted part ETags, verification outbox message and audit. It must not return VERIFIED from this request.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "{{uploadCompleteKey}}" }, { "key": "If-Match", "value": "\"{{uploadVersion}}\"" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"parts\": [{ \"partNumber\": 1, \"eTag\": \"{{uploadPartEtag}}\" }],\n  \"checksumSha256\": \"{{uploadChecksumSha256}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/uploads/{{uploadId}}/complete", "host": ["{{baseUrl}}"], "path": ["api", "v1", "uploads", "{{uploadId}}", "complete"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Upload complete returns 202', function () { pm.response.to.have.status(202); });", "if (pm.response.code === 202) pm.collectionVariables.set('uploadVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "GET /uploads/{uploadId} - poll session",
+          "request": {
+            "description": "Purpose: poll durable server upload state. Role: owner or authorized project actor. Expected: 200 and ETag. Poll after complete until VERIFIED or FAILED.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/uploads/{{uploadId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "uploads", "{{uploadId}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Upload session poll returns 200', function () { pm.response.to.have.status(200); });", "if (pm.response.code === 200) pm.collectionVariables.set('uploadVersion', pm.response.json().version);"] } }]
+        },
+        {
+          "name": "GET /files/{fileId} - metadata",
+          "request": {
+            "description": "Purpose: read scoped metadata after verification. Role: file owner or authorized project actor. Expected: 200 + ETag, 403 outside scope, 404 unknown file.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/files/{{uploadFileId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "files", "{{uploadFileId}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('File metadata returns 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "GET /files/{fileId}/content - verified download",
+          "request": {
+            "description": "Purpose: stream a verified object through the authorization gateway. Role: file owner or authorized project actor. Expected: 200 binary only after VERIFIED; no signed GET URL is returned.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/files/{{uploadFileId}}/content", "host": ["{{baseUrl}}"], "path": ["api", "v1", "files", "{{uploadFileId}}", "content"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Verified file download returns 200', function () { pm.response.to.have.status(200); });"] } }]
+        },
+        {
+          "name": "POST /uploads/{uploadId}/complete - missing If-Match",
+          "request": {
+            "description": "Purpose: validation boundary. Setup: authenticated actor, omit If-Match. Expected: 428 before any database effect.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Idempotency-Key", "value": "upload-complete-missing-if-match-{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"parts\": [{ \"partNumber\": 1, \"eTag\": \"placeholder\" }], \"checksumSha256\": \"{{uploadChecksumSha256}}\" }", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/uploads/{{uploadId}}/complete", "host": ["{{baseUrl}}"], "path": ["api", "v1", "uploads", "{{uploadId}}", "complete"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Missing If-Match returns 428', function () { pm.response.to.have.status(428); });"] } }]
+        },
+        {
+          "name": "GET /files/{fileId} - forbidden scope",
+          "request": {
+            "description": "Purpose: authorization boundary. Setup: use a different actor without membership in the file project. Expected: 403 and no metadata leak.",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/files/{{uploadFileId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "files", "{{uploadFileId}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Out-of-scope file metadata returns 403', function () { pm.response.to.have.status(403); });"] } }]
         }
       ]
     }

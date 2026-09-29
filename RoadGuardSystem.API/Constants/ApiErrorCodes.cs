@@ -44,4 +44,8 @@ public static class ApiErrorCodes
     public const string SurveyInvalidStateTransition = "survey_invalid_state_transition";
     public const string NotificationNotFound = "notification_not_found";
     public const string NotificationConcurrencyConflict = "notification_concurrency_conflict";
+    public const string UploadSessionNotFound = "upload_session_not_found";
+    public const string FileNotFound = "file_not_found";
+    public const string UploadValidationFailed = "upload_validation_failed";
+    public const string UploadStorageUnavailable = "upload_storage_unavailable";
 }

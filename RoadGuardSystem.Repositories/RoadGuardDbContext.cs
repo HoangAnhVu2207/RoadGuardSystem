@@ -76,6 +76,12 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<StoredFile> Files => Set<StoredFile>();
 
+    public DbSet<FileScope> FileScopes => Set<FileScope>();
+
+    public DbSet<UploadSession> UploadSessions => Set<UploadSession>();
+
+    public DbSet<UploadPart> UploadParts => Set<UploadPart>();
+
     public DbSet<DefectType> DefectTypes => Set<DefectType>();
 
     public DbSet<CauseCategory> CauseCategories => Set<CauseCategory>();
@@ -148,6 +154,7 @@ public class RoadGuardDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(RoadGuardDbContext).Assembly);
+
         RowVersionConvention.Apply(modelBuilder);
 
         // Deferred FK from P2-02 AuditLogs to P2-10 Users

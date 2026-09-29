@@ -30,6 +30,10 @@ public sealed class SurveyDataVersionConfiguration : IEntityTypeConfiguration<Su
         builder.Property(version => version.ConfirmedAt).HasColumnType("datetimeoffset(7)");
         builder.Property(version => version.ConfirmedBy).HasConversion<byte>().HasColumnType("tinyint");
         builder.Property(version => version.SourceManifest).HasColumnType("nvarchar(max)").IsRequired();
+        builder.Property(version => version.RecordedAt).HasColumnType("datetimeoffset(7)");
+        builder.Property(version => version.DeviceId).HasColumnType("uniqueidentifier");
+        builder.Property(version => version.ScopeManifest).HasColumnType("nvarchar(max)");
+        builder.Property(version => version.RowVersion).IsRowVersion().IsConcurrencyToken();
         builder.HasIndex(version => new { version.SurveyId, version.VersionNo }).IsUnique()
             .HasDatabaseName("UX_SurveyDataVersions_SurveyVersion");
         builder.HasOne<Survey>().WithMany().HasForeignKey(version => version.SurveyId).OnDelete(DeleteBehavior.Restrict);

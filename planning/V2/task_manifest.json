@@ -3064,7 +3064,7 @@
       "method": "POST",
       "path": "/survey-tasks/{taskId}/datasets",
       "file": "Person_2/V2-P2-019_submitDataset.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 3,
       "old": "23",
@@ -3074,12 +3074,12 @@
       ],
       "legacy_trace": "P1-23/P2-23",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D14",
         "D15",
@@ -3097,7 +3097,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-020",
@@ -3106,19 +3106,19 @@
       "method": "GET",
       "path": "/datasets/{datasetId}/coverage",
       "file": "Person_2/V2-P2-020_getDatasetCoverage.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 3,
       "old": "23",
       "dependencies": [],
       "legacy_trace": "P1-23/P2-23",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D14",
         "D15",
@@ -3136,7 +3136,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-021",
@@ -3505,7 +3505,7 @@
       "method": "POST",
       "path": "/processing-jobs",
       "file": "Person_2/V2-P2-030_createProcessingJob.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 5,
       "old": "31",
@@ -3514,12 +3514,12 @@
       ],
       "legacy_trace": "P1-31/P2-31",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D12",
         "D13",
@@ -3534,7 +3534,7 @@
         "SQ-04",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-031",
@@ -3543,19 +3543,19 @@
       "method": "GET",
       "path": "/processing-jobs/{jobId}",
       "file": "Person_2/V2-P2-031_getProcessingJob.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 5,
       "old": "31",
       "dependencies": [],
       "legacy_trace": "P1-31/P2-31",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D12",
         "D13",
@@ -3570,7 +3570,7 @@
         "SQ-04",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-032",
@@ -3579,7 +3579,7 @@
       "method": "POST",
       "path": "/processing-jobs/{jobId}/retry",
       "file": "Person_2/V2-P2-032_retryProcessingJob.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 5,
       "old": "31",
@@ -3588,12 +3588,12 @@
       ],
       "legacy_trace": "P1-31/P2-31",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D12",
         "D13",
@@ -3608,7 +3608,7 @@
         "SQ-04",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-033",
@@ -3617,7 +3617,7 @@
       "method": "POST",
       "path": "/internal/processing-jobs/{jobId}/results",
       "file": "Person_2/V2-P2-033_receiveAiResult.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 5,
       "old": "31",
@@ -3626,12 +3626,12 @@
       ],
       "legacy_trace": "P1-31/P2-31",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D12",
         "D13",
@@ -3646,7 +3646,7 @@
         "SQ-04",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-034",
@@ -3655,7 +3655,7 @@
       "method": "POST",
       "path": "/projects/{projectId}/validation-runs",
       "file": "Person_2/V2-P2-034_createValidationRun.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 5,
       "old": "63",
@@ -3664,12 +3664,12 @@
       ],
       "legacy_trace": "P1-63/P2-63",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D12",
         "D13",
@@ -3684,7 +3684,7 @@
         "SQ-04",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-035",
@@ -3693,19 +3693,19 @@
       "method": "GET",
       "path": "/validation-runs/{runId}",
       "file": "Person_2/V2-P2-035_getValidationResult.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "DONE",
       "gates": [],
       "wave": 5,
       "old": "63",
       "dependencies": [],
       "legacy_trace": "P1-63/P2-63",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IN_PROGRESS_OWNER_APPROVED_TARGET",
       "verificationStatus": "NOT_RUN",
       "blockers": [],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "IN_PROGRESS",
       "decisionRefs": [
         "D12",
         "D13",
@@ -3720,7 +3720,7 @@
         "SQ-04",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "b4e195d / source comparison 2026-09-29"
     },
     {
       "id": "V2-P2-036",

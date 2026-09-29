@@ -48,7 +48,9 @@ public sealed class IdempotencyRecord
 
         return new IdempotencyRecord
         {
-            Id = operationId,
+            // The receipt has its own identity. One business resource can legitimately
+            // participate in several idempotent operations (for example create and retry).
+            Id = Guid.NewGuid(),
             ActorUserId = actorUserId,
             ProjectId = projectId,
             Operation = operation.Trim(),

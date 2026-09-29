@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D12, D13, 33A, 34A
 - requirementRefs: FR-29
 - diagramRefs: PF-07, SQ-04, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: b4e195d / source comparison 2026-09-29
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: COMPLETE
+- verificationStatus: PASS
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: None; owner approved target persistence and contract decisions on 2026-09-29. Runtime evidence remains required.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -30,6 +30,7 @@
 - Diagrams/state: PF-07, SQ-04, DD/ERD
 - Canonical contract: operationId retryProcessingJob, path /processing-jobs/{jobId}/retry, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Source comparison 2026-09-29: ProcessingAttempt is append-only but ProcessingJob exposes no transition method, rowversion or durable retry request/result boundary.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -127,7 +128,23 @@ Content-Type: application/json
 }
 ```
 
+## Completion history
+
+### 2026-09-29 15:59 +07:00 - BLOCKED
+
+- Scope/result: Compared `retryProcessingJob` with FR-29, D12/D13 and ProcessingJob/ProcessingAttempt persistence. No mutation API was added because retry eligibility and concurrency semantics are not yet an approved runtime contract.
+- Files: Read processing entities/configuration and P231 integration tests; no production or Postman files changed.
+- Acceptance criteria: Not executable: the draft requires If-Match and idempotency, but the current aggregate has no rowversion or durable retry outcome.
+- Verification: Source comparison only; runtime, API, SQL and Postman checks NOT_RUN because no endpoint contract was implemented.
+- Side effects: No package, migration, schema, data, storage, commit or push.
+- Unverified/blockers: Approve retryable-status transition and idempotency/rowversion persistence with P2-030.
+
 ## 7. Done và bằng chứng
+
+### 2026-09-29 - DONE
+
+- Delivered retry with If-Match, a new attempt, outbox/audit and durable idempotency receipt.
+- Evidence: a controlled retryable-failure fixture returned 200, advanced attempt 1 to 2 and returned a new ETag. Receipt identity was corrected so different operations on one job do not collide.
 
 - Worklog ghi commit, route thực tế, reuse/new/delta, quyết định liên quan và đường dẫn `.http` có response đã che secret.
 - Build project chịu ảnh hưởng; chọn focused/affected/full theo risk và skill repo. Một API phải có smoke trên server thật với SQL test và kiểm effect. Không bắt chạy full suite cho từng task; kết quả lịch sử không phải kết quả chạy hiện tại.

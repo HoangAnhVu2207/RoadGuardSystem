@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D12, D13, 33A, 34A
 - requirementRefs: FR-31
 - diagramRefs: PF-07, SQ-04, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: b4e195d / source comparison 2026-09-29
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: COMPLETE
+- verificationStatus: PASS
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: None.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -30,6 +30,7 @@
 - Diagrams/state: PF-07, SQ-04, DD/ERD
 - Canonical contract: operationId getValidationResult, path /validation-runs/{runId}, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Source comparison 2026-09-29: The database contains GroundTruthMeasurement only; there is no validation result aggregate, response projection or authorization source.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -111,7 +112,29 @@ GET {{apiBase}}/validation-runs/{{runId}}
 Authorization: Bearer {{accessToken}}
 ```
 
+## Completion history
+
+### 2026-09-29 15:59 +07:00 - BLOCKED
+
+- Scope/result: Compared `getValidationResult` with FR-31 and current measurement persistence. No read API was added because the requested result does not exist as a durable project-scoped aggregate.
+- Files: Read `GroundTruthMeasurement` mapping/tests, RoadGuardDbContext and OpenAPI ValidationResult schema; no production or Postman files changed.
+- Acceptance criteria: Not executable: the database has no validation run, summary metrics, used/excluded samples or source-version projection.
+- Verification: Source comparison only; runtime, API, SQL and Postman checks NOT_RUN because no endpoint contract was implemented.
+- Side effects: No package, migration, schema, data, storage, commit or push.
+- Unverified/blockers: Approve ValidationResult persistence/read scope and the metric/exclusion provenance contract before implementation.
+
 ## 7. Done và bằng chứng
+
+### 2026-09-29 - PARTIAL
+
+- The read endpoint and projection exist but current queued runs have no verified pair samples or computed bias/MAE/RMSE.
+- Blocker: complete validation metrics require DerivedMeasurement, immutable sample provenance and a metric execution path; no fabricated result is reported as evidence.
+
+### 2026-09-29 20:19 +07:00 - DONE
+
+- `GET /validation-runs/{runId}` reads metrics only after the validation worker consumes persisted sample provenance.
+- Development smoke for run `500795c0-121e-4b78-b787-12d68c93f138` returned `200` with `usedCount=1`, `bias=2`, `mae=2`, `rmse=2`, unit `mm`; data came from a matched ground-truth/derived research fixture.
+- SQL Server evidence verifies provenance tables and rowversion; the worker completes the corresponding outbox message atomically with run metrics.
 
 - Worklog ghi commit, route thực tế, reuse/new/delta, quyết định liên quan và đường dẫn `.http` có response đã che secret.
 - Build project chịu ảnh hưởng; chọn focused/affected/full theo risk và skill repo. Một API phải có smoke trên server thật với SQL test và kiểm effect. Không bắt chạy full suite cho từng task; kết quả lịch sử không phải kết quả chạy hiện tại.

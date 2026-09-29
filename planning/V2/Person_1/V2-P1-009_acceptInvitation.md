@@ -13,7 +13,7 @@
 - verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Focused fake-sender/API and SQL fixture checks pass; real-email acceptance and external smoke remain NOT_RUN.
+- blockers: Local SQL initializer/health/login pass; mailbox token entry and real invitation acceptance remain blocked on local SMTP credentials and createInvitation.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -286,3 +286,23 @@ schemas:
 - Reused/invalidated evidence: prior build-only evidence replaced by current focused tests; external smoke remains missing.
 - Side effects: no package/migration/schema/Development DB/SMTP/commit/push; `UNCOMMITTED`.
 - Unverified/blockers: real invitation receipt/link parsing/manual accept and external smoke remain required before DONE.
+
+### 2026-09-29 14:42 +07:00 - PARTIAL
+
+- Scope/result: guarded invitation acceptance so it runs only for the invitation scenario with locally entered token/password and one retained idempotency key for replay.
+- Files: primary Postman collection, invitation acceptance YAML and ignored private environment.
+- Acceptance criteria: supplied invitation recipients have no current account/invitation state; no token hash was queried. Acceptance was not called before delivery.
+- Verification: collection/YAML parse PASS; API health/login PASS on `RoadGuardPostmanTest`. Mailbox receipt/accept NOT_RUN.
+- Reused/invalidated evidence: fake-sender acceptance/replay evidence remains valid; manual external gate remains open.
+- Side effects: test-only database initialization; no invitation acceptance/account creation/email/commit/push.
+- Unverified/blockers: SMTP setup, invitation delivery and locally entered link token/password are required; task remains PARTIAL.
+
+### 2026-09-29 15:15 +07:00 - PARTIAL
+
+- Scope/result: invitation create/accept skips now report the required private environment and INVITATION scenario in Postman Console.
+- Files: primary collection, invitation YAML requests, Postman README, and this task evidence.
+- Acceptance criteria: invitation requests remain gated; no invitation request was executed in the safe Newman run.
+- Verification: JSON parse PASS; YAML parse PASS 56/56; Reporter folder Newman PASS (1 validation request, 6 guarded skips); API health 200; SQL precondition query found no invitation for supplied addresses.
+- Reused/invalidated evidence: earlier fake-sender invitation tests remain valid; no production source changed.
+- Side effects: no email/invitation/account creation, database mutation, commit or push.
+- Unverified/blockers: real delivery/acceptance remains NOT_RUN; desktop UI interaction unavailable in this session.

@@ -152,6 +152,46 @@ public sealed class V2IdentityOnboardingFlowTests
         newCodeResult.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    [Fact]
+    public async Task ReporterVerification_WrongOtpConcurrentAttempts_PersistEachAttemptWithoutConsumption()
+    {
+        var sender = new CapturingIdentityMessageSender();
+        await using var factory = Factory(sender);
+        using var client = factory.CreateClient();
+        var email = $"wrong-otp-race.{Guid.NewGuid():N}@example.test";
+        var intentKey = Guid.NewGuid().ToString("N");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", intentKey);
+        var registration = await client.PostAsJsonAsync("/api/v1/auth/reporter-registrations", new
+        {
+            email,
+            password = "Reporter1!",
+            displayName = "Wrong OTP Race",
+            reporterType = "CITIZEN"
+        });
+        registration.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var intentId = (await registration.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("intentId").GetGuid();
+
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        var requests = Enumerable.Range(0, 2).Select(async _ =>
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/reporter-registrations/verify")
+            {
+                Content = JsonContent.Create(new { intentId, otp = "000000" })
+            };
+            request.Headers.Add("Idempotency-Key", $"wrong-otp-race-{Guid.NewGuid():N}");
+            return await client.SendAsync(request);
+        }).ToArray();
+        var responses = await Task.WhenAll(requests);
+
+        responses.Should().OnlyContain(response => response.StatusCode == HttpStatusCode.BadRequest);
+        await using var verification = _sql.CreateDbContext();
+        var intent = await verification.ReporterRegistrationIntents.AsNoTracking().SingleAsync(item => item.Id == intentId);
+        intent.FailedAttempts.Should().Be(2);
+        intent.ConsumedAt.Should().BeNull();
+        intent.EmailConfirmedAt.Should().BeNull();
+    }
+
     private AuthenticationWebApplicationFactory Factory(
         CapturingIdentityMessageSender sender,
         bool zeroResendCooldown = false) =>

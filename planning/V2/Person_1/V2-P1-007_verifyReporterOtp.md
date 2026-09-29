@@ -13,7 +13,7 @@
 - verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN.
+- blockers: Local SQL initializer/health/login pass; real-mail OTP receipt/entry remains blocked on local SMTP credentials and the preceding registration.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -282,3 +282,23 @@ schemas:
 - Reused/invalidated evidence: prior build-only evidence replaced by current focused tests; external smoke remains missing.
 - Side effects: no package/migration/schema/Development DB/SMTP/commit/push; `UNCOMMITTED`.
 - Unverified/blockers: real mailbox OTP receipt, manual verify/login and external smoke remain required before DONE.
+
+### 2026-09-29 14:42 +07:00 - PARTIAL
+
+- Scope/result: added a guarded mailbox OTP verify request that refuses to run without `reporterOtp` and preserves one idempotency key across retries.
+- Files: primary Postman collection, YAML source and committed/private environments.
+- Acceptance criteria: test DB and API host are ready; supplied mailboxes are unused. No OTP hash was queried and no confirmation state was modified.
+- Verification: Postman JSON/YAML parse PASS; API health 200 and fixture Supervisor login PASS on `RoadGuardPostmanTest`. Real OTP delivery/verify NOT_RUN.
+- Reused/invalidated evidence: prior fake-sender verification remains valid; manual runtime gate remains open.
+- Side effects: test-only DB initialization; no real email, account activation, reset, commit or push.
+- Unverified/blockers: enter SMTP local values, send registration, then enter mailbox OTP locally before verify; task remains PARTIAL.
+
+### 2026-09-29 15:15 +07:00 - PARTIAL
+
+- Scope/result: made the Reporter OTP gate explain which private environment/scenario to select when Postman skips verification.
+- Files: primary collection, verify YAML request, Postman README, and this task evidence.
+- Acceptance criteria: guard remains fail-closed; Newman confirms request is skipped and prints an actionable warning until scenario/OTP exist.
+- Verification: Reporter folder Newman PASS (1 validation request/1 assertion, 6 guarded skips); JSON parse PASS; YAML parse PASS 56/56; API health 200.
+- Reused/invalidated evidence: no production source changed; earlier fake-sender verify tests remain valid.
+- Side effects: no email, OTP read, account activation, database mutation, commit or push.
+- Unverified/blockers: no OTP has been delivered or entered; desktop UI interaction unavailable in this session.

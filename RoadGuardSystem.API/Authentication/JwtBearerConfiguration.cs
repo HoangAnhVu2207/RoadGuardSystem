@@ -71,6 +71,12 @@ internal static class JwtBearerConfiguration
             context.HttpContext.RequestAborted);
         if (validation != AuthoritativeSessionValidation.Success)
         {
+            if (validation == AuthoritativeSessionValidation.MustChangePassword &&
+                IsPasswordChangeAllowed(context.HttpContext.Request.Method, context.HttpContext.Request.Path))
+            {
+                return;
+            }
+
             if (validation == AuthoritativeSessionValidation.SessionRevoked &&
                 ReplayOperation(context.HttpContext.Request.Path) is { } operation &&
                 context.HttpContext.Request.Headers.TryGetValue("Idempotency-Key", out var values) &&
@@ -86,7 +92,9 @@ internal static class JwtBearerConfiguration
 
             context.HttpContext.Items[AuthErrorCodeItemKey] = validation == AuthoritativeSessionValidation.SessionRevoked
                 ? ApiErrorCodes.SessionRevoked
-                : ApiErrorCodes.Unauthorized;
+                : validation == AuthoritativeSessionValidation.MustChangePassword
+                    ? ApiErrorCodes.PasswordChangeRequired
+                    : ApiErrorCodes.Unauthorized;
             context.Fail("Authoritative session validation failed.");
         }
     }
@@ -108,19 +116,38 @@ internal static class JwtBearerConfiguration
             correlationId = Guid.NewGuid().ToString();
         }
 
+        var requiresPasswordChange = errorCode == ApiErrorCodes.PasswordChangeRequired;
+        var status = requiresPasswordChange ? StatusCodes.Status403Forbidden : StatusCodes.Status401Unauthorized;
         var problem = new ProblemDetails
         {
-            Status = StatusCodes.Status401Unauthorized,
-            Title = "Unauthorized",
-            Detail = "Authentication is required or the supplied credential is no longer valid.",
+            Status = status,
+            Title = requiresPasswordChange ? "Forbidden" : "Unauthorized",
+            Detail = requiresPasswordChange
+                ? "A password change is required before this operation can be used."
+                : "Authentication is required or the supplied credential is no longer valid.",
             Instance = context.Request.Path,
-            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.2"
+            Type = requiresPasswordChange
+                ? "https://tools.ietf.org/html/rfc9110#section-15.5.4"
+                : "https://tools.ietf.org/html/rfc9110#section-15.5.2"
         };
         problem.Extensions["code"] = errorCode;
         problem.Extensions["correlationId"] = correlationId;
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
         await context.Response.WriteAsJsonAsync(problem, context.HttpContext.RequestAborted);
+    }
+
+    private static bool IsPasswordChangeAllowed(string method, PathString path)
+    {
+        var value = path.Value ?? string.Empty;
+        if (value.EndsWith("/auth/logout", StringComparison.OrdinalIgnoreCase) ||
+            value.EndsWith("/auth/change-password", StringComparison.OrdinalIgnoreCase))
+        {
+            return HttpMethods.IsPost(method);
+        }
+
+        return HttpMethods.IsGet(method) &&
+               value.TrimEnd('/').EndsWith("/me", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryParseRole(string? value, out UserRoleCode roleCode)

@@ -1,0 +1,28 @@
+$kind: http-request
+name: PATCH /users/{userId}
+description: "Purpose: change role/status with concurrency and revoke sessions. Role: Supervisor. Setup: run GET account; use disposable invited account. Expected: 200 Actor. Data change: role/status, session revocation, audit and idempotency receipt. Q17 rescue remains outside this request."
+url: "{{baseUrl}}/api/v1/users/{{targetUserId}}"
+method: PATCH
+headers:
+  Authorization: Bearer {{supervisorAccessToken}}
+  Idempotency-Key: "{{updateAccountKey}}"
+  If-Match: '"{{targetRowVersion}}"'
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "SUSPENDED",
+      "role": "OPERATOR",
+      "reason": "ADMINISTRATIVE_LOCK"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Account update returns 200', function () { pm.response.to.have.status(200); });
+    language: text/javascript
+  - type: beforeRequest
+    code: |-
+      if (pm.environment.get('runDestructive') !== 'true' || pm.environment.get('disposableAccountConfirmed') !== 'YES') { console.warn('[RoadGuard Postman] Skipped state-changing request. Use a disposable account, then set runDestructive=true and disposableAccountConfirmed=YES.'); pm.execution.skipRequest(); }
+      if (!pm.environment.get('targetUserId')) throw new Error('Set targetUserId to a disposable target account; login never fills this admin target.');
+    language: text/javascript
+order: 2000

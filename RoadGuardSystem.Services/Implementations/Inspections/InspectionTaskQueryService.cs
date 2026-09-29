@@ -81,7 +81,7 @@ public sealed class InspectionTaskQueryService : IInspectionTaskQueryService
                 item.AssignedToUserId,
                 null,
                 item.Status.ToString().ToUpperInvariant(),
-                item.TaskCode));
+                Convert.ToBase64String(item.RowVersion)));
         }
 
         var nextCursor = result.HasMore && result.LastDueAt is not null && result.LastId is not null

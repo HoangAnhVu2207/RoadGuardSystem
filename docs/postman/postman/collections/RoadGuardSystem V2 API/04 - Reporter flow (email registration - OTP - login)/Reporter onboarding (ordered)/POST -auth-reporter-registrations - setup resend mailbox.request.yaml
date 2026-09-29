@@ -1,0 +1,30 @@
+$kind: http-request
+name: POST /auth/reporter-registrations - setup resend mailbox
+description: "MANUAL EMAIL. Purpose: create a separate pending intent for resend/cooldown testing. Setup: set otpResendEmail/reporterPassword and manualEmailScenario=OTP_RESEND; confirm the email is unused. Expected: 202. Data change: pending account and initial OTP delivery."
+url: "{{baseUrl}}/api/v1/auth/reporter-registrations"
+method: POST
+headers:
+  Idempotency-Key: "{{otpResendRegistrationKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{otpResendEmail}}",
+      "password": "{{reporterPassword}}",
+      "displayName": "Postman OTP Resend Reporter",
+      "reporterType": "CITIZEN"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (pm.environment.get('manualEmailScenario') !== 'OTP_RESEND') { console.warn('[RoadGuard Postman] Skipped: choose RoadGuard.local.private and set manualEmailScenario=OTP_RESEND.'); pm.execution.skipRequest(); }
+      ['otpResendEmail', 'reporterPassword'].forEach(function (key) { if (!pm.environment.get(key)) throw new Error('Missing local value: ' + key); });
+      if (!pm.environment.get('otpResendRegistrationKey')) pm.environment.set('otpResendRegistrationKey', pm.variables.replaceIn('{{$guid}}'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Resend setup returns 202', function () { pm.response.to.have.status(202); });
+      if (pm.response.code === 202) { var b = pm.response.json(); pm.environment.set('otpResendIntentId', b.intentId); pm.environment.set('otpResendAfterSeconds', String(b.resendAfterSeconds)); }
+    language: text/javascript
+order: 2000

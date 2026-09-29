@@ -100,9 +100,16 @@ public sealed class AuthService : IAuthService
             refreshToken,
             now,
             cancellationToken);
+        if (issue.Status == IssueSessionStatus.Success)
+        {
+            var authoritativeUser = await _identityRepository.GetUserSecurityStateAsync(user.Id, cancellationToken);
+            return authoritativeUser is null
+                ? new AuthResult(AuthStatus.Conflict)
+                : Success(authoritativeUser, session.Id, material, refreshToken.ExpiresAt, now);
+        }
+
         return issue.Status switch
         {
-            IssueSessionStatus.Success => Success(user, session.Id, material, refreshToken.ExpiresAt, now),
             IssueSessionStatus.StaleConcurrency or IssueSessionStatus.DuplicateCredential =>
                 new AuthResult(AuthStatus.Conflict),
             IssueSessionStatus.InvalidInput => new AuthResult(AuthStatus.InvalidInput),

@@ -1,0 +1,32 @@
+$kind: http-request
+name: POST /auth/reporter-registrations - success
+description: "MANUAL EMAIL. Purpose: create a pending Reporter registration and send OTP. Setup: set reporterRegistrationEmail/reporterPassword and manualEmailScenario=REPORTER_REGISTRATION; confirm the email is unused first. Expected: 202 RegistrationIntent and Location. Data change: pending account, OTP hash and idempotency receipt."
+url: "{{baseUrl}}/api/v1/auth/reporter-registrations"
+method: POST
+headers:
+  Idempotency-Key: "{{reporterRegistrationKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{reporterRegistrationEmail}}",
+      "password": "{{reporterPassword}}",
+      "displayName": "Postman Reporter",
+      "reporterType": "CITIZEN"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (pm.environment.get('manualEmailScenario') !== 'REPORTER_REGISTRATION') { console.warn('[RoadGuard Postman] Skipped: choose RoadGuard.local.private and set manualEmailScenario=REPORTER_REGISTRATION.'); pm.execution.skipRequest(); }
+      ['reporterRegistrationEmail', 'reporterPassword'].forEach(function (key) { if (!pm.environment.get(key)) throw new Error('Missing local value: ' + key); });
+      if (!pm.environment.get('reporterRegistrationKey')) pm.environment.set('reporterRegistrationKey', pm.variables.replaceIn('{{$guid}}'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Registration returns 202', function () { pm.response.to.have.status(202); });
+      pm.test('Registration response is safe', function () { pm.expect(pm.response.text()).to.not.match(/password|otp/i); });
+      if (pm.response.code === 202) pm.collectionVariables.set('registrationIntentId', pm.response.json().intentId);
+      if (pm.response.code === 202) pm.environment.set('registrationIntentId', pm.response.json().registrationIntentId);
+    language: text/javascript
+order: 1000

@@ -10,4 +10,5 @@ public sealed record InspectionTaskPersistenceView(
     FieldInspectionTaskStatus Status,
     byte RequiredMeasurementType,
     string TaskCode,
-    DateTimeOffset DueAt);
+    DateTimeOffset DueAt,
+    byte[] RowVersion);

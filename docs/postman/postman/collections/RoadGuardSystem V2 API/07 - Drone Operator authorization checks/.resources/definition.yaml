@@ -1,0 +1,3 @@
+$kind: collection
+description: Expected 403 responses for routes reserved to other roles.
+order: 8000

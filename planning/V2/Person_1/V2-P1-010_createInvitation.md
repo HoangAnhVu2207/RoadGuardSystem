@@ -13,7 +13,7 @@
 - verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN.
+- blockers: Local SQL initializer/health/login pass; real invitation delivery is ready but blocked until local SMTP credentials are supplied outside Git/chat.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -289,3 +289,23 @@ schemas:
 - Reused/invalidated evidence: prior build-only evidence replaced by current focused tests; external smoke remains missing.
 - Side effects: no package/migration/schema/Development DB/SMTP/commit/push; `UNCOMMITTED`.
 - Unverified/blockers: real invitation delivery and external endpoint smoke remain required before DONE.
+
+### 2026-09-29 14:42 +07:00 - PARTIAL
+
+- Scope/result: login now stores `supervisorAccessToken`; invitation create uses the seeded project fixture, stable generated idempotency key and required-variable gate.
+- Files: primary Postman collection, login/invitation YAML requests, environments and ignored Development config.
+- Acceptance criteria: dedicated SQL database has seeded Supervisor/project; every supplied invitation recipient is unused. No invitation was persisted because SMTP is not configured.
+- Verification: Postman JSON/YAML parse PASS; API health 200; Supervisor login PASS; SQL precondition query returned no User/Invitation rows for supplied addresses.
+- Reused/invalidated evidence: fake-sender create evidence remains valid; manual delivery remains unverified.
+- Side effects: created/migrated/seeded only `RoadGuardPostmanTest`; no real email/live DB/reset/commit/push.
+- Unverified/blockers: fill local SMTP username/password, restart host, then create invitation; task remains PARTIAL.
+
+### 2026-09-29 15:15 +07:00 - PARTIAL
+
+- Scope/result: invitation creation gate now prints an actionable Postman Console warning for wrong/empty environment selection.
+- Files: primary collection, invitation create YAML request, Postman README, and this task evidence.
+- Acceptance criteria: no invitation was submitted; API remains healthy and recipient state remains unused.
+- Verification: JSON parse PASS; YAML parse PASS 56/56; Newman Reporter safe run PASS (1 request, 1 assertion, 6 guarded skips); API health 200; SQL invitation precondition count 0.
+- Reused/invalidated evidence: fake-sender create invitation coverage remains valid; no production source changed.
+- Side effects: no email, invitation write, database change, commit or push.
+- Unverified/blockers: live SMTP invitation delivery remains NOT_RUN; desktop UI interaction unavailable in this session.

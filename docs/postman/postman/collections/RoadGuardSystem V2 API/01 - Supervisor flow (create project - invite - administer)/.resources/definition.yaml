@@ -1,0 +1,4 @@
+$kind: collection
+name: 01 - Supervisor flow (create project -> invite -> administer)
+description: Authenticate in Fixture logins first. Current API supports project creation, invitation and account administration. The current API has no project-approval endpoint; do not infer one.
+order: 2000

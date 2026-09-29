@@ -213,8 +213,16 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
         if (!string.Equals(intent.OtpHash, otpHash, StringComparison.Ordinal))
         {
             intent.FailedAttempts++;
-            await _context.SaveChangesAsync(cancellationToken);
-            return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.InvalidInput, intent);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.InvalidInput, intent);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _context.ChangeTracker.Clear();
+                return await RecordInvalidOtpAttemptAfterConcurrencyAsync(intentId, maxAttempts);
+            }
         }
 
         var user = await _context.Users.SingleAsync(item => item.Id == intent.UserId.Value, cancellationToken);
@@ -252,6 +260,39 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
             intent,
             ToSecurityState(user),
             session.Id);
+    }
+
+    private async Task<ReporterRegistrationPersistenceResult> RecordInvalidOtpAttemptAfterConcurrencyAsync(
+        Guid intentId,
+        int maxAttempts)
+    {
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var current = await _context.ReporterRegistrationIntents
+                .SingleOrDefaultAsync(item => item.Id == intentId, CancellationToken.None);
+            if (current is null)
+            {
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.NotFound);
+            }
+
+            if (current.FailedAttempts >= maxAttempts)
+            {
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.TooManyRequests, current);
+            }
+
+            current.FailedAttempts++;
+            try
+            {
+                await _context.SaveChangesAsync(CancellationToken.None);
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.InvalidInput, current);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _context.ChangeTracker.Clear();
+            }
+        }
+
+        return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.Conflict);
     }
 
     public async Task<InvitationPersistenceResult> CreateInvitationAsync(

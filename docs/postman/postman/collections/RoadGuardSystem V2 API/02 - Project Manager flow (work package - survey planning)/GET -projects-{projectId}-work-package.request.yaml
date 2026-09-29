@@ -1,0 +1,16 @@
+$kind: http-request
+name: GET /projects/{projectId}/work-package
+description: "Purpose: read a project's work package. Role: authenticated user with project scope. Setup: set projectId from a permitted response. Expected: 200 or 401/403/404. Data change: none."
+url: "{{baseUrl}}/api/v1/projects/{{createdProjectId}}/work-package"
+method: GET
+headers:
+  Authorization: Bearer {{projectManagerAccessToken}}
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: pm.test('Work package returns an expected result', function () { pm.expect([200, 401, 403, 404]).to.include(pm.response.code); });
+    language: text/javascript
+  - type: beforeRequest
+    code: if (!pm.environment.get('createdProjectId')) throw new Error('Run Supervisor POST /projects successfully first; createdProjectId is missing.');
+    language: text/javascript
+order: 2000

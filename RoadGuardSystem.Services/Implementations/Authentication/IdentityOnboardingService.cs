@@ -16,6 +16,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
     private readonly IIdentityOnboardingRepository _onboardingRepository;
     private readonly IIdentityRepository _identityRepository;
     private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IIdentityMessageSender _messageSender;
     private readonly AccessTokenFactory _accessTokenFactory;
     private readonly JwtOptions _jwtOptions;
@@ -27,6 +28,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         IIdentityOnboardingRepository onboardingRepository,
         IIdentityRepository identityRepository,
         IPasswordHasher<ApplicationUser> passwordHasher,
+        UserManager<ApplicationUser> userManager,
         IIdentityMessageSender messageSender,
         AccessTokenFactory accessTokenFactory,
         IOptions<JwtOptions> jwtOptions,
@@ -36,6 +38,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         _onboardingRepository = onboardingRepository;
         _identityRepository = identityRepository;
         _passwordHasher = passwordHasher;
+        _userManager = userManager;
         _messageSender = messageSender;
         _accessTokenFactory = accessTokenFactory;
         _jwtOptions = jwtOptions.Value;
@@ -55,6 +58,11 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         if (!TryNormalizeEmail(email, out var normalizedEmail) || string.IsNullOrWhiteSpace(password) ||
             string.IsNullOrWhiteSpace(displayName) || string.IsNullOrWhiteSpace(idempotencyKey) ||
             !TryParseReporterType(reporterType, out var parsedReporterType))
+        {
+            return new IdentityOnboardingResult(IdentityOnboardingStatus.InvalidInput);
+        }
+
+        if (!await ValidatePasswordAsync(new ApplicationUser { UserName = email.Trim(), Email = email.Trim() }, password, cancellationToken))
         {
             return new IdentityOnboardingResult(IdentityOnboardingStatus.InvalidInput);
         }
@@ -99,8 +107,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             fingerprint,
             operationId,
             cancellationToken);
-        if (persisted.Status is IdentityOnboardingPersistenceStatus.Success or IdentityOnboardingPersistenceStatus.IdempotentReplay &&
-            persisted.Intent is not null)
+        if (persisted.Status == IdentityOnboardingPersistenceStatus.Success && persisted.Intent is not null)
         {
             if (!await _messageSender.SendReporterOtpAsync(email.Trim(), otp, cancellationToken))
             {
@@ -178,7 +185,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             operationId,
             now,
             cancellationToken);
-        if (persisted.Status is IdentityOnboardingPersistenceStatus.Success or IdentityOnboardingPersistenceStatus.IdempotentReplay &&
+        if (persisted.Status == IdentityOnboardingPersistenceStatus.Success &&
             persisted.Intent is not null &&
             !await _messageSender.SendReporterOtpAsync(persisted.Intent.NormalizedEmail, otp, cancellationToken))
         {
@@ -269,6 +276,11 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         if (invitation is null)
         {
             return new IdentityOnboardingResult(IdentityOnboardingStatus.NotFound);
+        }
+
+        if (!await ValidatePasswordAsync(new ApplicationUser { UserName = invitation.Email, Email = invitation.Email }, password, cancellationToken))
+        {
+            return new IdentityOnboardingResult(IdentityOnboardingStatus.InvalidInput);
         }
 
         var operationId = OperationId("AcceptInvitation", idempotencyKey);
@@ -445,4 +457,19 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             invitation.AcceptedAt is null ? "PENDING" : "ACCEPTED",
             invitation.ExpiresAt,
             invitation.RowVersion);
+
+    private async Task<bool> ValidatePasswordAsync(ApplicationUser user, string password, CancellationToken cancellationToken)
+    {
+        foreach (var validator in _userManager.PasswordValidators)
+        {
+            var validation = await validator.ValidateAsync(_userManager, user, password);
+            if (!validation.Succeeded)
+            {
+                return false;
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
+    }
 }

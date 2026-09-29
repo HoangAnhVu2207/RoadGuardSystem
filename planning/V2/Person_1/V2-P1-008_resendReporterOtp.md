@@ -13,7 +13,7 @@
 - verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Focused fake-sender/API and SQL fixture checks pass; real-email cooldown/manual smoke remain NOT_RUN.
+- blockers: Local SQL initializer/health/login pass; real-email cooldown/old-code/latest-code flow is ready but blocked on local SMTP credentials.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -252,3 +252,23 @@ schemas:
 - Reused/invalidated evidence: prior build-only evidence replaced by current focused tests; production 60-second timing and external smoke remain missing.
 - Side effects: no package/migration/schema/Development DB/SMTP/commit/push; `UNCOMMITTED`.
 - Unverified/blockers: real-mail resend/cooldown, old-code manual check and external smoke remain required before DONE.
+
+### 2026-09-29 14:42 +07:00 - PARTIAL
+
+- Scope/result: corrected resend setup to retain one key/payload for retry; added separate secret variables and requests for original OTP rejection and newest OTP acceptance.
+- Files: primary Postman collection, Reporter onboarding YAML requests and environments.
+- Acceptance criteria: request gates prevent unattended mail; setup captures intent/cooldown; resend keeps a stable key; old/new OTP checks use distinct stable verification keys.
+- Verification: Postman JSON parse PASS; YAML parse PASS 55/55; API health/login PASS on dedicated SQL database. Real SMTP/resend NOT_RUN.
+- Reused/invalidated evidence: prior fake-sender rotation test remains valid; edited Postman static checks rerun.
+- Side effects: no email, OTP read, account activation, data reset, commit or push.
+- Unverified/blockers: SMTP values and local reporter password are required before setup; task remains PARTIAL.
+
+### 2026-09-29 15:15 +07:00 - PARTIAL
+
+- Scope/result: made resend setup/resend/old-code/latest-code request skips visible and reordered them to setup -> resend -> old OTP rejection -> latest OTP verification.
+- Files: primary collection, Reporter YAML requests, Postman README, and this task evidence.
+- Acceptance criteria: Newman run with blank scenario makes zero email-capable HTTP calls and prints the reason for every guarded skip.
+- Verification: Newman PASS (1 validation request/1 assertion, 6 guarded skips); JSON parse PASS; YAML parse PASS 56/56; API health 200; SQL precondition query found no recipient account.
+- Reused/invalidated evidence: earlier fake-sender rotation test remains valid; Postman static/runtime evidence was rerun after script/order changes.
+- Side effects: no resend, email, OTP read, account activation, database mutation, commit or push.
+- Unverified/blockers: real cooldown/mailbox old-vs-new OTP sequence remains NOT_RUN; desktop UI interaction unavailable in this session.

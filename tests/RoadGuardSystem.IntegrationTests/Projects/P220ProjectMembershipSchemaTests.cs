@@ -9,6 +9,8 @@ using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Idempotency;
+using RoadGuardSystem.Repositories.Projects;
 using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Projects;
@@ -302,6 +304,105 @@ public sealed class P220ProjectMembershipSchemaTests : IClassFixture<IdentitySql
         var memberships = await context.ProjectMembers.Where(member => member.ProjectId == project.Id).ToListAsync();
         memberships.Should().ContainSingle(member => member.Status == ProjectMemberStatus.Active && member.IsPrimary && member.UserId == newManager.Id);
         memberships.Should().ContainSingle(member => member.Status == ProjectMemberStatus.Ended && member.UserId == oldManager.Id);
+    }
+
+    [Fact(DisplayName = "P2-20: primary PM replay and concurrent retry create one effect per operation")]
+    public async Task PrimaryProjectManager_ReplayConflictAndConcurrentRetry_HaveExactEffectDeltas()
+    {
+        await using (var setup = _fixture.CreateDbContext())
+        {
+            await _fixture.SeedRolesAsync(setup);
+            var project = CreateProject();
+            var actor = CreateUser(UserRoleCode.Supervisor);
+            var current = CreateUser(UserRoleCode.ProjectManager);
+            var replacement = CreateUser(UserRoleCode.ProjectManager);
+            var secondReplacement = CreateUser(UserRoleCode.ProjectManager);
+            var thirdReplacement = CreateUser(UserRoleCode.ProjectManager);
+            setup.AddRange(project, actor, current, replacement, secondReplacement, thirdReplacement,
+                CreateActivePrimaryMembership(project.Id, current.Id));
+            await setup.SaveChangesAsync();
+
+            var currentMember = await setup.ProjectMembers.AsNoTracking()
+                .SingleAsync(member => member.ProjectId == project.Id && member.Status == ProjectMemberStatus.Active);
+            var request = Request(actor.Id, project.Id, replacement.Id, currentMember.RowVersion, Guid.NewGuid(), "handover-one");
+            var first = await new PrimaryProjectManagerPersistenceService(setup, new IdempotencyOperationService(setup)).ReassignAsync(request);
+            first.Status.Should().Be(PrimaryProjectManagerWriteStatus.Success);
+            await AssertEffectCountsAsync(setup, project.Id, expectedMemberships: 2, expectedAudits: 1, expectedOutbox: 1, expectedReceipts: 1);
+
+            var replay = await new PrimaryProjectManagerPersistenceService(setup, new IdempotencyOperationService(setup)).ReassignAsync(request);
+            replay.Status.Should().Be(PrimaryProjectManagerWriteStatus.Replayed);
+            await AssertEffectCountsAsync(setup, project.Id, expectedMemberships: 2, expectedAudits: 1, expectedOutbox: 1, expectedReceipts: 1);
+
+            var conflict = await new PrimaryProjectManagerPersistenceService(setup, new IdempotencyOperationService(setup)).ReassignAsync(
+                request with { Reason = "different-payload" });
+            conflict.Status.Should().Be(PrimaryProjectManagerWriteStatus.IdempotentConflict);
+            await AssertEffectCountsAsync(setup, project.Id, expectedMemberships: 2, expectedAudits: 1, expectedOutbox: 1, expectedReceipts: 1);
+
+            var currentMemberAfterFirst = await setup.ProjectMembers.AsNoTracking()
+                .SingleAsync(member => member.ProjectId == project.Id && member.Status == ProjectMemberStatus.Active);
+            var second = request with
+            {
+                ReplacementProjectManagerUserId = secondReplacement.Id,
+                ExpectedCurrentMembershipRowVersion = currentMemberAfterFirst.RowVersion,
+                OperationId = Guid.NewGuid(),
+                Reason = "handover-two",
+                EffectiveFrom = new DateOnly(2026, 9, 30)
+            };
+            var secondResult = await new PrimaryProjectManagerPersistenceService(setup, new IdempotencyOperationService(setup)).ReassignAsync(second);
+            secondResult.Status.Should().Be(PrimaryProjectManagerWriteStatus.Success);
+            await AssertEffectCountsAsync(setup, project.Id, expectedMemberships: 3, expectedAudits: 2, expectedOutbox: 2, expectedReceipts: 2);
+
+            var currentMemberForConcurrent = await setup.ProjectMembers.AsNoTracking()
+                .SingleAsync(member => member.ProjectId == project.Id && member.Status == ProjectMemberStatus.Active);
+            var concurrent = second with
+            {
+                ReplacementProjectManagerUserId = thirdReplacement.Id,
+                ExpectedCurrentMembershipRowVersion = currentMemberForConcurrent.RowVersion,
+                OperationId = Guid.NewGuid(),
+                Reason = "handover-three",
+                EffectiveFrom = new DateOnly(2026, 10, 1)
+            };
+            var tasks = Enumerable.Range(0, 2).Select(async _ =>
+            {
+                await using var context = _fixture.CreateDbContext();
+                return await new PrimaryProjectManagerPersistenceService(context, new IdempotencyOperationService(context)).ReassignAsync(concurrent);
+            });
+            var concurrentResults = await Task.WhenAll(tasks);
+            concurrentResults.Select(result => result.Status)
+                .Should().BeEquivalentTo([PrimaryProjectManagerWriteStatus.Success, PrimaryProjectManagerWriteStatus.Replayed]);
+            await AssertEffectCountsAsync(setup, project.Id, expectedMemberships: 4, expectedAudits: 3, expectedOutbox: 3, expectedReceipts: 3);
+        }
+    }
+
+    private static PrimaryProjectManagerWriteRequest Request(
+        Guid actorId,
+        Guid projectId,
+        Guid replacementId,
+        byte[] rowVersion,
+        Guid operationId,
+        string reason) => new(
+        actorId,
+        projectId,
+        replacementId,
+        new DateOnly(2026, 9, 29),
+        reason,
+        rowVersion,
+        operationId,
+        Guid.NewGuid(),
+        DateTimeOffset.UtcNow);
+
+    private static async Task AssertEffectCountsAsync(
+        RoadGuardDbContext context,
+        Guid projectId,
+        int expectedMemberships,
+        int expectedAudits,
+        int expectedOutbox,
+        int expectedReceipts)
+    {
+        (await context.ProjectMembers.CountAsync(member => member.ProjectId == projectId)).Should().Be(expectedMemberships);
+        (await context.AuditLogs.CountAsync(audit => audit.EntityId == projectId && audit.EventType == "project_primary_pm_reassigned")).Should().Be(expectedAudits);
+        (await context.OutboxMessages.CountAsync(message => message.MessageType == "project.primary_pm_reassigned" && message.CorrelationId != null)).Should().Be(expectedOutbox);
+        (await context.IdempotencyRecords.CountAsync(record => record.ProjectId == projectId && record.Operation == "PrimaryProjectManagerReassigned")).Should().Be(expectedReceipts);
     }
 
     private static ApplicationUser CreateUser(UserRoleCode roleCode) => new()

@@ -1,0 +1,29 @@
+$kind: http-request
+name: POST /auth/reporter-registrations/verify - success
+description: "Purpose: consume the mailbox OTP once and issue Reporter tokens. Role: public intent holder. Setup: run registration, copy OTP from the configured mailbox into reporterOtp. Expected: 200 TokenPair. Data change: activates account and creates one session."
+url: "{{baseUrl}}/api/v1/auth/reporter-registrations/verify"
+method: POST
+headers:
+  Idempotency-Key: "{{reporterVerificationKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "intentId": "{{registrationIntentId}}",
+      "otp": "{{reporterOtp}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (pm.environment.get('manualEmailScenario') !== 'REPORTER_REGISTRATION') { console.warn('[RoadGuard Postman] Skipped: choose RoadGuard.local.private and set manualEmailScenario=REPORTER_REGISTRATION.'); pm.execution.skipRequest(); }
+      if (!pm.environment.get('reporterOtp')) throw new Error('Enter reporterOtp from the mailbox first');
+      if (!pm.environment.get('reporterVerificationKey')) pm.environment.set('reporterVerificationKey', pm.variables.replaceIn('{{$guid}}'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('OTP verification returns 200', function () { pm.response.to.have.status(200); });
+      if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); }
+      if (pm.response.code === 200) { var b = pm.response.json(); pm.environment.set('reporterAccessToken', b.accessToken); pm.environment.set('accessToken', b.accessToken); pm.environment.set('refreshToken', b.refreshToken); }
+    language: text/javascript
+order: 4000

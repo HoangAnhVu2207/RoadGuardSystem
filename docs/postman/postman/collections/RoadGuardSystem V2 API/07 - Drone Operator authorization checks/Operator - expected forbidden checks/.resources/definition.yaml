@@ -1,0 +1,3 @@
+$kind: collection
+description: Run these with operatorAccessToken; expected status is 403. These do not mutate data.
+order: 1000

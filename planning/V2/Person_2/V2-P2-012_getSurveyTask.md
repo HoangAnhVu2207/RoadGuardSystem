@@ -2,6 +2,8 @@
 
 ## V2(3) status
 
+- deliveryStatus: TODO
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - decisionRefs: none
 - requirementRefs: register crosswalk; task-specific references remain authoritative
 - contractStatus: APPROVED
@@ -12,6 +14,13 @@
 - blockers: none
 
 Current evidence: PM/Supervisor/operator scope checks, normalized scope projection, canonical response shape and API smoke pass.
+
+## Source evidence
+
+- Contract source: `docs/diagram/V2/05_Technical/openapi.yaml`, operationId `getSurveyTask`, `GET /survey-tasks/{taskId}`.
+- Planning sources: `planning/V2/V2-3_DECISION_REGISTER.md` (`D14`-`D17`, `D20`-`D22`), requirement `FR-26`, and `PF-07`/`SQ-06`/`DD/ERD` references recorded in `planning/V2/task_manifest.json` entry `V2-P2-012`.
+- Current-state source: `planning/V2/Governance/code_inventory.json` is a source-symbol inventory only; it is not an implementation or verification verdict.
+- Metadata conflict: the inherited status/prose above says `APPROVED`/`IMPLEMENTED`/`VERIFIED`, but no lifecycle completion record here supplies a revision, exact commands and counts. Retain `TODO` and `NOT_RUN` from the alignment checkpoint pending owner revalidation; no runtime review was performed in this governance pass.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.

@@ -196,7 +196,7 @@
       "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "PARTIAL_FOCUSED_AUTH",
       "blockers": [
-        "Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN"
+      "Local SQL initializer/health/login pass; real-email registration is ready but blocked on local SMTP credentials and reporter password"
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
@@ -235,7 +235,7 @@
       "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "PARTIAL_FOCUSED_AUTH",
       "blockers": [
-        "Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN"
+      "Local SQL initializer/health/login pass; real-mail OTP verification is blocked on local SMTP credentials and preceding registration"
       ],
       "dependencyType": "contract",
       "workstream": "BE",
@@ -274,7 +274,7 @@
       "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "PARTIAL_FOCUSED_AUTH",
       "blockers": [
-        "Focused fake-sender/API and SQL fixture checks pass; real-email cooldown/manual smoke remain NOT_RUN"
+      "Local SQL initializer/health/login pass; real-email cooldown and old/latest OTP smoke are blocked on local SMTP credentials"
       ],
       "dependencyType": "contract",
       "workstream": "BE",
@@ -313,7 +313,7 @@
       "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "PARTIAL_FOCUSED_AUTH",
       "blockers": [
-        "Focused fake-sender/API and SQL fixture checks pass; real-email acceptance and external smoke remain NOT_RUN"
+      "Local SQL initializer/health/login pass; mailbox token entry and invitation acceptance are blocked on local SMTP credentials"
       ],
       "dependencyType": "contract",
       "workstream": "BE",
@@ -350,7 +350,7 @@
       "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "PARTIAL_FOCUSED_AUTH",
       "blockers": [
-        "Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN"
+      "Local SQL initializer/health/login pass; real invitation delivery is blocked on local SMTP credentials"
       ],
       "dependencyType": "data-fixture",
       "workstream": "BE",

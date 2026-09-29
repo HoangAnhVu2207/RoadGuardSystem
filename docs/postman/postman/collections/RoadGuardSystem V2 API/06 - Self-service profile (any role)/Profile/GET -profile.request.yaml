@@ -1,0 +1,15 @@
+$kind: http-request
+name: GET /profile
+description: "Purpose: read the current user's profile. Role: authenticated user. Setup: run valid login first. Expected: 200 with profile and rowVersion. Data change: none."
+url: "{{baseUrl}}/api/v1/profile"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Profile returns 200', function () { pm.response.to.have.status(200); });
+      if (pm.response.code === 200) pm.environment.set('profileRowVersion', pm.response.json().rowVersion);
+    language: text/javascript
+order: 1000

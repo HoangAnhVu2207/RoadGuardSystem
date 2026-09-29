@@ -21,32 +21,35 @@ public sealed class SurveyV2Service : ISurveyV2Service
 
     public async Task<SurveyV2ServiceResult> CreatePlanAsync(Guid actorUserId, UserRoleCode role, Guid projectId, CreateSurveyPlanV2RequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default)
     {
-        if (!IsManager(actorUserId, role) || projectId == Guid.Empty || request.Scope is null || request.Scope.Count == 0 || string.IsNullOrWhiteSpace(idempotencyKey) || !TryType(request.SurveyType, out var type) || request.PlannedAt == default || !ValidScope(request.Scope)) return new(SurveyV2ServiceStatus.InvalidInput);
+        if (actorUserId == Guid.Empty || role != UserRoleCode.ProjectManager) return new(SurveyV2ServiceStatus.Forbidden);
+        if (projectId == Guid.Empty || request.Scope is null || request.Scope.Count == 0 || string.IsNullOrWhiteSpace(idempotencyKey) || !TryType(request.SurveyType, out var type) || request.PlannedAt == default || !ValidScope(request.Scope)) return new(SurveyV2ServiceStatus.InvalidInput);
         if (!await InScope(actorUserId, role, projectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
-        var scope = JsonSerializer.Serialize(request.Scope);
+        var scope = JsonSerializer.Serialize(request.Scope, ResponseJsonOptions);
         var scopeItems = request.Scope.Select(item => new SurveyV2ScopeRequest(
             item.RouteVersionId,
             item.SegmentSetId,
             JsonSerializer.Serialize(item.SegmentIds),
             item.TargetBand)).ToArray();
-        return MapPlan(await _repository.CreatePlanAsync(new(actorUserId, projectId, request.Scope[0].RouteVersionId, request.PlannedAt, type, scope, idempotencyKey, Fingerprint(scope + request.PlannedAt + request.SurveyType), correlationId, scopeItems), cancellationToken));
+        return MapPlan(await _repository.CreatePlanAsync(new(actorUserId, projectId, request.Scope[0].RouteVersionId, request.PlannedAt, type, scope, idempotencyKey, Fingerprint(new { projectId, scope = request.Scope, plannedAt = request.PlannedAt.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture), surveyType = request.SurveyType.Trim().ToUpperInvariant() }), correlationId, scopeItems), cancellationToken));
     }
 
     public async Task<SurveyV2ServiceResult> PostponePlanAsync(Guid actorUserId, UserRoleCode role, Guid planId, PostponeSurveyPlanV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
     {
-        if (!IsManager(actorUserId, role) || planId == Guid.Empty || string.IsNullOrWhiteSpace(request.Reason) || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(SurveyV2ServiceStatus.InvalidInput);
+        if (actorUserId == Guid.Empty || role != UserRoleCode.ProjectManager) return new(SurveyV2ServiceStatus.Forbidden);
+        if (planId == Guid.Empty || string.IsNullOrWhiteSpace(request.Reason) || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(SurveyV2ServiceStatus.InvalidInput);
         var projectId = await _repository.GetPlanProjectIdAsync(planId, cancellationToken);
         if (projectId is null) return new(SurveyV2ServiceStatus.NotFound);
         if (!await InScope(actorUserId, role, projectId.Value, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
-        var result = await _repository.PostponePlanAsync(new(actorUserId, planId, request.Reason, expectedVersion.Trim().Trim('"'), idempotencyKey, Fingerprint(planId + request.Reason + expectedVersion), correlationId), cancellationToken);
+        var result = await _repository.PostponePlanAsync(new(actorUserId, planId, request.Reason, expectedVersion.Trim().Trim('"'), idempotencyKey, Fingerprint(new { planId, reason = request.Reason.Trim(), expectedVersion = expectedVersion.Trim().Trim('"') }), correlationId), cancellationToken);
         return result.Status switch { SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, ToPlan(result.Plan)), SurveyV2PersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, ToPlan(result.Plan)), SurveyV2PersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound), SurveyV2PersistenceStatus.ConcurrencyConflict => new(SurveyV2ServiceStatus.ConcurrencyConflict), SurveyV2PersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict), _ => new(SurveyV2ServiceStatus.Conflict) };
     }
 
     public async Task<SurveyV2ServiceResult> CreateTaskAsync(Guid actorUserId, UserRoleCode role, Guid projectId, CreateSurveyTaskV2RequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default)
     {
-        if (!IsManager(actorUserId, role) || projectId == Guid.Empty || request.Scope is null || request.Scope.Count == 0 || request.OperatorId == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey) || !TryType(request.SurveyType, out var type) || !ValidScope(request.Scope) || !ValidPosition(request.AccessPoint)) return new(SurveyV2ServiceStatus.InvalidInput);
+        if (actorUserId == Guid.Empty || role != UserRoleCode.ProjectManager) return new(SurveyV2ServiceStatus.Forbidden);
+        if (projectId == Guid.Empty || request.Scope is null || request.Scope.Count == 0 || request.OperatorId == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey) || !TryType(request.SurveyType, out var type) || !ValidScope(request.Scope) || !ValidPosition(request.AccessPoint)) return new(SurveyV2ServiceStatus.InvalidInput);
         if (!await InScope(actorUserId, role, projectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
-        var scope = JsonSerializer.Serialize(request.Scope);
+        var scope = JsonSerializer.Serialize(request.Scope, ResponseJsonOptions);
         var accessPointJson = request.AccessPoint is null ? null : JsonSerializer.Serialize(request.AccessPoint);
         var scopeItems = request.Scope.Select(item => new SurveyV2ScopeRequest(
             item.RouteVersionId,
@@ -111,5 +114,5 @@ public sealed class SurveyV2Service : ISurveyV2Service
             "TaskCreated" => "TASK_CREATED",
             _ => status.ToUpperInvariant()
         };
-    private static string Fingerprint(string input) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
+    private static string Fingerprint<T>(T value) => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value, ResponseJsonOptions))).ToLowerInvariant();
 }

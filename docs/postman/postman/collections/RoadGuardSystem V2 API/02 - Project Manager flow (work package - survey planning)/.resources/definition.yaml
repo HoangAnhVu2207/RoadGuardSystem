@@ -1,0 +1,4 @@
+$kind: collection
+name: 02 - Project Manager flow (work package -> survey planning)
+description: Requires a Supervisor-created project for work-package reads and seeded project/road-section IDs for survey requests.
+order: 3000

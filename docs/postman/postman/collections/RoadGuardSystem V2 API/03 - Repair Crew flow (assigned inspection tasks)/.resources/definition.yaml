@@ -1,0 +1,3 @@
+$kind: collection
+description: Requires repairCrewAccessToken and seeded assignment data.
+order: 4000

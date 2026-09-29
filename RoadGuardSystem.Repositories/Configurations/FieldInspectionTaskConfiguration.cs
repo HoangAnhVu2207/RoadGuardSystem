@@ -21,6 +21,9 @@ public sealed class FieldInspectionTaskConfiguration : IEntityTypeConfiguration<
 
         builder.HasKey(task => task.Id);
         builder.Property(task => task.Id).HasColumnType("uniqueidentifier").ValueGeneratedNever();
+        builder.Property(task => task.RowVersion)
+            .IsRowVersion()
+            .IsConcurrencyToken();
         builder.Property(task => task.TaskCode).HasColumnType("nvarchar(80)").IsRequired();
         builder.Property(task => task.ProjectId).HasColumnType("uniqueidentifier").IsRequired();
         builder.Property(task => task.DefectId).HasColumnType("uniqueidentifier").IsRequired();

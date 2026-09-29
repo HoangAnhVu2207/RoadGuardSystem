@@ -11,6 +11,8 @@ public sealed class FieldInspectionTask
 
     public Guid Id { get; private set; }
 
+    public byte[] RowVersion { get; private set; } = [];
+
     public string TaskCode { get; private set; } = string.Empty;
 
     public Guid ProjectId { get; private set; }

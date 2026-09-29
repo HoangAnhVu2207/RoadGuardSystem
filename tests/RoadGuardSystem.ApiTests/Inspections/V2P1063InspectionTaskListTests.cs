@@ -55,7 +55,7 @@ public sealed class V2P1063InspectionTaskListTests
         item.GetProperty("mode").GetString().Should().Be("MEASURE_ONLY");
         item.GetProperty("crewId").GetGuid().Should().Be(crew.Id);
         item.GetProperty("policyVersionId").ValueKind.Should().Be(JsonValueKind.Null);
-        item.GetProperty("version").GetString().Should().Be(visible.TaskCode);
+        item.GetProperty("version").GetString().Should().Be(Convert.ToBase64String(visible.RowVersion));
         body.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
         body.GetProperty("asOf").GetDateTimeOffset().Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(1));
 
@@ -64,6 +64,50 @@ public sealed class V2P1063InspectionTaskListTests
         (await verification.FieldInspectionTasks.CountAsync(task => task.Id == hidden.TaskId)).Should().Be(1);
         (await verification.FieldInspectionAssignments.CountAsync(assignment =>
             assignment.FieldInspectionTaskId == visible.TaskId && assignment.Status == FieldInspectionAssignmentStatus.Active)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ListAssignedTasks_SameProject_DifferentAssignment_Isolated()
+    {
+        var crew = await _sql.CreateUserAsync($"p1063_same_project_crew_{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var otherCrew = await _sql.CreateUserAsync($"p1063_other_crew_{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var pm = await _sql.CreateUserAsync($"p1063_same_project_pm_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var visible = await SeedTaskAsync(crew.Id, pm.Id, addMembership: true);
+        var hidden = await SeedTaskAsync(crew.Id, pm.Id, addMembership: true, assignmentCrewId: otherCrew.Id,
+            existingProjectId: visible.ProjectId);
+
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient();
+        await AuthenticateAsync(client, crew.UserName!, "Current1!");
+
+        var response = await client.GetAsync("/api/v1/me/inspection-tasks?limit=100");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("id").GetGuid())
+            .Should().ContainSingle().Which.Should().Be(visible.TaskId);
+        hidden.TaskId.Should().NotBe(visible.TaskId);
+    }
+
+    [Fact]
+    public async Task ListAssignedTasks_DifferentProject_Isolated()
+    {
+        var crew = await _sql.CreateUserAsync($"p1063_cross_project_crew_{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var pm = await _sql.CreateUserAsync($"p1063_cross_project_pm_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var visible = await SeedTaskAsync(crew.Id, pm.Id, addMembership: true);
+        var hidden = await SeedTaskAsync(crew.Id, pm.Id, addMembership: false, assignmentCrewId: crew.Id);
+
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient();
+        await AuthenticateAsync(client, crew.UserName!, "Current1!");
+
+        var response = await client.GetAsync("/api/v1/me/inspection-tasks?limit=100");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("id").GetGuid())
+            .Should().ContainSingle().Which.Should().Be(visible.TaskId);
+        hidden.ProjectId.Should().NotBe(visible.ProjectId);
     }
 
     [Fact]
@@ -82,12 +126,19 @@ public sealed class V2P1063InspectionTaskListTests
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
-    private async Task<SeededInspectionTask> SeedTaskAsync(Guid crewId, Guid pmId, bool addMembership)
+    private async Task<SeededInspectionTask> SeedTaskAsync(
+        Guid crewId,
+        Guid pmId,
+        bool addMembership,
+        Guid? assignmentCrewId = null,
+        Guid? existingProjectId = null)
     {
         await using var context = _sql.CreateDbContext();
         var now = DateTimeOffset.UtcNow;
-        var project = Project.Create(Guid.NewGuid(), $"P1063-{Guid.NewGuid():N}", "P1-063 inspection project", null, 32648,
-            new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), now);
+        var project = existingProjectId.HasValue
+            ? await context.Projects.SingleAsync(candidate => candidate.Id == existingProjectId.Value)
+            : Project.Create(Guid.NewGuid(), $"P1063-{Guid.NewGuid():N}", "P1-063 inspection project", null, 32648,
+                new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), now);
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"R-{Guid.NewGuid():N}");
         var version = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true,
             GeometryFactory.CreateLineString([new Coordinate(500000, 1100000), new Coordinate(500100, 1100100)]), now, "P1-063 fixture");
@@ -100,10 +151,14 @@ public sealed class V2P1063InspectionTaskListTests
         var task = FieldInspectionTask.Create(Guid.NewGuid(), $"P1063-TASK-{Guid.NewGuid():N}", project.Id, defect.Id,
             survey.Id, version.Id, 1, "{\"points\":[1]}", null, null, now.AddDays(1), FieldInspectionTaskStatus.Accepted,
             pmId, null, null, null, null);
-        var assignment = FieldInspectionAssignment.Create(Guid.NewGuid(), task.Id, crewId, pmId, now, null,
+        var assignment = FieldInspectionAssignment.Create(Guid.NewGuid(), task.Id, assignmentCrewId ?? crewId, pmId, now, null,
             FieldInspectionAssignmentStatus.Active, null);
 
-        context.AddRange(project, road, version, survey, defectType, cause, defect, task, assignment);
+        context.AddRange(road, version, survey, defectType, cause, defect, task, assignment);
+        if (!existingProjectId.HasValue)
+        {
+            context.Add(project);
+        }
         if (addMembership)
         {
             context.ProjectMembers.Add(new ProjectMember
@@ -119,7 +174,7 @@ public sealed class V2P1063InspectionTaskListTests
         }
 
         await context.SaveChangesAsync();
-        return new(project.Id, task.Id, defect.Id, task.TaskCode);
+        return new(project.Id, task.Id, defect.Id, task.TaskCode, task.RowVersion);
     }
 
     private static async Task AuthenticateAsync(HttpClient client, string username, string password)
@@ -135,5 +190,5 @@ public sealed class V2P1063InspectionTaskListTests
             "Bearer", body.GetProperty("accessToken").GetString());
     }
 
-    private sealed record SeededInspectionTask(Guid ProjectId, Guid TaskId, Guid DefectId, string TaskCode);
+    private sealed record SeededInspectionTask(Guid ProjectId, Guid TaskId, Guid DefectId, string TaskCode, byte[] RowVersion);
 }

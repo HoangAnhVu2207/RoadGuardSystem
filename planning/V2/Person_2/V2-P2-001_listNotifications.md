@@ -7,9 +7,16 @@
 - contractStatus: APPROVED
 - implementationStatus: IMPLEMENTED
 - verificationStatus: VERIFIED
+- deliveryStatus: TODO
 - dependencyType: contract
 - workstream: BE
 - blockers: none
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+
+## Source evidence
+
+- Metadata comparison: `planning/V2/task_manifest.json` entry `V2-P2-001` records `TODO`, while this task's inherited `Current evidence` prose claims verified behavior without a lifecycle completion record containing revision, commands and counts.
+- Resolution: retain `deliveryStatus: TODO` without treating either source as implementation proof; the historical prose remains below for the endpoint owner to revalidate. This metadata repair does not change owner, operation, contract, implementation, verification or completion history.
 
 Current evidence: owner-scoped list with cursor/limit validation, stable ordering, SQL projection, API smoke and Postman validation pass.
 

@@ -13,7 +13,7 @@
 - verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN.
+- blockers: Local SQL initializer/health/login pass; real-email registration is ready but blocked until local SMTP credentials and reporter password are supplied outside Git/chat.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -273,3 +273,23 @@ schemas:
 - Reused/invalidated evidence: prior build-only evidence replaced by current build/focused tests; external smoke remains missing.
 - Side effects: no package/migration/schema; test database fixture only; no Development database run, SMTP send, data reset, commit or push; `UNCOMMITTED`.
 - Unverified/blockers: real-email receipt, manual OTP entry/login, and external endpoint smoke remain required before DONE.
+
+### 2026-09-29 14:42 +07:00 - PARTIAL
+
+- Scope/result: rewrote the guarded manual Reporter Postman flow with stable generated idempotency keys and precondition checks; prepared real recipients only in the ignored private environment.
+- Files: `docs/postman/RoadGuardSystem-V2.postman_collection.json`, committed placeholder environments/YAML, ignored private environment and ignored `RoadGuardSystem.API/appsettings.Development.local.json`.
+- Acceptance criteria: created and migrated dedicated `RoadGuardPostmanTest`; all supplied recipient addresses have no User/Invitation state; fixture Supervisor login works. Registration email was intentionally not sent while SMTP values are empty.
+- Verification: Postman JSON parse PASS 3/3; YAML parse PASS 55/55; `GET http://localhost:5112/health` 200; login role `SUPERVISOR`; SQL Server shows 29 migrations and 4 fixture users.
+- Reused/invalidated evidence: focused fake-sender tests remain valid because production source/config tracked by those tests did not change; Postman static evidence rerun after edits.
+- Side effects: created test-only database `RoadGuardPostmanTest`, applied migrations and idempotent fixtures; no reset/delete/live DB/email/commit/push.
+- Unverified/blockers: SMTP username/password and reporter password must be entered in local ignored files before first real delivery; task remains PARTIAL.
+
+### 2026-09-29 15:15 +07:00 - PARTIAL
+
+- Scope/result: made Postman safety-gate skips visible in Console with the selected private environment and required scenario; confirmed the active GUI symptom was a skipped request, not an API timeout.
+- Files: primary collection, Reporter YAML requests, Postman README, and this task evidence.
+- Acceptance criteria: Newman validation request returned 400 and passed; 6 manual email/OTP requests were skipped with explicit warnings. No email sent and no recipient state created.
+- Verification: `newman run docs/postman/RoadGuardSystem-V2.postman_collection.json --environment docs/postman/RoadGuard.local.postman_environment.json --folder "Reporter onboarding (ordered)" --reporters cli --color off --bail` PASS (1 request, 1 assertion pass, 6 guarded skips); JSON parse PASS; Postman YAML parse PASS 56/56; API health 200.
+- Reused/invalidated evidence: no production source changed; earlier fake-sender test evidence remains valid.
+- Side effects: no database change, email, commit or push.
+- Unverified/blockers: real Reporter delivery/OTP remains NOT_RUN; desktop UI automation is unavailable in this session, so the user must select the private environment and enter the Reporter password locally.

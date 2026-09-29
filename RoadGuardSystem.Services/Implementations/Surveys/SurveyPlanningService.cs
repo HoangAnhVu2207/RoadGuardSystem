@@ -30,7 +30,12 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (!IsProjectManager(actorUserId, actorRole) ||
+        if (actorUserId == Guid.Empty || actorRole != UserRoleCode.ProjectManager)
+        {
+            return new(SurveyPlanningServiceStatus.Forbidden);
+        }
+
+        if (
             command.ProjectId == Guid.Empty || command.RoadSectionId == Guid.Empty ||
             command.RoadSectionVersionId == Guid.Empty ||
             command.OperationId == Guid.Empty || command.PlannedEndAt < command.PlannedStartAt ||
@@ -78,7 +83,12 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (!IsProjectManager(actorUserId, actorRole) ||
+        if (actorUserId == Guid.Empty || actorRole != UserRoleCode.ProjectManager)
+        {
+            return new(SurveyPlanningServiceStatus.Forbidden);
+        }
+
+        if (
             command.ProjectId == Guid.Empty || command.RoadSectionId == Guid.Empty ||
             command.RoadSectionVersionId == Guid.Empty ||
             command.OperationId == Guid.Empty || command.SurveyType == SurveyType.Unknown ||
@@ -127,7 +137,12 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (!IsProjectManager(actorUserId, actorRole) ||
+        if (actorUserId == Guid.Empty || actorRole != UserRoleCode.ProjectManager)
+        {
+            return new(SurveyPlanningServiceStatus.Forbidden);
+        }
+
+        if (
             command.ProjectId == Guid.Empty || command.SurveyPlanId == Guid.Empty ||
             command.OperationId == Guid.Empty || string.IsNullOrWhiteSpace(command.Reason))
         {

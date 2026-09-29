@@ -1,0 +1,4 @@
+$kind: collection
+name: Fixture logins (Supervisor -> PM -> Operator -> Crew)
+description: Run before role folders. Password fields are blank placeholders in the committed environment. Credentials are Development-only; never use these accounts in production.
+order: 2000

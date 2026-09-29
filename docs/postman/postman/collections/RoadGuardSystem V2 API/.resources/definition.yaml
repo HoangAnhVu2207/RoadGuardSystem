@@ -1,5 +1,5 @@
 $kind: collection
-description: RoadGuard V2 API smoke and manual test collection. Select the RoadGuard.local environment and set its local values before running.
+description: Role-first Postman collection for operations advertised by the running OpenAPI v1 document. Start with 00 - Preflight. State-changing/destructive requests require explicit switches and a disposable account. Real email/OTP/invitation requests are manual and skipped by default. See docs/postman/README.md for role flows, local setup, current data blocker and routes not yet represented here.
 variables:
   accessToken: ""
   refreshToken: ""
@@ -13,11 +13,14 @@ variables:
   invitationId: 00000000-0000-0000-0000-000000000000
   invitationVersion: ""
   actorVersion: ""
-  reporterRegistrationKey: reporter-registration-runner
-  reporterVerificationKey: reporter-verification-runner
-  reporterResendKey: reporter-resend-runner
-  invitationCreateKey: invitation-create-runner
-  invitationAcceptKey: invitation-accept-runner
+  reporterRegistrationKey: ""
+  reporterVerificationKey: ""
+  otpResendRegistrationKey: ""
+  reporterResendKey: ""
+  otpOldVerificationKey: ""
+  otpLatestVerificationKey: ""
+  invitationCreateKey: ""
+  invitationAcceptKey: ""
   updateMeKey: update-me-runner
   updateAccountKey: update-account-runner
   passwordResetKey: password-reset-runner

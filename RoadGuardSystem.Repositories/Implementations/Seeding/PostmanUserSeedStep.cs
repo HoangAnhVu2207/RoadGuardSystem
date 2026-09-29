@@ -11,19 +11,27 @@ namespace RoadGuardSystem.Repositories.Seeding;
 /// </summary>
 public sealed class PostmanUserSeedStep : ISeedStep
 {
+    public static readonly Guid SupervisorUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a01");
+    public static readonly Guid ProjectManagerUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02");
+    public static readonly Guid OperatorUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a03");
+    public static readonly Guid RepairCrewUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a04");
+
     public const string SupervisorEmail = "supervisor.postman@example.test";
     public const string ProjectManagerEmail = "pm.postman@example.test";
     public const string OperatorEmail = "operator.postman@example.test";
     public const string RepairCrewEmail = "crew.postman@example.test";
+    public const string NormalizedProjectManagerEmail = "PM.POSTMAN@EXAMPLE.TEST";
+    public const string NormalizedOperatorEmail = "OPERATOR.POSTMAN@EXAMPLE.TEST";
+    public const string NormalizedRepairCrewEmail = "CREW.POSTMAN@EXAMPLE.TEST";
     public const string SupervisorPassword = "Supervisor1!";
     public const string StandardPassword = "Current1!";
 
     private static readonly IReadOnlyList<FixtureUser> Users =
     [
-        new("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a01", SupervisorEmail, "Postman Supervisor", UserRoleCode.Supervisor, SupervisorPassword),
-        new("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02", ProjectManagerEmail, "Postman Project Manager", UserRoleCode.ProjectManager, StandardPassword),
-        new("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a03", OperatorEmail, "Postman Drone Operator", UserRoleCode.DroneOperator, StandardPassword),
-        new("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a04", RepairCrewEmail, "Postman Repair Crew", UserRoleCode.RepairCrew, StandardPassword)
+        new(SupervisorUserId, SupervisorEmail, "Postman Supervisor", UserRoleCode.Supervisor, SupervisorPassword),
+        new(ProjectManagerUserId, ProjectManagerEmail, "Postman Project Manager", UserRoleCode.ProjectManager, StandardPassword),
+        new(OperatorUserId, OperatorEmail, "Postman Drone Operator", UserRoleCode.DroneOperator, StandardPassword),
+        new(RepairCrewUserId, RepairCrewEmail, "Postman Repair Crew", UserRoleCode.RepairCrew, StandardPassword)
     ];
 
     public int Order => 30;
@@ -56,7 +64,7 @@ public sealed class PostmanUserSeedStep : ISeedStep
 
             var user = new ApplicationUser
             {
-                Id = Guid.Parse(fixture.Id),
+                Id = fixture.Id,
                 UserName = fixture.Email,
                 NormalizedUserName = normalizedEmail,
                 Email = fixture.Email,
@@ -88,7 +96,7 @@ public sealed class PostmanUserSeedStep : ISeedStep
     }
 
     private sealed record FixtureUser(
-        string Id,
+        Guid Id,
         string Email,
         string DisplayName,
         UserRoleCode RoleCode,

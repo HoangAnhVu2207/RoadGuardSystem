@@ -11,8 +11,8 @@
     },
     {
       "path": "02_Requirements/01_FRD_SRS.md",
-      "sizeBytes": 44874,
-      "sha256": "60d6fe1287d90a5a286e55e318011df3d30aad2537f37f271a1afe664615d6e0"
+      "sizeBytes": 44885,
+      "sha256": "fc5fe92fc07912436c5be26f438f722041492f92e6b4a792e1ba51546ccb9fdf"
     },
     {
       "path": "02_Requirements/02_Business_Rules.md",
@@ -26,13 +26,13 @@
     },
     {
       "path": "02_Requirements/04_Use_Cases.md",
-      "sizeBytes": 104508,
-      "sha256": "b491254f6c0dc19911ef682c0269cef6515d4e286d410fe8167950074e76bb9a"
+      "sizeBytes": 104489,
+      "sha256": "99d93c7276bfb9e4f4ced41d5dffa14df1fb0d368e3c2518c86f54244c028f79"
     },
     {
       "path": "02_Requirements/05_User_Stories_Acceptance_Criteria.md",
-      "sizeBytes": 81969,
-      "sha256": "ddde070fa84ef2013cfab6faa6db67ed46976d44988fcdc1ccbaa083471b8569"
+      "sizeBytes": 81952,
+      "sha256": "2ce5f2c8ec94e997f3754073313a92559421b02bb833e8dddfea76e0afff7975"
     },
     {
       "path": "02_Requirements/06_Report_Analytics_Requirements.md",
@@ -46,13 +46,13 @@
     },
     {
       "path": "03_Data/01_Data_Dictionary.md",
-      "sizeBytes": 157742,
-      "sha256": "5bde387e1441204a6bdbc4774cd71a3136851d95af76ee72a07af2ddf9b63c92"
+      "sizeBytes": 157736,
+      "sha256": "76b492ec05c903596b7520f8d5017388e8ece96afa0d9e09561ff3e875a8258b"
     },
     {
       "path": "04_UI_UX/01_Wireframe_Annotations.md",
-      "sizeBytes": 17410,
-      "sha256": "ded99016e01fcc8e3e1a01e409b4ea976a5cbc4741cfcd9ac68e05bb66146eec"
+      "sizeBytes": 17439,
+      "sha256": "40385aba650bab6d740a18a7038a5db335b7801125a73bf85322898d20c73a80"
     },
     {
       "path": "05_Technical/01_Tech_Stack_Conventions.md",
@@ -86,18 +86,18 @@
     },
     {
       "path": "05_Technical/openapi.yaml",
-      "sizeBytes": 319660,
-      "sha256": "65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sizeBytes": 319780,
+      "sha256": "dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "path": "06_Testing/01_Requirements_Traceability_Matrix.md",
-      "sizeBytes": 30759,
-      "sha256": "6770f544ae59245a369b7f4393d7f5f3e84b21ef5a0e09b9de71d07709717862"
+      "sizeBytes": 30783,
+      "sha256": "b7ee527bcec9a90c284cd3a8ca9287cb5f233e9e0944c4a10f8619afe2852b89"
     },
     {
       "path": "06_Testing/02_Test_Cases_UAT_Scenarios.md",
-      "sizeBytes": 154604,
-      "sha256": "57c0f49e6f9fdfc2def238c258577c1d23f2bb672dc6350f50d7b03bf83e600f"
+      "sizeBytes": 154577,
+      "sha256": "2692edde0929e590c8fa4929436024e1508c841ce600101c57704b122da65467"
     },
     {
       "path": "07_Change_Management/01_Change_Request_Log.md",
@@ -176,8 +176,8 @@
     },
     {
       "path": "09_Frontend/02_Authentication_Flow.md",
-      "sizeBytes": 10755,
-      "sha256": "fb0cad225e108dfa031186e6977a1052d0dcc7cce33bba4bb9a2d0c11a67358d"
+      "sizeBytes": 10742,
+      "sha256": "67e293610f440549c1d193d5b3a48aba0b3a9ccb663e3c3db64d6a857726e10a"
     },
     {
       "path": "09_Frontend/03_Error_Response_UI_Convention.md",
@@ -261,13 +261,13 @@
     },
     {
       "path": "09_Frontend/contracts/api.schemas.json",
-      "sizeBytes": 124663,
-      "sha256": "5b70172d897e313586e3d0cec60d1a4b1df757bc69b86fe13d90262dfcb6699e"
+      "sizeBytes": 124671,
+      "sha256": "348997cc8609c07fb3571246d8c97c9254304a03dfd51bb181ac784087c8edb6"
     },
     {
       "path": "09_Frontend/contracts/api.types.ts",
       "sizeBytes": 27519,
-      "sha256": "79d52a6b9bbc3421a2fb8d2a2d8f04364d36a143e56bb50f4616ede07027f31d"
+      "sha256": "311be0d432dcdfc929726cda15173da3b8d4c3e49ad4177a05f3c2cdea184a08"
     },
     {
       "path": "09_Frontend/contracts/build_contracts.py",
@@ -281,8 +281,8 @@
     },
     {
       "path": "09_Frontend/contracts/contract.lock.json",
-      "sizeBytes": 400,
-      "sha256": "5de07096b298764e26576da3cdd4236d06256b4f11d98a6afd2f40a93f5440b9"
+      "sizeBytes": 393,
+      "sha256": "bc2ecdb2fd130110a165fb57fb5f855c7a61714442e7f4b7b3ac42ffe08b7cad"
     },
     {
       "path": "09_Frontend/contracts/local.types.ts",
@@ -291,8 +291,8 @@
     },
     {
       "path": "09_Frontend/contracts/openapi.baseline.yaml",
-      "sizeBytes": 319660,
-      "sha256": "65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sizeBytes": 319780,
+      "sha256": "dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "path": "09_Frontend/contracts/operation_catalog.md",
@@ -336,8 +336,8 @@
     },
     {
       "path": "ci/test_contract_guard.py",
-      "sizeBytes": 2449,
-      "sha256": "2d5e350ba4ac1bf74148e948fdb35ce8635405287655f6392c8c1e20a5763cad"
+      "sizeBytes": 2452,
+      "sha256": "6ba851d830720b8c376b902c64cb5aefd83e439e262ee79e21d3ebca945207e9"
     },
     {
       "path": "03_Data/02_ERD_V2.md",
@@ -371,8 +371,8 @@
     },
     {
       "path": "ci/check_alignment.py",
-      "sizeBytes": 1930,
-      "sha256": "2fe98292ffe911cb7025b5e743201ab1a0507849fa799b30479e4c561774995b"
+      "sizeBytes": 2027,
+      "sha256": "263a6fcebdb738972611edc809ac184d9d3dbd4a7153d8995a20f58cc559e846"
     }
   ]
 }

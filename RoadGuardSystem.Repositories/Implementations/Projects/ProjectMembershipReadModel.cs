@@ -38,7 +38,7 @@ public sealed class ProjectMembershipReadModel : IProjectMembershipRepository
         var memberships = await (
                 from member in _context.ProjectMembers.AsNoTracking()
                 where member.UserId == userId && member.ProjectId == projectId
-                orderby member.Id
+                orderby member.Status descending, member.ValidFrom descending, member.Id
                 select new EffectiveProjectMembership(
                     member.Id,
                     member.ProjectId,
@@ -49,7 +49,7 @@ public sealed class ProjectMembershipReadModel : IProjectMembershipRepository
                     member.ValidTo))
             .ToListAsync(cancellationToken);
 
-        return memberships.Count == 1 ? memberships[0] : null;
+        return memberships.FirstOrDefault();
     }
 
     public async Task<EffectiveProjectMembership?> FindActiveEffectiveAsync(
@@ -58,11 +58,21 @@ public sealed class ProjectMembershipReadModel : IProjectMembershipRepository
         DateOnly effectiveOn,
         CancellationToken cancellationToken = default)
     {
-        var membership = await FindByUserAndProjectAsync(userId, projectId, cancellationToken);
-        return membership is not null && membership.Status == ProjectMemberStatus.Active &&
-               membership.ValidFrom <= effectiveOn &&
-               (membership.ValidTo is null || membership.ValidTo >= effectiveOn)
-            ? membership
-            : null;
+        return await (
+                from member in _context.ProjectMembers.AsNoTracking()
+                where member.UserId == userId && member.ProjectId == projectId &&
+                      member.Status == ProjectMemberStatus.Active &&
+                      member.ValidFrom <= effectiveOn &&
+                      (member.ValidTo == null || member.ValidTo >= effectiveOn)
+                orderby member.ValidFrom descending, member.Id
+                select new EffectiveProjectMembership(
+                    member.Id,
+                    member.ProjectId,
+                    member.UserId,
+                    member.RoleCode,
+                    member.Status,
+                    member.ValidFrom,
+                    member.ValidTo))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

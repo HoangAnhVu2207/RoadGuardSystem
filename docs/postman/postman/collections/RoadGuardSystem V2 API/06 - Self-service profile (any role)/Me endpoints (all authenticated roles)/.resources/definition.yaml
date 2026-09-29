@@ -1,0 +1,3 @@
+$kind: collection
+description: Use the selected role access token. PATCH requests are disabled in the default collection run.
+order: 1000

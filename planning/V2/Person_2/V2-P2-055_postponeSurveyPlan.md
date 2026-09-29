@@ -2,6 +2,8 @@
 
 ## V2(3) status
 
+- deliveryStatus: DONE
+- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - decisionRefs: none
 - requirementRefs: register crosswalk; task-specific references remain authoritative
 - contractStatus: APPROVED
@@ -12,6 +14,23 @@
 - blockers: none
 
 Current evidence: SQL rowversion conditional update, stale ETag 412, append-only postponement, idempotent replay and API smoke pass.
+
+### 2026-09-29 20:20 +07:00 - DONE
+
+- Scope/result: Integrated implementation `08b5a884` from `origin/develop@5537a584` and reverified it on the merged source.
+- Files: survey Controller/Service/Repository, this task and manifest metadata.
+- Acceptance criteria: rowversion, stale ETag rejection, append-only postponement and replay covered by focused tests.
+- Verification: API build PASS (135 warnings/0 errors); P2 notification+survey API 2/2; notification+survey unit 5/5; survey SQL 2/2; Postman static 74 requests/102 variables/0 unresolved refs.
+- Reused/invalidated evidence: commit lineage retained; runtime evidence refreshed after integration.
+- Side effects: isolated SQL fixtures only; no live/shared DB, push or reverse merge.
+- Unverified/blockers: none task-specific; Postman result is static evidence.
+
+## Source evidence
+
+- Contract source: `docs/diagram/V2/05_Technical/openapi.yaml`, operationId `postponeSurveyPlan`, `POST /survey-plans/{planId}/postpone`.
+- Planning sources: `planning/V2/V2-3_DECISION_REGISTER.md` (`D14`-`D17`, `D20`-`D22`), requirement `FR-26`, and `PF-07`/`SQ-06`/`DD/ERD` references recorded in `planning/V2/task_manifest.json` entry `V2-P2-055`.
+- Current-state source: `planning/V2/Governance/code_inventory.json` is a source-symbol inventory only; it is not an implementation or verification verdict.
+- Evidence resolution: `08b5a884` introduced the endpoint/tests and is contained in `origin/develop@5537a584`; the 2026-09-29 20:20 +07:00 completion record below supplies fresh commands and counts.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.

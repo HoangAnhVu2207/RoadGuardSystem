@@ -41,7 +41,8 @@ public static class AuthenticationServiceCollectionExtensions
             new IdentityV2Service(
                 provider.GetRequiredService<Repositories.Identity.IIdentityRepository>(),
                 provider.GetRequiredService<Repositories.Identity.IIdentityV2Repository>(),
-                provider.GetRequiredService<IPasswordHasher<ApplicationUser>>()));
+                provider.GetRequiredService<IPasswordHasher<ApplicationUser>>(),
+                provider.GetRequiredService<UserManager<ApplicationUser>>()));
         services.AddScoped<IIdentityOnboardingService, IdentityOnboardingService>();
         services.AddScoped<IIdentityService>(provider =>
             new IdentityService(

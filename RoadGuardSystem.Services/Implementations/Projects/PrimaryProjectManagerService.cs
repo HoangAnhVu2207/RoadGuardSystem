@@ -47,8 +47,16 @@ public sealed class PrimaryProjectManagerService : IPrimaryProjectManagerService
             return new(PrimaryProjectManagerReassignmentStatus.ProjectClosed);
         }
 
-        if (!facts.ReplacementUserIsActiveProjectManager || facts.CurrentProjectManagerUserId == command.PrimaryProjectManagerUserId ||
-            command.EffectiveFrom <= facts.CurrentValidFrom)
+        var replay = await _repository.HasReplayAsync(actorUserId, projectId, command.OperationId.ToString("N"), cancellationToken);
+        var currentDate = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime);
+        if (!replay && command.EffectiveFrom != currentDate)
+        {
+            return new(PrimaryProjectManagerReassignmentStatus.InvalidInput);
+        }
+
+        if (!replay && (!facts.ReplacementUserIsActiveProjectManager ||
+            facts.CurrentProjectManagerUserId == command.PrimaryProjectManagerUserId ||
+            command.EffectiveFrom <= facts.CurrentValidFrom))
         {
             return new(PrimaryProjectManagerReassignmentStatus.ReplacementProjectManagerNotFound);
         }

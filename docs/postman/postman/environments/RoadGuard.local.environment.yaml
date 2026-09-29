@@ -2,9 +2,141 @@ name: RoadGuard.local
 values:
   - key: baseUrl
     value: 'http://localhost:5112'
+  - key: authRole
+    value: SUPERVISOR
   - key: authEmail
     value: ''
   - key: authPassword
     value: ''
+  - key: supervisorEmail
+    value: supervisor.postman@example.test
+  - key: supervisorPassword
+    value: ''
+  - key: projectManagerEmail
+    value: pm.postman@example.test
+  - key: projectManagerPassword
+    value: ''
+  - key: operatorEmail
+    value: operator.postman@example.test
+  - key: operatorPassword
+    value: ''
+  - key: repairCrewEmail
+    value: crew.postman@example.test
+  - key: repairCrewPassword
+    value: ''
+  - key: reporterEmail
+    value: ''
+  - key: reporterLoginPassword
+    value: ''
+  - key: runDestructive
+    value: 'false'
+  - key: disposableAccountConfirmed
+    value: 'NO'
+  - key: runRecovery
+    value: 'false'
+  - key: runManualLogin
+    value: 'false'
   - key: replacementPassword
     value: ''
+  - key: manualEmailScenario
+    value: ''
+  - key: reporterRegistrationEmail
+    value: ''
+  - key: reporterRegistrationBackupEmail
+    value: ''
+  - key: otpResendEmail
+    value: ''
+  - key: otpResendIntentId
+    value: ''
+  - key: otpResendAfterSeconds
+    value: ''
+  - key: otpOriginalOtp
+    value: ''
+  - key: otpLatestOtp
+    value: ''
+  - key: reporterPassword
+    value: ''
+  - key: reporterOtp
+    value: ''
+  - key: invitationEmail
+    value: ''
+  - key: invitationBackupEmail
+    value: ''
+  - key: invitationRetryEmail
+    value: ''
+  - key: invitationToken
+    value: ''
+  - key: invitationPassword
+    value: ''
+  - key: recoveryEmail
+    value: ''
+  - key: supervisorAccessToken
+    value: ''
+  - key: projectManagerAccessToken
+    value: ''
+  - key: operatorAccessToken
+    value: ''
+  - key: repairCrewAccessToken
+    value: ''
+  - key: reporterAccessToken
+    value: ''
+  - key: accessToken
+    value: ''
+  - key: refreshToken
+    value: ''
+  - key: profileRowVersion
+    value: ''
+  - key: authenticatedUserId
+    value: ''
+  - key: targetUserId
+    value: ''
+  - key: targetRowVersion
+    value: ''
+  - key: projectRowVersion
+    value: ''
+  - key: createdProjectId
+    value: ''
+  - key: registrationIntentId
+    value: ''
+  - key: invitationId
+    value: ''
+  - key: invitationVersion
+    value: ''
+  - key: actorVersion
+    value: ''
+  - key: surveyRequestId
+    value: ''
+  - key: inspectionCursor
+    value: ''
+  - key: inspectionLimit
+    value: '50'
+  - key: reporterRegistrationKey
+    value: ''
+  - key: reporterVerificationKey
+    value: ''
+  - key: otpResendRegistrationKey
+    value: ''
+  - key: reporterResendKey
+    value: ''
+  - key: otpOldVerificationKey
+    value: ''
+  - key: otpLatestVerificationKey
+    value: ''
+  - key: invitationCreateKey
+    value: ''
+  - key: invitationAcceptKey
+    value: ''
+  - key: logoutKey
+    value: logout-local
+  - key: changePasswordKey
+    value: change-password-local
+  - key: projectId
+    value: 6a4dbd16-a646-46da-9e5c-200000000001
+  - key: primaryProjectManagerUserId
+    value: 4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02
+  - key: roadSectionId
+    value: 6a4dbd16-a646-46da-9e5c-200000000004
+  - key: roadSectionVersionId
+    value: 6a4dbd16-a646-46da-9e5c-200000000005
+  - key: surveyPlanId
+    value: 6a4dbd16-a646-46da-9e5c-200000000009

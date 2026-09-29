@@ -7,6 +7,12 @@ public interface IPrimaryProjectManagerRepository
         Guid replacementProjectManagerUserId,
         CancellationToken cancellationToken = default);
 
+    Task<bool> HasReplayAsync(
+        Guid actorUserId,
+        Guid projectId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
     Task<PrimaryProjectManagerWriteResult> ReassignAsync(
         PrimaryProjectManagerWriteRequest request,
         CancellationToken cancellationToken = default);

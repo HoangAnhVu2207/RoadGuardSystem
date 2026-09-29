@@ -1,0 +1,22 @@
+$kind: http-request
+name: POST /projects/{projectId}/survey-plans/{surveyPlanId}/postpone - success
+description: "Purpose: postpone an existing plan and append its reason. Role: Project Manager with effective project scope. Setup: run plan create first; use a fresh Idempotency-Key. Expected: 200 postponement. Data change: plan status/date, append-only postponement, audit and idempotency receipt."
+url: "{{baseUrl}}/api/v1/projects/{{projectId}}/survey-plans/{{surveyPlanId}}/postpone"
+method: POST
+headers:
+  Authorization: Bearer {{projectManagerAccessToken}}
+  Idempotency-Key: "{{surveyPostponeKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "newPlannedStartAt": "2026-10-02T08:00:00Z",
+      "reason": "Weather delay",
+      "operationId": "{{$guid}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Survey postpone returns 200', function () { pm.response.to.have.status(200); });
+    language: text/javascript
+order: 3000

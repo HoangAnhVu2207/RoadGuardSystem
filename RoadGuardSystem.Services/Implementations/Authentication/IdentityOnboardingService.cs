@@ -16,6 +16,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
     private readonly IIdentityOnboardingRepository _onboardingRepository;
     private readonly IIdentityRepository _identityRepository;
     private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IIdentityMessageSender _messageSender;
     private readonly AccessTokenFactory _accessTokenFactory;
     private readonly JwtOptions _jwtOptions;
@@ -27,6 +28,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         IIdentityOnboardingRepository onboardingRepository,
         IIdentityRepository identityRepository,
         IPasswordHasher<ApplicationUser> passwordHasher,
+        UserManager<ApplicationUser> userManager,
         IIdentityMessageSender messageSender,
         AccessTokenFactory accessTokenFactory,
         IOptions<JwtOptions> jwtOptions,
@@ -36,6 +38,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         _onboardingRepository = onboardingRepository;
         _identityRepository = identityRepository;
         _passwordHasher = passwordHasher;
+        _userManager = userManager;
         _messageSender = messageSender;
         _accessTokenFactory = accessTokenFactory;
         _jwtOptions = jwtOptions.Value;
@@ -52,9 +55,14 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
-        if (!TryNormalizeGmail(email, out var normalizedEmail) || string.IsNullOrWhiteSpace(password) ||
+        if (!TryNormalizeEmail(email, out var normalizedEmail) || string.IsNullOrWhiteSpace(password) ||
             string.IsNullOrWhiteSpace(displayName) || string.IsNullOrWhiteSpace(idempotencyKey) ||
             !TryParseReporterType(reporterType, out var parsedReporterType))
+        {
+            return new IdentityOnboardingResult(IdentityOnboardingStatus.InvalidInput);
+        }
+
+        if (!await ValidatePasswordAsync(new ApplicationUser { UserName = email.Trim(), Email = email.Trim() }, password, cancellationToken))
         {
             return new IdentityOnboardingResult(IdentityOnboardingStatus.InvalidInput);
         }
@@ -99,8 +107,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             fingerprint,
             operationId,
             cancellationToken);
-        if (persisted.Status is IdentityOnboardingPersistenceStatus.Success or IdentityOnboardingPersistenceStatus.IdempotentReplay &&
-            persisted.Intent is not null)
+        if (persisted.Status == IdentityOnboardingPersistenceStatus.Success && persisted.Intent is not null)
         {
             if (!await _messageSender.SendReporterOtpAsync(email.Trim(), otp, cancellationToken))
             {
@@ -171,12 +178,14 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             HashSecret(otp),
             now.AddMinutes(_options.OtpLifetimeMinutes),
             now.AddSeconds(_options.OtpResendCooldownSeconds),
+            _options.OtpMaxResendsPerWindow,
+            TimeSpan.FromMinutes(_options.OtpResendWindowMinutes),
             idempotencyKey.Trim(),
             HashSecret(intentId.ToString("N")),
             operationId,
             now,
             cancellationToken);
-        if (persisted.Status is IdentityOnboardingPersistenceStatus.Success or IdentityOnboardingPersistenceStatus.IdempotentReplay &&
+        if (persisted.Status == IdentityOnboardingPersistenceStatus.Success &&
             persisted.Intent is not null &&
             !await _messageSender.SendReporterOtpAsync(persisted.Intent.NormalizedEmail, otp, cancellationToken))
         {
@@ -189,7 +198,6 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
     public async Task<IdentityOnboardingResult> CreateInvitationAsync(
         Guid actorUserId,
         string email,
-        string displayName,
         string role,
         IReadOnlyList<Guid> projectIds,
         string idempotencyKey,
@@ -201,7 +209,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             return new IdentityOnboardingResult(IdentityOnboardingStatus.Forbidden);
         }
 
-        if (!TryNormalizeEmail(email, out var normalizedEmail) || string.IsNullOrWhiteSpace(displayName) ||
+        if (!TryNormalizeEmail(email, out var normalizedEmail) ||
             !TryParseStaffRole(role, out var roleCode) ||
             projectIds is null || projectIds.Distinct().Count() != projectIds.Count ||
             string.IsNullOrWhiteSpace(idempotencyKey))
@@ -217,7 +225,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         var invitation = new StaffInvitation
         {
             Id = invitationId,
-            DisplayName = displayName.Trim(),
+            DisplayName = email.Trim(),
             Email = email.Trim(),
             NormalizedEmail = normalizedEmail,
             RoleCode = roleCode,
@@ -226,7 +234,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             CreatedAt = now,
             ExpiresAt = now.AddHours(_options.InvitationLifetimeHours)
         };
-        var fingerprint = HashSecret($"{normalizedEmail}|{displayName.Trim()}|{roleCode}|{string.Join(',', projectIds.Order())}");
+        var fingerprint = HashSecret($"{normalizedEmail}|{roleCode}|{string.Join(',', projectIds.Order())}");
         var persisted = await _onboardingRepository.CreateInvitationAsync(
             invitation,
             projectIds,
@@ -268,6 +276,11 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         if (invitation is null)
         {
             return new IdentityOnboardingResult(IdentityOnboardingStatus.NotFound);
+        }
+
+        if (!await ValidatePasswordAsync(new ApplicationUser { UserName = invitation.Email, Email = invitation.Email }, password, cancellationToken))
+        {
+            return new IdentityOnboardingResult(IdentityOnboardingStatus.InvalidInput);
         }
 
         var operationId = OperationId("AcceptInvitation", idempotencyKey);
@@ -380,17 +393,6 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             ["IdentityOnboarding:Secret must be valid Base64 containing at least 32 bytes."]);
     }
 
-    private static bool TryNormalizeGmail(string value, out string normalized)
-    {
-        if (!TryNormalizeEmail(value, out normalized))
-        {
-            return false;
-        }
-
-        var domain = normalized[(normalized.LastIndexOf('@') + 1)..];
-        return domain is "GMAIL.COM" or "GOOGLEMAIL.COM";
-    }
-
     private static bool TryNormalizeEmail(string value, out string normalized)
     {
         normalized = value?.Trim().ToUpperInvariant() ?? string.Empty;
@@ -455,4 +457,19 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             invitation.AcceptedAt is null ? "PENDING" : "ACCEPTED",
             invitation.ExpiresAt,
             invitation.RowVersion);
+
+    private async Task<bool> ValidatePasswordAsync(ApplicationUser user, string password, CancellationToken cancellationToken)
+    {
+        foreach (var validator in _userManager.PasswordValidators)
+        {
+            var validation = await validator.ValidateAsync(_userManager, user, password);
+            if (!validation.Succeeded)
+            {
+                return false;
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
+    }
 }

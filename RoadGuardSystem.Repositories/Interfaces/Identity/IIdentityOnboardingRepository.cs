@@ -25,6 +25,8 @@ public interface IIdentityOnboardingRepository
         string otpHash,
         DateTimeOffset expiresAt,
         DateTimeOffset resendAvailableAt,
+        int maxResendsPerWindow,
+        TimeSpan resendWindow,
         string idempotencyKey,
         string requestFingerprint,
         Guid operationId,

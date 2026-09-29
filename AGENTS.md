@@ -3,12 +3,18 @@
 ## Start, Sources, And Scope
 
 - Start with `git status --short --branch`, the assigned `planning/V2/Person_*/V2-*.md` task (or the assigned legacy plan row when no V2 task exists), and real dependencies in this checkout.
-- Apply instructions in this order: current owner request and approval; this `AGENTS.md`; accepted ADRs with later amendments winning; current source/migrations/tests/runtime evidence; assigned V2 task and V2 OpenAPI draft; historical plans/worklogs as evidence only.
+- Apply instructions in this order: current owner request and approval; this `AGENTS.md`; accepted ADRs with later amendments winning; current source/migrations/tests/runtime evidence; the approved V2 task and V2 OpenAPI contract; historical plans/worklogs as evidence only. Source/migrations/tests/runtime establish current verified behavior. Target behavior follows the owner request, accepted decisions/ADRs, and the approved task contract; current code does not override an approved business rule or contract, and a draft/proposal does not override runtime evidence or grant deployment authority. When sources conflict, name both concrete sources and the decision required, then continue independent work that has sufficient evidence.
 - `PROPOSED_CONTRACT`, `NEEDS_REPO_CHECK`, and `BLOCKED_SLICE` are not proof of current behavior or approval. Record current versus proposed behavior and stop for a decision when compatibility, schema, authorization, workflow, or an open gate would change.
 - Historical `Done` rows and worklogs are evidence. Never rewrite them to match the current workflow.
 - Before edits, show: task/owner/branch, goal, In scope, Out of scope, exact files and shared hotspots, dependencies present, verification breadth and commands, and package/migration/data/external side effects. Wait for explicit owner approval in this session unless that exact scope was already approved.
-- For work larger than one endpoint, propose 3-5 independently runnable slices and wait for approval before code.
+- For an approved endpoint, endpoint group, or finding group, split internal slices by dependency and verify them sequentially without requesting approval again for each slice. Ask only when a new business decision or side effect outside the approved scope is required; state the expansion. Do not let one blocker prevent independent approved work.
 - Preserve unrelated and uncommitted work. Do not overwrite another active task's shared file reservation.
+
+### V2 Source Routing
+
+- At the start of a new V2 work group, read `AGENTS.md`, the V2 README/index, the assigned task/governance checkpoint, and `TASK_LIFECYCLE.md`. Follow the index to the current document paths; do not guess a source path.
+- Route source reading by domain: auth reads permission/auth flow plus account, session, OTP and invitation lifecycle; project/membership reads business rules, handover/warranty, scope and effective dates; survey/inspection reads assignment, state, scope, DD/ERD and concurrency contract; persistence/migration reads entity/configuration, the complete related migration chain, Designer/snapshot and actual schema; seeder reads dependency, fixture ownership and workflow invariants.
+- Read each overview once, then reread only changed or missing sources. Record exact path plus heading/ID and the invariant actually used in the checkpoint. Label evidence as `CURRENT_VERIFIED`, `TARGET_DOCUMENTED`, `PROPOSED_DELTA`, historical/superseded, or `NOT_ENABLED`.
 
 ## Skill Routing
 
@@ -21,11 +27,13 @@
 ## Source Evidence And Task Lifecycle
 
 - Read `planning/V2/TASK_LIFECYCLE.md` for every V2 API or governance task. The task file is the durable checkpoint for resume/compaction; do not rely on chat memory alone.
+- Always record the base `HEAD` even when the working tree is uncommitted. The reproducibility fingerprint includes newly created untracked files when they affect the evidence. Timestamps come from real logs/commands; if unavailable, say so. Separate source/build/automated-SQL/HTTP-smoke/migration proof. A repository-direct test is not `API_VERIFIED`; a manual DB `ALTER` is not migration proof. `N/A` requires a reason and cannot waive an applicable acceptance criterion.
 - Before edits, record `Source evidence` in the task: exact path plus heading/ID for decisions, BR/FR/UC/US/AC, PF/SQ/state, OpenAPI operation/schema, DD/ERD and current source/tests actually used. Record the base revision and canonical contract hash when relevant; do not hash unrelated files.
 - Use `deliveryStatus` only for task progress (`TODO`, `IN_PROGRESS`, `PARTIAL`, `BLOCKED`, `DONE`, `REOPENED`). Keep it separate from contract, implementation and verification status.
 - Move to `IN_PROGRESS` when approved work starts. After each slice, immediately append completion history with changed files, acceptance evidence, exact checks/results, reused/invalidated evidence, side effects and unverified risks; mirror status in the operation manifest or governance index.
 - Mark `DONE` only when every required gate in the approved scope passes. Use `PARTIAL` or `BLOCKED` with exact affected tasks/gates when required evidence is missing. Reopening appends history and preserves prior DONE evidence.
 - Historical task rows, completion records and PASS evidence are append-only in meaning. Never rewrite them to make current validation appear older or broader than it is.
+- Keep `deliveryStatus` exactly within the `TASK_LIFECYCLE.md` enum. Labels such as `SQL_VERIFIED`, `API_VERIFIED`, and `BLOCKED_SCHEMA` are evidence/gate details only; they do not extend the lifecycle enum.
 
 ## Endpoint Contract And Delivery
 
@@ -83,5 +91,5 @@
 - Report changed files, selected verification breadth and reason, exact commands/configuration/filter, executed/pass/fail/required-skip counts, environment, smoke/durable-effect result, reused evidence, invalidated checks rerun, unverified risks, and commit hash only if committed.
 - Update only the assigned task status/evidence after its required gates pass. Never mark Done from a template, static skill validation, zero-test run, or unresolved blocker.
 - Do not wait for the owner to remind you to update status. Follow `planning/V2/TASK_LIFECYCLE.md` and update the assigned task/index as soon as its gate result is known.
-- Commit only on the assigned `anh` or `huy` branch. Stage explicit paths and inspect status/diffs first.
+- Commit only on the owner-designated/explicitly permitted branch for the current session. Branch permission does not imply permission to commit or push. Stage explicit paths and inspect status/diffs first; preserve any current-scope no-commit/no-push instruction.
 - Merge, rebase, pull, push, tags, branch/worktree changes, stash, destructive restore, migration application, and data deletion require explicit owner approval.

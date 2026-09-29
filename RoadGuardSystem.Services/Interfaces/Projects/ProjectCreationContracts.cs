@@ -29,7 +29,10 @@ public sealed record CreateProjectCommand(
     Guid? HandoverFileId,
     string? HandoverNotes,
     Guid OperationId,
-    Guid? CorrelationId);
+    Guid? CorrelationId,
+    DateOnly? WarrantyEndDate = null,
+    IReadOnlyList<Guid>? HandoverFileIds = null,
+    string? IdempotencyKey = null);
 
 public sealed record CreatedProjectView(
     Guid ProjectId,
@@ -39,6 +42,7 @@ public sealed record CreatedProjectView(
     Guid PrimaryProjectManagerUserId,
     Guid HandoverDocumentId,
     DateOnly HandoverDate,
+    DateOnly WarrantyEndDate,
     string RowVersion);
 
 public sealed record ProjectCreationResult(ProjectCreationStatus Status, CreatedProjectView? Project = null);

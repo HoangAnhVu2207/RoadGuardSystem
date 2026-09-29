@@ -2,23 +2,23 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: PARTIAL
 - decisionRefs: D25, 36A, 37
 - requirementRefs: FR-01, FR-36
 - diagramRefs: SQ-06, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
+- implementationStatus: IMPLEMENTED
 - verificationStatus: NOT_RUN
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: Code complete — awaiting review/verification.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/users/{userId}/password-reset`; operationId `adminResetPassword`.
-- **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
+- **Trạng thái kế hoạch:** `PARTIAL / IMPLEMENTED`. Code complete; awaiting review/verification.
 - **Contract:** PROPOSED_CONTRACT; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-01, FR-36; nhóm kế hoạch cũ P1-11 / P2-10 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W2; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
@@ -29,7 +29,7 @@
 - Requirements/trace: FR-01, FR-36
 - Diagrams/state: SQ-06, DD/ERD
 - Canonical contract: operationId adminResetPassword, path /users/{userId}/password-reset, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Current source/tests: `UsersController.ResetPassword`, `IdentityV2Service.ResetPasswordAsync`, `IdentityRepository.ResetUserPasswordAtomicAsync`; reviewed at base `561dd0a`, runtime verification NOT_RUN.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -223,3 +223,14 @@ schemas:
     description: Supervisor thực hiện; truyền TLS, không echo/log password. Buộc đổi
       ở lần login tiếp theo.
 ```
+
+## Completion history
+
+### 2026-09-29 09:42 +07:00 - PARTIAL
+
+- Scope/result: source comparison completed after dependency 015; reused `UsersController.ResetPassword`, `IdentityV2Service.ResetPasswordAsync` and repository atomic reset/session revocation/audit/idempotency path.
+- Files/symbols: existing controller/service/repository/DTO/security logs/DI; evidence in `V2-P1-006-015-CODE-CHECKPOINT.md`.
+- Acceptance criteria: Supervisor-only reset, forced password change, no secret response and all-session revocation are implemented; runtime behavior not yet verified.
+- Verification: shared API build PASS (0 errors, 40 warnings); tests/Newman/smoke/review-autofix NOT_RUN by owner instruction.
+- Side effects: no package, migration, schema, data, external call, commit or push; `UNCOMMITTED`.
+- Unverified/blockers: Code complete — awaiting review/verification.

@@ -1,7 +1,10 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
+using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Idempotency;
+using RoadGuardSystem.Repositories.Implementations.Surveys;
 using RoadGuardSystem.Repositories.Seeding;
 using Xunit;
 
@@ -153,6 +156,163 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         run2.Success.Should().BeTrue();
         counter.Should().Be(1);
     }
+
+    [Fact(DisplayName = "Development scenario seed creates a complete idempotent Postman graph without onboarding recipients")]
+    public async Task PostmanScenarioSeed_CreatesIdempotentGraph_WithoutOnboardingRecipients()
+    {
+        var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
+            .UseSqlServer(_fixture.ConnectionString, sql => sql.UseNetTopologySuite())
+            .Options;
+        await using var context = new RoadGuardDbContext(options);
+        var registrationCountBefore = await CountFixtureRegistrationsAsync(context);
+        var invitationCountBefore = await CountFixtureInvitationsAsync(context);
+        var seeder = new DatabaseSeeder(
+        [
+            new IdentityRoleSeedStep(),
+            new PostmanUserSeedStep(),
+            new PostmanScenarioSeedStep()
+        ]);
+
+        await seeder.SeedAsync(context);
+        context.ChangeTracker.Clear();
+        await seeder.SeedAsync(context);
+        context.ChangeTracker.Clear();
+
+        (await context.Projects.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000001")))
+            .Should().Be(1);
+        (await context.ProjectMembers.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000002")))
+            .Should().Be(1);
+        (await context.RoadSectionVersions.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000005")))
+            .Should().Be(1);
+        (await context.SurveyAssignments.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-20000000000c")))
+            .Should().Be(1);
+        (await context.FieldInspectionAssignments.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000011")))
+            .Should().Be(1);
+        (await context.SurveyPlanScopes.CountAsync(item => item.Id == PostmanScenarioSeedStep.SurveyPlanScopeId))
+            .Should().Be(1);
+        (await context.SurveyRequestScopes.CountAsync(item => item.Id == PostmanScenarioSeedStep.SurveyRequestScopeId))
+            .Should().Be(1);
+        (await context.SurveyAssignments.SingleAsync(item => item.Id == PostmanScenarioSeedStep.SurveyAssignmentId))
+            .AcceptedAt.Should().NotBeNull();
+        (await context.Surveys.SingleAsync(item => item.Id == PostmanScenarioSeedStep.SurveyId))
+            .SurveyRequestId.Should().BeNull();
+        var surveyTask = await new SurveyV2PersistenceService(context, new IdempotencyOperationService(context))
+            .GetTaskAsync(PostmanScenarioSeedStep.SurveyRequestId);
+        surveyTask.Should().NotBeNull();
+        surveyTask!.ScopeJson.Should().Contain("SURFACE");
+        surveyTask.ScopeJson.Should().Contain(PostmanScenarioSeedStep.SegmentOneId.ToString());
+        (await CountFixtureRegistrationsAsync(context)).Should().Be(registrationCountBefore);
+        (await CountFixtureInvitationsAsync(context)).Should().Be(invitationCountBefore);
+    }
+
+    [Fact(DisplayName = "RV-17: scenario seed rejects deterministic ID ownership collision and reruns after correction")]
+    public async Task PostmanScenarioSeed_RejectsOwnershipCollision_ThenRerunsAfterCorrection()
+    {
+        var isolated = await CreateIsolatedDatabaseAsync();
+        try
+        {
+            var options = CreateOptions(isolated.ConnectionString);
+            await using var context = new RoadGuardDbContext(options);
+            await new IdentityRoleSeedStep().SeedAsync(context);
+            await new PostmanUserSeedStep().SeedAsync(context);
+
+            context.Projects.Add(Project.Create(
+                PostmanScenarioSeedStep.ProjectId,
+                "NOT-THE-POSTMAN-FIXTURE",
+                "Existing owner",
+                null,
+                32648,
+                new DateOnly(2026, 1, 1),
+                new DateOnly(2027, 1, 1),
+                DateTimeOffset.UtcNow));
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var step = new PostmanScenarioSeedStep();
+            var collision = () => step.SeedAsync(context);
+            await collision.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*fixture collision*project*");
+            (await context.ProjectMembers.CountAsync(item => item.ProjectId == PostmanScenarioSeedStep.ProjectId))
+                .Should().Be(0);
+
+            var project = await context.Projects.SingleAsync(item => item.Id == PostmanScenarioSeedStep.ProjectId);
+            project.ProjectCode = PostmanScenarioSeedStep.ProjectCode;
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            await step.SeedAsync(context);
+            (await context.FieldInspectionTasks.CountAsync(item => item.Id == PostmanScenarioSeedStep.FieldInspectionTaskId))
+                .Should().Be(1);
+        }
+        finally
+        {
+            await isolated.DisposeAsync();
+        }
+    }
+
+    [Fact(DisplayName = "RV-17/19: scenario seed preserves mutable data and concurrent runs converge to one graph")]
+    public async Task PostmanScenarioSeed_ConcurrentRunsConvergeAndPreserveMutableData()
+    {
+        var isolated = await CreateIsolatedDatabaseAsync();
+        try
+        {
+            var options = CreateOptions(isolated.ConnectionString);
+            await using (var setup = new RoadGuardDbContext(options))
+            {
+                await new IdentityRoleSeedStep().SeedAsync(setup);
+                await new PostmanUserSeedStep().SeedAsync(setup);
+            }
+
+            await using var first = new RoadGuardDbContext(options);
+            await using var second = new RoadGuardDbContext(options);
+            await Task.WhenAll(
+                new PostmanScenarioSeedStep().SeedAsync(first),
+                new PostmanScenarioSeedStep().SeedAsync(second));
+
+            await using var verify = new RoadGuardDbContext(options);
+            (await verify.Projects.CountAsync(item => item.Id == PostmanScenarioSeedStep.ProjectId)).Should().Be(1);
+            (await verify.ProjectMembers.CountAsync(item => item.ProjectId == PostmanScenarioSeedStep.ProjectId)).Should().Be(3);
+            (await verify.SurveyRequestScopes.CountAsync(item => item.SurveyRequestId == PostmanScenarioSeedStep.SurveyRequestId)).Should().Be(1);
+
+            var project = await verify.Projects.SingleAsync(item => item.Id == PostmanScenarioSeedStep.ProjectId);
+            project.Name = "Locally edited fixture name";
+            await verify.SaveChangesAsync();
+            verify.ChangeTracker.Clear();
+            await new PostmanScenarioSeedStep().SeedAsync(verify);
+            (await verify.Projects.AsNoTracking().SingleAsync(item => item.Id == PostmanScenarioSeedStep.ProjectId))
+                .Name.Should().Be("Locally edited fixture name");
+        }
+        finally
+        {
+            await isolated.DisposeAsync();
+        }
+    }
+
+    private static DbContextOptions<RoadGuardDbContext> CreateOptions(string connectionString) =>
+        new DbContextOptionsBuilder<RoadGuardDbContext>()
+            .UseSqlServer(connectionString, sql => sql.UseNetTopologySuite())
+            .Options;
+
+    private static async Task<SqlServerTestFixture> CreateIsolatedDatabaseAsync()
+    {
+        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
+        await fixture.InitializeAsync();
+        await using var context = new RoadGuardDbContext(CreateOptions(fixture.ConnectionString));
+        await context.Database.MigrateAsync();
+        return fixture;
+    }
+
+    private static Task<int> CountFixtureRegistrationsAsync(RoadGuardDbContext context) =>
+        context.ReporterRegistrationIntents.CountAsync(item =>
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedProjectManagerEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedOperatorEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedRepairCrewEmail);
+
+    private static Task<int> CountFixtureInvitationsAsync(RoadGuardDbContext context) =>
+        context.StaffInvitations.CountAsync(item =>
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedProjectManagerEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedOperatorEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedRepairCrewEmail);
 
     [Fact(DisplayName = "Positive: Wave 0 no-op seed entry point runs repeatedly, executes 0 steps, and does not add or remove base tables")]
     public async Task Wave0_NoOpSeed_CanExecuteRepeatedly_WithoutMutatingBaseTables()

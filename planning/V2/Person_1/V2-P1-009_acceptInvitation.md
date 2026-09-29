@@ -2,23 +2,23 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: PARTIAL
 - decisionRefs: D25, 36A, 37
 - requirementRefs: FR-02, FR-01
 - diagramRefs: SQ-06, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: Local SQL initializer/health/login pass; mailbox token entry and real invitation acceptance remain blocked on local SMTP credentials and createInvitation.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/invitations/accept`; operationId `acceptInvitation`.
-- **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
+- **Trạng thái kế hoạch:** `PARTIAL / IMPLEMENTED`. Code complete; awaiting review/verification.
 - **Contract:** PROPOSED_CONTRACT; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-02; nhóm kế hoạch cũ P1-10/P2-10 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W2; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
@@ -29,7 +29,7 @@
 - Requirements/trace: FR-02, FR-01
 - Diagrams/state: SQ-06, DD/ERD
 - Canonical contract: operationId acceptInvitation, path /invitations/accept, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Current source/tests: `InvitationsController.Accept`, `IdentityOnboardingService.AcceptInvitationAsync`, `IdentityOnboardingRepository.AcceptInvitationAsync`; reviewed at base `561dd0a`, runtime verification NOT_RUN.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -265,3 +265,44 @@ schemas:
     - mustChangePassword
     - user
 ```
+
+## Completion history
+
+### 2026-09-29 09:42 +07:00 - PARTIAL
+
+- Scope/result: source comparison completed after dependency 010; reused the acceptance transaction and added repository concurrency translation so same-key races replay and competing acceptance cannot create a second account/session.
+- Files/symbols: existing controller/service/repository/DTO/entities/mappings/DI; evidence in `V2-P1-006-015-CODE-CHECKPOINT.md`.
+- Acceptance criteria: lifecycle/idempotency/session code complete; runtime behavior not yet verified.
+- Verification: shared API build PASS (0 errors, 40 warnings); tests/Newman/smoke/review-autofix NOT_RUN by owner instruction.
+- Side effects: no package, migration, schema, data, external call, commit or push; `UNCOMMITTED`.
+- Unverified/blockers: Code complete — awaiting review/verification.
+
+### 2026-09-29 11:22 +07:00 - PARTIAL
+
+- Scope/result: prepared guarded invitation acceptance using a mailbox token entered only in the private Postman environment.
+- Files/symbols: Postman invitation environment/collection/README and existing fake sender flow.
+- Acceptance criteria: focused API test proves invitation acceptance creates the account once and same-key replay succeeds; no token is read from persistence.
+- Verification: API build PASS (0 errors); `V2IdentityOnboardingFlowTests` PASS 3/3; Postman JSON/YAML and secret-placeholder scan PASS. Real mailbox/manual accept NOT_RUN.
+- Reused/invalidated evidence: prior build-only evidence replaced by current focused tests; external smoke remains missing.
+- Side effects: no package/migration/schema/Development DB/SMTP/commit/push; `UNCOMMITTED`.
+- Unverified/blockers: real invitation receipt/link parsing/manual accept and external smoke remain required before DONE.
+
+### 2026-09-29 14:42 +07:00 - PARTIAL
+
+- Scope/result: guarded invitation acceptance so it runs only for the invitation scenario with locally entered token/password and one retained idempotency key for replay.
+- Files: primary Postman collection, invitation acceptance YAML and ignored private environment.
+- Acceptance criteria: supplied invitation recipients have no current account/invitation state; no token hash was queried. Acceptance was not called before delivery.
+- Verification: collection/YAML parse PASS; API health/login PASS on `RoadGuardPostmanTest`. Mailbox receipt/accept NOT_RUN.
+- Reused/invalidated evidence: fake-sender acceptance/replay evidence remains valid; manual external gate remains open.
+- Side effects: test-only database initialization; no invitation acceptance/account creation/email/commit/push.
+- Unverified/blockers: SMTP setup, invitation delivery and locally entered link token/password are required; task remains PARTIAL.
+
+### 2026-09-29 15:15 +07:00 - PARTIAL
+
+- Scope/result: invitation create/accept skips now report the required private environment and INVITATION scenario in Postman Console.
+- Files: primary collection, invitation YAML requests, Postman README, and this task evidence.
+- Acceptance criteria: invitation requests remain gated; no invitation request was executed in the safe Newman run.
+- Verification: JSON parse PASS; YAML parse PASS 56/56; Reporter folder Newman PASS (1 validation request, 6 guarded skips); API health 200; SQL precondition query found no invitation for supplied addresses.
+- Reused/invalidated evidence: earlier fake-sender invitation tests remain valid; no production source changed.
+- Side effects: no email/invitation/account creation, database mutation, commit or push.
+- Unverified/blockers: real delivery/acceptance remains NOT_RUN; desktop UI interaction unavailable in this session.

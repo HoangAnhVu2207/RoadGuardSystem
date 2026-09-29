@@ -7,7 +7,8 @@ public enum AuthoritativeSessionValidation
 {
     Success,
     Unauthorized,
-    SessionRevoked
+    SessionRevoked,
+    MustChangePassword
 }
 
 public sealed class AuthoritativeSessionValidator
@@ -52,6 +53,11 @@ public sealed class AuthoritativeSessionValidator
             {
                 await _identityRepository.RevokeSessionAndFamilyAsync(sessionId, cancellationToken);
                 return AuthoritativeSessionValidation.SessionRevoked;
+            }
+
+            if (user.MustChangePassword)
+            {
+                return AuthoritativeSessionValidation.MustChangePassword;
             }
 
             return AuthoritativeSessionValidation.Success;

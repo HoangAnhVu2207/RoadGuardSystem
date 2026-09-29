@@ -106,6 +106,8 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
         string otpHash,
         DateTimeOffset expiresAt,
         DateTimeOffset resendAvailableAt,
+        int maxResendsPerWindow,
+        TimeSpan resendWindow,
         string idempotencyKey,
         string requestFingerprint,
         Guid operationId,
@@ -131,6 +133,17 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
             return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.TooManyRequests, intent);
         }
 
+        var resendWindowStart = now.Subtract(resendWindow);
+        var recentResendCount = await _context.IdempotencyRecords.AsNoTracking().CountAsync(
+            item => item.Operation == ResendOperation &&
+                    item.RequestFingerprint == requestFingerprint &&
+                    item.CreatedAtUtc >= resendWindowStart,
+            cancellationToken);
+        if (recentResendCount >= maxResendsPerWindow)
+        {
+            return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.TooManyRequests, intent);
+        }
+
         intent.OtpGeneration++;
         intent.OtpHash = otpHash;
         intent.FailedAttempts = 0;
@@ -145,7 +158,24 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
             operationId,
             JsonSerializer.Serialize(new { intentId }),
             now));
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            _context.ChangeTracker.Clear();
+            return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.TooManyRequests);
+        }
+        catch (DbUpdateException)
+        {
+            _context.ChangeTracker.Clear();
+            var winner = await FindRecordAsync(null, ResendOperation, idempotencyKey, CancellationToken.None);
+            return winner is null
+                ? new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.Conflict)
+                : await MapReporterReplayAsync(winner, requestFingerprint, CancellationToken.None);
+        }
+
         return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.Success, intent);
     }
 
@@ -183,8 +213,16 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
         if (!string.Equals(intent.OtpHash, otpHash, StringComparison.Ordinal))
         {
             intent.FailedAttempts++;
-            await _context.SaveChangesAsync(cancellationToken);
-            return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.InvalidInput, intent);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.InvalidInput, intent);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _context.ChangeTracker.Clear();
+                return await RecordInvalidOtpAttemptAfterConcurrencyAsync(intentId, maxAttempts);
+            }
         }
 
         var user = await _context.Users.SingleAsync(item => item.Id == intent.UserId.Value, cancellationToken);
@@ -204,12 +242,57 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
             operationId,
             JsonSerializer.Serialize(new { intentId, userId = user.Id, sessionId = session.Id }),
             now));
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            _context.ChangeTracker.Clear();
+            var winner = await FindRecordAsync(null, VerifyOperation, idempotencyKey, CancellationToken.None);
+            return winner is null
+                ? new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.Conflict)
+                : await MapActivationReplayAsync(winner, requestFingerprint, CancellationToken.None);
+        }
+
         return new ReporterRegistrationPersistenceResult(
             IdentityOnboardingPersistenceStatus.Success,
             intent,
             ToSecurityState(user),
             session.Id);
+    }
+
+    private async Task<ReporterRegistrationPersistenceResult> RecordInvalidOtpAttemptAfterConcurrencyAsync(
+        Guid intentId,
+        int maxAttempts)
+    {
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var current = await _context.ReporterRegistrationIntents
+                .SingleOrDefaultAsync(item => item.Id == intentId, CancellationToken.None);
+            if (current is null)
+            {
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.NotFound);
+            }
+
+            if (current.FailedAttempts >= maxAttempts)
+            {
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.TooManyRequests, current);
+            }
+
+            current.FailedAttempts++;
+            try
+            {
+                await _context.SaveChangesAsync(CancellationToken.None);
+                return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.InvalidInput, current);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _context.ChangeTracker.Clear();
+            }
+        }
+
+        return new ReporterRegistrationPersistenceResult(IdentityOnboardingPersistenceStatus.Conflict);
     }
 
     public async Task<InvitationPersistenceResult> CreateInvitationAsync(
@@ -248,7 +331,23 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
             operationId,
             JsonSerializer.Serialize(new { invitationId = invitation.Id }),
             invitation.CreatedAt));
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            _context.ChangeTracker.Clear();
+            var winner = await FindRecordAsync(
+                invitation.CreatedByUserId,
+                CreateInvitationOperation,
+                idempotencyKey,
+                CancellationToken.None);
+            return winner is null
+                ? new InvitationPersistenceResult(IdentityOnboardingPersistenceStatus.Conflict)
+                : await MapInvitationReplayAsync(winner, requestFingerprint, CancellationToken.None);
+        }
+
         return new InvitationPersistenceResult(IdentityOnboardingPersistenceStatus.Success, invitation, DeliveryToken: null);
     }
 
@@ -316,7 +415,19 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
             operationId,
             JsonSerializer.Serialize(new { invitationId = invitation.Id, userId = user.Id, sessionId = session.Id }),
             now));
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            _context.ChangeTracker.Clear();
+            var winner = await FindRecordAsync(null, AcceptInvitationOperation, idempotencyKey, CancellationToken.None);
+            return winner is null
+                ? new InvitationPersistenceResult(IdentityOnboardingPersistenceStatus.Conflict)
+                : await MapInvitationActivationReplayAsync(winner, requestFingerprint, CancellationToken.None);
+        }
+
         return new InvitationPersistenceResult(
             IdentityOnboardingPersistenceStatus.Success,
             invitation,

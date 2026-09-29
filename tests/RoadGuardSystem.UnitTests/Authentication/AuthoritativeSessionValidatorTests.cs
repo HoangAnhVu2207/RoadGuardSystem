@@ -164,6 +164,23 @@ public sealed class AuthoritativeSessionValidatorTests
         repository.RevokedSessionId.Should().BeNull();
     }
 
+    [Fact(DisplayName = "P1-10: must-change-password sessions are restricted until password change")]
+    public async Task Validate_MustChangePassword_ReturnsDedicatedStatus()
+    {
+        var userId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var repository = new StubIdentityRepository
+        {
+            Session = ActiveSession(sessionId, userId),
+            User = ActiveUser(userId, UserRoleCode.DroneOperator) with { MustChangePassword = true }
+        };
+
+        var result = await new AuthoritativeSessionValidator(repository)
+            .ValidateAsync(userId, sessionId, UserRoleCode.DroneOperator, DateTimeOffset.UtcNow);
+
+        result.Should().Be(AuthoritativeSessionValidation.MustChangePassword);
+    }
+
     private static SessionSecurityState ActiveSession(
         Guid sessionId,
         Guid userId,

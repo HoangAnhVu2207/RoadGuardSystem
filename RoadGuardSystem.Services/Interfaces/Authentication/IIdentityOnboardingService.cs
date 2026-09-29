@@ -24,7 +24,6 @@ public interface IIdentityOnboardingService
     Task<IdentityOnboardingResult> CreateInvitationAsync(
         Guid actorUserId,
         string email,
-        string displayName,
         string role,
         IReadOnlyList<Guid> projectIds,
         string idempotencyKey,

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.Services.Authentication;
+using RoadGuardSystem.Services.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 
@@ -81,7 +82,6 @@ public sealed class V2IdentityOnboardingFlowTests
         var created = await client.PostAsJsonAsync("/api/v1/invitations", new
         {
             email,
-            displayName = "Invited Operator",
             role = "OPERATOR",
             projectIds = Array.Empty<Guid>()
         });
@@ -111,11 +111,99 @@ public sealed class V2IdentityOnboardingFlowTests
         })).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    private AuthenticationWebApplicationFactory Factory(CapturingIdentityMessageSender sender) =>
+    [Fact]
+    public async Task ReporterRegistration_ResendInvalidatesOldOtp_UsingFakeSender()
+    {
+        var sender = new CapturingIdentityMessageSender();
+        await using var factory = Factory(sender, zeroResendCooldown: true);
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var registration = await client.PostAsJsonAsync("/api/v1/auth/reporter-registrations", new
+        {
+            email = $"resend.{Guid.NewGuid():N}@example.test",
+            password = "Reporter1!",
+            displayName = "Resend Reporter",
+            reporterType = "CITIZEN"
+        });
+        var intentId = (await registration.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("intentId")
+            .GetGuid();
+        var oldOtp = sender.Otps.Single();
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+
+        var resent = await client.PostAsJsonAsync("/api/v1/auth/reporter-registrations/resend", new { intentId });
+
+        resent.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        sender.Otps.Should().HaveCount(2);
+        var newOtp = sender.Otps[1];
+        newOtp.Should().NotBe(oldOtp);
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var oldCodeResult = await client.PostAsJsonAsync(
+            "/api/v1/auth/reporter-registrations/verify",
+            new { intentId, otp = oldOtp });
+        oldCodeResult.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var newCodeResult = await client.PostAsJsonAsync(
+            "/api/v1/auth/reporter-registrations/verify",
+            new { intentId, otp = newOtp });
+        newCodeResult.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ReporterVerification_WrongOtpConcurrentAttempts_PersistEachAttemptWithoutConsumption()
+    {
+        var sender = new CapturingIdentityMessageSender();
+        await using var factory = Factory(sender);
+        using var client = factory.CreateClient();
+        var email = $"wrong-otp-race.{Guid.NewGuid():N}@example.test";
+        var intentKey = Guid.NewGuid().ToString("N");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", intentKey);
+        var registration = await client.PostAsJsonAsync("/api/v1/auth/reporter-registrations", new
+        {
+            email,
+            password = "Reporter1!",
+            displayName = "Wrong OTP Race",
+            reporterType = "CITIZEN"
+        });
+        registration.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var intentId = (await registration.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("intentId").GetGuid();
+
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        var requests = Enumerable.Range(0, 2).Select(async _ =>
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/reporter-registrations/verify")
+            {
+                Content = JsonContent.Create(new { intentId, otp = "000000" })
+            };
+            request.Headers.Add("Idempotency-Key", $"wrong-otp-race-{Guid.NewGuid():N}");
+            return await client.SendAsync(request);
+        }).ToArray();
+        var responses = await Task.WhenAll(requests);
+
+        responses.Should().OnlyContain(response => response.StatusCode == HttpStatusCode.BadRequest);
+        await using var verification = _sql.CreateDbContext();
+        var intent = await verification.ReporterRegistrationIntents.AsNoTracking().SingleAsync(item => item.Id == intentId);
+        intent.FailedAttempts.Should().Be(2);
+        intent.ConsumedAt.Should().BeNull();
+        intent.EmailConfirmedAt.Should().BeNull();
+    }
+
+    private AuthenticationWebApplicationFactory Factory(
+        CapturingIdentityMessageSender sender,
+        bool zeroResendCooldown = false) =>
         new(_sql.ConnectionString, configureTestServices: services =>
         {
             services.RemoveAll<IIdentityMessageSender>();
             services.AddSingleton<IIdentityMessageSender>(sender);
+            if (zeroResendCooldown)
+            {
+                services.PostConfigure<IdentityOnboardingOptions>(options =>
+                    options.OtpResendCooldownSeconds = 0);
+            }
         });
 
     private static async Task AuthenticateAsync(HttpClient client, string username, string password)
@@ -136,6 +224,8 @@ public sealed class V2IdentityOnboardingFlowTests
     {
         public string? Otp { get; private set; }
 
+        public List<string> Otps { get; } = [];
+
         public string? InvitationToken { get; private set; }
 
         public Task<bool> SendReporterOtpAsync(
@@ -144,6 +234,7 @@ public sealed class V2IdentityOnboardingFlowTests
             CancellationToken cancellationToken = default)
         {
             Otp = otp;
+            Otps.Add(otp);
             return Task.FromResult(true);
         }
 

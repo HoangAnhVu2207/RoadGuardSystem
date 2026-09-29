@@ -6,9 +6,6 @@ namespace RoadGuardSystem.DTOs.Invitations;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class CreateInvitationRequestDto
 {
-    [Required, MinLength(1)]
-    public string? DisplayName { get; init; }
-
     [Required, EmailAddress]
     public string? Email { get; init; }
 

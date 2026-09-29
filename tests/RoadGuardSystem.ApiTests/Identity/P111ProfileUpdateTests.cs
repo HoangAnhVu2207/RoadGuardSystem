@@ -72,13 +72,39 @@ public sealed class P111ProfileUpdateTests
         var response = await client.PutAsJsonAsync("/api/v1/profile", new
         {
             displayName = "Should Not Persist",
-            email = (string?)null,
+            email = AuthenticationSqlServerFixture.EmailFor(username),
             expectedRowVersion = Convert.ToBase64String([0, 0, 0, 0]),
             operationId = Guid.NewGuid()
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         ProblemCode(await response.Content.ReadAsStringAsync()).Should().Be(ApiErrorCodes.ConcurrencyConflict);
+    }
+
+    [Fact(DisplayName = "P1-11 V2: legacy profile rejects a login-email change")]
+    public async Task ProfileUpdate_ChangedLoginEmail_IsRejectedWithoutMutation()
+    {
+        var username = $"profile_email_lock_{Guid.NewGuid():N}";
+        var user = await _sql.CreateUserAsync(username, "Current1!");
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient();
+        await AuthenticateAsync(client, username);
+        using var currentProfile = JsonDocument.Parse(
+            await (await client.GetAsync("/api/v1/profile")).Content.ReadAsStringAsync());
+
+        var response = await client.PutAsJsonAsync("/api/v1/profile", new
+        {
+            displayName = "Must Not Persist",
+            email = $"changed_{Guid.NewGuid():N}@example.test",
+            expectedRowVersion = currentProfile.RootElement.GetProperty("rowVersion").GetString(),
+            operationId = Guid.NewGuid()
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await using var verification = _sql.CreateDbContext();
+        var persisted = await verification.Users.AsNoTracking().SingleAsync(item => item.Id == user.Id);
+        persisted.DisplayName.Should().Be(username);
+        persisted.Email.Should().Be(AuthenticationSqlServerFixture.EmailFor(username));
     }
 
     private static async Task AuthenticateAsync(HttpClient client, string username)

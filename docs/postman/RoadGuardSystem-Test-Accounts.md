@@ -2,7 +2,7 @@
 
 ## Important
 
-When the API is started in Development with `RoadGuardDatabase:InitializeOnStartup=true` and `RoadGuardDatabase:SeedDevelopmentUsers=true`, the `DbInitializer` provisions the four deterministic accounts below. They are never seeded in Production.
+When the API is started in Development with `RoadGuardDatabase:InitializeOnStartup=true` and `RoadGuardDatabase:SeedDevelopmentUsers=true`, the existing `DbInitializer` provisions the four deterministic accounts below and the scenario graph documented in `README.md`. They are never seeded in Production. Real OTP/invitation recipient addresses are configuration only and are never fixture accounts.
 
 The API test fixtures use this password convention when creating disposable users:
 

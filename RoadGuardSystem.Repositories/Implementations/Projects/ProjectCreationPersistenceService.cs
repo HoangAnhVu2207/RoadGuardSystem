@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
@@ -35,7 +36,10 @@ public sealed record ProjectCreationPersistenceRequest(
     Guid? HandoverFileId,
     string? HandoverNotes,
     Guid OperationId,
-    Guid? CorrelationId);
+    Guid? CorrelationId,
+    DateOnly? WarrantyEndDate = null,
+    IReadOnlyList<Guid>? HandoverFileIds = null,
+    string? IdempotencyKey = null);
 
 public sealed record ProjectCreationPersistenceView(
     Guid ProjectId,
@@ -45,6 +49,7 @@ public sealed record ProjectCreationPersistenceView(
     Guid PrimaryProjectManagerUserId,
     Guid HandoverDocumentId,
     DateOnly HandoverDate,
+    DateOnly WarrantyEndDate,
     byte[] RowVersion);
 
 public sealed record ProjectCreationPersistenceResult(
@@ -97,7 +102,7 @@ public sealed class ProjectCreationPersistenceService : IProjectCreationReposito
 
     public async Task<ProjectCreationFacts> GetFactsAsync(
         Guid primaryProjectManagerUserId,
-        Guid? handoverFileId,
+        IReadOnlyList<Guid>? handoverFileIds,
         CancellationToken cancellationToken = default)
     {
         var primaryProjectManagerIsEligible = await _context.Users.AsNoTracking().AnyAsync(user =>
@@ -105,9 +110,10 @@ public sealed class ProjectCreationPersistenceService : IProjectCreationReposito
             user.Status == UserStatus.Active &&
             user.RoleCode == UserRoleCode.ProjectManager,
             cancellationToken);
-        var handoverFileExists = handoverFileId is not Guid fileId || await _context.Files
-            .AsNoTracking()
-            .AnyAsync(file => file.Id == fileId, cancellationToken);
+        var fileIds = handoverFileIds ?? [];
+        var handoverFileExists = fileIds.Count <= 1 &&
+            (fileIds.Count == 0 || await _context.Files.AsNoTracking()
+                .AnyAsync(file => file.Id == fileIds[0], cancellationToken));
         return new(primaryProjectManagerIsEligible, handoverFileExists);
     }
 
@@ -182,12 +188,26 @@ public sealed class ProjectCreationPersistenceService : IProjectCreationReposito
             request.HandoverDocumentNo,
             request.HandoverDate,
             request.ActorUserId,
-            request.HandoverFileId,
+            request.HandoverFileIds is { Count: > 0 } ? request.HandoverFileIds[0] : null,
             request.HandoverNotes);
+        var warranty = Warranty.Create(
+            Guid.NewGuid(),
+            projectId,
+            roadSectionId: null,
+            handoverDocumentId: handoverId,
+            handoverDate: request.HandoverDate,
+            warrantyStartDate: request.HandoverDate,
+            warrantyEndDate: request.WarrantyEndDate ?? request.HandoverDate,
+            retainedValue: null,
+            scope: WarrantyScope.Project,
+            terms: null,
+            sourceDocumentId: request.HandoverFileIds is { Count: > 0 } ? request.HandoverFileIds[0] : null,
+            status: WarrantyStatus.Active);
 
         _context.Projects.Add(project);
         _context.ProjectMembers.Add(member);
         _context.HandoverDocuments.Add(handover);
+        _context.Warranties.Add(warranty);
         var snapshot = JsonSerializer.Serialize(new
         {
             project_code = project.ProjectCode,
@@ -217,6 +237,7 @@ public sealed class ProjectCreationPersistenceService : IProjectCreationReposito
             member.UserId,
             handover.Id,
             handover.HandoverDate,
+            warranty.WarrantyEndDate,
             project.RowVersion);
         return (projectId, JsonSerializer.Serialize(view));
     }
@@ -234,7 +255,9 @@ public sealed class ProjectCreationPersistenceService : IProjectCreationReposito
             primary_project_manager_user_id = request.PrimaryProjectManagerUserId,
             handover_document_no = request.HandoverDocumentNo.Trim(),
             handover_date = request.HandoverDate,
-            handover_file_id = request.HandoverFileId,
+            warranty_end_date = request.WarrantyEndDate,
+            handover_file_ids = request.HandoverFileIds ??
+                (request.HandoverFileId is Guid legacyFileId ? [legacyFileId] : []),
             handover_notes = request.HandoverNotes?.Trim()
         });
         return Convert.ToHexString(SHA256.HashData(canonical)).ToLowerInvariant();

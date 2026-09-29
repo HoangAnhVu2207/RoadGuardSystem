@@ -6,7 +6,7 @@
 - decisionRefs: D25, 36A, 37
 - requirementRefs: FR-01
 - diagramRefs: SQ-06, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: V2-P1-001-005-AUTH-CHECKPOINT / baseline 49c7eae / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 - contractStatus: PROPOSED_CONTRACT
 - implementationStatus: IMPLEMENTED_REUSED
@@ -39,7 +39,7 @@
 - Diagrams/state: SQ-06, DD/ERD
 - Canonical contract: operationId login, path /auth/login, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
-- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Delivery checkpoint: the task-local `Completion evidence (2026-09-29, owner anh)` and `planning/V2/Governance/V2-P1-001-005-auth-smoke.ps1` support `V2-P1-001-005-AUTH-CHECKPOINT / baseline 49c7eae`; this governance reconciliation did not rerun or broaden that runtime evidence.
 
 ## 1. Cần làm và tại sao
 

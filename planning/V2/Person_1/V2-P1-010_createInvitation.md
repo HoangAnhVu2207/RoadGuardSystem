@@ -2,23 +2,23 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: PARTIAL
 - decisionRefs: D25, 36A, 37
 - requirementRefs: FR-02, FR-01
 - diagramRefs: SQ-06, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: Local SQL initializer/health/login pass; real invitation delivery is ready but blocked until local SMTP credentials are supplied outside Git/chat.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/invitations`; operationId `createInvitation`.
-- **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
+- **Trạng thái kế hoạch:** `PARTIAL / IMPLEMENTED`. Code complete; awaiting review/verification.
 - **Contract:** PROPOSED_CONTRACT; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-02; nhóm kế hoạch cũ P1-64/P2-64 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W2; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
@@ -29,7 +29,7 @@
 - Requirements/trace: FR-02, FR-01
 - Diagrams/state: SQ-06, DD/ERD
 - Canonical contract: operationId createInvitation, path /invitations, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Current source/tests: `InvitationsController.Create`, `IdentityOnboardingService.CreateInvitationAsync`, `IdentityOnboardingRepository.CreateInvitationAsync`; reviewed at base `561dd0a`, runtime verification NOT_RUN.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -268,3 +268,44 @@ schemas:
     - role
     - projectIds
 ```
+
+## Completion history
+
+### 2026-09-29 09:42 +07:00 - PARTIAL
+
+- Scope/result: source comparison completed; removed undocumented create-time `displayName` so request matches `InvitationRequest` (email/role/projectIds); reused repository persistence for Supervisor authorization, scope, token hash, expiry, delivery and idempotency.
+- Files/symbols: `CreateInvitationRequestDto`, `InvitationsController.Create`, `IIdentityOnboardingService.CreateInvitationAsync`, `IdentityOnboardingService.CreateInvitationAsync`, API HTTP/Postman and focused test source; repository/entities/mappings/DI reused; evidence in `V2-P1-006-015-CODE-CHECKPOINT.md`.
+- Acceptance criteria: 201/Location/ETag, idempotent concurrent create handling and no secret token response are code complete; runtime behavior not yet verified.
+- Verification: shared API build PASS (0 errors, 40 warnings); tests/Newman/smoke/review-autofix NOT_RUN by owner instruction.
+- Side effects: no package, migration, schema, data, external call, commit or push; `UNCOMMITTED`.
+- Unverified/blockers: Code complete — awaiting review/verification.
+
+### 2026-09-29 11:22 +07:00 - PARTIAL
+
+- Scope/result: added guarded manual invitation delivery variables and fixture project IDs without seeding invitations or recipient accounts.
+- Files/symbols: `PostmanScenarioSeedStep`, seeding DI, Postman invitation request/environment/README and local SMTP template.
+- Acceptance criteria: focused API test proves Supervisor creation and token non-disclosure through the fake sender; seed remains independent of invitation state.
+- Verification: API build PASS (0 errors); focused SQL seed tests PASS 2/2; `V2IdentityOnboardingFlowTests` PASS 3/3; Postman JSON/YAML and safety guards PASS. Real SMTP/mailbox delivery NOT_RUN.
+- Reused/invalidated evidence: prior build-only evidence replaced by current focused tests; external smoke remains missing.
+- Side effects: no package/migration/schema/Development DB/SMTP/commit/push; `UNCOMMITTED`.
+- Unverified/blockers: real invitation delivery and external endpoint smoke remain required before DONE.
+
+### 2026-09-29 14:42 +07:00 - PARTIAL
+
+- Scope/result: login now stores `supervisorAccessToken`; invitation create uses the seeded project fixture, stable generated idempotency key and required-variable gate.
+- Files: primary Postman collection, login/invitation YAML requests, environments and ignored Development config.
+- Acceptance criteria: dedicated SQL database has seeded Supervisor/project; every supplied invitation recipient is unused. No invitation was persisted because SMTP is not configured.
+- Verification: Postman JSON/YAML parse PASS; API health 200; Supervisor login PASS; SQL precondition query returned no User/Invitation rows for supplied addresses.
+- Reused/invalidated evidence: fake-sender create evidence remains valid; manual delivery remains unverified.
+- Side effects: created/migrated/seeded only `RoadGuardPostmanTest`; no real email/live DB/reset/commit/push.
+- Unverified/blockers: fill local SMTP username/password, restart host, then create invitation; task remains PARTIAL.
+
+### 2026-09-29 15:15 +07:00 - PARTIAL
+
+- Scope/result: invitation creation gate now prints an actionable Postman Console warning for wrong/empty environment selection.
+- Files: primary collection, invitation create YAML request, Postman README, and this task evidence.
+- Acceptance criteria: no invitation was submitted; API remains healthy and recipient state remains unused.
+- Verification: JSON parse PASS; YAML parse PASS 56/56; Newman Reporter safe run PASS (1 request, 1 assertion, 6 guarded skips); API health 200; SQL invitation precondition count 0.
+- Reused/invalidated evidence: fake-sender create invitation coverage remains valid; no production source changed.
+- Side effects: no email, invitation write, database change, commit or push.
+- Unverified/blockers: live SMTP invitation delivery remains NOT_RUN; desktop UI interaction unavailable in this session.

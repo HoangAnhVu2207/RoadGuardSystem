@@ -1,0 +1,3 @@
+$kind: collection
+description: Legacy path included in runtime OpenAPI. Destructive and disabled by default; targetUserId must be a disposable account.
+order: 3000

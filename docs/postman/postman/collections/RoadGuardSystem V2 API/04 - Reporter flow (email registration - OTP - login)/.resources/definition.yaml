@@ -1,0 +1,4 @@
+$kind: collection
+name: 04 - Reporter flow (email registration -> OTP -> login)
+description: Manual mailbox/OTP requests are skipped unless manualEmailScenario is explicitly set. Never include real-mail scenarios in unattended collection runs.
+order: 5000

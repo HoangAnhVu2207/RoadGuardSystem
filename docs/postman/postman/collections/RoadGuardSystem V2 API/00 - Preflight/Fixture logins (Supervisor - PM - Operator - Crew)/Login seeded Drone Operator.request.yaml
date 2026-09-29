@@ -1,0 +1,23 @@
+$kind: http-request
+description: Role fixture login for OPERATOR. Requires the Development DbInitializer account to be active and unchanged. Saves the token to operatorAccessToken. No account data is changed.
+url: "{{baseUrl}}/api/v1/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{operatorEmail}}",
+      "password": "{{operatorPassword}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get('operatorPassword')) throw new Error('Set operatorPassword in the active local environment first.');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('OPERATOR fixture login returns 200', function () { pm.response.to.have.status(200); });
+      if (pm.response.code === 200) { var b = pm.response.json(); pm.test('Login role is OPERATOR', function () { pm.expect(b.user.role).to.eql('OPERATOR'); }); pm.environment.set('operatorAccessToken', b.accessToken); pm.environment.set('accessToken', b.accessToken); pm.environment.set('refreshToken', b.refreshToken); pm.environment.set('authenticatedUserId', b.user.id); pm.environment.set('profileRowVersion', b.user.version); }
+    language: text/javascript
+order: 3000

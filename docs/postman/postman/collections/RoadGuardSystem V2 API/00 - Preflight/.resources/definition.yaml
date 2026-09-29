@@ -1,0 +1,3 @@
+$kind: collection
+description: Start here. Verify API health, then run the four fixture logins.
+order: 1000

@@ -169,6 +169,7 @@ public static class RoadGuardPersistenceExtensions
         if (includeDevelopmentUsers)
         {
             services.AddScoped<ISeedStep, PostmanUserSeedStep>();
+            services.AddScoped<ISeedStep, PostmanScenarioSeedStep>();
         }
 
         return services;

@@ -1,0 +1,3 @@
+$kind: collection
+description: Supervisor-only account lookup/update/reset. Read uses the seeded PM fixture. Mutations require explicit disposable-target confirmation.
+order: 2000

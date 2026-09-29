@@ -1,0 +1,28 @@
+$kind: http-request
+name: POST /auth/reporter-registrations/verify - old OTP after resend
+description: "MANUAL EMAIL. Purpose: prove the original OTP is invalid after a successful resend. Setup: OTP_RESEND scenario, enter the first mailbox code in otpOriginalOtp after resend completed. Expected: 400 without tokens. Data change: failed-attempt counter only."
+url: "{{baseUrl}}/api/v1/auth/reporter-registrations/verify"
+method: POST
+headers:
+  Idempotency-Key: "{{otpOldVerificationKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "intentId": "{{otpResendIntentId}}",
+      "otp": "{{otpOriginalOtp}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (pm.environment.get('manualEmailScenario') !== 'OTP_RESEND') { console.warn('[RoadGuard Postman] Skipped: choose RoadGuard.local.private and set manualEmailScenario=OTP_RESEND.'); pm.execution.skipRequest(); }
+      if (!pm.environment.get('otpOriginalOtp')) throw new Error('Enter the original OTP in otpOriginalOtp first');
+      if (!pm.environment.get('otpOldVerificationKey')) pm.environment.set('otpOldVerificationKey', pm.variables.replaceIn('{{$guid}}'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Old OTP is rejected after resend', function () { pm.response.to.have.status(400); });
+      pm.test('No token leak', function () { pm.expect(pm.response.text()).to.not.match(/accessToken|refreshToken/i); });
+    language: text/javascript
+order: 6000

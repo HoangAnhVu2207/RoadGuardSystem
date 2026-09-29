@@ -1,0 +1,16 @@
+$kind: http-request
+name: GET /me/inspection-tasks - invalid cursor
+description: "Purpose: verify cursor validation. Role: Repair Crew. Setup: login as seeded crew; no data mutation. Expected: 400 validation ProblemDetails. Data change: none."
+url: "{{baseUrl}}/api/v1/me/inspection-tasks?cursor=invalid&limit={{inspectionLimit}}"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+  Accept: application/json
+queryParams:
+  cursor: invalid
+  limit: "{{inspectionLimit}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Invalid cursor returns 400', function () { pm.response.to.have.status(400); });
+    language: text/javascript
+order: 3000

@@ -89,7 +89,7 @@ Phạm vi là **MVP hiện tại** của hệ thống RoadGuard, gồm Android A
 | US-24 | R3 thêm | Tuyến và bộ segment có phiên bản | Xem trace tại thân US-24 |
 | US-25 | R3 thêm | Phạm vi khảo sát và coverage từng band | Xem trace tại thân US-25 |
 | US-26 | R3 thêm | AI ngoài qua job bền vững và validation | Xem trace tại thân US-26 |
-| US-27 | Kế thừa / sửa tại chỗ | Reporter tự đăng ký và xác minh Gmail OTP | Xem trace tại thân US-27 |
+| US-27 | Kế thừa / sửa tại chỗ | Reporter tự đăng ký và xác minh email bằng OTP | Xem trace tại thân US-27 |
 | US-28 | R3 thêm | Mời nhân sự nội bộ | Xem trace tại thân US-28 |
 | US-29 | R3 thêm | Timeline hoạt động dự án | Xem trace tại thân US-29 |
 | US-30 | R3 thêm | Nhập GPX và chỉnh tuyến nháp | Xem trace tại thân US-30 |
@@ -154,15 +154,15 @@ Là một người dùng nội bộ (Supervisor, PM, Drone Operator hoặc Repai
 
 **Mã truy vết:** `CN01-CN04`, `CN10`, `QT02`, `QT09`.
 
-### US-27 - Reporter tự đăng ký và xác minh Gmail OTP
+### US-27 - Reporter tự đăng ký và xác minh email bằng OTP
 
 **User Story**  
-Là người dân hoặc đại diện chủ đầu tư chưa có tài khoản, tôi muốn tự đăng ký bằng Gmail và xác minh mã OTP để có tài khoản Reporter gửi phản ánh mà không cần Admin tạo hộ.
+Là người dân hoặc đại diện chủ đầu tư chưa có tài khoản, tôi muốn tự đăng ký bằng email và xác minh mã OTP để có tài khoản Reporter gửi phản ánh mà không cần Admin tạo hộ.
 
 **Acceptance Criteria**
 
 1. **Tạo đăng ký pending**
-   - **When** người dùng gửi Gmail hợp lệ (`gmail.com` hoặc `googlemail.com`), display name, `ReporterType`, mật khẩu, confirm password và idempotency key
+   - **When** người dùng gửi email hợp lệ, display name, `ReporterType`, mật khẩu, confirm password và idempotency key
    - **Then** hệ thống tạo hoặc tiếp tục một registration intent với `User.status = PENDING`, `role_code = REPORTER`, `email_confirmed = false`; không cấp access/refresh token.
 2. **Gửi OTP**
    - Hệ thống tạo OTP bằng nguồn ngẫu nhiên bảo mật, chỉ lưu hash/HMAC, hạn dùng ngắn, số lần thử tối đa và cooldown resend; adapter Gmail trả provider correlation ID nhưng không lưu code plaintext.
@@ -936,7 +936,7 @@ Một User Story chỉ được xem là hoàn thành khi:
 | `KS15`, `KS16` | US-25 | Target bands and coverage separate from AI/job status. |
 | `AI15`-`AI17` | US-26 | External async jobs, immutable manifest, retry/dedup and context overlap. |
 | `CN01`, `CN02`, `CN03`, `CN04`, `CN10` | US-01 | Đăng nhập, hồ sơ, phạm vi, thông báo, đặt lại mật khẩu. |
-| `CN11`, `CN12` | US-27 | Reporter tự đăng ký Gmail, gửi/resend và xác minh OTP trước khi kích hoạt. |
+| `CN11`, `CN12` | US-27 | Reporter tự đăng ký bằng email, gửi/resend và xác minh OTP trước khi kích hoạt. |
 | `CN05`, `CN06`, `CN07`, `CN08`, `CN09` | US-02 | Ngoại tuyến, nháp, đồng bộ, kiểm tra toàn vẹn, dọn bản sao. |
 | `DA01`, `DA02`, `DA03`, `DA04`, `DA05`, `DA12` | US-03 | Dự án, tuyến/đoạn, bàn giao, bảo hành, nhân sự, đóng dự án. |
 | `DA06`, `DA07`, `DA08`, `DA09`, `DA10`, `DA11` | US-04 | Kế hoạch, nhắc việc, yêu cầu, hoãn, baseline, theo dõi tình trạng. |

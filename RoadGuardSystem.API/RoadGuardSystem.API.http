@@ -1,4 +1,9 @@
 @RoadGuardSystem.API_HostAddress = http://localhost:5112
+@projectId = 6a4dbd16-a646-46da-9e5c-200000000001
+@primaryProjectManagerUserId = 4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02
+@roadSectionId = 6a4dbd16-a646-46da-9e5c-200000000004
+@roadSectionVersionId = 6a4dbd16-a646-46da-9e5c-200000000005
+@seededSurveyPlanId = 6a4dbd16-a646-46da-9e5c-200000000009
 
 POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/login
 Content-Type: application/json
@@ -29,7 +34,7 @@ POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/password-recovery-requests
 Content-Type: application/json
 
 {
-  "email": "{{authEmail}}"
+  "email": "{{recoveryEmail}}"
 }
 
 ###
@@ -51,7 +56,7 @@ Idempotency-Key: {{reporterRegistrationKey}}
 Content-Type: application/json
 
 {
-  "email": "{{reporterEmail}}",
+  "email": "{{reporterRegistrationEmail}}",
   "password": "{{reporterPassword}}",
   "displayName": "Postman Reporter",
   "reporterType": "CITIZEN"
@@ -75,7 +80,20 @@ Idempotency-Key: {{reporterResendKey}}
 Content-Type: application/json
 
 {
-  "intentId": "{{registrationIntentId}}"
+  "intentId": "{{otpResendIntentId}}"
+}
+
+### Manual only: create a separate pending intent for the resend mailbox
+
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/reporter-registrations
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "email": "{{otpResendEmail}}",
+  "password": "{{reporterPassword}}",
+  "displayName": "Postman OTP Resend Reporter",
+  "reporterType": "CITIZEN"
 }
 
 ###
@@ -87,7 +105,6 @@ Content-Type: application/json
 
 {
   "email": "{{invitationEmail}}",
-  "displayName": "Invited Operator",
   "role": "OPERATOR",
   "projectIds": []
 }
@@ -199,23 +216,16 @@ Accept: application/json
 
 POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects
 Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
 Content-Type: application/json
 
 {
-  "projectCode": "RG-2026-001",
+  "code": "RG-2026-001",
   "name": "Northern bypass rehabilitation",
-  "description": "Initial project created after handover",
-  "engineeringUtmSrid": 32648,
-  "startDate": "2026-09-01",
-  "endDate": "2027-09-01",
-  "primaryProjectManagerUserId": "{{primaryProjectManagerUserId}}",
-  "handover": {
-    "documentNo": "HD-2026-001",
-    "handoverDate": "2026-08-31",
-    "fileId": null,
-    "notes": "Accepted construction handover"
-  },
-  "operationId": "{{$guid}}"
+  "primaryPmId": "{{primaryProjectManagerUserId}}",
+  "handoverDate": "2026-08-31",
+  "warrantyEndDate": "2027-08-31",
+  "handoverFileIds": []
 }
 
 ###

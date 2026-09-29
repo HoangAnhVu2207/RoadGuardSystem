@@ -12,6 +12,10 @@ public sealed class IdentityOnboardingOptions
 
     public int OtpResendCooldownSeconds { get; set; } = 60;
 
+    public int OtpMaxResendsPerWindow { get; set; } = 3;
+
+    public int OtpResendWindowMinutes { get; set; } = 15;
+
     public int InvitationLifetimeHours { get; set; } = 72;
 
     public string FrontendBaseUrl { get; set; } = string.Empty;

@@ -59,6 +59,18 @@ public sealed class PrimaryProjectManagerPersistenceService : IPrimaryProjectMan
             current?.RowVersion);
     }
 
+    public Task<bool> HasReplayAsync(
+        Guid actorUserId,
+        Guid projectId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default) =>
+        _context.Set<IdempotencyRecord>().AsNoTracking().AnyAsync(
+            record => record.ActorUserId == actorUserId &&
+                      record.ProjectId == projectId &&
+                      record.Operation == Operation &&
+                      record.IdempotencyKey == idempotencyKey.Trim(),
+            cancellationToken);
+
     public async Task<PrimaryProjectManagerWriteResult> ReassignAsync(
         PrimaryProjectManagerWriteRequest request,
         CancellationToken cancellationToken = default)
@@ -103,6 +115,23 @@ public sealed class PrimaryProjectManagerPersistenceService : IPrimaryProjectMan
         catch (DbUpdateConcurrencyException)
         {
             _context.ChangeTracker.Clear();
+            var committed = await _context.Set<IdempotencyRecord>().AsNoTracking().SingleOrDefaultAsync(
+                record => record.ActorUserId == request.ActorUserId &&
+                          record.ProjectId == request.ProjectId &&
+                          record.Operation == Operation &&
+                          record.IdempotencyKey == request.OperationId.ToString("N"),
+                CancellationToken.None);
+            if (committed is not null && committed.RequestFingerprint == fingerprint)
+            {
+                var replayOutcome = JsonSerializer.Deserialize<PrimaryProjectManagerOutcome>(committed.OutcomeJson)
+                    ?? throw new InvalidOperationException("Stored primary-project-manager outcome is invalid.");
+                return new(
+                    PrimaryProjectManagerWriteStatus.Replayed,
+                    replayOutcome.PreviousMembershipId,
+                    replayOutcome.CurrentMembershipId,
+                    replayOutcome.CurrentRowVersion);
+            }
+
             return new(PrimaryProjectManagerWriteStatus.StaleConcurrency);
         }
     }

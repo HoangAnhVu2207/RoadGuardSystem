@@ -2,23 +2,23 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: PARTIAL
 - decisionRefs: D25, 36A, 37
 - requirementRefs: FR-36, FR-01
 - diagramRefs: SQ-06, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
+- implementationStatus: IMPLEMENTED
 - verificationStatus: NOT_RUN
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: Code complete — awaiting review/verification. Q17 rescue/offline remains outside this account mutation slice.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `PATCH /api/v1/users/{userId}`; operationId `updateAccount`.
-- **Trạng thái kế hoạch:** `BLOCKED_SLICE / NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
+- **Trạng thái kế hoạch:** `PARTIAL / IMPLEMENTED`. Core account mutation is code complete; awaiting review/verification.
 - **Contract:** PROPOSED_CONTRACT; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-36; nhóm kế hoạch cũ P1-64/P2-64 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W2; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
@@ -29,7 +29,7 @@
 - Requirements/trace: FR-36, FR-01
 - Diagrams/state: SQ-06, DD/ERD
 - Canonical contract: operationId updateAccount, path /users/{userId}, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Current source/tests: `UsersController.Update`, `IdentityV2Service.UpdateAccountAsync`, `IdentityRepository.UpdateAccountV2AtomicAsync`; reviewed at base `561dd0a`, runtime verification NOT_RUN.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -44,8 +44,8 @@ Chỉ triển khai hoặc sửa phần thiếu của operation này. Tái dùng 
 
 Đọc `AGENTS.md`, `.agents/rules/roadguard.md`, ba skill endpoint-delivery/persistence/test-selection và ADR hiện hành trước khi coding. Đối chiếu task với source/migration/test hiện có; nếu khác bản plan, ghi current/proposed delta và xử lý theo chỉ dẫn repo/user.
 
-**Gate:** Q17 (rescue offline).
-Gate áp dụng đúng phần hành vi còn mở. Có thể làm scaffolding/test phần đã chốt, nhưng không đánh Done toàn task hoặc bật hành vi chưa duyệt.
+**Gate:** D06 resolves the rescue business direction; rescue/offline wire implementation remains outside this account mutation slice and does not block its core code.
+Không tự xóa offline queue hoặc cho revoked token ghi dữ liệu; implementationStatus chỉ áp dụng operation `updateAccount` hiện hành.
 
 **API liên quan / phụ thuộc tích hợp:** [V2-P1-015 — getAccount](../Person_1/V2-P1-015_getAccount.md).
 GET/test có thể dùng seed SQL qua test fixture; không cần chờ API tạo dữ liệu. Dependency là contract/service có thể tái dùng, không gọi HTTP vòng trong cùng backend.
@@ -275,3 +275,14 @@ schemas:
     - role
     - version
 ```
+
+## Completion history
+
+### 2026-09-29 09:42 +07:00 - PARTIAL
+
+- Scope/result: source comparison completed after dependency 015; reused the existing atomic update slice and added `REPORTER` parsing in `IdentityV2Service.TryParseRole` to match the approved `AccountUpdate.role` enum.
+- Files/symbols: existing controller/service/repository/DTO/log entities/DI; internal `DroneOperator` maps to API `OPERATOR`; evidence in `V2-P1-006-015-CODE-CHECKPOINT.md`.
+- Acceptance criteria: Supervisor scope and 200/409/428/412 paths are implemented. D06/Q17 rescue authorization is a separate capability and was not added to this account mutation.
+- Verification: shared API build PASS (0 errors, 40 warnings); tests/Newman/smoke/review-autofix NOT_RUN by owner instruction.
+- Side effects: no package, migration, schema, data, external call, commit or push; `UNCOMMITTED`.
+- Unverified/blockers: Code complete — awaiting review/verification.

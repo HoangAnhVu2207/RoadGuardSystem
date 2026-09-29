@@ -3,12 +3,17 @@ using System.ComponentModel.DataAnnotations;
 namespace RoadGuardSystem.DTOs.Projects;
 
 public sealed record CreateProjectRequestDto(
-    [Required, MaxLength(50)] string ProjectCode,
+    [MaxLength(50)] string? Code,
     [Required, MaxLength(255)] string Name,
-    string? Description,
-    int? EngineeringUtmSrid,
-    DateOnly? StartDate,
-    DateOnly? EndDate,
-    Guid PrimaryProjectManagerUserId,
-    [Required] CreateHandoverRequestDto? Handover,
-    Guid OperationId);
+    Guid PrimaryPmId,
+    DateOnly? HandoverDate,
+    DateOnly? WarrantyEndDate,
+    IReadOnlyList<Guid>? HandoverFileIds,
+    string? ProjectCode = null,
+    string? Description = null,
+    int? EngineeringUtmSrid = null,
+    DateOnly? StartDate = null,
+    DateOnly? EndDate = null,
+    Guid PrimaryProjectManagerUserId = default,
+    CreateHandoverRequestDto? Handover = null,
+    Guid OperationId = default);

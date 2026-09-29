@@ -17,7 +17,7 @@ public sealed class InspectionTaskQueryServiceTests
         var projectId = Guid.NewGuid();
         var item = new InspectionTaskPersistenceView(
             Guid.NewGuid(), projectId, Guid.NewGuid(), actorId,
-            FieldInspectionTaskStatus.NewAssigned, 1, "FIT-001", DateTimeOffset.UtcNow);
+            FieldInspectionTaskStatus.NewAssigned, 1, "FIT-001", DateTimeOffset.UtcNow, [1, 2, 3]);
         var secondItem = item with { Id = Guid.NewGuid(), DefectId = Guid.NewGuid(), TaskCode = "FIT-002" };
         var repository = new RecordingRepository(item, secondItem);
         var scopeGuard = new FixedScopeGuard(projectId);
@@ -31,7 +31,7 @@ public sealed class InspectionTaskQueryServiceTests
         result.Page!.Items.Should().HaveCount(2);
         result.Page.Items[0].DefectIds.Should().Contain(item.DefectId);
         result.Page.Items[0].Mode.Should().Be("MEASURE_ONLY");
-        result.Page.Items[0].Version.Should().Be(item.TaskCode);
+        result.Page.Items[0].Version.Should().Be(Convert.ToBase64String(item.RowVersion));
         scopeGuard.Calls.Should().Be(1);
     }
 

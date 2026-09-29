@@ -1296,6 +1296,12 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("RoadSectionVersionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 

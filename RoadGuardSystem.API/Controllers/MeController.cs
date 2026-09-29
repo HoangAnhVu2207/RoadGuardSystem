@@ -4,6 +4,8 @@ using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RoadGuardSystem.API.Constants;
+using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.DTOs.Identity;
 using RoadGuardSystem.Services.Identity;
 
@@ -45,24 +47,56 @@ public sealed class MeController : ControllerBase
             return Unauthorized();
         }
 
-        return Map(await _identityService.UpdateMeAsync(
+        var result = await _identityService.UpdateMeAsync(
             userId,
             request.DisplayName!,
             ifMatch,
             idempotencyKey!,
-            cancellationToken: cancellationToken));
+            cancellationToken: cancellationToken);
+        if (result.Actor is not null &&
+            (result.Status is IdentityV2Status.Success or IdentityV2Status.IdempotentReplay))
+        {
+            Response.Headers.ETag = $"\"{Convert.ToBase64String(result.Actor.RowVersion)}\"";
+        }
+
+        return Map(result);
     }
 
-    private IActionResult Map(IdentityV2Result result) => result.Status switch
+    private ObjectResult Map(IdentityV2Result result) => result.Status switch
     {
         IdentityV2Status.Success or IdentityV2Status.IdempotentReplay when result.Actor is not null =>
             Ok(ToResponse(result.Actor)),
-        IdentityV2Status.PreconditionRequired => StatusCode(StatusCodes.Status428PreconditionRequired),
-        IdentityV2Status.PreconditionFailed => StatusCode(StatusCodes.Status412PreconditionFailed),
-        IdentityV2Status.IdempotencyConflict => Conflict(),
-        IdentityV2Status.NotFound => NotFound(),
-        _ => BadRequest()
+        IdentityV2Status.PreconditionRequired => ProblemResponse(StatusCodes.Status428PreconditionRequired, ApiErrorCodes.ValidationError, "Required precondition headers are missing"),
+        IdentityV2Status.PreconditionFailed => ProblemResponse(StatusCodes.Status412PreconditionFailed, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
+        IdentityV2Status.IdempotencyConflict => ProblemResponse(StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
+        IdentityV2Status.NotFound => ProblemResponse(StatusCodes.Status404NotFound, ApiErrorCodes.IdentityUserNotFound, "Not found"),
+        _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad request")
     };
+
+    private ObjectResult ProblemResponse(int status, string code, string detail)
+    {
+        var problem = new ProblemDetails
+        {
+            Status = status,
+            Title = status switch
+            {
+                StatusCodes.Status409Conflict => "Conflict",
+                StatusCodes.Status412PreconditionFailed => "Precondition failed",
+                StatusCodes.Status428PreconditionRequired => "Precondition required",
+                _ => "Request failed"
+            },
+            Detail = detail,
+            Instance = Request.Path
+        };
+        problem.Extensions["code"] = code;
+        problem.Extensions["correlationId"] =
+            HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString() ?? Guid.NewGuid().ToString();
+        return new ObjectResult(problem)
+        {
+            StatusCode = status,
+            ContentTypes = { "application/problem+json" }
+        };
+    }
 
     private bool TryGetActorId(out Guid userId) =>
         Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId);

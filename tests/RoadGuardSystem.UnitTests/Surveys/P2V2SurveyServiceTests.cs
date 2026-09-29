@@ -39,7 +39,7 @@ public sealed class P2V2SurveyServiceTests
     }
 
     [Fact]
-    public async Task CreateTaskAsync_NonPm_DoesNotPersist()
+    public async Task CreateTaskAsync_NonPm_ReturnsForbiddenWithoutPersisting()
     {
         var repository = new RecordingRepository();
         var service = new SurveyV2Service(repository, new FixedScopeGuard(Guid.NewGuid(), UserRoleCode.DroneOperator));
@@ -52,7 +52,7 @@ public sealed class P2V2SurveyServiceTests
             "task-key",
             null);
 
-        result.Status.Should().Be(SurveyV2ServiceStatus.InvalidInput);
+        result.Status.Should().Be(SurveyV2ServiceStatus.Forbidden);
         repository.TaskRequest.Should().BeNull();
     }
 

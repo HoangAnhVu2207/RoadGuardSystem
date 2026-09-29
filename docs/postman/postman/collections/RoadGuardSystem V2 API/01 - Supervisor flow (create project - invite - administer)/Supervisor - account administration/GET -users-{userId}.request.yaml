@@ -1,0 +1,14 @@
+$kind: http-request
+name: GET /users/{userId}
+description: "Purpose: Supervisor reads an account and ETag. Role: Supervisor. Setup: set targetUserId and supervisorAccessToken. Expected: 200 Actor + ETag. Data change: none."
+url: "{{baseUrl}}/api/v1/users/{{primaryProjectManagerUserId}}"
+method: GET
+headers:
+  Authorization: Bearer {{supervisorAccessToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Account read returns 200', function () { pm.response.to.have.status(200); });
+      if (pm.response.code === 200) pm.environment.set('targetRowVersion', pm.response.json().version);
+    language: text/javascript
+order: 1000

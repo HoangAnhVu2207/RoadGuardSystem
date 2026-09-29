@@ -1,0 +1,3 @@
+$kind: collection
+description: Login, refresh and recovery. Password changes and logout are guarded by the destructive-run switch.
+order: 6000

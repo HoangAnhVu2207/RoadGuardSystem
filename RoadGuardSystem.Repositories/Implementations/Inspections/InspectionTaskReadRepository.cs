@@ -38,7 +38,8 @@ public sealed class InspectionTaskReadRepository : IInspectionTaskReadRepository
                 task.Status,
                 task.RequiredMeasurementType,
                 task.TaskCode,
-                task.DueAt
+                task.DueAt,
+                task.RowVersion
             };
 
         if (afterDueAt is not null && afterId is not null)
@@ -59,7 +60,8 @@ public sealed class InspectionTaskReadRepository : IInspectionTaskReadRepository
                 item.Status,
                 item.RequiredMeasurementType,
                 item.TaskCode,
-                item.DueAt))
+                item.DueAt,
+                item.RowVersion))
             .ToListAsync(cancellationToken);
 
         var hasMore = rows.Count > limit;

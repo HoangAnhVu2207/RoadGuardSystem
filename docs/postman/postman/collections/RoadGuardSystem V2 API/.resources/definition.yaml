@@ -1,11 +1,37 @@
 $kind: collection
-description: RoadGuard V2 API smoke and manual test collection. Select the RoadGuard.local environment and set its local values before running.
+description: Role-first Postman collection for operations advertised by the running OpenAPI v1 document. Start with 00 - Preflight. State-changing/destructive requests require explicit switches and a disposable account. Real email/OTP/invitation requests are manual and skipped by default. See docs/postman/README.md for role flows, local setup, current data blocker and routes not yet represented here.
 variables:
   accessToken: ""
   refreshToken: ""
   profileRowVersion: ""
   targetUserId: 00000000-0000-0000-0000-000000000000
   targetRowVersion: ""
-  projectId: 00000000-0000-0000-0000-000000000000
+  projectId: 6a4dbd16-a646-46da-9e5c-200000000001
   projectRowVersion: ""
-  primaryProjectManagerUserId: 00000000-0000-0000-0000-000000000000
+  primaryProjectManagerUserId: 4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02
+  registrationIntentId: 00000000-0000-0000-0000-000000000000
+  invitationId: 00000000-0000-0000-0000-000000000000
+  invitationVersion: ""
+  actorVersion: ""
+  reporterRegistrationKey: ""
+  reporterVerificationKey: ""
+  otpResendRegistrationKey: ""
+  reporterResendKey: ""
+  otpOldVerificationKey: ""
+  otpLatestVerificationKey: ""
+  invitationCreateKey: ""
+  invitationAcceptKey: ""
+  updateMeKey: update-me-runner
+  updateAccountKey: update-account-runner
+  passwordResetKey: password-reset-runner
+  logoutKey: logout-runner
+  changePasswordKey: change-password-runner
+  inspectionCursor: ""
+  inspectionLimit: "50"
+  roadSectionId: 6a4dbd16-a646-46da-9e5c-200000000004
+  roadSectionVersionId: 6a4dbd16-a646-46da-9e5c-200000000005
+  surveyPlanId: 6a4dbd16-a646-46da-9e5c-200000000009
+  surveyRequestId: 00000000-0000-0000-0000-000000000000
+  surveyPlanCreateKey: survey-plan-runner
+  surveyRequestCreateKey: survey-request-runner
+  surveyPostponeKey: survey-postpone-runner

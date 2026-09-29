@@ -12,15 +12,18 @@ public sealed class IdentityV2Service : IIdentityV2Service
     private readonly IIdentityRepository _repository;
     private readonly IIdentityV2Repository _v2Repository;
     private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public IdentityV2Service(
         IIdentityRepository repository,
         IIdentityV2Repository v2Repository,
-        IPasswordHasher<ApplicationUser> passwordHasher)
+        IPasswordHasher<ApplicationUser> passwordHasher,
+        UserManager<ApplicationUser> userManager)
     {
         _repository = repository;
         _v2Repository = v2Repository;
         _passwordHasher = passwordHasher;
+        _userManager = userManager;
     }
 
     public async Task<IdentityV2Result> GetMeAsync(
@@ -128,6 +131,16 @@ public sealed class IdentityV2Service : IIdentityV2Service
         if (target.Status != UserStatus.Active)
         {
             return new IdentityV2Result(IdentityV2Status.Conflict);
+        }
+
+        var passwordUser = new ApplicationUser { Id = target.Id, UserName = target.UserName };
+        foreach (var validator in _userManager.PasswordValidators)
+        {
+            var validation = await validator.ValidateAsync(_userManager, passwordUser, temporaryPassword);
+            if (!validation.Succeeded)
+            {
+                return new IdentityV2Result(IdentityV2Status.InvalidInput);
+            }
         }
 
         var passwordHash = _passwordHasher.HashPassword(new ApplicationUser(), temporaryPassword);
@@ -270,6 +283,7 @@ public sealed class IdentityV2Service : IIdentityV2Service
             "PM" => UserRoleCode.ProjectManager,
             "OPERATOR" => UserRoleCode.DroneOperator,
             "CREW" => UserRoleCode.RepairCrew,
+            "REPORTER" => UserRoleCode.Reporter,
             _ => UserRoleCode.Unknown
         };
         return role != UserRoleCode.Unknown;

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Auditing;
+using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.Repositories.Idempotency;
@@ -320,6 +321,139 @@ public sealed class SurveyV2PersistenceService : ISurveyV2Repository
     public Task<Guid?> GetPlanProjectIdAsync(Guid planId, CancellationToken cancellationToken = default)
         => _context.SurveyPlans.AsNoTracking().Where(plan => plan.Id == planId).Select(plan => (Guid?)plan.ProjectId).SingleOrDefaultAsync(cancellationToken);
 
+    public async Task<SurveyDatasetPersistenceResult> SubmitDatasetAsync(SurveyDatasetSubmissionRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.ActorUserId == Guid.Empty || request.TaskId == Guid.Empty || request.DeviceId == Guid.Empty ||
+            request.VideoFileIds is not { Count: > 0 } || request.VideoFileIds.Any(id => id == Guid.Empty) ||
+            request.TelemetryFileIds is null || request.TelemetryFileIds.Any(id => id == Guid.Empty) ||
+            request.RecordedAt == default || string.IsNullOrWhiteSpace(request.ScopeJson) ||
+            string.IsNullOrWhiteSpace(request.ExpectedTaskVersion) || string.IsNullOrWhiteSpace(request.IdempotencyKey))
+        {
+            return new(SurveyDatasetPersistenceStatus.InvalidInput);
+        }
+
+        var projectId = await _context.SurveyRequests.AsNoTracking()
+            .Where(task => task.Id == request.TaskId)
+            .Select(task => (Guid?)task.ProjectId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (projectId is null)
+        {
+            return new(SurveyDatasetPersistenceStatus.NotFound);
+        }
+
+        try
+        {
+            var outcome = await _idempotency.ExecuteAsync(
+                request.ActorUserId,
+                projectId.Value,
+                "SurveyDatasetSubmitted",
+                request.IdempotencyKey,
+                request.RequestFingerprint,
+                async token =>
+                {
+                    var task = await _context.SurveyRequests.SingleOrDefaultAsync(value => value.Id == request.TaskId, token)
+                        ?? throw new ScopeNotFoundException();
+                    var assignment = await _context.SurveyAssignments
+                        .Where(value => value.SurveyRequestId == task.Id && value.EndedAt == null)
+                        .OrderByDescending(value => value.AssignedAt)
+                        .FirstOrDefaultAsync(token)
+                        ?? throw new ScopeNotFoundException();
+                    if (assignment.OperatorUserId != request.ActorUserId ||
+                        task.Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed or SurveyRequestStatus.Rejected)
+                    {
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Conflict, null)));
+                    }
+
+                    if (!TryDecodeVersion(request.ExpectedTaskVersion, out var expectedVersion) || !task.RowVersion.SequenceEqual(expectedVersion))
+                    {
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.ConcurrencyConflict, null)));
+                    }
+                    _context.Entry(task).Property(value => value.RowVersion).OriginalValue = expectedVersion;
+
+                    var allFileIds = request.VideoFileIds.Concat(request.TelemetryFileIds).Distinct().ToArray();
+                    if (allFileIds.Length != request.VideoFileIds.Count + request.TelemetryFileIds.Count)
+                    {
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
+                    }
+
+                    var fileRows = await (
+                        from file in _context.Files.AsNoTracking()
+                        join fileScope in _context.FileScopes.AsNoTracking() on file.Id equals fileScope.FileId
+                        join upload in _context.UploadSessions.AsNoTracking() on file.Id equals upload.FileId
+                        where allFileIds.Contains(file.Id)
+                        select new { file.Id, file.Checksum, fileScope.ProjectId, fileScope.TargetId, upload.Status })
+                        .ToListAsync(token);
+                    if (fileRows.Count != allFileIds.Length || fileRows.Any(value =>
+                            value.ProjectId != task.ProjectId || value.TargetId != task.Id || value.Status != UploadSessionStatus.Verified))
+                    {
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Conflict, null)));
+                    }
+
+                    var survey = await _context.Surveys.SingleOrDefaultAsync(value => value.SurveyRequestId == task.Id, token);
+                    if (survey is null)
+                    {
+                        if (task.RoadSectionVersionId is null)
+                        {
+                            return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Conflict, null)));
+                        }
+
+                        survey = Survey.Create(Guid.NewGuid(), task.Id, task.ProjectId, task.RoadSectionVersionId.Value, task.SurveyType, SurveyStatus.Submitted, false, null, null);
+                        _context.Surveys.Add(survey);
+                    }
+
+                    var versionNo = (await _context.SurveyDataVersions.AsNoTracking()
+                        .Where(value => value.SurveyId == survey.Id)
+                        .Select(value => (int?)value.VersionNo)
+                        .MaxAsync(token) ?? 0) + 1;
+                    var sourceManifest = JsonSerializer.Serialize(fileRows.OrderBy(value => value.Id).Select(value => new { fileId = value.Id, checksumSha256 = value.Checksum }));
+                    var dataVersion = SurveyDataVersion.CreateSubmitted(Guid.NewGuid(), survey.Id, versionNo, request.RecordedAt, DateTimeOffset.UtcNow, request.DeviceId, sourceManifest, request.ScopeJson);
+                    _context.SurveyDataVersions.Add(dataVersion);
+                    _context.SurveyFiles.AddRange(fileRows.Select(value => SurveyFile.Create(
+                        Guid.NewGuid(), survey.Id, null, value.Id,
+                        request.VideoFileIds.Contains(value.Id) ? SurveyFileType.Video : SurveyFileType.Srt,
+                        request.RecordedAt, request.RecordedAt, SurveyFileSyncStatus.ServerConfirmed, value.Checksum)));
+                    task.MarkSubmitted();
+                    var now = DateTimeOffset.UtcNow;
+                    _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, now, "survey_dataset_submitted", "SurveyDataVersion", dataVersion.Id, null,
+                        JsonSerializer.Serialize(new { surveyTaskId = task.Id, dataVersionId = dataVersion.Id, allFileIds }), "Survey dataset submitted", "p2-019", request.CorrelationId, ["surveyTaskId", "dataVersionId"]));
+                    await _context.SaveChangesAsync(token);
+                    var view = new SurveyDatasetPersistenceView(dataVersion.Id, task.Id, task.ProjectId, dataVersion.Id, "PASSED", request.TelemetryFileIds.Count == 0 ? "MISSING" : "PRESENT", Version(dataVersion), request.ScopeJson);
+                    return (dataVersion.Id, JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Success, view)));
+                },
+                cancellationToken);
+            if (outcome.Status == IdempotencyOperationStatus.Conflict)
+            {
+                return new(SurveyDatasetPersistenceStatus.IdempotentConflict);
+            }
+            var stored = JsonSerializer.Deserialize<StoredDatasetOutcome>(outcome.OutcomeJson)
+                ?? throw new InvalidOperationException("Dataset idempotency outcome is invalid.");
+            return new(outcome.Status == IdempotencyOperationStatus.Replayed && stored.Status == SurveyDatasetPersistenceStatus.Success
+                ? SurveyDatasetPersistenceStatus.Replayed
+                : stored.Status, stored.Dataset);
+        }
+        catch (ScopeNotFoundException) { return new(SurveyDatasetPersistenceStatus.NotFound); }
+        catch (DbUpdateConcurrencyException) { _context.ChangeTracker.Clear(); return new(SurveyDatasetPersistenceStatus.ConcurrencyConflict); }
+        catch (ArgumentException) { return new(SurveyDatasetPersistenceStatus.InvalidInput); }
+        catch (InvalidOperationException) { return new(SurveyDatasetPersistenceStatus.Conflict); }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception)) { return new(SurveyDatasetPersistenceStatus.Conflict); }
+    }
+
+    public async Task<SurveyDatasetAccessView?> GetDatasetAccessAsync(Guid datasetId, CancellationToken cancellationToken = default)
+    {
+        var row = await (
+            from dataset in _context.SurveyDataVersions.AsNoTracking()
+            join survey in _context.Surveys.AsNoTracking() on dataset.SurveyId equals survey.Id
+            join task in _context.SurveyRequests.AsNoTracking() on survey.SurveyRequestId equals task.Id
+            join assignment in _context.SurveyAssignments.AsNoTracking() on task.Id equals assignment.SurveyRequestId
+            where dataset.Id == datasetId && assignment.EndedAt == null
+            orderby assignment.AssignedAt descending
+            select new { dataset, task, assignment.OperatorUserId })
+            .FirstOrDefaultAsync(cancellationToken);
+        return row is null
+            ? null
+            : new SurveyDatasetAccessView(row.dataset.Id, row.task.Id, row.task.ProjectId, row.OperatorUserId, row.dataset.ScopeManifest ?? "[]", Version(row.dataset));
+    }
+
     private async Task<ScopeResolution> ResolveScopeAsync(Guid projectId, Guid routeVersionId, IReadOnlyList<SurveyV2ScopeRequest>? requestedScope, CancellationToken cancellationToken)
     {
         if (requestedScope is not { Count: > 0 })
@@ -400,6 +534,7 @@ public sealed class SurveyV2PersistenceService : ISurveyV2Repository
 
     private static string Version(SurveyPlan plan) => Convert.ToBase64String(plan.RowVersion);
     private static string Version(SurveyRequest task) => Convert.ToBase64String(task.RowVersion);
+    private static string Version(SurveyDataVersion version) => Convert.ToBase64String(version.RowVersion);
     private static string Hash(string value) => Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
     private static bool TryDecodeVersion(string value, out byte[] rowVersion)
@@ -450,6 +585,7 @@ public sealed class SurveyV2PersistenceService : ISurveyV2Repository
 
     private sealed record StoredPlanOutcome(SurveyV2PersistenceStatus Status, SurveyV2PlanPersistenceView? Plan);
     private sealed record StoredTaskOutcome(SurveyV2PersistenceStatus Status, SurveyV2TaskPersistenceView? Task);
+    private sealed record StoredDatasetOutcome(SurveyDatasetPersistenceStatus Status, SurveyDatasetPersistenceView? Dataset);
     private sealed record TaskCursor(DateTimeOffset RequestedAt, Guid Id);
     private sealed record ResolvedScopeItem(Guid RouteVersionId, Guid SegmentSetId, string SegmentIdsJson, string TargetBand, Guid RoadSectionId);
     private sealed record ScopeResolution(Guid RoadSectionId, IReadOnlyList<ResolvedScopeItem> Items);

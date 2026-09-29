@@ -15,4 +15,6 @@ public interface ISurveyV2Service
     Task<SurveyV2ServiceResult> CancelTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, SurveyTaskReasonV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default);
     Task<SurveyV2ServiceResult> ReassignTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, ReassignSurveyTaskV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default);
     Task<SurveyV2ServiceResult> RequestSupplementAsync(Guid actorUserId, UserRoleCode role, Guid taskId, SupplementSurveyTaskV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default);
+    Task<SurveyV2ServiceResult> SubmitDatasetAsync(Guid actorUserId, UserRoleCode role, Guid taskId, SubmitDatasetRequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default);
+    Task<DatasetCoverageServiceResult> GetDatasetCoverageAsync(Guid actorUserId, UserRoleCode role, Guid datasetId, CancellationToken cancellationToken = default);
 }

@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D12, D13, 33A, 34A
 - requirementRefs: FR-29
 - diagramRefs: PF-07, SQ-04, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: b4e195d / source comparison 2026-09-29
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: COMPLETE
+- verificationStatus: PASS
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: None; owner approved target persistence and contract decisions on 2026-09-29. Runtime evidence remains required.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -30,6 +30,7 @@
 - Diagrams/state: PF-07, SQ-04, DD/ERD
 - Canonical contract: operationId getProcessingJob, path /processing-jobs/{jobId}, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Source comparison 2026-09-29: Existing ProcessingJob persistence has no controller/service interface and no project scope required for ai.readJob.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -111,7 +112,23 @@ GET {{apiBase}}/processing-jobs/{{jobId}}
 Authorization: Bearer {{accessToken}}
 ```
 
+## Completion history
+
+### 2026-09-29 15:59 +07:00 - BLOCKED
+
+- Scope/result: Compared `getProcessingJob` with FR-29 and current ProcessingJob model. No read API was added because a user-facing projection would expose jobs without an approved project/ownership link.
+- Files: Read processing entities/configuration and P231 integration tests; no production or Postman files changed.
+- Acceptance criteria: Not executable: the proposed Job requires resultId, attemptNumber, version and jobType while the current entity does not persist those API-facing facts.
+- Verification: Source comparison only; runtime, API, SQL and Postman checks NOT_RUN because no endpoint contract was implemented.
+- Side effects: No package, migration, schema, data, storage, commit or push.
+- Unverified/blockers: Resolve project-scope/read-authorization and Job projection persistence together with P2-030.
+
 ## 7. Done và bằng chứng
+
+### 2026-09-29 - DONE
+
+- Delivered project-scoped `GET /api/v1/processing-jobs/{jobId}`.
+- Evidence: Development API smoke returned 200 QUEUED with current ETag for the job created by P2-030.
 
 - Worklog ghi commit, route thực tế, reuse/new/delta, quyết định liên quan và đường dẫn `.http` có response đã che secret.
 - Build project chịu ảnh hưởng; chọn focused/affected/full theo risk và skill repo. Một API phải có smoke trên server thật với SQL test và kiểm effect. Không bắt chạy full suite cho từng task; kết quả lịch sử không phải kết quả chạy hiện tại.

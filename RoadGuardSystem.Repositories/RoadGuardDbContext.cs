@@ -146,6 +146,12 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<AIModelVersion> AIModelVersions => Set<AIModelVersion>();
 
+    public DbSet<ValidationRun> ValidationRuns => Set<ValidationRun>();
+
+    public DbSet<DerivedMeasurement> DerivedMeasurements => Set<DerivedMeasurement>();
+
+    public DbSet<MeasurementValidationSample> MeasurementValidationSamples => Set<MeasurementValidationSample>();
+
     public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 
     public DbSet<HandoverDocument> HandoverDocuments => Set<HandoverDocument>();

@@ -103,6 +103,46 @@ public sealed class SurveyV2Controller : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("survey-tasks/{taskId:guid}/datasets")]
+    public async Task<IActionResult> SubmitDataset(
+        Guid taskId,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        SubmitDatasetRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        var result = await _service.SubmitDatasetAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken);
+        if (result.Dataset is not null) Response.Headers.ETag = $"\"{result.Dataset.Version}\"";
+        return result.Status switch
+        {
+            SurveyV2ServiceStatus.Success or SurveyV2ServiceStatus.Replayed when result.Dataset is not null => Created($"/api/v1/datasets/{result.Dataset.Id}", result.Dataset),
+            SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            SurveyV2ServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.SurveyRequestNotFound, "Not found"),
+            SurveyV2ServiceStatus.ConcurrencyConflict => ProblemResponse(412, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
+            SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
+            SurveyV2ServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.SurveyInvalidStateTransition, "Dataset submission is not allowed"),
+            _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Dataset validation failed")
+        };
+    }
+
+    [Authorize]
+    [HttpGet("datasets/{datasetId:guid}/coverage")]
+    public async Task<IActionResult> GetDatasetCoverage(Guid datasetId, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        var result = await _service.GetDatasetCoverageAsync(actor, role, datasetId, cancellationToken);
+        return result.Status switch
+        {
+            SurveyV2ServiceStatus.Success when result.Coverage is not null => Ok(result.Coverage),
+            SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            SurveyV2ServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.NotFound, "Not found"),
+            _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Coverage data is invalid")
+        };
+    }
+
+    [Authorize]
     [HttpPost("survey-tasks/{taskId:guid}/accept")]
     public async Task<IActionResult> AcceptTask(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, CancellationToken cancellationToken)
     {

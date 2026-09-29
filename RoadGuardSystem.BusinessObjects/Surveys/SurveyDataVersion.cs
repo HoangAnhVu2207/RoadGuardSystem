@@ -17,6 +17,10 @@ public sealed class SurveyDataVersion
     public DateTimeOffset? ConfirmedAt { get; private set; }
     public SurveyDataConfirmationActor? ConfirmedBy { get; private set; }
     public string SourceManifest { get; private set; } = string.Empty;
+    public DateTimeOffset? RecordedAt { get; private set; }
+    public Guid? DeviceId { get; private set; }
+    public string? ScopeManifest { get; private set; }
+    public byte[] RowVersion { get; private set; } = [];
 
     public static SurveyDataVersion Create(
         Guid id,
@@ -63,6 +67,37 @@ public sealed class SurveyDataVersion
             ConfirmedBy = confirmedBy,
             SourceManifest = sourceManifest.Trim()
         };
+    }
+
+    public static SurveyDataVersion CreateSubmitted(
+        Guid id,
+        Guid surveyId,
+        int versionNo,
+        DateTimeOffset recordedAt,
+        DateTimeOffset confirmedAt,
+        Guid deviceId,
+        string sourceManifest,
+        string scopeManifest)
+    {
+        if (deviceId == Guid.Empty)
+        {
+            throw new ArgumentException("A dataset device id is required.", nameof(deviceId));
+        }
+
+        ValidateManifest(scopeManifest);
+        var submitted = Create(
+            id,
+            surveyId,
+            versionNo,
+            SurveyDataVersionStatus.ServerConfirmed,
+            SurveyDataIntegrityStatus.Passed,
+            confirmedAt,
+            SurveyDataConfirmationActor.Backend,
+            sourceManifest);
+        submitted.RecordedAt = recordedAt.ToUniversalTime();
+        submitted.DeviceId = deviceId;
+        submitted.ScopeManifest = scopeManifest.Trim();
+        return submitted;
     }
 
     private static void ValidateManifest(string value)

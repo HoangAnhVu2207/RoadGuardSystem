@@ -1,4 +1,5 @@
 using RoadGuardSystem.aBusinessObjects.Commons;
+using System.Text.Json;
 
 namespace RoadGuardSystem.BusinessObjects.Processing;
 
@@ -11,6 +12,11 @@ public sealed class ProcessingJob
     public Guid Id { get; private set; }
     public Guid ProcessingBlockId { get; private set; }
     public Guid ModelVersionId { get; private set; }
+    public Guid ProjectId { get; private set; }
+    public string ManifestHash { get; private set; } = string.Empty;
+    public string ManifestJson { get; private set; } = "{}";
+    public string Mode { get; private set; } = string.Empty;
+    public byte[] RowVersion { get; private set; } = [];
     public ProcessingJobStatus Status { get; private set; }
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
@@ -55,6 +61,73 @@ public sealed class ProcessingJob
             ErrorCode = NormalizeOptional(errorCode, nameof(errorCode), 80),
             ErrorMessage = NormalizeOptional(errorMessage, nameof(errorMessage), 4000)
         };
+    }
+
+    public static ProcessingJob CreateQueued(
+        Guid id,
+        Guid processingBlockId,
+        Guid modelVersionId,
+        Guid projectId,
+        string manifestHash,
+        string manifestJson,
+        string mode)
+    {
+        if (projectId == Guid.Empty || !IsSha256(manifestHash) || mode is not ("MOCK" or "REAL"))
+        {
+            throw new ArgumentException("Processing job manifest values are invalid.");
+        }
+
+        var job = Create(id, processingBlockId, modelVersionId, ProcessingJobStatus.Queued, null, null, null, null);
+        ValidateJsonObject(manifestJson, nameof(manifestJson));
+        job.ProjectId = projectId;
+        job.ManifestHash = manifestHash;
+        job.ManifestJson = manifestJson.Trim();
+        job.Mode = mode;
+        return job;
+    }
+
+    public void Retry()
+    {
+        if (Status != ProcessingJobStatus.RetryableFailure)
+        {
+            throw new InvalidOperationException("Only retryable processing jobs can be retried.");
+        }
+
+        Status = ProcessingJobStatus.Queued;
+        StartedAt = null;
+        CompletedAt = null;
+        ErrorCode = null;
+        ErrorMessage = null;
+    }
+
+    public void Complete(DateTimeOffset completedAt)
+    {
+        if (Status is not (ProcessingJobStatus.Queued or ProcessingJobStatus.Running))
+        {
+            throw new InvalidOperationException("Processing job cannot be completed from its current state.");
+        }
+
+        StartedAt ??= completedAt.ToUniversalTime();
+        CompletedAt = completedAt.ToUniversalTime();
+        Status = ProcessingJobStatus.Completed;
+        ErrorCode = null;
+        ErrorMessage = null;
+    }
+
+    private static bool IsSha256(string value)
+        => value is { Length: 64 } && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');
+
+    private static void ValidateJsonObject(string value, string parameterName)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) throw new ArgumentException("Processing manifest must be a JSON object.", parameterName);
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("Processing manifest must be valid JSON.", parameterName, exception);
+        }
     }
 
     private static string? NormalizeOptional(string? value, string parameterName, int maxLength)

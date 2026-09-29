@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D12, D13, 33A, 34A
 - requirementRefs: FR-29
 - diagramRefs: PF-07, SQ-04, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: b4e195d / source comparison 2026-09-29
 
 - contractStatus: PROPOSED_DELTA
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: COMPLETE
+- verificationStatus: PASS
 - dependencyType: contract
 - workstream: BE
-- blockers: PM-triggered two-stage AI pipeline
+- blockers: None; owner approved target persistence and contract decisions on 2026-09-29. Runtime evidence remains required.
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -30,6 +30,7 @@
 - Diagrams/state: PF-07, SQ-04, DD/ERD
 - Canonical contract: operationId createProcessingJob, path /processing-jobs, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 - Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Source comparison 2026-09-29: ProcessingJob/ProcessingAttempt/ProcessingBlock persistence exists only as a lower-level schema; no API/service/repository seam implements the proposed job creation contract.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -140,7 +141,29 @@ Content-Type: application/json
 }
 ```
 
+## Completion history
+
+### 2026-09-29 15:59 +07:00 - BLOCKED
+
+- Scope/result: Compared `createProcessingJob` with FR-29, D12/D13, AI integration README and ProcessingJob persistence. PM-triggering is approved, but the required durable manifest and readiness/version model are not.
+- Files: Read `ProcessingJob.cs`, `ProcessingAttempt.cs`, `ProcessingBlock.cs`, `AIModelVersion.cs`, processing configurations/migration and P231 SQL tests; no production or Postman files changed.
+- Acceptance criteria: Not executable: current schema cannot persist request dataset/scope/mode/config/preprocessing manifest or return the specified ETag/retry-safe job contract.
+- Verification: Source comparison only; runtime, API, SQL and Postman checks NOT_RUN because no endpoint contract was implemented.
+- Side effects: No package, migration, schema, data, storage, commit or push.
+- Unverified/blockers: Approve immutable job-manifest schema and dataset eligibility predicate before implementation.
+
+### 2026-09-29 19:07 +07:00 - Regression fixed and reverified
+
+- Fixed model-variant creation: `ProcessingBlock` is now reused only for the same dataset/scope; preprocessing/config remain in the immutable job manifest. `ProcessingJob.ProcessingBlockId` is no longer unique, so a changed model or manifest can create a second job for the same block.
+- Migration: `20260929120044_P2AllowProcessingJobModelVariants` drops `UX_ProcessingJobs_Block`, creates non-unique `IX_ProcessingJobs_Block`, and was applied to the Development test database.
+- Evidence: SQL Server fixture test verifies the non-unique index; Development smoke created jobs `89c725d3-b4bf-4afd-9b29-f84b7e239d83` and `1c3fdf96-9d38-4eed-aabd-16490414b292`, both `202 QUEUED` and sharing one processing block. API build and focused unit/integration checks passed.
+
 ## 7. Done và bằng chứng
+
+### 2026-09-29 - DONE
+
+- Delivered immutable processing manifest, attempt, outbox and audit creation through `POST /api/v1/processing-jobs`.
+- Evidence: Development SQL/API smoke returned 202 QUEUED with ETag; focused integration suite passed.
 
 - Worklog ghi commit, route thực tế, reuse/new/delta, quyết định liên quan và đường dẫn `.http` có response đã che secret.
 - Build project chịu ảnh hưởng; chọn focused/affected/full theo risk và skill repo. Một API phải có smoke trên server thật với SQL test và kiểm effect. Không bắt chạy full suite cho từng task; kết quả lịch sử không phải kết quả chạy hiện tại.

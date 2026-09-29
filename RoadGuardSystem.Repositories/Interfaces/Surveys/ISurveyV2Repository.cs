@@ -11,4 +11,6 @@ public interface ISurveyV2Repository
     Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, CancellationToken cancellationToken = default);
     Task<SurveyV2TaskPersistenceResult> MutateTaskAsync(SurveyV2TaskMutationRequest request, CancellationToken cancellationToken = default);
     Task<Guid?> GetPlanProjectIdAsync(Guid planId, CancellationToken cancellationToken = default);
+    Task<SurveyDatasetPersistenceResult> SubmitDatasetAsync(SurveyDatasetSubmissionRequest request, CancellationToken cancellationToken = default);
+    Task<SurveyDatasetAccessView?> GetDatasetAccessAsync(Guid datasetId, CancellationToken cancellationToken = default);
 }

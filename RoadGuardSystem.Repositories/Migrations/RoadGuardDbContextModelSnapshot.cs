@@ -1712,6 +1712,121 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.DerivedMeasurement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AlgorithmVersion")
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTimeOffset>("ComputedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<byte>("MeasurementType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("RoadSectionVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SampleId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte>("SourceType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("SurveyDataVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("UncertaintyEstimate")
+                        .HasColumnType("decimal(19,6)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(19,6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoadSectionVersionId");
+
+                    b.HasIndex("SurveyDataVersionId", "SampleId", "MeasurementType", "Status")
+                        .HasDatabaseName("IX_DerivedMeasurements_DataSampleTypeStatus");
+
+                    b.ToTable("DerivedMeasurements", null, t =>
+                        {
+                            t.HasTrigger("TR_DerivedMeasurements_Immutable");
+
+                            t.HasCheckConstraint("CK_DerivedMeasurements_MeasurementType", "[MeasurementType] IN (1, 2, 3)");
+
+                            t.HasCheckConstraint("CK_DerivedMeasurements_SourceType", "[SourceType] IN (1, 2, 3, 4)");
+
+                            t.HasCheckConstraint("CK_DerivedMeasurements_Status", "[Status] IN (1, 2, 3)");
+
+                            t.HasCheckConstraint("CK_DerivedMeasurements_UncertaintyEstimate", "[UncertaintyEstimate] IS NULL OR [UncertaintyEstimate] >= 0");
+
+                            t.HasCheckConstraint("CK_DerivedMeasurements_Unit", "LOWER([Unit]) IN ('mm', 'cm', 'm')");
+
+                            t.HasCheckConstraint("CK_DerivedMeasurements_Value", "[Value] >= 0");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.MeasurementValidationSample", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AbsoluteError")
+                        .HasColumnType("decimal(19,6)");
+
+                    b.Property<Guid>("DerivedMeasurementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExclusionReason")
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("GroundTruthMeasurementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("InclusionStatus")
+                        .HasColumnType("tinyint");
+
+                    b.Property<decimal>("SignedError")
+                        .HasColumnType("decimal(19,6)");
+
+                    b.Property<Guid>("ValidationRunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DerivedMeasurementId");
+
+                    b.HasIndex("GroundTruthMeasurementId");
+
+                    b.HasIndex("ValidationRunId", "GroundTruthMeasurementId", "DerivedMeasurementId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MeasurementValidationSamples_RunPair");
+
+                    b.ToTable("MeasurementValidationSamples", null, t =>
+                        {
+                            t.HasTrigger("TR_MeasurementValidationSamples_Immutable");
+
+                            t.HasCheckConstraint("CK_MeasurementValidationSamples_InclusionStatus", "[InclusionStatus] IN (1, 2, 3)");
+
+                            t.HasCheckConstraint("CK_MeasurementValidationSamples_Reason", "[InclusionStatus] = 1 OR LEN(LTRIM(RTRIM([ExclusionReason]))) > 0");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.ProcessingAttempt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1809,11 +1924,41 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("ManifestJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)")
+                        .HasDefaultValue("");
+
                     b.Property<Guid>("ModelVersionId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ProcessingBlockId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<DateTimeOffset?>("StartedAt")
                         .HasColumnType("datetimeoffset(7)");
@@ -1827,14 +1972,94 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasDatabaseName("IX_ProcessingJobs_ModelVersionId");
 
                     b.HasIndex("ProcessingBlockId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ProcessingJobs_Block");
+                        .HasDatabaseName("IX_ProcessingJobs_Block");
+
+                    b.HasIndex("ProjectId", "Status")
+                        .HasDatabaseName("IX_ProcessingJobs_ProjectStatus");
 
                     b.ToTable("ProcessingJobs", null, t =>
                         {
                             t.HasCheckConstraint("CK_ProcessingJobs_Status", "[Status] IN (1, 2, 3, 4, 5, 6)");
 
                             t.HasCheckConstraint("CK_ProcessingJobs_TimestampOrder", "[CompletedAt] IS NULL OR [StartedAt] IS NULL OR [CompletedAt] >= [StartedAt]");
+                        });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.ValidationRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("Bias")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("DatasetSplitId")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<int>("ExcludedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExclusionReasonsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Mae")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("MeasurementType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<Guid>("ModelVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PairsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("Rmse")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<int>("UsedCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModelVersionId");
+
+                    b.HasIndex("ProjectId", "Status")
+                        .HasDatabaseName("IX_ValidationRuns_ProjectStatus");
+
+                    b.ToTable("ValidationRuns", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ValidationRuns_ExclusionReasonsJson", "ISJSON([ExclusionReasonsJson]) = 1 AND LEFT(LTRIM([ExclusionReasonsJson]), 1) = '['");
+
+                            t.HasCheckConstraint("CK_ValidationRuns_PairsJson", "ISJSON([PairsJson]) = 1 AND LEFT(LTRIM([PairsJson]), 1) = '['");
+
+                            t.HasCheckConstraint("CK_ValidationRuns_Status", "[Status] IN (1, 2, 3)");
                         });
                 });
 
@@ -2435,8 +2660,23 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<byte?>("ConfirmedBy")
                         .HasColumnType("tinyint");
 
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte>("IntegrityStatus")
                         .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset?>("RecordedAt")
+                        .HasColumnType("datetimeoffset(7)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("ScopeManifest")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SourceManifest")
                         .IsRequired()
@@ -3249,6 +3489,42 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.DerivedMeasurement", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyDataVersion", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyDataVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.MeasurementValidationSample", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.DerivedMeasurement", null)
+                        .WithMany()
+                        .HasForeignKey("DerivedMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.GroundTruthMeasurement", null)
+                        .WithMany()
+                        .HasForeignKey("GroundTruthMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.ValidationRun", null)
+                        .WithMany()
+                        .HasForeignKey("ValidationRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.ProcessingAttempt", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Processing.ProcessingJob", null)
@@ -3278,6 +3554,15 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Processing.ProcessingBlock", null)
                         .WithMany()
                         .HasForeignKey("ProcessingBlockId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.ValidationRun", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AIModelVersion", null)
+                        .WithMany()
+                        .HasForeignKey("ModelVersionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

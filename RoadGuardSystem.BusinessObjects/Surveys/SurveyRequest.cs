@@ -127,6 +127,17 @@ public sealed class SurveyRequest
         Status = SurveyRequestStatus.SupplementRequired;
     }
 
+    public void MarkSubmitted()
+    {
+        EnsureMutable();
+        if (Status is not (SurveyRequestStatus.Accepted or SurveyRequestStatus.InProgress or SurveyRequestStatus.SupplementRequired))
+        {
+            throw new InvalidOperationException("Only an active accepted survey request can be submitted.");
+        }
+
+        Status = SurveyRequestStatus.Submitted;
+    }
+
     public void Cancel(string reason, DateTimeOffset cancelledAt)
     {
         EnsureMutable();

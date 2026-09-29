@@ -180,6 +180,8 @@ public sealed class P120ProjectCreationTests
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         created.Headers.Location!.ToString().Should().Contain("/api/v1/projects/");
         var body = await created.Content.ReadFromJsonAsync<JsonElement>();
+        created.Headers.ETag.Should().NotBeNull();
+        created.Headers.ETag!.Tag.Should().Be($"\"{body.GetProperty("version").GetString()}\"");
         var projectId = body.GetProperty("id").GetGuid();
         body.GetProperty("code").GetString().Should().Be(request.code);
         body.GetProperty("warrantyEndDate").GetDateTime().Date.Should().Be(new DateTime(2027, 9, 29));
@@ -191,6 +193,29 @@ public sealed class P120ProjectCreationTests
         var replay = await client.PostAsJsonAsync("/api/v1/projects", request);
         replay.StatusCode.Should().Be(HttpStatusCode.Created);
         (await replay.Content.ReadAsStringAsync()).Should().Be(await created.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task CreateProjectCanonicalRequestRequiresWarrantyEndDate()
+    {
+        var supervisor = await _sql.CreateUserAsync($"canonical_required_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var projectManager = await _sql.CreateUserAsync($"canonical_required_pm_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = CreateClient(factory);
+        await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
+
+        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            code = $"CAN-{Guid.NewGuid():N}",
+            name = "Missing warranty end",
+            primaryPmId = projectManager.Id,
+            handoverDate = "2026-09-29",
+            warrantyEndDate = (DateOnly?)null,
+            handoverFileIds = Array.Empty<Guid>()
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ProblemCodeAsync(response)).Should().Be("validation_error");
     }
 
     [Fact]

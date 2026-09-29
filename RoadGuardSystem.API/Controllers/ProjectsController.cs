@@ -163,7 +163,7 @@ public sealed class ProjectsController : ControllerBase
             ? request.HandoverFileIds ?? []
             : request.Handover?.FileId is Guid legacyFileId ? [legacyFileId] : [];
         if (string.IsNullOrWhiteSpace(projectCode) || primaryPmId == Guid.Empty || handoverDate is null ||
-            (canonical && request.HandoverFileIds is null) || fileIds.Count > 1)
+            (canonical && (request.WarrantyEndDate is null || request.HandoverFileIds is null)) || fileIds.Count > 1)
         {
             return ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request");
         }
@@ -202,7 +202,7 @@ public sealed class ProjectsController : ControllerBase
         return result.Status switch
         {
             ProjectCreationStatus.Success or ProjectCreationStatus.Replayed when result.Project is not null =>
-                Created($"/api/v1/projects/{result.Project.ProjectId}", ToResponse(result.Project)),
+                CreatedProject(result.Project),
             ProjectCreationStatus.Forbidden => ProblemResponse(
                 StatusCodes.Status403Forbidden, ApiErrorCodes.AccessForbidden, "Forbidden"),
             ProjectCreationStatus.ProjectManagerNotFound => ProblemResponse(
@@ -231,6 +231,13 @@ public sealed class ProjectsController : ControllerBase
         project.PrimaryProjectManagerUserId,
         project.HandoverDocumentId,
         project.RowVersion);
+
+    private CreatedResult CreatedProject(CreatedProjectView project)
+    {
+        var response = ToResponse(project);
+        Response.Headers.ETag = $"\"{response.Version}\"";
+        return Created($"/api/v1/projects/{project.ProjectId}", response);
+    }
 
     private static Guid DeriveOperationId(string? idempotencyKey)
     {

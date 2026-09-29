@@ -135,6 +135,13 @@ Content-Type: application/json
 }
 ```
 
+### 2026-09-29 23:21 +07:00 - PARTIAL / REVIEW_FIX
+
+- Scope/result: Fixed two contract deviations in the canonical path: `warrantyEndDate` is now rejected when absent, and successful/replayed `POST /api/v1/projects` responses now emit the quoted `ETag` required by the V2 Project contract while preserving `Location`.
+- Files: `RoadGuardSystem.API/Controllers/ProjectsController.cs`, `tests/RoadGuardSystem.ApiTests/Projects/P120ProjectCreationTests.cs`.
+- Verification: API build (`dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q -clp:ErrorsOnly`) => PASS, 0 errors/0 warnings; API test build => PASS, 0 errors/89 warnings; focused `P120ProjectCreationTests` => 5 passed, 0 failed, 0 skipped; alignment guard => PASS (133 tasks); Postman/task manifest JSON parse => PASS; `git diff --check` => PASS.
+- Reused/invalidated evidence: focused project tests were rebuilt and rerun after the controller change; external-host smoke, SQL migration proof, and full Postman runtime remain unverified. Task remains `PARTIAL`.
+
 ## Completion history
 
 ### 2026-09-29 23:05 +07:00 - PARTIAL

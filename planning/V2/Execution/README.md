@@ -19,3 +19,11 @@ This directory contains the active grouped work plan for Anh and Huy. The 133 op
 ## Working rule
 
 Start with `00-ROADMAP.md`, then exactly one owner task. A task is complete only when its own acceptance evidence and cross-owner handoff are `VERIFIED`. Historical completion records and operation cards are append-only evidence; they must not be rewritten to manufacture a new status.
+
+
+## Prompt sử dụng
+
+- [PROMPT-NEW-TASK.md](PROMPT-NEW-TASK.md): bắt đầu một task mới.
+- [PROMPT-P1.md](PROMPT-P1.md): prompt riêng cho Anh/Person 1, persistence và SQL.
+- [PROMPT-P2.md](PROMPT-P2.md): prompt riêng cho Huy/Person 2, Service/API/Postman.
+- [PROMPT-REVIEW.md](PROMPT-REVIEW.md): review và auto-fix trước khi báo cáo hoặc push.

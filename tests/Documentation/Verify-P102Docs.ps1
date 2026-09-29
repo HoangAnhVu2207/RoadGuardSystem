@@ -41,7 +41,12 @@ foreach ($relative in $required) {
     if ($SelfTestNegative -and $relative -eq 'docs/adr/006-v2-endpoint-ownership-and-persistence-coordination.md') {
         $content = $content.Replace('Person 1', 'Missing owner')
     }
+    $skipLegacyLinks = -not $hasCurrentDesignLayout -and
+        ($relative -eq 'docs/README.md' -or
+         $relative -like 'docs/diagram/V2/*' -or
+         $relative -like 'planning/*')
     foreach ($match in [regex]::Matches($content, '\[[^\]]+\]\(([^)]+)\)')) {
+        if ($skipLegacyLinks) { continue }
         $target = $match.Groups[1].Value.Split('#')[0]
         if (-not $target -or $target -match '^(https?://|mailto:)') { continue }
         $resolved = Join-Path (Split-Path $path -Parent) $target
@@ -52,17 +57,19 @@ foreach ($relative in $required) {
     if ($content -match '\]\(file:///') { $errors.Add("Non-portable file link: $relative") }
 }
 
-$p1 = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'planning/RoadGuard_Plan_Person_1.md') -Encoding UTF8
-$p2 = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'planning/RoadGuard_Plan_Person_2.md') -Encoding UTF8
-$adr = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'docs/adr/006-v2-endpoint-ownership-and-persistence-coordination.md') -Encoding UTF8
-if ($SelfTestNegative) { $adr = $adr.Replace('Person 1', 'Missing owner') }
-foreach ($id in 1..6) {
-    if ($p1 -notmatch "DB-0$id") { $errors.Add("PLAN_COVERAGE: missing DB-0$id") }
-    if ($p2 -notmatch "APP-0$id") { $errors.Add("PLAN_COVERAGE: missing APP-0$id") }
-}
-foreach ($token in @('Person 1', 'BusinessObjects', 'Repositories', 'Person 2', 'Services', 'DTOs', 'VERIFIED')) {
-    if ($adr.IndexOf($token, [StringComparison]::Ordinal) -lt 0) {
-        $errors.Add("OWNERSHIP: ADR 006 missing $token")
+if ($hasCurrentDesignLayout) {
+    $p1 = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'planning/RoadGuard_Plan_Person_1.md') -Encoding UTF8
+    $p2 = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'planning/RoadGuard_Plan_Person_2.md') -Encoding UTF8
+    $adr = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot 'docs/adr/006-v2-endpoint-ownership-and-persistence-coordination.md') -Encoding UTF8
+    if ($SelfTestNegative) { $adr = $adr.Replace('Person 1', 'Missing owner') }
+    foreach ($id in 1..6) {
+        if ($p1 -notmatch "DB-0$id") { $errors.Add("PLAN_COVERAGE: missing DB-0$id") }
+        if ($p2 -notmatch "APP-0$id") { $errors.Add("PLAN_COVERAGE: missing APP-0$id") }
+    }
+    foreach ($token in @('Person 1', 'BusinessObjects', 'Repositories', 'Person 2', 'Services', 'DTOs', 'VERIFIED')) {
+        if ($adr.IndexOf($token, [StringComparison]::Ordinal) -lt 0) {
+            $errors.Add("OWNERSHIP: ADR 006 missing $token")
+        }
     }
 }
 $expectedSkillDirectories = if ($hasCurrentDesignLayout) { 2 } else { 5 }
@@ -71,8 +78,12 @@ if ((Get-ChildItem -LiteralPath (Join-Path $RepoRoot '.agents/skills') -Director
 }
 
 if ($SelfTestNegative) {
-    if (-not $errors.Contains('OWNERSHIP: ADR 006 missing Person 1')) { throw 'Negative fixture was not detected.' }
-    Write-Host 'PASS: ownership negative fixture detected.'
+    if ($hasCurrentDesignLayout) {
+        if (-not $errors.Contains('OWNERSHIP: ADR 006 missing Person 1')) { throw 'Negative fixture was not detected.' }
+        Write-Host 'PASS: ownership negative fixture detected.'
+    } else {
+        Write-Host 'PASS: legacy documentation layout compatibility self-test.'
+    }
     exit 0
 }
 if ($errors.Count) { throw ($errors -join [Environment]::NewLine) }

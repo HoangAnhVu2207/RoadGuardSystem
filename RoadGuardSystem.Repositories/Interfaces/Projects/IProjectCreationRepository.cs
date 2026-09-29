@@ -8,7 +8,7 @@ public interface IProjectCreationRepository
 
     Task<ProjectCreationFacts> GetFactsAsync(
         Guid primaryProjectManagerUserId,
-        Guid? handoverFileId,
+        IReadOnlyList<Guid>? handoverFileIds,
         CancellationToken cancellationToken = default);
 
     Task<ProjectCreationPersistenceResult> CreateAsync(

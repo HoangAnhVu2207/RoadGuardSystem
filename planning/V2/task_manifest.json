@@ -675,12 +675,14 @@
       "dependencies": [],
       "legacy_trace": "P1-20/P2-20",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "blockers": [
+        "Focused API/SQL verification pending; current schema accepts at most one handover file link."
+      ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D19",
         "D23",

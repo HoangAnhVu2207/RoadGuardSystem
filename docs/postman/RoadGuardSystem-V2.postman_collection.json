@@ -653,13 +653,17 @@
                 "value": "Bearer {{supervisorAccessToken}}"
               },
               {
+                "key": "Idempotency-Key",
+                "value": "projectCreateKey-{{$guid}}"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"projectCode\": \"RG-POSTMAN-{{$guid}}\",\n  \"name\": \"Postman smoke project\",\n  \"description\": \"Created by Postman\",\n  \"engineeringUtmSrid\": 32648,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2027-09-01\",\n  \"primaryProjectManagerUserId\": \"{{primaryProjectManagerUserId}}\",\n  \"handover\": { \"documentNo\": \"HD-POSTMAN-{{$guid}}\", \"handoverDate\": \"2026-08-31\", \"fileId\": null, \"notes\": \"Postman smoke test\" },\n  \"operationId\": \"{{$guid}}\"\n}",
+              "raw": "{\n  \"code\": \"RG-POSTMAN-{{$guid}}\",\n  \"name\": \"Postman smoke project\",\n  \"primaryPmId\": \"{{primaryProjectManagerUserId}}\",\n  \"handoverDate\": \"2026-08-31\",\n  \"warrantyEndDate\": \"2027-08-31\",\n  \"handoverFileIds\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -685,7 +689,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Project create returns 201', function () { pm.response.to.have.status(201); });",
-                  "if (pm.response.code === 201) { var b = pm.response.json(); pm.environment.set('createdProjectId', b.projectId); pm.environment.set('projectRowVersion', b.rowVersion); }"
+                  "if (pm.response.code === 201) { var b = pm.response.json(); pm.environment.set('createdProjectId', b.id || b.projectId); pm.environment.set('projectRowVersion', b.version || b.rowVersion); }"
                 ]
               }
             }

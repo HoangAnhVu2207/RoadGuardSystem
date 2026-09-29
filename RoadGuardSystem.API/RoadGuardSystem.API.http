@@ -216,23 +216,16 @@ Accept: application/json
 
 POST {{RoadGuardSystem.API_HostAddress}}/api/v1/projects
 Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
 Content-Type: application/json
 
 {
-  "projectCode": "RG-2026-001",
+  "code": "RG-2026-001",
   "name": "Northern bypass rehabilitation",
-  "description": "Initial project created after handover",
-  "engineeringUtmSrid": 32648,
-  "startDate": "2026-09-01",
-  "endDate": "2027-09-01",
-  "primaryProjectManagerUserId": "{{primaryProjectManagerUserId}}",
-  "handover": {
-    "documentNo": "HD-2026-001",
-    "handoverDate": "2026-08-31",
-    "fileId": null,
-    "notes": "Accepted construction handover"
-  },
-  "operationId": "{{$guid}}"
+  "primaryPmId": "{{primaryProjectManagerUserId}}",
+  "handoverDate": "2026-08-31",
+  "warrantyEndDate": "2027-08-31",
+  "handoverFileIds": []
 }
 
 ###

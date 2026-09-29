@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: PARTIAL
 - decisionRefs: D19, D23, D24
 - requirementRefs: FR-04
 - diagramRefs: PF-01, SQ-02, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
+- implementationStatus: IMPLEMENTED
 - verificationStatus: NOT_RUN
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: Code complete — awaiting focused API/SQL verification; current schema supports at most one handover file link.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -29,7 +29,7 @@
 - Requirements/trace: FR-04
 - Diagrams/state: PF-01, SQ-02, DD/ERD
 - Canonical contract: operationId createProject, path /projects, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Current source/tests: `RoadGuardSystem.API/Controllers/ProjectsController.cs` (`Create`), `RoadGuardSystem.DTOs/Projects/CreateProjectRequestDto.cs`, `RoadGuardSystem.Services/Implementations/Projects/ProjectCreationService.cs`, `RoadGuardSystem.Repositories/Implementations/Projects/ProjectCreationPersistenceService.cs`, `tests/RoadGuardSystem.ApiTests/Projects/P120ProjectCreationTests.cs`; source read at base `99a0fe13e3cad8341cd3668df55dd96b72b31cc7`.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -134,6 +134,28 @@ Content-Type: application/json
   ]
 }
 ```
+
+## Completion history
+
+### 2026-09-29 23:05 +07:00 - PARTIAL
+
+- Scope/result: Implemented the canonical `createProject` request path while preserving legacy input aliases; the atomic persistence graph now includes Project, active primary-PM membership, handover document, project-wide Warranty, audit and idempotency receipt.
+- Files: `RoadGuardSystem.DTOs/Projects/CreateProjectRequestDto.cs`, `RoadGuardSystem.DTOs/Projects/CreateProjectResponseDto.cs`, `RoadGuardSystem.API/Controllers/ProjectsController.cs`, `RoadGuardSystem.API/RoadGuardSystem.API.http`, `RoadGuardSystem.Services/Interfaces/Projects/ProjectCreationContracts.cs`, `RoadGuardSystem.Services/Implementations/Projects/ProjectCreationService.cs`, `RoadGuardSystem.Repositories/Interfaces/Projects/IProjectCreationRepository.cs`, `RoadGuardSystem.Repositories/Implementations/Projects/ProjectCreationPersistenceService.cs`, `docs/postman/RoadGuardSystem-V2.postman_collection.json`, `planning/V2/Governance/FIX-V2-ALL-API-REVIEW.md`.
+- Acceptance criteria: canonical fields/header, Supervisor authorization, `warrantyStartDate=handoverDate`, end-date validation, resource `Location`, and one-transaction graph implemented. Current schema boundary explicitly rejects more than one handover file ID; no silent collapse.
+- Verification: `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q -clp:ErrorsOnly` => PASS, 0 errors/47 warnings. `git diff --check` => PASS. Postman/static and focused SQL/API verification => NOT_RUN after this source change.
+- Reused/invalidated evidence: existing P120 persistence/idempotency tests and prior project mapping evidence remain useful for legacy path but are invalidated for canonical body/warranty assertions until rerun.
+- Side effects: no package, migration, DB, live/shared data, commit or push.
+- Unverified/blockers: focused API/SQL smoke, canonical OpenAPI parity, warranty/file durable assertions and Postman runtime remain NOT_RUN; task remains PARTIAL.
+
+### 2026-09-29 23:12 +07:00 - PARTIAL / VERIFICATION_UPDATE
+
+- Scope/result: Canonical API regression coverage added for the new body/header and Warranty graph; legacy P120 scenarios remain green.
+- Files: `tests/RoadGuardSystem.ApiTests/Projects/P120ProjectCreationTests.cs`.
+- Acceptance criteria: canonical `id/code/primaryPmId/warrantyEndDate`, `Location`, one Warranty, one active primary membership, and same-key replay verified; multi-file boundary remains explicit validation.
+- Verification: `dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj -nologo -v q -clp:ErrorsOnly` => PASS, 0 errors/89 warnings; `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --filter FullyQualifiedName~P120ProjectCreationTests` => 4 passed, 0 failed, 0 skipped. Alignment guard => PASS (133 tasks); manifest/Postman JSON parse and `git diff --check` => PASS.
+- Reused/invalidated evidence: production build rerun after DTO/projection changes; prior SQL fixture remains the selected endpoint evidence. External host/Postman runtime and full migration/model verification are not claimed.
+- Side effects: no package, migration, DB live/shared data, commit or push.
+- Unverified/blockers: canonical OpenAPI required-field parity and real-host smoke remain NOT_RUN; task remains PARTIAL.
 
 ## 7. Done và bằng chứng
 

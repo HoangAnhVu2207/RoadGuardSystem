@@ -157,6 +157,43 @@ public sealed class P120ProjectCreationTests
     }
 
     [Fact]
+    public async Task CreateProjectCanonicalRequestCreatesWarrantyAndReplaysByHeaderKey()
+    {
+        var supervisor = await _sql.CreateUserAsync($"canonical_supervisor_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var projectManager = await _sql.CreateUserAsync($"canonical_pm_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = CreateClient(factory);
+        await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
+        const string idempotencyKey = "canonical-project-create-test";
+        client.DefaultRequestHeaders.Add("Idempotency-Key", idempotencyKey);
+        var request = new
+        {
+            code = $"CAN-{Guid.NewGuid():N}",
+            name = "Canonical project",
+            primaryPmId = projectManager.Id,
+            handoverDate = "2026-09-29",
+            warrantyEndDate = "2027-09-29",
+            handoverFileIds = Array.Empty<Guid>()
+        };
+
+        var created = await client.PostAsJsonAsync("/api/v1/projects", request);
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        created.Headers.Location!.ToString().Should().Contain("/api/v1/projects/");
+        var body = await created.Content.ReadFromJsonAsync<JsonElement>();
+        var projectId = body.GetProperty("id").GetGuid();
+        body.GetProperty("code").GetString().Should().Be(request.code);
+        body.GetProperty("warrantyEndDate").GetDateTime().Date.Should().Be(new DateTime(2027, 9, 29));
+
+        await using var verification = _sql.CreateDbContext();
+        (await verification.Warranties.CountAsync(warranty => warranty.ProjectId == projectId)).Should().Be(1);
+        (await verification.ProjectMembers.CountAsync(member => member.ProjectId == projectId && member.IsPrimary)).Should().Be(1);
+
+        var replay = await client.PostAsJsonAsync("/api/v1/projects", request);
+        replay.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(await created.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task CreateProjectInvalidOrChangedRequestReturnsStableErrorsWithoutExtraProject()
     {
         var supervisor = await _sql.CreateUserAsync(

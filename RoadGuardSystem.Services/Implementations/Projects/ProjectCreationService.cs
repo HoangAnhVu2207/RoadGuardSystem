@@ -35,6 +35,8 @@ public sealed class ProjectCreationService : IProjectCreationService
             return new(ProjectCreationStatus.InvalidInput);
         }
 
+        var fileIds = command.HandoverFileIds ??
+            (command.HandoverFileId is Guid legacyFileId ? [legacyFileId] : []);
         var request = new ProjectCreationPersistenceRequest(
             actorUserId,
             command.ProjectCode,
@@ -46,10 +48,13 @@ public sealed class ProjectCreationService : IProjectCreationService
             command.PrimaryProjectManagerUserId,
             command.HandoverDocumentNo,
             command.HandoverDate,
-            command.HandoverFileId,
+            fileIds.Count > 0 ? fileIds[0] : null,
             command.HandoverNotes,
             command.OperationId,
-            command.CorrelationId);
+            command.CorrelationId,
+            command.WarrantyEndDate,
+            fileIds,
+            command.IdempotencyKey);
         var replay = await _persistence.TryGetReplayAsync(request, cancellationToken);
         if (replay is not null)
         {
@@ -58,7 +63,7 @@ public sealed class ProjectCreationService : IProjectCreationService
 
         var facts = await _persistence.GetFactsAsync(
             command.PrimaryProjectManagerUserId,
-            command.HandoverFileId,
+            fileIds,
             cancellationToken);
         if (!facts.PrimaryProjectManagerIsEligible)
         {
@@ -68,6 +73,11 @@ public sealed class ProjectCreationService : IProjectCreationService
         if (!facts.HandoverFileExists)
         {
             return new(ProjectCreationStatus.HandoverFileNotFound);
+        }
+
+        if (command.WarrantyEndDate is DateOnly warrantyEndDate && warrantyEndDate < command.HandoverDate)
+        {
+            return new(ProjectCreationStatus.InvalidInput);
         }
 
         var result = await _persistence.CreateAsync(request, cancellationToken);
@@ -87,6 +97,7 @@ public sealed class ProjectCreationService : IProjectCreationService
                 result.Project.PrimaryProjectManagerUserId,
                 result.Project.HandoverDocumentId,
                 result.Project.HandoverDate,
+                result.Project.WarrantyEndDate,
                 Convert.ToBase64String(result.Project.RowVersion)));
     }
 

@@ -1,5 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -143,6 +145,7 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<IActionResult> Create(
         CreateProjectRequestDto request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actorUserId) ||
@@ -151,34 +154,55 @@ public sealed class ProjectsController : ControllerBase
             return ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
         }
 
-        if (request.Handover?.HandoverDate is null)
+        var canonical = !string.IsNullOrWhiteSpace(request.Code);
+        var projectCode = canonical ? request.Code! : request.ProjectCode;
+        var primaryPmId = canonical ? request.PrimaryPmId : request.PrimaryProjectManagerUserId;
+        var handoverDate = canonical ? request.HandoverDate : request.Handover?.HandoverDate;
+        var warrantyEndDate = canonical ? request.WarrantyEndDate : request.EndDate;
+        var fileIds = canonical
+            ? request.HandoverFileIds ?? []
+            : request.Handover?.FileId is Guid legacyFileId ? [legacyFileId] : [];
+        if (string.IsNullOrWhiteSpace(projectCode) || primaryPmId == Guid.Empty || handoverDate is null ||
+            (canonical && request.HandoverFileIds is null) || fileIds.Count > 1)
         {
             return ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request");
         }
+
+        var operationId = request.OperationId != Guid.Empty
+            ? request.OperationId
+            : DeriveOperationId(idempotencyKey);
+        if (operationId == Guid.Empty)
+        {
+            return ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
+        }
+        var documentNo = canonical ? $"PROJECT-{projectCode}" : request.Handover!.DocumentNo;
 
         var result = await _service.CreateAsync(
             actorUserId,
             actorRole,
             new CreateProjectCommand(
-                request.ProjectCode,
+                projectCode,
                 request.Name,
                 request.Description,
                 request.EngineeringUtmSrid,
                 request.StartDate,
                 request.EndDate,
-                request.PrimaryProjectManagerUserId,
-                request.Handover.DocumentNo,
-                request.Handover.HandoverDate.Value,
-                request.Handover.FileId,
-                request.Handover.Notes,
-                request.OperationId,
-                CorrelationId()),
+                primaryPmId,
+                documentNo,
+                handoverDate.Value,
+                fileIds.Count > 0 ? fileIds[0] : null,
+                request.Handover?.Notes,
+                operationId,
+                CorrelationId(),
+                warrantyEndDate,
+                fileIds,
+                idempotencyKey),
             cancellationToken);
 
         return result.Status switch
         {
             ProjectCreationStatus.Success or ProjectCreationStatus.Replayed when result.Project is not null =>
-                Created($"/api/v1/projects/{result.Project.ProjectId}/work-package", ToResponse(result.Project)),
+                Created($"/api/v1/projects/{result.Project.ProjectId}", ToResponse(result.Project)),
             ProjectCreationStatus.Forbidden => ProblemResponse(
                 StatusCodes.Status403Forbidden, ApiErrorCodes.AccessForbidden, "Forbidden"),
             ProjectCreationStatus.ProjectManagerNotFound => ProblemResponse(
@@ -197,11 +221,28 @@ public sealed class ProjectsController : ControllerBase
         project.ProjectId,
         project.ProjectCode,
         project.Name,
+        project.PrimaryProjectManagerUserId,
+        project.HandoverDate,
+        project.WarrantyEndDate,
         project.Status,
+        project.RowVersion,
+        project.ProjectId,
+        project.ProjectCode,
         project.PrimaryProjectManagerUserId,
         project.HandoverDocumentId,
-        project.HandoverDate,
         project.RowVersion);
+
+    private static Guid DeriveOperationId(string? idempotencyKey)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            return Guid.Empty;
+        }
+
+        Span<byte> hash = stackalloc byte[32];
+        SHA256.HashData(Encoding.UTF8.GetBytes(idempotencyKey.Trim()), hash);
+        return new Guid(hash[..16]);
+    }
 
     private static UpdateProjectResponseDto ToResponse(UpdatedProjectView project) => new(
         project.ProjectId,

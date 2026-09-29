@@ -844,4 +844,25 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
             "IdentityRoleSeedStep",
             "DroneDeviceSeedStep");
     }
+
+    [Fact(DisplayName = "Development seeding registers Postman accounts before scenario fixtures")]
+    public void AddRoadGuardSeeding_RegistersPostmanScenarioAfterDevelopmentUsers()
+    {
+        var services = new ServiceCollection();
+
+        services.AddRoadGuardSeeding(includeDevelopmentUsers: true);
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var steps = scope.ServiceProvider.GetServices<ISeedStep>()
+            .OrderBy(step => step.Order)
+            .Select(step => step.Name)
+            .ToArray();
+
+        steps.Should().Equal(
+            "IdentityRoleSeedStep",
+            "DroneDeviceSeedStep",
+            "PostmanUserSeedStep",
+            "PostmanScenarioSeedStep");
+    }
 }

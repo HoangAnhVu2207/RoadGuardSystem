@@ -1,0 +1,22 @@
+$kind: http-request
+name: POST /auth/reporter-registrations/resend
+description: "MANUAL EMAIL. Purpose: resend OTP after cooldown and invalidate the old code. Setup: run the separate otpResendEmail registration, set manualEmailScenario=OTP_RESEND, wait for resendAfterSeconds, and retain the same key only for a retry of the same operation. Expected: 202 or 429. Never include this request in an unattended collection run."
+url: "{{baseUrl}}/api/v1/auth/reporter-registrations/resend"
+method: POST
+headers:
+  Idempotency-Key: "{{reporterResendKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "intentId": "{{otpResendIntentId}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: if (pm.environment.get('manualEmailScenario') !== 'OTP_RESEND') pm.execution.skipRequest();
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('Resend respects cooldown', function () { pm.expect([202, 429]).to.include(pm.response.code); });
+    language: text/javascript
+order: 6000

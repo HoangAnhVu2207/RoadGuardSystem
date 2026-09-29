@@ -2,23 +2,23 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: PARTIAL
 - decisionRefs: D25, 36A, 37
 - requirementRefs: FR-03, FR-01
 - diagramRefs: SQ-06, DD/ERD
-- sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- sourceCheckpoint: V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd
 
 - contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PARTIAL_FOCUSED_AUTH
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: Focused fake-sender/API and SQL fixture checks pass; real-email cooldown/manual smoke remain NOT_RUN.
 
 
 - **Owner:** Person 1 — anh. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
 - **API duy nhất:** `POST /api/v1/auth/reporter-registrations/resend`; operationId `resendReporterOtp`.
-- **Trạng thái kế hoạch:** `NEEDS_REPO_CHECK`. Chưa xác nhận code đang chạy; không thay trạng thái Done lịch sử.
+- **Trạng thái kế hoạch:** `PARTIAL / IMPLEMENTED`. Code complete; awaiting review/verification.
 - **Contract:** PROPOSED_CONTRACT; OpenAPI 0.2.0-draft-alignment. Không xem draft là quyết định nghiệp vụ đã duyệt.
 - **Trace:** FR-03; nhóm kế hoạch cũ P1-13/P2-13 (mapping theo chức năng, không chứng minh hoàn thành).
 - **Đợt ưu tiên:** W2; dependency cụ thể bên dưới có ưu tiên hơn số đợt.
@@ -29,7 +29,7 @@
 - Requirements/trace: FR-03, FR-01
 - Diagrams/state: SQ-06, DD/ERD
 - Canonical contract: operationId resendReporterOtp, path /auth/reporter-registrations/resend, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
+- Current source/tests: `ReporterRegistrationsController.Resend`, `IdentityOnboardingService.ResendReporterOtpAsync`, `IdentityOnboardingRepository.ResendReporterOtpAsync`; reviewed at base `561dd0a`, runtime verification NOT_RUN.
 - Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
 ## 1. Cần làm và tại sao
@@ -231,3 +231,24 @@ schemas:
     required:
     - intentId
 ```
+
+## Completion history
+
+### 2026-09-29 09:42 +07:00 - PARTIAL
+
+- Scope/result: source comparison completed; extended `IdentityOnboardingService.ResendReporterOtpAsync` and `IdentityOnboardingRepository.ResendReporterOtpAsync` to enforce decision 37 (60-second cooldown and at most 3 committed resends per 15 minutes) while retaining OTP rotation/idempotent replay.
+- Files/symbols: `IdentityOnboardingOptions`, onboarding service/repository interface/implementation; existing controller/DTO/entity/mapping/DI reused; evidence in `V2-P1-006-015-CODE-CHECKPOINT.md`.
+- Acceptance criteria: code complete for 202/Location, durable resend state, 60-second cooldown, 3/15-minute bound and concurrency-safe single committed rotation; runtime behavior not yet verified.
+- Verification: shared API build PASS (0 errors, 40 warnings); tests/Newman/smoke/review-autofix NOT_RUN by owner instruction.
+- Side effects: no package, migration or schema change; the implementation queries existing `IdempotencyRecords`; no data/external call/commit/push; `UNCOMMITTED`.
+- Unverified/blockers: Code complete — awaiting review/verification.
+
+### 2026-09-29 11:22 +07:00 - PARTIAL
+
+- Scope/result: added a separate guarded resend mailbox scenario and focused fake-sender regression coverage; production cooldown remains unchanged.
+- Files/symbols: Postman resend setup/request/environment/README and `ReporterRegistration_ResendInvalidatesOldOtp_UsingFakeSender`.
+- Acceptance criteria: focused API test proves resend rotates the OTP, rejects the old OTP and accepts the latest OTP; sender is a test double and no real mailbox is contacted.
+- Verification: API build PASS (0 errors); `V2IdentityOnboardingFlowTests` PASS 3/3; Postman JSON/YAML and safety-gate scan PASS. Real SMTP/cooldown timing/manual verify NOT_RUN.
+- Reused/invalidated evidence: prior build-only evidence replaced by current focused tests; production 60-second timing and external smoke remain missing.
+- Side effects: no package/migration/schema/Development DB/SMTP/commit/push; `UNCOMMITTED`.
+- Unverified/blockers: real-mail resend/cooldown, old-code manual check and external smoke remain required before DONE.

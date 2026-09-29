@@ -1,0 +1,14 @@
+$kind: http-request
+name: GET /me/inspection-tasks - unauthorized
+description: "Purpose: verify bearer authentication is required. Role: none. Setup: none. Expected: 401 ProblemDetails. Data change: none."
+url: "{{baseUrl}}/api/v1/me/inspection-tasks?limit={{inspectionLimit}}"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  limit: "{{inspectionLimit}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Unauthenticated inspection task list returns 401', function () { pm.response.to.have.status(401); });
+    language: text/javascript
+order: 2000

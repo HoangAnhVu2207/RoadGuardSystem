@@ -1,0 +1,27 @@
+$kind: http-request
+name: POST /projects/{projectId}/road-sections/{roadSectionId}/survey-plans - success
+description: "Purpose: create a survey plan. Role: Project Manager with effective project scope. Setup: set projectId, roadSectionId and roadSectionVersionId from permitted fixtures; use a fresh Idempotency-Key. Expected: 201 plan and Location. Data change: plan, audit and idempotency receipt."
+url: "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-plans"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Idempotency-Key: "{{surveyPlanCreateKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plannedStartAt": "2026-10-01T08:00:00Z",
+      "plannedEndAt": "2026-10-01T10:00:00Z",
+      "roadSectionVersionId": "{{roadSectionVersionId}}",
+      "surveyType": 2,
+      "outputRequirements": "{\"formats\":[\"video\",\"srt\"]}",
+      "operationId": "{{$guid}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Survey plan create returns 201', function () { pm.response.to.have.status(201); });
+      if (pm.response.code === 201) pm.collectionVariables.set('surveyPlanId', pm.response.json().planId);
+    language: text/javascript
+order: 1000

@@ -11,9 +11,9 @@
     { "key": "profileRowVersion", "value": "", "type": "string" },
     { "key": "targetUserId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
     { "key": "targetRowVersion", "value": "", "type": "string" },
-    { "key": "projectId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "projectId", "value": "6a4dbd16-a646-46da-9e5c-200000000001", "type": "string" },
     { "key": "projectRowVersion", "value": "", "type": "string" },
-    { "key": "primaryProjectManagerUserId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
+    { "key": "primaryProjectManagerUserId", "value": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02", "type": "string" },
     { "key": "registrationIntentId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
     { "key": "invitationId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" },
     { "key": "invitationVersion", "value": "", "type": "string" },
@@ -30,9 +30,9 @@
     { "key": "changePasswordKey", "value": "change-password-runner", "type": "string" }
     ,{ "key": "inspectionCursor", "value": "", "type": "string" }
     ,{ "key": "inspectionLimit", "value": "50", "type": "string" }
-    ,{ "key": "roadSectionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
-    ,{ "key": "roadSectionVersionId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
-    ,{ "key": "surveyPlanId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+    ,{ "key": "roadSectionId", "value": "6a4dbd16-a646-46da-9e5c-200000000004", "type": "string" }
+    ,{ "key": "roadSectionVersionId", "value": "6a4dbd16-a646-46da-9e5c-200000000005", "type": "string" }
+    ,{ "key": "surveyPlanId", "value": "6a4dbd16-a646-46da-9e5c-200000000009", "type": "string" }
     ,{ "key": "surveyRequestId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
     ,{ "key": "surveyPlanCreateKey", "value": "survey-plan-runner", "type": "string" }
     ,{ "key": "surveyRequestCreateKey", "value": "survey-request-runner", "type": "string" }
@@ -198,13 +198,13 @@
         {
           "name": "POST /auth/password-recovery-requests",
           "request": {
-            "description": "Purpose: request password recovery. Role: unauthenticated caller. Setup: set a permitted email. Expected: 202 without credential disclosure. Data change: creates a recovery request.",
+            "description": "MANUAL EMAIL. Purpose: request password recovery. Setup: set recoveryEmail and manualEmailScenario=RECOVERY. Expected: neutral 202 and Location whether or not the account exists. Data change: creates a recovery request; never reveals account existence.",
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{authEmail}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{recoveryEmail}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/auth/password-recovery-requests", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "password-recovery-requests"] }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Recovery returns 202', function () { pm.response.to.have.status(202); });", "pm.test('Recovery returns Location', function () { pm.expect(pm.response.headers.get('Location')).to.match(/^\\/api\\/v1\\/auth\\/password-recovery-requests\\//); });", "pm.test('No credential disclosure', function () { pm.expect(pm.response.text()).to.not.match(/passwordHash|temporaryPassword/i); });"] } }]
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (pm.environment.get('manualEmailScenario') !== 'RECOVERY') pm.execution.skipRequest();"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Recovery returns 202', function () { pm.response.to.have.status(202); });", "pm.test('Recovery returns Location', function () { pm.expect(pm.response.headers.get('Location')).to.match(/^\\/api\\/v1\\/auth\\/password-recovery-requests\\//); });", "pm.test('No credential disclosure', function () { pm.expect(pm.response.text()).to.not.match(/passwordHash|temporaryPassword/i); });"] } }]
         },
         {
           "name": "POST /auth/change-password - destructive",
@@ -235,21 +235,32 @@
         {
           "name": "POST /auth/reporter-registrations - success",
           "request": {
-            "description": "Purpose: create a pending Reporter registration and send OTP. Role: public. Setup: configure IdentityOnboarding secret/message provider and set reporterEmail/reporterPassword. Expected: 202 RegistrationIntent and Location. Data change: pending user, OTP hash and idempotency receipt.",
+            "description": "MANUAL EMAIL. Purpose: create a pending Reporter registration and send OTP. Setup: set reporterRegistrationEmail/reporterPassword and manualEmailScenario=REPORTER_REGISTRATION; confirm the email is unused first. Expected: 202 RegistrationIntent and Location. Data change: pending account, OTP hash and idempotency receipt.",
             "method": "POST",
             "header": [{ "key": "Idempotency-Key", "value": "{{reporterRegistrationKey}}" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{reporterEmail}}\",\n  \"password\": \"{{reporterPassword}}\",\n  \"displayName\": \"Postman Reporter\",\n  \"reporterType\": \"CITIZEN\"\n}", "options": { "raw": { "language": "json" } } },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{reporterRegistrationEmail}}\",\n  \"password\": \"{{reporterPassword}}\",\n  \"displayName\": \"Postman Reporter\",\n  \"reporterType\": \"CITIZEN\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations"] }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Registration returns 202', function () { pm.response.to.have.status(202); });", "pm.test('Registration response is safe', function () { pm.expect(pm.response.text()).to.not.match(/password|otp/i); });", "if (pm.response.code === 202) pm.collectionVariables.set('registrationIntentId', pm.response.json().intentId);"] } }]
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (pm.environment.get('manualEmailScenario') !== 'REPORTER_REGISTRATION') pm.execution.skipRequest();"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Registration returns 202', function () { pm.response.to.have.status(202); });", "pm.test('Registration response is safe', function () { pm.expect(pm.response.text()).to.not.match(/password|otp/i); });", "if (pm.response.code === 202) pm.collectionVariables.set('registrationIntentId', pm.response.json().intentId);"] } }]
+        },
+        {
+          "name": "POST /auth/reporter-registrations - setup resend mailbox",
+          "request": {
+            "description": "MANUAL EMAIL. Purpose: create a separate pending intent for resend/cooldown testing. Setup: set otpResendEmail/reporterPassword and manualEmailScenario=OTP_RESEND; confirm the email is unused. Expected: 202. Data change: pending account and initial OTP delivery.",
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{otpResendEmail}}\",\n  \"password\": \"{{reporterPassword}}\",\n  \"displayName\": \"Postman OTP Resend Reporter\",\n  \"reporterType\": \"CITIZEN\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations"] }
+          },
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (pm.environment.get('manualEmailScenario') !== 'OTP_RESEND') pm.execution.skipRequest();"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Resend setup returns 202', function () { pm.response.to.have.status(202); });", "if (pm.response.code === 202) pm.environment.set('otpResendIntentId', pm.response.json().intentId);"] } }]
         },
         {
           "name": "POST /auth/reporter-registrations - validation",
           "request": {
-            "description": "Purpose: reject non-Gmail Reporter registration. Role: public. Setup: none. Expected: 400 validation response and no durable user. Data change: none.",
+            "description": "Purpose: reject a malformed Reporter email. Role: public. Setup: none. Expected: 400 validation response and no durable user. Non-Gmail providers remain allowed. Data change: none.",
             "method": "POST",
             "header": [{ "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"invalid@example.test\",\n  \"password\": \"{{reporterPassword}}\",\n  \"displayName\": \"Invalid Reporter\",\n  \"reporterType\": \"CITIZEN\"\n}", "options": { "raw": { "language": "json" } } },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"{{reporterPassword}}\",\n  \"displayName\": \"Invalid Reporter\",\n  \"reporterType\": \"CITIZEN\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations"] }
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid Reporter registration returns 400', function () { pm.response.to.have.status(400); });"] } }]
@@ -279,13 +290,13 @@
         {
           "name": "POST /auth/reporter-registrations/resend",
           "request": {
-            "description": "Purpose: resend OTP after cooldown. Role: public intent holder. Setup: pending registration; wait for resendAfterSeconds. Expected: 202, or 429 during cooldown. Data change: replaces OTP hash and advances generation once per key.",
+            "description": "MANUAL EMAIL. Purpose: resend OTP after cooldown and invalidate the old code. Setup: run the separate otpResendEmail registration, set manualEmailScenario=OTP_RESEND, wait for resendAfterSeconds, and retain the same key only for a retry of the same operation. Expected: 202 or 429. Never include this request in an unattended collection run.",
             "method": "POST",
             "header": [{ "key": "Idempotency-Key", "value": "{{reporterResendKey}}" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"intentId\": \"{{registrationIntentId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "body": { "mode": "raw", "raw": "{\n  \"intentId\": \"{{otpResendIntentId}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/auth/reporter-registrations/resend", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "reporter-registrations", "resend"] }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Resend respects cooldown', function () { pm.expect([202, 429]).to.include(pm.response.code); });"] } }]
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (pm.environment.get('manualEmailScenario') !== 'OTP_RESEND') pm.execution.skipRequest();"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Resend respects cooldown', function () { pm.expect([202, 429]).to.include(pm.response.code); });"] } }]
         }
       ]
     },
@@ -295,13 +306,13 @@
         {
           "name": "POST /invitations - success",
           "request": {
-            "description": "Purpose: Supervisor creates a one-time staff invitation. Role: Supervisor. Setup: login as seeded Supervisor, store its token in supervisorAccessToken, set invitationEmail. Expected: 201 with ETag and Location. Data change: invitation/token hash/idempotency receipt.",
+            "description": "MANUAL EMAIL. Purpose: Supervisor creates a one-time staff invitation. Setup: login as seeded Supervisor, set invitationEmail and manualEmailScenario=INVITATION; confirm no active/accepted invitation or account exists. Expected: 201 with ETag and Location. Data change: invitation/token hash/idempotency receipt.",
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{supervisorAccessToken}}" }, { "key": "Idempotency-Key", "value": "{{invitationCreateKey}}" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{invitationEmail}}\",\n  \"displayName\": \"Invited Operator\",\n  \"role\": \"OPERATOR\",\n  \"projectIds\": []\n}", "options": { "raw": { "language": "json" } } },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{invitationEmail}}\",\n  \"role\": \"OPERATOR\",\n  \"projectIds\": []\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/invitations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invitations"] }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invitation create returns 201', function () { pm.response.to.have.status(201); });", "pm.test('Invitation token is not returned', function () { pm.expect(pm.response.text()).to.not.match(/invitationToken/i); });", "if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('invitationId', b.id); pm.collectionVariables.set('invitationVersion', b.version); }"] } }]
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (pm.environment.get('manualEmailScenario') !== 'INVITATION') pm.execution.skipRequest();"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invitation create returns 201', function () { pm.response.to.have.status(201); });", "pm.test('Invitation token is not returned', function () { pm.expect(pm.response.text()).to.not.match(/invitationToken/i); });", "if (pm.response.code === 201) { var b = pm.response.json(); pm.collectionVariables.set('invitationId', b.id); pm.collectionVariables.set('invitationVersion', b.version); }"] } }]
         },
         {
           "name": "POST /invitations - wrong role",
@@ -309,7 +320,7 @@
             "description": "Purpose: prove a non-Supervisor cannot invite. Role: authenticated non-Supervisor. Setup: set operatorAccessToken. Expected: 403 and no invitation. Data change: none.",
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{operatorAccessToken}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{invitationEmail}}\",\n  \"displayName\": \"Invited Operator\",\n  \"role\": \"OPERATOR\",\n  \"projectIds\": []\n}", "options": { "raw": { "language": "json" } } },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{invitationEmail}}\",\n  \"role\": \"OPERATOR\",\n  \"projectIds\": []\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{baseUrl}}/api/v1/invitations", "host": ["{{baseUrl}}"], "path": ["api", "v1", "invitations"] }
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Non-Supervisor invite returns 403', function () { pm.response.to.have.status(403); });"] } }]

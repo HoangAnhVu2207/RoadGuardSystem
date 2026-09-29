@@ -35,7 +35,7 @@ public sealed class InvitationsController : ControllerBase
         }
 
         var result = await _service.CreateInvitationAsync(
-            actorUserId, request.Email!, request.DisplayName!, request.Role!, request.ProjectIds!, idempotencyKey!, cancellationToken);
+            actorUserId, request.Email!, request.Role!, request.ProjectIds!, idempotencyKey!, cancellationToken);
         if (result.Status is IdentityOnboardingStatus.Success or IdentityOnboardingStatus.IdempotentReplay &&
             result.Invitation is not null)
         {

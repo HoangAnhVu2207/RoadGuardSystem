@@ -41,7 +41,7 @@ Mỗi FR có đầu vào/đầu ra, quy tắc và tiêu chí kiểm chứng; l�
 
 **Ưu tiên:** M. **Căn cứ:** KẾ THỪA. **Trace:** US-27; BR-02, BR-29.
 
-- **Đầu vào/tiền điều kiện:** Gmail, thông tin Reporter, mật khẩu và OTP.
+- **Đầu vào/tiền điều kiện:** Email hợp lệ, thông tin Reporter, mật khẩu và OTP.
 - **Hành vi/đầu ra bắt buộc:** Reporter đã xác minh; không có ProjectMember.
 - **Kiểm chứng:** Given OTP sai/hết hạn hoặc client chọn PM; When xác minh/đăng ký; Then không cấp quyền nội bộ và không cho gửi phản ánh chưa xác minh.
 

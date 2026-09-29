@@ -4,7 +4,7 @@
 
 ## 1. Phạm vi và hợp đồng hiện có
 
-Nguồn: TECH-R3 Auth §5.4, OpenAPI `login`, `refreshTokens`, `getMe`, `logout`; FR-01/03. Kế thừa bearer token. OAuth/SSO chưa có endpoint hoặc provider đã chọn. Đăng ký email Gmail + OTP không đồng nghĩa đăng nhập Google OAuth.
+Nguồn: TECH-R3 Auth §5.4, OpenAPI `login`, `refreshTokens`, `getMe`, `logout`; FR-01/03. Kế thừa bearer token. OAuth/SSO chưa có endpoint hoặc provider đã chọn. Đăng ký email + OTP không đồng nghĩa đăng nhập OAuth.
 
 | Thao tác | Request, tính từ `/api/v1` | Response thành công |
 |---|---|---|

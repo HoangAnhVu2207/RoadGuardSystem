@@ -1,0 +1,22 @@
+$kind: http-request
+name: POST /auth/reporter-registrations - validation
+description: "Purpose: reject a malformed Reporter email. Role: public. Setup: none. Expected: 400 validation response and no durable user. Non-Gmail providers remain allowed. Data change: none."
+url: "{{baseUrl}}/api/v1/auth/reporter-registrations"
+method: POST
+headers:
+  Idempotency-Key: "{{$guid}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "not-an-email",
+      "password": "{{reporterPassword}}",
+      "displayName": "Invalid Reporter",
+      "reporterType": "CITIZEN"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Invalid Reporter registration returns 400', function () { pm.response.to.have.status(400); });
+    language: text/javascript
+order: 3000

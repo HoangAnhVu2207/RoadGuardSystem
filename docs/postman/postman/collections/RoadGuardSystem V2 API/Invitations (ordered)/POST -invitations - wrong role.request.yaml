@@ -1,0 +1,22 @@
+$kind: http-request
+name: POST /invitations - wrong role
+description: "Purpose: prove a non-Supervisor cannot invite. Role: authenticated non-Supervisor. Setup: set operatorAccessToken. Expected: 403 and no invitation. Data change: none."
+url: "{{baseUrl}}/api/v1/invitations"
+method: POST
+headers:
+  Authorization: Bearer {{operatorAccessToken}}
+  Idempotency-Key: "{{$guid}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{invitationEmail}}",
+      "role": "OPERATOR",
+      "projectIds": []
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Non-Supervisor invite returns 403', function () { pm.response.to.have.status(403); });
+    language: text/javascript
+order: 2000

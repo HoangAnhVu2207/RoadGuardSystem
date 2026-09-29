@@ -16,6 +16,6 @@ scripts:
   - type: afterResponse
     code: |-
       pm.test('Login returns 200', function () { pm.response.to.have.status(200); });
-      if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); pm.collectionVariables.set('profileRowVersion', b.user.rowVersion); pm.collectionVariables.set('targetUserId', b.user.id); }
+      if (pm.response.code === 200) { var b = pm.response.json(); pm.collectionVariables.set('accessToken', b.accessToken); pm.collectionVariables.set('refreshToken', b.refreshToken); pm.collectionVariables.set('profileRowVersion', b.user.version); pm.collectionVariables.set('targetUserId', b.user.id); }
     language: text/javascript
 order: 1000

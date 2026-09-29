@@ -1,0 +1,25 @@
+$kind: http-request
+name: POST /projects/{projectId}/road-sections/{roadSectionId}/survey-plans - idempotency conflict
+description: "Purpose: verify same idempotency key with changed payload is rejected. Role: Project Manager. Setup: run the success request first, then change the date while reusing surveyPlanCreateKey. Expected: 409 duplicate/idempotency conflict. Data change: none on conflict."
+url: "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-plans"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Idempotency-Key: "{{surveyPlanCreateKey}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plannedStartAt": "2026-11-01T08:00:00Z",
+      "plannedEndAt": "2026-11-01T10:00:00Z",
+      "roadSectionVersionId": "{{roadSectionVersionId}}",
+      "surveyType": 2,
+      "outputRequirements": "{\"formats\":[\"video\"]}",
+      "operationId": "{{$guid}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Changed idempotency payload returns 409', function () { pm.expect([409, 422]).to.include(pm.response.code); });
+    language: text/javascript
+order: 5000

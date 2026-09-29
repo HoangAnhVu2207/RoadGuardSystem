@@ -35,6 +35,9 @@ appsettings.*.[Ll][Oo][Cc][Aa][Ll].json
 UserSecrets/
 http-client.private.env.json
 http-client.env.json.user
+docs/postman/*.private.postman_environment.json
+docs/postman/postman/environments/*.private.environment.yaml
+docs/postman/postman/environments/RoadGuard.local-[0-9]*.environment.yaml
 appsettings.Production.json
 secrets.json
 *.pfx

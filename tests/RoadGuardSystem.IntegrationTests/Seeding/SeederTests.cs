@@ -154,6 +154,53 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         counter.Should().Be(1);
     }
 
+    [Fact(DisplayName = "Development scenario seed creates a complete idempotent Postman graph without onboarding recipients")]
+    public async Task PostmanScenarioSeed_CreatesIdempotentGraph_WithoutOnboardingRecipients()
+    {
+        var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
+            .UseSqlServer(_fixture.ConnectionString, sql => sql.UseNetTopologySuite())
+            .Options;
+        await using var context = new RoadGuardDbContext(options);
+        var registrationCountBefore = await CountFixtureRegistrationsAsync(context);
+        var invitationCountBefore = await CountFixtureInvitationsAsync(context);
+        var seeder = new DatabaseSeeder(
+        [
+            new IdentityRoleSeedStep(),
+            new PostmanUserSeedStep(),
+            new PostmanScenarioSeedStep()
+        ]);
+
+        await seeder.SeedAsync(context);
+        context.ChangeTracker.Clear();
+        await seeder.SeedAsync(context);
+        context.ChangeTracker.Clear();
+
+        (await context.Projects.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000001")))
+            .Should().Be(1);
+        (await context.ProjectMembers.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000002")))
+            .Should().Be(1);
+        (await context.RoadSectionVersions.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000005")))
+            .Should().Be(1);
+        (await context.SurveyAssignments.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-20000000000c")))
+            .Should().Be(1);
+        (await context.FieldInspectionAssignments.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000011")))
+            .Should().Be(1);
+        (await CountFixtureRegistrationsAsync(context)).Should().Be(registrationCountBefore);
+        (await CountFixtureInvitationsAsync(context)).Should().Be(invitationCountBefore);
+    }
+
+    private static Task<int> CountFixtureRegistrationsAsync(RoadGuardDbContext context) =>
+        context.ReporterRegistrationIntents.CountAsync(item =>
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedProjectManagerEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedOperatorEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedRepairCrewEmail);
+
+    private static Task<int> CountFixtureInvitationsAsync(RoadGuardDbContext context) =>
+        context.StaffInvitations.CountAsync(item =>
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedProjectManagerEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedOperatorEmail ||
+            item.NormalizedEmail == PostmanUserSeedStep.NormalizedRepairCrewEmail);
+
     [Fact(DisplayName = "Positive: Wave 0 no-op seed entry point runs repeatedly, executes 0 steps, and does not add or remove base tables")]
     public async Task Wave0_NoOpSeed_CanExecuteRepeatedly_WithoutMutatingBaseTables()
     {

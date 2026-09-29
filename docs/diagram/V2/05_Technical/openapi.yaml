@@ -236,7 +236,7 @@ paths:
   /auth/reporter-registrations:
     post:
       operationId: registerReporter
-      summary: Đăng ký Reporter Gmail
+      summary: Đăng ký Reporter bằng email
       tags:
       - auth
       x-roles: *id001
@@ -244,7 +244,7 @@ paths:
       x-fr:
       - FR-03
       x-readiness: PROPOSED_CONTRACT
-      description: Đăng ký Reporter Gmail
+      description: Đăng ký Reporter bằng email và xác minh OTP một lần.
       responses:
         '202':
           description: Đã nhận bền vững; chưa hoàn tất xử lý.
@@ -7553,7 +7553,7 @@ components:
         email:
           type: string
           format: email
-          description: Server chỉ cho gmail.com/googlemail.com theo CN11.
+          description: Email hợp lệ; không giới hạn nhà cung cấp email.
         password: *id012
         displayName: *id012
         reporterType: *id012

@@ -1,7 +1,7 @@
 {
   "version": "V2-ALIGN-2026-09-28",
   "source": "docs/diagram/V2/05_Technical/openapi.yaml + V2-3_DECISION_REGISTER.md",
-  "source_sha256": "65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab",
+  "source_sha256": "dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd",
   "tasks": [
     {
       "id": "V2-P1-001",
@@ -186,19 +186,21 @@
       "method": "POST",
       "path": "/auth/reporter-registrations",
       "file": "Person_1/V2-P1-006_registerReporter.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 2,
       "old": "13",
       "dependencies": [],
       "legacy_trace": "P1-13/P2-13",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "implementationStatus": "IMPLEMENTED",
+      "verificationStatus": "PARTIAL_FOCUSED_AUTH",
+      "blockers": [
+        "Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN"
+      ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -212,7 +214,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-007",
@@ -221,7 +223,7 @@
       "method": "POST",
       "path": "/auth/reporter-registrations/verify",
       "file": "Person_1/V2-P1-007_verifyReporterOtp.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 2,
       "old": "13",
@@ -230,12 +232,14 @@
       ],
       "legacy_trace": "P1-13/P2-13",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "implementationStatus": "IMPLEMENTED",
+      "verificationStatus": "PARTIAL_FOCUSED_AUTH",
+      "blockers": [
+        "Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN"
+      ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -249,7 +253,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-008",
@@ -258,7 +262,7 @@
       "method": "POST",
       "path": "/auth/reporter-registrations/resend",
       "file": "Person_1/V2-P1-008_resendReporterOtp.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 2,
       "old": "13",
@@ -267,12 +271,14 @@
       ],
       "legacy_trace": "P1-13/P2-13",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "implementationStatus": "IMPLEMENTED",
+      "verificationStatus": "PARTIAL_FOCUSED_AUTH",
+      "blockers": [
+        "Focused fake-sender/API and SQL fixture checks pass; real-email cooldown/manual smoke remain NOT_RUN"
+      ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -286,7 +292,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-009",
@@ -295,7 +301,7 @@
       "method": "POST",
       "path": "/invitations/accept",
       "file": "Person_1/V2-P1-009_acceptInvitation.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 2,
       "old": "10",
@@ -304,12 +310,14 @@
       ],
       "legacy_trace": "P1-10/P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "implementationStatus": "IMPLEMENTED",
+      "verificationStatus": "PARTIAL_FOCUSED_AUTH",
+      "blockers": [
+        "Focused fake-sender/API and SQL fixture checks pass; real-email acceptance and external smoke remain NOT_RUN"
+      ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -323,7 +331,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-010",
@@ -332,19 +340,21 @@
       "method": "POST",
       "path": "/invitations",
       "file": "Person_1/V2-P1-010_createInvitation.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 2,
       "old": "64",
       "dependencies": [],
       "legacy_trace": "P1-64/P2-64",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
-      "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "implementationStatus": "IMPLEMENTED",
+      "verificationStatus": "PARTIAL_FOCUSED_AUTH",
+      "blockers": [
+        "Focused fake-sender/API and SQL fixture checks pass; real-email delivery and external smoke remain NOT_RUN"
+      ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -358,7 +368,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-011",
@@ -367,19 +377,21 @@
       "method": "GET",
       "path": "/me",
       "file": "Person_1/V2-P1-011_getMe.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 1,
       "old": "11",
       "dependencies": [],
       "legacy_trace": "P1-11 / P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "blockers": [
+        "Code complete — awaiting review/verification"
+      ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -392,7 +404,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-012",
@@ -401,7 +413,7 @@
       "method": "PATCH",
       "path": "/me",
       "file": "Person_1/V2-P1-012_updateMe.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 2,
       "old": "11",
@@ -410,12 +422,14 @@
       ],
       "legacy_trace": "P1-11 / P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "blockers": [
+        "Code complete — awaiting review/verification"
+      ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -428,7 +442,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-013",
@@ -437,7 +451,7 @@
       "method": "POST",
       "path": "/users/{userId}/password-reset",
       "file": "Person_1/V2-P1-013_adminResetPassword.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 2,
       "old": "11",
@@ -446,12 +460,14 @@
       ],
       "legacy_trace": "P1-11 / P2-10",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "blockers": [
+        "Code complete — awaiting review/verification"
+      ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -465,7 +481,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-014",
@@ -474,10 +490,8 @@
       "method": "PATCH",
       "path": "/users/{userId}",
       "file": "Person_1/V2-P1-014_updateAccount.md",
-      "status": "BLOCKED_SLICE / NEEDS_REPO_CHECK",
-      "gates": [
-        "Q17 (rescue offline)"
-      ],
+      "status": "PARTIAL",
+      "gates": [],
       "wave": 2,
       "old": "64",
       "dependencies": [
@@ -485,14 +499,14 @@
       ],
       "legacy_trace": "P1-64/P2-64",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "NOT_RUN",
       "blockers": [
-        "Q17 (rescue offline)"
+        "Code complete — awaiting review/verification; D06 rescue/offline wire capability is outside this operation"
       ],
       "dependencyType": "contract",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -506,7 +520,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P1-015",
@@ -515,19 +529,21 @@
       "method": "GET",
       "path": "/users/{userId}",
       "file": "Person_1/V2-P1-015_getAccount.md",
-      "status": "NEEDS_REPO_CHECK",
+      "status": "PARTIAL",
       "gates": [],
       "wave": 1,
       "old": "64",
       "dependencies": [],
       "legacy_trace": "P1-64/P2-64",
       "contractStatus": "PROPOSED_CONTRACT",
-      "implementationStatus": "NEEDS_REPO_CHECK",
+      "implementationStatus": "IMPLEMENTED",
       "verificationStatus": "NOT_RUN",
-      "blockers": [],
+      "blockers": [
+        "Code complete — awaiting review/verification"
+      ],
       "dependencyType": "data-fixture",
       "workstream": "BE",
-      "deliveryStatus": "TODO",
+      "deliveryStatus": "PARTIAL",
       "decisionRefs": [
         "D25",
         "36A",
@@ -541,7 +557,7 @@
         "SQ-06",
         "DD/ERD"
       ],
-      "sourceCheckpoint": "V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab"
+      "sourceCheckpoint": "V2-P1-006-015-CODE-CHECKPOINT / base 561dd0a / canonical dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd"
     },
     {
       "id": "V2-P2-001",

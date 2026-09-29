@@ -52,7 +52,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
-        if (!TryNormalizeGmail(email, out var normalizedEmail) || string.IsNullOrWhiteSpace(password) ||
+        if (!TryNormalizeEmail(email, out var normalizedEmail) || string.IsNullOrWhiteSpace(password) ||
             string.IsNullOrWhiteSpace(displayName) || string.IsNullOrWhiteSpace(idempotencyKey) ||
             !TryParseReporterType(reporterType, out var parsedReporterType))
         {
@@ -171,6 +171,8 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             HashSecret(otp),
             now.AddMinutes(_options.OtpLifetimeMinutes),
             now.AddSeconds(_options.OtpResendCooldownSeconds),
+            _options.OtpMaxResendsPerWindow,
+            TimeSpan.FromMinutes(_options.OtpResendWindowMinutes),
             idempotencyKey.Trim(),
             HashSecret(intentId.ToString("N")),
             operationId,
@@ -189,7 +191,6 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
     public async Task<IdentityOnboardingResult> CreateInvitationAsync(
         Guid actorUserId,
         string email,
-        string displayName,
         string role,
         IReadOnlyList<Guid> projectIds,
         string idempotencyKey,
@@ -201,7 +202,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             return new IdentityOnboardingResult(IdentityOnboardingStatus.Forbidden);
         }
 
-        if (!TryNormalizeEmail(email, out var normalizedEmail) || string.IsNullOrWhiteSpace(displayName) ||
+        if (!TryNormalizeEmail(email, out var normalizedEmail) ||
             !TryParseStaffRole(role, out var roleCode) ||
             projectIds is null || projectIds.Distinct().Count() != projectIds.Count ||
             string.IsNullOrWhiteSpace(idempotencyKey))
@@ -217,7 +218,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         var invitation = new StaffInvitation
         {
             Id = invitationId,
-            DisplayName = displayName.Trim(),
+            DisplayName = email.Trim(),
             Email = email.Trim(),
             NormalizedEmail = normalizedEmail,
             RoleCode = roleCode,
@@ -226,7 +227,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             CreatedAt = now,
             ExpiresAt = now.AddHours(_options.InvitationLifetimeHours)
         };
-        var fingerprint = HashSecret($"{normalizedEmail}|{displayName.Trim()}|{roleCode}|{string.Join(',', projectIds.Order())}");
+        var fingerprint = HashSecret($"{normalizedEmail}|{roleCode}|{string.Join(',', projectIds.Order())}");
         var persisted = await _onboardingRepository.CreateInvitationAsync(
             invitation,
             projectIds,
@@ -378,17 +379,6 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             IdentityOnboardingOptions.SectionName,
             typeof(IdentityOnboardingOptions),
             ["IdentityOnboarding:Secret must be valid Base64 containing at least 32 bytes."]);
-    }
-
-    private static bool TryNormalizeGmail(string value, out string normalized)
-    {
-        if (!TryNormalizeEmail(value, out normalized))
-        {
-            return false;
-        }
-
-        var domain = normalized[(normalized.LastIndexOf('@') + 1)..];
-        return domain is "GMAIL.COM" or "GOOGLEMAIL.COM";
     }
 
     private static bool TryNormalizeEmail(string value, out string normalized)

@@ -270,6 +270,7 @@ public sealed class IdentityV2Service : IIdentityV2Service
             "PM" => UserRoleCode.ProjectManager,
             "OPERATOR" => UserRoleCode.DroneOperator,
             "CREW" => UserRoleCode.RepairCrew,
+            "REPORTER" => UserRoleCode.Reporter,
             _ => UserRoleCode.Unknown
         };
         return role != UserRoleCode.Unknown;

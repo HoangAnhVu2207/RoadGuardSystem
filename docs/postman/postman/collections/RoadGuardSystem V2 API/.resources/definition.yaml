@@ -6,6 +6,29 @@ variables:
   profileRowVersion: ""
   targetUserId: 00000000-0000-0000-0000-000000000000
   targetRowVersion: ""
-  projectId: 00000000-0000-0000-0000-000000000000
+  projectId: 6a4dbd16-a646-46da-9e5c-200000000001
   projectRowVersion: ""
-  primaryProjectManagerUserId: 00000000-0000-0000-0000-000000000000
+  primaryProjectManagerUserId: 4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02
+  registrationIntentId: 00000000-0000-0000-0000-000000000000
+  invitationId: 00000000-0000-0000-0000-000000000000
+  invitationVersion: ""
+  actorVersion: ""
+  reporterRegistrationKey: reporter-registration-runner
+  reporterVerificationKey: reporter-verification-runner
+  reporterResendKey: reporter-resend-runner
+  invitationCreateKey: invitation-create-runner
+  invitationAcceptKey: invitation-accept-runner
+  updateMeKey: update-me-runner
+  updateAccountKey: update-account-runner
+  passwordResetKey: password-reset-runner
+  logoutKey: logout-runner
+  changePasswordKey: change-password-runner
+  inspectionCursor: ""
+  inspectionLimit: "50"
+  roadSectionId: 6a4dbd16-a646-46da-9e5c-200000000004
+  roadSectionVersionId: 6a4dbd16-a646-46da-9e5c-200000000005
+  surveyPlanId: 6a4dbd16-a646-46da-9e5c-200000000009
+  surveyRequestId: 00000000-0000-0000-0000-000000000000
+  surveyPlanCreateKey: survey-plan-runner
+  surveyRequestCreateKey: survey-request-runner
+  surveyPostponeKey: survey-postpone-runner

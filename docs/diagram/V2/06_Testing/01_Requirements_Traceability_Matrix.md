@@ -142,8 +142,8 @@ Giữ các mã chức năng nguồn, không đổi thành UC-001 giả. Liên k�
 | CN08 | Kiểm tra trạng thái đồng bộ an toàn | FR-22/TC-F22 |
 | CN09 | Dọn bản sao cục bộ đã đồng bộ an toàn | FR-22/TC-F22 |
 | CN10 | Yêu cầu / đặt lại mật khẩu | FR-01/TC-F01 |
-| CN11 | Reporter tự đăng ký bằng Gmail | FR-03/TC-F03 |
-| CN12 | Xác minh email bằng OTP Gmail | FR-03/TC-F03 |
+| CN11 | Reporter tự đăng ký bằng email và xác minh OTP một lần | FR-03/TC-F03 |
+| CN12 | Xác minh email bằng OTP | FR-03/TC-F03 |
 | DA01 | Khởi tạo và quản lý dự án | FR-04/TC-F04 |
 | DA02 | Nhập/chỉnh tuyến và bề rộng | FR-05/TC-F05, FR-06/TC-F06 |
 | DA03 | Phân công nhân sự và quyền theo dự án | FR-04/TC-F04 |

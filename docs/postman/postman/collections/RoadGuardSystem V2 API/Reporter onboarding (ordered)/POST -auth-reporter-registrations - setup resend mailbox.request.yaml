@@ -1,0 +1,27 @@
+$kind: http-request
+name: POST /auth/reporter-registrations - setup resend mailbox
+description: "MANUAL EMAIL. Purpose: create a separate pending intent for resend/cooldown testing. Setup: set otpResendEmail/reporterPassword and manualEmailScenario=OTP_RESEND; confirm the email is unused. Expected: 202. Data change: pending account and initial OTP delivery."
+url: "{{baseUrl}}/api/v1/auth/reporter-registrations"
+method: POST
+headers:
+  Idempotency-Key: "{{$guid}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{otpResendEmail}}",
+      "password": "{{reporterPassword}}",
+      "displayName": "Postman OTP Resend Reporter",
+      "reporterType": "CITIZEN"
+    }
+scripts:
+  - type: beforeRequest
+    code: if (pm.environment.get('manualEmailScenario') !== 'OTP_RESEND') pm.execution.skipRequest();
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Resend setup returns 202', function () { pm.response.to.have.status(202); });
+      if (pm.response.code === 202) pm.environment.set('otpResendIntentId', pm.response.json().intentId);
+    language: text/javascript
+order: 2000

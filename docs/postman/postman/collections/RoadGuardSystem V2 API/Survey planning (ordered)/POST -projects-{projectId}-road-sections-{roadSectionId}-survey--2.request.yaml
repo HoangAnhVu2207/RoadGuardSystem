@@ -1,0 +1,16 @@
+$kind: http-request
+name: POST /projects/{projectId}/road-sections/{roadSectionId}/survey-plans - unauthorized
+description: "Purpose: verify bearer authentication is required. Role: none. Setup: no token. Expected: 401. Data change: none."
+url: "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/survey-plans"
+method: POST
+headers:
+  Idempotency-Key: "{{$guid}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Unauthorized survey plan returns 401', function () { pm.response.to.have.status(401); });
+    language: text/javascript
+order: 4000

@@ -147,7 +147,7 @@ Trong Data Dictionary, trường `GEOMETRY(...)` là kiểu logic; DDL SQL Serve
 |---|---|---:|---|---|---|
 | `id` | UUID | Không | PK | SRC | Định danh challenge/registration intent. |
 | `user_id` | UUID | Không | FK `User.id` | SRC | Chỉ trỏ tới User có `role_code = REPORTER` và `status = PENDING` khi tạo. |
-| `email` | VARCHAR(254) | Không |  | SRC | Gmail đã canonicalize; chỉ `gmail.com` hoặc `googlemail.com`. Snapshot dùng để chống đổi email giữa các lần gửi. |
+| `email` | VARCHAR(254) | Không |  | SRC | Email đã canonicalize; không giới hạn nhà cung cấp. Snapshot dùng để chống đổi email giữa các lần gửi. |
 | `purpose` | ENUM | Không |  | SRC | `REPORTER_EMAIL_VERIFICATION`; không dùng challenge này cho reset password. |
 | `code_hash` | TEXT | Không |  | SRC | Hash/HMAC của OTP; không lưu OTP plaintext. |
 | `expires_at` | TIMESTAMPTZ | Không |  | SRC | Hạn dùng ngắn, mục tiêu 10 phút và cấu hình được. |

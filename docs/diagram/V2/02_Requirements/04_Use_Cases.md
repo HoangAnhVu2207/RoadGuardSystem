@@ -45,7 +45,7 @@ Backend sở hữu nghiệp vụ, lưu trữ và điều phối job; AI là hệ
 | **PM** (Project Manager) | Nhập GPS tim đường, bề rộng và vùng mở rộng khảo sát của dự án được giao; điều phối khảo sát/phản ánh, chọn đo thực địa hoặc drone, gom nhiều lỗi lớn/nhỏ để đo trước, giao sửa sau, chỉnh tuyến và chia segment; xác minh và lập phương án nhánh duyệt; giao Crew, kiểm tra kết quả. PM xác nhận và đóng lỗi FAST_TRACK, thông báo Supervisor; APPROVAL_TRACK trình Supervisor. Một dự án có một PM chính; một PM có thể quản lý nhiều dự án. |
 | **Drone Operator** | Nhận/từ chối nhiệm vụ; thu thập và nhập video/SRT; theo dõi đồng bộ, chất lượng và xử lý; nộp dữ liệu bay bổ sung. |
 | **Repair Crew** | Đội trưởng có tài khoản, nhận nhiệm vụ đo/sửa; đo và ghi ảnh trước sửa. Chỉ nhiệm vụ PM giao đo-và-sửa mới được sửa lỗi nhỏ đạt policy cùng chuyến, không chờ PM hoặc Supervisor duyệt từng lỗi trước sửa; đợt MEASURE_ONLY chỉ đo; chụp ảnh sau, báo cáo PM và tự đồng bộ khi có mạng. Lỗi vượt policy báo PM để lên phương án. Thành viên đội không có tài khoản riêng; Crew không tự nghiệm thu/đóng lỗi. |
-| **Reporter** | Tự đăng ký bằng Gmail, xác minh OTP, gửi/bổ sung phản ánh, xác nhận vị trí riêng từng ảnh, xem tiến độ và kết quả được công bố của chính mình. `ReporterType = CITIZEN / INVESTOR_REPRESENTATIVE` (Citizen / InvestorRepresentative) không cấp quyền dự án, duyệt hoặc xem dữ liệu sửa chữa nội bộ. |
+| **Reporter** | Tự đăng ký bằng email, xác minh OTP, gửi/bổ sung phản ánh, xác nhận vị trí riêng từng ảnh, xem tiến độ và kết quả được công bố của chính mình. `ReporterType = CITIZEN / INVESTOR_REPRESENTATIVE` (Citizen / InvestorRepresentative) không cấp quyền dự án, duyệt hoặc xem dữ liệu sửa chữa nội bộ. |
 
 ## 2. Cách đọc sơ đồ
 
@@ -59,7 +59,7 @@ Có các nhóm tổng quan, được phân rã thành các mục trong sơ đồ
 
 ## 3. Quy tắc nghiệp vụ xuyên suốt
 
-1. **Supervisor** tạo dự án. PM/Drone Operator/Repair Crew chỉ thấy dữ liệu trong phạm vi được phân công; Repair Crew không tự nhận đợt của đội khác. Reporter tự đăng ký bằng Gmail và phải xác minh OTP trước khi đăng nhập/gửi phản ánh; sau đó chỉ xem phản ánh của chính mình cùng kết quả được công bố, không cần và không tự được cấp membership dự án.
+1. **Supervisor** tạo dự án. PM/Drone Operator/Repair Crew chỉ thấy dữ liệu trong phạm vi được phân công; Repair Crew không tự nhận đợt của đội khác. Reporter tự đăng ký bằng email và phải xác minh OTP trước khi đăng nhập/gửi phản ánh; sau đó chỉ xem phản ánh của chính mình cùng kết quả được công bố, không cần và không tự được cấp membership dự án.
 2. **Một dự án chỉ có một PM chính. Một PM có thể quản lý nhiều dự án cùng lúc.** Supervisor phân công đúng một PM khi tạo/cập nhật dự án.
 3. **Khảo sát gốc sau bàn giao:** sau khi công trình được bàn giao (ngoài hệ thống), Supervisor khởi tạo dự án, gắn hồ sơ bàn giao/thời hạn bảo hành và phân công PM; PM nhập tim đường, bề rộng và vùng khảo sát mở rộng; backend dựng hình học hiển thị, Supervisor xác nhận phiên bản tuyến theo DA13. PM lập yêu cầu khảo sát gốc (baseline), giao Drone Operator bay lần đầu để lấy dữ liệu mẫu phục vụ đối chiếu bảo hành trong thời gian bảo hành (hồ sơ lưu tối thiểu hết bảo hành + 5 năm — xem quy tắc lưu trữ).
 4. Một yêu cầu khảo sát có thể gom nhiều segment và nhiều video/lượt bay. PM chọn bộ segment đã công bố và vùng `Surface`, `LeftEdge`, `RightEdge`; Backend chia ProcessingBlock để giới hạn tài nguyên, không đồng nhất block, segment và lượt bay. Khảo sát gốc/định kỳ không cần có phản ánh. RouteCapture trước khi có segment là nhiệm vụ khởi tạo riêng, chưa phải tính năng hiện có.
@@ -95,7 +95,7 @@ Có các nhóm tổng quan, được phân rã thành các mục trong sơ đồ
 
 | Mã | Chức năng | Tác nhân trực tiếp | Quy tắc / kết quả |
 |---|---|---|---|
-| CN01 | Đăng nhập / đăng xuất | Supervisor; PM; Drone Operator; Repair Crew; Reporter | Tài khoản nội bộ do Admin cấp; Reporter tự đăng ký nhưng chỉ đăng nhập sau khi xác minh Gmail OTP. Phiên đăng nhập mang snapshot vai trò nhưng backend phải đối chiếu vai trò và quyền dự án hiện tại phía server trên mỗi request. Phiên hết hạn, mật khẩu đã đặt lại (CN10), tài khoản bị suspend hoặc role toàn hệ thống thay đổi thì thu hồi toàn bộ phiên/token và phải đăng nhập lại. |
+| CN01 | Đăng nhập / đăng xuất | Supervisor; PM; Drone Operator; Repair Crew; Reporter | Tài khoản nội bộ do Admin cấp; Reporter tự đăng ký nhưng chỉ đăng nhập sau khi xác minh email bằng OTP. Phiên đăng nhập mang snapshot vai trò nhưng backend phải đối chiếu vai trò và quyền dự án hiện tại phía server trên mỗi request. Phiên hết hạn, mật khẩu đã đặt lại (CN10), tài khoản bị suspend hoặc role toàn hệ thống thay đổi thì thu hồi toàn bộ phiên/token và phải đăng nhập lại. |
 | CN02 | Xem và cập nhật hồ sơ cá nhân | Supervisor; PM; Drone Operator; Repair Crew; Reporter | Chỉnh thông tin cá nhân; không tự thay đổi vai trò hay quyền dự án. |
 | CN03 | Xem phạm vi dữ liệu được phép | Supervisor; PM; Drone Operator; Repair Crew; Reporter | Supervisor có quyền danh mục sau kiểm tra role server-side; PM/Drone Operator/Repair Crew cần membership active, còn hiệu lực và đúng vai trò. Reporter chỉ xem phản ánh của mình và dữ liệu công bố liên quan theo ownership; không truy cập API danh mục dự án. Không tin claim client thay cho kiểm tra quyền. |
 | CN04 | Xem thông báo và nhắc việc | Supervisor; PM; Drone Operator; Repair Crew; Reporter | Hiển thị thông báo phù hợp vai trò: khảo sát, kết quả, duyệt, sửa lại, từ chối/hủy nhiệm vụ, phân công lại, đến hạn bảo hành; Reporter chỉ nhận sự kiện công bố của phản ánh mình. |
@@ -105,8 +105,8 @@ Có các nhóm tổng quan, được phân rã thành các mục trong sơ đồ
 | CN08 | Kiểm tra trạng thái đồng bộ an toàn | Drone Operator; Repair Crew | Chỉ báo đã đồng bộ khi máy chủ xác nhận đủ dữ liệu và kiểm tra tính toàn vẹn thành công. |
 | CN09 | Dọn bản sao cục bộ đã đồng bộ an toàn | Drone Operator; Repair Crew | Người dùng chủ động chọn dọn; giữ bản chưa đồng bộ và dữ liệu nguồn trên máy chủ. |
 | CN10 | Yêu cầu / đặt lại mật khẩu | Supervisor; PM; Drone Operator; Repair Crew; Reporter | Người dùng gửi yêu cầu khôi phục. **Chỉ Supervisor (Admin) đặt lại mật khẩu**; bắt đổi mật khẩu ở lần đăng nhập kế tiếp. Không tiết lộ mật khẩu cũ. Ghi nhật ký người thực hiện và thời điểm (QT09), không ghi mật khẩu. Tài khoản đang ngừng sử dụng thì từ chối đặt lại. |
-| CN11 | Reporter tự đăng ký bằng Gmail | Reporter chưa có tài khoản | Nhập Gmail (`gmail.com`/`googlemail.com`), display name, ReporterType và mật khẩu. Hệ thống tạo tài khoản `PENDING`, role cố định `REPORTER`, không cấp token trước khi OTP hợp lệ. Không tiết lộ email đã tồn tại. |
-| CN12 | Xác minh email bằng OTP Gmail | Reporter đang `PENDING` | Nhập registration intent và OTP nhận qua Gmail. Code có hash, hạn dùng, giới hạn thử và dùng một lần; xác minh thành công chuyển account `ACTIVE`, `email_confirmed = true`, ghi thời điểm và có thể cấp token. Resend có cooldown/rate-limit. |
+| CN11 | Reporter tự đăng ký bằng email | Reporter chưa có tài khoản | Nhập email hợp lệ, display name, ReporterType và mật khẩu. Hệ thống tạo tài khoản `PENDING`, role cố định `REPORTER`, không cấp token trước khi OTP hợp lệ. Không tiết lộ email đã tồn tại. |
+| CN12 | Xác minh email bằng OTP | Reporter đang `PENDING` | Nhập registration intent và OTP nhận qua email. Code có hash, hạn dùng, giới hạn thử và dùng một lần; xác minh thành công chuyển account `ACTIVE`, `email_confirmed = true`, ghi thời điểm và có thể cấp token. Resend có cooldown/rate-limit. |
 
 ### 02. Dự án, bảo hành và kế hoạch khảo sát
 

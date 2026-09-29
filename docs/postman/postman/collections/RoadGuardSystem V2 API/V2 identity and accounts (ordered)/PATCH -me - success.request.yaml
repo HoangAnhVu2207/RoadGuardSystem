@@ -1,0 +1,23 @@
+$kind: http-request
+name: PATCH /me - success
+description: "Purpose: update displayName with optimistic concurrency and idempotency. Role: authenticated self. Setup: run GET /me. Expected: 200 Actor. Data change: display name and one audit/idempotency record."
+url: "{{baseUrl}}/api/v1/me"
+method: PATCH
+headers:
+  Authorization: Bearer {{accessToken}}
+  Idempotency-Key: "{{updateMeKey}}"
+  If-Match: '"{{actorVersion}}"'
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "displayName": "Updated V2 Profile"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('PATCH me returns 200', function () { pm.response.to.have.status(200); });
+      if (pm.response.code === 200) pm.collectionVariables.set('actorVersion', pm.response.json().version);
+    language: text/javascript
+order: 3000

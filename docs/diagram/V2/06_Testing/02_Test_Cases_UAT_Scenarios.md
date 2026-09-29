@@ -63,7 +63,7 @@ Tiền điều kiện chung: FX-01, build kiểm thử, scope đúng, đối tư
 
 **Trace:** FR-03; US-27; CN11 CN12. **Ưu tiên:** P1. **Phụ thuộc:** phạm vi module đã được giao.
 
-**Dữ liệu/tiền điều kiện:** Gmail, thông tin Reporter, mật khẩu và OTP. OTP sai/hết hạn hoặc client chọn PM.
+**Dữ liệu/tiền điều kiện:** Email hợp lệ, thông tin Reporter, mật khẩu và OTP. OTP sai/hết hạn hoặc client chọn PM.
 
 1. Mở đúng màn hình/chức năng với vai trò được phép; ghi ID và version ban đầu.
 2. Xác minh/đăng ký.
@@ -819,7 +819,7 @@ Với AC có Given/When/Then, thiết lập Given, thực hiện When, kiểm t�
 **Oracle từ nguồn:**
 
 **Tạo đăng ký pending**
-   - **When** người dùng gửi Gmail hợp lệ (`gmail.com` hoặc `googlemail.com`), display name, `ReporterType`, mật khẩu, confirm password và idempotency key
+   - **When** người dùng gửi email hợp lệ, display name, `ReporterType`, mật khẩu, confirm password và idempotency key
    - **Then** hệ thống tạo hoặc tiếp tục một registration intent với `User.status = PENDING`, `role_code = REPORTER`, `email_confirmed = false`; không cấp access/refresh token.
 
 **Thực hiện:** (1) ghi fixture/role/version theo điều kiện trên; (2) thao tác chức năng hoặc nhánh When; (3) kiểm từng kết quả và biến thể được nêu, đọc lại dữ liệu/lịch sử theo quyền; (4) ghi Actual, evidence và defect ID nếu lệch. Chưa có actual.

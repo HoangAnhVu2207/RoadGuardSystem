@@ -1,0 +1,15 @@
+$kind: http-request
+name: GET /me/inspection-tasks - wrong role
+description: "Purpose: verify role policy rejects a non-crew actor. Role: Project Manager/operator. Setup: set accessToken to a non-crew seeded token. Expected: 403 ProblemDetails. Data change: none."
+url: "{{baseUrl}}/api/v1/me/inspection-tasks?limit={{inspectionLimit}}"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+  Accept: application/json
+queryParams:
+  limit: "{{inspectionLimit}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Wrong role inspection task list returns 403', function () { pm.response.to.have.status(403); });
+    language: text/javascript
+order: 3000

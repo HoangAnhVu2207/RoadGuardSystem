@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D25, 36A, 37
 - requirementRefs: FR-21, FR-35, FR-01
 - diagramRefs: SQ-06, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED_OWNER_RUNTIME_DELTA
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PASS_SQL_API_MINIO
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -29,8 +29,9 @@
 - Requirements/trace: FR-21, FR-35, FR-01
 - Diagrams/state: SQ-06, DD/ERD
 - Canonical contract: operationId getFileMetadata, path /files/{fileId}, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
-- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: StoredFile had immutable metadata but no project/target ownership linkage or endpoint; P2 implementation adds FileScope projection and authorization.
+- Checkpoint: base 5e878212055d3f389a9fc65697ed04ba6a4194bb; migration reconciliation and the separate upload migration now exist and are applied by SQL test fixtures.
+- Owner runtime delta: Reporter is explicitly excluded from these six upload endpoints until its auth/runtime slice is approved; supported roles are SUPERVISOR, PM, OPERATOR and CREW.
 
 ## 1. Cần làm và tại sao
 
@@ -226,3 +227,36 @@ schemas:
     - sizeBytes
     - version
 ```
+
+## Completion history
+
+### 2026-09-29 00:00 +07:00 - BLOCKED
+
+- Scope/result: Source review completed; no metadata controller/service/repository read seam exists.
+- Files: No production files changed; task and manifest status updated.
+- Acceptance criteria: Not started; current StoredFile cannot enforce all required read scopes.
+- Verification: `git diff --check` PASS; API/runtime/SQL/Postman checks NOT_RUN because no implementation exists.
+- Reused/invalidated evidence: StoredFile schema tests cover immutable metadata only, not API authorization scope.
+- Side effects: No package, migration, schema, data, external system, commit or push.
+- Unverified/blockers: Need approved file-to-project/target linkage and authorization projection.
+
+### 2026-09-29 06:30 +07:00 - PARTIAL
+
+- Scope/result: File metadata endpoint reads status through FileScope/UploadSession and authorizes only owner or effective project scope; it emits a strong ETag.
+- Files: Shared upload API/controller/service/repository/domain/.http/Postman paths in working tree; no migration retained.
+- Acceptance criteria: Contract surface/static boundary implemented; file-scope query and wrong-scope behavior need SQL/API smoke evidence.
+- Verification: API build PASS (0 warnings, 0 errors); `git diff --check` PASS; Postman static check PASS.
+- Reused/invalidated evidence: Existing immutable StoredFile tests do not prove FileScope authorization.
+- Side effects: No data or migration applied.
+- Unverified/blockers: Resolve migration baseline drift before database-backed verification.
+
+### 2026-09-29 07:00 +07:00 - PARTIAL
+
+- Migration: FileScope now supplies the persisted owner/project authorization projection.
+- Verification: SQL Testcontainers migration/workflow tests PASS (2); API-host SQL test PASS (1), including verified metadata and wrong-scope 403.
+
+### 2026-09-29 14:34 +07:00 - DONE
+
+- Provider smoke: `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio` PASS (1) returned metadata `VERIFIED` only after MinIO object verification completed.
+- Authorization evidence: existing focused API host test PASS (1) confirms wrong-project actor receives `403`; provider smoke confirms metadata reads the actual verified object lifecycle.
+- Remaining blocker: provider-backed runtime smoke remains BLOCKED_ENV because no usable local MinIO image or configured endpoint is available.

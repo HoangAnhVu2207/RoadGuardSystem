@@ -16,6 +16,7 @@ using RoadGuardSystem.Repositories.Storage;
 using RoadGuardSystem.Repositories.Surveys;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Implementations.Surveys;
+using RoadGuardSystem.Repositories.Implementations.Files;
 using RoadGuardSystem.Repositories.Interfaces.Surveys;
 
 namespace RoadGuardSystem.Repositories.Extensions;
@@ -78,6 +79,24 @@ public static class RoadGuardPersistenceExtensions
             }
         });
 
+        services.Configure<MinioStorageOptions>(opt =>
+        {
+            var minioSection = configuration.GetSection(MinioStorageOptions.SectionName);
+            if (minioSection.Exists())
+            {
+                minioSection.Bind(opt);
+            }
+        });
+
+        services.Configure<UploadSessionOptions>(opt =>
+        {
+            var uploadSessionSection = configuration.GetSection(UploadSessionOptions.SectionName);
+            if (uploadSessionSection.Exists())
+            {
+                uploadSessionSection.Bind(opt);
+            }
+        });
+
         services.AddScoped<RoadGuardTransactionService>();
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();
@@ -102,6 +121,8 @@ public static class RoadGuardPersistenceExtensions
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));
         services.AddScoped<IFileRepository, FileRepository>();
+        services.AddSingleton<IUploadObjectStorage, MinioUploadObjectStorage>();
+        services.AddScoped<IUploadRepository, UploadPersistenceService>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IUserStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationUser>, RoadGuardUserStore>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IRoleStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationRole>, RoadGuardRoleStore>();
 

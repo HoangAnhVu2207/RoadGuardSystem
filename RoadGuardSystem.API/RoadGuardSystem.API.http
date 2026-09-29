@@ -430,3 +430,75 @@ Content-Type: application/json
   "reason": "Coverage gap requires a supplementary pass",
   "operatorId": "{{operatorId}}"
 }
+
+### V2-P2-023 create upload session
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/uploads
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{uploadCreateKey}}
+Content-Type: application/json
+
+{
+  "purpose": "DOCUMENT",
+  "projectId": "{{projectId}}",
+  "targetId": null,
+  "fileName": "upload-smoke.pdf",
+  "mediaType": "application/pdf",
+  "sizeBytes": 8388608,
+  "checksumSha256": "{{uploadChecksumSha256}}"
+}
+
+### V2-P2-026 get upload session
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/uploads/{{uploadId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### V2-P2-024 request part URL
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/uploads/{{uploadId}}/part-urls
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{uploadPartUrlsKey}}
+Content-Type: application/json
+
+{
+  "partNumbers": [1]
+}
+
+### V2-P2-025 complete upload after the client PUTs every part to MinIO
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/uploads/{{uploadId}}/complete
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{uploadCompleteKey}}
+If-Match: "{{uploadVersion}}"
+Content-Type: application/json
+
+{
+  "parts": [
+    { "partNumber": 1, "eTag": "{{uploadPartEtag}}" }
+  ],
+  "checksumSha256": "{{uploadChecksumSha256}}"
+}
+
+### V2-P2-027 get file metadata
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/files/{{uploadFileId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### V2-P2-028 download verified file
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/files/{{uploadFileId}}/content
+Authorization: Bearer {{accessToken}}
+
+### V2-P2-025 validation: missing If-Match must return 428
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/uploads/{{uploadId}}/complete
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+Content-Type: application/json
+
+{
+  "parts": [
+    { "partNumber": 1, "eTag": "{{uploadPartEtag}}" }
+  ],
+  "checksumSha256": "{{uploadChecksumSha256}}"
+}
+
+### V2-P2-027 forbidden: a token without file project scope must return 403
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/files/{{uploadFileId}}
+Authorization: Bearer {{operatorAccessToken}}
+Accept: application/json

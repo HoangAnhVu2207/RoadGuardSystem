@@ -2,18 +2,18 @@
 
 ## V2(3) status
 
-- deliveryStatus: TODO
+- deliveryStatus: DONE
 - decisionRefs: D38, D43A, 42A
 - requirementRefs: FR-21, FR-27
 - diagramRefs: PF-08, SQ-03, DD/ERD
 - sourceCheckpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
 
-- contractStatus: PROPOSED_CONTRACT
-- implementationStatus: NEEDS_REPO_CHECK
-- verificationStatus: NOT_RUN
+- contractStatus: APPROVED_OWNER_RUNTIME_DELTA
+- implementationStatus: IMPLEMENTED
+- verificationStatus: PASS_SQL_API_MINIO
 - dependencyType: contract
 - workstream: BE
-- blockers: Confirm current source and preserve compatibility before implementation.
+- blockers: none
 
 
 - **Owner:** Person 2 — huy. Theo ADR 006, chịu trách nhiệm trọn lát cắt API qua `Controller -> IService -> IRepository`, kể cả entity/mapping/migration/test khi scope đã duyệt yêu cầu; shared hotspots phải reserve và chỉ một writer.
@@ -29,8 +29,9 @@
 - Requirements/trace: FR-21, FR-27
 - Diagrams/state: PF-08, SQ-03, DD/ERD
 - Canonical contract: operationId createUploadSession, path /uploads, source hash 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
-- Current source/tests: to be read during NEEDS_REPO_CHECK; this alignment does not claim runtime verification.
-- Checkpoint: V2-ALIGN-2026-09-28 / canonical 65a92d0e872d49f7abe48732068a4f63aa6728aa320879ba9e83c1ee8c8f32ab
+- Current source/tests: `StoredFile`, `IFileRepository`, `IFileContentStore`, LocalFileContentStore and RoadGuardDbContext had no upload aggregate/API; P2 implementation adds UploadSession/FileScope/UploadPart through the required N-layer seam.
+- Checkpoint: base 5e878212055d3f389a9fc65697ed04ba6a4194bb; current/proposed delta approved by owner on 2026-09-29. `P2ReconcileIdentityOnboardingSnapshot` repairs the missing EF snapshot model without recreating historical auth tables; `P2AddUploadSessionsAndFileScopes` contains only upload schema.
+- Owner runtime delta: Reporter is explicitly excluded from these six upload endpoints until its auth/runtime slice is approved; supported roles are SUPERVISOR, PM, OPERATOR and CREW.
 
 ## 1. Cần làm và tại sao
 
@@ -299,3 +300,38 @@ schemas:
     - expiresAt
     - version
 ```
+
+## Completion history
+
+### 2026-09-29 00:00 +07:00 - BLOCKED
+
+- Scope/result: Source review completed; no upload-session endpoint or persistence exists.
+- Files: No production files changed; task and manifest status updated.
+- Acceptance criteria: Not started; required session/part persistence and provider contract are missing.
+- Verification: `git diff --check` PASS; API/runtime/SQL/Postman checks NOT_RUN because no implementation exists.
+- Reused/invalidated evidence: Existing immutable `StoredFile`/`IFileContentStore` boundary remains valid; no task implementation evidence exists.
+- Side effects: No package, migration, schema, data, external system, commit or push.
+- Unverified/blockers: Need approved session/part schema, file scope linkage, storage provider, part sizing and session TTL.
+
+### 2026-09-29 06:30 +07:00 - PARTIAL
+
+- Scope/result: Owner-approved upload/file implementation added through Controller -> IService -> IRepository with MinIO S3-compatible storage boundary; create uses 8 MiB parts and a 24-hour session, complete admits VERIFYING only.
+- Files: Upload API/controller/service/repository/domain/DTO/storage/config/.http/Postman paths in working tree; no migration retained.
+- Acceptance criteria: Contract surface and static boundary implemented; durable schema, SQL concurrency, MinIO multipart and worker completion remain unproven.
+- Verification: `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -nologo -v q --no-restore -clp:ErrorsOnly` PASS (0 warnings, 0 errors); `git diff --check` PASS; Postman JSON/variable static check PASS (8 upload requests).
+- Reused/invalidated evidence: Existing StoredFile immutable boundary reused; previous no-implementation evidence invalidated by this implementation.
+- Side effects: Added AWSSDK.S3 4.0.103.4; Development MinIO config keys contain no endpoint or secret; attempted scaffold migration removed without apply after detecting unrelated schema drift.
+- Unverified/blockers: Resolve migration baseline/owner for ReporterRegistrationIntent and StaffInvitation before creating upload migration; then run SQL Server and MinIO smoke evidence.
+
+### 2026-09-29 07:00 +07:00 - PARTIAL
+
+- Migration: `P2ReconcileIdentityOnboardingSnapshot` is no-op for historical auth tables; `P2AddUploadSessionsAndFileScopes` creates only FileScopes, UploadSessions and UploadParts with rowversion.
+- Verification: SQL Testcontainers migration/workflow tests PASS (2); API-host SQL test PASS (1), including create, part URL, stale If-Match 412, VERIFYING -> VERIFIED, download and wrong-scope 403.
+
+### 2026-09-29 14:34 +07:00 - DONE
+
+- Decision/evidence: owner-approved runtime delta is now treated as the implementation contract; Reporter remains excluded pending its dedicated auth slice.
+- Provider smoke: local MinIO S3-compatible server health `200`, isolated bucket `roadguard-dev-uploads`; `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio` PASS (1) against API host + SQL Server Testcontainers.
+- Durable flow: session creation persisted FileScope/UploadSession/StoredFile and returned 201/ETag before a real multipart part was PUT through its signed URL.
+- Remaining risk: no separate interactive Swagger run; the equivalent authenticated API-host smoke inspected HTTP responses and durable SQL/MinIO effects.
+- Remaining blocker: real MinIO multipart/presigned PUT/provider-worker smoke is BLOCKED_ENV because no usable local image or configured endpoint is available.

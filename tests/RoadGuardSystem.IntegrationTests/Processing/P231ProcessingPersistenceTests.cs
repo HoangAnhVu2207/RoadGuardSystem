@@ -58,6 +58,7 @@ public sealed class P231ProcessingPersistenceTests : IClassFixture<IdentitySqlSe
     public async Task OutboxLease_OneWinnerAndCompletionIsReplaySafe()
     {
         await using var context = _fixture.CreateDbContext();
+        await context.OutboxMessages.ExecuteDeleteAsync();
         var message = OutboxMessage.Create(
             Guid.NewGuid(),
             "p2_31.processing.admitted",
@@ -84,6 +85,7 @@ public sealed class P231ProcessingPersistenceTests : IClassFixture<IdentitySqlSe
     public async Task OutboxLease_ConcurrentWorkersHaveOneWinner()
     {
         await using var setup = _fixture.CreateDbContext();
+        await setup.OutboxMessages.ExecuteDeleteAsync();
         var message = OutboxMessage.Create(
             Guid.NewGuid(),
             "p2_31.processing.race",
@@ -102,13 +104,20 @@ public sealed class P231ProcessingPersistenceTests : IClassFixture<IdentitySqlSe
             new OutboxWorkRepository(secondContext).TryLeaseNextAsync(
                 "worker-b", now, TimeSpan.FromMinutes(5), 3));
 
-        results.Count(lease => lease is not null).Should().Be(1);
+        results.Count(lease => lease is not null).Should().Be(
+            1,
+            "workers returned leases {0}",
+            string.Join(", ", results.Select(lease => lease is null
+                ? "null"
+                : $"{lease.MessageId}:{lease.MessageType}")));
+        results.Single(lease => lease is not null)!.MessageId.Should().Be(message.Id);
     }
 
     [Fact(DisplayName = "P2-31: retry exhaustion dead-letters without another lease")]
     public async Task OutboxLease_RetryExhaustionIsDurable()
     {
         await using var context = _fixture.CreateDbContext();
+        await context.OutboxMessages.ExecuteDeleteAsync();
         var message = OutboxMessage.Create(
             Guid.NewGuid(),
             "p2_31.processing.retry",

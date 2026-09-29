@@ -59,7 +59,7 @@ public sealed partial class AuthServiceTests
     public async Task Login_ForcedChangeAccount_ReturnsCredentialsWithRequiredFlag()
     {
         var user = ActiveUser(mustChangePassword: true);
-        var service = CreateService(new StubIdentityRepository(), new StubCredentialVerifier
+        var service = CreateService(new StubIdentityRepository { User = user }, new StubCredentialVerifier
         {
             Verification = new CredentialVerificationResult(CredentialVerificationStatus.Success, user)
         });
@@ -75,7 +75,7 @@ public sealed partial class AuthServiceTests
     public async Task Login_ValidCredentials_IssuesSessionAndTokenPair()
     {
         var user = ActiveUser();
-        var repository = new StubIdentityRepository();
+        var repository = new StubIdentityRepository { User = user };
         var service = CreateService(repository, new StubCredentialVerifier
         {
             Verification = new CredentialVerificationResult(CredentialVerificationStatus.Success, user)
@@ -101,12 +101,13 @@ public sealed partial class AuthServiceTests
         options.AccessTokenLifetimeMinutes = 7;
         options.SessionLifetimeHours = 11;
         options.RefreshTokenLifetimeDays = 13;
-        var repository = new StubIdentityRepository();
+        var user = ActiveUser();
+        var repository = new StubIdentityRepository { User = user };
         var service = CreateService(repository, new StubCredentialVerifier
         {
             Verification = new CredentialVerificationResult(
                 CredentialVerificationStatus.Success,
-                ActiveUser())
+                user)
         }, options);
 
         var result = await service.LoginAsync(new LoginCommand("field.user@example.test", "Current1!"));

@@ -118,8 +118,8 @@ public sealed class P120WarrantyCreationTests
         }
 
         await using var verification = _sql.CreateDbContext();
-        (await verification.Warranties.AnyAsync(warranty => warranty.ProjectId == setup.ProjectId))
-            .Should().BeFalse();
+        (await verification.Warranties.CountAsync(warranty => warranty.ProjectId == setup.ProjectId))
+            .Should().Be(setup.InitialWarrantyCount);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public sealed class P120WarrantyCreationTests
 
         await using var verification = _sql.CreateDbContext();
         (await verification.Warranties.CountAsync(warranty => warranty.ProjectId == setup.ProjectId))
-            .Should().Be(2);
+            .Should().Be(setup.InitialWarrantyCount + 2);
     }
 
     private static async Task AssertProblemAsync(
@@ -238,13 +238,17 @@ public sealed class P120WarrantyCreationTests
         var client = CreateClient(factory);
         await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
         var project = await CreateProjectAsync(client, projectManager.Id);
+        await using var verification = _sql.CreateDbContext();
+        var initialWarrantyCount = await verification.Warranties.CountAsync(
+            warranty => warranty.ProjectId == project.ProjectId);
         return new WarrantySetup(
             factory,
             client,
             supervisor.Id,
             projectManager.Id,
             project.ProjectId,
-            project.HandoverDocumentId);
+            project.HandoverDocumentId,
+            initialWarrantyCount);
     }
 
     private async Task AssertCommitFailureRecoveryAsync(
@@ -360,7 +364,8 @@ public sealed class P120WarrantyCreationTests
         Guid SupervisorId,
         Guid ProjectManagerId,
         Guid ProjectId,
-        Guid HandoverDocumentId);
+        Guid HandoverDocumentId,
+        int InitialWarrantyCount);
 
     private sealed record CreatedProject(Guid ProjectId, Guid HandoverDocumentId);
 

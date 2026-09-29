@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -5,6 +7,7 @@ using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Messaging;
 using Xunit;
 
@@ -116,6 +119,46 @@ public sealed class P207NotificationPersistenceTests : IClassFixture<IdentitySql
             .Should().Be(1);
     }
 
+    [Fact(DisplayName = "ANH-04: notification read is recipient scoped, versioned and replay safe")]
+    public async Task MarkRead_RecipientVersionAndReplay_PersistOneReadEffect()
+    {
+        Guid recipientId;
+        Guid notificationId;
+        byte[] originalVersion;
+        await using (var seed = _fixture.CreateDbContext())
+        {
+            recipientId = (await CreateRecipientAsync(seed)).Id;
+            var notification = CreateNotification(recipientId);
+            notificationId = notification.Id;
+            seed.Notifications.Add(notification);
+            await seed.SaveChangesAsync();
+            originalVersion = notification.RowVersion;
+        }
+
+        await using var context = _fixture.CreateDbContext();
+        var repository = new NotificationPersistenceService(context, new IdempotencyOperationService(context));
+        var version = Convert.ToBase64String(originalVersion);
+        var outsider = await repository.MarkReadAsync(Guid.NewGuid(), notificationId, Guid.NewGuid().ToString(), Fingerprint("outsider"), version);
+        outsider.Status.Should().Be(NotificationMarkReadPersistenceStatus.NotFound);
+        var stale = await repository.MarkReadAsync(recipientId, notificationId, Guid.NewGuid().ToString(), Fingerprint("stale"), Convert.ToBase64String(Guid.NewGuid().ToByteArray()));
+        stale.Status.Should().Be(NotificationMarkReadPersistenceStatus.StaleConcurrency);
+
+        var key = Guid.NewGuid().ToString();
+        var first = await repository.MarkReadAsync(recipientId, notificationId, key, Fingerprint("read-once"), version);
+        var replay = await repository.MarkReadAsync(recipientId, notificationId, key, Fingerprint("read-once"), version);
+        var conflict = await repository.MarkReadAsync(recipientId, notificationId, key, Fingerprint("different-payload"), version);
+
+        first.Status.Should().Be(NotificationMarkReadPersistenceStatus.Success);
+        replay.Status.Should().Be(NotificationMarkReadPersistenceStatus.Replayed);
+        conflict.Status.Should().Be(NotificationMarkReadPersistenceStatus.IdempotentConflict);
+        replay.Notification!.Id.Should().Be(notificationId);
+        await using var verify = _fixture.CreateDbContext();
+        var persisted = await verify.Notifications.AsNoTracking().SingleAsync(value => value.Id == notificationId);
+        persisted.ReadAt.Should().NotBeNull();
+        persisted.RowVersion.Should().NotEqual(originalVersion);
+        (await verify.IdempotencyRecords.CountAsync(value => value.ActorUserId == recipientId && value.Operation == "NotificationRead" && value.IdempotencyKey == key)).Should().Be(1);
+    }
+
     private async Task<ApplicationUser> CreateRecipientAsync(RoadGuardDbContext context)
     {
         await _fixture.SeedRolesAsync(context);
@@ -144,4 +187,7 @@ public sealed class P207NotificationPersistenceTests : IClassFixture<IdentitySql
             "Assignment updated",
             "Your assigned work has changed.",
             DateTimeOffset.UtcNow);
+
+    private static string Fingerprint(string value)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 }

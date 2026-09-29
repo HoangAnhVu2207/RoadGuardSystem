@@ -5,6 +5,9 @@ using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Idempotency;
+using RoadGuardSystem.Repositories.Implementations.Surveys;
+using RoadGuardSystem.Repositories.Surveys;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 
@@ -88,6 +91,29 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
         var staleSave = () => secondContext.SaveChangesAsync();
 
         await staleSave.Should().ThrowAsync<DbUpdateConcurrencyException>();
+    }
+
+    [Fact(DisplayName = "P2 V2: plan rejects a root route version absent from requested scope")]
+    public async Task SurveyPlan_RootRouteVersionOutsideScope_ReturnsConflict()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var repository = new SurveyV2PersistenceService(context, new IdempotencyOperationService(context));
+        var rootRouteVersionId = Guid.NewGuid();
+        var scopedRouteVersionId = Guid.NewGuid();
+
+        var result = await repository.CreatePlanAsync(new SurveyV2PlanCreationRequest(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            rootRouteVersionId,
+            DateTimeOffset.UtcNow.AddDays(1),
+            SurveyType.Original,
+            "{}",
+            $"scope-root-mismatch-{Guid.NewGuid():N}",
+            new string('a', 64),
+            Guid.NewGuid(),
+            [new SurveyV2ScopeRequest(scopedRouteVersionId, Guid.NewGuid(), $"[\"{Guid.NewGuid()}\"]", "SURFACE")]));
+
+        result.Status.Should().Be(SurveyV2PersistenceStatus.Conflict);
     }
 
     private async Task<FixtureData> CreateFixtureAsync(RoadGuardDbContext context, int routeCount)

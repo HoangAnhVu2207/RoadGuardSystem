@@ -456,12 +456,17 @@ public sealed class SurveyV2PersistenceService : ISurveyV2Repository
 
     private async Task<ScopeResolution> ResolveScopeAsync(Guid projectId, Guid routeVersionId, IReadOnlyList<SurveyV2ScopeRequest>? requestedScope, CancellationToken cancellationToken)
     {
-        if (requestedScope is not { Count: > 0 })
+        if (projectId == Guid.Empty || routeVersionId == Guid.Empty || requestedScope is not { Count: > 0 })
         {
             throw new ScopeConflictException();
         }
 
         var items = requestedScope;
+        if (!items.Any(item => item.RouteVersionId == routeVersionId))
+        {
+            throw new ScopeConflictException();
+        }
+
         var routeVersionIds = items.Select(item => item.RouteVersionId).Distinct().ToArray();
         var resolved = await (from project in _context.Projects.AsNoTracking()
                               join section in _context.RoadSections.AsNoTracking() on project.Id equals section.ProjectId

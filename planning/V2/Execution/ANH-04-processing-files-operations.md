@@ -42,7 +42,7 @@ Primary areas: BusinessObjects/Processing, Files, Notifications, Audit, Idempote
 Requires dataset facts from ANH-02 and policy/defect identity from ANH-03. Stop on provider/schema/retention conflict, absent immutable manifest identity or any request to turn fake-provider evidence into external verification.
 
 ## Verification and acceptance
-Build Repositories and IntegrationTests. Run focused processing, file, notification, idempotency, outbox, retention and migration lifecycle tests using SQL Server; record durable effects, replay/conflict results and provider provenance. Acceptance requires HUY-04 handoff VERIFIED or NO_CHANGE_NEEDED; external provider gates remain explicit.
+Build Repositories and IntegrationTests. Run focused processing, file, notification, idempotency, outbox, retention and migration lifecycle tests using SQL Server; record durable effects, replay/conflict results and provider provenance. The HUY-04 handoff reports facts and does not gate Anh's independent work; external provider and contract/schema gates remain explicit.
 
 ## Source evidence - 2026-09-30 03:13 +07:00
 
@@ -101,3 +101,10 @@ Current-vs-target gate: `ReceiveResultAsync` accepts an older attempt associated
 - Reused/invalidated evidence: Earlier 32/32 processing/files/notification and 3/3 migration lifecycle results remain local candidate-baseline evidence; clean `develop` must be verified independently.
 - Side effects: Owner-approved Git publication only; no package, migration application, live data or provider effect.
 - Unverified/blockers: Receiver outcome, stale-callback receipt/fencing, sync/retention/export schema and provider evidence remain open; deliveryStatus stays `PARTIAL`.
+
+### 2026-09-30 11:37 +07:00 - PARTIAL (owner handoff decision)
+
+- Scope/result: Owner accepted Huy's processed handoff; the current notification consumer needs no repository change. `HUY-04-CALLBACK-FENCE-SYNC-RETENTION-CONTRACT` remains needed for stale-attempt fencing, late receipt and absent sync/retention/export persistence. `deliveryStatus` stays `PARTIAL`.
+- Files: this checkpoint and `planning/CROSS_OWNER_HANDOFFS.md`; no production, schema or test source changed.
+- Verification: `python docs/diagram/V2/ci/check_alignment.py` PASS (133 tasks), `git diff --check` PASS; `python docs/diagram/V2/09_Frontend/contracts/check_contracts.py` fails `CONTRACT_LOCK_MISMATCH` on unchanged contract files. Huy recorded notification API 1/1, processing SQL 5/5, notification SQL 5/5 and file SQL 5/5 at `d2338dc`. No external AI/object-store/retention or current local SQL proof is claimed.
+- Reused/invalidated evidence: receiver results remain bound to their checkpoint. Side effects: no package, migration, schema, data, provider, commit or push. Blockers: approved callback and operational physical contracts, fixture integration and external-provider evidence.

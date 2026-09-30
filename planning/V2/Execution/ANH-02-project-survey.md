@@ -4,9 +4,9 @@
 - deliveryStatus: PARTIAL
 - contractStatus: PROPOSED_DELTA
 - implementationStatus: CURRENT_VERIFIED
-- verificationStatus: FOCUSED_PASS
+- verificationStatus: PARTIAL_SQL_ENV_BLOCKED
 - dependencyType: data-fixture
-- sourceCheckpoint: HEAD 4586c8caa5aa8439c1ea9f9e385a8ee59359f0bb; canonical OpenAPI SHA-256 ADA7F48F522C0C0DBDACE21F483224A00FC4C76264A9A61D12F3E2211ECCE665; pre-existing dirty work preserved
+- sourceCheckpoint: base HEAD 4586c8caa5aa8439c1ea9f9e385a8ee59359f0bb; handoff review HEAD 15444975988f77f585e7350a1467668781aad120; canonical OpenAPI SHA-256 ADA7F48F522C0C0DBDACE21F483224A00FC4C76264A9A61D12F3E2211ECCE665; historical dirty-worktree evidence preserved
 
 ## Task goal
 Provide verified persistence facts for project membership and scope, route/version/segment planning, survey assignment, upload/session files and dataset coverage/readiness. Huy must be able to implement scoped API behavior without confusing a file upload with a confirmed dataset or baseline.
@@ -42,7 +42,7 @@ Primary areas are BusinessObjects/Projects, Surveys and Files, matching reposito
 Run after ANH-01 facts needed for actor scope. Stop on ERD/migration conflict, unresolved route/version or geometry policy, absent real file bytes, or any need for schema/provider decision. Keep upload, quality, baseline and coverage as distinct facts.
 
 ## Verification and acceptance
-Build Repositories and IntegrationTests. Run focused project membership, survey scope/concurrency, dataset, file and spatial tests selected from changed symbols; record fresh binaries and SQL version. Acceptance requires durable SQL evidence, no cross-project leakage and HUY-02 handoff VERIFIED or NO_CHANGE_NEEDED.
+Build Repositories and IntegrationTests. Run focused project membership, survey scope/concurrency, dataset, file and spatial tests selected from changed symbols; record fresh binaries and SQL version. Acceptance requires durable SQL evidence and no cross-project leakage. The HUY-02 handoff reports facts and does not gate Anh's independent work.
 
 ## Source evidence checkpoint
 
@@ -103,3 +103,13 @@ Build Repositories and IntegrationTests. Run focused project membership, survey 
 - Reused/invalidated evidence: No code change after the 50/50 survey review evidence; clean `develop` requires its own integration verification because candidate baseline and `docs/design` are excluded.
 - Side effects: Owner-approved Git publication only; no package, migration application, live data or provider effect.
 - Unverified/blockers: Receiver outcome and coverage/baseline persistence decisions remain open; deliveryStatus stays `PARTIAL`.
+
+### 2026-09-30 11:37 +07:00 - PARTIAL (owner accepted Huy handoff)
+
+- Scope/result: Owner accepted Huy's handoff. `ANH-02-PROJECT-SURVEY-01` has receiver outcome `NO_CHANGE_NEEDED` for the current root-route validation and repository statuses at clean HEAD `1544497`; coverage/baseline and geometry remain proposed or absent.
+- Files: this checkpoint and `planning/CROSS_OWNER_HANDOFFS.md`; no production or test source changed. Earlier 50/50 project/survey SQL evidence remains historical dirty-checkout evidence.
+- Acceptance criteria: HUY-02 recorded survey API 1/1 and scoped survey SQL 2/2 plus full-solution Integration 317/317 on `d2338dc`; `1544497` changes request examples and planning only. The required current local SQL gate did not pass; per-band coverage/baseline method and schema are still unresolved. Task and handoff remain `PARTIAL`/`PROCESSED`.
+- Verification: Repositories build PASS (51 warnings, 0 errors) and IntegrationTests build PASS (316 warnings, 0 errors), Debug/net8.0. The combined identity/project/survey SQL filter executed 122 tests: 1 passed, 121 failed, 0 skipped, because the configured SQL Server connection was unavailable before fixture setup. `MSSQL$HANHNAV` and Docker are stopped; service start was denied. `python docs/diagram/V2/ci/check_alignment.py` PASS (133 tasks); `git diff --check` PASS; `python docs/diagram/V2/09_Frontend/contracts/check_contracts.py` fails `CONTRACT_LOCK_MISMATCH` on unchanged contract files.
+- Reused/invalidated evidence: Huy's receiver tests remain recorded evidence at their checkpoint, not a passing local run. No runtime source changed after build; changed SQL environment invalidates local reuse of prior SQL results.
+- Side effects: no package, migration, schema, live data, external provider, commit or push; SQL service remains stopped.
+- Unverified/blockers: rerun focused project/survey SQL against a reachable server; approve the missing coverage/baseline physical model and method in a separately scoped task before claiming those slices or `DONE`. Candidate baseline and `docs/design/**` are absent here.

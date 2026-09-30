@@ -1,7 +1,7 @@
 # ANH-03 - Report, case, defect, inspection and repair persistence
 
 - Owner/branch: Anh / anh
-- deliveryStatus: IN_PROGRESS
+- deliveryStatus: PARTIAL
 - contractStatus: PROPOSED_DELTA
 - implementationStatus: PARTIAL_CURRENT_FACTS
 - verificationStatus: PASS_FOCUSED_SQL_AUTH
@@ -78,7 +78,7 @@ Primary areas: BusinessObjects/Reports, Cases, Defects, Inspections, Repairs, Wa
 Requires project/scope facts from ANH-02. Stop on state-machine versus current-schema conflict, missing durable BEFORE evidence, unresolved authorization/acceptance rule or a proposed physical threshold presented as production fact.
 
 ## Verification and acceptance
-Build Repositories and IntegrationTests. Run focused defect, inspection, repair, warranty and concurrency SQL tests from fresh binaries; inspect durable state/audit/outbox records. Acceptance requires every changed transition covered, no state collapse and HUY-03 handoff VERIFIED or NO_CHANGE_NEEDED.
+Build Repositories and IntegrationTests. Run focused defect, inspection, repair, warranty and concurrency SQL tests from fresh binaries; inspect durable state/audit/outbox records. Acceptance requires every changed transition covered and no state collapse. The HUY-03 handoff reports facts; missing contract/schema decisions remain the actual blockers.
 
 ## Completion history
 
@@ -109,3 +109,10 @@ Build Repositories and IntegrationTests. Run focused defect, inspection, repair,
 - Reused/invalidated evidence: No ANH-03 code edit. The uncommitted baseline and `docs/design` restructure are excluded from publication.
 - Side effects: Owner-approved Git publication only; no package, migration application, live data or provider effect.
 - Unverified/blockers: Receiver outcome, report/case/repair schema decisions and fixture integration remain open; deliveryStatus stays `PARTIAL`.
+
+### 2026-09-30 11:37 +07:00 - PARTIAL (owner handoff decision)
+
+- Scope/result: Corrected the stale `IN_PROGRESS` metadata to match the existing `PARTIAL` completion history. Owner accepted Huy's processed handoff; `HUY-03-REPORT-CASE-REPAIR-CONTRACT` is still needed for absent report/case/repair/BEFORE/release/acceptance facts.
+- Files: this checkpoint and `planning/CROSS_OWNER_HANDOFFS.md`; no production, schema or test source changed.
+- Verification: `python docs/diagram/V2/ci/check_alignment.py` PASS (133 tasks), `git diff --check` PASS; `python docs/diagram/V2/09_Frontend/contracts/check_contracts.py` fails `CONTRACT_LOCK_MISMATCH` on unchanged contract files. Existing focused defect 8/8 and inspection 6/6 SQL results remain historical receiver evidence. No current report/repair HTTP or durable write proof exists.
+- Reused/invalidated evidence: no implementation evidence promoted. Side effects: no package, migration, schema, data, provider, commit or push. Blocker: approved contract/schema and linked task integration are still required before `DONE`.

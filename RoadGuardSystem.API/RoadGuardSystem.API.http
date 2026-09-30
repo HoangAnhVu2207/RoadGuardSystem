@@ -24,6 +24,20 @@ Content-Type: application/json
 
 ###
 
+### HUY-01 forced password change (disposable account only)
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/forced-password-change
+Content-Type: application/json
+
+{
+  "username": "{{authEmail}}",
+  "currentPassword": "{{authPassword}}",
+  "newPassword": "{{replacementPassword}}",
+  "confirmPassword": "{{replacementPassword}}",
+  "operationId": "{{$guid}}"
+}
+
+###
+
 POST {{RoadGuardSystem.API_HostAddress}}/api/v1/auth/logout
 Authorization: Bearer {{accessToken}}
 Idempotency-Key: {{$guid}}
@@ -170,6 +184,25 @@ Content-Type: application/json
   "temporaryPassword": "{{replacementPassword}}",
   "reason": "ADMINISTRATOR_INITIATED"
 }
+
+###
+
+### V2-P2-041 list notifications for the authenticated actor
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/notifications?limit=25
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### V2-P2-042 read one owned notification
+GET {{RoadGuardSystem.API_HostAddress}}/api/v1/notifications/{{notificationId}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### V2-P2-043 mark one owned notification as read
+POST {{RoadGuardSystem.API_HostAddress}}/api/v1/notifications/{{notificationId}}/read
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: {{$guid}}
+If-Match: "{{notificationVersion}}"
+Accept: application/json
 
 ###
 

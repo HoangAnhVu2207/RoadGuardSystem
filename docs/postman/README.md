@@ -76,11 +76,10 @@ Recovery hiện chỉ tạo request bền vững và thông báo nội bộ cho 
 
 ## Phạm vi API hiện có
 
-OpenAPI v1 tại server đang công bố 37 method/path. Collection hiện có 24 operation paths và nhiều request kiểm âm/replay; nó **chưa bao phủ toàn bộ API**, nên không thể kết luận “mọi API đều chạy” từ một collection run. 13 operation còn thiếu request Postman:
+OpenAPI v1 tại server đang công bố 37 method/path. Collection hiện có 25 operation paths và nhiều request kiểm âm/replay; nó **chưa bao phủ toàn bộ API**, nên không thể kết luận “mọi API đều chạy” từ một collection run. 12 operation còn thiếu request Postman:
 
 | Method | Path |
 |---|---|
-| `POST` | `/api/v1/auth/forced-password-change` |
 | `GET` | `/api/v1/notifications` |
 | `GET` | `/api/v1/notifications/{notificationId}` |
 | `POST` | `/api/v1/notifications/{notificationId}/read` |

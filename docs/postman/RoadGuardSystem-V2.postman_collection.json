@@ -2222,6 +2222,61 @@
               ]
             },
             {
+              "name": "POST /auth/forced-password-change - destructive",
+              "request": {
+                "description": "Purpose: complete a required forced password change before a fresh login. Role: public credential holder. Setup: use a disposable account only; set authEmail/authPassword/replacementPassword and runDestructive=true with disposableAccountConfirmed=YES. Expected: 204. Data change: password/session invalidation; retry uses the same operationId.",
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{authEmail}}\",\n  \"currentPassword\": \"{{authPassword}}\",\n  \"newPassword\": \"{{replacementPassword}}\",\n  \"confirmPassword\": \"{{replacementPassword}}\",\n  \"operationId\": \"{{$guid}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/forced-password-change",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "forced-password-change"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.environment.get('runDestructive') !== 'true' || pm.environment.get('disposableAccountConfirmed') !== 'YES') { console.warn('[RoadGuard Postman] Skipped forced password change. Use a disposable account, set runDestructive=true and disposableAccountConfirmed=YES.'); pm.execution.skipRequest(); }",
+                      "var fixtureEmails = ['supervisor.postman@example.test','pm.postman@example.test','operator.postman@example.test','crew.postman@example.test']; if (fixtureEmails.indexOf(String(pm.environment.get('authEmail') || '').toLowerCase()) >= 0) throw new Error('Refusing forced password change for a seeded fixture account.');"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Forced password change returns 204', function () { pm.response.to.have.status(204); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
               "name": "POST /auth/password-recovery-requests",
               "request": {
                 "description": "MANUAL EMAIL. Purpose: request password recovery. Setup: set recoveryEmail and manualEmailScenario=RECOVERY. Expected: neutral 202 and Location whether or not the account exists. Data change: creates a recovery request; never reveals account existence.",

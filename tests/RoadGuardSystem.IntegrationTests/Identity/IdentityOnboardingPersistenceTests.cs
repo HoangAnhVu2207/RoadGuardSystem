@@ -86,13 +86,17 @@ public sealed class IdentityOnboardingPersistenceTests : IClassFixture<IdentityS
 
         var session = new UserSession
         {
-            Id = Guid.NewGuid(), UserId = pending.Id, IssuedAt = now,
+            Id = Guid.NewGuid(),
+            UserId = pending.Id,
+            IssuedAt = now,
             ExpiresAt = now.AddHours(1)
         };
         var token = new RefreshToken
         {
-            Id = Guid.NewGuid(), SessionId = session.Id,
-            TokenHash = new string('1', 64), ExpiresAt = now.AddDays(1)
+            Id = Guid.NewGuid(),
+            SessionId = session.Id,
+            TokenHash = new string('1', 64),
+            ExpiresAt = now.AddDays(1)
         };
         for (var index = 0; index < 2; index++)
         {
@@ -140,10 +144,15 @@ public sealed class IdentityOnboardingPersistenceTests : IClassFixture<IdentityS
         var normalizedEmail = email.ToUpperInvariant();
         var invitation = new StaffInvitation
         {
-            Id = Guid.NewGuid(), DisplayName = "Invited Operator", Email = email,
-            NormalizedEmail = email.ToUpperInvariant(), RoleCode = UserRoleCode.DroneOperator,
-            TokenHash = new string('2', 64), CreatedByUserId = supervisor.Id,
-            CreatedAt = now, ExpiresAt = now.AddHours(1)
+            Id = Guid.NewGuid(),
+            DisplayName = "Invited Operator",
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            RoleCode = UserRoleCode.DroneOperator,
+            TokenHash = new string('2', 64),
+            CreatedByUserId = supervisor.Id,
+            CreatedAt = now,
+            ExpiresAt = now.AddHours(1)
         };
         var repository = new IdentityOnboardingRepository(context);
         var created = await repository.CreateInvitationAsync(
@@ -153,13 +162,17 @@ public sealed class IdentityOnboardingPersistenceTests : IClassFixture<IdentityS
         var user = CreateUser(email, UserRoleCode.DroneOperator, UserStatus.Active, now);
         var session = new UserSession
         {
-            Id = Guid.NewGuid(), UserId = user.Id, IssuedAt = now,
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            IssuedAt = now,
             ExpiresAt = now.AddHours(1)
         };
         var token = new RefreshToken
         {
-            Id = Guid.NewGuid(), SessionId = session.Id,
-            TokenHash = new string('4', 64), ExpiresAt = now.AddDays(1)
+            Id = Guid.NewGuid(),
+            SessionId = session.Id,
+            TokenHash = new string('4', 64),
+            ExpiresAt = now.AddDays(1)
         };
         var key = Guid.NewGuid().ToString("N");
         var fingerprint = new string('5', 64);
@@ -178,10 +191,14 @@ public sealed class IdentityOnboardingPersistenceTests : IClassFixture<IdentityS
         var expiredEmail = $"expired.{Guid.NewGuid():N}@example.test";
         var expired = new StaffInvitation
         {
-            Id = Guid.NewGuid(), DisplayName = "Expired Invite",
-            Email = expiredEmail, NormalizedEmail = expiredEmail.ToUpperInvariant(),
-            RoleCode = UserRoleCode.DroneOperator, TokenHash = new string('6', 64),
-            CreatedByUserId = supervisor.Id, CreatedAt = now.AddHours(-2),
+            Id = Guid.NewGuid(),
+            DisplayName = "Expired Invite",
+            Email = expiredEmail,
+            NormalizedEmail = expiredEmail.ToUpperInvariant(),
+            RoleCode = UserRoleCode.DroneOperator,
+            TokenHash = new string('6', 64),
+            CreatedByUserId = supervisor.Id,
+            CreatedAt = now.AddHours(-2),
             ExpiresAt = now.AddHours(-1)
         };
         context.StaffInvitations.Add(expired);
@@ -202,19 +219,30 @@ public sealed class IdentityOnboardingPersistenceTests : IClassFixture<IdentityS
 
     private static ApplicationUser CreateUser(
         string email, UserRoleCode role, UserStatus status, DateTimeOffset now) => new()
-    {
-        Id = Guid.NewGuid(), UserName = email, NormalizedUserName = email.ToUpperInvariant(),
-        Email = email, NormalizedEmail = email.ToUpperInvariant(),
-        DisplayName = email, PasswordHash = "test-password-hash",
-        RoleCode = role, Status = status, CreatedAt = now
-    };
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            DisplayName = email,
+            PasswordHash = "test-password-hash",
+            RoleCode = role,
+            Status = status,
+            CreatedAt = now
+        };
 
     private static ReporterRegistrationIntent CreateIntent(
         Guid userId, string email, DateTimeOffset now) => new()
-    {
-        Id = Guid.NewGuid(), UserId = userId, NormalizedEmail = email.ToUpperInvariant(),
-        ReporterType = ReporterType.Citizen, OtpHash = new string('9', 64),
-        OtpGeneration = 1, ExpiresAt = now.AddMinutes(10),
-        ResendAvailableAt = now, CreatedAt = now
-    };
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            NormalizedEmail = email.ToUpperInvariant(),
+            ReporterType = ReporterType.Citizen,
+            OtpHash = new string('9', 64),
+            OtpGeneration = 1,
+            ExpiresAt = now.AddMinutes(10),
+            ResendAvailableAt = now,
+            CreatedAt = now
+        };
 }

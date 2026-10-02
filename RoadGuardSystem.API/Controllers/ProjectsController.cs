@@ -5,11 +5,11 @@ using System.Text;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RoadGuardSystem.API.Authorization;
 using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.DTOs.Projects;
 using RoadGuardSystem.Services.Projects;
-using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.API.Controllers;
 
@@ -46,7 +46,7 @@ public sealed class ProjectsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actorUserId) ||
-            !TryParseRole(User.FindFirstValue("role"), out var actorRole))
+            !ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out var actorRole))
         {
             return ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
         }
@@ -99,7 +99,7 @@ public sealed class ProjectsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actorUserId) ||
-            !TryParseRole(User.FindFirstValue("role"), out var actorRole))
+            !ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out var actorRole))
         {
             return ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
         }
@@ -149,7 +149,7 @@ public sealed class ProjectsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actorUserId) ||
-            !TryParseRole(User.FindFirstValue("role"), out var actorRole))
+            !ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out var actorRole))
         {
             return ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
         }
@@ -294,18 +294,4 @@ public sealed class ProjectsController : ControllerBase
         Guid.TryParse(HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString(), out var value)
             ? value
             : null;
-
-    private static bool TryParseRole(string? value, out UserRoleCode role)
-    {
-        try
-        {
-            role = UserRoleCodeExtensions.FromDbCode(value ?? string.Empty);
-            return role != UserRoleCode.Unknown;
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            role = UserRoleCode.Unknown;
-            return false;
-        }
-    }
 }

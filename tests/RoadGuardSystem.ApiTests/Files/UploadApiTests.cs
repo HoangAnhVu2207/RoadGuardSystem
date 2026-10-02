@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoadGuardSystem.ApiTests.Infrastructure;
@@ -23,6 +24,55 @@ public sealed class UploadApiTests
     public UploadApiTests(AuthenticationSqlServerFixture sql)
     {
         _sql = sql;
+    }
+
+    [Fact]
+    public async Task UploadCreate_CurrentIntBoundaryOverflowsValidationWithoutWriting()
+    {
+        var supervisor = await _sql.CreateUserAsync($"upload-limit-supervisor-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var manager = await _sql.CreateUserAsync($"upload-limit-manager-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+
+        await AuthenticateAsync(client, supervisor.UserName!);
+        var projectId = await CreateProjectAsync(client, manager.Id);
+        await AuthenticateAsync(client, manager.UserName!);
+
+        int beforeSessions;
+        int beforeFiles;
+        await using (var before = _sql.CreateDbContext())
+        {
+            beforeSessions = await before.UploadSessions.AsNoTracking().CountAsync();
+            beforeFiles = await before.Files.AsNoTracking().CountAsync();
+        }
+
+        foreach (var sizeBytes in new[] { (long)int.MaxValue + 1, 8L * 1024 * 1024 * 1024 })
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/uploads")
+            {
+                Content = JsonContent.Create(new
+                {
+                    purpose = "SURVEY_VIDEO",
+                    projectId,
+                    targetId = (Guid?)null,
+                    fileName = "boundary.mp4",
+                    mediaType = "video/mp4",
+                    sizeBytes,
+                    checksumSha256 = new string('a', 64)
+                })
+            };
+            request.Headers.Add("Idempotency-Key", $"upload-limit-{Guid.NewGuid():N}");
+            var response = await client.SendAsync(request);
+            response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString()
+                .Should().Be("internal_error");
+            response.Headers.Contains("X-Correlation-ID").Should().BeTrue();
+        }
+
+        await using var verification = _sql.CreateDbContext();
+        (await verification.FileScopes.AsNoTracking().CountAsync(scope => scope.ProjectId == projectId)).Should().Be(0);
+        (await verification.UploadSessions.AsNoTracking().CountAsync()).Should().Be(beforeSessions);
+        (await verification.Files.AsNoTracking().CountAsync()).Should().Be(beforeFiles);
     }
 
     [Fact]
@@ -83,6 +133,11 @@ public sealed class UploadApiTests
 
         var stale = await CompleteAsync(client, uploadId, checksum, "//////////8=", $"upload-stale-{Guid.NewGuid():N}");
         stale.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        await using (var verification = _sql.CreateDbContext())
+        {
+            (await verification.UploadSessions.AsNoTracking().SingleAsync(item => item.Id == uploadId))
+                .Status.Should().Be(UploadSessionStatus.Uploading);
+        }
 
         var completed = await CompleteAsync(client, uploadId, checksum, currentVersion, $"upload-complete-{Guid.NewGuid():N}");
         completed.StatusCode.Should().Be(HttpStatusCode.Accepted);
@@ -103,6 +158,13 @@ public sealed class UploadApiTests
         await AuthenticateAsync(client, outsider.UserName!);
         var denied = await client.GetAsync($"/api/v1/uploads/{uploadId}");
         denied.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await using (var verification = _sql.CreateDbContext())
+        {
+            (await verification.UploadSessions.AsNoTracking().SingleAsync(item => item.Id == uploadId))
+                .Status.Should().Be(UploadSessionStatus.Verified);
+            (await verification.FileScopes.AsNoTracking().SingleAsync(item => item.FileId == fileId))
+                .ProjectId.Should().Be(projectId);
+        }
     }
 
     [MinioSmokeFact]
@@ -113,7 +175,7 @@ public sealed class UploadApiTests
         var manager = await _sql.CreateUserAsync($"minio-manager-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var content = Encoding.UTF8.GetBytes("%PDF-1.7 MinIO multipart upload smoke fixture");
         var checksum = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
-        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString, allowExternalStorage: true);
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
 
         await AuthenticateAsync(client, supervisor.UserName!);

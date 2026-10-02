@@ -187,7 +187,12 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
             }, cancellationToken);
             if (outcome.Status == IdempotencyOperationStatus.Conflict) return new(ProcessingJobPersistenceStatus.IdempotentConflict);
             var stored = JsonSerializer.Deserialize<StoredValidationOutcome>(outcome.OutcomeJson) ?? throw new InvalidOperationException();
-            return new(outcome.Status == IdempotencyOperationStatus.Replayed ? ProcessingJobPersistenceStatus.Replayed : stored.Status, stored.Run);
+            // A replayed receipt preserves the original business outcome. Only a stored
+            // success is exposed as Replayed; failed validation must remain a failure so
+            // the HTTP layer does not turn it into a null-success fallback.
+            return new(outcome.Status == IdempotencyOperationStatus.Replayed && stored.Status == ProcessingJobPersistenceStatus.Success
+                ? ProcessingJobPersistenceStatus.Replayed
+                : stored.Status, stored.Run);
         }
         catch (ArgumentException) { return new(ProcessingJobPersistenceStatus.InvalidInput); }
         catch (JsonException) { return new(ProcessingJobPersistenceStatus.InvalidInput); }

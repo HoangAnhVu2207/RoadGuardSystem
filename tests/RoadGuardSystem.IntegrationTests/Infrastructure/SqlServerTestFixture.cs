@@ -12,19 +12,18 @@ public delegate string? EnvironmentVariableAccessor(string variableName);
 
 /// <summary>
 /// Manages isolated SQL Server test databases for integration tests.
-/// Supports connection resolution via:
-/// 1. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING (strict: fail-fast without fallback if empty, whitespace, malformed, or unreachable)
-/// 2. Testcontainers MsSql container when the environment variable is unset (no hardcoded instance names).
+/// Normal tests use a fixture-owned Testcontainers server. An injected environment accessor
+/// exists only for negative configuration tests and never reads inherited process settings.
 /// Provides reliable lifecycle management and unswallowed teardown failures.
 /// </summary>
 public sealed class SqlServerTestFixture : IAsyncLifetime
 {
     private static readonly SemaphoreSlim SharedContainerLock = new(1, 1);
     private static MsSqlContainer? SharedContainer;
+    private static int SharedContainerUsers;
     private readonly bool _createSpatialProbeSchema;
     private readonly EnvironmentVariableAccessor _environmentAccessor;
     private MsSqlContainer? _container;
-    private bool _ownsContainer;
     private string? _masterConnectionString;
     private string? _databaseName;
     private string? _databaseConnectionString;
@@ -49,7 +48,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
         bool createSpatialProbeSchema = true)
     {
         _createSpatialProbeSchema = createSpatialProbeSchema;
-        _environmentAccessor = environmentAccessor ?? Environment.GetEnvironmentVariable;
+        _environmentAccessor = environmentAccessor ?? (_ => null);
         _masterConnectionString = masterConnectionString;
     }
 
@@ -61,24 +60,35 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _masterConnectionString ??= await ResolveMasterConnectionStringAsync();
-        _databaseName = $"RoadGuard_Test_{Guid.NewGuid():N}";
-
-        // Build connection string for the isolated test database
-        var dbBuilder = new SqlConnectionStringBuilder(_masterConnectionString)
+        try
         {
-            InitialCatalog = _databaseName,
-            TrustServerCertificate = true
-        };
-        _databaseConnectionString = dbBuilder.ConnectionString;
+            _masterConnectionString ??= await ResolveMasterConnectionStringAsync();
+            if (!IsOwnedMasterConnection(_masterConnectionString))
+            {
+                throw new SqlTestEnvironmentUnavailableException(
+                    "SQL fixture master connection is not owned by this test process.");
+            }
 
-        // Create the isolated test database
-        await CreateDatabaseAsync(_databaseName);
+            _databaseName = $"RoadGuard_Test_{Guid.NewGuid():N}";
+            var dbBuilder = new SqlConnectionStringBuilder(_masterConnectionString)
+            {
+                InitialCatalog = _databaseName,
+                TrustServerCertificate = true
+            };
+            _databaseConnectionString = dbBuilder.ConnectionString;
 
-        if (_createSpatialProbeSchema)
+            await CreateDatabaseAsync(_databaseName);
+
+            if (_createSpatialProbeSchema)
+            {
+                await using var context = CreateDbContext();
+                await context.Database.EnsureCreatedAsync();
+            }
+        }
+        catch
         {
-            await using var context = CreateDbContext();
-            await context.Database.EnsureCreatedAsync();
+            await DisposeAsync();
+            throw;
         }
     }
 
@@ -86,6 +96,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
     {
         if (_databaseConnectionString is null)
             throw new InvalidOperationException("Fixture has not been initialized.");
+        EnsureOwnedDatabaseName(DatabaseName);
 
         var options = new DbContextOptionsBuilder<SpatialProbeDbContext>()
             .UseSqlServer(_databaseConnectionString, x => x.UseNetTopologySuite())
@@ -98,6 +109,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
 
     public async Task CreateDatabaseAsync(string databaseName)
     {
+        EnsureOwnedDatabaseName(databaseName);
         await using var masterConn = new SqlConnection(MasterConnectionString);
         await masterConn.OpenAsync();
         await using var cmd = masterConn.CreateCommand();
@@ -121,6 +133,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
 
     public async Task DropDatabaseByNameAsync(string databaseName)
     {
+        EnsureOwnedDatabaseName(databaseName);
         await using var masterConn = new SqlConnection(MasterConnectionString);
         await masterConn.OpenAsync();
         await using var cmd = masterConn.CreateCommand();
@@ -164,11 +177,25 @@ END";
         finally
         {
             // Guarantee container cleanup runs in finally even if unexpected exceptions occurred
-            if (_ownsContainer && _container is not null)
+            if (_container is not null)
             {
                 try
                 {
-                    await _container.DisposeAsync();
+                    await SharedContainerLock.WaitAsync();
+                    try
+                    {
+                        SharedContainerUsers--;
+                        if (SharedContainerUsers == 0)
+                        {
+                            await _container.DisposeAsync();
+                            SharedContainer = null;
+                        }
+                        _container = null;
+                    }
+                    finally
+                    {
+                        SharedContainerLock.Release();
+                    }
                 }
                 catch (Exception containerEx)
                 {
@@ -228,7 +255,7 @@ END";
             return builder.ConnectionString;
         }
 
-        // 2. If environment variable is unset: share one Testcontainers instance for this test process.
+        // 2. Share a Testcontainers instance only with live fixtures in this test process.
         try
         {
             await SharedContainerLock.WaitAsync();
@@ -237,13 +264,24 @@ END";
                 if (SharedContainer is null)
                 {
                     var container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
-                    await container.StartAsync();
+                    try
+                    {
+                        await container.StartAsync();
+                    }
+                    catch
+                    {
+                        await container.DisposeAsync();
+                        throw;
+                    }
                     SharedContainer = container;
                 }
 
                 _container = SharedContainer;
-                _ownsContainer = false;
-                return SharedContainer.GetConnectionString();
+                SharedContainerUsers++;
+                return new SqlConnectionStringBuilder(SharedContainer.GetConnectionString())
+                {
+                    InitialCatalog = "master"
+                }.ConnectionString;
             }
             finally
             {
@@ -253,8 +291,32 @@ END";
         catch (Exception ex)
         {
             throw new SqlTestEnvironmentUnavailableException(
-                "SQL Server integration test environment is unavailable. ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING is unset, " +
-                "and Testcontainers could not start a SQL Server container (ensure Docker daemon is running).", ex);
+                "SQL Server integration test environment is unavailable. The fixture requires an owned " +
+                "Testcontainers SQL Server, but the container could not start (ensure Docker daemon is running).", ex);
+        }
+    }
+
+    private static bool IsOwnedMasterConnection(string connectionString)
+    {
+        if (SharedContainer is null)
+        {
+            return false;
+        }
+
+        var owned = new SqlConnectionStringBuilder(SharedContainer.GetConnectionString())
+        {
+            InitialCatalog = "master"
+        };
+        return string.Equals(new SqlConnectionStringBuilder(connectionString).ConnectionString,
+            owned.ConnectionString, StringComparison.Ordinal);
+    }
+
+    private void EnsureOwnedDatabaseName(string databaseName)
+    {
+        if (_databaseName is null || databaseName != _databaseName ||
+            _masterConnectionString is null || !IsOwnedMasterConnection(_masterConnectionString))
+        {
+            throw new InvalidOperationException("SQL test database is not owned by this fixture.");
         }
     }
 

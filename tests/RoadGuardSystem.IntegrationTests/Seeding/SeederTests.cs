@@ -250,6 +250,37 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         }
     }
 
+    [Fact]
+    public async Task PostmanScenarioSeed_RejectsSurveyOwnershipCollision_InIsolatedDatabase()
+    {
+        var isolated = await CreateIsolatedDatabaseAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(CreateOptions(isolated.ConnectionString));
+            var seeder = new DatabaseSeeder(
+            [
+                new IdentityRoleSeedStep(),
+                new PostmanUserSeedStep(),
+                new PostmanScenarioSeedStep()
+            ]);
+            await seeder.SeedAsync(context);
+
+            var survey = await context.Surveys.SingleAsync(item => item.Id == PostmanScenarioSeedStep.SurveyId);
+            context.Entry(survey).Property(nameof(survey.SurveyRequestId)).CurrentValue =
+                PostmanScenarioSeedStep.SurveyRequestId;
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var reseed = () => new PostmanScenarioSeedStep().SeedAsync(context);
+            var exception = await reseed.Should().ThrowAsync<InvalidOperationException>();
+            exception.WithMessage("*fixture collision: survey*incompatible ownership or dependencies*");
+        }
+        finally
+        {
+            await isolated.DisposeAsync();
+        }
+    }
+
     [Fact(DisplayName = "RV-17/19: scenario seed preserves mutable data and concurrent runs converge to one graph")]
     public async Task PostmanScenarioSeed_ConcurrentRunsConvergeAndPreserveMutableData()
     {

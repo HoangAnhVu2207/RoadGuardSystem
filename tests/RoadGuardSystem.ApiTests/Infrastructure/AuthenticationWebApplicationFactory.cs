@@ -23,6 +23,7 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
     private readonly int _refreshTokenLifetimeDays;
     private readonly ILoggerProvider? _loggerProvider;
     private readonly Action<IServiceCollection>? _configureTestServices;
+    private readonly bool _allowExternalStorage;
 
     public AuthenticationWebApplicationFactory(
         string connectionString,
@@ -32,8 +33,14 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
         int sessionLifetimeHours = 8,
         int refreshTokenLifetimeDays = 30,
         ILoggerProvider? loggerProvider = null,
-        Action<IServiceCollection>? configureTestServices = null)
+        Action<IServiceCollection>? configureTestServices = null,
+        bool allowExternalStorage = false)
     {
+        if (!AuthenticationSqlServerFixture.IsOwnedConnectionString(connectionString))
+        {
+            throw new InvalidOperationException("API test database is not owned by an active SQL fixture.");
+        }
+
         _connectionString = connectionString;
         _maxPlatformLength = maxPlatformLength;
         _activeKeyId = activeKeyId;
@@ -42,6 +49,7 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
         _refreshTokenLifetimeDays = refreshTokenLifetimeDays;
         _loggerProvider = loggerProvider;
         _configureTestServices = configureTestServices;
+        _allowExternalStorage = allowExternalStorage;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -77,8 +85,22 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
             builder.ConfigureLogging(logging => logging.AddProvider(_loggerProvider));
         }
 
-        builder.ConfigureServices(services =>
+        builder.ConfigureServices((context, services) =>
         {
+            context.Configuration["RoadGuardDatabase:ConnectionString"] = _connectionString;
+            context.Configuration["RoadGuardDatabase:InitializeOnStartup"] = "false";
+            context.Configuration["RoadGuardDatabase:SeedDevelopmentUsers"] = "false";
+            if (!_allowExternalStorage)
+            {
+                context.Configuration["MinioStorage:Endpoint"] = "";
+            }
+            if (context.Configuration["RoadGuardDatabase:ConnectionString"] != _connectionString ||
+                context.Configuration["RoadGuardDatabase:InitializeOnStartup"] != "false" ||
+                (!_allowExternalStorage && !string.IsNullOrWhiteSpace(context.Configuration["MinioStorage:Endpoint"])))
+            {
+                throw new InvalidOperationException("API test host database isolation was overridden.");
+            }
+
             services.AddControllers().AddApplicationPart(typeof(AuthenticationWebApplicationFactory).Assembly);
             services.Configure<PasswordHasherOptions>(options => options.IterationCount = 10_000);
             _configureTestServices?.Invoke(services);

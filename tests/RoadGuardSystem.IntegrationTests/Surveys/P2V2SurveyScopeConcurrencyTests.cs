@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
+using RoadGuardSystem.BusinessObjects.Files;
+using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
@@ -116,6 +118,110 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
         result.Status.Should().Be(SurveyV2PersistenceStatus.Conflict);
     }
 
+    [Fact(DisplayName = "P2 V2: dataset cannot claim a segment outside its assigned scope")]
+    public async Task SubmitDataset_OutsideAssignedScope_LeavesNoDataset()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var fixture = await CreateDatasetFixtureAsync(context, "SURVEY_VIDEO");
+        var repository = new SurveyV2PersistenceService(context, new IdempotencyOperationService(context));
+        var requestedScope = $"[{{\"routeVersionId\":\"{fixture.RouteVersionId}\",\"segmentSetId\":\"{fixture.SegmentSetId}\",\"segmentIds\":[\"{Guid.NewGuid()}\"],\"targetBand\":\"SURFACE\"}}]";
+
+        var result = await repository.SubmitDatasetAsync(new SurveyDatasetSubmissionRequest(
+            fixture.OperatorId, fixture.TaskId, [fixture.FileId], [], DateTimeOffset.UtcNow,
+            Guid.NewGuid(), requestedScope, fixture.TaskVersion, $"dataset-scope-{Guid.NewGuid():N}",
+            new string('a', 64), Guid.NewGuid()));
+
+        result.Status.Should().Be(SurveyDatasetPersistenceStatus.Conflict);
+        (await context.SurveyDataVersions.CountAsync()).Should().Be(0);
+        (await context.SurveyFiles.CountAsync()).Should().Be(0);
+    }
+
+    [Fact(DisplayName = "P2 V2: dataset cannot use a verified document as a survey video")]
+    public async Task SubmitDataset_WrongFilePurpose_LeavesNoDataset()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var fixture = await CreateDatasetFixtureAsync(context, "DOCUMENT");
+        var repository = new SurveyV2PersistenceService(context, new IdempotencyOperationService(context));
+        var requestedScope = $"[{{\"routeVersionId\":\"{fixture.RouteVersionId}\",\"segmentSetId\":\"{fixture.SegmentSetId}\",\"segmentIds\":[\"{fixture.SegmentId}\"],\"targetBand\":\"SURFACE\"}}]";
+
+        var result = await repository.SubmitDatasetAsync(new SurveyDatasetSubmissionRequest(
+            fixture.OperatorId, fixture.TaskId, [fixture.FileId], [], DateTimeOffset.UtcNow,
+            Guid.NewGuid(), requestedScope, fixture.TaskVersion, $"dataset-purpose-{Guid.NewGuid():N}",
+            new string('b', 64), Guid.NewGuid()));
+
+        result.Status.Should().Be(SurveyDatasetPersistenceStatus.Conflict);
+        (await context.SurveyDataVersions.CountAsync()).Should().Be(0);
+        (await context.SurveyFiles.CountAsync()).Should().Be(0);
+    }
+
+    [Fact(DisplayName = "P2 V2: assigned scope and verified survey video persist once on replay")]
+    public async Task SubmitDataset_AssignedScopeAndSurveyVideo_CommitsOnce()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var fixture = await CreateDatasetFixtureAsync(context, "SURVEY_VIDEO");
+        var repository = new SurveyV2PersistenceService(context, new IdempotencyOperationService(context));
+        var requestedScope = $"[{{\"routeVersionId\":\"{fixture.RouteVersionId}\",\"segmentSetId\":\"{fixture.SegmentSetId}\",\"segmentIds\":[\"{fixture.SegmentId}\"],\"targetBand\":\"SURFACE\"}}]";
+        var request = new SurveyDatasetSubmissionRequest(
+            fixture.OperatorId, fixture.TaskId, [fixture.FileId], [], DateTimeOffset.UtcNow,
+            Guid.NewGuid(), requestedScope, fixture.TaskVersion, $"dataset-valid-{Guid.NewGuid():N}",
+            new string('d', 64), Guid.NewGuid());
+
+        var first = await repository.SubmitDatasetAsync(request);
+        var replay = await repository.SubmitDatasetAsync(request);
+        context.ChangeTracker.Clear();
+
+        first.Status.Should().Be(SurveyDatasetPersistenceStatus.Success);
+        replay.Status.Should().Be(SurveyDatasetPersistenceStatus.Replayed);
+        replay.Dataset!.Id.Should().Be(first.Dataset!.Id);
+        (await context.SurveyDataVersions.CountAsync()).Should().Be(1);
+        (await context.SurveyFiles.CountAsync()).Should().Be(1);
+        (await context.AuditLogs.CountAsync(row => row.EventType == "survey_dataset_submitted")).Should().Be(1);
+    }
+
+    private async Task<DatasetFixture> CreateDatasetFixtureAsync(RoadGuardDbContext context, string filePurpose)
+    {
+        await _fixture.SeedRolesAsync(context);
+        var route = await CreateFixtureAsync(context, 1);
+        var now = DateTimeOffset.UtcNow;
+        var operatorId = Guid.NewGuid();
+        var userName = $"p2-v2-dataset-{operatorId:N}";
+        var user = new ApplicationUser
+        {
+            Id = operatorId,
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            DisplayName = "Dataset SQL fixture operator",
+            PasswordHash = "fixture-password-hash",
+            RoleCode = UserRoleCode.DroneOperator,
+            Status = UserStatus.Active,
+            CreatedAt = now
+        };
+        var segmentSet = RoadSegmentSet.Create(Guid.NewGuid(), route.RouteVersionIds[0]);
+        var segment = RoadSegment.Create(Guid.NewGuid(), segmentSet.Id, route.RouteVersionIds[0], 1);
+        var task = SurveyRequest.Create(Guid.NewGuid(), route.ProjectId, route.RoadSectionIds[0], null,
+            operatorId, SurveyType.Original, SurveyRequestStatus.Accepted, now, now.AddDays(1), "{}", route.RouteVersionIds[0]);
+        var assignment = SurveyAssignment.Create(Guid.NewGuid(), task.Id, operatorId, operatorId,
+            now, now, null, null, null, null);
+        var scope = SurveyRequestScope.Create(Guid.NewGuid(), task.Id, route.RouteVersionIds[0],
+            segmentSet.Id, $"[\"{segment.Id}\"]", "SURFACE");
+        var checksum = new string('c', 64);
+        var file = StoredFile.Create(Guid.NewGuid(), $"objects/dataset/{Guid.NewGuid():N}", "source.mp4",
+            "video/mp4", 16, checksum, operatorId, now, null);
+        var fileScope = FileScope.Create(Guid.NewGuid(), file.Id, route.ProjectId, task.Id, operatorId, filePurpose, now);
+        var upload = UploadSession.Create(Guid.NewGuid(), file.Id, operatorId, file.StorageUri,
+            filePurpose, "video/mp4", 16, checksum, 16, now.AddHours(1));
+        context.AddRange(user, segmentSet, segment, task, assignment, scope, file, fileScope, upload);
+        await context.SaveChangesAsync();
+        upload.StartUploading("fixture-upload", now);
+        await context.SaveChangesAsync();
+        upload.StartVerification(Convert.ToBase64String(upload.RowVersion), now);
+        await context.SaveChangesAsync();
+        upload.MarkVerified();
+        await context.SaveChangesAsync();
+        return new DatasetFixture(operatorId, task.Id, Convert.ToBase64String(task.RowVersion),
+            route.RouteVersionIds[0], segmentSet.Id, segment.Id, file.Id);
+    }
+
     private async Task<FixtureData> CreateFixtureAsync(RoadGuardDbContext context, int routeCount)
     {
         var project = new Project
@@ -150,4 +256,7 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
     }
 
     private sealed record FixtureData(Guid ProjectId, IReadOnlyList<Guid> RoadSectionIds, IReadOnlyList<Guid> RouteVersionIds);
+
+    private sealed record DatasetFixture(Guid OperatorId, Guid TaskId, string TaskVersion,
+        Guid RouteVersionId, Guid SegmentSetId, Guid SegmentId, Guid FileId);
 }

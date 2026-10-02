@@ -90,6 +90,124 @@ public sealed class P112ProjectAuthorizationTests
     }
 
     [Fact]
+    public async Task WorkPackage_EmptyCollections_PreservesHttpShapeAndBusinessRows()
+    {
+        var user = await _sql.CreateUserAsync($"empty_package_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var project = await CreateProjectAsync();
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = CreateClient(factory);
+        await AuthenticateAsync(client, user.UserName!, "Current1!");
+
+        byte[] beforeVersion;
+        await using (var before = _sql.CreateDbContext())
+        {
+            beforeVersion = await before.Projects.Where(item => item.Id == project.Id)
+                .Select(item => item.RowVersion).SingleAsync();
+        }
+
+        var correlationId = Guid.NewGuid();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/projects/{project.Id}/work-package");
+        request.Headers.Add("X-Correlation-ID", correlationId.ToString());
+        using var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+        response.Headers.GetValues("X-Correlation-ID").Single().Should().Be(correlationId.ToString());
+        response.Headers.Contains("ETag").Should().BeFalse();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("projectId").GetGuid().Should().Be(project.Id);
+        body.GetProperty("description").GetString().Should().Be(project.Description);
+        body.GetProperty("engineeringUtmSrid").GetInt32().Should().Be(32648);
+        body.GetProperty("status").GetString().Should().Be("ACTIVE");
+        body.GetProperty("startDate").GetString().Should().Be("2026-01-01");
+        body.GetProperty("endDate").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("accessRole").GetString().Should().Be("SUPERVISOR");
+        body.GetProperty("rowVersion").GetString().Should().Be(Convert.ToBase64String(beforeVersion));
+        body.GetProperty("roadSections").GetArrayLength().Should().Be(0);
+        body.GetProperty("warranties").GetArrayLength().Should().Be(0);
+
+        await using var after = _sql.CreateDbContext();
+        (await after.Projects.Where(item => item.Id == project.Id).Select(item => item.RowVersion).SingleAsync())
+            .Should().Equal(beforeVersion);
+        (await after.RoadSections.CountAsync(item => item.ProjectId == project.Id)).Should().Be(0);
+        (await after.Warranties.CountAsync(item => item.ProjectId == project.Id)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task WorkPackage_MultipleChildren_PreservesOrderingNullableProjectionAndBusinessRows()
+    {
+        var user = await _sql.CreateUserAsync($"multi_package_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var project = await CreateProjectAsync();
+        var later = await CreateWorkPackageChildrenAsync(
+            project, "B-road", Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        var earlier = await CreateWorkPackageChildrenAsync(
+            project, "A-road", Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        var projectWarranty = Warranty.Create(
+            Guid.NewGuid(), project.Id, null, null,
+            new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 1), new DateOnly(2027, 2, 1),
+            null, WarrantyScope.Project, null, null, WarrantyStatus.Active);
+        await using (var setup = _sql.CreateDbContext())
+        {
+            setup.Warranties.Add(projectWarranty);
+            await setup.SaveChangesAsync();
+        }
+
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = CreateClient(factory);
+        await AuthenticateAsync(client, user.UserName!, "Current1!");
+        await using var before = _sql.CreateDbContext();
+        var beforeProjectVersion = await before.Projects.Where(item => item.Id == project.Id)
+            .Select(item => item.RowVersion).SingleAsync();
+        var beforeSections = await before.RoadSections.Where(item => item.ProjectId == project.Id)
+            .OrderBy(item => item.Code).Select(item => new { item.Id, item.Code, item.Name }).ToArrayAsync();
+        var beforeVersions = await before.RoadSectionVersions
+            .Where(item => item.RoadSectionId == earlier.SectionId || item.RoadSectionId == later.SectionId)
+            .OrderBy(item => item.Id).Select(item => new { item.Id, item.VersionNo, item.IsCurrent, item.ChangeReason })
+            .ToArrayAsync();
+        var beforeWarranties = await before.Warranties.Where(item => item.ProjectId == project.Id)
+            .OrderBy(item => item.Id)
+            .Select(item => new { item.Id, item.RoadSectionId, item.WarrantyStartDate, item.RetainedValue, item.Status })
+            .ToArrayAsync();
+        var beforeOutboxCount = await before.OutboxMessages.CountAsync();
+        using var response = await client.GetAsync($"/api/v1/projects/{project.Id}/work-package");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var sections = body.GetProperty("roadSections").EnumerateArray().ToArray();
+        sections.Select(item => item.GetProperty("code").GetString()).Should().Equal("A-road", "B-road");
+        sections.Select(item => item.GetProperty("roadSectionId").GetGuid()).Should()
+            .Equal(earlier.SectionId, later.SectionId);
+        sections.Select(item => item.GetProperty("currentVersionId").GetGuid()).Should()
+            .Equal(earlier.VersionId, later.VersionId);
+        var warranties = body.GetProperty("warranties").EnumerateArray().ToArray();
+        warranties.Select(item => item.GetProperty("warrantyId").GetGuid()).Should()
+            .Equal(earlier.WarrantyId, later.WarrantyId, projectWarranty.Id);
+        var nullable = warranties[2];
+        nullable.GetProperty("roadSectionId").ValueKind.Should().Be(JsonValueKind.Null);
+        nullable.GetProperty("handoverDocumentId").ValueKind.Should().Be(JsonValueKind.Null);
+        nullable.GetProperty("retainedValue").ValueKind.Should().Be(JsonValueKind.Null);
+        nullable.GetProperty("terms").ValueKind.Should().Be(JsonValueKind.Null);
+        nullable.GetProperty("scope").GetString().Should().Be("PROJECT");
+
+        await using var after = _sql.CreateDbContext();
+        (await after.Projects.Where(item => item.Id == project.Id).Select(item => item.RowVersion).SingleAsync())
+            .Should().Equal(beforeProjectVersion);
+        (await after.RoadSections.Where(item => item.ProjectId == project.Id)
+            .OrderBy(item => item.Code).Select(item => new { item.Id, item.Code, item.Name }).ToArrayAsync())
+            .Should().Equal(beforeSections);
+        (await after.RoadSectionVersions
+            .Where(item => item.RoadSectionId == earlier.SectionId || item.RoadSectionId == later.SectionId)
+            .OrderBy(item => item.Id).Select(item => new { item.Id, item.VersionNo, item.IsCurrent, item.ChangeReason })
+            .ToArrayAsync()).Should().Equal(beforeVersions);
+        (await after.Warranties.Where(item => item.ProjectId == project.Id)
+            .OrderBy(item => item.Id)
+            .Select(item => new { item.Id, item.RoadSectionId, item.WarrantyStartDate, item.RetainedValue, item.Status })
+            .ToArrayAsync()).Should().Equal(beforeWarranties);
+        (await after.OutboxMessages.CountAsync()).Should().Be(beforeOutboxCount);
+    }
+
+    [Fact]
     public async Task WorkPackage_MembershipEnds_IsForbiddenOnNextRequest()
     {
         var user = await _sql.CreateUserAsync(
@@ -193,9 +311,12 @@ public sealed class P112ProjectAuthorizationTests
         return membership;
     }
 
-    private async Task<(Guid SectionId, Guid VersionId, Guid WarrantyId)> CreateWorkPackageChildrenAsync(Project project)
+    private async Task<(Guid SectionId, Guid VersionId, Guid WarrantyId)> CreateWorkPackageChildrenAsync(
+        Project project,
+        string? sectionCode = null,
+        Guid? warrantyId = null)
     {
-        var section = RoadSection.Create(Guid.NewGuid(), project.Id, $"RS-{Guid.NewGuid():N}", "Main road");
+        var section = RoadSection.Create(Guid.NewGuid(), project.Id, sectionCode ?? $"RS-{Guid.NewGuid():N}", "Main road");
         var geometry = new LineString(
         [
             new Coordinate(500000, 1000000),
@@ -213,7 +334,7 @@ public sealed class P112ProjectAuthorizationTests
             DateTimeOffset.UtcNow,
             "Initial geometry");
         var warranty = Warranty.Create(
-            Guid.NewGuid(),
+            warrantyId ?? Guid.NewGuid(),
             project.Id,
             section.Id,
             null,
@@ -275,7 +396,13 @@ public sealed class P112ProjectAuthorizationTests
 
     private static async Task<string> ProblemCodeAsync(HttpResponseMessage response)
     {
+        response.Content.Headers.ContentType!.MediaType.Should().Be(
+            response.StatusCode == HttpStatusCode.NotFound ? "application/problem+json" : "application/json");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("status").GetInt32().Should().Be((int)response.StatusCode);
+        Guid.TryParse(response.Headers.GetValues("X-Correlation-ID").Single(), out var correlationId)
+            .Should().BeTrue();
+        body.GetProperty("correlationId").GetString().Should().Be(correlationId.ToString());
         return body.GetProperty("code").GetString()!;
     }
 }

@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace RoadGuardSystem.ApiTests.Infrastructure;
 
@@ -11,6 +14,7 @@ namespace RoadGuardSystem.ApiTests.Infrastructure;
 /// </summary>
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private const string DisconnectedDatabase = "Server=127.0.0.1,1;Database=RoadGuard_PlatformTests_NoConnection;Integrated Security=true;Encrypt=true;TrustServerCertificate=false";
     private readonly string _environment;
 
     public CustomWebApplicationFactory()
@@ -28,7 +32,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment(_environment);
         builder.UseSetting(
             "RoadGuardDatabase:ConnectionString",
-            "Server=localhost;Database=RoadGuard_PlatformTests;Integrated Security=true;Encrypt=true;TrustServerCertificate=false");
+            DisconnectedDatabase);
+        builder.UseSetting("RoadGuardDatabase:InitializeOnStartup", "false");
+        builder.UseSetting("RoadGuardDatabase:SeedDevelopmentUsers", "false");
+        builder.UseSetting("MinioStorage:Endpoint", "");
         builder.UseSetting("RoadGuardDatabase:EnableSensitiveDataLogging", "false");
         builder.UseSetting("Jwt:Issuer", "roadguard-platform-tests");
         builder.UseSetting("Jwt:Audience", "roadguard-platform-clients");
@@ -43,8 +50,23 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             "PasswordChangeFingerprint:Key",
             Convert.ToBase64String(Enumerable.Repeat((byte)91, 32).ToArray()));
 
-        builder.ConfigureServices(services =>
+        builder.ConfigureServices((context, services) =>
         {
+            // Development local configuration must never make these HTTP-only tests migrate or seed a database.
+            var configuration = context.Configuration;
+            configuration["RoadGuardDatabase:ConnectionString"] = DisconnectedDatabase;
+            configuration["RoadGuardDatabase:InitializeOnStartup"] = "false";
+            configuration["RoadGuardDatabase:SeedDevelopmentUsers"] = "false";
+            configuration["MinioStorage:Endpoint"] = "";
+            if (configuration.GetValue<bool>("RoadGuardDatabase:InitializeOnStartup") ||
+                configuration.GetValue<bool>("RoadGuardDatabase:SeedDevelopmentUsers") ||
+                configuration["RoadGuardDatabase:ConnectionString"] != DisconnectedDatabase ||
+                !string.IsNullOrWhiteSpace(configuration["MinioStorage:Endpoint"]))
+            {
+                throw new InvalidOperationException("Platform test host isolation was overridden; refusing startup.");
+            }
+
+            services.RemoveAll<IHostedService>();
             services.AddControllers()
                 .AddApplicationPart(typeof(CustomWebApplicationFactory).Assembly);
         });

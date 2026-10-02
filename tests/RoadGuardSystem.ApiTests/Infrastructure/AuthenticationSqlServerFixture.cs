@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +14,8 @@ namespace RoadGuardSystem.ApiTests.Infrastructure;
 
 public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
 {
-    private static readonly SemaphoreSlim SharedContainerLock = new(1, 1);
-    private static MsSqlContainer? SharedContainer;
+    private static readonly ConcurrentDictionary<string, byte> OwnedConnections = new(StringComparer.Ordinal);
     private MsSqlContainer? _container;
-    private bool _usesSharedContainer;
     private string? _masterConnectionString;
     private string? _databaseName;
 
@@ -24,64 +23,45 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var configured = Environment.GetEnvironmentVariable("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING");
-        if (configured is null)
+        try
         {
-            await SharedContainerLock.WaitAsync();
-            try
-            {
-                if (SharedContainer is null)
-                {
-                    SharedContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
-                    await SharedContainer.StartAsync();
-                }
-
-                _container = SharedContainer;
-                _usesSharedContainer = true;
-                _masterConnectionString = SharedContainer.GetConnectionString();
-            }
-            finally
-            {
-                SharedContainerLock.Release();
-            }
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(configured))
-            {
-                throw new InvalidOperationException(
-                    "ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING is configured but empty; refusing fallback.");
-            }
-
-            _masterConnectionString = new SqlConnectionStringBuilder(configured)
+            _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04").Build();
+            await _container.StartAsync();
+            _masterConnectionString = new SqlConnectionStringBuilder(_container.GetConnectionString())
             {
                 InitialCatalog = "master"
             }.ConnectionString;
+
+            _databaseName = $"RoadGuard_ApiTest_{Guid.NewGuid():N}";
+            ConnectionString = new SqlConnectionStringBuilder(_masterConnectionString)
+            {
+                InitialCatalog = _databaseName,
+                TrustServerCertificate = true
+            }.ConnectionString;
+
+            await using (var connection = new SqlConnection(_masterConnectionString))
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = $"CREATE DATABASE [{_databaseName}]";
+                await command.ExecuteNonQueryAsync();
+            }
+
+            await using var context = CreateDbContext();
+            await context.Database.MigrateAsync();
+            await new IdentityRoleSeedStep().SeedAsync(context, CancellationToken.None);
+            OwnedConnections.TryAdd(ConnectionString, 0);
         }
-
-        _databaseName = $"RoadGuard_ApiTest_{Guid.NewGuid():N}";
-        var databaseBuilder = new SqlConnectionStringBuilder(_masterConnectionString)
+        catch
         {
-            InitialCatalog = _databaseName,
-            TrustServerCertificate = true
-        };
-        ConnectionString = databaseBuilder.ConnectionString;
-
-        await using (var connection = new SqlConnection(_masterConnectionString))
-        {
-            await connection.OpenAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = $"CREATE DATABASE [{_databaseName}]";
-            await command.ExecuteNonQueryAsync();
+            await DisposeAsync();
+            throw;
         }
-
-        await using var context = CreateDbContext();
-        await context.Database.MigrateAsync();
-        await new IdentityRoleSeedStep().SeedAsync(context, CancellationToken.None);
     }
 
     public RoadGuardDbContext CreateDbContext()
     {
+        EnsureOwnedDatabase();
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
             .UseSqlServer(ConnectionString, sql => sql.UseNetTopologySuite())
             .Options;
@@ -123,25 +103,40 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
             ? username
             : $"{username}@example.test";
 
+    internal static bool IsOwnedConnectionString(string connectionString) =>
+        OwnedConnections.ContainsKey(connectionString);
+
     public async Task DisposeAsync()
     {
+        OwnedConnections.TryRemove(ConnectionString, out _);
         try
         {
-            if (_masterConnectionString is not null && _databaseName is not null)
+            if (_container is not null && _masterConnectionString is not null && _databaseName is not null)
             {
                 await using var connection = new SqlConnection(_masterConnectionString);
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
-                command.CommandText = $"ALTER DATABASE [{_databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{_databaseName}]";
+                command.CommandText = $"IF DB_ID('{_databaseName}') IS NOT NULL BEGIN ALTER DATABASE [{_databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{_databaseName}]; END";
                 await command.ExecuteNonQueryAsync();
             }
         }
         finally
         {
-            if (_container is not null && !_usesSharedContainer)
+            if (_container is not null)
             {
                 await _container.DisposeAsync();
+                _container = null;
             }
+        }
+    }
+
+    private void EnsureOwnedDatabase()
+    {
+        if (_container is null || _masterConnectionString is null || _databaseName is null ||
+            !string.Equals(new SqlConnectionStringBuilder(ConnectionString).InitialCatalog,
+                _databaseName, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("API test database is not owned by this fixture.");
         }
     }
 }

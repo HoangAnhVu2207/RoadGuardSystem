@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -54,6 +55,11 @@ public sealed class P2SurveyV2ApiTests
             invalidRequest.Headers.Add("Idempotency-Key", "p2-plan-invalid-scope-001");
             var invalid = await client.SendAsync(invalidRequest);
             invalid.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        }
+        await using (var verification = _sql.CreateDbContext())
+        {
+            (await verification.SurveyPlans.AsNoTracking().CountAsync(plan => plan.ProjectId == projectId))
+                .Should().Be(0);
         }
         var planRequest = new { scope, plannedAt = "2026-10-01T08:00:00Z", surveyType = "BASELINE" };
         using var createPlanRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/projects/{projectId}/survey-plans") { Content = JsonContent.Create(planRequest) };
@@ -109,6 +115,15 @@ public sealed class P2SurveyV2ApiTests
         await AuthenticateAsync(client, otherOperator.UserName!);
         var denied = await client.GetAsync($"/api/v1/survey-tasks/{taskId}");
         denied.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await using (var verification = _sql.CreateDbContext())
+        {
+            (await verification.SurveyPlans.AsNoTracking().CountAsync(plan => plan.ProjectId == projectId))
+                .Should().Be(1, "duplicate and replay requests must not create another plan");
+            (await verification.SurveyPlanPostponements.AsNoTracking().CountAsync(item => item.SurveyPlanId == planId))
+                .Should().Be(1, "stale concurrency requests must not add a postponement");
+            (await verification.SurveyRequests.AsNoTracking().CountAsync(item => item.Id == taskId && item.ProjectId == projectId))
+                .Should().Be(1);
+        }
     }
 
     private static async Task<HttpResponseMessage> PostponeAsync(HttpClient client, Guid planId, string key, string version)

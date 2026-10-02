@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using RoadGuardSystem.Services.Authorization;
-using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.API.Authorization;
 
@@ -31,7 +30,7 @@ public sealed class ProjectAccessAuthorizationHandler : AuthorizationHandler<Pro
         if (context.Resource is not HttpContext httpContext ||
             !Guid.TryParse(context.User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var userId) ||
             !Guid.TryParse(httpContext.Request.RouteValues["projectId"]?.ToString(), out var projectId) ||
-            !TryParseRole(context.User.FindFirstValue("role"), out var role))
+            !ProjectRoleClaimParser.TryParse(context.User.FindFirstValue("role"), out var role))
         {
             return;
         }
@@ -49,19 +48,5 @@ public sealed class ProjectAccessAuthorizationHandler : AuthorizationHandler<Pro
 
         httpContext.Items[ProjectAuthorizationPolicies.AccessScopeItemKey] = scope;
         context.Succeed(requirement);
-    }
-
-    private static bool TryParseRole(string? value, out UserRoleCode role)
-    {
-        try
-        {
-            role = UserRoleCodeExtensions.FromDbCode(value ?? string.Empty);
-            return role != UserRoleCode.Unknown;
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            role = UserRoleCode.Unknown;
-            return false;
-        }
     }
 }

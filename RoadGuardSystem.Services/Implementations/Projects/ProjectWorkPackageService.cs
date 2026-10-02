@@ -32,27 +32,31 @@ public sealed class ProjectWorkPackageService : IProjectWorkPackageService
                 result.EndDate,
                 accessRole.ToDbCode(),
                 Convert.ToBase64String(result.RowVersion),
-                result.RoadSections.Select(section => new RoadSectionWorkPackageDto(
-                    section.RoadSectionId,
-                    section.Code,
-                    section.Name,
-                    section.CurrentVersionId,
-                    section.VersionNo,
-                    section.GeometryWkt,
-                    section.Srid,
-                    section.EffectiveFrom,
-                    section.ChangeReason)).ToArray(),
-                result.Warranties.Select(warranty => new WarrantyWorkPackageDto(
-                    warranty.WarrantyId,
-                    warranty.RoadSectionId,
-                    warranty.HandoverDocumentId,
-                    warranty.HandoverDate,
-                    warranty.WarrantyStartDate,
-                    warranty.WarrantyEndDate,
-                    warranty.RetainedValue,
-                    warranty.Scope.ToApiCode(),
-                    warranty.Terms,
-                    warranty.SourceDocumentId,
-                    warranty.Status.ToString().ToUpperInvariant())).ToArray());
+                result.RoadSections.Select(MapRoadSection).ToArray(),
+                result.Warranties.Select(MapWarranty).ToArray());
     }
+
+    private static RoadSectionWorkPackageDto MapRoadSection(RoadSectionWorkPackageReadResult section) => new(
+        section.RoadSectionId,
+        section.Code,
+        section.Name,
+        section.CurrentVersionId,
+        section.VersionNo,
+        section.GeometryWkt,
+        section.Srid,
+        section.EffectiveFrom,
+        section.ChangeReason);
+
+    private static WarrantyWorkPackageDto MapWarranty(WarrantyWorkPackageReadResult warranty) => new(
+        warranty.WarrantyId,
+        warranty.RoadSectionId,
+        warranty.HandoverDocumentId,
+        warranty.HandoverDate,
+        warranty.WarrantyStartDate,
+        warranty.WarrantyEndDate,
+        warranty.RetainedValue,
+        warranty.Scope.ToApiCode(),
+        warranty.Terms,
+        warranty.SourceDocumentId,
+        warranty.Status.ToString().ToUpperInvariant());
 }

@@ -81,6 +81,18 @@ public sealed class SqlServerDiagnosticTests : IClassFixture<SqlServerTestFixtur
         ex.WithMessage("*could not connect to SQL Server*refusing fallback*");
     }
 
+    [Fact]
+    public async Task ArbitraryMasterConnection_IsRejectedBeforeDatabaseCreation()
+    {
+        var fixture = new SqlServerTestFixture(
+            masterConnectionString: "Server=127.0.0.1,1;Database=master;Integrated Security=true");
+
+        var create = () => fixture.InitializeAsync();
+
+        var exception = await create.Should().ThrowAsync<SqlTestEnvironmentUnavailableException>();
+        exception.WithMessage("*not owned by this test process*");
+    }
+
     [Fact(DisplayName = "Negative: Cleanup failure is observed, not swallowed, and does not leak test database")]
     public async Task Cleanup_Failure_Is_Observed_And_Does_Not_Leak_Database()
     {

@@ -165,7 +165,7 @@ public sealed class AuthService : IAuthService
             Id = Guid.NewGuid(),
             SessionId = token.SessionId,
             TokenHash = material.HashHex,
-            ExpiresAt = now.AddDays(_options.RefreshTokenLifetimeDays)
+            ExpiresAt = Min(now.AddDays(_options.RefreshTokenLifetimeDays), session.ExpiresAt)
         };
         var rotation = await _identityRepository.RotateRefreshTokenAsync(
             token.Id,
@@ -203,6 +203,9 @@ public sealed class AuthService : IAuthService
                 ? new AuthResult(AuthStatus.RefreshTokenExpired)
                 : new AuthResult(AuthStatus.RefreshTokenInvalid);
     }
+
+    private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second) =>
+        first <= second ? first : second;
 
     public async Task<AuthResult> LogoutAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {

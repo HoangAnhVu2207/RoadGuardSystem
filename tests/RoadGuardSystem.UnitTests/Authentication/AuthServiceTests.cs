@@ -170,6 +170,29 @@ public sealed partial class AuthServiceTests
         repository.RotatedRefreshToken!.TokenHash.Should().Be(RefreshTokenGenerator.Hash(result.Tokens.RefreshToken));
     }
 
+    [Fact(DisplayName = "HUY-01 D1: refresh rotation never outlives the parent session")]
+    public async Task Refresh_SessionExpiresBeforeConfiguredLifetime_ClampsReplacementExpiry()
+    {
+        var user = ActiveUser();
+        var sessionId = Guid.NewGuid();
+        var sessionExpiresAt = TestNow.AddHours(2);
+        var repository = new StubIdentityRepository
+        {
+            RefreshState = new RefreshTokenSecurityState(
+                Guid.NewGuid(), sessionId, user.Id, TestNow.AddDays(1), null, true, [7]),
+            Session = new SessionSecurityState(
+                sessionId, user.Id, TestNow.AddHours(-1), sessionExpiresAt, null, true, [8]),
+            User = user
+        };
+        var service = CreateService(repository, new StubCredentialVerifier());
+
+        var result = await service.RefreshAsync(new RefreshCommand("active-refresh"));
+
+        result.Status.Should().Be(AuthStatus.Success);
+        result.Tokens!.RefreshTokenExpiresAt.Should().Be(sessionExpiresAt);
+        repository.RotatedRefreshToken!.ExpiresAt.Should().Be(sessionExpiresAt);
+    }
+
     [Fact(DisplayName = "P1-10 Positive: logout revokes the current session idempotently")]
     public async Task Logout_ValidSession_RevokesFamily()
     {

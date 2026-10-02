@@ -28,6 +28,14 @@ Ngày: 2026-10-02. Writer: Huy / Codex local. Nhánh: `huy-review`.
 - Verification: red command `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --filter FullyQualifiedName~Huy01TrainingLabelRevisionTests.Create_BboxExceedsImageBounds_IsRejected --nologo -v q` executed 1, passed 0, failed 1 after BBOX validation was intentionally removed. Green: `dotnet build tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --nologo -v q -clp:ErrorsOnly` passed with 5 analyzer warnings; `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --filter FullyQualifiedName~Huy01TrainingLabelRevisionTests --nologo -v q` executed 2, passed 2, failed 0, skipped 0.
 - Reused/invalidated evidence: the prior authentication focused result remains valid because its source path was unchanged. SQL Server, API smoke, migration, Postman, real producer/consumer and deployment evidence remain `NOT_RUN`.
 
+### 2026-10-02 - PARTIAL
+
+- Scope/result: Added the repository-level D1 backstop so refresh rotation clamps any supplied replacement expiry to the authoritative parent session expiry inside the SQL transaction.
+- Files: `RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.RefreshTokens.cs`; `tests/RoadGuardSystem.IntegrationTests/Identity/P110AuthenticationPersistenceTests.cs`.
+- Acceptance criteria: SQL Server test proves the durable replacement row and returned fact do not outlive the parent session. Web/Android transport routes, cookie/CSRF, session schema changes, and full HTTP smoke remain outside this slice.
+- Verification: red `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --filter FullyQualifiedName~P110AuthenticationPersistenceTests.RefreshRotation_ReplacementOutlivesSession_ClampsPersistedExpiry --nologo -v q` executed 1, passed 0, failed 1. Green build `dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --nologo -v q -clp:ErrorsOnly` passed with 47 analyzer warnings; green SQL test executed 1, passed 1, failed 0, skipped 0 using the disposable `IdentitySqlServerFixture`.
+- Reused/invalidated evidence: prior authentication and label tests remain valid; HTTP/Postman/migration/producer-consumer/deployment gates remain `NOT_RUN`.
+
 ## 1. Assignment, baseline và giới hạn
 
 - **ASSIGNED có checkpoint** theo yêu cầu Huy trong cuộc trao đổi này: triển khai trọn HUY-01, tận dụng source; phần đủ căn cứ ở §3 làm ngay. Các lựa chọn nghiệp vụ/public compatibility ở §11 vẫn **PROPOSED**, không được coi im lặng là chấp thuận.

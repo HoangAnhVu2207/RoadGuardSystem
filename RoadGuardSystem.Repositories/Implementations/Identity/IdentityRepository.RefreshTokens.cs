@@ -59,6 +59,9 @@ public sealed partial class IdentityRepository
 
                     oldToken.RevokedAt = now;
                     newToken.SessionId = oldToken.SessionId;
+                    newToken.ExpiresAt = newToken.ExpiresAt <= oldToken.Session.ExpiresAt
+                        ? newToken.ExpiresAt
+                        : oldToken.Session.ExpiresAt;
                     var attemptReplacement = new RefreshToken
                     {
                         Id = newToken.Id,

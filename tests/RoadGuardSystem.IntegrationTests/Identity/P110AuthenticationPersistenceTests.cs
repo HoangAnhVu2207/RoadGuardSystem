@@ -790,6 +790,33 @@ public sealed class P110AuthenticationPersistenceTests : IClassFixture<IdentityS
             .SessionId.Should().Be(session.Id);
     }
 
+    [Fact(DisplayName = "HUY-01 D1: refresh rotation persists an expiry no later than the parent session")]
+    public async Task RefreshRotation_ReplacementOutlivesSession_ClampsPersistedExpiry()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var user = await CreateActiveUserAsync(context);
+        var now = DateTimeOffset.UtcNow;
+        var session = CreateSession(user.Id, now.AddMinutes(-1));
+        session.ExpiresAt = now.AddMinutes(2);
+        var oldToken = CreateRefreshToken(session.Id, now.AddMinutes(-1), UniqueHash("clamp-old"));
+        var replacement = CreateRefreshToken(session.Id, now, UniqueHash("clamp-new"));
+        context.Sessions.Add(session);
+        context.RefreshTokens.Add(oldToken);
+        await context.SaveChangesAsync();
+        await context.Entry(oldToken).ReloadAsync();
+
+        var result = await _fixture.CreateRepository(context).RotateRefreshTokenAsync(
+            oldToken.Id,
+            oldToken.RowVersion.ToArray(),
+            replacement);
+
+        result.Status.Should().Be(RotateRefreshTokenStatus.Success);
+        result.NewToken!.ExpiresAt.Should().Be(session.ExpiresAt);
+        await using var verification = _fixture.CreateDbContext();
+        (await verification.RefreshTokens.AsNoTracking().SingleAsync(item => item.Id == replacement.Id))
+            .ExpiresAt.Should().Be(session.ExpiresAt);
+    }
+
     private async Task<ApplicationUser> CreateActiveUserAsync(
         RoadGuardSystem.Repositories.RoadGuardDbContext context,
         bool mustChangePassword = false,

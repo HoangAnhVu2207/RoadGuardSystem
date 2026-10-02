@@ -1,68 +1,43 @@
-# Common baseline handoff — local cleanup, integration pending
+# Common baseline handoff
 
 ## Current checkpoint: 2026-10-02
 
-CURRENT_VERIFIED: `anh` HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1` plus dirty source/docs/tooling. Origin was fetched without pruning; default branch is `develop`. The clean `D:/RG-HUY` worktree is on `huy`. Latest owner instruction prohibits commits, merges and actions on `main`; no stage, commit, merge, push or branch switch occurred. There is no integrated baseline commit. Existing hashes below are HISTORICAL, not a new reproducibility requirement.
+Repository cleanup and local integration are complete. Final source/tooling baseline is [1f02a5c74668a83ec562a25243ac555f164a35dd](https://github.com/HoangAnhVu2207/RoadGuardSystem/commit/1f02a5c74668a83ec562a25243ac555f164a35dd). First atomic remote push at 7ee3056 succeeded for anh, huy, anh-review, huy-review and develop; all five tips/tree contents were identical. A final shared documentation commit records this result and the subsequent clean-checkout CI corrections, then is synchronized afterward. Exact final tips and remote confirmation are in the final handoff and Git.
 
-The candidate integration branch is `anh`: it contains the current uncommitted refactor and two identity commits beyond `develop`, while `develop` is its ancestor. It has NOT been integrated with `anh-review`; that branch carries independent source/Postman/tooling/planning history and needs reconciliation before any baseline claim. Selection does not authorize a Git operation.
+Latest owner authorization permits selective stage, commit, fetch, merge and ordinary push for those five branches. This replaces the historical no-commit/no-merge limitation. Main is excluded; restructure/docs-planning remains historical and unchanged. No PR is required by the observed target-branch protection/ruleset state; no pending PR.
 
-| Branch | HEAD | Contains anh HEAD | Tree diff against anh HEAD | Remote status |
+## Integration evidence
+
+- Existing code/test checkpoint: e21d778; docs/tooling/cleanup/evidence checkpoint: 62e8f95.
+- Stable fingerprinted Python checkout: 842a17d; anh-review history merge: 451f410.
+- Merge-base 4586c8c and anh-review a773231 have identical trees. The two exclusive merge commits therefore required history integration without source rollback. Merge pre/post tree is identical; no production conflict.
+- Baseline 7ee3056 preserves generated SQL trigger catalog line endings; RF-06A check passes in clean checkout.
+- Fresh solution builds pass with 654 warnings / 0 errors. All 654 normalized diagnostics match before/after; zero new diagnostic.
+- Focused tests: 25 API + 25 SQL pass, 0 failed/skipped, owned fixtures only. The final SQL case refreshes active inventory hashes after whitespace-only formatter changes; model/snapshot/SQL/trigger sections are unchanged. No local full suite/A08-01/provider/deployment rerun.
+- First-push hosted CI passed Unit/API/SQL jobs but found an untracked-empty-directory module route. Route corrected to Defects; CI format's 35 whitespace findings in six tests were fixed with Roslyn token-value equality verified. Final local CI verify commands pass; current hosted status is confirmed in the final handoff after push.
+- No active writer appeared in other repository chats; original anh/huy worktrees were checked clean before each fast-forward. Huy updated directly through D:/RG-HUY.
+- Historical payloads, ignored packaged runtime evidence and six individually selected unique logs/TRX are retained. Ordinary local secrets/configuration/build outputs are not tracked.
+
+## Branch checkpoint
+
+| Branch | First synchronized HEAD | Contains tested baseline | Tree diff | Push/PR |
 |---|---|---|---|---|
-| anh | 2efc8a5 | Yes | None at committed HEAD; dirty refactor is additional | Matches origin/anh; dirty cleanup not pushed |
-| huy | 1544497 | No | 7 files | Matches origin/huy; clean worktree |
-| anh-review | a773231 | No | 18 files | Matches origin/anh-review |
-| huy-review | Absent | No | N/A | Not created under current restriction |
-| develop (default) | 1544497 | No | 7 files | Matches origin/develop |
-| restructure/docs-planning | 4586c8c | No | 18 files | Matches origin; historical planning branch, not synchronized |
-| main | Excluded | Not assessed | Not assessed | No action authorized |
+| anh | 7ee3056 | Yes | 0 | Succeeded |
+| huy | 7ee3056 | Yes | 0 | Succeeded |
+| anh-review | 7ee3056 | Yes | 0 | Succeeded |
+| huy-review | 7ee3056 | Yes | 0 | Created/pushed |
+| develop | 7ee3056 | Yes | 0 | Succeeded |
+| main | Excluded | Not assessed | Not assessed | No action |
+| restructure/docs-planning | 4586c8c | Historical | Not compared for sync | Unchanged |
 
-No baseline is present on all development branches. No push or PR was attempted. Branch comparisons describe committed trees only, not the dirty working tree. Full status and verification: [RF-11 report](reports/RF-11.md).
+Final report-only delivery is a descendant of this tested baseline; current branch tips must be checked from Git, rather than interpreted as the historical checkpoint above.
 
-A08-02 is accepted within repository + isolated SQL scope with historical three focused tests. HTTP 409/422 runtime was not verified in that handoff. A08-01 compatibility callback, A09-01/A09-02 and discarded remediation remain known limitations; no provider/retry/late-attempt work is reopened.
+## Scope and readiness
 
-## Historical checkpoint: 2026-10-01
+Anh/Huy may begin separately assigned work from the common baseline after final documentation sync. No RF-11 action starts their feature packages or resolves public-contract/schema decisions. The development plan remains a proposal until assigned.
 
-Checkpoint 2026-10-01: local branch `anh`, HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1`; `git status --short --branch` shows a dirty tree. Remote freshness was not fetched or claimed. HEAD alone does **not** identify the content of uncommitted or untracked RF-04..09 artifacts. No commit, push, merge, branch switch, reset or clean was run. The `huy` branch was not inspected or modified. This document is a proposed reviewable procedure, not an assertion that two branches match.
+A08-02 is accepted within repository + isolated SQL scope with three historical focused tests and three fresh SQL checks in RF-11. HTTP 409/422 runtime remains NOT VERIFIED. A08-01 callback compatibility, A09-01/A09-02, discarded remediation and provider/retry/late-attempt limits remain known limitations. Release/deployment and external consumers remain unverified; RF-11 parent stays Partial for those distinct gates.
 
-## Ownership classification for review
+On Windows, this repository uses local core.longpaths=true for retained long Postman/history paths. Active generated docs and archived payloads retain their declared line endings. Full staged history diff-check has captured whitespace limitations; expected values and guards were not modified.
 
-| Bucket | Current paths/evidence | Handoff handling |
-|---|---|---|
-| Pre-existing before this post-RF-09 turn | `git status` initially showed retired `.agents/references/`, `.agents/rules/roadguard.md`, old RoadGuard skills deleted; `AGENTS.md`, CI, RF-05/06 fixture/test files, RF-07 project mapping, RF-08 role parser/callers, survey `.Dataset.cs` and P2 survey tests, V2 planning changes, `docs/product`, `docs/backend`, `docs/decisions`, `contracts`, `planning/refactor` untracked. RF-09 report lists its exact own paths. | Attribute each RF-04..09 slice using its report; obtain human ownership for the dirty survey/V2 work and any path without an RF report. Do not bundle unknown changes into a refactor commit. |
-| This turn's refactor planning | `03-master-plan.md`, `03-two-developer-plan.md`, `04-delivery-slices.md`, `09-change-gates.md`, `09-cg17-package.md`, `.agents/modules/README.md`, `planning/refactor/README.md`, `10-refactor-slices.md`, `10-refactor-checklist.md`, `11-development-plan.md`, this handoff file and reports/checkpoints. | Review as one documentation-only planning package after link checks. Historical A/B rows remain marked as historical. |
-| This turn's characterization | `tests/RoadGuardSystem.ApiTests/Files/UploadApiTests.cs` already had RF-06 edits before this turn (pre-edit SHA-256 `00E52F846C273F83C97958A1035F837AD4CE78EDDFF8DEFB6A7C701E3861C2C5`); this turn adds only `UploadCreate_CurrentIntBoundaryOverflowsValidationWithoutWriting`. | Review the method hunk against RF-06 prior diff and report. It is an observation test for current 500 behavior, not a new acceptance target. |
-| Attributed prior Anh survey work, not this turn's edit | `planning/V2/Execution/ANH-02-project-survey.md` checkpoint 2026-09-30 13:24 names `SurveyV2PersistenceService.cs`, new `.Dataset.cs` and `P2V2SurveyScopeConcurrencyTests.cs` with 59/59 historical SQL. This turn's C00 reread source and ran 6/6 fresh focused SQL; source was not edited. | Keep this as a distinct ANH-02 checkpoint; reconcile any other V2 planning/coordination paths individually before a commit. It is not a new refactor code diff. |
-| Unknown ownership | Any existing dirty path not covered by an RF-04..09 or ANH-02 checkpoint, external Web/Android/AI repositories/deployments, and any further dirty paths that appear before checkpoint. | Ask the owner to attribute exact paths. Keep them out of a scoped checkpoint until reviewed; external consumers remain UNKNOWN, not assigned to Anh or Huy. |
-
-## Historical reproducibility fingerprint, local bytes
-
-Hashes below were read from this dirty checkout on 2026-10-01, not from HEAD. A later edit invalidates that row. Full file inventory and per-file SHA-256 for **every** accepted tracked/untracked handoff file must be regenerated at checkpoint time; this selected table is a review anchor, not a complete bundle manifest. Values never contain secrets or connection strings.
-
-| File | SHA-256 |
-|---|---|
-| `AGENTS.md` | `005628386D0492E10BABCFD76125A85A3CFD652D00462BD22960DF9D1C1DF476` |
-| `.agents/manifest.json` | `DB1F44AE4198C32507C93A284C691CFC4B7477EDAEEB763EA52F9A7F4E305410` |
-| `planning/refactor/10-refactor-slices.md` | `5D0903115BA1746C0700643A04A766BC77283C9D52093A2529CAFF699CF15DAB` |
-| `planning/refactor/10-survey-coexistence-baseline.md` | `8D34946604944310DCD8EB0B553E31384D6827B2303BDA54F287329C375CC481` |
-| `planning/refactor/11-development-plan.md` | `AE6A3C283B8F79A0F31DCEBEFF8B267F7EF3CE9B000F92CA1759779000C1409D` |
-| `docs/backend/data/current-schema.inventory.json` | `D9A07D493B3B7865F7BB541719EC829E3780FDDE2826AE7D6805B18A97FEF751` |
-| `docs/diagram/V2/05_Technical/openapi.yaml` | `ADA7F48F522C0C0DBDACE21F483224A00FC4C76264A9A61D12F3E2211ECCE665` |
-| `RoadGuardSystem.Services/Implementations/Files/UploadService.cs` | `58CC65A52841A05A54820FA50DF7339111E5201CFE25984107DF08C962DBDFB8` |
-| `RoadGuardSystem.Repositories/Implementations/Files/UploadPersistenceService.cs` | `2EE065401EA173F12BE25DBA62CC7178C24F3B45E799587E834EF56A3C431D0C` |
-| `tests/RoadGuardSystem.ApiTests/Files/UploadApiTests.cs` | `7F5AB56CA150C6951A7F9A91FBE16B332298BB87E1DFE8C8982057B61C88E3FA` |
-| `tests/Tooling/rf09_transition_guard.py` | `DCB62CC23716CF0407F341366D9CF31601F1FBD5DE6F6A1800697078897D7692` |
-| `RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs` | `5C92878F3C542290CA64215B600E2BDE131BA947744C55A1EC1D355773DA14E6` |
-| `RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs` | `88BCE3F290E64169127F4CD29D89A02B20387DFAA5003F959B3B114A61AEF5F9` |
-| `tests/RoadGuardSystem.IntegrationTests/Surveys/P2V2SurveyScopeConcurrencyTests.cs` | `C564DB4E3C5597B80229EA536B79653686617514BCE46494CBC87DC4ACD846AD` |
-
-## Historical proposed review and transfer steps — superseded
-
-The procedure below belongs to the 2026-10-01 planning checkpoint. It does not impose a new hash-package or repeated permission process. The pasted RF-11 task authorized ordinary Git work, then the latest owner instruction withdrew commit/merge and main actions. Keep the cleanup uncommitted; transfer and branch reconciliation remain pending until that restriction changes. Future development uses Anh/Huy names, not A/B identities.
-
-1. Freeze the `anh` checkout for the handoff review; record `git status --porcelain=v1 --untracked-files=all`, `git diff --name-status`, `git diff --cached --name-status`, base HEAD, and SHA-256 for every accepted file including untracked content. Compare RF-04..09 reports and this turn's report to the path list; resolve unknown ownership first.
-2. Review this turn's code hunk and final focused/combined verification. Separate pre-existing survey/V2 changes from refactor changes. Decide which already-dirty files belong in each checkpoint; do not stage by directory wildcard or include secrets/generated local data.
-3. Request a **separate** owner instruction for exact checkpoint commit paths on `anh`, commit message and desired transfer method. A commit is not authorized by this plan. Re-run affected tests if the approved file set or content changes before committing.
-4. After an authorized checkpoint commit, compare full tree content and explicit manifest hashes on a new isolated `huy` checkout/branch. Agree whether to cherry-pick or merge the checkpoint only after seeing both branch histories and existing `huy` work; do not overwrite that branch. If it already has work, reconcile it separately. `origin/anh`/`origin/huy` freshness needs a deliberate remote check before any push/merge instruction.
-5. Only once both branches contain the reviewed same source/docs/tooling baseline should future A/B development prompts in `11-development-plan.md` be assigned. Reserve shared migrations/snapshot, canonical contract/FE lock, Postman, CI, root agent and fixtures by turn. Validate per-branch source hashes and selected tests after transfer.
-
-Suggested read-only review commands: `git status --short --branch`, `git rev-parse HEAD`, `git diff --name-status`, `git diff --cached --name-status`, `git ls-files --others --exclude-standard`, `Get-FileHash <reviewed-path> -Algorithm SHA256`, and `git diff --check`. Proposed mutating Git operations are deliberately omitted until the owner has reviewed the exact checkpoint paths and gives a separate instruction. No shared database is involved in handoff.
+Current details: [RF-11 report](reports/RF-11.md). Historical planning procedure and selected hash table are preserved in [the cleanup checkpoint](https://github.com/HoangAnhVu2207/RoadGuardSystem/blob/62e8f95d7a8f52da74290ea4f8e2e2b91e1d3338/planning/refactor/11-handoff-baseline.md); they do not impose a new audit/package/reapproval process.

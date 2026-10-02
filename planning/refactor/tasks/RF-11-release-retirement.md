@@ -2,7 +2,7 @@
 
 ## Current repository cleanup checkpoint: 2026-10-02
 
-Sole writer Codex on `anh`; [current report](../reports/RF-11.md). Owner authorizes evidenced repository cleanup, while the latest instruction forbids commit, merge and main actions. Two historical evidence packages moved to `docs/history/refactor/`; current docs/guidance indexes and handoff references are updated. Repository verification is recorded in the current report. Baseline integration and branch sync NOT RUN; release/deployment NOT VERIFIED. RF-11 parent remains Partial. Historical C01 and proposed release criteria below retain their original scope; their repeated exact-retirement-approval requirement does not gate the archive moves authorized in this turn. No endpoint/DTO/migration or production-code retirement is performed.
+Sole writer Codex; [current report](../reports/RF-11.md). Owner authorizes selective checkpoint, integration and ordinary synchronization of anh, huy, anh-review, huy-review and develop; main remains excluded. Repository cleanup and local integration complete, tested baseline 7ee3056; first remote sync succeeded with identical trees, final shared documentation sync follows. Release/deployment NOT VERIFIED, RF-11 parent Partial for those separate gates. No feature package or endpoint/DTO/migration retirement. Historical C01/proposed release criteria below retain their original scope and do not cancel this repository handoff authorization.
 
 > Current execution 2026-10-01: Anh alone owns non-destructive C audit on `anh`; G retirement/release is unassigned and gated. Proposed A/B text below is historical only. Future identity after a common baseline is Huy/A (`huy`), Anh/B (`anh`). See `../10-refactor-slices.md` and `../11-development-plan.md`.
 

@@ -34,6 +34,15 @@ public sealed class UploadsController : ControllerBase
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         var result = await _service.CreateAsync(actorUserId, role, request, idempotencyKey, CorrelationId(), cancellationToken);
+        if (result.Status == UploadServiceStatus.InvalidInput && result.MaxBytes is not null)
+        {
+            var error = ProblemResponse(422, ApiErrorCodes.UploadValidationFailed, "Upload validation failed");
+            var problem = (ProblemDetails)error.Value!;
+            problem.Detail = $"{request.Purpose} permits at most {result.MaxBytes} bytes; received {result.ActualBytes}.";
+            problem.Extensions["maxBytes"] = result.MaxBytes;
+            problem.Extensions["actualBytes"] = result.ActualBytes;
+            return error;
+        }
         return MapSession(result, StatusCodes.Status201Created, $"/api/v1/uploads/{result.Session?.Id:D}");
     }
 
@@ -129,7 +138,7 @@ public sealed class UploadsController : ControllerBase
     private ObjectResult MapPartUrls(UploadServiceResult result)
         => result.Status switch
         {
-            UploadServiceStatus.Success when result.PartUrls is not null => Ok(result.PartUrls),
+            UploadServiceStatus.Success or UploadServiceStatus.Replayed when result.PartUrls is not null => Ok(result.PartUrls),
             UploadServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             UploadServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.UploadSessionNotFound, "Not found"),
             UploadServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Conflict"),

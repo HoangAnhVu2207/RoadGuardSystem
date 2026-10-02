@@ -23,6 +23,9 @@ public sealed class SurveyRequestConfiguration : IEntityTypeConfiguration<Survey
         });
 
         builder.HasKey(request => request.Id);
+        builder.Property(request => request.ScopeFormatVersion).HasMaxLength(20);
+        builder.HasOne<SurveyRequest>().WithMany().HasForeignKey(request => request.ParentTaskId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<SupplementarySurveyRequest>().WithMany().HasForeignKey(request => request.SupplementRequestId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(request => request.Id)
             .HasColumnType("uniqueidentifier")
             .ValueGeneratedNever();

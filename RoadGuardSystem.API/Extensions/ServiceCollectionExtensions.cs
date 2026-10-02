@@ -77,10 +77,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPrimaryProjectManagerService, PrimaryProjectManagerService>();
         services.AddScoped<IWarrantyCreationService, WarrantyCreationService>();
         services.AddScoped<IRoadSectionVersionService, RoadSectionVersionService>();
+        services.AddScoped<IGeometryWorkflowService, GeometryWorkflowService>();
         services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
         services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
         services.AddScoped<IInspectionTaskQueryService, InspectionTaskQueryService>();
         services.AddScoped<ISurveyV2Service, SurveyV2Service>();
+        services.AddScoped<ISurveyAssessmentService, SurveyAssessmentService>();
         services.AddScoped<IProcessingV2Service, ProcessingV2Service>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<INotificationService, NotificationService>();

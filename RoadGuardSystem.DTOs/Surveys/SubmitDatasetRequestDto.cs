@@ -7,4 +7,7 @@ public sealed record SubmitDatasetRequestDto(
     [param: Required] IReadOnlyList<Guid> TelemetryFileIds,
     [param: Required] DateTimeOffset RecordedAt,
     Guid? DeviceId,
-    [param: Required, MinLength(1)] IReadOnlyList<BandScopeDto> Scope);
+    [param: Required, MinLength(1)] IReadOnlyList<BandScopeDto> Scope,
+    IReadOnlyList<DatasetPairDto>? Pairs = null);
+
+public sealed record DatasetPairDto(Guid VideoFileId, Guid? TelemetryFileId, long TimeOffsetMilliseconds);

@@ -651,6 +651,9 @@ public sealed class IdempotencyPerCommandCharacterizationTests
         await using (var context = _sql.CreateDbContext())
         {
             context.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId1, routeVersionId1));
+            foreach (var membershipProject in new[] { projectId1, projectId2 })
+                context.ProjectMembers.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = membershipProject, UserId = operatorUser.Id,
+                    RoleCode = UserRoleCode.DroneOperator, ValidFrom = new DateOnly(2026, 1, 1), Status = ProjectMemberStatus.Active });
             context.RoadSegments.Add(RoadSegment.Create(segmentId1, segmentSetId1, routeVersionId1, 1));
             context.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId2, routeVersionId2));
             context.RoadSegments.Add(RoadSegment.Create(segmentId2, segmentSetId2, routeVersionId2, 1));

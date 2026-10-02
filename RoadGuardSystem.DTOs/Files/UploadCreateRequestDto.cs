@@ -8,5 +8,5 @@ public sealed record UploadCreateRequestDto(
     Guid? TargetId,
     [Required, MaxLength(255)] string FileName,
     [Required, MaxLength(120)] string MediaType,
-    [Range(1, int.MaxValue)] long SizeBytes,
+    long SizeBytes,
     [Required, RegularExpression("^[a-f0-9]{64}$")] string ChecksumSha256);

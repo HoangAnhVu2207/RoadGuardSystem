@@ -7,9 +7,9 @@ public sealed class S3ResponseStream : Stream
 {
     private readonly Stream _inner;
     private readonly GetObjectResponse _response;
-    private readonly AmazonS3Client _client;
+    private readonly IAmazonS3 _client;
 
-    public S3ResponseStream(Stream inner, GetObjectResponse response, AmazonS3Client client)
+    public S3ResponseStream(Stream inner, GetObjectResponse response, IAmazonS3 client)
     {
         _inner = inner;
         _response = response;

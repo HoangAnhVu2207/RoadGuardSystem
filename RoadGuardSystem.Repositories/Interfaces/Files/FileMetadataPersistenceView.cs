@@ -9,4 +9,6 @@ public sealed record FileMetadataPersistenceView(
     string ChecksumSha256,
     string MediaType,
     long SizeBytes,
-    string Version);
+    string Version,
+    string? Purpose = null,
+    Guid? TargetId = null);

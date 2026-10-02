@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.DTOs.Files;
+using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.Repositories.Storage;
@@ -53,6 +54,14 @@ public sealed class UploadService : IUploadService
             return new(UploadServiceStatus.Forbidden);
         }
 
+        if (IsSurveyPurpose(request.Purpose) && (role != UserRoleCode.DroneOperator || request.TargetId is not { } taskId ||
+            !await _repository.IsCurrentSurveyOperatorAsync(actorUserId, request.ProjectId.Value, taskId, true, cancellationToken)))
+            return new(UploadServiceStatus.Forbidden);
+
+        var maximum = UploadAdmissionPolicy.MaximumBytes(request.Purpose, request.MediaType);
+        if (maximum is null || request.SizeBytes > maximum)
+            return new(UploadServiceStatus.InvalidInput, MaxBytes: maximum, ActualBytes: request.SizeBytes);
+
         var now = _timeProvider.GetUtcNow();
         var normalized = Normalize(request);
         var result = await _repository.CreateAsync(new UploadCreatePersistenceRequest(
@@ -76,7 +85,7 @@ public sealed class UploadService : IUploadService
     {
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAsync(actorUserId, role, session.OwnerUserId, session.ProjectId, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         return new(UploadServiceStatus.Success, ToDto(session));
     }
 
@@ -91,7 +100,7 @@ public sealed class UploadService : IUploadService
         if (string.IsNullOrWhiteSpace(idempotencyKey) || request?.PartNumbers is null) return new(UploadServiceStatus.InvalidInput);
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAsync(actorUserId, role, session.OwnerUserId, session.ProjectId, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         var now = _timeProvider.GetUtcNow();
         var urlExpiresAt = now.AddMinutes(_options.SignedPutUrlLifetimeMinutes);
         if (urlExpiresAt > session.ExpiresAt)
@@ -134,7 +143,8 @@ public sealed class UploadService : IUploadService
         if (request?.Parts is null || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(UploadServiceStatus.InvalidInput);
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAsync(actorUserId, role, session.OwnerUserId, session.ProjectId, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken,
+            requireActiveTask: session.Status is not ("VERIFYING" or "VERIFIED"))) return new(UploadServiceStatus.Forbidden);
         var result = await _repository.CompleteAsync(new UploadCompletePersistenceRequest(
             actorUserId,
             session.ProjectId,
@@ -152,7 +162,7 @@ public sealed class UploadService : IUploadService
     {
         var file = await _repository.GetFileMetadataAsync(fileId, cancellationToken);
         if (file is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAsync(actorUserId, role, file.OwnerUserId, file.ProjectId, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await CanAccessAssetAsync(actorUserId, role, file.ProjectId, file.Purpose, file.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         return new(UploadServiceStatus.Success, File: ToDto(file));
     }
 
@@ -160,7 +170,7 @@ public sealed class UploadService : IUploadService
     {
         var file = await _repository.GetFileMetadataAsync(fileId, cancellationToken);
         if (file is null || file.Status != "VERIFIED") return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAsync(actorUserId, role, file.OwnerUserId, file.ProjectId, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await CanAccessAssetAsync(actorUserId, role, file.ProjectId, file.Purpose, file.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         try
         {
             return new(UploadServiceStatus.Success, File: ToDto(file), Content: await _repository.OpenFileAsync(file.ObjectKey, cancellationToken));
@@ -176,9 +186,16 @@ public sealed class UploadService : IUploadService
         await _repository.VerifyNextAsync(cancellationToken);
     }
 
-    private async Task<bool> CanAccessAsync(Guid actorUserId, UserRoleCode role, Guid ownerUserId, Guid projectId, CancellationToken cancellationToken)
-        => IsSupportedRole(role) && actorUserId != Guid.Empty &&
-           (actorUserId == ownerUserId || await InProjectScopeAsync(actorUserId, role, projectId, cancellationToken));
+    private async Task<bool> CanAccessAssetAsync(Guid actorUserId, UserRoleCode role, Guid projectId, string? purpose, Guid? targetId, bool mutation, CancellationToken cancellationToken, bool requireActiveTask = true)
+    {
+        if (!IsSupportedRole(role) || !await InProjectScopeAsync(actorUserId, role, projectId, cancellationToken)) return false;
+        if (!IsSurveyPurpose(purpose)) return true;
+        if (!mutation && role is UserRoleCode.Supervisor or UserRoleCode.ProjectManager) return true;
+        return role == UserRoleCode.DroneOperator && targetId is { } taskId &&
+            await _repository.IsCurrentSurveyOperatorAsync(actorUserId, projectId, taskId, mutation && requireActiveTask, cancellationToken);
+    }
+
+    private static bool IsSurveyPurpose(string? purpose) => purpose?.Trim().ToUpperInvariant() is "SURVEY_VIDEO" or "TELEMETRY";
 
     private async Task<bool> InProjectScopeAsync(Guid actorUserId, UserRoleCode role, Guid projectId, CancellationToken cancellationToken)
         => await _scopeGuard.AuthorizeAsync(actorUserId, role, projectId, cancellationToken) is not null;
@@ -188,7 +205,7 @@ public sealed class UploadService : IUploadService
 
     private static bool IsValidCreate(Guid actorUserId, UploadCreateRequestDto? request, string idempotencyKey)
         => actorUserId != Guid.Empty && request is not null && request.ProjectId is not null && request.ProjectId != Guid.Empty &&
-           request.SizeBytes is > 0 and <= int.MaxValue && !string.IsNullOrWhiteSpace(idempotencyKey) &&
+           request.SizeBytes > 0 && !string.IsNullOrWhiteSpace(idempotencyKey) &&
            Purposes.Contains(request.Purpose?.Trim().ToUpperInvariant() ?? string.Empty) && ValidMimeType(request.MediaType) &&
            request.FileName is { Length: > 0 and <= 255 } && request.ChecksumSha256 is { Length: 64 } &&
            request.ChecksumSha256.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');

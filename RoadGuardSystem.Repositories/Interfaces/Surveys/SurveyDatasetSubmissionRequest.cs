@@ -11,4 +11,5 @@ public sealed record SurveyDatasetSubmissionRequest(
     string ExpectedTaskVersion,
     string IdempotencyKey,
     string RequestFingerprint,
-    Guid? CorrelationId);
+    Guid? CorrelationId,
+    string? PairsJson = null);

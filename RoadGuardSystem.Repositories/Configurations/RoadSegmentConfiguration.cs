@@ -14,8 +14,9 @@ public sealed class RoadSegmentConfiguration : IEntityTypeConfiguration<RoadSegm
         builder.Property(segment => segment.SegmentSetId).HasColumnType("uniqueidentifier").IsRequired();
         builder.Property(segment => segment.RoadSectionVersionId).HasColumnType("uniqueidentifier").IsRequired();
         builder.Property(segment => segment.Sequence).HasColumnType("int").IsRequired();
+        builder.Property(segment => segment.Geometry).HasColumnType("geometry");
         builder.HasIndex(segment => new { segment.SegmentSetId, segment.Sequence }).IsUnique().HasDatabaseName("UX_RoadSegments_Set_Sequence");
-        builder.HasOne<RoadSegmentSet>().WithMany().HasForeignKey(segment => segment.SegmentSetId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<RoadSegmentSet>().WithMany().HasForeignKey(segment => new { segment.SegmentSetId, segment.RoadSectionVersionId }).HasPrincipalKey(set => new { set.Id, set.RoadSectionVersionId }).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<RoadSectionVersion>().WithMany().HasForeignKey(segment => segment.RoadSectionVersionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

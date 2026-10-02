@@ -4813,6 +4813,1399 @@
           ]
         }
       ]
+    },
+    {
+      "auth": {
+        "bearer": [
+          {
+            "type": "string",
+            "key": "token",
+            "value": "{{accessToken}}"
+          }
+        ],
+        "type": "bearer"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.environment.get(\"anh01CommandKey\")) pm.environment.set(\"anh01CommandKey\", pm.variables.replaceIn(\"{{$guid}}\"));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "item": [
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"sourceCrs\": 32648,\r\n  \"surveyWidthMeters\": 9,\r\n  \"widthProfile\": [\r\n    {\r\n      \"toOffsetMeters\": 200,\r\n      \"widthMeters\": 7,\r\n      \"fromOffsetMeters\": 0\r\n    }\r\n  ],\r\n  \"stationOriginMeters\": 1000,\r\n  \"roadCode\": \"DEMO-ANH-01\",\r\n  \"sourceKind\": \"COORDINATES\",\r\n  \"coordinates\": [\r\n    {\r\n      \"x\": 500000,\r\n      \"y\": 1200000\r\n    },\r\n    {\r\n      \"x\": 500200,\r\n      \"y\": 1200000\r\n    }\r\n  ],\r\n  \"changeReason\": \"DEMO surveyed route\",\r\n  \"roadName\": \"DEMO road\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Geometry draft new"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts",
+                "{{draftId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts/{{draftId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Geometry draft read"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts",
+                "{{draftId}}",
+                "preview"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts/{{draftId}}/preview"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Geometry preview"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"expectedCurrentVersionId\": null,\r\n  \"reason\": \"DEMO supervisor confirmation\",\r\n  \"effectiveFrom\": \"2026-10-02T00:00:00Z\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh01ETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts",
+                "{{draftId}}",
+                "confirm"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts/{{draftId}}/confirm"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Geometry confirm"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{roadSectionId}}",
+                "versions",
+                "{{routeVersionId}}",
+                "geometry"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions/{{routeVersionId}}/geometry"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Version geometry"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"remainderMode\": \"KEEP\",\r\n  \"targetLengthMeters\": 100\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{roadSectionId}}",
+                "versions",
+                "{{routeVersionId}}",
+                "segment-sets",
+                "preview"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions/{{routeVersionId}}/segment-sets/preview"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Segments preview"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"remainderMode\": \"KEEP\",\r\n  \"targetLengthMeters\": 100\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{roadSectionId}}",
+                "versions",
+                "{{routeVersionId}}",
+                "segment-sets"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions/{{routeVersionId}}/segment-sets"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Segments create"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"expectedPublishedSetId\": null,\r\n  \"reason\": \"DEMO publication\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh01ETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{roadSectionId}}",
+                "versions",
+                "{{routeVersionId}}",
+                "segment-sets",
+                "{{segmentSetId}}",
+                "publish"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions/{{routeVersionId}}/segment-sets/{{segmentSetId}}/publish"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Segments publish"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "geometry-package"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/geometry-package?routeVersionId={{routeVersionId}}&segmentSetId={{segmentSetId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Geometry package"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "survey-plans",
+                "{{surveyPlanId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/survey-plans/{{surveyPlanId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Survey plan read"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "survey-tasks",
+                "{{surveyTaskId}}",
+                "work-package"
+              ],
+              "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/work-package"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Survey work package"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "datasets",
+                "{{datasetId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/datasets/{{datasetId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Dataset detail"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"items\": [\r\n    {\r\n      \"targetBand\": \"SURFACE\",\r\n      \"positionStatus\": \"PASS\",\r\n      \"qualityStatus\": \"PASS\",\r\n      \"segmentId\": \"{{segmentId}}\",\r\n      \"segmentSetId\": \"{{segmentSetId}}\",\r\n      \"evidence\": [\r\n        {\r\n          \"toMilliseconds\": 3000,\r\n          \"fromMilliseconds\": 0,\r\n          \"fileId\": \"{{videoFileId}}\"\r\n        }\r\n      ],\r\n      \"coverageStatus\": \"PASS\",\r\n      \"routeVersionId\": \"{{routeVersionId}}\",\r\n      \"reason\": \"DEMO PM evidence review\"\r\n    }\r\n  ],\r\n  \"methodVersion\": \"pm-evidence-review.v1\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh01ETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "datasets",
+                "{{datasetId}}",
+                "assessments"
+              ],
+              "raw": "{{baseUrl}}/api/v1/datasets/{{datasetId}}/assessments"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Dataset assessment"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "datasets",
+                "{{datasetId}}",
+                "assessments",
+                "{{assessmentId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/datasets/{{datasetId}}/assessments/{{assessmentId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Assessment read"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "datasets",
+                "{{datasetId}}",
+                "coverage"
+              ],
+              "raw": "{{baseUrl}}/api/v1/datasets/{{datasetId}}/coverage"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Coverage read"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"items\": [\r\n    {\r\n      \"segmentId\": \"{{segmentId}}\",\r\n      \"assessmentId\": \"{{assessmentId}}\",\r\n      \"targetBand\": \"SURFACE\",\r\n      \"segmentSetId\": \"{{segmentSetId}}\",\r\n      \"datasetId\": \"{{datasetId}}\",\r\n      \"expectedBaselineSelectionId\": null,\r\n      \"routeVersionId\": \"{{routeVersionId}}\"\r\n    }\r\n  ],\r\n  \"reason\": \"DEMO select eligible band\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "baseline-selections"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/baseline-selections"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Partial baseline select"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "baseline-selections"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/baseline-selections?segmentSetId={{segmentSetId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Baseline current"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "baseline-selections",
+                "{{baselineSelectionId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/baseline-selections/{{baselineSelectionId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Baseline history"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"scope\": [\r\n    {\r\n      \"routeVersionId\": \"{{routeVersionId}}\",\r\n      \"targetBand\": \"RIGHT_EDGE\",\r\n      \"segmentSetId\": \"{{segmentSetId}}\",\r\n      \"segmentIds\": [\r\n        \"{{segmentId}}\"\r\n      ]\r\n    }\r\n  ],\r\n  \"reason\": \"DEMO missing evidence\",\r\n  \"operatorId\": \"{{operatorId}}\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh01ETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "survey-tasks",
+                "{{surveyTaskId}}",
+                "supplements"
+              ],
+              "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/supplements"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Supplement child"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"sourceCrs\": 32648,\r\n  \"surveyWidthMeters\": 9,\r\n  \"widthProfile\": [\r\n    {\r\n      \"toOffsetMeters\": 200,\r\n      \"widthMeters\": 7,\r\n      \"fromOffsetMeters\": 0\r\n    }\r\n  ],\r\n  \"stationOriginMeters\": 1000,\r\n  \"roadCode\": \"DEMO-ANH-01\",\r\n  \"sourceKind\": \"COORDINATES\",\r\n  \"coordinates\": [\r\n    {\r\n      \"x\": 500000,\r\n      \"y\": 1200000\r\n    },\r\n    {\r\n      \"x\": 500200,\r\n      \"y\": 1200000\r\n    }\r\n  ],\r\n  \"changeReason\": \"DEMO surveyed route\",\r\n  \"roadName\": \"DEMO road\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh01ETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts",
+                "{{draftId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts/{{draftId}}"
+            },
+            "method": "PUT"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Geometry draft edit"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"sourceCrs\": 32648,\r\n  \"surveyWidthMeters\": 9,\r\n  \"widthProfile\": [\r\n    {\r\n      \"toOffsetMeters\": 200,\r\n      \"widthMeters\": 7,\r\n      \"fromOffsetMeters\": 0\r\n    }\r\n  ],\r\n  \"stationOriginMeters\": 1000,\r\n  \"roadCode\": \"DEMO-ANH-01\",\r\n  \"sourceKind\": \"COORDINATES\",\r\n  \"coordinates\": [\r\n    {\r\n      \"x\": 500000,\r\n      \"y\": 1200000\r\n    },\r\n    {\r\n      \"x\": 500200,\r\n      \"y\": 1200000\r\n    }\r\n  ],\r\n  \"changeReason\": \"DEMO surveyed route\",\r\n  \"roadName\": \"DEMO road\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{roadSectionId}}",
+                "geometry-drafts"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/geometry-drafts"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Existing road draft"
+        },
+        {
+          "request": {
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{roadSectionId}}",
+                "versions",
+                "{{routeVersionId}}",
+                "segment-sets",
+                "{{segmentSetId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions/{{routeVersionId}}/segment-sets/{{segmentSetId}}"
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Segments read"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"remainderMode\": \"MERGE_PREVIOUS\",\r\n  \"targetLengthMeters\": 100\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh01ETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{roadSectionId}}",
+                "versions",
+                "{{routeVersionId}}",
+                "segment-sets",
+                "{{segmentSetId}}"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{roadSectionId}}/versions/{{routeVersionId}}/segment-sets/{{segmentSetId}}"
+            },
+            "method": "PUT"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Segments edit"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"scope\": [\r\n    {\r\n      \"routeVersionId\": \"{{routeVersionId}}\",\r\n      \"targetBand\": \"SURFACE\",\r\n      \"segmentSetId\": \"{{segmentSetId}}\",\r\n      \"segmentIds\": [\r\n        \"{{segmentId}}\"\r\n      ]\r\n    }\r\n  ],\r\n  \"surveyType\": \"BASELINE\",\r\n  \"plannedAt\": \"2026-10-05T08:00:00+07:00\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "survey-plans"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/survey-plans"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Survey plan create"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"dueAt\": \"2026-10-05T12:00:00+07:00\",\r\n  \"operatorId\": \"{{operatorId}}\",\r\n  \"planId\": \"{{surveyPlanId}}\",\r\n  \"surveyType\": \"BASELINE\",\r\n  \"accessPoint\": null,\r\n  \"scope\": [\r\n    {\r\n      \"routeVersionId\": \"{{routeVersionId}}\",\r\n      \"targetBand\": \"SURFACE\",\r\n      \"segmentSetId\": \"{{segmentSetId}}\",\r\n      \"segmentIds\": [\r\n        \"{{segmentId}}\"\r\n      ]\r\n    }\r\n  ]\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "survey-tasks"
+              ],
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/survey-tasks"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Survey task linked create"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"sizeBytes\": 26334,\r\n  \"projectId\": \"{{projectId}}\",\r\n  \"checksumSha256\": \"7ccee5836a93bd42de80a7f27f5ae8d89a3a12d35c06c570d2ede1cd2787a342\",\r\n  \"mediaType\": \"video/mp4\",\r\n  \"fileName\": \"survey-synthetic.mp4\",\r\n  \"targetId\": \"{{surveyTaskId}}\",\r\n  \"purpose\": \"SURVEY_VIDEO\"\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "uploads"
+              ],
+              "raw": "{{baseUrl}}/api/v1/uploads"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Upload video create"
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\r\n  \"deviceId\": \"{{deviceId}}\",\r\n  \"telemetryFileIds\": [\r\n    \"{{telemetryFileId}}\"\r\n  ],\r\n  \"pairs\": [\r\n    {\r\n      \"telemetryFileId\": \"{{telemetryFileId}}\",\r\n      \"timeOffsetMilliseconds\": 0,\r\n      \"videoFileId\": \"{{videoFileId}}\"\r\n    }\r\n  ],\r\n  \"videoFileIds\": [\r\n    \"{{videoFileId}}\"\r\n  ],\r\n  \"recordedAt\": \"2026-10-05T08:00:00+07:00\",\r\n  \"scope\": [\r\n    {\r\n      \"routeVersionId\": \"{{routeVersionId}}\",\r\n      \"targetBand\": \"SURFACE\",\r\n      \"segmentSetId\": \"{{segmentSetId}}\",\r\n      \"segmentIds\": [\r\n        \"{{segmentId}}\"\r\n      ]\r\n    }\r\n  ]\r\n}",
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh01CommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh01ETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "survey-tasks",
+                "{{surveyTaskId}}",
+                "datasets"
+              ],
+              "raw": "{{baseUrl}}/api/v1/survey-tasks/{{surveyTaskId}}/datasets"
+            },
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Successful command or read\", () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "const etag = pm.response.headers.get(\"ETag\"); if (etag) pm.environment.set(\"anh01ETag\", etag);",
+                  "if (pm.response.code < 300) { const data = pm.response.json(); const names = {\"Geometry draft new\":\"draftId\",\"Segments create\":\"segmentSetId\",\"Survey plan create\":\"surveyPlanId\",\"Survey task linked create\":\"surveyTaskId\",\"Dataset paired submit\":\"datasetId\",\"Dataset assessment\":\"assessmentId\",\"Partial baseline select\":\"baselineSelectionId\",\"Upload video create\":\"uploadId\"}; const variable = names[pm.info.requestName]; if (variable && data.id) pm.environment.set(variable, data.id); if (pm.info.requestName === \"Geometry confirm\") { pm.environment.set(\"routeVersionId\", data.routeVersionId); pm.environment.set(\"roadSectionId\", data.roadSectionId); } if (data.fileId) pm.environment.set(\"videoFileId\", data.fileId); if (data.segments && data.segments.length) pm.environment.set(\"segmentId\", data.segments[0].id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "name": "Dataset paired submit"
+        }
+      ],
+      "name": "ANH-01 revision 2"
     }
   ]
 }

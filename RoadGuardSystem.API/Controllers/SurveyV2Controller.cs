@@ -52,6 +52,7 @@ public sealed class SurveyV2Controller : ControllerBase
             SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             SurveyV2ServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.SurveyPlanNotFound, "Not found"),
             SurveyV2ServiceStatus.ConcurrencyConflict => ProblemResponse(412, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
+            SurveyV2ServiceStatus.ScopeIncompatible => ProblemResponse(409, "survey_scope_incompatible", "Survey scope is incompatible"),
             SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
             _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Survey plan validation failed")
         };
@@ -91,6 +92,21 @@ public sealed class SurveyV2Controller : ControllerBase
         };
     }
 
+    [Authorize, HttpGet("survey-plans/{id:guid}")]
+    public Task<IActionResult> ReadPlan(Guid id, CancellationToken token) => ReadResource(id, "plan", token);
+    [Authorize, HttpGet("datasets/{id:guid}")]
+    public Task<IActionResult> ReadDataset(Guid id, CancellationToken token) => ReadResource(id, "dataset", token);
+    [Authorize, HttpGet("survey-tasks/{id:guid}/work-package")]
+    public Task<IActionResult> ReadWorkPackage(Guid id, CancellationToken token) => ReadResource(id, "work-package", token);
+    private async Task<IActionResult> ReadResource(Guid id, string resource, CancellationToken token)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        var result = await _service.ReadResourceAsync(actor, role, id, resource, token);
+        if (result.Version is not null) Response.Headers.ETag = $"\"{result.Version}\"";
+        return result.Status == SurveyV2ServiceStatus.Success ? Ok(result.Value) : result.Status == SurveyV2ServiceStatus.Forbidden ?
+            ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden") : ProblemResponse(404, ApiErrorCodes.NotFound, "Not found");
+    }
+
     [Authorize]
     [HttpGet("me/survey-tasks")]
     public async Task<IActionResult> ListMyTasks([FromQuery] string? cursor, [FromQuery] int? limit, CancellationToken cancellationToken)
@@ -123,6 +139,7 @@ public sealed class SurveyV2Controller : ControllerBase
             SurveyV2ServiceStatus.ConcurrencyConflict => ProblemResponse(412, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
             SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
             SurveyV2ServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.SurveyInvalidStateTransition, "Dataset submission is not allowed"),
+            SurveyV2ServiceStatus.ScopeIncompatible => ProblemResponse(409, "survey_scope_incompatible", "Survey scope is incompatible"),
             _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Dataset validation failed")
         };
     }
@@ -188,7 +205,7 @@ public sealed class SurveyV2Controller : ControllerBase
         var response = MapTaskMutation(result);
         if (result.Task is not null && response is ObjectResult { StatusCode: 200 })
         {
-            response = Created($"/api/v1/survey-tasks/{result.Task.Id}/supplements", result.Task);
+            response = Created($"/api/v1/survey-tasks/{result.Task.SupplementTaskId ?? result.Task.Id}", result.Task);
         }
         return response;
     }
@@ -205,6 +222,7 @@ public sealed class SurveyV2Controller : ControllerBase
             SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
             SurveyV2ServiceStatus.OperatorNotFound => ProblemResponse(404, ApiErrorCodes.IdentityUserNotFound, "Operator not found"),
             SurveyV2ServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.SurveyInvalidStateTransition, "Survey task transition is not allowed"),
+            SurveyV2ServiceStatus.ScopeIncompatible => ProblemResponse(409, "survey_scope_incompatible", "Survey scope is incompatible"),
             _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Survey task validation failed")
         };
     }

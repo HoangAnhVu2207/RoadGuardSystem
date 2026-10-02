@@ -6,4 +6,5 @@ public sealed record SurveyTaskV2ResponseDto(
     IReadOnlyList<BandScopeDto> Scope,
     Guid OperatorId,
     string Status,
-    string Version);
+    string Version,
+    Guid? SupplementTaskId = null);

@@ -20,7 +20,7 @@ public sealed class Rf1003SameRowSurveyTests
     public Rf1003SameRowSurveyTests(AuthenticationSqlServerFixture sql) => _sql = sql;
 
     [Fact]
-    public async Task OldPlan_V2PostponeAndReplay_UseTheSameRowButCannotProjectOldScope()
+    public async Task OldPlan_V2PostponeAndReplay_RejectIncompatibleScopeBeforeWriting()
     {
         await using var scenario = await Scenario.CreateAsync(_sql);
         var operationId = Guid.NewGuid();
@@ -58,21 +58,12 @@ public sealed class Rf1003SameRowSurveyTests
 
         var sharedKey = Guid.NewGuid();
         var current = await PostponeV2Async(scenario.Client, planId, sharedKey.ToString("N"), before.Version);
-        current.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        current.StatusCode.Should().Be(HttpStatusCode.Conflict);
         current.Headers.ETag.Should().BeNull();
         (await current.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString()
-            .Should().Be("survey_validation_failed");
+            .Should().Be("survey_scope_incompatible");
         var after = await ReadAsync(scenario, planId);
-        after.PlanCount.Should().Be(1);
-        after.PlanId.Should().Be(planId);
-        after.Start.Should().Be(before.Start);
-        after.End.Should().Be(before.End);
-        after.Status.Should().Be(SurveyPlanStatus.Postponed);
-        after.Version.Should().NotBe(before.Version);
-        after.Postponements.Should().ContainSingle(value => value.Contains("Weather delay") && value.EndsWith("|<null>"));
-        after.Audits.Should().HaveCount(before.Audits.Length + 1);
-        after.Receipts.Should().Contain(value => value.Contains($"SurveyPlanV2Postponed|{sharedKey:N}"));
-        after.OutboxIds.Should().Equal(before.OutboxIds);
+        after.Should().BeEquivalentTo(before, "incompatible scopes fail closed before mutation, audit or receipt");
 
         var replayOld = await scenario.Client.PostAsJsonAsync(oldRoute, oldBody);
         replayOld.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -80,18 +71,18 @@ public sealed class Rf1003SameRowSurveyTests
         (await ReadAsync(scenario, planId)).Should().BeEquivalentTo(after);
 
         var replay = await PostponeV2Async(scenario.Client, planId, sharedKey.ToString("N"), before.Version);
-        replay.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        replay.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ReadAsync(scenario, planId)).Should().BeEquivalentTo(after);
 
         var stale = await PostponeV2Async(scenario.Client, planId, "stale-after-old", before.Version);
-        stale.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var staleState = await ReadAsync(scenario, planId);
         staleState.PlanId.Should().Be(after.PlanId);
         staleState.Version.Should().Be(after.Version);
         staleState.Postponements.Should().Equal(after.Postponements);
         staleState.Audits.Should().Equal(after.Audits);
         staleState.OutboxIds.Should().Equal(after.OutboxIds);
-        staleState.Receipts.Should().HaveCount(after.Receipts.Length + 1, "a stale V2 request stores a conflict receipt");
+        staleState.Receipts.Should().Equal(after.Receipts, "scope compatibility is checked before idempotency or version mutation");
     }
 
     [Fact]

@@ -1,5 +1,9 @@
 # Contract transition index (RF-04 draft, inactive)
 
+Current additive development adoption is recorded separately in
+[ANH-01 local contract](http/anh01.local-contract.md). Its owner-assigned
+revision and local evidence do not activate the historical drafts below.
+
 This directory is a **draft comparison surface**. It does not supersede controller/DTO source, `docs/diagram/V2/05_Technical/openapi.yaml`, FE snapshot/lock, Postman or `API.http`. No active contract, generator or lock was changed. Branch `anh`, surveyed local HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1`.
 
 | Surface | Current/source evidence | Proposed target and gate |

@@ -14,7 +14,7 @@ public sealed class StoredFile
 
     public string MimeType { get; private set; } = string.Empty;
 
-    public int SizeBytes { get; private set; }
+    public long SizeBytes { get; private set; }
 
     public string Checksum { get; private set; } = string.Empty;
 
@@ -29,7 +29,7 @@ public sealed class StoredFile
         string storageUri,
         string originalName,
         string mimeType,
-        int sizeBytes,
+        long sizeBytes,
         string checksum,
         Guid? uploadedByUserId,
         DateTimeOffset uploadedAt,

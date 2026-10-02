@@ -404,8 +404,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<DateOnly?>("RetentionUntil")
                         .HasColumnType("date");
 
-                    b.Property<int>("SizeBytes")
-                        .HasColumnType("int");
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("StorageUri")
                         .IsRequired()
@@ -2229,6 +2229,100 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InputJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OriginalCoordinatesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RoadCode")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("RoadName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid?>("RoadSectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceChecksum")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RoadSectionId");
+
+                    b.ToTable("RoadGeometryDrafts", (string)null);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryMetadata", b =>
+                {
+                    b.Property<Guid>("RoadSectionVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ApprovedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ApprovedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("GeometryHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("InputJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SourceDraftId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("RoadSectionVersionId");
+
+                    b.HasIndex("SourceDraftId");
+
+                    b.ToTable("RoadGeometryMetadata", (string)null);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadSection", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2311,6 +2405,15 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<double?>("EndStationMeters")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("FromOffsetMeters")
+                        .HasColumnType("float");
+
+                    b.Property<LineString>("Geometry")
+                        .HasColumnType("geometry");
+
                     b.Property<Guid>("RoadSectionVersionId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2320,9 +2423,17 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<int>("Sequence")
                         .HasColumnType("int");
 
+                    b.Property<double?>("StartStationMeters")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("ToOffsetMeters")
+                        .HasColumnType("float");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RoadSectionVersionId");
+
+                    b.HasIndex("SegmentSetId", "RoadSectionVersionId");
 
                     b.HasIndex("SegmentSetId", "Sequence")
                         .IsUnique()
@@ -2339,8 +2450,27 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("DefinitionJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GeometryHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("PublishedBy")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("RoadSectionVersionId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2350,6 +2480,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("RoadSectionVersionId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_RoadSegmentSets_CurrentPublished")
+                        .HasFilter("[Status] = 'PUBLISHED'");
+
                     b.HasIndex("RoadSectionVersionId", "Status")
                         .HasDatabaseName("IX_RoadSegmentSets_RouteVersion_Status");
 
@@ -2357,6 +2492,231 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         {
                             t.HasCheckConstraint("CK_RoadSegmentSets_Status", "[Status] IN ('DRAFT','PUBLISHED','SUPERSEDED')");
                         });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.BaselineCurrentPointer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RouteVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SegmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SegmentSetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SelectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetBand")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SelectionId");
+
+                    b.HasIndex("ProjectId", "RouteVersionId", "SegmentSetId", "SegmentId", "TargetBand")
+                        .IsUnique();
+
+                    b.ToTable("BaselineCurrentPointers", (string)null);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.BaselineSelection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("SelectedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SelectedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SelectedBy");
+
+                    b.ToTable("BaselineSelections", null, t =>
+                        {
+                            t.HasTrigger("TR_BaselineSelections_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.BaselineSelectionItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BaselineSelectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RouteVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SegmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SegmentSetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetBand")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId");
+
+                    b.HasIndex("DatasetId");
+
+                    b.HasIndex("BaselineSelectionId", "RouteVersionId", "SegmentSetId", "SegmentId", "TargetBand")
+                        .IsUnique();
+
+                    b.ToTable("BaselineSelectionItems", null, t =>
+                        {
+                            t.HasTrigger("TR_BaselineSelectionItems_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MethodVersion")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewedBy");
+
+                    b.HasIndex("DatasetId", "ReviewedAt");
+
+                    b.ToTable("DatasetAssessments", null, t =>
+                        {
+                            t.HasTrigger("TR_DatasetAssessments_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessmentItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CoverageStatus")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PositionStatus")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("QualityStatus")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("RouteVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SegmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SegmentSetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetBand")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SegmentId");
+
+                    b.HasIndex("AssessmentId", "RouteVersionId", "SegmentSetId", "SegmentId", "TargetBand")
+                        .IsUnique();
+
+                    b.ToTable("DatasetAssessmentItems", null, t =>
+                        {
+                            t.HasTrigger("TR_DatasetAssessmentItems_Immutable");
+
+                            t.HasCheckConstraint("CK_Assessment_Status", "[PositionStatus] IN ('PASS','FAIL','UNKNOWN') AND [QualityStatus] IN ('PASS','FAIL','UNKNOWN') AND [CoverageStatus] IN ('PASS','FAIL','UNKNOWN')");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.Flight", b =>
@@ -2672,6 +3032,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<byte>("IntegrityStatus")
                         .HasColumnType("tinyint");
 
+                    b.Property<string>("PairsManifest")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset?>("RecordedAt")
                         .HasColumnType("datetimeoffset(7)");
 
@@ -2690,6 +3053,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("SubmittedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("SurveyId")
                         .HasColumnType("uniqueidentifier");
@@ -2807,6 +3173,10 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<string>("ScopeFormatVersion")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
@@ -2929,6 +3299,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("ParentTaskId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2950,8 +3323,15 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("ScopeFormatVersion")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("SupplementRequestId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("SurveyPlanId")
                         .HasColumnType("uniqueidentifier");
@@ -2961,11 +3341,15 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ParentTaskId");
+
                     b.HasIndex("RequestedByUserId");
 
                     b.HasIndex("RoadSectionId");
 
                     b.HasIndex("RoadSectionVersionId");
+
+                    b.HasIndex("SupplementRequestId");
 
                     b.HasIndex("SurveyPlanId")
                         .IsUnique()
@@ -3613,6 +3997,35 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryDraft", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSection", null)
+                        .WithMany()
+                        .HasForeignKey("RoadSectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryMetadata", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
+                        .WithOne()
+                        .HasForeignKey("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryMetadata", "RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryDraft", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDraftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadSection", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
@@ -3641,7 +4054,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSegmentSet", null)
                         .WithMany()
-                        .HasForeignKey("SegmentSetId")
+                        .HasForeignKey("SegmentSetId", "RoadSectionVersionId")
+                        .HasPrincipalKey("Id", "RoadSectionVersionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -3651,6 +4065,87 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
                         .WithMany()
                         .HasForeignKey("RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.BaselineCurrentPointer", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.BaselineSelectionItem", null)
+                        .WithMany()
+                        .HasForeignKey("SelectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.BaselineSelection", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("SelectedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.BaselineSelectionItem", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.BaselineSelection", null)
+                        .WithMany()
+                        .HasForeignKey("BaselineSelectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyDataVersion", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessment", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyDataVersion", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessmentItem", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSegment", null)
+                        .WithMany()
+                        .HasForeignKey("SegmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -3839,6 +4334,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest", b =>
                 {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest", null)
+                        .WithMany()
+                        .HasForeignKey("ParentTaskId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -3860,6 +4360,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
                         .WithMany()
                         .HasForeignKey("RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SupplementarySurveyRequest", null)
+                        .WithMany()
+                        .HasForeignKey("SupplementRequestId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", null)

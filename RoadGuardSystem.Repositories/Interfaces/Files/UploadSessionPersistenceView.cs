@@ -9,4 +9,6 @@ public sealed record UploadSessionPersistenceView(
     string Status,
     int PartSizeBytes,
     DateTimeOffset ExpiresAt,
-    string Version);
+    string Version,
+    string? Purpose = null,
+    Guid? TargetId = null);

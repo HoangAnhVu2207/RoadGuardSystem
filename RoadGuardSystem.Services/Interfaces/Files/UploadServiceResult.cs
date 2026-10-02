@@ -7,4 +7,6 @@ public sealed record UploadServiceResult(
     UploadSessionResponseDto? Session = null,
     UploadPartUrlsResponseDto? PartUrls = null,
     FileMetadataResponseDto? File = null,
-    Stream? Content = null);
+    Stream? Content = null,
+    long? MaxBytes = null,
+    long? ActualBytes = null);

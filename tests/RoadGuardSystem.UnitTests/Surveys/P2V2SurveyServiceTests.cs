@@ -13,6 +13,18 @@ namespace RoadGuardSystem.UnitTests.Surveys;
 public sealed class P2V2SurveyServiceTests
 {
     [Fact]
+    public async Task GetTaskAsync_AssignedOperatorWithRevokedMembership_IsForbidden()
+    {
+        var actor = Guid.NewGuid();
+        var repository = new RecordingRepository
+        {
+            ReadTask = new(Guid.NewGuid(), Guid.NewGuid(), "[]", actor, "NewAssigned", "version", null, null)
+        };
+        var service = new SurveyV2Service(repository, new FixedScopeGuard(Guid.NewGuid(), UserRoleCode.DroneOperator));
+        var result = await service.GetTaskAsync(actor, UserRoleCode.DroneOperator, repository.ReadTask.Id);
+        result.Status.Should().Be(SurveyV2ServiceStatus.Forbidden);
+    }
+    [Fact]
     public async Task CreatePlanAsync_AuthorizedPm_PassesScopeAndIdempotencyToRepository()
     {
         var actor = Guid.NewGuid();
@@ -65,7 +77,7 @@ public sealed class P2V2SurveyServiceTests
         {
             ReadTask = new(taskId, Guid.NewGuid(), "[]", actor, "NewAssigned", "version-1", DateTimeOffset.UtcNow, "{\"source\":\"MANUAL\"}")
         };
-        var service = new SurveyV2Service(repository, new FixedScopeGuard(Guid.NewGuid(), UserRoleCode.DroneOperator));
+        var service = new SurveyV2Service(repository, new FixedScopeGuard(repository.ReadTask.ProjectId, UserRoleCode.DroneOperator));
 
         var result = await service.GetTaskAsync(actor, UserRoleCode.DroneOperator, taskId);
 
@@ -89,7 +101,7 @@ public sealed class P2V2SurveyServiceTests
                 $"{{\"scope\":[{{\"routeVersionId\":\"{route}\",\"segmentSetId\":\"{set}\",\"segmentIds\":[\"{segment}\"],\"targetBand\":\"SURFACE\"}}]}}",
                 actor, "NewAssigned", "version-1", null, null)
         };
-        var service = new SurveyV2Service(repository, new FixedScopeGuard(Guid.NewGuid(), UserRoleCode.DroneOperator));
+        var service = new SurveyV2Service(repository, new FixedScopeGuard(repository.ReadTask.ProjectId, UserRoleCode.DroneOperator));
 
         var result = await service.GetTaskAsync(actor, UserRoleCode.DroneOperator, repository.ReadTask.Id);
 

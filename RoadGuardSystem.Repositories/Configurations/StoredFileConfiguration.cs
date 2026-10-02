@@ -24,7 +24,7 @@ public sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredFil
         builder.HasIndex(file => file.StorageUri).IsUnique().HasDatabaseName("UX_Files_StorageUri");
         builder.Property(file => file.OriginalName).HasMaxLength(255).IsUnicode(false).IsRequired();
         builder.Property(file => file.MimeType).HasMaxLength(120).IsUnicode(false).IsRequired();
-        builder.Property(file => file.SizeBytes).HasColumnType("int").IsRequired();
+        builder.Property(file => file.SizeBytes).HasColumnType("bigint").IsRequired();
         builder.Property(file => file.Checksum).HasColumnType("char(64)").IsRequired();
         builder.Property(file => file.UploadedAt).HasColumnType("datetimeoffset(7)").IsRequired();
         builder.Property(file => file.RetentionUntil).HasColumnType("date");

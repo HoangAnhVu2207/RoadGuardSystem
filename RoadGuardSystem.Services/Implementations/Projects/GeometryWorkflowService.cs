@@ -1,0 +1,22 @@
+using RoadGuardSystem.Repositories.Projects;
+using RoadGuardSystem.Services.Authorization;
+using RoadGuardSystem.aBusinessObjects.Commons;
+namespace RoadGuardSystem.Services.Projects;
+
+public sealed class GeometryWorkflowService(IGeometryWorkflowRepository repository,IProjectScopeGuard guard) : IGeometryWorkflowService
+{
+    public async Task<GeometryWorkflowResult> ExecuteAsync(UserRoleCode role,GeometryWorkflowCommand command,CancellationToken cancellationToken)
+    {
+        var c=command;var ct=cancellationToken;
+        var read=c.Action is "draft-get" or "geometry-get" or "set-get" or "package";
+        var operatorPackage=c.Action=="package" && role==UserRoleCode.DroneOperator;
+        if (c.ActorId==Guid.Empty || (c.Action=="confirm" ? role!=UserRoleCode.Supervisor : read ? !operatorPackage && role is not (UserRoleCode.Supervisor or UserRoleCode.ProjectManager) : role!=UserRoleCode.ProjectManager)) return new(403,"access_forbidden");
+        if(await guard.AuthorizeAsync(c.ActorId,role,c.ProjectId,ct) is null) return new(403,"access_forbidden");
+        if(operatorPackage && (c.RouteVersionId is not Guid routeId || c.SetId is not Guid setId || !await repository.CanReadAssignedGeometryAsync(c.ActorId,c.ProjectId,routeId,setId,ct))) return new(403,"access_forbidden");
+        var write=c.Action is "draft-create" or "draft-edit" or "confirm" or "set-create" or "set-edit" or "publish";
+        if(write && (string.IsNullOrWhiteSpace(c.Key) || c.Key.Length>200)) return new(428,"validation_error");
+        if(c.Action is "draft-edit" or "confirm" or "set-edit" or "publish" && string.IsNullOrWhiteSpace(c.ExpectedVersion)) return new(428,"validation_error");
+        try { return await repository.ExecuteAsync(c,GeometryEngine.Preview,GeometryEngine.Segments,ct); }
+        catch(GeometryValidationException e) { return new(422,e.Code); }
+    }
+}

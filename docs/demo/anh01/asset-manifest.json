@@ -1,0 +1,20 @@
+{
+  "label": "DEMO SYNTHETIC",
+  "files": [
+    {
+      "fileName": "dossier-demo.pdf",
+      "sizeBytes": 92319,
+      "checksumSha256": "51f5d222c426cdf2bb389c8ad8f1228d2d776e14be6e2789d8f4e0a0ccbf1ca1"
+    },
+    {
+      "fileName": "survey-synthetic.mp4",
+      "sizeBytes": 26334,
+      "checksumSha256": "7ccee5836a93bd42de80a7f27f5ae8d89a3a12d35c06c570d2ede1cd2787a342"
+    },
+    {
+      "fileName": "survey-synthetic.srt",
+      "sizeBytes": 382,
+      "checksumSha256": "5b93da7be77187b53f89fee94931029746a194de799a5a6160d2aa1e4e20aaec"
+    }
+  ]
+}

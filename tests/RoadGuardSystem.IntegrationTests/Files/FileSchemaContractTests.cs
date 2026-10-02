@@ -92,7 +92,8 @@ public sealed class FileSchemaContractTests
         file!.FindProperty("StorageUri")!.GetMaxLength().Should().Be(2048);
         file.FindProperty("OriginalName")!.GetMaxLength().Should().Be(255);
         file.FindProperty("MimeType")!.GetMaxLength().Should().Be(120);
-        file.FindProperty("SizeBytes")!.ClrType.Should().Be<int>();
+        file.FindProperty("SizeBytes")!.ClrType.Should().Be<long>();
+        file.FindProperty("SizeBytes")!.GetColumnType().Should().Be("bigint");
         file.FindProperty("UploadedByUserId")!.IsNullable.Should().BeTrue();
         file.GetForeignKeys().Should().ContainSingle(key => key.PrincipalEntityType.GetTableName() == "Users");
         file.GetIndexes().Should().ContainSingle(index =>

@@ -19,6 +19,101 @@ namespace RoadGuardSystem.ApiTests.Reports;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture sql)
 {
+    [Theory]
+    [Trait("Package", "HUY-01")]
+    [InlineData("{}", "evidence[0].location.latitude")]
+    [InlineData("{\"latitude\":10}", "evidence[0].location.longitude")]
+    [InlineData("{\"longitude\":106}", "evidence[0].location.latitude")]
+    public async Task CreateReport_LocationMissingCoordinates_ReturnsFieldValidationProblem(string location, string field)
+    {
+        var reporter = await sql.CreateUserAsync($"reporter-location-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.AddHuy01ReporterPersistence();
+            services.AddHuy01ReporterServices();
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+
+        var json = """
+            {
+              "description":"missing coordinate",
+              "evidence":[{
+                "fileId":"11111111-1111-1111-1111-111111111111",
+                "fileVersion":"version",
+                "locationSource":"CAPTURE",
+                "location":LOCATION_VALUE
+              }]
+            }
+            """.Replace("LOCATION_VALUE", location, StringComparison.Ordinal);
+        var response = await SendRawAsync(client, json, "location-key");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        problem.GetProperty("code").GetString().Should().Be("validation_error");
+        problem.GetProperty("errors").TryGetProperty(field, out _).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task CreateReport_ExplicitZeroCoordinates_ReplaysWithNormalizedKeyAndExactOutcome()
+    {
+        var reporter = await sql.CreateUserAsync($"reporter-key-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>();
+            services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+            services.AddHuy01ReporterPersistence();
+            services.AddHuy01ReporterServices();
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+        var file = await UploadVerifiedAsync(client, factory);
+        var payload = new
+        {
+            description = "Zero coordinate report",
+            evidence = new[] { new { fileId = file.FileId, fileVersion = file.Version, locationSource = "CAPTURE", location = new { latitude = 0, longitude = 0 } } }
+        };
+
+        var first = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", payload, "  normalized-key  ");
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        var firstBody = await first.Content.ReadAsStringAsync();
+        var firstLocation = first.Headers.Location;
+        var firstEtag = first.Headers.ETag;
+
+        var replay = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", payload, "normalized-key");
+        replay.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(firstBody);
+        replay.Headers.Location.Should().Be(firstLocation);
+        replay.Headers.ETag.Should().Be(firstEtag);
+    }
+
+    [Theory]
+    [Trait("Package", "HUY-01")]
+    [InlineData(" \t ")]
+    [InlineData("k\u00e9y")]
+    public async Task CreateReport_InvalidIdempotencyKey_ReturnsHeaderFieldValidationProblem(string key)
+    {
+        var reporter = await sql.CreateUserAsync($"reporter-invalid-key-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.AddHuy01ReporterPersistence();
+            services.AddHuy01ReporterServices();
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+
+        var response = await SendRawAsync(client, """
+            {"description":"invalid key","evidence":[{"fileId":"11111111-1111-1111-1111-111111111111","fileVersion":"version","locationSource":"UNKNOWN"}]}
+            """, key);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        problem.GetProperty("code").GetString().Should().Be("validation_error");
+        problem.GetProperty("errors").TryGetProperty("Idempotency-Key", out _).Should().BeTrue();
+    }
+
     [Fact]
     [Trait("Package", "HUY-01")]
     public async Task CreateReport_WithVerifiedOwnedEvidence_CreatesOneIntakeCase_AndReplaysExactly()
@@ -105,8 +200,18 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, HttpMethod method, string path, object body, string idempotencyKey, string? etag = null)
     {
         var request = new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) };
-        request.Headers.Add("Idempotency-Key", idempotencyKey);
+        request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         if (etag is not null) request.Headers.TryAddWithoutValidation("If-Match", etag);
+        return client.SendAsync(request);
+    }
+
+    private static Task<HttpResponseMessage> SendRawAsync(HttpClient client, string json, string idempotencyKey)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/reports")
+        {
+            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+        };
+        request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         return client.SendAsync(request);
     }
 

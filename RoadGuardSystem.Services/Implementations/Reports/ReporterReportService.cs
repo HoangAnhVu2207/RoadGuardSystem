@@ -16,13 +16,14 @@ public sealed class ReporterReportService(IAnhHuyProducerService producer, IRepo
         CreateReporterReportRequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default)
     {
         if (role != UserRoleCode.Reporter || actorUserId == Guid.Empty) return new(ReporterReportCommandStatus.Forbidden);
-        if (!ReporterIntakeRequestNormalizer.TryNormalize(request, idempotencyKey, out var normalized, out _)) return new(ReporterReportCommandStatus.InvalidInput);
+        if (!ReporterIntakeRequestNormalizer.TryNormalize(request, idempotencyKey, out var normalized, out var validationErrors))
+            return new(ReporterReportCommandStatus.InvalidInput, null, validationErrors);
 
         var preflight = await ResolveEvidenceAsync(actorUserId, role, normalized!.Evidence, cancellationToken);
         if (preflight.Status != ReporterReportCommandStatus.Created) return new(preflight.Status);
         try
         {
-            var execution = await idempotency.ExecuteAsync(actorUserId, null, "huy01.report.create.v1", idempotencyKey,
+            var execution = await idempotency.ExecuteAsync(actorUserId, null, "huy01.report.create.v1", normalized!.IdempotencyKey,
                 normalized.Fingerprint, async token =>
                 {
                     var resolved = await ResolveEvidenceAsync(actorUserId, role, normalized.Evidence, token);

@@ -5,7 +5,8 @@ namespace RoadGuardSystem.Services.Reports;
 
 public enum ReporterReportCommandStatus { Created, Replayed, Forbidden, NotFound, InvalidInput, SourceNotReady, StaleFile, IdempotencyConflict }
 
-public sealed record ReporterReportCommandResult(ReporterReportCommandStatus Status, ReporterReportResponseDto? Report = null);
+public sealed record ReporterReportCommandResult(ReporterReportCommandStatus Status, ReporterReportResponseDto? Report = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
 
 public interface IReporterReportService
 {

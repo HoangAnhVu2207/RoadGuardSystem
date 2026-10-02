@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace RoadGuardSystem.DTOs.Reports;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record ReportEvidenceLocationDto(decimal Latitude, decimal Longitude, decimal? AccuracyMeters);
+public sealed record ReportEvidenceLocationDto(decimal? Latitude, decimal? Longitude, decimal? AccuracyMeters);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ReportEvidenceInputDto(Guid FileId, string? FileVersion, string? LocationSource,

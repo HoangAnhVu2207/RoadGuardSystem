@@ -21,8 +21,8 @@ public sealed class ReportsController(IReporterReportService service) : Controll
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actorId, out var role)) return ProblemResponse(401, "auth_unauthorized", "Unauthorized");
-        if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, "precondition_required", "Idempotency-Key is required");
-        var result = await service.CreateAsync(actorId, role, request, idempotencyKey, CorrelationId(), cancellationToken);
+        if (!Request.Headers.ContainsKey("Idempotency-Key")) return ProblemResponse(428, "precondition_required", "Idempotency-Key is required");
+        var result = await service.CreateAsync(actorId, role, request, idempotencyKey ?? string.Empty, CorrelationId(), cancellationToken);
         if (result.Report is not null) Response.Headers.ETag = $"\"{result.Report.Version}\"";
         return result.Status switch
         {
@@ -32,7 +32,7 @@ public sealed class ReportsController(IReporterReportService service) : Controll
             ReporterReportCommandStatus.StaleFile => ProblemResponse(412, "concurrency_conflict", "Precondition failed"),
             ReporterReportCommandStatus.SourceNotReady => ProblemResponse(409, "source_not_ready", "Evidence is not ready"),
             ReporterReportCommandStatus.IdempotencyConflict => ProblemResponse(409, "idempotency_key_reused", "Conflict"),
-            _ => ProblemResponse(400, "validation_error", "Validation failed")
+            _ => ProblemResponse(400, "validation_error", "Validation failed", result.ValidationErrors)
         };
     }
 
@@ -46,11 +46,12 @@ public sealed class ReportsController(IReporterReportService service) : Controll
 
     private Guid? CorrelationId() => Guid.TryParse(HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString(), out var value) ? value : null;
 
-    private ObjectResult ProblemResponse(int status, string code, string title)
+    private ObjectResult ProblemResponse(int status, string code, string title, IReadOnlyDictionary<string, string[]>? errors = null)
     {
         var problem = new ProblemDetails { Status = status, Title = title, Detail = "The report request could not be completed.", Instance = Request.Path };
         problem.Extensions["code"] = code;
         problem.Extensions["correlationId"] = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString() ?? Guid.NewGuid().ToString();
+        if (errors is not null) problem.Extensions["errors"] = errors;
         return new ObjectResult(problem) { StatusCode = status, ContentTypes = { "application/problem+json" } };
     }
 }

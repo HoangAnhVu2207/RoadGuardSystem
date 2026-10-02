@@ -268,8 +268,11 @@ public sealed class Rf1003SameRowSurveyTests
             await scenario.AuthenticateAsync(supervisor.UserName!);
             var project = await client.PostAsJsonAsync("/api/v1/projects", new
             {
-                projectCode = $"RF1003-{Guid.NewGuid():N}", name = "RF-10-03 same-row test",
-                engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01",
+                projectCode = $"RF1003-{Guid.NewGuid():N}",
+                name = "RF-10-03 same-row test",
+                engineeringUtmSrid = 32648,
+                startDate = "2026-09-01",
+                endDate = "2027-09-01",
                 primaryProjectManagerUserId = manager.Id,
                 handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
                 operationId = Guid.NewGuid()
@@ -278,9 +281,12 @@ public sealed class Rf1003SameRowSurveyTests
             scenario.ProjectId = (await project.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
             var road = await client.PostAsJsonAsync($"/api/v1/projects/{scenario.ProjectId}/road-sections", new
             {
-                code = $"RS-{Guid.NewGuid():N}", srid = 32648,
+                code = $"RS-{Guid.NewGuid():N}",
+                srid = 32648,
                 coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500100d, y = 1100100d } },
-                effectiveFrom = "2026-09-21T08:00:00+07:00", changeReason = "Initial alignment", operationId = Guid.NewGuid()
+                effectiveFrom = "2026-09-21T08:00:00+07:00",
+                changeReason = "Initial alignment",
+                operationId = Guid.NewGuid()
             });
             road.StatusCode.Should().Be(HttpStatusCode.Created);
             var roadJson = await road.Content.ReadFromJsonAsync<JsonElement>();
@@ -305,7 +311,8 @@ public sealed class Rf1003SameRowSurveyTests
         {
             var login = await Client.PostAsJsonAsync("/api/v1/auth/login", new
             {
-                email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+                email = AuthenticationSqlServerFixture.EmailFor(username),
+                password = "Current1!"
             });
             login.EnsureSuccessStatusCode();
             var json = await login.Content.ReadFromJsonAsync<JsonElement>();

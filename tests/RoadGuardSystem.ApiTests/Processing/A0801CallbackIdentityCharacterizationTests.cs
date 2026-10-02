@@ -185,7 +185,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
     {
         var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         var credentials = new SigningCredentials(new SymmetricSecurityKey(AuthenticationWebApplicationFactory.CurrentSigningKey)
-            { KeyId = AuthenticationWebApplicationFactory.CurrentKeyId }, SecurityAlgorithms.HmacSha256);
+        { KeyId = AuthenticationWebApplicationFactory.CurrentKeyId }, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(AuthenticationWebApplicationFactory.TestIssuer, "roadguard-be-ai",
             [new Claim("sub", "isolated-ai-characterization"), new Claim("client_type", "AI_SERVICE")],
             DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(10), credentials);
@@ -196,7 +196,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
     private async Task<HttpOutcome> SendAsync(HttpClient client, Guid jobId, ReceiveAiResultRequestDto request, string key)
     {
         using var message = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/internal/processing-jobs/{jobId}/results")
-            { Content = JsonContent.Create(request) };
+        { Content = JsonContent.Create(request) };
         message.Headers.Add("Idempotency-Key", key);
         using var response = await client.SendAsync(message);
         var result = new HttpOutcome(response.StatusCode, await response.Content.ReadAsStringAsync(), response.Headers.ETag?.Tag);
@@ -325,7 +325,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
     }
 
     private static string Fingerprint(ReceiveAiResultRequestDto request) => Hash(JsonSerializer.Serialize(request.Detections.Select(item => new
-        { detectionId = Guid.Parse(item.DetectionId), item.FrameFileId, item.TimestampMs, item.TypeCode, item.Confidence, item.Bbox }), WebJson) + request.ChecksumSha256);
+    { detectionId = Guid.Parse(item.DetectionId), item.FrameFileId, item.TimestampMs, item.TypeCode, item.Confidence, item.Bbox }), WebJson) + request.ChecksumSha256);
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
     private sealed record Scope(Guid ProjectId, Guid ActorId, Guid DatasetId, Guid ModelId, Guid RawFileId, string Checksum);
     private sealed record HttpOutcome(HttpStatusCode Status, string Body, string? ETag);

@@ -110,9 +110,13 @@ public sealed class Rf1006ReporterDefectCharacterizationTests
             new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), now);
         var membership = new ProjectMember
         {
-            Id = Guid.NewGuid(), ProjectId = otherProject.Id, UserId = otherManagerId,
-            RoleCode = UserRoleCode.ProjectManager, IsPrimary = true,
-            ValidFrom = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1), Status = ProjectMemberStatus.Active
+            Id = Guid.NewGuid(),
+            ProjectId = otherProject.Id,
+            UserId = otherManagerId,
+            RoleCode = UserRoleCode.ProjectManager,
+            IsPrimary = true,
+            ValidFrom = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1),
+            Status = ProjectMemberStatus.Active
         };
         var section = RoadGuardSystem.BusinessObjects.Projects.RoadSection.Create(Guid.NewGuid(), project.Id, $"RF1006-ROAD-{Guid.NewGuid():N}");
         var geometry = new LineString([new Coordinate(500000, 1200000), new Coordinate(500100, 1200000)]) { SRID = 32648 };

@@ -148,12 +148,25 @@ public sealed class Rf1005CallbackCharacterizationTests : IClassFixture<Identity
         await using var context = _fixture.CreateDbContext();
         await _fixture.SeedRolesAsync(context);
         var now = DateTimeOffset.UtcNow;
-        var project = new Project { Id = Guid.NewGuid(), ProjectCode = $"RF1005-{Guid.NewGuid():N}",
-            Name = "RF-10-05 isolated processing", EngineeringUtmSrid = 32648,
-            Status = ProjectStatus.Active, CreatedAt = now };
-        var actor = new ApplicationUser { Id = Guid.NewGuid(), UserName = $"rf1005_{Guid.NewGuid():N}",
-            DisplayName = "RF-10-05 actor", PasswordHash = "fixture-hash", RoleCode = UserRoleCode.ProjectManager,
-            Status = UserStatus.Active, CreatedAt = now };
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            ProjectCode = $"RF1005-{Guid.NewGuid():N}",
+            Name = "RF-10-05 isolated processing",
+            EngineeringUtmSrid = 32648,
+            Status = ProjectStatus.Active,
+            CreatedAt = now
+        };
+        var actor = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = $"rf1005_{Guid.NewGuid():N}",
+            DisplayName = "RF-10-05 actor",
+            PasswordHash = "fixture-hash",
+            RoleCode = UserRoleCode.ProjectManager,
+            Status = UserStatus.Active,
+            CreatedAt = now
+        };
         var section = RoadSection.Create(Guid.NewGuid(), project.Id, $"RF1005-ROAD-{Guid.NewGuid():N}");
         var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([
             new Coordinate(500000, 1200000), new Coordinate(500100, 1200000)]);

@@ -220,7 +220,9 @@ public sealed class Rf06aSchemaInventoryTests
                 sql,
                 triggerEvidence = triggerEvidence.Select(item => new
                 {
-                    item.Schema, item.Table, item.Name,
+                    item.Schema,
+                    item.Table,
+                    item.Name,
                     observedDefinitionSha256Utf8Lf = HashDefinition(item.Definition!),
                     createdMigration = item.Source!.CreatedMigration,
                     lastDefinitionMigration = item.Source.LastDefinitionMigration,
@@ -422,8 +424,11 @@ public sealed class Rf06aSchemaInventoryTests
         {
             active[name] = existing with
             {
-                LastDefinitionMigration = migrationId, Path = path, Line = line,
-                Definition = sql, History = events.ToArray()
+                LastDefinitionMigration = migrationId,
+                Path = path,
+                Line = line,
+                Definition = sql,
+                History = events.ToArray()
             };
         }
         else

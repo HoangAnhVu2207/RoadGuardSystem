@@ -186,11 +186,13 @@ public sealed class Rf1001IdentityCharacterizationTests
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await targetClient.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(targetName), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(targetName),
+            password = "Current1!"
         })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         var newLogin = await targetClient.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(targetName), password = replacement
+            email = AuthenticationSqlServerFixture.EmailFor(targetName),
+            password = replacement
         });
         newLogin.StatusCode.Should().Be(HttpStatusCode.OK);
         using var loginBody = JsonDocument.Parse(await newLogin.Content.ReadAsStringAsync());
@@ -375,7 +377,8 @@ public sealed class Rf1001IdentityCharacterizationTests
     {
         var response = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password
         });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

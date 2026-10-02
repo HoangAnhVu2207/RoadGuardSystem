@@ -2,26 +2,33 @@ namespace RoadGuardSystem.BusinessObjects.Cases;
 
 public sealed class CasePublicationPrerequisites
 {
-    private readonly HashSet<Guid> _verifiedDefectIds;
-    private readonly HashSet<Guid> _permittedEvidenceIds;
+    private readonly Dictionary<Guid, CasePublicationRecipientFacts> _factsByReportId;
 
-    private CasePublicationPrerequisites(IEnumerable<Guid> verifiedDefectIds, IEnumerable<Guid> permittedEvidenceIds)
+    private CasePublicationPrerequisites(IEnumerable<CasePublicationRecipientFacts> recipientFacts)
     {
-        _verifiedDefectIds = verifiedDefectIds.ToHashSet();
-        _permittedEvidenceIds = permittedEvidenceIds.ToHashSet();
-        if (_verifiedDefectIds.Contains(Guid.Empty) || _permittedEvidenceIds.Contains(Guid.Empty))
+        _factsByReportId = [];
+        foreach (var facts in recipientFacts)
         {
-            throw new ArgumentException("Prerequisite identifiers must not be empty.");
+            ArgumentNullException.ThrowIfNull(facts, nameof(recipientFacts));
+            if (!_factsByReportId.TryAdd(facts.ReportId, facts))
+            {
+                throw new ArgumentException("Publication facts must have one entry per recipient report.", nameof(recipientFacts));
+            }
         }
     }
 
-    public static CasePublicationPrerequisites Create(IEnumerable<Guid> verifiedDefectIds, IEnumerable<Guid> permittedEvidenceIds)
+    public static CasePublicationPrerequisites Create(IEnumerable<CasePublicationRecipientFacts> recipientFacts)
     {
-        ArgumentNullException.ThrowIfNull(verifiedDefectIds);
-        ArgumentNullException.ThrowIfNull(permittedEvidenceIds);
-        return new CasePublicationPrerequisites(verifiedDefectIds, permittedEvidenceIds);
+        ArgumentNullException.ThrowIfNull(recipientFacts);
+        return new CasePublicationPrerequisites(recipientFacts);
     }
 
-    internal bool ContainsVerifiedDefects(IEnumerable<Guid> ids) => ids.All(_verifiedDefectIds.Contains);
-    internal bool ContainsPermittedEvidence(IEnumerable<Guid> ids) => ids.All(_permittedEvidenceIds.Contains);
+    internal bool Authorizes(
+        IEnumerable<Guid> recipientReportIds,
+        IEnumerable<Guid> defectIds,
+        IEnumerable<Guid> evidenceIds)
+    {
+        return recipientReportIds.All(reportId =>
+            _factsByReportId.TryGetValue(reportId, out var facts) && facts.Authorizes(defectIds, evidenceIds));
+    }
 }

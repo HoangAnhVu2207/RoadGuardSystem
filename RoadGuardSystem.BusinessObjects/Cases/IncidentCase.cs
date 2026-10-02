@@ -148,14 +148,9 @@ public sealed class IncidentCase
                 throw new InvalidOperationException("A no-defect publication requires a concluded no-defect case.");
             }
         }
-        else if (!prerequisites.ContainsVerifiedDefects(publication.DefectIds))
+        if (!prerequisites.Authorizes(publication.RecipientReportIds, publication.DefectIds, publication.EvidenceIds))
         {
-            throw new InvalidOperationException("A publication can include only server-verified defects.");
-        }
-
-        if (!prerequisites.ContainsPermittedEvidence(publication.EvidenceIds))
-        {
-            throw new InvalidOperationException("A publication can include only server-authorized evidence.");
+            throw new InvalidOperationException("Every selected defect and evidence reference must be server-authorized for every publication recipient.");
         }
 
         _publications.Add(publication);
@@ -204,6 +199,11 @@ public sealed class IncidentCase
         if (Status is IncidentCaseStatus.Concluded or IncidentCaseStatus.Linked || ProjectId is null)
         {
             throw new InvalidOperationException("Only a non-concluded assigned case can be split.");
+        }
+
+        if (newCaseId == Id)
+        {
+            throw new InvalidOperationException("A split case must have a different identifier from its source case.");
         }
 
         var movedIds = CaseConclusion.ResolveIds(reportIds, nameof(reportIds));

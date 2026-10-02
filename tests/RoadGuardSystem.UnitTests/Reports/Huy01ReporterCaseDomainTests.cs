@@ -83,7 +83,9 @@ public sealed class Huy01ReporterCaseDomainTests
             CaseConclusionPrerequisites.Create([defectId], [evidenceId]));
         var publication = incidentCase.Publish(
             Guid.NewGuid(), [reportId], [defectId], [evidenceId], "Verified defect has been published.", DateTimeOffset.UtcNow,
-            CasePublicationPrerequisites.Create([defectId], [evidenceId]));
+            CasePublicationPrerequisites.Create([
+                CasePublicationRecipientFacts.Create(reportId, [defectId], [evidenceId])
+            ]));
 
         incidentCase.RegisterSupplement(reportId, DateTimeOffset.UtcNow);
 
@@ -158,6 +160,26 @@ public sealed class Huy01ReporterCaseDomainTests
     }
 
     [Fact]
+    public void Case_SplitUsingSourceIdentity_IsRejectedWithoutMutatingSourceOrHistory()
+    {
+        var firstReportId = Guid.NewGuid();
+        var secondReportId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var source = CreateOpenCase(firstReportId, projectId);
+        var donor = CreateOpenCase(secondReportId, projectId);
+        source.LinkReportsFrom(donor, [secondReportId], Guid.NewGuid(), "same project source consolidation", DateTimeOffset.UtcNow);
+        var reportsBefore = source.ActiveReportIds.ToArray();
+        var historyBefore = source.LinkHistory.ToArray();
+
+        var split = () => source.SplitReports(source.Id, [secondReportId], Guid.NewGuid(), "invalid self identity", DateTimeOffset.UtcNow);
+
+        split.Should().Throw<InvalidOperationException>();
+        source.ActiveReportIds.Should().Equal(reportsBefore);
+        source.Status.Should().Be(IncidentCaseStatus.Open);
+        source.LinkHistory.Should().Equal(historyBefore);
+    }
+
+    [Fact]
     public void Case_PublicationRequiresVerifiedDefectWhileCaseMayRemainOpen()
     {
         var reportId = Guid.NewGuid();
@@ -167,11 +189,59 @@ public sealed class Huy01ReporterCaseDomainTests
 
         var publish = () => incidentCase.Publish(
             Guid.NewGuid(), [reportId], [defectId], [evidenceId], "A partial update", DateTimeOffset.UtcNow,
-            CasePublicationPrerequisites.Create([], [evidenceId]));
+            CasePublicationPrerequisites.Create([
+                CasePublicationRecipientFacts.Create(reportId, [], [evidenceId])
+            ]));
 
         publish.Should().Throw<InvalidOperationException>();
         incidentCase.Publications.Should().BeEmpty();
         incidentCase.Status.Should().Be(IncidentCaseStatus.Open);
+    }
+
+    [Fact]
+    public void Case_PublicationRejectsEvidenceNotPermittedForEverySelectedRecipient()
+    {
+        var firstReportId = Guid.NewGuid();
+        var secondReportId = Guid.NewGuid();
+        var incidentCase = CreateOpenCaseWithTwoReports(firstReportId, secondReportId);
+        var defectId = Guid.NewGuid();
+        var evidenceId = Guid.NewGuid();
+        var prerequisites = CasePublicationPrerequisites.Create([
+            CasePublicationRecipientFacts.Create(firstReportId, [defectId], [evidenceId]),
+            CasePublicationRecipientFacts.Create(secondReportId, [defectId], [])
+        ]);
+
+        var publishForBoth = () => incidentCase.Publish(
+            Guid.NewGuid(), [firstReportId, secondReportId], [defectId], [evidenceId], "A partial update", DateTimeOffset.UtcNow, prerequisites);
+
+        publishForBoth.Should().Throw<InvalidOperationException>();
+        incidentCase.Publications.Should().BeEmpty();
+
+        var publicationForFirstOnly = incidentCase.Publish(
+            Guid.NewGuid(), [firstReportId], [defectId], [evidenceId], "A partial update", DateTimeOffset.UtcNow, prerequisites);
+
+        publicationForFirstOnly.RecipientReportIds.Should().ContainSingle().Which.Should().Be(firstReportId);
+        incidentCase.Publications.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Case_PublicationRejectsVerifiedDefectNotRelatedToRecipientReport()
+    {
+        var firstReportId = Guid.NewGuid();
+        var secondReportId = Guid.NewGuid();
+        var incidentCase = CreateOpenCaseWithTwoReports(firstReportId, secondReportId);
+        var defectId = Guid.NewGuid();
+        var evidenceId = Guid.NewGuid();
+        var prerequisites = CasePublicationPrerequisites.Create([
+            CasePublicationRecipientFacts.Create(firstReportId, [defectId], [evidenceId]),
+            CasePublicationRecipientFacts.Create(secondReportId, [], [evidenceId])
+        ]);
+
+        var publish = () => incidentCase.Publish(
+            Guid.NewGuid(), [secondReportId], [defectId], [evidenceId], "A partial update", DateTimeOffset.UtcNow, prerequisites);
+
+        publish.Should().Throw<InvalidOperationException>();
+        incidentCase.Publications.Should().BeEmpty();
     }
 
     private static IncidentCase CreateOpenCase(Guid reportId, out Guid projectId)
@@ -187,6 +257,15 @@ public sealed class Huy01ReporterCaseDomainTests
         incidentCase.Triage(projectId, CaseVerificationMethod.ExistingEvidence, "Initial triage", triagedAt);
         incidentCase.TriageReason.Should().Be("Initial triage");
         incidentCase.TriagedAt.Should().Be(triagedAt);
+        return incidentCase;
+    }
+
+    private static IncidentCase CreateOpenCaseWithTwoReports(Guid firstReportId, Guid secondReportId)
+    {
+        var projectId = Guid.NewGuid();
+        var incidentCase = CreateOpenCase(firstReportId, projectId);
+        var donor = CreateOpenCase(secondReportId, projectId);
+        incidentCase.LinkReportsFrom(donor, [secondReportId], Guid.NewGuid(), "same project source consolidation", DateTimeOffset.UtcNow);
         return incidentCase;
     }
 }

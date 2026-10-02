@@ -3,8 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Data.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoadGuardSystem.ApiTests.Infrastructure;
@@ -12,6 +15,19 @@ using RoadGuardSystem.Repositories.Storage;
 using RoadGuardSystem.Repositories.Extensions;
 using RoadGuardSystem.Services.Extensions;
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.DTOs.Defects;
+using RoadGuardSystem.DTOs.Reports;
+using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Idempotency;
+using RoadGuardSystem.Repositories.Implementations.Cases;
+using RoadGuardSystem.Repositories.Implementations.Defects;
+using RoadGuardSystem.Repositories.Implementations.Reports;
+using RoadGuardSystem.Repositories.Integration;
+using RoadGuardSystem.Repositories.Projects;
+using RoadGuardSystem.Services.Authorization;
+using RoadGuardSystem.Services.Implementations.Defects;
+using RoadGuardSystem.Services.Implementations.Reports;
+using RoadGuardSystem.Services.Integration;
 using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Reports;
@@ -19,6 +35,375 @@ namespace RoadGuardSystem.ApiTests.Reports;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture sql)
 {
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task ModuleRoutes_WithoutProductionComposition_ReturnDependencyUnavailable()
+    {
+        var reporter = await sql.CreateUserAsync($"unbound-r-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var pm = await sql.CreateUserAsync($"unbound-p-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+        var reports = await client.GetAsync("/api/v1/reports");
+        reports.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await reports.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString().Should().Be("dependency_unavailable");
+        var intake = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Unbound", evidence = Array.Empty<object>() }, Guid.NewGuid().ToString());
+        intake.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        await LoginAsync(client, pm.UserName!);
+        (await client.GetAsync("/api/v1/cases")).StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/candidate-decisions/{Guid.NewGuid()}")).StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+    }
+
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task Candidate_ReportRejectCorrectionReplay_UsesRealGeometrySourceAndHead()
+    {
+        var reporter = await sql.CreateUserAsync($"candidate-r-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var supervisor = await sql.CreateUserAsync($"candidate-s-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var pm = await sql.CreateUserAsync($"candidate-p-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var project = Guid.NewGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            db.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(project, $"CD-{Guid.NewGuid():N}", "Candidate project", null, 32648, new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), DateTimeOffset.UtcNow));
+            db.ProjectMembers.Add(RoadGuardSystem.BusinessObjects.Projects.ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project, pm.Id, new DateOnly(2026, 1, 1)));
+            await db.SaveChangesAsync();
+        }
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+            services.AddHuy01ReporterPersistence(); services.AddHuy01ReporterServices();
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+        var file = await UploadVerifiedAsync(client, factory);
+        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Candidate source", evidence = new[] { new { fileId = file.FileId, fileVersion = file.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        var report = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Guid incident;
+        await using (var db = sql.CreateDbContext()) incident = (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().SingleAsync(l => l.ReportId == report && l.EndedAt == null)).CaseId;
+        var geometry = await CreatePublishedGeometryAsync(client, pm.UserName!, supervisor.UserName!, project);
+        await LoginAsync(client, supervisor.UserName!);
+        var read = await client.GetAsync($"/api/v1/cases/{incident}");
+        var triage = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/triage", new { projectId = project, verificationMethod = "EXISTING_EVIDENCE", reason = "Route provenance",
+            routeVersionId = geometry.Route, segmentSetId = geometry.Set, geometryVersion = geometry.Version }, Guid.NewGuid().ToString(), read.Headers.ETag!.ToString());
+        triage.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var scope = factory.Services.CreateScope();
+        var producer = scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Integration.IAnhHuyProducerService>();
+        var source = await producer.ResolveCandidateSourceAsync(pm.Id, UserRoleCode.ProjectManager, project, RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, report);
+        source.Status.Should().Be(RoadGuardSystem.Services.Integration.AnhHuyProducerStatus.Ready);
+        await LoginAsync(client, pm.UserName!);
+        var payload = new { sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
+            geometryVersion = source.Facts.DomainFacts.GeometryVersion, decision = "REJECT", reason = "No defect in source" };
+        var key = Guid.NewGuid().ToString(); var path = $"/api/v1/projects/{project}/candidate-decisions";
+        var decisions = await Task.WhenAll(SendAsync(client, HttpMethod.Post, path, payload, key),
+            SendAsync(client, HttpMethod.Post, path, payload, key));
+        var decided = decisions[0];
+        decisions[1].StatusCode.Should().Be(HttpStatusCode.Created);
+        (await decisions[1].Content.ReadAsStringAsync()).Should().Be(await decided.Content.ReadAsStringAsync());
+        decisions[1].Headers.Location.Should().Be(decided.Headers.Location);
+        decisions[1].Headers.ETag.Should().Be(decided.Headers.ETag);
+        decided.StatusCode.Should().Be(HttpStatusCode.Created);
+        var replay = await SendAsync(client, HttpMethod.Post, path, payload, key);
+        replay.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(await decided.Content.ReadAsStringAsync());
+        replay.Headers.Location.Should().Be(decided.Headers.Location); replay.Headers.ETag.Should().Be(decided.Headers.ETag);
+        var freshStale = await SendAsync(client, HttpMethod.Post, path, payload, Guid.NewGuid().ToString());
+        freshStale.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var after = await producer.ResolveCandidateSourceAsync(pm.Id, UserRoleCode.ProjectManager, project, RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, report);
+        var corrected = await SendAsync(client, HttpMethod.Post, path, new { sourceKind = "REPORT", sourceId = report,
+            sourceVersion = after.Facts!.DomainFacts.Source.SourceVersion, geometryVersion = after.Facts.DomainFacts.GeometryVersion,
+            decision = "REJECT", reason = "Corrected reason", supersedesDecisionId = after.Facts.DomainFacts.ActiveDisposition!.DecisionId,
+            previousDecisionVersion = after.Facts.DomainFacts.ActiveDisposition.Version }, Guid.NewGuid().ToString());
+        corrected.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await client.GetAsync(corrected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
+        await using (var db = sql.CreateDbContext())
+        {
+            (await db.SourceDecisions.CountAsync(d => EF.Property<Guid>(d, "ReportSourceId") == report)).Should().Be(2);
+            (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCandidateSourceHead>().CountAsync(h => h.SourceId == report)).Should().Be(1);
+            (await db.Defects.CountAsync(d => d.ProjectId == project)).Should().Be(0);
+        }
+        var thirdSource = await producer.ResolveCandidateSourceAsync(pm.Id, UserRoleCode.ProjectManager, project,
+            RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, report);
+        var third = new CandidateDecisionRequestDto("REPORT", report, thirdSource.Facts!.DomainFacts.Source.SourceVersion,
+            thirdSource.Facts.DomainFacts.GeometryVersion, "REJECT", null, null, null, "Fault-tested correction",
+            thirdSource.Facts.DomainFacts.ActiveDisposition!.DecisionId, thirdSource.Facts.DomainFacts.ActiveDisposition.Version);
+        var failedKey = Guid.NewGuid().ToString();
+        var precommit = new CommandCommitFailure(failedKey, false);
+        await using (var db = ModuleFaultContext(precommit))
+            await Assert.ThrowsAsync<RetryLimitExceededException>(() => CandidateService(db).DecideAsync(pm.Id, UserRoleCode.ProjectManager,
+                project, third, failedKey, null, default));
+        precommit.Failures.Should().Be(3);
+        await using (var db = sql.CreateDbContext())
+        {
+            (await db.SourceDecisions.CountAsync(d => EF.Property<Guid>(d, "ReportSourceId") == report)).Should().Be(2);
+            (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCandidateSourceHead>().SingleAsync(h => h.SourceId == report)).DecisionId
+                .Should().Be(third.SupersedesDecisionId!.Value);
+            (await db.AuditLogs.CountAsync(a => a.ActorUserId == pm.Id && a.EventType == "candidate_decided" &&
+                db.SourceDecisions.Where(d => EF.Property<Guid>(d, "ReportSourceId") == report).Select(d => d.Id).Contains(a.EntityId))).Should().Be(2);
+            (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == pm.Id && r.IdempotencyKey == failedKey)).Should().Be(0);
+        }
+        var recoveredKey = Guid.NewGuid().ToString();
+        var postcommit = new CommandCommitFailure(recoveredKey, true);
+        RoadGuardSystem.Services.Defects.CandidateDecisionResult recovered;
+        await using (var db = ModuleFaultContext(postcommit))
+            recovered = await CandidateService(db).DecideAsync(pm.Id, UserRoleCode.ProjectManager, project, third, recoveredKey, null, default);
+        recovered.Status.Should().Be(201); postcommit.Failures.Should().Be(1);
+        await using (var db = sql.CreateDbContext())
+        {
+            var replayed = await CandidateService(db).DecideAsync(pm.Id, UserRoleCode.ProjectManager, project, third, recoveredKey, null, default);
+            JsonSerializer.Serialize(replayed.Decision).Should().Be(JsonSerializer.Serialize(recovered.Decision));
+            (await db.SourceDecisions.CountAsync(d => EF.Property<Guid>(d, "ReportSourceId") == report)).Should().Be(3);
+            (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCandidateSourceHead>().SingleAsync(h => h.SourceId == report)).DecisionId
+                .Should().Be(recovered.Decision!.Id);
+            (await db.AuditLogs.CountAsync(a => a.ActorUserId == pm.Id && a.EventType == "candidate_decided" && a.EntityId == recovered.Decision.Id)).Should().Be(1);
+            (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == pm.Id && r.IdempotencyKey == recoveredKey)).Should().Be(1);
+        }
+        await using (var db = sql.CreateDbContext()) { await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [ProjectMembers] SET [Status]=2 WHERE [ProjectId]={project} AND [UserId]={pm.Id}"); }
+        (await SendAsync(client, HttpMethod.Post, path, payload, key)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    private RoadGuardDbContext ModuleFaultContext(CommandCommitFailure failure)
+        => new(new DbContextOptionsBuilder<RoadGuardDbContext>().UseSqlServer(sql.ConnectionString, options => options.UseNetTopologySuite())
+            .ReplaceService<IExecutionStrategyFactory, CommitFailureExecutionStrategyFactory>().AddInterceptors(failure).Options);
+
+    private static CandidateDecisionService CandidateService(RoadGuardDbContext db)
+    {
+        var receipt = new IdempotencyOperationService(db);
+        var guard = new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System);
+        var producer = new AnhHuyProducerService(new AnhHuyFactsRepository(db), new GeometryWorkflowPersistenceService(db, receipt), guard);
+        return new(new CandidateDecisionRepository(db), new CaseWorkflowRepository(db), producer, guard, receipt);
+    }
+
+    private static ReporterLifecycleService LifecycleService(RoadGuardDbContext db)
+        => new(new ReporterLifecycleRepository(db, new ReporterReportRepository(db)),
+            new AnhHuyProducerService(new AnhHuyFactsRepository(db), null!, null!), null!, new IdempotencyOperationService(db));
+
+    private sealed class CommandCommitFailure(string key, bool afterCommit) : DbTransactionInterceptor
+    {
+        public int Failures { get; private set; }
+        private bool HasReceipt(DbContext? context) => context?.Set<RoadGuardSystem.BusinessObjects.Idempotency.IdempotencyRecord>()
+            .Local.Any(r => r.IdempotencyKey == key) == true;
+        public override ValueTask<InterceptionResult> TransactionCommittingAsync(DbTransaction transaction, TransactionEventData eventData,
+            InterceptionResult result, CancellationToken cancellationToken = default)
+        {
+            if (!afterCommit && HasReceipt(eventData.Context)) { Failures++; throw new CommitFailureTransientException("Injected module precommit failure."); }
+            return ValueTask.FromResult(result);
+        }
+        public override Task TransactionCommittedAsync(DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken = default)
+        {
+            if (afterCommit && Failures == 0 && HasReceipt(eventData.Context)) { Failures++; throw new CommitFailureTransientException("Injected module acknowledgement loss."); }
+            return Task.CompletedTask;
+        }
+    }
+
+    private static async Task<(Guid Route, Guid Set, string Version)> CreatePublishedGeometryAsync(HttpClient client, string pm, string supervisor, Guid project)
+    {
+        var prefix = $"/api/v1/projects/{project}";
+        await LoginAsync(client, pm);
+        var draft = await SendAsync(client, HttpMethod.Post, prefix + "/road-geometry-drafts", new { sourceKind = "COORDINATES", sourceCrs = 32648,
+            stationOriginMeters = 0, changeReason = "Candidate fixture", coordinates = new[] { new { x = 500000d, y = 1200000d }, new { x = 500250d, y = 1200000d } },
+            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 250d, widthMeters = 7d } }, surveyWidthMeters = 9d, roadCode = $"R-{Guid.NewGuid():N}" }, Guid.NewGuid().ToString());
+        draft.EnsureSuccessStatusCode();
+        await LoginAsync(client, supervisor);
+        var confirmed = await SendAsync(client, HttpMethod.Post, draft.Headers.Location!.OriginalString + "/confirm",
+            new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Approved fixture geometry" }, Guid.NewGuid().ToString(), draft.Headers.ETag!.ToString());
+        confirmed.EnsureSuccessStatusCode(); var route = await confirmed.Content.ReadFromJsonAsync<JsonElement>();
+        var routeId = route.GetProperty("routeVersionId").GetGuid(); var roadId = route.GetProperty("roadSectionId").GetGuid();
+        await LoginAsync(client, pm);
+        var setsPath = prefix + $"/road-sections/{roadId}/versions/{routeId}/segment-sets";
+        var created = await SendAsync(client, HttpMethod.Post, setsPath, new { targetLengthMeters = 100d, remainderMode = "KEEP" }, Guid.NewGuid().ToString());
+        created.EnsureSuccessStatusCode(); var setId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        (await SendAsync(client, HttpMethod.Post, setsPath + $"/{setId}/publish", new { expectedPublishedSetId = (Guid?)null, reason = "Published fixture" }, Guid.NewGuid().ToString(), created.Headers.ETag!.ToString())).EnsureSuccessStatusCode();
+        var package = await client.GetAsync(prefix + $"/geometry-package?routeVersionId={routeId}&segmentSetId={setId}");
+        package.EnsureSuccessStatusCode(); return (routeId, setId, package.Headers.ETag!.Tag!.Trim('"'));
+    }
+
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task Case_TriageLinkSplitConclusionPublication_KeepVersionsHistoryAndRecipientPrivacy()
+    {
+        var reporter = await sql.CreateUserAsync($"case-reporter-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var supervisor = await sql.CreateUserAsync($"case-supervisor-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var pm = await sql.CreateUserAsync($"case-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var projectId = Guid.NewGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            db.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(projectId, $"CS-{Guid.NewGuid():N}", "Case project", null, 32648,
+                new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), DateTimeOffset.UtcNow));
+            db.ProjectMembers.Add(RoadGuardSystem.BusinessObjects.Projects.ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), projectId, pm.Id, new DateOnly(2026, 1, 1)));
+            await db.SaveChangesAsync();
+        }
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+            services.AddHuy01ReporterPersistence(); services.AddHuy01ReporterServices();
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+        var file = await UploadVerifiedAsync(client, factory);
+        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Case workflow",
+            evidence = new[] { new { fileId = file.FileId, fileVersion = file.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        var reportId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Guid caseId;
+        await using (var db = sql.CreateDbContext()) caseId = (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().SingleAsync(l => l.ReportId == reportId && l.EndedAt == null)).CaseId;
+        await LoginAsync(client, pm.UserName!);
+        (await client.GetAsync("/api/v1/cases")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await client.GetAsync($"/api/v1/cases/{caseId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await LoginAsync(client, supervisor.UserName!);
+        var unassigned = await client.GetAsync($"/api/v1/cases/{caseId}");
+        unassigned.StatusCode.Should().Be(HttpStatusCode.OK);
+        var triage = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{caseId}/triage", new { projectId, verificationMethod = "EXISTING_EVIDENCE", reason = "Initial routing" }, Guid.NewGuid().ToString(), unassigned.Headers.ETag!.ToString());
+        triage.StatusCode.Should().Be(HttpStatusCode.OK);
+        await LoginAsync(client, pm.UserName!);
+        var scoped = await client.GetAsync($"/api/v1/cases/{caseId}");
+        scoped.StatusCode.Should().Be(HttpStatusCode.OK);
+        Guid evidenceId;
+        await using (var db = sql.CreateDbContext()) evidenceId = (await db.Reports.Include(r => r.OriginalEvidence).SingleAsync(r => r.Id == reportId)).OriginalEvidence.Single().Id;
+        var conclusion = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{caseId}/conclusions", new { outcome = "NO_DEFECT", defectIds = Array.Empty<Guid>(), evidenceIds = new[] { evidenceId }, reason = "Photo has no defect" }, Guid.NewGuid().ToString(), scoped.Headers.ETag!.ToString());
+        conclusion.StatusCode.Should().Be(HttpStatusCode.OK);
+        var key = Guid.NewGuid().ToString();
+        var body = new { reportIds = new[] { reportId }, defectIds = Array.Empty<Guid>(), evidenceIds = new[] { evidenceId }, summary = "No defect found" };
+        var published = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{caseId}/publications", body, key, conclusion.Headers.ETag!.ToString());
+        published.StatusCode.Should().Be(HttpStatusCode.Created);
+        var replay = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{caseId}/publications", body, key, conclusion.Headers.ETag!.ToString());
+        (await replay.Content.ReadAsStringAsync()).Should().Be(await published.Content.ReadAsStringAsync());
+        replay.Headers.ETag.Should().Be(published.Headers.ETag); replay.Headers.Location.Should().Be(published.Headers.Location);
+        await LoginAsync(client, reporter.UserName!);
+        var own = await client.GetFromJsonAsync<JsonElement>($"/api/v1/reports/{reportId}");
+        own.GetProperty("publicUpdates").GetArrayLength().Should().Be(1);
+        var previousUpdate = own.GetProperty("publicUpdates").GetRawText();
+        var extraFile = await UploadVerifiedAsync(client, factory);
+        var ownResponse = await client.GetAsync($"/api/v1/reports/{reportId}");
+        var supplemented = await SendAsync(client, HttpMethod.Post, $"/api/v1/reports/{reportId}/supplements",
+            new { description = "New evidence after conclusion", evidence = new[] { new { fileId = extraFile.FileId, fileVersion = extraFile.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString(), ownResponse.Headers.ETag!.ToString());
+        supplemented.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await supplemented.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("publicUpdates").GetRawText().Should().Be(previousUpdate);
+        (await client.GetAsync($"/api/v1/cases/{caseId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await using (var db = sql.CreateDbContext())
+        {
+            (await db.Set<RoadGuardSystem.BusinessObjects.Cases.CasePublication>().CountAsync(p => p.CaseId == caseId)).Should().Be(1);
+            (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyPublicationRecipient>().CountAsync(r => r.ReportId == reportId)).Should().Be(1);
+            (await db.IncidentCases.SingleAsync(c => c.Id == caseId)).Status.Should().Be(RoadGuardSystem.BusinessObjects.Cases.IncidentCaseStatus.Open);
+        }
+    }
+
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task OwnReport_ReadSupplementReplayPrivacyAndDownload_UseRealSqlGraph()
+    {
+        var reporter = await sql.CreateUserAsync($"reporter-lifecycle-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var other = await sql.CreateUserAsync($"reporter-other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>();
+            services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+            services.AddHuy01ReporterPersistence(); services.AddHuy01ReporterServices();
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+        var original = await UploadVerifiedAsync(client, factory);
+        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Original",
+            evidence = new[] { new { fileId = original.FileId, fileVersion = original.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var reportId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var detail = await client.GetAsync($"/api/v1/reports/{reportId}");
+        detail.StatusCode.Should().Be(HttpStatusCode.OK);
+        var initial = await detail.Content.ReadFromJsonAsync<JsonElement>();
+        initial.GetProperty("evidence").GetArrayLength().Should().Be(1);
+        initial.GetProperty("publicUpdates").GetArrayLength().Should().Be(0);
+        var evidenceId = initial.GetProperty("evidence")[0].GetProperty("id").GetGuid();
+        var download = await client.GetAsync($"/api/v1/reports/{reportId}/evidence/{evidenceId}/download");
+        download.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await download.Content.ReadAsByteArrayAsync()).Should().Equal(1, 2, 3, 4);
+        var added = await UploadVerifiedAsync(client, factory);
+        var key = "supplement " + Guid.NewGuid();
+        var payload = new { description = "Additional", evidence = new[] { new { fileId = added.FileId, fileVersion = added.Version, locationSource = "UNKNOWN" } } };
+        var path = $"/api/v1/reports/{reportId}/supplements";
+        var supplements = await Task.WhenAll(SendAsync(client, HttpMethod.Post, path, payload, key, detail.Headers.ETag!.ToString()),
+            SendAsync(client, HttpMethod.Post, path, payload, key, detail.Headers.ETag!.ToString()));
+        var first = supplements[0];
+        supplements[1].StatusCode.Should().Be(HttpStatusCode.OK);
+        (await supplements[1].Content.ReadAsStringAsync()).Should().Be(await first.Content.ReadAsStringAsync());
+        supplements[1].Headers.ETag.Should().Be(first.Headers.ETag);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        first.Headers.ETag.Should().NotBe(detail.Headers.ETag);
+        var replay = await SendAsync(client, HttpMethod.Post, path, payload, key, detail.Headers.ETag!.ToString());
+        replay.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(await first.Content.ReadAsStringAsync());
+        replay.Headers.ETag.Should().Be(first.Headers.ETag);
+        var faultFile = await UploadVerifiedAsync(client, factory);
+        var faultRequest = new CreateReporterReportRequestDto("Fault-tested supplement",
+            [new ReportEvidenceInputDto(faultFile.FileId, faultFile.Version, "UNKNOWN")]);
+        Guid activeCase;
+        byte[] beforeCaseVersion;
+        await using (var db = sql.CreateDbContext())
+        {
+            activeCase = (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>()
+                .SingleAsync(l => l.ReportId == reportId && l.EndedAt == null)).CaseId;
+            beforeCaseVersion = await db.IncidentCases.Where(c => c.Id == activeCase)
+                .Select(c => EF.Property<byte[]>(c, "RowVersion")).SingleAsync();
+        }
+        var failedKey = Guid.NewGuid().ToString();
+        var precommit = new CommandCommitFailure(failedKey, false);
+        await using (var db = ModuleFaultContext(precommit))
+            await Assert.ThrowsAsync<RetryLimitExceededException>(() => LifecycleService(db).SupplementAsync(reporter.Id,
+                UserRoleCode.Reporter, reportId, faultRequest, failedKey, first.Headers.ETag!.Tag!.Trim('"'), null, default));
+        precommit.Failures.Should().Be(3);
+        await using (var db = sql.CreateDbContext())
+        {
+            (await db.ReportSupplements.CountAsync(s => s.ReportId == reportId)).Should().Be(1);
+            (await db.Reports.Where(r => r.Id == reportId).Select(r => EF.Property<byte[]>(r, "RowVersion")).SingleAsync())
+                .Should().Equal(Convert.FromBase64String(first.Headers.ETag!.Tag!.Trim('"')));
+            (await db.IncidentCases.Where(c => c.Id == activeCase).Select(c => EF.Property<byte[]>(c, "RowVersion")).SingleAsync())
+                .Should().Equal(beforeCaseVersion);
+            (await db.AuditLogs.CountAsync(a => a.EntityId == reportId && a.EventType == "report_supplemented")).Should().Be(1);
+            (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == reporter.Id && r.IdempotencyKey == failedKey)).Should().Be(0);
+        }
+        var recoveredKey = Guid.NewGuid().ToString();
+        var postcommit = new CommandCommitFailure(recoveredKey, true);
+        RoadGuardSystem.Services.Reports.ReporterLifecycleResult recovered;
+        await using (var db = ModuleFaultContext(postcommit))
+            recovered = await LifecycleService(db).SupplementAsync(reporter.Id, UserRoleCode.Reporter, reportId, faultRequest,
+                recoveredKey, first.Headers.ETag!.Tag!.Trim('"'), null, default);
+        recovered.Status.Should().Be(200); postcommit.Failures.Should().Be(1);
+        await using (var db = sql.CreateDbContext())
+        {
+            var replayed = await LifecycleService(db).SupplementAsync(reporter.Id, UserRoleCode.Reporter, reportId, faultRequest,
+                recoveredKey, first.Headers.ETag!.Tag!.Trim('"'), null, default);
+            JsonSerializer.Serialize(replayed.Report).Should().Be(JsonSerializer.Serialize(recovered.Report));
+            (await db.ReportSupplements.CountAsync(s => s.ReportId == reportId)).Should().Be(2);
+            (await db.AuditLogs.CountAsync(a => a.EntityId == reportId && a.EventType == "report_supplemented")).Should().Be(2);
+            (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == reporter.Id && r.IdempotencyKey == recoveredKey)).Should().Be(1);
+        }
+        var stale = await SendAsync(client, HttpMethod.Post, path, payload, Guid.NewGuid().ToString(), detail.Headers.ETag!.ToString());
+        stale.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        var secondFile = await UploadVerifiedAsync(client, factory);
+        var secondReport = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Second report",
+            evidence = new[] { new { fileId = secondFile.FileId, fileVersion = secondFile.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        secondReport.StatusCode.Should().Be(HttpStatusCode.Created);
+        var secondReportId = (await secondReport.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var firstPage = await client.GetFromJsonAsync<JsonElement>("/api/v1/reports?pageSize=1");
+        firstPage.GetProperty("items").GetArrayLength().Should().Be(1);
+        var cursor = firstPage.GetProperty("nextCursor").GetString();
+        cursor.Should().NotBeNullOrWhiteSpace();
+        var nextPage = await client.GetFromJsonAsync<JsonElement>($"/api/v1/reports?pageSize=1&cursor={Uri.EscapeDataString(cursor!)}");
+        nextPage.GetProperty("items").GetArrayLength().Should().Be(1);
+        new[] { firstPage.GetProperty("items")[0].GetProperty("id").GetGuid(), nextPage.GetProperty("items")[0].GetProperty("id").GetGuid() }
+            .Should().BeEquivalentTo(new[] { reportId, secondReportId });
+        nextPage.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
+        await using (var db = sql.CreateDbContext())
+        {
+            var link = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().SingleAsync(l => l.ReportId == reportId && l.EndedAt == null);
+            (await db.ReportSupplements.CountAsync(s => s.ReportId == reportId)).Should().Be(2);
+            (await db.IncidentCases.CountAsync(c => c.Id == link.CaseId)).Should().Be(1);
+            (await db.AuditLogs.CountAsync(a => a.EntityId == reportId && a.EventType == "report_supplemented")).Should().Be(2);
+        }
+        await LoginAsync(client, other.UserName!);
+        (await client.GetAsync($"/api/v1/reports?pageSize=1&cursor={Uri.EscapeDataString(cursor!)}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync($"/api/v1/reports/{reportId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.GetAsync($"/api/v1/reports/{reportId}/evidence/{evidenceId}/download")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await SendAsync(client, HttpMethod.Post, path, payload, key, detail.Headers.ETag!.ToString())).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     [Theory]
     [Trait("Package", "HUY-01")]
     [InlineData("{}", "evidence[0].location.latitude")]

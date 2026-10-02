@@ -9,6 +9,18 @@ namespace RoadGuardSystem.UnitTests.Reports;
 public sealed class Huy01ReporterCaseDomainTests
 {
     [Fact]
+    public void Case_AssignedMethodSelection_PreservesProjectAndRejectsInvalidInputBeforeMutation()
+    {
+        var incident = CreateOpenCase(Guid.NewGuid(), out var project);
+        var invalid = () => incident.SelectVerificationMethod(CaseVerificationMethod.Drone, " ", DateTimeOffset.UtcNow);
+        invalid.Should().Throw<ArgumentException>();
+        incident.VerificationMethod.Should().Be(CaseVerificationMethod.ExistingEvidence);
+        incident.SelectVerificationMethod(CaseVerificationMethod.Drone, "New method", DateTimeOffset.UtcNow);
+        incident.ProjectId.Should().Be(project);
+        incident.VerificationMethod.Should().Be(CaseVerificationMethod.Drone);
+    }
+
+    [Fact]
     public void Supplement_AppendsImmutableEvidenceWithoutChangingReportOrigin()
     {
         var reporterId = Guid.NewGuid();

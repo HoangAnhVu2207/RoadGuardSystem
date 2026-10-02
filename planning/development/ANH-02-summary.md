@@ -222,3 +222,173 @@ Anh intersections completed, required real Huy/live/deployment gates remain). Hu
 can continue immediately from checkpoint A, supply exact permission-aware reader/
 mapping checkpoint and role-row guard correction; Anh remains shared writer for
 next adoption. No new business decision inferred, no request to reconfirm D1–D5.
+
+
+## Independent follow-up after A/B — 2026-10-03 (Partial)
+
+TARGET_CONFIRMED: owner continuation from attachment 2e815eed-b1fd-4f9d-b332-4401e30ccbce.
+Initial/local/remote/base and HEAD before this new commit:
+`a46b97b271b4af1b9e89dc182b5e3fc7a10e8fff`, branch `anh-review`, initial dirty paths:
+none. A `715ade2c20f652b77c8c7e995c76bb5d47ead966` and B are retained, not amended or
+redelivered as new work. Final commit SHA and exact compare are in the Git handoff;
+[follow-up compare](https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/a46b97b271b4af1b9e89dc182b5e3fc7a10e8fff...anh-review).
+AGENTS, active post-rf11-development-1 manifest/rules/module map, ANH-01/02 specs,
+summaries, canonical contract and writer reservations read against current source.
+No retired RoadGuard skill, reset/restore/stash/discard, amend/force push, merge,
+main/develop/Huy branch edit, new Huy checkpoint import, schema/migration/identity/
+processing policy/dependency upgrade/shared DB/physical deletion. Anh shared writer
+for this limited existing CI/contract/Postman change; Huy's Reporter/role-row/
+readers/mapping are untouched. ANH-01-summary unchanged: no ANH-01 gate promoted.
+
+Initial gate inventory: CURRENT_VERIFIED A/B BE admission/reporting/retention/
+snapshot seams (prior evidence, selectively rerun here); immediately actionable:
+PDF dimensions/details/font config, snapshot/reference change + storage ACK loss,
+consumer filter validation and repeatable tooling. Huy dependencies: role-row
+Reporter guard, current-approved/source-access/matching/case-defect/dossier/
+timeline/full inventory. Environment dependencies: live MinIO, actual 8 GiB,
+full CLI demo, Linux/container/deployed fonts and external review.
+
+Findings reproduced/fixed inside Anh ownership:
+- Warm PDFsharp cache hid absent font configuration: red1/1, then fail-closed
+  font path/readability/size/bytes identity on every render. Explicit
+  export_font_unavailable; process restart when replacing cached font. XFont
+  configuration errors map to that code. No font binary or new package committed.
+- PDF previously omitted metric dimensions/drilldown values, including validation
+  values. Render stored scope/period, translated name + stable code, value/unit/
+  availability/reasons, status/band/route/set, numerator/denominator/period flag,
+  per-item source/version/segment/dataset/assessment and validation details;
+  warnings and timeline availability are visible. Wrapped rows and page numbers,
+  normal metric/item blocks kept together. No changed KPI/business formula.
+- Typed training reader could return labels outside selected segment IDs: red8
+  (7 pass/1 fail; wrong-segment returned202), now422 producer_invalid with zero
+  export effects. Existing duplicate head/null annotation/private-source guards
+  retained. Current APPROVED/head policy remains Huy's producer; not duplicated.
+
+BE CURRENT_VERIFIED evidence: actual auth/production DI/SQL/private verified
+upload -> Reporter intake; fixture-only case attribution explicitly labelled,
+not claimed as unavailable Huy triage acceptance. Admission snapshot counts1;
+closing canonical case link before render changes live count to0. Replay/render/
+retry keep exact stored JSON/hash. Artifact write ACK lost after durable bytes:
+recovery reuses same bytes, one write/GeneratedArtifact/job; protected HTTP200.
+Existing scoped role/password/membership replay/conflict barriers and bounded
+serializable basis/hold/reference/evaluation races rerun. Inventory keeps closed
+intake links, original/supplement evidence and generated artifacts; named HUY
+missing/incomplete always remains fail-closed. No ELIGIBLE promotion/deletion.
+
+Actual self-review1: actor/role/password/membership, receipt/recovery ordering,
+current file/source permissions, snapshot-only render, source reference drift,
+transaction/durable-effect counts, hold/evaluation races and missing storage.
+Fixed the reproduced segment-filter and warm-font failures. Existing authority/
+retention/source formulas needed no new production changes. Source-based Huy
+Roles.IsActive finding remains owner-Huy/PENDING; not patched concurrently.
+Actual self-review2: final ownership/compatibility diff, font global-cache/runtime,
+all PDF pages/text/bounds, ZIP manifest/entry/proof, CLI signed URL privacy and
+bounded transfers, resume original complete If-Match, fixture/catalog/model scope,
+Postman assertions and CI configuration. Fixed completion status COMPLETE for
+retention (distinct from export SUCCEEDED), batch fresh signed URLs, explicitly
+mark synthetic sample, keep ordinary PDF rows together. These two reviews are
+Codex self-review; external ChatGPT A/B review stays PENDING.
+
+Tooling/config changes reuse tools/demo/anh01/setup_demo.py: full `anh02` phase
+uses a separate exact AI fixture dataset/current geometry-package ETag, existing
+RELEASED model/ACTIVE device/current Operator, mock worker, private synthetic
+Reporter PNG+intake replay, reporting/PDF/ZIP/hold/evaluation. No approval/case
+conclusion/full reader output fabricated; unassigned Report is excluded from
+project reporting. Existing prepare/survey phases preserved. `large` requires
+actual valid MP4 of exactly8,589,934,592 bytes, hashes/PUTs/downloads with64KiB
+buffers, URLs in64-part batches and original complete payload/version persisted
+before submission. Loopback-only signed PUT; no credentials/URLs in state/logs,
+no existing output overwrite; new download file/hash must match. Small input is
+rejected, never accepted as A07. Fixed tiny ANH-01/02 fixture hashes validated.
+Local transport helper tests use small synthetic bytes, NOT 8 GiB/MinIO acceptance.
+Optional storage.compose.yml has separate explicit disposable Compose project,
+loopback ports, required environment credentials and project-scoped volume;
+config --quiet checked with non-used fixture placeholders, no service started.
+
+Font tests now require ANH02_TEST_FONT_PATH; removed all C:/Windows/Fonts fallback
+from source/tests. Existing CI unit/API jobs configure fonts-dejavu-core and
+explicit DejaVuSans path, no trigger/package/framework changes. Local checks use
+explicit system Arial environment; this does NOT verify font rights/deployment.
+Primary font-source web lookup failed (tool service HTTP500); no new font
+redistributed or license acceptance claimed. Deployment must mount an embedding-
+licensed Unicode TTF and set Anh02__Export__UnicodeFontPath; see existing demo
+README for mock/workers/fixture/storage/8 GiB prerequisite commands.
+
+Fresh exact commands/results (owned disposable SQL only; counts not accumulated):
+- `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --no-incremental --disable-build-servers -v quiet -clp:ErrorsOnly`:0 errors/98 warnings, exit0.
+- With ANH02_TEST_FONT_PATH explicitly set and optional ANH02_SAMPLE_DIRECTORY=artifacts/anh02-runtime:
+  `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --disable-build-servers --filter FullyQualifiedName~Anh02 -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh02-runtime-unit-final.trx'`:79 executed/79 pass/0 fail/0 skip.
+- Same font environment:
+  `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Anh02' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh02-runtime-api-final.trx'`:23 executed/23 pass/0 fail/0 skip.
+- `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Anh02ExportPersistenceTests|FullyQualifiedName~Anh02RetentionPersistenceTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh02-runtime-sql.trx'`:17 executed/17 pass/0 fail/0 skip.
+- After final renderer pagination edit, ApiTests same command filter
+  `FullyQualifiedName~Anh02ExportHttpTests|FullyQualifiedName~Anh02_real_intake|FullyQualifiedName~Anh02_reporting_snapshot`, TRX anh02-runtime-render-http-final.trx:4 executed/pass/0 fail/skip, overlapping23 (not added).
+- `python -m unittest discover -s tools/demo/anh01 -p test_setup_demo.py -v`:4 executed/pass/0 fail/skip (bounded exact slice loopback PUT; external URL rejection; small-file reject; complete ACK replay retains original body/version).
+- `python tools/demo/anh01/setup_demo.py --validate-only`:exit0, no API/DB accessed.
+- `./.tools/dotnet-ef.exe migrations has-pending-model-changes --context RoadGuardDbContext --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build`:exit0/no pending model, process-only ROADGUARD_MIGRATION_CONNECTION_STRING=unreachable127.0.0.1,1 restored afterward; no DB migration/application.
+- `pwsh -File tests/CI/Verify-CiWorkflow.ps1`:exit0.
+- `docker compose -f tools/demo/anh01/storage.compose.yml -p roadguard-anh02-disposable config --quiet`:exit0; temporary non-used placeholder environment removed, no credentials printed.
+- Node VM parsed199 leaf Postman scripts and executed10 targeted manifest strong ETag/privacy/immutable hash/poll30-day-expiry/binary assertions; all pass. All156 previous leaf items retained; only4 existing export items changed. Postman HTTP runner NOT RUN.
+- Local production renderer sample PDF5pages + empty PDF1page + dossier ZIP;
+  PdfReader/ExportArchive proof assertions, Python pypdf/pdfplumber text/glyph/
+  bounds and ZIP exact entries/manifest/recovery marker checks pass. Poppler
+  rendered all5pages, visually reviewed contact sheet and first page: no clipped
+  text/overlap/broken Vietnamese. Samples in ignored artifacts/anh02-runtime,
+  synthetic fixture hash marker explicitly not SQL/storage production proof;
+  no new report/PDF/ZIP handoff package committed.
+- TRX counters parsed:119 distinct .NET cases +4 Python =123 passing,0 failed/
+  skipped. Focused overlapping reruns excluded. No broad RF/full suite.
+
+Failure history retained: warm-font regression red1; initial training red8=7pass/
+1fail; CA1305 on new explicit numerator/denominator ToString stopped compile
+(selected0), fixed invariant culture; duplicate using stopped unit compile
+(selected0), removed then20 export/79 final unit pass. Initial EF attempt used
+wrong process variable, design factory reported missing
+ROADGUARD_MIGRATION_CONNECTION_STRING; diagnostic NOT PASS, corrected and
+reran with no pending model. Canonical raw-byte prefix check initially failed
+because working-tree CRLF versus Git LF; EOL-normalized source-prefix check and
+final Git diff confirm old content unchanged. No unresolved test failure.
+
+NOT RUN/PENDING: `docker pull minio/minio:RELEASE.2025-04-22T22-12-26Z` again
+returned pull access denied; Docker inventory only SQL2019CU18/ryuk, no running
+MinIO or assigned disposable bucket. No live upload/complete/verification/
+download/export storage acceptance, actual8GiB input/transfer/memory benchmark,
+full CLI seed/demo, hosted CI/Linux/container/deployed font/license packaging,
+external AI/Android/Web, performance/backup/restore/shared/deployed DB, external
+ChatGPT review, new Huy readers/role-row correction acceptance. Former quay401
+and prior A/B failures/limitations remain in preceding sections.
+
+Huy handoff required at exact assigned revision (no tip merge):
+1. Reporter role-row guard locks/rechecks Roles.IsActive including HTTP post-
+   preflight replay/conflict and SQL recovery; no concurrent Anh edit.
+2. IApprovedTrainingLabelReader + ITrainingSourceAccessReader (Anh02Contracts.cs):
+   same scoped transaction or adopted durable snapshot; current APPROVED head,
+   malformed/duplicate/null/out-of-segment/foreign/file/provenance deny;
+   approval/head change before/after commit; historical revision retained,
+   current source/revocation rechecked at worker/download; actual producer SQL.
+3. IMatchingCandidateSnapshotReader: same-project route/set/geometry version,
+   requested snapshot identity/hash/source versions, stale/head correction races;
+   real VIDEO_ANALYSIS -> DUPLICATE_MATCHING -> Huy consumption.
+4. Permission-aware CaseDefectRead/dossier/timeline mapping with exact fields/
+   fixture acceptance/adoption; absent interface is not invented here. Full named
+   HUY IRetentionInventoryContributor using caller scoped DB/transaction,
+   supplement/publication/candidate/defect/label/repair references, historical
+   obligations and completeness/drift; partial stays incomplete.
+
+No new business decision needed for delivered independent scope. Configuration
+still needed to execute external gates: owner-available MinIO image/disposable
+private bucket/loopback API with isolated migrated DB, authorised external Unicode
+font, actual8GiB valid MP4/disk capacity, preregistered device/model/catalog and
+current demo identities/membership; credentials remain environment-only. CRS/
+WGS84/GPX decision/dependency gate unchanged. ANH-01/ANH-02/HUY-01 and Reporter P1
+remain Partial/PENDING. Commit/push is normal/selective on anh-review; exact final
+SHA/compare and changed files are delivered in the same final handoff.
+
+Changed-file scope (16 files, selected commit only): existing ExportRenderer/
+ExportService; API export/intake/training consumer tests; unit renderer/storage
+tests; existing CI workflow; canonical anh01.local-contract; integrated Postman
+collection/local environment; existing demo README/setup_demo.py; new optional
+storage.compose.yml and test_setup_demo.py; this existing ANH-02-summary.
+ANH-01-summary, all Huy production files/reader contracts, persistence/schema/
+model/migrations, identity/processing and shared DI unchanged. Local/remote HEAD
+will be checked again after normal push; exact final SHA is emitted in handoff.

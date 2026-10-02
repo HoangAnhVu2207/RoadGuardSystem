@@ -82,24 +82,40 @@ public sealed class ExportRenderer : IExportRenderer
         ct.ThrowIfCancellationRequested();
         lock (FontLock)
         {
+            byte[] fontBytes;
+            try
+            {
+                var file = new FileInfo(_options.UnicodeFontPath);
+                if (!file.Exists || file.Length is < 12 or > 16 * 1024 * 1024) throw new ExportRenderException("export_font_unavailable");
+                fontBytes = File.ReadAllBytes(file.FullName);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            { throw new ExportRenderException("export_font_unavailable"); }
+            var fontHash = Convert.ToHexString(SHA256.HashData(fontBytes));
             if (GlobalFontSettings.FontResolver is null)
             {
-                if (!File.Exists(_options.UnicodeFontPath)) throw new ExportRenderException("export_font_unavailable");
                 // Deployment supplies a font licensed for embedding. No proprietary font is redistributed by this package.
-                GlobalFontSettings.FontResolver = new UnicodeFontResolver(File.ReadAllBytes(_options.UnicodeFontPath));
+                GlobalFontSettings.FontResolver = new UnicodeFontResolver(fontBytes, fontHash);
             }
+            // PDFsharp has a process-global font cache. Never silently use an unrelated
+            // host's font or an old font after configuration changed; restart to change it.
+            if (GlobalFontSettings.FontResolver is not UnicodeFontResolver resolver || resolver.Hash != fontHash)
+                throw new ExportRenderException("export_font_unavailable");
         }
         using var document = new PdfDocument();
         document.Info.Title = "Hồ sơ RoadGuard";
         document.Info.Subject = "Snapshot " + payload.Manifest.SnapshotHash;
         document.Info.CreationDate = payload.Manifest.SnapshotAt.UtcDateTime; document.Info.ModificationDate = payload.Manifest.SnapshotAt.UtcDateTime;
-        var font = new XFont("RoadGuardUnicode", 10, XFontStyleEx.Regular, new XPdfFontOptions(PdfFontEncoding.Unicode));
+        XFont font;
+        try { font = new XFont("RoadGuardUnicode", 10, XFontStyleEx.Regular, new XPdfFontOptions(PdfFontEncoding.Unicode)); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NotSupportedException)
+        { throw new ExportRenderException("export_font_unavailable"); }
         XGraphics? graphics = null; double y = 0; var pageNumber = 0;
         void Page()
         {
             graphics?.Dispose(); var page = document.AddPage(); page.Size = PdfSharp.PageSize.A4; pageNumber++;
             graphics = XGraphics.FromPdfPage(page); y = 44;
-            graphics.DrawString($"RoadGuard | Trang {pageNumber} | {payload.Manifest.SnapshotAt:yyyy-MM-dd HH:mm} UTC", font, XBrushes.Gray, new XRect(40, page.Height.Point - 35, page.Width.Point - 80, 18), XStringFormats.TopLeft);
+            graphics.DrawString($"RoadGuard | Trang {pageNumber} | {payload.Manifest.SnapshotAt.ToUniversalTime():yyyy-MM-dd HH:mm} UTC", font, XBrushes.Gray, new XRect(40, page.Height.Point - 35, page.Width.Point - 80, 18), XStringFormats.TopLeft);
         }
         void Line(string text)
         {
@@ -128,15 +144,36 @@ public sealed class ExportRenderer : IExportRenderer
             Line("Dự án: " + payload.Manifest.ProjectId); Line("Thời điểm snapshot: " + payload.Manifest.SnapshotAt.ToString("O"));
             Line("Snapshot: " + payload.Manifest.SnapshotId); Line("SHA-256: " + payload.Manifest.SnapshotHash);
             Line("Định nghĩa: " + string.Join(", ", payload.Manifest.DefinitionVersions));
+            foreach (var warning in payload.Dossier?.Summary.Warnings ?? []) Line("Cảnh báo: " + warning);
+            var filters = payload.Dossier?.Summary.Filters;
+            Line($"PHẠM VI | từ {payload.Manifest.Filters.From?.ToUniversalTime().ToString("O") ?? "không giới hạn"} (bao gồm) | đến {payload.Manifest.Filters.To?.ToUniversalTime().ToString("O") ?? "không giới hạn"} (không bao gồm)");
+            Line($"Route: {filters?.RouteVersionId?.ToString() ?? "tất cả trong dự án"} | Set: {filters?.SegmentSetId?.ToString() ?? "tất cả trong phạm vi"}");
+            Line("Segments: " + (payload.Manifest.Filters.SegmentIds is { Length: > 0 } segmentIds ? string.Join(", ", segmentIds) : "tất cả trong phạm vi"));
             Line("TỔNG HỢP | Giá trị | Đơn vị | Tình trạng nguồn");
             foreach (var metric in payload.Dossier?.Summary.Metrics ?? [])
-                Line($"{metric.Code}: {(metric.Value?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "UNKNOWN")} | {metric.Unit} | {metric.Availability}" + (metric.ReasonCodes.Length == 0 ? "" : " | " + string.Join(", ", metric.ReasonCodes)));
+            {
+                if (y > 640) Page(); // Keep a normal metric block together; Line still handles oversized text.
+                Line($"{MetricName(metric.Code)} ({metric.Code}): {(metric.Value?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "UNKNOWN")} | {metric.Unit} | {metric.Availability}" + (metric.ReasonCodes.Length == 0 ? "" : " | " + string.Join(", ", metric.ReasonCodes)));
+                Line($"Status: {metric.Dimensions.Status ?? "không áp dụng"} | Band: {metric.Dimensions.Band ?? "không áp dụng"} | Route: {metric.Dimensions.RouteVersionId?.ToString() ?? "không áp dụng"} | Set: {metric.Dimensions.SegmentSetId?.ToString() ?? "không áp dụng"}");
+                Line($"Tử số: {metric.Numerator?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "không áp dụng"} | Mẫu số: {metric.Denominator?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "không áp dụng"} | Áp dụng kỳ: {(metric.PeriodApplicable ? "có" : "không")}");
+            }
             if (payload.Dossier?.Items.Length == 0) Line("Chưa có dữ liệu trong phạm vi đã chọn.");
+            Line("CHI TIẾT THEO CHỈ SỐ - SNAPSHOT");
+            foreach (var item in payload.Dossier?.Items ?? [])
+            {
+                if (y > 640) Page();
+                Line($"{item.Metric} | {item.Type} {item.Id} | {item.Version} | Status: {item.Status ?? "không áp dụng"} | Band: {item.Band ?? "không áp dụng"}");
+                Line($"Route: {item.RouteVersionId?.ToString() ?? "không áp dụng"} | Set: {item.SegmentSetId?.ToString() ?? "không áp dụng"} | Segment: {item.SegmentId?.ToString() ?? "không áp dụng"}");
+                if (item.DatasetId.HasValue || item.AssessmentId.HasValue) Line($"Dataset: {item.DatasetId} | Assessment: {item.AssessmentId}");
+                if (item.SizeBytes.HasValue) Line($"Size: {item.SizeBytes} bytes");
+                if (item.Metric == "validationMetrics") Line($"Unit: {item.Unit} | Bias: {Number(item.Bias)} | MAE: {Number(item.Mae)} | RMSE: {Number(item.Rmse)} | Used: {item.Used} | Excluded: {item.Excluded} | Model: {item.ModelVersionId} | Split: {item.SplitId} | Measurement: {item.MeasurementType}");
+            }
             Line("NGUỒN VÀ PHIÊN BẢN");
             foreach (var source in payload.Manifest.SourceRevisions) Line($"{source.Kind} | {source.Id} | {source.Version}");
             foreach (var f in payload.Manifest.Files) Line($"File {f.FileId} | {f.FileVersion} | {f.SizeBytes} bytes | {f.Sha256} | {f.ReasonCode}");
             Line("DIỄN BIẾN");
             foreach (var item in payload.Dossier?.Timeline ?? []) Line($"{item.OccurredAt:O} | {item.Action} | {item.Source.Type} {item.Source.Id} {item.Source.Version} | {item.Summary}");
+            if (payload.Dossier is { } dossier) Line($"Timeline: {dossier.TimelineAvailability.Availability} | {string.Join(", ", dossier.TimelineAvailability.ReasonCodes)}");
             Line("CÁC PHẦN CHƯA CÓ NGUỒN");
             foreach (var section in payload.Manifest.Sections.Where(s => s.Availability != "AVAILABLE")) Line($"{section.Name}: {section.Availability} | {string.Join(", ", section.ReasonCodes)}");
             foreach (var l in payload.Manifest.Labels ?? []) if (l.Mode != "REAL") Line($"MOCK/SYNTHETIC | label {l.LabelId} | mode {l.Mode}");
@@ -149,8 +186,17 @@ public sealed class ExportRenderer : IExportRenderer
         finally { graphics?.Dispose(); }
         return Task.CompletedTask;
     }
-    private sealed class UnicodeFontResolver(byte[] font) : IFontResolver
+    private static string Number(decimal? value) => value?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "UNKNOWN";
+    private static string MetricName(string code) => code switch
     {
+        "reportsReceived" => "Phản ánh đã nhận", "casesByStatus" => "Hồ sơ theo trạng thái", "defectsByStatus" => "Hư hỏng theo trạng thái",
+        "surveyTasksByStatus" => "Công việc khảo sát theo trạng thái", "legacyUnclassified" => "Dữ liệu cũ chưa phân loại",
+        "baselineCoverageByBand" => "Tỷ lệ segment có baseline theo band", "verifiedSourceBytes" => "Dung lượng nguồn đã xác minh",
+        "repairItemsByStatus" => "Sửa chữa theo trạng thái", "repairAcceptanceRate" => "Tỷ lệ nghiệm thu sửa chữa", "validationMetrics" => "Chỉ số validation từng lần chạy", _ => code
+    };
+    private sealed class UnicodeFontResolver(byte[] font, string hash) : IFontResolver
+    {
+        public string Hash { get; } = hash;
         public FontResolverInfo? ResolveTypeface(string familyName, bool bold, bool italic) => familyName == "RoadGuardUnicode" ? new("RoadGuardUnicodeFace") : null;
         public byte[]? GetFont(string faceName) => faceName == "RoadGuardUnicodeFace" ? font : null;
     }

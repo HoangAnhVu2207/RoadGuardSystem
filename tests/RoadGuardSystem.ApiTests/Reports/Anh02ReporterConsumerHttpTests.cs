@@ -21,6 +21,75 @@ namespace RoadGuardSystem.ApiTests.Reports;
 public sealed partial class Huy01ReporterReportsApiTests
 {
     [Fact]
+    public async Task Anh02_reporting_snapshot_survives_actual_intake_reference_change_and_storage_ack_loss()
+    {
+        var reporter = await sql.CreateUserAsync("snapshot-reporter-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.Reporter);
+        var manager = await sql.CreateUserAsync("snapshot-pm-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
+        var project = Guid.NewGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            db.Projects.Add(Project.Create(project, project.ToString(), "Synthetic snapshot race", null, null, null, null, DateTimeOffset.UtcNow));
+            db.ProjectMembers.Add(ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project, manager.Id, new DateOnly(2000, 1, 1)));
+            await db.SaveChangesAsync();
+        }
+        var artifacts = new ConsumerArtifactFixture { LoseFirstAcknowledgement = true };
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+            services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(artifacts);
+            services.Configure<ExportOptions>(o => o.UnicodeFontPath = Environment.GetEnvironmentVariable("ANH02_TEST_FONT_PATH") ?? throw new InvalidOperationException("Set ANH02_TEST_FONT_PATH"));
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!); var file = await UploadVerifiedAsync(client, factory);
+        var reportResponse = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Synthetic immutable snapshot source", evidence = new[] { new { fileId = file.FileId, fileVersion = file.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Created, reportResponse.StatusCode);
+        var reportId = (await reportResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Guid linkId;
+        await using (var db = sql.CreateDbContext())
+        {
+            var link = await db.Set<HuyCaseReportLink>().SingleAsync(l => l.ReportId == reportId); linkId = link.Id;
+            // Explicit fixture-only project attribution, not acceptance of an unavailable Huy triage command.
+            var incident = await db.IncidentCases.SingleAsync(c => c.Id == link.CaseId);
+            incident.Triage(project, CaseVerificationMethod.ExistingEvidence, "Synthetic fixture attribution", DateTimeOffset.UtcNow);
+            await db.SaveChangesAsync();
+        }
+        await LoginAsync(client, manager.UserName!);
+        var path = $"/api/v1/projects/{project}/exports"; var key = Guid.NewGuid().ToString();
+        var response = await SendAsync(client, HttpMethod.Post, path, new { kind = "DOSSIER", format = "PDF" }, key);
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        var id = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        string frozen;
+        await using (var db = sql.CreateDbContext())
+        {
+            var job = await db.Set<ExportJob>().SingleAsync(j => j.Id == id);
+            frozen = (await db.Set<ExportSnapshot>().SingleAsync(s => s.Id == job.SnapshotId)).PayloadJson;
+            var payload = JsonSerializer.Deserialize<RoadGuardSystem.DTOs.Exports.ExportSnapshotPayloadDto>(frozen, ExportSerialization.Options)!;
+            Assert.Equal(1m, Assert.Single(payload.Dossier!.Summary.Metrics.Where(m => m.Code == "reportsReceived")).Value);
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE CaseReportLinks SET EndedAt={DateTimeOffset.UtcNow} WHERE Id={linkId}");
+        }
+        var current = await client.GetFromJsonAsync<JsonElement>($"/api/v1/projects/{project}/reports/summary");
+        Assert.Equal(0, Assert.Single(current.GetProperty("metrics").EnumerateArray().Where(m => m.GetProperty("code").GetString() == "reportsReceived")).GetProperty("value").GetInt32());
+        var replay = await SendAsync(client, HttpMethod.Post, path, new { kind = "DOSSIER", format = "PDF" }, key);
+        Assert.Equal(HttpStatusCode.Accepted, replay.StatusCode);
+        for (var i = 0; i < 20; i++)
+        {
+            using var scope = factory.Services.CreateScope(); var service = scope.ServiceProvider.GetRequiredService<IExportService>();
+            if ((await service.GetAsync(manager.Id, project, id, default)).Value!.Status == "SUCCEEDED") break;
+            Assert.True(await service.ProcessNextAsync(default));
+            await using var retry = sql.CreateDbContext();
+            await retry.Database.ExecuteSqlInterpolatedAsync($"UPDATE Anh02ExportJobs SET NextAttemptAt=NULL WHERE Id={id}");
+        }
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(path + $"/{id}/content")).StatusCode);
+        await using (var db = sql.CreateDbContext())
+        {
+            var job = await db.Set<ExportJob>().SingleAsync(j => j.Id == id);
+            Assert.Equal(frozen, (await db.Set<ExportSnapshot>().SingleAsync(s => s.Id == job.SnapshotId)).PayloadJson);
+            Assert.Equal(1, await db.Set<GeneratedArtifact>().CountAsync(a => a.ExportJobId == id));
+            Assert.Single(await db.Set<ExportJob>().Where(j => j.ProjectId == project).ToArrayAsync());
+        }
+        Assert.Equal(1, artifacts.Writes);
+    }
+    [Fact]
     public async Task Anh02_real_intake_is_unassigned_private_and_retained_without_fabricated_project_or_labels()
     {
         var reporter = await sql.CreateUserAsync($"anh02-reporter-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
@@ -38,7 +107,7 @@ public sealed partial class Huy01ReporterReportsApiTests
         {
             services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
             services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(artifacts);
-            services.Configure<ExportOptions>(options => options.UnicodeFontPath = "C:/Windows/Fonts/arial.ttf");
+            services.Configure<ExportOptions>(options => options.UnicodeFontPath = Environment.GetEnvironmentVariable("ANH02_TEST_FONT_PATH") ?? throw new InvalidOperationException("Set ANH02_TEST_FONT_PATH to an embedding-licensed Unicode TTF font."));
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await LoginAsync(client, reporter.UserName!);

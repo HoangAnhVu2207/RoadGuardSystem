@@ -19,6 +19,7 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
   SQL_IMAGE: "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04"
+  ANH02_TEST_FONT_PATH: "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 jobs:
   verify:
@@ -54,6 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Configure external Unicode font for export fixtures
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core && test -r "$ANH02_TEST_FONT_PATH"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.401"
@@ -79,6 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Configure external Unicode font for export fixtures
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core && test -r "$ANH02_TEST_FONT_PATH"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.401"

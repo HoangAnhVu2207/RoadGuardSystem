@@ -25,6 +25,7 @@ public sealed partial class Huy01ReporterReportsApiTests
     [InlineData("unavailable", 503)] [InlineData("empty", 422)]
     [InlineData("foreign", 422)] [InlineData("duplicate-head", 422)]
     [InlineData("null-annotation", 422)] [InlineData("denied", 403)]
+    [InlineData("wrong-segment", 422)]
     [InlineData("approved-fixture", 202)]
     public async Task Anh02_training_consumer_observes_typed_contract_without_claiming_Huy_approval(string shape, int expected)
     {
@@ -65,7 +66,7 @@ public sealed partial class Huy01ReporterReportsApiTests
         state.Snapshot = shape == "unavailable" ? null : new("anh02.label-contract-fixture.v1", Guid.NewGuid(), new string('a',64), DateTimeOffset.UtcNow, labels);
         await LoginAsync(client, manager.UserName!);
         var path = $"/api/v1/projects/{project}/exports"; var key = Guid.NewGuid().ToString();
-        var request = new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true };
+        var request = new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true, segmentIds = shape == "wrong-segment" ? new[] { Guid.NewGuid() } : Array.Empty<Guid>() };
         var response = await SendAsync(client, HttpMethod.Post, path, request, key);
         Assert.Equal(expected, (int)response.StatusCode); Assert.Equal(1, state.Captures);
         if (expected != 202)
@@ -130,9 +131,11 @@ public sealed partial class Huy01ReporterReportsApiTests
     private sealed class ConsumerArtifactFixture : IAnh02ArtifactStore
     {
         private readonly Dictionary<string,(byte[] Bytes,string Media)> _objects = new(); public int Writes { get; private set; }
+        public bool LoseFirstAcknowledgement { get; init; }
         public async Task<Anh02ArtifactMetadata> WriteAsync(string key, Stream content, long? sizeBytes, string mediaType, CancellationToken cancellationToken = default)
         {
             using var bytes = new MemoryStream(); await content.CopyToAsync(bytes, cancellationToken); var data = bytes.ToArray(); _objects[key] = (data, mediaType); Writes++;
+            if (LoseFirstAcknowledgement && Writes == 1) throw new IOException("Fixture acknowledgement lost after durable write.");
             return Metadata(key, data, mediaType);
         }
         public Task<Anh02ArtifactRead> OpenReadAsync(string key, CancellationToken cancellationToken = default)

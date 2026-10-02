@@ -157,3 +157,31 @@ password/project authority. Reader fixtures in tests are MOCK_VERIFIED and never
 registered by production DI. No CaseDefectRead/internal dossier reader is inferred
 from newer Huy controller DTOs; an exact adopted permission-aware Huy producer
 checkpoint is still required, optional sections unavailable until then.
+
+
+### ANH-02 independent runtime follow-up — 2026-10-03
+
+Existing routes, DTOs, schema and approval ownership retained. The training
+consumer rejects a producer label with absent/out-of-selection SegmentId when
+segmentIds is nonempty (422 producer_invalid), rather than exporting beyond the
+requested scope. Current-approved/current-head selection remains Huy's reader
+responsibility; no fake adapter or second contract is activated. Defect filtering
+remains unsupported/rejected until an exact mapping is handed off.
+
+Dossier PDF reads only its stored admission DTO, displays metric code/name/unit,
+status/band/route/set, numerator/denominator, period applicability, selected scope,
+per-item versions and validation details, timeline availability and missing
+sections. These are presentation additions, not changed KPI formulas or new
+facts. Missing/unreadable/unmatched configured font fails export_font_unavailable;
+process restart is required when changing PDFsharp's cached font. Deployment
+supplies a licensed Unicode font; tests require ANH02_TEST_FONT_PATH explicitly.
+Storage without required configuration fails file_storage_unavailable at its seam;
+worker retains existing export_storage_unavailable recovery semantics.
+
+Real Huy reader adoption/producer-consumer acceptance remains PENDING:
+IApprovedTrainingLabelReader/ITrainingSourceAccessReader and
+IMatchingCandidateSnapshotReader in Anh02Contracts.cs, plus a permission-aware
+CaseDefectRead/dossier/timeline projection and complete named HUY retention
+contributor using the caller's scoped transaction. No current implementation or
+wire equivalence is inferred from a newer Huy tip. Reporter role-row correction
+and external ChatGPT A/B review are separate pending Huy/external gates.

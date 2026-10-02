@@ -85,6 +85,45 @@ public sealed class Anh02ExportUnitTests
         Assert.Throws<InvalidDataException>(() => ExportSerialization.Read(corrupt));
     }
     [Fact]
+    public async Task Missing_font_still_fails_after_another_renderer_warmed_the_process()
+    {
+        var payload = Payload("DOSSIER", "PDF", []);
+        await using var warm = await Renderer().RenderAsync(payload, (_, _) => throw new InvalidOperationException(), _ => Task.CompletedTask, default);
+        var missing = new ExportRenderer(Options.Create(new ExportOptions { UnicodeFontPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".ttf") }));
+        var error = await Assert.ThrowsAsync<ExportRenderException>(() => missing.RenderAsync(payload, (_, _) => throw new InvalidOperationException(), _ => Task.CompletedTask, default));
+        Assert.Equal("export_font_unavailable", error.Code);
+    }
+    [Fact]
+    public async Task Synthetic_dossier_pdf_and_zip_render_frozen_dimensions_details_and_empty_scope()
+    {
+        var payload = Payload("DOSSIER", "PDF", []);
+        var route = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var set = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var segment = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var metrics = new[] {
+            new ReportingMetricDto("baselineCoverageByBand", new(Band:"SURFACE", RouteVersionId:route, SegmentSetId:set), 50, "percent", 1, 2, false, "AVAILABLE", [], []),
+            new ReportingMetricDto("baselineCoverageByBand", new(Band:"LEFT_EDGE", RouteVersionId:route, SegmentSetId:set), 0, "percent", 0, 2, false, "AVAILABLE", [], []),
+            new ReportingMetricDto("casesByStatus", new(Status:"UNASSIGNED"), 0, "count", null, null, false, "PARTIAL", ["HUY_CASE_LIFECYCLE_NOT_INTEGRATED"], []),
+            new ReportingMetricDto("defectsByStatus", new(), null, "count", null, null, false, "UNAVAILABLE", ["HUY01_REPORTING_READER_UNAVAILABLE"], []) };
+        var items = Enumerable.Range(0, 36).Select(i => new ReportingItemDto(Guid.NewGuid(), "baselineCoverageByBand", "BaselineSelectionItem", "synthetic-revision-" + i, RouteVersionId:route, SegmentSetId:set, SegmentId:segment, Band:i % 2 == 0 ? "SURFACE" : "LEFT_EDGE")).ToArray();
+        var summary = new ProjectSummaryV1("anh02.reporting.v1", payload.Manifest.ProjectId, payload.Manifest.SnapshotAt, "pilot-reporting.v1", new(RouteVersionId:route,SegmentSetId:set,SegmentIds:[segment]), metrics, ["SYNTHETIC DEMO - KHÔNG CÓ GIÁ TRỊ PHÁP LÝ"], "SERIALIZABLE");
+        payload = payload with { Manifest = payload.Manifest with { Filters = new("DOSSIER", "PDF", SegmentIds:[segment]), Sections = [new("reporterEvidence", "UNAVAILABLE", ["REPORTER_EVIDENCE_ACCESS_NOT_AVAILABLE"])] }, Dossier = new(summary, items, [], [], new("PARTIAL", ["HUY_TIMELINE_READER_UNAVAILABLE"])) };
+        var directory = Environment.GetEnvironmentVariable("ANH02_SAMPLE_DIRECTORY") ?? Path.Combine(Path.GetTempPath(), "roadguard-anh02-render-samples");
+        Directory.CreateDirectory(directory);
+        async Task Save(string name, ExportSnapshotPayloadDto frozen)
+        {
+            await using var rendered = await Renderer().RenderAsync(frozen, (_, _) => throw new InvalidOperationException("No originals selected"), _ => Task.CompletedTask, default);
+            Assert.True(await ExportArchive.ProvesSnapshotAsync(rendered, frozen.Manifest, default));
+            rendered.Position = 0; await using var target = File.Create(Path.Combine(directory, name)); await rendered.CopyToAsync(target);
+        }
+        await Save("synthetic-dossier.pdf", payload);
+        await Save("synthetic-dossier.zip", payload with { Manifest = payload.Manifest with { Format = "ZIP", Filters = payload.Manifest.Filters with { Format = "ZIP" } } });
+        await Save("synthetic-empty.pdf", payload with { Dossier = payload.Dossier with { Items = [] } });
+        await File.WriteAllTextAsync(Path.Combine(directory,"synthetic-snapshot.json"), JsonSerializer.Serialize(payload, ExportSerialization.Options));
+        using var pdf = PdfReader.Open(Path.Combine(directory,"synthetic-dossier.pdf"), PdfDocumentOpenMode.Import);
+        Assert.True(pdf.PageCount > 3);
+    }
+    [Fact]
     public async Task Unicode_font_embedded_pdf_has_pages_and_recovery_identity()
     {
         var payload = Payload("DOSSIER", "PDF", []);
@@ -97,7 +136,7 @@ public sealed class Anh02ExportUnitTests
         var path = Path.Combine(Path.GetTempPath(), "roadguard-anh02-unicode-sample.pdf"); rendered.Position = 0;
         await using var target = File.Create(path); await rendered.CopyToAsync(target);
     }
-    private static ExportRenderer Renderer() => new(Options.Create(new ExportOptions { UnicodeFontPath = Environment.GetEnvironmentVariable("ANH02_TEST_FONT_PATH") ?? "C:/Windows/Fonts/arial.ttf" }));
+    private static ExportRenderer Renderer() => new(Options.Create(new ExportOptions { UnicodeFontPath = Environment.GetEnvironmentVariable("ANH02_TEST_FONT_PATH") ?? throw new InvalidOperationException("Set ANH02_TEST_FONT_PATH to an embedding-licensed Unicode TTF font.") }));
     internal static ExportSnapshotPayloadDto Payload(string kind, string format, ExportFileDto[] files)
     {
         var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);

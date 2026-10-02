@@ -12,6 +12,16 @@ namespace RoadGuardSystem.UnitTests.Exports;
 public sealed class Anh02ExportArtifactStoreTests
 {
     [Fact]
+    public async Task Missing_storage_configuration_fails_explicitly_without_network_fallback()
+    {
+        var store = new MinioAnh02ArtifactStore(Options.Create(new MinioStorageOptions()));
+        var error = await Assert.ThrowsAsync<FileStorageException>(() => store.OpenReadAsync("anh02/exports/fixture.pdf"));
+        Assert.Equal(FileStorageErrorCodes.StorageUnavailable, error.Code);
+        await using var input = new MemoryStream(new byte[] {1,2,3});
+        var write = await Assert.ThrowsAsync<FileStorageException>(() => store.WriteAsync("anh02/exports/fixture.pdf", input, 3, "application/pdf"));
+        Assert.Equal(FileStorageErrorCodes.StorageUnavailable, write.Code);
+    }
+    [Fact]
     public async Task Minio_seam_reads_durable_actual_bytes_and_never_overwrites_existing_object()
     {
         var state = new StorageState(); var store = Store(state); byte[] original = [1, 2, 3, 4, 5];

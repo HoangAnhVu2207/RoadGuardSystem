@@ -7388,7 +7388,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
-                  "if(pm.response.code===202)pm.environment.set(\"anh02ExportId\",pm.response.json().id);"
+                  "if(pm.response.code===202)pm.environment.set(\"anh02ExportId\",pm.response.json().id);",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02AdmittedSnapshotHash\",pm.response.json().snapshotHash);"
                 ]
               }
             }
@@ -7509,7 +7510,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){const b=pm.response.json();pm.test(\"Snapshot identity remains admitted\",()=>pm.expect(b.snapshotHash).to.eql(pm.environment.get(\"anh02AdmittedSnapshotHash\")));pm.test(\"Declared worker state\",()=>pm.expect([\"QUEUED\",\"RUNNING\",\"SUCCEEDED\",\"FAILED\"]).to.include(b.status));if(b.status===\"SUCCEEDED\")pm.test(\"Download expiry 30 days after completion\",()=>pm.expect(Date.parse(b.expiresAt)-Date.parse(b.completedAt)).to.eql(30*24*60*60*1000));}"
                 ]
               }
             }
@@ -7558,7 +7560,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){const b=pm.response.json();pm.test(\"Immutable snapshot hash and strong ETag\",()=>{pm.expect(b.snapshotHash).to.eql(pm.environment.get(\"anh02AdmittedSnapshotHash\"));pm.expect(pm.response.headers.get(\"ETag\")).to.eql(String.fromCharCode(34)+b.snapshotHash+String.fromCharCode(34));});pm.test(\"Missing Reporter access stays explicit\",()=>pm.expect(b.sections.some(s=>s.name===\"reporterEvidence\"&&s.availability===\"UNAVAILABLE\")).to.eql(true));pm.test(\"No storage transport or credentials\",()=>{pm.expect(pm.response.text()).not.to.include(\"storageUri\");pm.expect(pm.response.text()).not.to.include(\"X-Amz-Signature\");});}"
                 ]
               }
             }
@@ -7571,7 +7574,7 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
+                "value": "application/pdf, application/zip"
               }
             ],
             "auth": {
@@ -7607,7 +7610,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.test(\"Binary artifact type\",()=>pm.expect([\"application/pdf\",\"application/zip\"]).to.include(pm.response.headers.get(\"Content-Type\").split(\";\")[0]));"
                 ]
               }
             }

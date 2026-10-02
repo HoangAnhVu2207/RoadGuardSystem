@@ -1,5 +1,80 @@
 # ANH-01 fictional demo assets
 
+## ANH-02 continuation and disposable runtime (2026-10-03)
+
+CURRENT_VERIFIED: the existing backend HTTP/SQL fixtures exercise synthetic
+video upload/dataset/AI mock, private Reporter intake, supported reporting,
+frozen dossier export and fail-closed retention. This CLI continuation is
+prepared and its bounded transport/replay helper tests run locally; the full
+CLI against a live API/object store is **NOT RUN**. No Huy approval, conclusion,
+matching result or complete inventory is seeded. Reporter intake stays
+UNASSIGNED/private; project reporting does not count it as project-attributed.
+
+Use the same local demo state and existing `prepare`/`survey` phases below.
+`anh02` creates a separate survey task/dataset using the exact ANH-02 synthetic
+video (the ANH-01 video is deliberately not accepted as that AI fixture), calls
+VIDEO_ANALYSIS, uploads the synthetic PNG privately as Reporter, creates/replays
+intake, captures project reporting, downloads PDF/ZIP and admits a project hold
+and evaluation. Missing Huy inventory stays WAITING/BLOCKED; basis confirmation
+and physical deletion are not attempted. Operator membership, ACTIVE device,
+RELEASED model and active CRACK catalog entry must already exist via their
+owners. No registry/model/catalog provisioning is hidden in the script.
+
+Additional prerequisites: `ANH01_REPORTER_TOKEN`; enabled Development/Test
+`Anh02__MockEnabled=true`, `Anh02__WorkersEnabled=true`, the existing upload
+verification worker; deployed tiny fixtures in `Anh02__FixtureDirectory`.
+Production never enables the AI mock. Current geometry package ETag is read
+from HTTP and retained for command replay; no WGS84/GPX transform is guessed.
+The metric-coordinate demo does not close the CRS/WGS84/GPX gate.
+
+```powershell
+python tools/demo/anh01/setup_demo.py --base-url http://localhost:5000 --isolated-local --phase anh02 --operator-id <existing-Operator-GUID> --device-id <ACTIVE-device-GUID> --model-version-id <RELEASED-model-GUID> --state <same-local-state.json>
+python -m unittest discover -s tools/demo/anh01 -p test_setup_demo.py -v
+```
+
+The optional `storage.compose.yml` starts only disposable loopback MinIO, with
+credentials supplied through `ANH02_MINIO_USER`/`ANH02_MINIO_PASSWORD` and an
+explicit separate Compose project, e.g. `roadguard-anh02-disposable`.
+`ANH02_MINIO_IMAGE` can identify an owner-available image. Create a fresh private
+bucket using that disposable instance's console/API and point `MinioStorage__*`
+only to it. Do not reuse a shared bucket. Inspect configuration without logging
+interpolated credentials (`docker compose ... config --quiet`). Clean up only
+that project/resources you created; root SQL Compose configuration is separate.
+No storage was started here: pinned MinIO pull returned `pull access denied`.
+
+Large-byte acceptance is a separate command requiring an **actual valid MP4
+of exactly 8,589,934,592 bytes**, existing accepted task/current Operator and a
+new local download file. It hashes, PUTs and downloads with 64 KiB buffers,
+requests signed URLs in batches of 64 and preserves original complete body/
+If-Match before network submission. It refuses external signed PUT hosts,
+records no credentials/signed URLs, and refuses a small file as 8 GiB evidence.
+Reserve enough disk for source, downloaded copy and server verification/export
+spools. Partial local downloads are retained for inspection on failure.
+
+```powershell
+python tools/demo/anh01/setup_demo.py --base-url http://localhost:5000 --isolated-local --phase large --project-id <demo-project-GUID> --task-id <accepted-task-GUID> --video-file <actual-8GiB.mp4> --download-file <new-local-download.mp4> --state <separate-large-state.json>
+```
+
+This 8 GiB command is **NOT RUN**: no live disposable object store or actual
+8 GiB source was available. Helper tests/small fixtures do not satisfy A07.
+
+PDF runtime uses existing PDFsharp 6.2.3; no font/package is bundled or upgraded.
+Mount a readable Unicode TTF font with verified embedding/distribution rights
+and configure `Anh02__Export__UnicodeFontPath` to its target-host absolute path.
+An absent/unreadable/different cached font fails `export_font_unavailable`;
+restart the process when changing font bytes (PDFsharp has a global cache).
+The font is bounded to 16 MiB. Tests require `ANH02_TEST_FONT_PATH` explicitly;
+no personal-machine fallback is committed. CI config supplies DejaVu Sans via
+the runner's `fonts-dejavu-core` package; hosted Linux/container execution and
+deployed font licensing/packaging remain **NOT RUN**. Local configured Arial
+rendering is not deployment/license verification.
+
+Postman retains existing requests/variables. Dossier admission stores
+`anh02AdmittedSnapshotHash`; poll/manifest assert immutable identity, explicit
+Reporter missing section, strong ETag and 30-day expiry after success. Use a new
+`anh02DossierKey` when changing PDF/ZIP/filter; poll until SUCCEEDED before
+protected download. Postman HTTP runner/live storage remains NOT RUN.
+
 All facts and media are fictional. The five-page `dossier-demo.pdf` carries
 `DỮ LIỆU DEMO — KHÔNG CÓ GIÁ TRỊ PHÁP LÝ` on every page. No real identities,
 stamps, signatures, construction records or field footage are included.

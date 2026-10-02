@@ -49,7 +49,7 @@ public sealed class Anh02ExportHttpTests : IAsyncLifetime
         {
             services.RemoveAll<IHostedService>(); services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(storage);
             services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(source);
-            services.Configure<ExportOptions>(o => o.UnicodeFontPath = "C:/Windows/Fonts/arial.ttf");
+            services.Configure<ExportOptions>(o => o.UnicodeFontPath = Environment.GetEnvironmentVariable("ANH02_TEST_FONT_PATH") ?? throw new InvalidOperationException("Set ANH02_TEST_FONT_PATH to an embedding-licensed Unicode TTF font."));
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") }); await Login(client, manager.UserName!);
         var path = $"/api/v1/projects/{project}/exports";
@@ -78,7 +78,7 @@ public sealed class Anh02ExportHttpTests : IAsyncLifetime
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
         {
             services.RemoveAll<IHostedService>(); services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(storage);
-            services.Configure<ExportOptions>(o => o.UnicodeFontPath = "C:/Windows/Fonts/arial.ttf");
+            services.Configure<ExportOptions>(o => o.UnicodeFontPath = Environment.GetEnvironmentVariable("ANH02_TEST_FONT_PATH") ?? throw new InvalidOperationException("Set ANH02_TEST_FONT_PATH to an embedding-licensed Unicode TTF font."));
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") }); await Login(client, manager.UserName!);
         var path = $"/api/v1/projects/{project}/exports"; var key = Guid.NewGuid().ToString();

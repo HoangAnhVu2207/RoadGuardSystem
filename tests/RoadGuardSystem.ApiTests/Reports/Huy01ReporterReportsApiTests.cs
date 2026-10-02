@@ -49,11 +49,18 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         first.StatusCode.Should().Be(HttpStatusCode.Created);
         var replay = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", request, key);
         replay.StatusCode.Should().Be(HttpStatusCode.Created);
+        var conflictingReplay = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new
+        {
+            description = "Different request payload",
+            evidence = request.evidence
+        }, key);
+        conflictingReplay.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         await using var db = sql.CreateDbContext();
         (await db.Reports.CountAsync()).Should().Be(1);
         (await db.IncidentCases.CountAsync()).Should().Be(1);
         (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().CountAsync(link => link.EndedAt == null)).Should().Be(1);
+        (await db.AuditLogs.CountAsync(audit => audit.EventType == "report_received")).Should().Be(1);
     }
 
     private static async Task<(Guid FileId, string Version)> UploadVerifiedAsync(HttpClient client, AuthenticationWebApplicationFactory factory)

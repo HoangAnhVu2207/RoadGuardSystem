@@ -602,6 +602,200 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.ExportJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ArtifactId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<Guid?>("LeaseToken")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArtifactId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RequestedBy");
+
+                    b.HasIndex("SnapshotId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "NextAttemptAt", "LeaseUntil");
+
+                    b.ToTable("Anh02ExportJobs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Anh02ExportJob_Expiry", "([Status] <> 'SUCCEEDED' AND [ExpiresAt] IS NULL) OR ([Status]='SUCCEEDED' AND [ArtifactId] IS NOT NULL AND [CompletedAt] IS NOT NULL AND [ExpiresAt]=DATEADD(day,30,[CompletedAt]))");
+
+                            t.HasCheckConstraint("CK_Anh02ExportJob_Format", "[Format] IN ('PDF','ZIP') AND ([Kind] <> 'TRAINING' OR [Format]='ZIP')");
+
+                            t.HasCheckConstraint("CK_Anh02ExportJob_Kind", "[Kind] IN ('DOSSIER','TRAINING')");
+
+                            t.HasCheckConstraint("CK_Anh02ExportJob_State", "[Status] IN ('QUEUED','RUNNING','SUCCEEDED','FAILED')");
+                        });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.ExportSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CapturedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasColumnType("char(64)");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("Anh02ExportSnapshots", (string)null, t => t.HasTrigger("TR_Anh02ExportSnapshots_Immutable"));
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.ExportSnapshotFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ArchivePath")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("Included")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasColumnType("char(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileId");
+
+                    b.HasIndex("SnapshotId", "FileId")
+                        .IsUnique();
+
+                    b.ToTable("Anh02ExportSnapshotFiles", null, t =>
+                        {
+                            t.HasTrigger("TR_Anh02ExportSnapshotFiles_Immutable");
+                            t.HasCheckConstraint("CK_Anh02ExportSnapshotFile_Size", "[SizeBytes]>0");
+                        });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.GeneratedArtifact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ExportJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExportJobId")
+                        .IsUnique();
+
+                    b.HasIndex("FileId")
+                        .IsUnique();
+
+                    b.HasIndex("SnapshotId");
+
+                    b.ToTable("Anh02GeneratedArtifacts", (string)null, t => t.HasTrigger("TR_Anh02GeneratedArtifacts_Immutable"));
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.FileScope", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1985,6 +2179,303 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiDetectionProvenance", b =>
+                {
+                    b.Property<Guid>("DetectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("BoxHeight")
+                        .HasPrecision(12, 9)
+                        .HasColumnType("decimal(12,9)");
+
+                    b.Property<decimal>("BoxWidth")
+                        .HasPrecision(12, 9)
+                        .HasColumnType("decimal(12,9)");
+
+                    b.Property<decimal>("BoxX")
+                        .HasPrecision(12, 9)
+                        .HasColumnType("decimal(12,9)");
+
+                    b.Property<decimal>("BoxY")
+                        .HasPrecision(12, 9)
+                        .HasColumnType("decimal(12,9)");
+
+                    b.Property<string>("DerivationHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<Guid>("FrameFileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FrameFileVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<Guid>("ResultId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SegmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("SourceDurationMilliseconds")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("SourceVideoFileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceVideoFileVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<long>("TimestampMilliseconds")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("DetectionId");
+
+                    b.HasIndex("FrameFileId");
+
+                    b.HasIndex("SegmentId");
+
+                    b.HasIndex("SourceVideoFileId");
+
+                    b.HasIndex("ResultId", "RunId");
+
+                    b.HasIndex("RunId", "SourceVideoFileId", "SourceVideoFileVersion");
+
+                    b.ToTable("Anh02AiDetectionProvenance", null, t =>
+                        {
+                            t.HasTrigger("TR_Anh02AiDetectionProvenance_Immutable");
+
+                            t.HasCheckConstraint("CK_Anh02AiDetection_Box", "[BoxX]>=0 AND [BoxY]>=0 AND [BoxWidth]>0 AND [BoxHeight]>0 AND [BoxX]+[BoxWidth]<=1 AND [BoxY]+[BoxHeight]<=1");
+
+                            t.HasCheckConstraint("CK_Anh02AiDetection_Time", "[TimestampMilliseconds]>=0 AND [SourceDurationMilliseconds]>0 AND [TimestampMilliseconds]<[SourceDurationMilliseconds]");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiManifestFileReference", b =>
+                {
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("RunId", "FileId");
+
+                    b.HasIndex("FileId");
+
+                    b.ToTable("Anh02AiManifestFiles", null, t =>
+                        {
+                            t.HasTrigger("TR_Anh02AiManifestFiles_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiMockRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AnalysisRunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CanonicalManifest")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DatasetVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("FixtureVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("GeometryVersion")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<Guid?>("LeaseOwner")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("ModelVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProcessingJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ResultId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ResultTimestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("RouteVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SegmentSetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(24)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnalysisRunId");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DatasetVersionId");
+
+                    b.HasIndex("ModelVersionId");
+
+                    b.HasIndex("ProcessingJobId")
+                        .IsUnique()
+                        .HasFilter("[Stage]='VIDEO_ANALYSIS'");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ResultId", "Id");
+
+                    b.HasIndex("SegmentSetId", "RouteVersionId");
+
+                    b.HasIndex("Status", "LeaseUntil");
+
+                    b.ToTable("Anh02AiMockRuns", null, t =>
+                        {
+                            t.HasTrigger("TR_Anh02AiMockRuns_Identity");
+
+                            t.HasCheckConstraint("CK_Anh02AiMockRuns_Completion", "([Status]='SUCCEEDED' AND [ResultId] IS NOT NULL AND [CompletedAt] IS NOT NULL) OR ([Status]<>'SUCCEEDED' AND [ResultId] IS NULL)");
+
+                            t.HasCheckConstraint("CK_Anh02AiMockRuns_Manifest", "ISJSON([CanonicalManifest])=1");
+
+                            t.HasCheckConstraint("CK_Anh02AiMockRuns_Stage", "[Stage] IN ('VIDEO_ANALYSIS','DUPLICATE_MATCHING')");
+
+                            t.HasCheckConstraint("CK_Anh02AiMockRuns_Status", "[Status] IN ('QUEUED','RUNNING','SUCCEEDED','FAILED')");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiResultProvenance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CanonicalResult")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("ProcessingJobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ResultHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("ProcessingJobId");
+
+                    b.HasIndex("RunId")
+                        .IsUnique();
+
+                    b.ToTable("Anh02AiResultProvenance", null, t =>
+                        {
+                            t.HasTrigger("TR_Anh02AiResultProvenance_Immutable");
+
+                            t.HasCheckConstraint("CK_Anh02AiResult_Json", "ISJSON([CanonicalResult])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.DerivedMeasurement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2817,6 +3308,300 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasIndex("ReportId");
 
                     b.ToTable("ReportSupplements", (string)null);
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionBasisHead", b =>
+                {
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("FileId");
+
+                    b.HasIndex("RevisionId", "FileId");
+
+                    b.ToTable("RetentionBasisHeads", (string)null);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionBasisRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Classification")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("ConfirmedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ConfirmedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("InventoryComplete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("InventoryVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PolicyVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SupersedesId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("WarrantyReferencesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConfirmedBy");
+
+                    b.HasIndex("FileId", "Revision")
+                        .IsUnique();
+
+                    b.HasIndex("SupersedesId", "FileId");
+
+                    b.ToTable("RetentionBasisRevisions", null, t =>
+                        {
+                            t.HasTrigger("TR_RetentionBasisRevisions_Immutable");
+
+                            t.HasCheckConstraint("CK_RetentionBasis_Revision", "[Revision]>0 AND [PolicyVersion]='pr41a.v1' AND [Classification] IN ('EVIDENCE','TEMPORARY_EXPORT') AND ISJSON([WarrantyReferencesJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionEvaluation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("EvaluatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PolicyVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SelectionJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RequestedBy");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("RetentionEvaluations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RetentionEvaluation_State", "[Status] IN ('QUEUED','COMPLETE') AND (([Status]='QUEUED' AND [EvaluatedAt] IS NULL) OR ([Status]='COMPLETE' AND [EvaluatedAt] IS NOT NULL))");
+                        });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionEvaluationItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BasisVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ControlSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Eligibility")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset?>("EligibleAfter")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("EvaluationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("HoldVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("InventoryVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ReasonCodesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileId");
+
+                    b.HasIndex("EvaluationId", "FileId")
+                        .IsUnique();
+
+                    b.ToTable("RetentionEvaluationItems", null, t =>
+                        {
+                            t.HasTrigger("TR_RetentionEvaluationItems_Immutable");
+
+                            t.HasCheckConstraint("CK_RetentionEvaluationItem_State", "[Eligibility] IN ('BLOCKED_HOLD','WAITING_RETENTION_BASIS','RETAIN_UNTIL','ELIGIBLE_FOR_REVIEW')");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionHold", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ReleasedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ReleasedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("ScopeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ReleasedBy");
+
+                    b.HasIndex("ScopeType", "ScopeId", "State");
+
+                    b.ToTable("RetentionHolds", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RetentionHold_State", "[ScopeType] IN ('PROJECT','FILE') AND [State] IN ('ACTIVE','RELEASED') AND (([State]='ACTIVE' AND [ReleasedBy] IS NULL AND [ReleasedAt] IS NULL) OR ([State]='RELEASED' AND [ReleasedBy] IS NOT NULL AND [ReleasedAt] IS NOT NULL))");
+                        });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionHoldHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("HoldId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("HoldId", "OccurredAt");
+
+                    b.ToTable("RetentionHoldHistories", null, t =>
+                        {
+                            t.HasTrigger("TR_RetentionHoldHistories_Immutable");
+
+                            t.HasCheckConstraint("CK_RetentionHoldHistory_State", "[State] IN ('ACTIVE','RELEASED')");
+                        });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
@@ -4256,6 +5041,77 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.ExportJob", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Exports.GeneratedArtifact", null)
+                        .WithMany()
+                        .HasForeignKey("ArtifactId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Exports.ExportSnapshot", null)
+                        .WithMany()
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.ExportSnapshot", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.ExportSnapshotFile", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Exports.ExportSnapshot", null)
+                        .WithMany()
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Exports.GeneratedArtifact", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Exports.ExportJob", null)
+                        .WithMany()
+                        .HasForeignKey("ExportJobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Exports.ExportSnapshot", null)
+                        .WithMany()
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Files.FileScope", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
@@ -4592,6 +5448,145 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiDetectionProvenance", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AIDetection", null)
+                        .WithMany()
+                        .HasForeignKey("DetectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FrameFileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AiMockRun", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSegment", null)
+                        .WithMany()
+                        .HasForeignKey("SegmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("SourceVideoFileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AiResultProvenance", null)
+                        .WithMany()
+                        .HasForeignKey("ResultId", "RunId")
+                        .HasPrincipalKey("Id", "RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AiManifestFileReference", null)
+                        .WithMany()
+                        .HasForeignKey("RunId", "SourceVideoFileId", "SourceVideoFileVersion")
+                        .HasPrincipalKey("RunId", "FileId", "FileVersion")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiManifestFileReference", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AiMockRun", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiMockRun", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AiMockRun", null)
+                        .WithMany()
+                        .HasForeignKey("AnalysisRunId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.ProcessingAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyDataVersion", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AIModelVersion", null)
+                        .WithMany()
+                        .HasForeignKey("ModelVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.ProcessingJob", null)
+                        .WithMany()
+                        .HasForeignKey("ProcessingJobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AiResultProvenance", null)
+                        .WithMany()
+                        .HasForeignKey("ResultId", "Id")
+                        .HasPrincipalKey("Id", "RunId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSegmentSet", null)
+                        .WithMany()
+                        .HasForeignKey("SegmentSetId", "RouteVersionId")
+                        .HasPrincipalKey("Id", "RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AiResultProvenance", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.ProcessingAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.ProcessingJob", null)
+                        .WithMany()
+                        .HasForeignKey("ProcessingJobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Processing.AiMockRun", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.DerivedMeasurement", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
@@ -4847,8 +5842,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("ReportId");
-
-                            // EF8 generator omits owned FK DeleteBehavior. Preserve configured restrict.
                             b1.WithOwner().Metadata.DeleteBehavior = DeleteBehavior.Restrict;
 
                             b1.HasOne("RoadGuardSystem.BusinessObjects.Reports.Report", null)
@@ -4971,8 +5964,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("SupplementId", "ReportId")
                                 .HasPrincipalKey("Id", "ReportId");
-
-                            // EF8 generator omits owned FK DeleteBehavior. Preserve configured restrict.
                             b1.WithOwner().Metadata.DeleteBehavior = DeleteBehavior.Restrict;
 
                             b1.OwnsOne("RoadGuardSystem.BusinessObjects.Reports.EvidenceCaptureMetadata", "CaptureMetadata", b2 =>
@@ -5010,6 +6001,102 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
 
                     b.Navigation("Evidence");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionBasisHead", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Retention.RetentionBasisRevision", null)
+                        .WithMany()
+                        .HasForeignKey("RevisionId", "FileId")
+                        .HasPrincipalKey("Id", "FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionBasisRevision", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ConfirmedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Retention.RetentionBasisRevision", null)
+                        .WithMany()
+                        .HasForeignKey("SupersedesId", "FileId")
+                        .HasPrincipalKey("Id", "FileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionEvaluation", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionEvaluationItem", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Retention.RetentionEvaluation", null)
+                        .WithMany()
+                        .HasForeignKey("EvaluationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionHold", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ReleasedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Retention.RetentionHoldHistory", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Retention.RetentionHold", null)
+                        .WithMany()
+                        .HasForeignKey("HoldId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.BaselineCurrentPointer", b =>

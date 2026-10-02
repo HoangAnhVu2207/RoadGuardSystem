@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 
@@ -13,7 +14,7 @@ public sealed class IdempotencyOperationService
         _context = context;
     }
 
-    public async Task<IdempotencyOperationResult> ExecuteAsync(
+    public Task<IdempotencyOperationResult> ExecuteAsync(
         Guid? actorUserId,
         Guid? projectId,
         string operation,
@@ -21,6 +22,31 @@ public sealed class IdempotencyOperationService
         string requestFingerprint,
         Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
         CancellationToken cancellationToken = default)
+        => ExecuteCoreAsync(actorUserId, projectId, operation, idempotencyKey, requestFingerprint,
+            operationHandler, null, cancellationToken);
+
+    // New snapshot/basis commands opt in; existing operations retain their original
+    // transaction isolation and public method signature.
+    public Task<IdempotencyOperationResult> ExecuteSerializableAsync(
+        Guid? actorUserId,
+        Guid? projectId,
+        string operation,
+        string idempotencyKey,
+        string requestFingerprint,
+        Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
+        CancellationToken cancellationToken = default)
+        => ExecuteCoreAsync(actorUserId, projectId, operation, idempotencyKey, requestFingerprint,
+            operationHandler, IsolationLevel.Serializable, cancellationToken);
+
+    private async Task<IdempotencyOperationResult> ExecuteCoreAsync(
+        Guid? actorUserId,
+        Guid? projectId,
+        string operation,
+        string idempotencyKey,
+        string requestFingerprint,
+        Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
+        IsolationLevel? isolationLevel,
+        CancellationToken cancellationToken)
     {
         IdempotencyRecord.ValidateScope(operation, idempotencyKey, requestFingerprint);
         ArgumentNullException.ThrowIfNull(operationHandler);
@@ -50,6 +76,7 @@ public sealed class IdempotencyOperationService
                     idempotencyKey,
                     requestFingerprint,
                     operationHandler,
+                    isolationLevel,
                     cancellationToken));
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
@@ -77,6 +104,7 @@ public sealed class IdempotencyOperationService
         string idempotencyKey,
         string requestFingerprint,
         Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
+        IsolationLevel? isolationLevel,
         CancellationToken cancellationToken)
     {
         // A commit acknowledgement can fail after the database transaction is durable. Each retry must
@@ -95,7 +123,9 @@ public sealed class IdempotencyOperationService
 
         IdempotencyRecord record;
         Exception? commitFailure = null;
-        await using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
+        await using (var transaction = isolationLevel is { } selectedIsolation
+            ? await _context.Database.BeginTransactionAsync(selectedIsolation, cancellationToken)
+            : await _context.Database.BeginTransactionAsync(cancellationToken))
         {
             try
             {

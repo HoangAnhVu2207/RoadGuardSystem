@@ -131,6 +131,15 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IUploadRepository, UploadPersistenceService>();
         services.AddScoped<IReporterEvidenceRepository, ReporterEvidencePersistenceService>();
         services.AddScoped<IAnhHuyFactsRepository, AnhHuyFactsRepository>();
+        services.AddScoped<IAnh02AiRepository, Anh02AiRepository>();
+        services.AddScoped<RoadGuardSystem.Repositories.Reporting.IReportingRepository, RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository>();
+        services.AddScoped<RoadGuardSystem.Repositories.Exports.IExportRepository, RoadGuardSystem.Repositories.Exports.ExportRepository>();
+        services.AddSingleton<IAnh02ArtifactStore, MinioAnh02ArtifactStore>();
+        services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionRepository, RoadGuardSystem.Repositories.Retention.RetentionRepository>();
+        services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryRepository, RoadGuardSystem.Repositories.Retention.RetentionInventoryRepository>();
+        services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor, RoadGuardSystem.Repositories.Retention.ExportRetentionInventoryContributor>();
+        services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor, RoadGuardSystem.Repositories.Retention.AiRetentionInventoryContributor>();
+        services.Configure<RoadGuardSystem.Repositories.Exports.ExportRepositoryOptions>(options => configuration.GetSection("Anh02:Export").Bind(options));
         services.AddScoped<Microsoft.AspNetCore.Identity.IUserStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationUser>, RoadGuardUserStore>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IRoleStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationRole>, RoadGuardRoleStore>();
 

@@ -88,6 +88,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<IReporterEvidenceService, ReporterEvidenceService>();
         services.AddScoped<IAnhHuyProducerService, AnhHuyProducerService>();
+        services.AddSingleton(TimeProvider.System);
+        services.Configure<RoadGuardSystem.Services.Processing.Anh02.Anh02AiOptions>(configuration.GetSection("Anh02"));
+        services.Configure<RoadGuardSystem.Services.Exports.ExportOptions>(configuration.GetSection("Anh02:Export"));
+        services.AddSingleton<RoadGuardSystem.Services.Processing.Anh02.SyntheticAiFixture>();
+        services.AddScoped<RoadGuardSystem.Services.Processing.Anh02.Anh02AiService>();
+        services.AddScoped<RoadGuardSystem.Services.Processing.Anh02.IAnh02AiService>(p => p.GetRequiredService<RoadGuardSystem.Services.Processing.Anh02.Anh02AiService>());
+        services.AddScoped<IAiCandidateFactsReader>(p => p.GetRequiredService<RoadGuardSystem.Services.Processing.Anh02.Anh02AiService>());
+        services.AddScoped<RoadGuardSystem.Services.Reporting.IReportingService, RoadGuardSystem.Services.Reporting.ReportingService>();
+        services.AddScoped<RoadGuardSystem.Services.Exports.IExportService, RoadGuardSystem.Services.Exports.ExportService>();
+        services.AddScoped<RoadGuardSystem.Services.Exports.IExportRenderer, RoadGuardSystem.Services.Exports.ExportRenderer>();
+        services.AddScoped<RoadGuardSystem.Services.Retention.IRetentionService, RoadGuardSystem.Services.Retention.RetentionService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddHostedService<ValidationRunWorker>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();

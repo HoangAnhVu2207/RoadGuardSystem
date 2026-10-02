@@ -102,3 +102,11 @@ Không tạo request mẫu cho các operation này bằng payload phỏng đoán
 - Seed PM, Operator, Repair Crew: role/status và seed password khớp tại thời điểm kiểm tra; chưa chạy hết các API folder bằng Runner.
 - Static collection JSON parsing và toàn bộ 37-route parity: chưa xác minh lại sau lần chỉnh sửa hiện tại.
 - Real SMTP send, mailbox receipt, OTP verify/login và invitation accept: chưa chạy trong lượt này.
+
+## ANH-02 — manual local package
+
+Folder `ANH-02 assigned - AI reporting export retention` thêm 23 requests; giữ nguyên 14 folders và identifiers cũ. Import lại JSON collection/environment. `anh02Enabled=false` mặc định; chỉ bật cho DB disposable Development/Test đã chuẩn bị current actor/project/geometry/dataset. Dùng video thật `contracts/ai/fixtures/anh02/synthetic-road-v1.mp4` trong upload verification; model Released và CRACK catalog phải có từ nguồn được quản trị. Không seed/migrate DB chung. `anh02GeometryVersion` lấy từ trusted geometry producer; HTTP API tests cho ví dụ capture chính xác.
+
+Keys tách từng command và giữ ổn định khi replay. Chọn `anh02DossierFormat=ZIP` hoặc `PDF`; PDF cần cấu hình licensed Unicode font. Sau admission, poll worker tới terminal rồi mới lấy result/content. Matching trả409 source_not_ready và training trả503 producer_unavailable khi Huy reader chưa có; không xem chúng là integration đã hoàn tất. Basis request dự kiến409 khi reference inventory chưa đủ; đừng thay inventory version bằng giá trị đoán. Hold không gia hạn download expiry30 ngày. Không có request xóa thật.
+
+Runner gửi HTTP chưa chạy; JSON, scripts và compatibility được kiểm riêng, kết quả thực nằm trong `planning/development/ANH-02-summary.md`. Những nhận định về DB/API local ở phần đầu README là lịch sử, không phải trạng thái môi trường ANH-02 hiện tại.

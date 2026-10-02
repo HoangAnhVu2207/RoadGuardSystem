@@ -1,0 +1,8 @@
+{
+  "status": "ILLUSTRATIVE_CONTRACT_BYTES_ONLY_NOT_DATABASE_EVIDENCE",
+  "analysisManifestHash": "231d8af82fad594a070a77fc693bddb72993abefd53e4f18612e85e0cec00066",
+  "analysisResultHash": "26d8a91e1bc230635fa89db34b2fb02212e122fd50ff85926167b668f1ac3476",
+  "matchingManifestHash": "ec0f47cc5ba6c96c72150b8be67e6f2d2b97f2d672966cf63379adfa346abb45",
+  "matchingResultHash": "a275508d1450e9359720539bf6a4b0a505b130d8aa4f966699b8b19f2f396db8",
+  "notes": "Result samples exclude their own resultHash. The HTTP view adds it. IDs/versions/snapshot items are illustrative, not a Huy producer or accepted consumer."
+}

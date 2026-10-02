@@ -390,6 +390,131 @@
       "key": "validationRunId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "anh02Enabled",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "anh02GeometryVersion",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02RunId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02DetectionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02CandidateSnapshotId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02ExportId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02HoldId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02EvaluationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02HoldETag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02BasisETag",
+      "value": "\"none\"",
+      "type": "string"
+    },
+    {
+      "key": "anh02InventoryVersion",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02WarrantyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02AiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02DossierKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02TrainingKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02HoldKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02ReleaseKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02BasisKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02EvaluationKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02TimelineAggregateType",
+      "value": "SurveyRequest",
+      "type": "string"
+    },
+    {
+      "key": "anh02TimelineAggregateId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02ReportingMetric",
+      "value": "verifiedSourceBytes",
+      "type": "string"
+    },
+    {
+      "key": "anh02RetentionFileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02DossierFormat",
+      "value": "ZIP",
+      "type": "string"
+    },
+    {
+      "key": "anh02MatchingKey",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -6568,6 +6693,1460 @@
             "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key."
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "ANH-02 assigned - AI reporting export retention",
+      "description": "Manual isolated Development/Test workflow. Set anh02Enabled=true after project/dataset/source setup. AI needs exact checked-in synthetic MP4 and released model, actual geometryVersion from trusted producer; no Huy fake reader. Training unavailable503, matching unavailable409 until real producers. Set selected resourceIDs, inventory/warranty/version from read. Stable distinct keys per command; reuse same body/key/version on replay. Workers are explicitly enabled/configured separately; poll terminal states manually. Never run against shared DB. See ANH-02 summary and contracts/ai/anh02-ai-v1.md.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"anh02Enabled\")!==\"true\" && pm.collectionVariables.get(\"anh02Enabled\")!==\"true\"){console.log(\"ANH-02 manual isolated workflow disabled\");pm.execution.skipRequest();}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "AI analysis admission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02AiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datasetId\": \"{{datasetId}}\",\n  \"scope\": {\n    \"routeVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentSetId\": \"{{segmentSetId}}\",\n    \"segmentIds\": [\n      \"{{segmentId}}\"\n    ],\n    \"targetBand\": \"SURFACE\"\n  },\n  \"modelVersionId\": \"{{modelVersionId}}\",\n  \"preprocessingVersion\": \"fixture-preprocess.v1\",\n  \"configVersion\": \"fixture-config.v1\",\n  \"fixtureVersion\": \"synthetic-road-v1\",\n  \"stage\": \"VIDEO_ANALYSIS\",\n  \"expectedGeometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02RunId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI same key replay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02AiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datasetId\": \"{{datasetId}}\",\n  \"scope\": {\n    \"routeVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentSetId\": \"{{segmentSetId}}\",\n    \"segmentIds\": [\n      \"{{segmentId}}\"\n    ],\n    \"targetBand\": \"SURFACE\"\n  },\n  \"modelVersionId\": \"{{modelVersionId}}\",\n  \"preprocessingVersion\": \"fixture-preprocess.v1\",\n  \"configVersion\": \"fixture-config.v1\",\n  \"fixtureVersion\": \"synthetic-road-v1\",\n  \"stage\": \"VIDEO_ANALYSIS\",\n  \"expectedGeometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI changed key payload conflict",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02AiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datasetId\": \"{{datasetId}}\",\n  \"scope\": {\n    \"routeVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentSetId\": \"{{segmentSetId}}\",\n    \"segmentIds\": [\n      \"{{segmentId}}\"\n    ],\n    \"targetBand\": \"SURFACE\"\n  },\n  \"modelVersionId\": \"{{modelVersionId}}\",\n  \"preprocessingVersion\": \"fixture-preprocess.v1\",\n  \"configVersion\": \"fixture-config.v1\",\n  \"fixtureVersion\": \"synthetic-empty-v1\",\n  \"stage\": \"VIDEO_ANALYSIS\",\n  \"expectedGeometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 409\",()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test(\"Explicit unavailable/problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"duplicate_request\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI run poll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs/{{anh02RunId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs",
+                "{{anh02RunId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI succeeded result",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs/{{anh02RunId}}/result",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs",
+                "{{anh02RunId}}",
+                "result"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.environment.set(\"anh02DetectionId\",pm.response.json().detections[0].detectionId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI candidate trusted metadata",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-candidates/{{anh02DetectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-candidates",
+                "{{anh02DetectionId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Matching missing Huy producer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02MatchingKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datasetId\": \"{{datasetId}}\",\n  \"scope\": {\n    \"routeVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentSetId\": \"{{segmentSetId}}\",\n    \"segmentIds\": [\n      \"{{segmentId}}\"\n    ],\n    \"targetBand\": \"SURFACE\"\n  },\n  \"modelVersionId\": \"{{modelVersionId}}\",\n  \"preprocessingVersion\": \"fixture-preprocess.v1\",\n  \"configVersion\": \"fixture-config.v1\",\n  \"fixtureVersion\": \"synthetic-road-v1\",\n  \"stage\": \"DUPLICATE_MATCHING\",\n  \"expectedGeometryVersion\": \"{{anh02GeometryVersion}}\",\n  \"analysisRunId\": \"{{anh02RunId}}\",\n  \"candidateSnapshotId\": \"{{anh02CandidateSnapshotId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02MatchingKey\"))pm.environment.set(\"anh02MatchingKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 409\",()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test(\"Explicit unavailable/problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"source_not_ready\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporting summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "summary"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporting drilldown",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/items?metric={{anh02ReportingMetric}}&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "{{anh02ReportingMetric}}"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Redacted timeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/timeline?aggregateType={{anh02TimelineAggregateType}}&aggregateId={{anh02TimelineAggregateId}}&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "timeline"
+              ],
+              "query": [
+                {
+                  "key": "aggregateType",
+                  "value": "{{anh02TimelineAggregateType}}"
+                },
+                {
+                  "key": "aggregateId",
+                  "value": "{{anh02TimelineAggregateId}}"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dossier admission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02DossierKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"DOSSIER\",\n  \"format\": \"{{anh02DossierFormat}}\",\n  \"includeOriginalFiles\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02ExportId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dossier replay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02DossierKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"DOSSIER\",\n  \"format\": \"{{anh02DossierFormat}}\",\n  \"includeOriginalFiles\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export poll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports/{{anh02ExportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports",
+                "{{anh02ExportId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Snapshot manifest",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports/{{anh02ExportId}}/manifest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports",
+                "{{anh02ExportId}}",
+                "manifest"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Protected content after success",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports/{{anh02ExportId}}/content",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports",
+                "{{anh02ExportId}}",
+                "content"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Training missing Huy approved reader",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02TrainingKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"TRAINING\",\n  \"format\": \"ZIP\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02TrainingKey\"))pm.environment.set(\"anh02TrainingKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 503\",()=>pm.expect(pm.response.code).to.eql(503));",
+                  "pm.test(\"Explicit unavailable/problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"producer_unavailable\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retention current file inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/files/{{anh02RetentionFileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "files",
+                "{{anh02RetentionFileId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.environment.set(\"anh02InventoryVersion\",pm.response.json().inventoryVersion);",
+                  "if(pm.response.code===200)pm.environment.set(\"anh02BasisETag\",pm.response.headers.get(\"ETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Basis requires complete current inventory - Supervisor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02BasisKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh02BasisETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/files/{{anh02RetentionFileId}}/basis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "files",
+                "{{anh02RetentionFileId}}",
+                "basis"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"warrantyIds\": [\n    \"{{anh02WarrantyId}}\"\n  ],\n  \"expectedReferenceInventoryVersion\": \"{{anh02InventoryVersion}}\",\n  \"reason\": \"Confirm all obligations only after inventory complete\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02BasisKey\"))pm.environment.set(\"anh02BasisKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 409\",()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test(\"Explicit unavailable/problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"retention_inventory_incomplete\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold create - Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02HoldKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scopeType\": \"FILE\",\n  \"scopeId\": \"{{anh02RetentionFileId}}\",\n  \"reason\": \"Independent review hold\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02HoldKey\"))pm.environment.set(\"anh02HoldKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 201\",()=>pm.expect(pm.response.code).to.eql(201));",
+                  "if(pm.response.code===201)pm.environment.set(\"anh02HoldId\",pm.response.json().id);",
+                  "if(pm.response.code===201)pm.environment.set(\"anh02HoldETag\",pm.response.headers.get(\"ETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold read",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{anh02HoldId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{anh02HoldId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold release - Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02ReleaseKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh02HoldETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{anh02HoldId}}/release",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{anh02HoldId}}",
+                "release"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Review hold released\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02ReleaseKey\"))pm.environment.set(\"anh02ReleaseKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluation admission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02EvaluationKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/evaluations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "evaluations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\n    \"{{anh02RetentionFileId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02EvaluationKey\"))pm.environment.set(\"anh02EvaluationKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02EvaluationId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluation snapshot read",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/evaluations/{{anh02EvaluationId}}?pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "evaluations",
+                "{{anh02EvaluationId}}"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

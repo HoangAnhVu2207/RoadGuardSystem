@@ -28,6 +28,16 @@ if (builder.Environment.IsDevelopment() &&
     builder.Services.AddHostedService<UploadVerificationWorker>();
 }
 
+// Explicit opt-in avoids polling un-migrated deployments; no migration is applied here.
+if (builder.Configuration.GetValue("Anh02:WorkersEnabled", false))
+{
+    builder.Services.AddHostedService<ExportWorker>();
+    builder.Services.AddHostedService<RetentionEvaluationWorker>();
+    if ((builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing") || builder.Environment.IsEnvironment("Test"))
+        && builder.Configuration.GetValue("Anh02:MockEnabled", false))
+        builder.Services.AddHostedService<AiMockRunWorker>();
+}
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment() &&

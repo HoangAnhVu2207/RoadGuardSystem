@@ -378,14 +378,10 @@ public sealed class IdempotencyPerCommandCharacterizationTests
 
         var segmentSetId1 = Guid.NewGuid();
         var segmentId1 = Guid.NewGuid();
-        var segmentSetId2 = Guid.NewGuid();
-        var segmentId2 = Guid.NewGuid();
         await using (var context = _sql.CreateDbContext())
         {
             context.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId1, routeVersionId));
             context.RoadSegments.Add(RoadSegment.Create(segmentId1, segmentSetId1, routeVersionId, 1));
-            context.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId2, routeVersionId));
-            context.RoadSegments.Add(RoadSegment.Create(segmentId2, segmentSetId2, routeVersionId, 2));
             await context.SaveChangesAsync();
         }
 
@@ -412,10 +408,12 @@ public sealed class IdempotencyPerCommandCharacterizationTests
 
         first.StatusCode.Should().Be(HttpStatusCode.Created);
 
+        // ANH-01 permits one current published set. Change a valid request field
+        // to characterize replay conflict without constructing invalid geometry state.
         var payloadB = new
         {
-            scope = new[] { new { routeVersionId, segmentSetId = segmentSetId2, segmentIds = new[] { segmentId2 }, targetBand = "SURFACE" } },
-            plannedAt = "2026-10-01T08:00:00Z",
+            scope = new[] { new { routeVersionId, segmentSetId = segmentSetId1, segmentIds = new[] { segmentId1 }, targetBand = "SURFACE" } },
+            plannedAt = "2026-10-02T08:00:00Z",
             surveyType = "BASELINE"
         };
 

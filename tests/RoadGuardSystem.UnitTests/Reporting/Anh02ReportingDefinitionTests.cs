@@ -64,4 +64,25 @@ public sealed class Anh02ReportingDefinitionTests
         var legacy = capture.Summary.Metrics.Single(m => m.Code == "legacyUnclassified");
         legacy.Value.Should().BeNull(); legacy.Availability.Should().Be("UNAVAILABLE"); legacy.ReasonCodes.Should().Contain("LEGACY_SPATIAL_SCOPE_UNAVAILABLE");
     }
+    [Fact]
+    public void IntakeCountsDistinctReportsAndCasesAndKeepsMissingLifecycleExplicit()
+    {
+        var a = Guid.NewGuid(); var b = Guid.NewGuid(); var incident = Guid.NewGuid();
+        var facts = new ReportingFacts([], [], [], [], [], [], [], [], [], Intake: new(
+            [new(a,"r1",incident,"c1"), new(a,"r1",incident,"c1"), new(b,"r2",incident,"c1")],
+            [new(incident,"c1","OPEN"), new(incident,"c1","OPEN")]));
+        var capture = ReportingDefinitions.Create(Guid.NewGuid(), DateTimeOffset.UtcNow, new(), facts);
+        var reports = capture.Summary.Metrics.Single(m => m.Code == "reportsReceived");
+        reports.Value.Should().Be(2); reports.PeriodApplicable.Should().BeTrue(); reports.Availability.Should().Be("PARTIAL");
+        reports.ReasonCodes.Should().Contain("HUY_CASE_LIFECYCLE_NOT_INTEGRATED");
+        capture.Summary.Metrics.Single(m => m.Code == "casesByStatus").Value.Should().Be(1);
+        capture.Summary.Metrics.Single(m => m.Code == "casesByStatus").PeriodApplicable.Should().BeFalse();
+        capture.Items.Count(m => m.Metric == "reportsReceived").Should().Be(2);
+        capture.Files.Should().BeEmpty();
+        var spatial = ReportingDefinitions.Create(Guid.NewGuid(), DateTimeOffset.UtcNow, new(),
+            new([], [], [], [], [], [], [], ["REPORTER_SPATIAL_SCOPE_UNAVAILABLE"], []));
+        spatial.Summary.Metrics.Where(m => m.Code is "reportsReceived" or "casesByStatus")
+            .Should().OnlyContain(m => m.Value == null && m.Availability == "UNAVAILABLE" && m.ReasonCodes.Contains("REPORTER_SPATIAL_SCOPE_UNAVAILABLE"));
+    }
+
 }

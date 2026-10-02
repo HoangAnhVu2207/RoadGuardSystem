@@ -6,9 +6,13 @@ public sealed record ReportingTaskFact(Guid Id, string Status, Guid? ParentTaskI
 public sealed record ReportingSegmentFact(Guid RouteVersionId, Guid SegmentSetId, Guid SegmentId);
 public sealed record ReportingPublishedSetFact(Guid RouteVersionId, Guid SegmentSetId);
 public sealed record ReportingBaselineFact(Guid Id, Guid RouteVersionId, Guid SegmentSetId, Guid SegmentId, string Band, Guid DatasetId, Guid AssessmentId);
+public sealed record ReportingReportFact(Guid Id, string Version, Guid CaseId, string CaseVersion);
+public sealed record ReportingCaseFact(Guid Id, string Version, string Status);
+// Materialized current SQL intake facts, not a Huy lifecycle/defect reader.
+public sealed record ReportingIntakeFacts(ReportingReportFact[] Reports, ReportingCaseFact[] Cases);
 public sealed record ReportingFacts(ReportingTaskFact[] Tasks, ReportingSegmentFact[] Segments, ReportingBaselineFact[] Baselines,
     ReportingFileDto[] Files, ReportingItemDto[] Validations, ReportingTimelineItemDto[] Timeline, ReportingSourceRefDto[] Sources,
-    string[] Warnings, ReportingPublishedSetFact[] PublishedSets, string Isolation = "SERIALIZABLE");
+    string[] Warnings, ReportingPublishedSetFact[] PublishedSets, string Isolation = "SERIALIZABLE", ReportingIntakeFacts? Intake = null);
 public sealed record ReportingReadResult(string Code, ReportingFacts? Facts = null);
 
 public interface IReportingRepository

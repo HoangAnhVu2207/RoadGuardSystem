@@ -85,3 +85,140 @@ Fresh final commands/results, CURRENT_VERIFIED; SQL owns disposable databases, n
 **190 distinct final test cases**, all passed; overlapping focused/red runs are not added to that total. Failure/reproduction history: first compile had CA2016 (0 executed), corrected explicit token forwarding. First P1 red executed8/failed8 due OutOfMemory during EF model construction, not a bug reproduction; next base-caller comparison executed8/failed8 with actual stored replay/conflict after revocation (base caller bytes temporarily substituted and correction bytes restored in finally, no Git reset). P2 HTTP red executed1/failed1: expected DataFailure, actual Queued; focused green1/1. Initial caller green14/14. Additional password guard red2/2 reproduced missing recheck. Initial expanded HTTP executed22/passed15/failed7: interceptor registration was not applied to actual scoped DbContext and evaluation's empty-ID conflict payload was invalid; fixed test-only explicit DbContext injection/valid scope, final22/22. Initial expanded SQL executed91/passed90/failed1: unsupported assumption about SqlClient cancellation exception token; provider exception preserved and final93/93. No unresolved failure or failure converted to skip.
 
 BE_VERIFIED: actual caller/HTTP authorization, SQL durability/recovery/rollback, migration/legacy fence and compatibility under owned fixtures. MOCK_VERIFIED: synthetic AI/storage and matching reader fixture only. NOT RUN / external-deployment UNKNOWN: live Huy reader/mapping/current-approved labels acceptance, live MinIO/S3, deployed fonts, demo/8GiB, shared/deployed migration/history/backup recovery, external deployment/provider/FE/Android, full solution suite, performance and Postman HTTP runner. No real deletion. Read-only remote Huy ref now `0e41913b225d4f72d4d1ead1ae322ad56bba5328`; this correction did not fetch/merge/integrate or inspect that newer consumer code and grants no acceptance at that SHA. ANH-02 remains Partial; ANH-01 CRS and excluded A08/A09 gates remain unchanged.
+
+
+## ANH-02 continuation after Reporter checkpoint A — 2026-10-03
+
+**Partial; external ChatGPT review/re-review PENDING.** Initial task base
+`6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e`; initial dirty none on anh-review.
+Checkpoint A/base B `715ade2c20f652b77c8c7e995c76bb5d47ead966` is already pushed,
+[exact A compare](https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e...715ade2c20f652b77c8c7e995c76bb5d47ead966).
+A integrates fixed Huy source `0e41913b225d4f72d4d1ead1ae322ad56bba5328`, not a tip
+merge. Remote Huy later7e8261648e08adf5b5bdf0cea85fca5e55463b73 was inspected read-only
+for dependencies; its lifecycle/case/candidate changes were not imported. No new
+reader checkpoint/ownership adopted. A handoff is in existing ANH-01-summary.
+Final B SHA/compare supplied in final handoff; normal selective push, no amend.
+
+Dependency audit: prior AI mock/provenance/terminal job+attempt+audit correction,
+export snapshot/lease/download/recovery, retention control and shared receipt
+remain implemented; no reimplementation. Production DI activation invalidated
+caller/binding evidence, rerun below. Available intake tables now support Anh
+count/read/snapshot and reference inventory. Actual Huy approved labels/current
+revision, matching, CaseDefectRead/internal dossier/timeline, full inventory,
+external storage/deployment remain missing. No provider AI/A08/A09/HUY-02/CRS scope.
+
+Delivered in B (Anh-owned files):
+- ReportingRepository/IReportingRepository/ReportingDefinitions materialize
+  distinct Report→active canonical CaseReportLink→current project and case stock
+  under existing SERIALIZABLE capture. reportsReceived applies ReceivedAt [from,to);
+  casesByStatus is current stock. Source IDs/rowversions are real; no description,
+  contact, private file bytes or aggregate-array attribution. Intake counts/zero
+  are PARTIAL/HUY_CASE_LIFECYCLE_NOT_INTEGRATED. Geometry filters return explicit
+  null/UNAVAILABLE, never invented segment attribution; defect/repair stay unavailable.
+- New ReporterIntakeRetentionInventoryContributor registered once, scoped with
+  actual DbContext: original/supplement evidence/report versions and all case links,
+  including closed links and case-head versions. Complete only for named bounded
+  table slice; Name is REPORTER_INTAKE, not HUY. Composite still requires full Huy
+  obligations and remains incomplete/WAITING. Private FileScope stays project-null
+  and PM-hidden. Known project files include actual linked intake evidence.
+- Export reuses the same reporting admission snapshot. Report/case partial counts
+  reach dossier without granting photo access; immutable snapshot survives later
+  fixture-only triage. Consumer now rejects duplicate LabelId heads/null annotation/
+  malformed snapshot facts as producer_invalid and includes mandatory-password
+  state in current service/worker/download authority. No approval policy implemented.
+- Canonical local adoption appended; integrated Postman adds2 count drilldowns
+  and fixes quoted signed-PUT ETag before JSON complete. No draft/FE lock changes.
+  Existing Huy producer, shared receipt service, frozen Anh02Contracts interface,
+  migrations/snapshot, processing terminal behavior and identity sources unchanged.
+
+Actual producer→consumer evidence: real auth/production DI/SQL/BE private upload→
+verification→received Report+UNASSIGNED Case→reporting exclusion→dossier admission/
+render/download→intake inventory/FILE hold. Object storage explicitly mocked;
+local installed Arial and actual PDFsharp renderer used, PDF parses with title
+Hồ sơ RoadGuard/pages>0. No font redistributed or deployment claim. After explicitly
+named SQL fixture triage (NOT Huy business-command acceptance): count/drilldown1,
+future period report0 vs case stock1, historical dossier count0 preserved, FILE+
+PROJECT holds2 then file release leaves project block1; evaluation stores actual
+private and generated-artifact refs, PM hides private item/cursor. Supplement/
+closed-link SQL fixtures preserve obligation and advance inventory hash. REPORT
+candidate producer rejects missing case geometry as SourceNotReady/no fake facts.
+
+Training consumer fixture: scoped IApprovedTrainingLabelReader capture asserts
+same current SQL transaction SERIALIZABLE; actual exporter/snapshot/receipt/ZIP/
+source/hash/download flow, typed immutable revision2 remains after fixture head3,
+current source-access revoke denies bytes. Seven shapes: unavailable503, empty422,
+foreign project422, duplicate heads422, null annotation422, denied source403,
+valid typed fixture202. This is MOCK_VERIFIED approval/source authority, not SQL
+current-approved Huy producer acceptance. No fixture reader registered in production.
+IApprovedTrainingLabelReader and ITrainingSourceAccessReader exact fields remain
+Anh02Contracts.cs: label/revision/approval IDs, project/type/normalized bbox, file
+version/hash/int64 bytes/media, source identity/version, approver/time, job/model/
+dataset/mode/segment; snapshot ID/hash/time/materialized labels. Huy must supply
+adopted exact same-context current-approved reader + current resource access and
+mapping/approval-revision tests. No CaseDefectRead/dossier projection is inferred
+from Huy DTOs: typed case/defect/publication/repair facts, authorized evidence refs,
+availability/current revision/permission semantics and exact checkpoint remain
+owner Huy's missing producer/adoption; optional sections unavailable, not empty success.
+IAiCandidateFactsReader remains registered/trusted new-provenance producer; real
+Huy AI command and matching snapshot acceptance still PENDING at fixed source.
+
+Actual self-review1: checked attribution/privacy/current links vs retention
+historical obligations, shared scoped read/capture isolation, immutable admission,
+private evidence permissions and typed reader failures; new TDD intake test found
+missing REPORT refs. Added bounded reader/counts and domain/version/filter tests.
+Contract tests exposed duplicate current heads accepted and null annotation500,
+fixed Anh consumer (does not decide approval). Review clarified contributor
+completeness only for named tables; aggregate Huy gate retained.
+Actual self-review2: checked worker/service authority independent of JWT, callback
+ownership, producer absence, final diff/compatibility/Postman and stable source/hash
+ordering. Direct service password test reproduced success while MustChangePassword,
+fixed current authority; supplemental hash evidence/ID ordering explicit. Corrected
+quoted PUT ETag; old reporting fixture assertion now checks actual partial counts
+and missing canonical links, not stale unavailable-reader assumption. Reviews are
+Codex self-review, not external review. Huy role-row guard gap from A remains open.
+
+Fresh commands/results (all SQL uses owned disposable DB + production migrations):
+- `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --no-incremental --disable-build-servers -v quiet -clp:ErrorsOnly`:exit0,98 warnings/0 errors.
+- `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Anh02|FullyQualifiedName~ReporterIntakeRequestNormalizerTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh02-continuation-unit-final.trx'`:93 executed/pass,0 failed/skip.
+- `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --disable-build-servers --filter '(FullyQualifiedName~Huy01Reporter|FullyQualifiedName~Anh02|FullyQualifiedName~ReporterEvidenceApiTests|FullyQualifiedName~UploadApiTests|FullyQualifiedName~IdempotencyPerCommandCharacterizationTests)&FullyQualifiedName!~CompleteMultipartUploadAgainstConfiguredMinio' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh02-continuation-api-verified.trx'`:78 executed/pass,0 failed/skip.
+- `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Anh02|FullyQualifiedName~ReceiptAccessGuardSqlTests|FullyQualifiedName~P202ServiceContractTests|FullyQualifiedName~P202TransactionAndIdempotencyTests|FullyQualifiedName~Huy01SharedSchemaTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh02-continuation-sql-final.trx'`:97 executed/pass,0 failed/skip.
+- After final fact/hash ordering edits: same ApiTests command, filter `FullyQualifiedName~Anh02_real_intake|FullyQualifiedName~Anh02_intake_inventory|FullyQualifiedName~Anh02_training_consumer|FullyQualifiedName~Anh02ReportingHttpTests`, TRX anh02-continuation-final-review.trx:10 executed/pass,0 failed/skip. Included in78, not added. **268 distinct passing cases**, not A258+B268.
+- `./.tools/dotnet-ef.exe migrations has-pending-model-changes --context RoadGuardDbContext --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build`:exit0,no pending model; process-only unreachable design connection restored. No migration generated/applied/shared DB.
+- JSON parse/201 Postman script syntax checks and quoted-ETag simulation:pass. No Postman network-runner claim. Shared/frozen/Huy source byte comparisons, summary prefix preservation, selective staged checks/git diff --check:exit0.
+
+Failure history: intake red1 failed at missing REPORT refs→green1; expanded snapshot/
+holds green1. Training first compilation zero cases (missing Storage extension import),
+fixed fixture; red7 executed4 pass3 fail: duplicate head202, null annotation500,
+positive ZIP not-ready from earlier negative fixture's erroneously queued job.
+Consumer fixes + bounded actual worker loop→7 pass. Existing reporting red1 failed
+on stale UNAVAILABLE expectation after real reader activation, updated explicit
+partial/canonical-link assertions. Password direct-service red1 failed→focused9
+pass. First broad API58 pass; expanded PDF/retention run78=77pass1fail because actual
+PDF adds a generated artifact and an assertion assumed one evaluation file; fixed
+file-specific/privacy assertions→78pass. Final ordering affected10pass. No unresolved
+failure or hidden skip; earlier overlapping runs not summed.
+
+BE_VERIFIED: production Reporter DI/HTTP/SQL receipt paths, existing real AI terminal
+invariants, project reporting/dossier capture, source references/holds/evaluator,
+rollback/replay/recovery/auth and actual local PDF/ZIP backend. MOCK_VERIFIED: storage,
+matching reader and typed approved-label/source-access fixtures. Triage/supplement/
+closed-link setup is SQL fixture evidence, NOT real Huy lifecycle orchestration.
+Live external verified: none newly. NOT RUN: real Huy current-approved labels/
+CaseDefectRead/matching/dossier/timeline/full inventory consumers, Reporter role-row
+revoke acceptance (Huy-owned source finding), external ChatGPT review/re-review,
+MinIO/S3, deployed font/license packaging, demo/8GiB transport, shared/deployed DB
+history/upgrade/backup recovery, deletion/backfill, external AI/FE/Android/provider,
+full solution/performance/Postman network runner. Local disposable MinIO attempts:
+`docker pull minio/minio:RELEASE.2025-04-22T22-12-26Z` denied; fallback
+`docker pull quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z` returned401 Unauthorized.
+No MinIO container/bucket created, no external/shared bucket or credentials used.
+8GiB/demo live chain cannot run without that storage/configuration; existing asset/
+limit/mock evidence is not promoted. ANH-01 CRS/A08/A09 and prior Partial gates remain.
+
+Handoff gates: ANH-01 Partial (Reporter intake BE active, original deployment/CRS/
+8GiB/demo gates remain); HUY-01 Partial (only handed-off intake activated, role-row
+finding/external review/rest of lifecycle/readers remain); ANH-02 Partial (available
+Anh intersections completed, required real Huy/live/deployment gates remain). Huy
+can continue immediately from checkpoint A, supply exact permission-aware reader/
+mapping checkpoint and role-row guard correction; Anh remains shared writer for
+next adoption. No new business decision inferred, no request to reconfirm D1–D5.

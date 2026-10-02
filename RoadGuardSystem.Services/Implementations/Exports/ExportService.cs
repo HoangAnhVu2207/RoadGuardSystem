@@ -33,7 +33,7 @@ public sealed class ExportService : IExportService
     private async Task<UserRoleCode?> AuthorizeAsync(Guid actor, Guid project, CancellationToken ct)
     {
         var user = await _identity.GetUserSecurityStateAsync(actor, ct);
-        if (user is null || user.Status != UserStatus.Active || user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) || !await _identity.IsRoleActiveAsync(user.RoleCode, ct)) return null;
+        if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) || !await _identity.IsRoleActiveAsync(user.RoleCode, ct)) return null;
         return await _scope.AuthorizeAsync(actor, user.RoleCode, project, ct) is null ? null : user.RoleCode;
     }
     public async Task<ExportResult<ExportJobViewDto>> CreateAsync(Guid actorId, Guid projectId, CreateExportRequestDto request, string key, Guid? correlationId, CancellationToken ct)
@@ -83,8 +83,9 @@ public sealed class ExportService : IExportService
             if (_labels is null || request.IncludeOriginalFiles && _sourceAccess is null) return new("producer_unavailable", null);
             var selection = await _labels.CaptureApprovedAsync(actor, role, project, new(request.SegmentIds!, request.DefectIds!, request.From, request.To), ct);
             if (selection is null) return new("producer_unavailable", null);
+            if (selection.Labels is null || selection.SnapshotId == Guid.Empty || string.IsNullOrWhiteSpace(selection.SchemaVersion) || selection.Hash is not { Length: 64 } || !selection.Hash.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')) return new("producer_invalid", null);
             if (selection.Labels.Count == 0) return new("no_eligible_labels", null);
-            if (selection.Labels.Any(l => !ValidLabel(l, project))) return new("producer_invalid", null);
+            if (selection.Labels.Any(l => !ValidLabel(l, project)) || selection.Labels.Select(l => l.LabelId).Distinct().Count() != selection.Labels.Count) return new("producer_invalid", null);
             labels = selection.Labels.OrderBy(l => l.LabelId).ThenBy(l => l.Revision).Select(l => new ExportLabelDto(l.LabelId, l.Revision, l.RevisionId, l.ProjectId, l.TypeCode, l.Annotation.X, l.Annotation.Y, l.Annotation.Width, l.Annotation.Height, l.FileId, l.FileVersion, l.Sha256, l.SizeBytes, l.MediaType, l.SourceKind, l.SourceId, l.SourceVersion, l.ApprovalId, l.ApprovedBy, l.ApprovedAt.ToUniversalTime(), l.ProcessingJobId, l.ModelVersionId, l.DatasetVersionId, l.Mode, l.SegmentId)).ToArray();
             files = labels.GroupBy(l => l.FileId).OrderBy(g => g.Key).Select(g => { var l = g.First(); return new ExportFileDto(l.FileId, l.FileVersion, l.Sha256, l.SizeBytes, l.MediaType, request.IncludeOriginalFiles ? ExportArchive.FilePath(l.FileId, l.MediaType) : null, request.IncludeOriginalFiles, request.IncludeOriginalFiles ? null : "ORIGINALS_NOT_REQUESTED"); }).ToArray();
             foreach (var f in files)
@@ -101,7 +102,7 @@ public sealed class ExportService : IExportService
         var manifest = new ExportManifestV1Dto("anh02.export.v1", snapshotId, project, request.Kind, request.Format, actor, now, now, definitions, request, revisions, files, sections, labels, "");
         return new(null, new(manifest, dossier));
     }
-    private static bool ValidLabel(ApprovedTrainingLabelV1 l, Guid project) => l.ProjectId == project && l.LabelId != Guid.Empty && l.RevisionId != Guid.Empty && l.ApprovalId != Guid.Empty && l.ApprovedBy != Guid.Empty && l.FileId != Guid.Empty && l.SourceId != Guid.Empty && l.Revision > 0 && !string.IsNullOrWhiteSpace(l.FileVersion) && !string.IsNullOrWhiteSpace(l.SourceVersion) && l.SizeBytes > 0 && l.Sha256.Length == 64 && l.Sha256.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f') && l.MediaType is "image/jpeg" or "image/png" && l.Annotation.X >= 0 && l.Annotation.Y >= 0 && l.Annotation.Width > 0 && l.Annotation.Height > 0 && l.Annotation.X + l.Annotation.Width <= 1 && l.Annotation.Y + l.Annotation.Height <= 1 && l.Mode is "REAL" or "MOCK" or "SYNTHETIC";
+    private static bool ValidLabel(ApprovedTrainingLabelV1 l, Guid project) => l is not null && l.Annotation is not null && l.ProjectId == project && l.LabelId != Guid.Empty && l.RevisionId != Guid.Empty && l.ApprovalId != Guid.Empty && l.ApprovedBy != Guid.Empty && l.FileId != Guid.Empty && l.SourceId != Guid.Empty && l.Revision > 0 && !string.IsNullOrWhiteSpace(l.TypeCode) && !string.IsNullOrWhiteSpace(l.SourceKind) && !string.IsNullOrWhiteSpace(l.FileVersion) && !string.IsNullOrWhiteSpace(l.SourceVersion) && l.SizeBytes > 0 && l.Sha256 is { Length: 64 } && l.Sha256.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f') && l.MediaType is "image/jpeg" or "image/png" && l.Annotation.X >= 0 && l.Annotation.Y >= 0 && l.Annotation.Width > 0 && l.Annotation.Height > 0 && l.Annotation.X + l.Annotation.Width <= 1 && l.Annotation.Y + l.Annotation.Height <= 1 && l.Mode is "REAL" or "MOCK" or "SYNTHETIC";
     public async Task<ExportResult<ExportJobViewDto>> GetAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct)
     {
         if (await AuthorizeAsync(actorId, projectId, ct) is null) return new("forbidden");

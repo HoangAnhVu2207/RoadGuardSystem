@@ -11,9 +11,31 @@ public static class ReportingDefinitions
     public static ReportingCaptureDto Create(Guid project, DateTimeOffset readAt, ReportingFiltersDto filters, ReportingFacts facts)
     {
         var metrics = new List<ReportingMetricDto>(); var items = new List<ReportingItemDto>();
-        foreach (var code in new[] { "reportsReceived", "casesByStatus", "defectsByStatus", "repairItemsByStatus", "repairAcceptanceRate" })
+        foreach (var code in new[] { "defectsByStatus", "repairItemsByStatus", "repairAcceptanceRate" })
             metrics.Add(new(code, new(), null, code == "repairAcceptanceRate" ? "percent" : "count", null, null,
                 code is "reportsReceived" or "repairAcceptanceRate", "UNAVAILABLE", [code.StartsWith("repair", StringComparison.Ordinal) ? "HUY02_REPAIR_FACTS_UNAVAILABLE" : "HUY01_REPORTING_READER_UNAVAILABLE"], []));
+        if (facts.Intake is { } intake)
+        {
+            string[] incomplete = ["HUY_CASE_LIFECYCLE_NOT_INTEGRATED"];
+            var reports = intake.Reports.DistinctBy(r => r.Id).ToArray();
+            metrics.Add(new("reportsReceived", new(), reports.LongLength, "count", null, null, true, "PARTIAL", incomplete,
+                reports.SelectMany(r => new[] { new ReportingSourceRefDto("Report", r.Id, r.Version), new ReportingSourceRefDto("IncidentCase", r.CaseId, r.CaseVersion) }).Distinct().ToArray()));
+            items.AddRange(reports.Select(r => new ReportingItemDto(r.Id, "reportsReceived", "Report", r.Version)));
+            var cases = intake.Cases.DistinctBy(c => c.Id).ToArray();
+            foreach (var group in cases.GroupBy(c => c.Status).OrderBy(g => g.Key, StringComparer.Ordinal))
+            {
+                metrics.Add(new("casesByStatus", new(Status: group.Key), group.LongCount(), "count", null, null, false, "PARTIAL", incomplete,
+                    group.Select(c => new ReportingSourceRefDto("IncidentCase", c.Id, c.Version)).ToArray()));
+                items.AddRange(group.Select(c => new ReportingItemDto(c.Id, "casesByStatus", "IncidentCase", c.Version, c.Status)));
+            }
+            if (cases.Length == 0) metrics.Add(new("casesByStatus", new(), 0, "count", null, null, false, "PARTIAL", incomplete, []));
+        }
+        else
+        {
+            var reason = facts.Warnings.Contains("REPORTER_SPATIAL_SCOPE_UNAVAILABLE") ? "REPORTER_SPATIAL_SCOPE_UNAVAILABLE" : "HUY01_REPORTING_READER_UNAVAILABLE";
+            foreach (var code in new[] { "reportsReceived", "casesByStatus" })
+                metrics.Add(new(code, new(), null, "count", null, null, code == "reportsReceived", "UNAVAILABLE", [reason], []));
+        }
         var tasks = facts.Tasks.DistinctBy(t => t.Id).ToArray();
         foreach (var group in tasks.Where(t => !t.Legacy).GroupBy(t => t.Status).OrderBy(g => g.Key, StringComparer.Ordinal))
         {

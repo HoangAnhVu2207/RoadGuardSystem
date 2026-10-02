@@ -51,6 +51,24 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
         var selectedSegments = segments.Where(s => currentSetIds.Contains(s.SegmentSetId) && (filterSegments.Length == 0 || filterSegments.Contains(s.Id)))
             .Select(s => new ReportingSegmentFact(s.RoadSectionVersionId, s.SegmentSetId, s.Id)).ToArray();
         var warnings = new HashSet<string>();
+        var spatialIntake = filters.RouteVersionId.HasValue || filters.SegmentSetId.HasValue || filterSegments.Length > 0;
+        ReportingIntakeFacts? intake = null;
+        if (spatialIntake) warnings.Add("REPORTER_SPATIAL_SCOPE_UNAVAILABLE");
+        else
+        {
+            var caseRows = await db.IncidentCases.AsNoTracking().Where(c => c.ProjectId == project)
+                .Select(c => new { c.Id, c.Status, Version = EF.Property<byte[]>(c, "RowVersion") }).ToArrayAsync(token);
+            var reportQuery = from r in db.Reports.AsNoTracking()
+                join l in db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().AsNoTracking() on r.Id equals l.ReportId
+                join c in db.IncidentCases.AsNoTracking() on l.CaseId equals c.Id
+                where l.EndedAt == null && c.ProjectId == project
+                select new { r.Id, r.ReceivedAt, Version = EF.Property<byte[]>(r, "RowVersion"), CaseId = c.Id, CaseVersion = EF.Property<byte[]>(c, "RowVersion") };
+            if (filters.From is { } reportFrom) reportQuery = reportQuery.Where(r => r.ReceivedAt >= reportFrom);
+            if (filters.To is { } reportTo) reportQuery = reportQuery.Where(r => r.ReceivedAt < reportTo);
+            var reportRows = await reportQuery.ToArrayAsync(token);
+            intake = new(reportRows.DistinctBy(r => r.Id).OrderBy(r => r.Id).Select(r => new ReportingReportFact(r.Id, Convert.ToBase64String(r.Version), r.CaseId, Convert.ToBase64String(r.CaseVersion))).ToArray(),
+                caseRows.OrderBy(c => c.Id).Select(c => new ReportingCaseFact(c.Id, Convert.ToBase64String(c.Version), c.Status.ToString().ToUpperInvariant())).ToArray());
+        }
         var requests = await db.SurveyRequests.AsNoTracking().Where(x => x.ProjectId == project).ToListAsync(token);
         var requestIds = requests.Select(x => x.Id).ToArray();
         var scopes = await db.SurveyRequestScopes.AsNoTracking().Where(x => requestIds.Contains(x.SurveyRequestId)).ToListAsync(token);
@@ -115,7 +133,7 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
             .Concat(assessmentRows.Select(a => new ReportingSourceRefDto("DatasetAssessment", a.Id, Convert.ToBase64String(a.RowVersion)))).ToArray();
         return new("success", new(tasks, selectedSegments, baselines, files, validationItems, timeline, sources, warnings.ToArray(),
             currentSets.Select(s => new ReportingPublishedSetFact(s.RoadSectionVersionId, s.Id)).ToArray(),
-            await ReadIsolationAsync(token) == IsolationLevel.Snapshot ? "SNAPSHOT" : "SERIALIZABLE"));
+            await ReadIsolationAsync(token) == IsolationLevel.Snapshot ? "SNAPSHOT" : "SERIALIZABLE", intake));
     }
 
     public async Task<bool> AggregateBelongsAsync(Guid project, string type, Guid id, CancellationToken token) => type switch

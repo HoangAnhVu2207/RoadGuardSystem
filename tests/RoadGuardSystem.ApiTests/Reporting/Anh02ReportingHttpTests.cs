@@ -173,7 +173,7 @@ public sealed class Anh02ReportingHttpTests(AuthenticationSqlServerFixture sql)
                 db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), manager, time, "survey_task_accept", "SurveyRequest", task,
                     null, "{}", "PRIVATE email person@example.test token do-not-expose", "fixture", null, []));
             db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), manager, from, "unknown_private_action", "SurveyRequest", task, null, null, "PRIVATE", "fixture", null));
-            // Two real persisted Reports linked to one Case do not authorize a missing Huy reader.
+            // SQL-only legacy fixture has Reports/Case snapshots but no canonical active link rows. Do not manufacture report attribution.
             var reporter = (await db.Files.SingleAsync(x => x.Id == file)).UploadedByUserId!.Value;
             var sourceVersion = Convert.ToBase64String((await db.UploadSessions.SingleAsync(x => x.FileId == file)).RowVersion);
             var telemetry = Guid.NewGuid(); var telemetryHash = new string('b', 64); const long telemetryBytes = 4L * 1024 * 1024 * 1024;
@@ -236,10 +236,19 @@ public sealed class Anh02ReportingHttpTests(AuthenticationSqlServerFixture sql)
         var surface = metrics.Single(m => m.GetProperty("code").GetString() == "baselineCoverageByBand" && m.GetProperty("dimensions").GetProperty("band").GetString() == "SURFACE");
         surface.GetProperty("numerator").GetInt64().Should().Be(1); surface.GetProperty("denominator").GetInt64().Should().Be(2);
         metrics.Single(m => m.GetProperty("code").GetString() == "verifiedSourceBytes").GetProperty("value").GetInt64().Should().Be(100 + 4L * 1024 * 1024 * 1024);
-        foreach (var code in new[] { "reportsReceived", "casesByStatus", "defectsByStatus", "repairItemsByStatus", "repairAcceptanceRate" })
+        foreach (var code in new[] { "defectsByStatus", "repairItemsByStatus", "repairAcceptanceRate" })
         {
             var missing = metrics.Single(m => m.GetProperty("code").GetString() == code);
             missing.GetProperty("value").ValueKind.Should().Be(JsonValueKind.Null); missing.GetProperty("availability").GetString().Should().Be("UNAVAILABLE");
+        }
+        var reportCount = metrics.Single(m => m.GetProperty("code").GetString() == "reportsReceived");
+        reportCount.GetProperty("value").GetInt32().Should().Be(0);
+        reportCount.GetProperty("availability").GetString().Should().Be("PARTIAL");
+        metrics.Where(m => m.GetProperty("code").GetString() == "casesByStatus").Sum(m => m.GetProperty("value").GetInt32()).Should().Be(2);
+        foreach (var missingSpatial in spatialSummary.GetProperty("metrics").EnumerateArray().Where(m => m.GetProperty("code").GetString() is "reportsReceived" or "casesByStatus"))
+        {
+            missingSpatial.GetProperty("value").ValueKind.Should().Be(JsonValueKind.Null);
+            missingSpatial.GetProperty("availability").GetString().Should().Be("UNAVAILABLE");
         }
         var drilldown = await Body(await client.GetAsync(path + "/items?metric=baselineCoverageByBand"));
         drilldown.GetProperty("items").GetArrayLength().Should().Be(1);

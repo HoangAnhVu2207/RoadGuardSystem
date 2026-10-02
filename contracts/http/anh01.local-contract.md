@@ -114,3 +114,46 @@ Private upload/content retain producer contract: owned JPEG/PNG<=20MiB;
 metadata ETag supplies fileVersion; content only VERIFIED; other-owner404,
 not-ready409/storage503. HTTP/SQL tests use real BE and mock object storage;
 live storage/deployment and external review remain separate gates.
+
+
+## ANH-02 intake consumer continuation — 2026-10-03
+
+Checkpoint A 715ade2c20f652b77c8c7e995c76bb5d47ead966 activates only received
+Reports/UNASSIGNED Cases, not Huy triage/approval/lifecycle commands. Project
+summary/drilldown now reads Report via canonical active CaseReportLink and
+current Case.ProjectId, period ReceivedAt in [from,to); distinct case stock
+uses current actual state and ignores period. Both return PARTIAL with
+HUY_CASE_LIFECYCLE_NOT_INTEGRATED, including supported zero. Unassigned Reports
+are excluded; absent relational link is never inferred from aggregate JSON.
+Any geometry filter yields null/UNAVAILABLE REPORTER_SPATIAL_SCOPE_UNAVAILABLE
+for these two metrics; no segment attribution guessed. Redacted IDs/rowversion
+refs only, no Report description/contact/private bytes. Dossier uses the same
+admission snapshot, preserves these partial sections/source revisions and keeps
+reporterEvidence UNAVAILABLE; current project membership does not grant private
+photo download. Defect/repair/dossier/timeline readers remain unavailable.
+
+Retention named REPORTER_INTAKE contributor reads immutable original/supplement
+source refs plus all case links (including closed links) and case-head versions.
+It is complete only for that bounded table slice, not a replacement for HUY
+full inventory. Aggregate inventory still requires Huy candidate/publication/
+label/repair obligations, otherwise incomplete/WAITING. Private file projection
+stays hidden to PM; Supervisor FILE/PROJECT holds and evaluation preserve every
+known project obligation. No deletion/backfill/source policy changes.
+
+Internal approved-label boundary remains Services/Interfaces/Integration/
+Anh02Contracts.cs, additive Anh contract; Huy exact producer adoption PENDING.
+CaptureApprovedAsync(actor,role,project,TrainingLabelFilterV1,ct) returns null
+(unavailable,503 producer_unavailable), empty approved list (422 no_eligible_labels)
+or immutable ApprovedLabelSnapshotV1(schemaVersion,snapshotId,hash,capturedAt,labels).
+Capture must share exporter scoped SERIALIZABLE/SNAPSHOT transaction or use an
+accepted durable producer snapshot. Labels carry label/revision/approval IDs,
+project/type/bbox, file version/hash/int64 bytes/media, source identity/version,
+approver/time, job/model/dataset/mode/segment provenance. One current revision
+per LabelId; null annotation, duplicate heads, foreign project/malformed facts
+fail422 producer_invalid. Producer declares approval/currentness; Anh does not
+implement approval policy. Historical export retains admitted revision; original
+bytes and download recheck ITrainingSourceAccessReader and current user/role/
+password/project authority. Reader fixtures in tests are MOCK_VERIFIED and never
+registered by production DI. No CaseDefectRead/internal dossier reader is inferred
+from newer Huy controller DTOs; an exact adopted permission-aware Huy producer
+checkpoint is still required, optional sections unavailable until then.

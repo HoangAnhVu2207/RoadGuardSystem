@@ -573,3 +573,9 @@ Checkpoint A is committed/pushed separately; exact SHA/compare in continuation
 handoff and ANH-02 continuation summary. Huy can take the activated Reporter
 slice/contract/DI and address role-row guard gap without waiting for ANH-02.
 HUY-01 whole-package/Reporter P1 remain Partial/PENDING; B proceeds immediately.
+
+
+Checkpoint A CURRENT_VERIFIED: `715ade2c20f652b77c8c7e995c76bb5d47ead966`,
+normal push confirmed remote/local exact and clean; [exact A compare](https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e...715ade2c20f652b77c8c7e995c76bb5d47ead966).
+B continuation evidence is appended to existing ANH-02-summary; A is not amended.
+The Huy-owned role-row receipt guard finding and external review remain PENDING.

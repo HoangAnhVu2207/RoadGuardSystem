@@ -8147,6 +8147,124 @@
               }
             }
           ]
+        },
+        {
+          "name": "Integrated intake drilldown - reportsReceived",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/items?metric=reportsReceived&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "reportsReceived"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Real SQL current intake facts only; PARTIAL while Huy lifecycle reader not integrated. Unassigned Reports never attributed to a project. No Reporter PII/evidence content. Geometry filters retain UNAVAILABLE until scoped reader exists."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Current intake drilldown\",()=>{pm.response.to.have.status(200);const d=pm.response.json();pm.expect(d.metric).to.eql(\"reportsReceived\");pm.expect(d.availability.availability).to.eql(\"PARTIAL\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Integrated intake drilldown - casesByStatus",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/items?metric=casesByStatus&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "casesByStatus"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Real SQL current intake facts only; PARTIAL while Huy lifecycle reader not integrated. Unassigned Reports never attributed to a project. No Reporter PII/evidence content. Geometry filters retain UNAVAILABLE until scoped reader exists."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Current intake drilldown\",()=>{pm.response.to.have.status(200);const d=pm.response.json();pm.expect(d.metric).to.eql(\"casesByStatus\");pm.expect(d.availability.availability).to.eql(\"PARTIAL\");});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -8333,7 +8451,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Storage PUT accepted\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));",
-                  "pm.environment.set(\"reporterPartETag\",pm.response.headers.get(\"ETag\"));"
+                  "pm.environment.set(\"reporterPartETag\",(pm.response.headers.get(\"ETag\")||\"\").replace(/^\"|\"$/g,\"\"));"
                 ]
               }
             }

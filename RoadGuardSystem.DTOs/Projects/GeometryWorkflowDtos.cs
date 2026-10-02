@@ -26,7 +26,11 @@ public sealed record SegmentGeometry(Guid? Id, int Sequence, double FromOffsetMe
     double StartStationMeters, double EndStationMeters, double LengthMeters, GeometryShape MetricGeometry, GeometryShape? Wgs84Geometry);
 public sealed record SegmentPreview(Guid RouteVersionId, double TotalLengthMeters, double[] BoundariesMeters,
     SegmentGeometry[] Segments, string DefinitionHash);
-public sealed record SegmentSetView(Guid Id, Guid RouteVersionId, string Status, SegmentDefinition Definition,
-    string GeometryHash, SegmentGeometry[] Segments, Guid? PublishedBy, DateTimeOffset? PublishedAt, string Version);
+public sealed record SegmentGeometryView(Guid Id, int Sequence, double? FromOffsetMeters, double? ToOffsetMeters,
+    double? StartStationMeters, double? EndStationMeters, double? LengthMeters, GeometryShape? MetricGeometry,
+    GeometryShape? Wgs84Geometry, string[] MissingMetadata);
+public sealed record SegmentSetView(Guid Id, Guid RouteVersionId, string Status, SegmentDefinition? Definition,
+    string? GeometryHash, SegmentGeometryView[] Segments, Guid? PublishedBy, DateTimeOffset? PublishedAt, string Version,
+    string MetadataStatus, string[] MissingMetadata);
 public sealed record SegmentPublishInput(Guid? ExpectedPublishedSetId, string Reason);
 public sealed record GeometryPackageView(string SchemaVersion, Guid ProjectId, RoadGeometryVersionView Route, SegmentSetView SegmentSet);

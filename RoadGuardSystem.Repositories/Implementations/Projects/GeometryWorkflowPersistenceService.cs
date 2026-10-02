@@ -142,13 +142,24 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             var computed = segments(route!.Id,route.Geometry,view.StationOriginMeters!.Value,definition);
             if (c.Action == "set-preview") return new(200,Value:computed);
             if (set is null) { set = RoadSegmentSet.Create(Guid.NewGuid(),route.Id,"DRAFT"); db.Add(set); }
-            else { Match(set.RowVersion,c.ExpectedVersion); if (set.Status != "DRAFT") Reject(409,"road_geometry_invalid_state"); db.RoadSegments.RemoveRange(await db.RoadSegments.Where(x=>x.SegmentSetId==set.Id).ToListAsync(ct)); await db.SaveChangesAsync(ct); }
+            else {
+                Match(set.RowVersion,c.ExpectedVersion);
+                if (set.Status != "DRAFT") Reject(409,"road_geometry_invalid_state");
+                // A no-op must not replace referenced children without updating the parent's rowversion.
+                if (set.DefinitionJson == JsonSerializer.Serialize(definition) && set.GeometryHash == computed.DefinitionHash) {
+                    var unchanged = await SetView(set,ct);
+                    return new(200,Value:unchanged,Version:unchanged.Version);
+                }
+                db.RoadSegments.RemoveRange(await db.RoadSegments.Where(x=>x.SegmentSetId==set.Id).ToListAsync(ct));
+                await db.SaveChangesAsync(ct);
+            }
             set.Define(JsonSerializer.Serialize(definition),computed.DefinitionHash);
             var indexed = new LengthIndexedLine(route.Geometry);
             foreach(var part in computed.Segments) { var row = RoadSegment.Create(Guid.NewGuid(),set.Id,route.Id,part.Sequence); row.SetGeometry(part.FromOffsetMeters,part.ToOffsetMeters,view.StationOriginMeters.Value,(LineString)indexed.ExtractLine(part.FromOffsetMeters,part.ToOffsetMeters)); db.Add(row); }
             await db.SaveChangesAsync(ct); var result=await SetView(set,ct); return new(c.Action=="set-create"?201:200,Value:result,Version:result.Version);
         }
         Match(set!.RowVersion,c.ExpectedVersion); if(set.Status!="DRAFT") Reject(409,"road_geometry_invalid_state");
+        if((await SetView(set,ct)).MetadataStatus!="COMPLETE") Reject(422,"geometry_metadata_incomplete");
         var publication=(SegmentPublishInput)c.Input!;
         if(string.IsNullOrWhiteSpace(publication.Reason)) Reject(422,"segment_validation_failed");
         if(!route!.IsCurrent) Reject(409,"road_section_concurrency_conflict");
@@ -166,7 +177,22 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
     }
     private async Task<SegmentSetView> SetView(RoadSegmentSet set,CancellationToken ct) {
         var rows=await db.RoadSegments.AsNoTracking().Where(x=>x.SegmentSetId==set.Id).OrderBy(x=>x.Sequence).ToListAsync(ct);
-        if(set.DefinitionJson is null || rows.Any(x=>x.Geometry is null || x.FromOffsetMeters is null)) Reject(422,"geometry_metadata_incomplete");
-        return new(set.Id,set.RoadSectionVersionId,set.Status,Decode<SegmentDefinition>(set.DefinitionJson!),set.GeometryHash!,rows.Select(x=>new SegmentGeometry(x.Id,x.Sequence,x.FromOffsetMeters!.Value,x.ToOffsetMeters!.Value,x.StartStationMeters!.Value,x.EndStationMeters!.Value,x.ToOffsetMeters.Value-x.FromOffsetMeters.Value,Shape(x.Geometry!),null)).ToArray(),set.PublishedBy,set.PublishedAt,Version(set.RowVersion));
+        var parts=rows.Select(x=> {
+            var missing=new List<string>();
+            if(x.FromOffsetMeters is null) missing.Add("fromOffsetMeters");
+            if(x.ToOffsetMeters is null) missing.Add("toOffsetMeters");
+            if(x.StartStationMeters is null) missing.Add("startStationMeters");
+            if(x.EndStationMeters is null) missing.Add("endStationMeters");
+            if(x.Geometry is null) missing.Add("metricGeometry");
+            return new SegmentGeometryView(x.Id,x.Sequence,x.FromOffsetMeters,x.ToOffsetMeters,x.StartStationMeters,x.EndStationMeters,
+                x.ToOffsetMeters-x.FromOffsetMeters,x.Geometry is null?null:Shape(x.Geometry),null,missing.ToArray());
+        }).ToArray();
+        var setMissing=new List<string>();
+        if(set.DefinitionJson is null) setMissing.Add("definition");
+        if(set.GeometryHash is null) setMissing.Add("geometryHash");
+        if(parts.Length==0) setMissing.Add("segments");
+        if(parts.Any(x=>x.MissingMetadata.Length>0)) setMissing.Add("segments.metadata");
+        return new(set.Id,set.RoadSectionVersionId,set.Status,set.DefinitionJson is null?null:Decode<SegmentDefinition>(set.DefinitionJson),set.GeometryHash,
+            parts,set.PublishedBy,set.PublishedAt,Version(set.RowVersion),setMissing.Count==0?"COMPLETE":"LEGACY_INCOMPLETE",setMissing.ToArray());
     }
 }

@@ -63,6 +63,22 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         var set=await Send(client,HttpMethod.Post,setPath,definition,Guid.NewGuid().ToString());set.StatusCode.Should().Be(HttpStatusCode.Created);
         var setBody=await set.Content.ReadFromJsonAsync<JsonElement>();var setId=setBody.GetProperty("id").GetGuid();
         setBody.GetProperty("segments").GetArrayLength().Should().Be(3);
+        var editKey=Guid.NewGuid().ToString();
+        var noOp=await Send(client,HttpMethod.Put,setPath+$"/{setId}",definition,editKey,set.Headers.ETag!.ToString());
+        noOp.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await noOp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("segments").EnumerateArray().Select(x=>x.GetProperty("id").GetGuid())
+            .Should().Equal(setBody.GetProperty("segments").EnumerateArray().Select(x=>x.GetProperty("id").GetGuid()),"no-op edits preserve segment references");
+        noOp.Headers.ETag.Should().Be(set.Headers.ETag);
+        var noOpReplay=await Send(client,HttpMethod.Put,setPath+$"/{setId}",definition,editKey,set.Headers.ETag.ToString());
+        (await noOpReplay.Content.ReadAsStringAsync()).Should().Be(await noOp.Content.ReadAsStringAsync());
+        var changed=await Send(client,HttpMethod.Put,setPath+$"/{setId}",new{targetLengthMeters=125d,remainderMode="KEEP"},Guid.NewGuid().ToString(),set.Headers.ETag.ToString());
+        changed.StatusCode.Should().Be(HttpStatusCode.OK);
+        changed.Headers.ETag.Should().NotBe(set.Headers.ETag);
+        var stalePublish=await Send(client,HttpMethod.Post,setPath+$"/{setId}/publish",new{expectedPublishedSetId=(Guid?)null,reason="Stale definition"},Guid.NewGuid().ToString(),set.Headers.ETag.ToString());
+        stalePublish.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        var restored=await Send(client,HttpMethod.Put,setPath+$"/{setId}",definition,Guid.NewGuid().ToString(),changed.Headers.ETag!.ToString());
+        restored.StatusCode.Should().Be(HttpStatusCode.OK);
+        set=restored;
         var publishKey=Guid.NewGuid().ToString();
         var publishInput=new{expectedPublishedSetId=(Guid?)null,reason="PM selected segmentation"};
         var published=await Send(client,HttpMethod.Post,setPath+$"/{setId}/publish",publishInput,publishKey,set.Headers.ETag!.ToString());published.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -113,7 +129,7 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         (await db.Set<RoadGeometryMetadata>().CountAsync(x=>x.RoadSectionVersionId==version)).Should().Be(1);
         (await db.RoadSegmentSets.CountAsync(x=>x.RoadSectionVersionId==version && x.Status=="PUBLISHED")).Should().Be(1);
         (await db.RoadSegments.CountAsync(x=>x.SegmentSetId==setId)).Should().Be(3);
-        (await db.IdempotencyRecords.CountAsync(x=>x.ProjectId==project && x.Operation.StartsWith("Geometry:"))).Should().Be(11);
+        (await db.IdempotencyRecords.CountAsync(x=>x.ProjectId==project && x.Operation.StartsWith("Geometry:"))).Should().Be(14);
     }
     private static async Task Login(HttpClient client,string name)
     {

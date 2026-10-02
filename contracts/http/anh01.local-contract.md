@@ -15,9 +15,20 @@ with code and correlationId. All size fields use int64.
 
 - GeometryWorkflowController: metric draft/confirm, segment publication,
   immutable historic references and `anh01.geometry.v1` package.
+  Segment-set/package reads expose `metadataStatus` and `missingMetadata`;
+  legacy definition/hash and segment offsets/stations/length/metricGeometry
+  remain nullable. Segment IDs/sequence and any existing values are retained.
+  Commands requiring complete geometry return `geometry_metadata_incomplete`.
+  A no-op draft set edit preserves child IDs and ETag; a changed definition
+  changes the parent ETag, so stale publish fails with 412.
 - SurveyV2Controller: plan/task/detail reads, work package, pairing and
   supplement child. `BAND_V1` is the new-write format; incompatible legacy
   mutations fail closed with `survey_scope_incompatible`.
+  Management reads retain ended assignments. Operator reads/accept/submit
+  require current membership and an active assignment; the latest declined
+  Operator may replay decline until reassignment or membership revocation.
+  New plan/task admission requires current route and published set; assigned
+  historical task and supplement scopes keep their original references.
 - SurveyAssessmentsController: immutable `pm-evidence-review.v1` assessment
   and eligible segment/band baseline selections with compare-current guards.
 - UploadsController: purpose/MIME limits, int64 metadata, replay mapping,

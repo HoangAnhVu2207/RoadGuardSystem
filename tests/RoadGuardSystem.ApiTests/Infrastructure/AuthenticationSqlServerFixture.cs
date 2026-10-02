@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Identity;
@@ -21,7 +23,9 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
 
     public string ConnectionString { get; private set; } = string.Empty;
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync() => InitializeAtMigrationAsync(null);
+
+    internal async Task InitializeAtMigrationAsync(string? migration)
     {
         try
         {
@@ -48,7 +52,7 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
             }
 
             await using var context = CreateDbContext();
-            await context.Database.MigrateAsync();
+            await context.GetService<IMigrator>().MigrateAsync(migration);
             await new IdentityRoleSeedStep().SeedAsync(context, CancellationToken.None);
             OwnedConnections.TryAdd(ConnectionString, 0);
         }

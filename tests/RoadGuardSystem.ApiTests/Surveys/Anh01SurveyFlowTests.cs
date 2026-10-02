@@ -154,6 +154,23 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var failReview = await Command(client, $"/api/v1/datasets/{dataset}/assessments", new { methodVersion = "pm-evidence-review.v1", items = new[] { Item("SURFACE", "FAIL"), Item("RIGHT_EDGE", "UNKNOWN") } }, submitted.Headers.ETag!.Tag);
         failReview.StatusCode.Should().Be(HttpStatusCode.Created);
         (await client.GetAsync(selected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
+        // A15: a new current route must not invalidate already assigned scopes or their supplement child.
+        var replacementDraft = await Command(client, $"/api/v1/projects/{project}/road-sections/{section}/geometry-drafts", new { sourceKind = "COORDINATES", sourceCrs = 32648,
+            stationOriginMeters = 0d, changeReason = "Replace alignment after survey", coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500200d, y = 1100000d } },
+            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 200d, widthMeters = 8d } }, surveyWidthMeters = 12d });
+        replacementDraft.StatusCode.Should().Be(HttpStatusCode.Created);
+        await Login(client, supervisor.UserName!);
+        var replacementRoute = await Command(client, replacementDraft.Headers.Location!.OriginalString + "/confirm", new { expectedCurrentVersionId = route,
+            effectiveFrom = "2026-10-03T00:00:00Z", reason = "Supersede route after assigned task" }, replacementDraft.Headers.ETag!.Tag);
+        replacementRoute.StatusCode.Should().Be(HttpStatusCode.Created);
+        await Login(client, manager.UserName!);
+        var replacementRouteId = (await Body(replacementRoute)).GetProperty("routeVersionId").GetGuid();
+        var replacementSetsPath = $"/api/v1/projects/{project}/road-sections/{section}/versions/{replacementRouteId}/segment-sets";
+        var replacementSet = await Command(client, replacementSetsPath, new { targetLengthMeters = 100d, remainderMode = "KEEP" });
+        replacementSet.StatusCode.Should().Be(HttpStatusCode.Created);
+        var replacementSetId = (await Body(replacementSet)).GetProperty("id").GetGuid();
+        (await Command(client, replacementSetsPath + $"/{replacementSetId}/publish", new { expectedPublishedSetId = (Guid?)null, reason = "Publish replacement route" }, replacementSet.Headers.ETag!.Tag))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
         var parent = await client.GetAsync($"/api/v1/survey-tasks/{task}");
         var supplementKey = Guid.NewGuid().ToString("N");
         var supplementBody = new { scope = new[] { Scope("RIGHT_EDGE") }, operatorId = second.Id, reason = "Missing right edge" };

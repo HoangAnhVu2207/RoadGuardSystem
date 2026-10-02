@@ -163,9 +163,9 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         var row = await (
             from task in _context.SurveyRequests.AsNoTracking()
             join assignment in _context.SurveyAssignments.AsNoTracking() on task.Id equals assignment.SurveyRequestId
-            where task.Id == taskId && assignment.EndedAt == null
-            orderby assignment.EndedAt == null descending, assignment.AssignedAt descending
-            select new { task, assignment.OperatorUserId })
+            where task.Id == taskId
+            orderby assignment.EndedAt == null descending, assignment.AssignedAt descending, assignment.Id descending
+            select new { task, assignment.OperatorUserId, assignment.EndedAt, assignment.RejectedAt })
             .FirstOrDefaultAsync(cancellationToken);
         if (row is null) return null;
 
@@ -175,7 +175,8 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             .OrderBy(scope => scope.Id)
             .ToListAsync(cancellationToken);
 
-        if (scopeRows.Count == 0) return ToTaskView(row.task, row.OperatorUserId);
+        if (scopeRows.Count == 0) return ToTaskView(row.task, row.OperatorUserId) with
+        { AssignmentIsActive = row.EndedAt is null, AssignmentWasDeclined = row.RejectedAt is not null };
 
         JsonElement? accessPoint = null;
         try
@@ -199,7 +200,8 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             targetBand = scope.TargetBand
         });
         var normalizedPayload = JsonSerializer.Serialize(new { scope = scopes, accessPoint });
-        return ToTaskView(row.task, row.OperatorUserId, normalizedPayload);
+        return ToTaskView(row.task, row.OperatorUserId, normalizedPayload) with
+        { AssignmentIsActive = row.EndedAt is null, AssignmentWasDeclined = row.RejectedAt is not null };
     }
 
     public async Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, CancellationToken cancellationToken = default)
@@ -374,7 +376,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         var resolved = await (from project in _context.Projects.AsNoTracking()
                               join section in _context.RoadSections.AsNoTracking() on project.Id equals section.ProjectId
                               join version in _context.RoadSectionVersions.AsNoTracking() on section.Id equals version.RoadSectionId
-                              where project.Id == projectId && routeVersionIds.Contains(version.Id)
+                              where project.Id == projectId && routeVersionIds.Contains(version.Id) && version.IsCurrent
                               select new { RouteVersionId = version.Id, RoadSectionId = section.Id })
             .ToDictionaryAsync(value => value.RouteVersionId, value => value.RoadSectionId, cancellationToken);
         if (resolved.Count != routeVersionIds.Length)

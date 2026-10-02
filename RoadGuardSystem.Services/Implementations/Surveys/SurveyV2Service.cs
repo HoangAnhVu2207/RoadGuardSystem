@@ -66,7 +66,7 @@ public sealed class SurveyV2Service : ISurveyV2Service
         if (actorUserId == Guid.Empty || taskId == Guid.Empty || role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.DroneOperator)) return new(SurveyV2ServiceStatus.Forbidden);
         var task = await _repository.GetTaskAsync(taskId, cancellationToken);
         if (task is null) return new(SurveyV2ServiceStatus.NotFound);
-        if (role == UserRoleCode.DroneOperator && task.OperatorId != actorUserId) return new(SurveyV2ServiceStatus.Forbidden);
+        if (role == UserRoleCode.DroneOperator && (task.OperatorId != actorUserId || !task.AssignmentIsActive)) return new(SurveyV2ServiceStatus.Forbidden);
         if (!await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
         return new(SurveyV2ServiceStatus.Success, Task: ToTask(task));
     }
@@ -121,7 +121,7 @@ public sealed class SurveyV2Service : ISurveyV2Service
 
         var task = await _repository.GetTaskAsync(taskId, cancellationToken);
         if (task is null) return new(SurveyV2ServiceStatus.NotFound);
-        if (task.OperatorId != actorUserId || !await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
+        if (task.OperatorId != actorUserId || !task.AssignmentIsActive || !await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
         var scopeJson = JsonSerializer.Serialize(request.Scope);
         var pairsJson = JsonSerializer.Serialize(request.Pairs ?? []);
         if (request.Pairs is { } pairs && (pairs.Any(p => p is null) || pairs.Count != request.VideoFileIds.Count || pairs.Select(p => p.VideoFileId).Distinct().Count() != pairs.Count ||
@@ -189,7 +189,11 @@ public sealed class SurveyV2Service : ISurveyV2Service
         var operatorOperation = operation is "accept" or "decline";
         if (operatorOperation)
         {
-            if (role != UserRoleCode.DroneOperator || task.OperatorId != actorUserId || !await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
+            // The latest declined assignment may reach its receipt, but never grants read/accept/submit authority.
+            // A replacement assignment or revoked membership rejects the old actor before receipt lookup.
+            var mayReplayDecline = operation == "decline" && task.AssignmentWasDeclined;
+            if (role != UserRoleCode.DroneOperator || task.OperatorId != actorUserId ||
+                (!task.AssignmentIsActive && !mayReplayDecline) || !await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
         }
         else
         {

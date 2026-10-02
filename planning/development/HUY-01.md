@@ -119,6 +119,13 @@ The checkpoint entries below are HISTORICAL at the fixed Huy handoff. Their
 shared-pending statements are superseded only by the implemented Anh shared
 reservation above; Huy business/consumer gates remain pending.
 
+### 2026-10-02 - PARTIAL consumer implementation checkpoint
+
+- `CURRENT_VERIFIED` local graph: Huy started from `8676226cf9d1b99adf83beb0391f147dfa4b112e` and normally merged Anh's fixed integration handoff `efc0ca10b53264bb24c807b7352ddba0cbe36b6d` as merge commit `2bf02bae24a38dc5c3c47e17d6190757e471e610`. The add/add conflict in this spec was resolved with Anh's copy because it retains every Huy checkpoint and adds this reservation/handoff; no source/auth/label file was overwritten.
+- Scope/result: Huy-owned Reporter intake implementation now has DTO, service, EF repository, controller, and module-only DI extensions. `POST /api/v1/reports` accepts only a current Reporter and server-resolved private VERIFIED evidence, re-resolves evidence again inside the idempotent transaction, creates one immutable Report, one UNASSIGNED IncidentCase and one active CaseReportLink, and stores the sanitized response receipt. Same key/fingerprint replays the same report response without a second intake. Other-owner/missing evidence is hidden as 404; pending/failed/stale evidence is 409 `source_not_ready`; wrong role/current authority is 403. The response has the durable report rowversion ETag.
+- Boundaries: `AddHuy01ReporterPersistence()` and `AddHuy01ReporterServices()` are intentionally module extensions only. Anh remains the named writer to call them from shared composition root after reviewing bindings. Report list/detail/supplement, case commands/publication, candidate/defect commands, labels/export and events remain PENDING; no controller/service is represented as full HUY-01 completion.
+- Evidence: initial HTTP test red confirmed absent report endpoint. The disposable SQL Server API execution is `NOT_RUN`: Testcontainers could not connect to Docker's `npipe://./pipe/docker_engine`. Fresh API build passed with 0 warnings/0 errors; existing Unit `Package=HUY-01` trait executed 20, passed 20, failed 0, skipped 0. No HTTP/SQL PASS is claimed from the unavailable fixture.
+
 ## Implementation checkpoint - 2026-10-02 11:09 +07:00
 
 - `deliveryStatus`: `PARTIAL`; branch `huy-review`; base `1ecae797caaed1ab912b02b2372a1940d1e05375`; initial worktree status clean. The caller's original checkout on `huy` had the untracked source path `planning/development/HUY-01-spec-and-codex-prompt.md`; it was preserved and copied here rather than modified.

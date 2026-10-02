@@ -114,6 +114,20 @@ public sealed class ProcessingJob
         ErrorMessage = null;
     }
 
+    // Terminal invalid-data/contract failure for the opt-in ANH-02 mock analysis.
+    // Existing retry and legacy processing transitions remain unchanged.
+    public void FailData(DateTimeOffset completedAt, string errorCode)
+    {
+        if (Mode != "MOCK" || Status is not (ProcessingJobStatus.Queued or ProcessingJobStatus.Running))
+            throw new InvalidOperationException("Only pending mock analysis can fail terminally.");
+        var code = NormalizeOptional(errorCode, nameof(errorCode), 80)
+            ?? throw new ArgumentException("Failure code is required.", nameof(errorCode));
+        var at = completedAt.ToUniversalTime();
+        if (StartedAt is { } started && at < started) throw new ArgumentException("Failure must not precede start.", nameof(completedAt));
+        StartedAt ??= at; CompletedAt = at; Status = ProcessingJobStatus.DataFailure;
+        ErrorCode = code; ErrorMessage = null;
+    }
+
     private static bool IsSha256(string value)
         => value is { Length: 64 } && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');
 

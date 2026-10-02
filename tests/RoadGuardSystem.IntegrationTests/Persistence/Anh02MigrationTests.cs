@@ -21,6 +21,14 @@ public sealed class Anh02MigrationTests : IAsyncLifetime
     {
         await using var db=Db();var migrator=db.GetService<IMigrator>();await migrator.MigrateAsync();
         Assert.Contains(Latest,await db.Database.GetAppliedMigrationsAsync());
+        Assert.Contains("20261003090000_Anh02AnalysisAttemptClosure", await db.Database.GetAppliedMigrationsAsync());
+        var fenced = await db.Database.SqlQueryRaw<string>("SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.TR_ProcessingAttempts_AppendOnly')) AS [Value]").SingleAsync();
+        Assert.Contains("r.Stage='VIDEO_ANALYSIS'", fenced);
+        await migrator.MigrateAsync(Latest);
+        var previous = await db.Database.SqlQueryRaw<string>("SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.TR_ProcessingAttempts_AppendOnly')) AS [Value]").SingleAsync();
+        Assert.DoesNotContain("Anh02AiMockRuns", previous); Assert.Contains("append-only", previous);
+        await migrator.MigrateAsync();
+        Assert.Equal(fenced, await db.Database.SqlQueryRaw<string>("SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.TR_ProcessingAttempts_AppendOnly')) AS [Value]").SingleAsync());
         var id=Guid.NewGuid();db.Projects.Add(Project.Create(id,id.ToString(),"Preserved before downgrade",null,null,null,null,DateTimeOffset.UtcNow));await db.SaveChangesAsync();
         await migrator.MigrateAsync(Baseline);Assert.DoesNotContain(Latest,await db.Database.GetAppliedMigrationsAsync());
         Assert.Equal("Preserved before downgrade",(await db.Projects.AsNoTracking().SingleAsync(p=>p.Id==id)).Name);

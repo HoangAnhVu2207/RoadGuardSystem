@@ -24,6 +24,7 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
     {
         var user = await context.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == actor, token);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || (_principalActor == actor && _principalRole != user.RoleCode) || (supervisorOnly && user.RoleCode != UserRoleCode.Supervisor)) Reject(403, "access_forbidden");
+        if (!await context.Roles.AsNoTracking().AnyAsync(x => x.Code == user!.RoleCode && x.IsActive, token)) Reject(403, "access_forbidden");
         if (user!.RoleCode == UserRoleCode.Supervisor)
         {
             if (project.HasValue && !await context.Projects.AsNoTracking().AnyAsync(x => x.Id == project, token)) Reject(404, "not_found");
@@ -79,6 +80,10 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             Audit(actor, revision.Id, "retention_basis_confirmed", revision.Reason);
             await context.SaveChangesAsync(ct);
             return (revision.Id, new RetentionBasisView(revision.Id, file, revision.Revision, revision.PolicyVersion, revision.Classification, current.Version, true, current.Warranties, actor, revision.ConfirmedAt, revision.Reason, revision.SupersedesId, RetentionInventoryRepository.Version(head.RowVersion)));
+        }, async ct =>
+        {
+            await LockFileScopeAsync(file, ct);
+            await ScopedInventoryAsync(actor, project, file, ct);
         }, token);
     }
     public async Task<RetentionHoldView> CreateHoldAsync(Guid actor, CreateRetentionHoldRequest request, string key, CancellationToken token)
@@ -91,7 +96,7 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             var hold = new RetentionHold { Id = Guid.NewGuid(), ScopeType = request.ScopeType, ScopeId = request.ScopeId, CreatedBy = actor, CreatedAt = clock.GetUtcNow(), Reason = request.Reason.Trim() };
             context.Add(hold); History(hold, actor, hold.Reason); Audit(actor, hold.Id, "retention_hold_created", hold.Reason); await context.SaveChangesAsync(ct);
             return (hold.Id, View(hold));
-        }, token);
+        }, ct => RequireLockedScopeAsync(request.ScopeType, request.ScopeId, ct), token);
     }
     public async Task<RetentionHoldView> GetHoldAsync(Guid actor, Guid holdId, CancellationToken token)
     {
@@ -127,6 +132,9 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             hold.State = "RELEASED"; hold.ReleasedBy = actor; hold.ReleasedAt = clock.GetUtcNow();
             History(hold, actor, request.Reason.Trim()); Audit(actor, hold.Id, "retention_hold_released", request.Reason.Trim()); await context.SaveChangesAsync(ct);
             return (hold.Id, View(hold));
+        }, async ct =>
+        {
+            if (!await context.Set<RetentionHold>().FromSqlInterpolated($"SELECT * FROM [RetentionHolds] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={holdId}").AsNoTracking().AnyAsync(ct)) Reject(404, "not_found");
         }, token);
     }
     public async Task<RetentionEvaluationView> AdmitEvaluationAsync(Guid actor, Guid project, CreateRetentionEvaluationRequest request, string key, CancellationToken token)
@@ -140,6 +148,13 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             var job = new RetentionEvaluation { Id = Guid.NewGuid(), ProjectId = project, RequestedBy = actor, CreatedAt = clock.GetUtcNow(), SelectionJson = request.FileIds is null ? null : JsonSerializer.Serialize(request.FileIds.Order().ToArray(), Json) };
             context.Add(job); Audit(actor, job.Id, "retention_evaluation_requested", "Retention dry-run requested"); await context.SaveChangesAsync(ct);
             return (job.Id, EvaluationView(job, [], null));
+        }, async ct =>
+        {
+            if (request.FileIds is { } ids) foreach (var file in ids.Order())
+            {
+                await LockFileScopeAsync(file, ct);
+                await ScopedInventoryAsync(actor, project, file, ct);
+            }
         }, token);
     }
     public async Task<RetentionEvaluationView> GetEvaluationAsync(Guid actor, Guid project, Guid id, Guid? afterFile, int pageSize, CancellationToken token)
@@ -210,7 +225,8 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
         return (new(current.FileId, result.Eligibility, reasons, result.EligibleAfter, head is null ? "none" : RetentionInventoryRepository.Version(head.RowVersion), current.Version,
             RetentionInventoryRepository.Hash(holds.Select(x => new { x.Id, x.State, Version = RetentionInventoryRepository.Version(x.RowVersion) }).ToArray()), true), head, basis, holds);
     }
-    private async Task<T> CommandAsync<T>(Guid actor, Guid? project, string operation, string key, object payload, Func<CancellationToken, Task<(Guid Id, T Value)>> action, CancellationToken token)
+    private async Task<T> CommandAsync<T>(Guid actor, Guid? project, string operation, string key, object payload, Func<CancellationToken, Task<(Guid Id, T Value)>> action,
+        Func<CancellationToken, Task> receiptScopeGuard, CancellationToken token)
     {
         try
         {
@@ -228,13 +244,30 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
                 }
                 var (id, value) = await action(ct);
                 return (id, JsonSerializer.Serialize(value, Json));
-            }, token);
+            }, token, receiptAccessGuard: async ct =>
+            {
+                await LockAsync(ct);
+                await Anh02ReceiptAuthority.LockAsync(context, actor, project, ct);
+                await AuthorizeAsync(actor, project, operation != "Anh02.RetentionEvaluate", ct);
+                await receiptScopeGuard(ct);
+            });
             if (outcome.Status == IdempotencyOperationStatus.Conflict) Reject(409, "duplicate_request");
             return Deserialize<T>(outcome.OutcomeJson);
         }
         catch (DbUpdateConcurrencyException) { context.ChangeTracker.Clear(); throw new RetentionRequestException(412, "concurrency_conflict"); }
     }
     private Task<int> LockAsync(CancellationToken token) => context.Database.ExecuteSqlRawAsync("DECLARE @result int; EXEC @result = sys.sp_getapplock @Resource=N'Anh02.Retention.Control', @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=30000; IF @result < 0 THROW 51000, 'Retention control lock unavailable', 1;", token);
+    private async Task LockFileScopeAsync(Guid file, CancellationToken token)
+    {
+        await context.Files.FromSqlInterpolated($"SELECT * FROM [Files] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={file}").AsNoTracking().ToListAsync(token);
+        await context.FileScopes.FromSqlInterpolated($"SELECT * FROM [FileScopes] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={file} ORDER BY [Id]").AsNoTracking().ToListAsync(token);
+    }
+    private async Task RequireLockedScopeAsync(string type, Guid id, CancellationToken token)
+    {
+        if (type == "PROJECT") await context.Projects.FromSqlInterpolated($"SELECT * FROM [Projects] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={id}").AsNoTracking().ToListAsync(token);
+        else if (type == "FILE") await LockFileScopeAsync(id, token);
+        await RequireScopeAsync(type, id, token);
+    }
     private async Task RequireScopeAsync(string type, Guid id, CancellationToken token)
     {
         var exists = type == "PROJECT" ? await context.Projects.AsNoTracking().AnyAsync(x => x.Id == id, token) : type == "FILE" && await context.Files.AsNoTracking().AnyAsync(x => x.Id == id, token);

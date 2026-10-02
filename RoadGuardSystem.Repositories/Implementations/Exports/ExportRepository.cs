@@ -40,7 +40,21 @@ public sealed class ExportRepository : IExportRepository
                 foreach (var f in facts.Payload.Manifest.Files) _db.Set<ExportSnapshotFile>().Add(ExportSnapshotFile.Create(snapshotId, f.FileId, f.FileVersion, f.Sha256, f.SizeBytes, f.MediaType, f.Included, f.ArchivePath));
                 _db.Set<AuditLog>().Add(AuditLog.Create(Guid.NewGuid(), actorId, now, "Anh02.Export.Admitted", "ExportJob", job.Id, null, null, "Immutable snapshot admitted", "ANH02_EXPORT", correlationId));
                 return (job.Id, JsonSerializer.Serialize(new { id = job.Id }));
-            }, ct);
+            }, ct, receiptAccessGuard: async token =>
+            {
+                await Anh02ReceiptAuthority.LockAsync(_db, actorId, projectId, token);
+                var user = await _db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == actorId, token);
+                if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)
+                    || !await _db.Roles.AsNoTracking().AnyAsync(r => r.Code == user.RoleCode && r.IsActive, token))
+                    throw new CaptureException("forbidden");
+                if (user.RoleCode == UserRoleCode.ProjectManager)
+                {
+                    var member = await new RoadGuardSystem.Repositories.Projects.ProjectMembershipReadModel(_db).FindByUserAndProjectAsync(actorId, projectId, token);
+                    var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
+                    if (member is null || member.RoleCode != user.RoleCode || member.Status != ProjectMemberStatus.Active
+                        || member.ValidFrom > today || member.ValidTo < today) throw new CaptureException("forbidden");
+                }
+            });
             if (outcome.Status == IdempotencyOperationStatus.Conflict) return new("idempotency_conflict", null);
             return new(null, await GetAsync(projectId, outcome.OperationId, ct));
         }

@@ -136,7 +136,11 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             db.Set<AiManifestFileReference>().AddRange(facts.Files.Select(f => new AiManifestFileReference { RunId = runId, FileId = f.FileId, FileVersion = f.FileVersion }));
             Audit(actorId, runId, now, "anh02_ai_mock_admitted"); await db.SaveChangesAsync(token);
             return (runId, JsonSerializer.Serialize(View(run), Json));
-        }, ct);
+        }, ct, receiptAccessGuard: async token =>
+        {
+            await Anh02ReceiptAuthority.LockAsync(db, actorId, projectId, token);
+            await AuthorizeAsync(actorId, role, projectId, true, token);
+        });
         if (outcome.Status == IdempotencyOperationStatus.Conflict) throw new AiRequestException(409, "duplicate_request");
         return JsonSerializer.Deserialize<AiMockRunView>(outcome.OutcomeJson!, Json)!;
     }
@@ -179,16 +183,37 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             if (run.Stage == "VIDEO_ANALYSIS") (await db.ProcessingJobs.SingleAsync(j => j.Id == run.ProcessingJobId, ct)).Complete(completion.Result.CompletedAt);
             run.Status = "SUCCEEDED"; run.ResultId = completion.Result.Id; run.CompletedAt = clock.GetUtcNow(); run.LeaseOwner = null; run.LeaseUntil = null;
             Audit(run.CreatedBy, run.Id, run.CompletedAt.Value, "anh02_ai_mock_completed");
-            await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct); return true;
+            await db.SaveChangesAsync(ct);
+            if (run.Stage == "VIDEO_ANALYSIS") await CloseAnalysisAttemptAsync(run, ProcessingAttemptErrorType.None, ct);
+            await transaction.CommitAsync(ct); return true;
         });
     }
 
     public async Task FailAsync(Guid runId, Guid owner, string code, CancellationToken ct)
     {
-        db.ChangeTracker.Clear(); var run = await db.Set<AiMockRun>().SingleAsync(r => r.Id == runId, ct);
-        if (run.Status != "RUNNING" || run.LeaseOwner != owner || (run.LeaseUntil is null || run.LeaseUntil <= clock.GetUtcNow())) return;
-        run.Status = "FAILED"; run.ErrorCode = code; run.CompletedAt = clock.GetUtcNow(); run.LeaseOwner = null; run.LeaseUntil = null;
-        Audit(run.CreatedBy, run.Id, run.CompletedAt.Value, "anh02_ai_mock_failed"); await db.SaveChangesAsync(ct);
+        await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var run = await db.Set<AiMockRun>().SingleAsync(r => r.Id == runId, ct);
+            var now = clock.GetUtcNow();
+            if (run.Status != "RUNNING" || run.LeaseOwner != owner || run.LeaseUntil is null || run.LeaseUntil <= now) return;
+            run.Status = "FAILED"; run.ErrorCode = code; run.CompletedAt = now; run.LeaseOwner = null; run.LeaseUntil = null;
+            if (run.Stage == "VIDEO_ANALYSIS")
+                (await db.ProcessingJobs.SingleAsync(j => j.Id == run.ProcessingJobId, ct)).FailData(now, code);
+            Audit(run.CreatedBy, run.Id, now, "anh02_ai_mock_failed");
+            await db.SaveChangesAsync(ct);
+            if (run.Stage == "VIDEO_ANALYSIS") await CloseAnalysisAttemptAsync(run, ProcessingAttemptErrorType.Data, ct);
+            await transaction.CommitAsync(ct);
+        });
+    }
+
+    private async Task CloseAnalysisAttemptAsync(AiMockRun run, ProcessingAttemptErrorType error, CancellationToken ct)
+    {
+        // EF still forbids generic attempt mutation. The additive SQL fence permits only this
+        // one-way closure of an ANH-02 analysis after run/job terminal writes, in the same tx.
+        var changed = await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [ProcessingAttempts] SET [EndedAt]={run.CompletedAt}, [ErrorType]={(byte)error} WHERE [Id]={run.AttemptId} AND [ProcessingJobId]={run.ProcessingJobId} AND [EndedAt] IS NULL AND [ErrorType] IS NULL", ct);
+        if (changed != 1) throw new InvalidOperationException("ANH-02 analysis attempt cannot be closed.");
     }
 
     public async Task<AiCandidateReadFacts?> ReadCandidateAsync(Guid projectId, Guid detectionId, CancellationToken ct)

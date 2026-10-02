@@ -20,7 +20,7 @@ public sealed class Anh02RetentionPersistenceTests : IAsyncLifetime
     private readonly SqlServerTestFixture fixture = new(createSpatialProbeSchema: false);
     public async Task InitializeAsync() { await fixture.InitializeAsync(); await using var db = Db(); await db.Database.MigrateAsync(); }
     public Task DisposeAsync() => fixture.DisposeAsync();
-    private RoadGuardDbContext Db() => new(new DbContextOptionsBuilder<RoadGuardDbContext>().UseSqlServer(fixture.ConnectionString, o => o.UseNetTopologySuite()).Options);
+    private RoadGuardDbContext Db(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors) => new(new DbContextOptionsBuilder<RoadGuardDbContext>().UseSqlServer(fixture.ConnectionString, o => o.UseNetTopologySuite()).AddInterceptors(interceptors).Options);
     private static RetentionRepository Repository(RoadGuardDbContext db, bool completeFixture = false) => new(db, new IdempotencyOperationService(db), Inventory(db, completeFixture), TimeProvider.System);
     private static RetentionInventoryRepository Inventory(RoadGuardDbContext db, bool completeFixture) => new(db, completeFixture ? [new AvailableEmptyContributor("HUY"), new AvailableEmptyContributor("AI"), new AvailableEmptyContributor("EXPORT")] : []);
     private async Task<(Guid Supervisor, Guid Pm, Guid Project, Guid File, Guid Warranty)> SeedAsync()
@@ -37,6 +37,46 @@ public sealed class Anh02RetentionPersistenceTests : IAsyncLifetime
         await db.SaveChangesAsync(); return (supervisor, pm, project, file, warranty);
     }
     private static ApplicationUser User(Guid id, UserRoleCode role) => new() { Id = id, UserName = id.ToString(), NormalizedUserName = id.ToString().ToUpperInvariant(), DisplayName = "Isolated retention fixture", RoleCode = role, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow, SecurityStamp = id.ToString(), PasswordHash = "isolated-test-only-no-login" };
+    [Theory]
+    [InlineData(false, false)] [InlineData(false, true)]
+    [InlineData(true, false)] [InlineData(true, true)]
+    public async Task Basis_and_release_deny_replay_or_conflict_after_preflight(bool release, bool conflict)
+    {
+        var seed = await SeedAsync(); var key = Guid.NewGuid().ToString(); Guid holdId = default; string version = "none"; string inventoryVersion = "";
+        await using (var first = Db())
+        {
+            var repo = Repository(first, completeFixture: true);
+            if (release)
+            {
+                var hold = await repo.CreateHoldAsync(seed.Supervisor, new("FILE", seed.File, "Review"), Guid.NewGuid().ToString(), default);
+                holdId = hold.Id; version = hold.Version;
+                await repo.ReleaseHoldAsync(seed.Supervisor, holdId, new("Released"), key, version, default);
+            }
+            else
+            {
+                inventoryVersion = (await repo.GetFileAsync(seed.Supervisor, seed.Project, seed.File, default)).InventoryVersion;
+                await repo.ConfirmBasisAsync(seed.Supervisor, seed.Project, seed.File, new([seed.Warranty], inventoryVersion, "Confirmed"), key, "none", default);
+            }
+        }
+        await using var verify = Db();
+        var audits = await verify.AuditLogs.CountAsync(x => x.ActorUserId == seed.Supervisor);
+        var receipts = await verify.Set<RoadGuardSystem.BusinessObjects.Idempotency.IdempotencyRecord>().CountAsync(x => x.ActorUserId == seed.Supervisor);
+        var hook = new Persistence.Anh02ReceiptAuthorizationTests.ReceiptHook(async (_, token) =>
+        {
+            await using var revoke = Db(); await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET Status=2 WHERE Id={seed.Supervisor}", token);
+        });
+        await using var db = Db(hook); var current = Repository(db, completeFixture: true);
+        var error = await Assert.ThrowsAsync<RetentionRequestException>(async () =>
+        {
+            if (release) await current.ReleaseHoldAsync(seed.Supervisor, holdId, new(conflict ? "Changed" : "Released"), key, version, default);
+            else await current.ConfirmBasisAsync(seed.Supervisor, seed.Project, seed.File, new([seed.Warranty], inventoryVersion, conflict ? "Changed" : "Confirmed"), key, "none", default);
+        });
+        Assert.Equal(403, error.Status); Assert.Equal("access_forbidden", error.Code); Assert.Equal(1, hook.Calls);
+        Assert.Equal(audits, await verify.AuditLogs.CountAsync(x => x.ActorUserId == seed.Supervisor));
+        Assert.Equal(receipts, await verify.Set<RoadGuardSystem.BusinessObjects.Idempotency.IdempotencyRecord>().CountAsync(x => x.ActorUserId == seed.Supervisor));
+        Assert.Equal(release ? 0 : 1, await verify.Set<RetentionBasisRevision>().CountAsync(x => x.FileId == seed.File));
+        Assert.Equal(release ? 2 : 0, await verify.Set<RetentionHoldHistory>().CountAsync(x => x.HoldId == holdId));
+    }
     [Fact]
     public async Task Actual_inventory_missing_Huy_is_waiting_and_cannot_confirm_subset()
     {

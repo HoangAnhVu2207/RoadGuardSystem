@@ -104,7 +104,7 @@ public static class ReporterIntakeRequestNormalizer
         }
     }
 
-    private static bool IsPrintableKey(string? value) => value is { Length: >= 1 and <= 200 } && value.All(character => character is >= '!' and <= '~');
+    private static bool IsPrintableKey(string? value) => value is { Length: >= 1 and <= 200 } && value.All(character => character is >= ' ' and <= '~');
 
     private static bool Invalid(string field, string message, out IReadOnlyDictionary<string, string[]>? errors)
     {

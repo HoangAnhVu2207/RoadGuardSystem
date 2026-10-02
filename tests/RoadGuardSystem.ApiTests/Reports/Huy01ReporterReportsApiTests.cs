@@ -142,21 +142,55 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
 
         var first = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", request, key);
         first.StatusCode.Should().Be(HttpStatusCode.Created);
+        var reportId = (await first.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var afterFirst = await CountIntakeRowsAsync(sql, reporter.Id, reportId, key);
+        afterFirst.Should().Be(new ReporterIntakeRowCounts(1, 1, 1, 1, 1, 1, 1, 1, 1, 1));
+
         var replay = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", request, key);
         replay.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await CountIntakeRowsAsync(sql, reporter.Id, reportId, key)).Should().Be(afterFirst);
+
         var conflictingReplay = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new
         {
             description = "Different request payload",
             evidence = request.evidence
         }, key);
         conflictingReplay.StatusCode.Should().Be(HttpStatusCode.Conflict);
-
-        await using var db = sql.CreateDbContext();
-        (await db.Reports.CountAsync()).Should().Be(1);
-        (await db.IncidentCases.CountAsync()).Should().Be(1);
-        (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().CountAsync(link => link.EndedAt == null)).Should().Be(1);
-        (await db.AuditLogs.CountAsync(audit => audit.EventType == "report_received")).Should().Be(1);
+        (await CountIntakeRowsAsync(sql, reporter.Id, reportId, key)).Should().Be(afterFirst);
     }
+
+    private static async Task<ReporterIntakeRowCounts> CountIntakeRowsAsync(AuthenticationSqlServerFixture sql, Guid actorUserId,
+        Guid reportId, string idempotencyKey)
+    {
+        await using var db = sql.CreateDbContext();
+        var activeLink = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>()
+            .SingleAsync(link => link.ReportId == reportId && link.EndedAt == null);
+        var actorReports = db.Reports.Where(report => report.ReporterUserId == actorUserId).Select(report => report.Id);
+        var actorActiveLinks = db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>()
+            .Where(link => actorReports.Contains(link.ReportId) && link.EndedAt == null);
+        var actorIntakeCases = actorActiveLinks.Select(link => link.CaseId);
+
+        return new ReporterIntakeRowCounts(
+            await db.Reports.CountAsync(report => report.Id == reportId && report.ReporterUserId == actorUserId),
+            await db.IncidentCases.CountAsync(@case => @case.Id == activeLink.CaseId),
+            await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>()
+                .CountAsync(link => link.CaseId == activeLink.CaseId && link.ReportId == reportId && link.EndedAt == null),
+            await db.AuditLogs.CountAsync(audit => audit.ActorUserId == actorUserId && audit.EventType == "report_received" &&
+                audit.EntityType == "Report" && audit.EntityId == reportId),
+            await db.IdempotencyRecords.CountAsync(record => record.ActorUserId == actorUserId && record.ProjectId == null &&
+                record.Operation == "huy01.report.create.v1" && record.IdempotencyKey == idempotencyKey && record.OperationId == reportId),
+            await actorReports.CountAsync(),
+            await db.IncidentCases.CountAsync(@case => actorIntakeCases.Contains(@case.Id)),
+            await actorActiveLinks.CountAsync(),
+            await db.AuditLogs.CountAsync(audit => audit.ActorUserId == actorUserId && audit.EventType == "report_received" &&
+                audit.EntityType == "Report" && audit.Source == "huy01.reporter-intake"),
+            await db.IdempotencyRecords.CountAsync(record => record.ActorUserId == actorUserId && record.ProjectId == null &&
+                record.Operation == "huy01.report.create.v1"));
+    }
+
+    private sealed record ReporterIntakeRowCounts(
+        int TargetReports, int TargetIntakeCases, int TargetActiveLinks, int TargetAudits, int TargetReceipts,
+        int ActorReports, int ActorIntakeCases, int ActorActiveLinks, int ActorAudits, int ActorReceipts);
 
     private static async Task<(Guid FileId, string Version)> UploadVerifiedAsync(HttpClient client, AuthenticationWebApplicationFactory factory)
     {

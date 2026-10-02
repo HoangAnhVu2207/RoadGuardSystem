@@ -80,7 +80,22 @@ public sealed class ReporterIntakeRequestNormalizerTests
 
     [Theory]
     [Trait("Package", "HUY-01")]
+    [InlineData("case 01", "case 01")]
+    [InlineData("  case 01  ", "case 01")]
+    public void Normalization_AcceptsPrintableAsciiSpacesInsideIdempotencyKey(string key, string expectedKey)
+    {
+        var request = new CreateReporterReportRequestDto("report", [
+            new(Guid.NewGuid(), "version", "UNKNOWN", null, null)
+        ]);
+
+        ReporterIntakeRequestNormalizer.TryNormalize(request, key, out var normalized, out _).Should().BeTrue();
+        normalized!.IdempotencyKey.Should().Be(expectedKey);
+    }
+
+    [Theory]
+    [Trait("Package", "HUY-01")]
     [InlineData("")]
+    [InlineData("   ")]
     [InlineData(" \t ")]
     [InlineData("key\n")]
     [InlineData("k\u00e9y")]

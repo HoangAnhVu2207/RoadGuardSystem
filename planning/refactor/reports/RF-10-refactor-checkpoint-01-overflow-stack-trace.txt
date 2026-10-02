@@ -1,0 +1,18 @@
+SANITIZED EXCERPT — console output from prior 2026-10-01 focused API run.
+Precise timestamp and full raw log/TRX: NOT_CAPTURED.
+No connection string, token, user data, or secret is included.
+
+Observed response assertion during initial characterization:
+Expected HttpStatusCode.BadRequest (400), found HttpStatusCode.InternalServerError (500).
+
+Server exception excerpt:
+System.OverflowException: Value was either too large or too small for an Int32.
+   at System.Convert.ThrowInt32OverflowException()
+   at System.Convert.ToInt32(Int64 value)
+   at System.ComponentModel.DataAnnotations.RangeAttribute.<>c.<SetupConversion>b__37_0(Object v)
+   at System.ComponentModel.DataAnnotations.RangeAttribute.IsValid(Object value)
+   at System.ComponentModel.DataAnnotations.ValidationAttribute.GetValidationResult(...)
+
+The current final test asserts 500, `internal_error`, X-Correlation-ID and unchanged
+Files/UploadSessions counts plus zero project FileScopes after two oversized requests.
+That passing characterization is not an accepted error contract or a production fix.

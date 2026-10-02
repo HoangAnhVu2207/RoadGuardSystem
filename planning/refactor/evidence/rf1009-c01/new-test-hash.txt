@@ -1,0 +1,14 @@
+# RF-10-09-C01 new test file hash - captured after creation
+
+tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs
+SHA-256: 1f233dc690351172812d5c5d413488457c7ebcc2e0b18193e042a0d07854f06f
+
+Captured: 2026-10-01
+Status: NOT_RUN - BOX 2 does not execute tests, BOX 3 verification pending
+
+Test coverage:
+1. InboxGet_RecipientScopeAndProjection_FiltersAndReturnsExpectedFields
+2. InboxList_RecipientScopeAndCursor_FiltersAndPaginatesCorrectly
+3. MarkRead_RecipientVersionIdempotency_EnforcesConstraintsAndReplays
+4. OutboxConsumer_Replay_ReturnsDurableNotificationWithoutDuplicate
+5. Producer_CreateOutbox_LinksCorrectCorrelationAndType

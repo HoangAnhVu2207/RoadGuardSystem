@@ -1,0 +1,206 @@
+diff --git a/correction-01-before/10-inspection-measurement-characterization-baseline.md b/../../10-inspection-measurement-characterization-baseline.md
+index 700b0b1..8ee1a2c 100644
+--- a/correction-01-before/10-inspection-measurement-characterization-baseline.md
++++ b/../../10-inspection-measurement-characterization-baseline.md
+@@ -110,16 +110,16 @@ Fresh `DbContext` snapshots before and after success GET request (RepairCrew wit
+ 
+ **Scope clarification:** Immutability verified for success GET only (RepairCrew with valid membership). Denied GET (PM/Supervisor) and filtered GET (crew without membership) NOT verified.
+ 
+-No audit logs, outbox records, or mutation side effects observed from GET endpoint.
+-
+ ### Measurement provenance
+ Schema inspection and seeded fixture confirmed:
+ - `GroundTruthMeasurement` has non-null `DefectId` and `SurveyId` for product sessions
+ - Measurement links to exact `RoadSectionVersionId` matching task and defect
+ - `MeasurementType`, `Value`, `Unit`, and `Location` stored as expected
+-- `Location.SRID = 4326` enforced by domain entity and database constraint
++- `Location.SRID = 4326` enforced by domain entity and database column configuration (EF)
+ - Measurements belong to `FieldInspectionSession` with purpose `DefectVerification` or `ResearchValidation`
+ 
++Runtime enforcement of SRID 4326 constraint and immutability triggers NOT verified; configuration SOURCE_INSPECTED only.
++
+ ## 4. Test evidence
+ 
+ **Focused test:** `Rf1007InspectionMeasurementCharacterizationTests`  
+@@ -151,13 +151,13 @@ Schema inspection and seeded fixture confirmed:
+ - **Build:** `dotnet build --no-incremental`, 2026-10-01 08:13:10-08:13:25 UTC, 164 warnings, 0 errors
+ - **Test:** `dotnet test --no-build --filter 'FullyQualifiedName~Rf1007InspectionMeasurementCharacterizationTests'`, 2026-10-01 08:14:47-08:15:09 UTC, duration 22 seconds
+ - **Results:** 5 discovered, 5 executed, 5 passed, 0 failed, 0 skipped
+-- **Provenance:** Source-to-binary linkage VERIFIED (source hashes before/after match, assembly hash before/after match)
++- **Provenance:** Test + 2 fixtures hashed before/after (3 files); assembly hash recorded after build and after test; no production-source fingerprint; build end timestamp approximate
+ - **TRX:** `planning/refactor/evidence/rf1007-c02/rf1007-c02-test.trx`
+ 
+ ### Historical evidence
+ - **Checkpoint 11:** Initial attempt with test failures
+-- **Correction-01:** 5/5 passed but source-to-binary linkage NOT_VERIFIED (metadata conflict)
+-- **Correction-02:** Supersedes correction-01 for verification; complete provenance chain established
++- **Correction-01 of checkpoint 11:** 5/5 passed but source-to-binary linkage NOT_VERIFIED (metadata conflict)
++- **Checkpoint 12 correction-02:** Supersedes correction-01 for verification; test + 2 fixtures hashed before/after, assembly hash recorded; correction-01 retained as historical evidence
+ 
+ ## 5. Findings
+ 
+@@ -191,11 +191,14 @@ Schema inspection and seeded fixture confirmed:
+ - Deployed database state and real crew usage patterns
+ - Database trigger enforcement at runtime (HasTrigger is EF configuration only)
+ - SRID 4326 constraint enforcement at runtime (configuration inspected, not tested with invalid data)
++- Audit logs, outbox records, or other mutation side effects from GET endpoint
+ 
+ **SOURCE_INSPECTED (not runtime tested):**
+ - `FieldInspectionSession` and `GroundTruthMeasurement` domain entities
+-- Measurement immutability triggers in SQL Server
++- Measurement immutability triggers in SQL Server (HasTrigger is EF configuration reference)
+ - Session purpose gates (DefectVerification vs ResearchValidation)
++- SRID 4326 constraint declaration in EF configuration
++- Base64 RowVersion mapping logic in service layer
+ 
+ ## 7. Decisions needed
+ 
+diff --git a/correction-01-before/10-refactor-slices.md b/../../10-refactor-slices.md
+index eac5e67..33b9b66 100644
+--- a/correction-01-before/10-refactor-slices.md
++++ b/../../10-refactor-slices.md
+@@ -13,7 +13,7 @@ Checkpoint 2026-10-01: branch `anh`, local HEAD `2efc8a5775f834c7f0fe37cc0ce7030
+ | 10-02-F01/G01 route/segment publish and consumers | F/G; unassigned, BLOCKED | 39A pilot target; Q-RF02-05 geometry/CRS/source and actor split; P02 registry | Approved geometry and segment version contract, SQL spatial migration/old-row test and Web/Android/survey version evidence. |
+ | 10-03-C00 dirty survey attribution: `.Dataset.cs`, parent partial and P2 SQL tests | C; Anh DONE locally, report `reports/RF-10-03-C00.md` | `planning/V2/Execution/ANH-02-project-survey.md` 2026-09-30 13:24 checkpoint; RF-06 owned SQL fixture | Source hashes and scope matched prior Anh checkpoint; fresh P2 SQL 6/6. This is current V2 evidence only. |
+ | 10-03-C01 old/V2 survey: `SurveyPlanningController`, `SurveyV2Controller`, both persistence services | C; Anh DONE local **plan** same-row characterization, `10-survey-coexistence-baseline.md` and `reports/RF-10-03-C01.md` | CG04/06, Q-RF02-03/05; RF-06 fixture | Focused HTTP/owned-SQL 2/2 on exact plan ID both ways; old->V2 writes then 422, repeat V2 postpone appends history without rowversion change. This does not prove request/task or assignment compatibility. |
+-| 10-03-C02 survey request/task and assignment | C; Anh DONE locally | `SurveyPlanningController.CreateRequest`, `SurveyV2Controller` task routes and assignment query; C01 plan baseline | `10-survey-request-task-assignment-characterization.md`, `reports/RF-10-03-C02.md`: focused HTTP/owned-SQL evidence covers old request, V2 task/assignment, scope and missing key; no old assignment route found. External consumer/deployed proof stays F/G. |
++| 10-03-C02 survey request/task and assignment | C; Anh Partial for C02 | `SurveyPlanningController.CreateRequest`, `SurveyV2Controller` task routes and assignment query; C01 plan baseline | `10-survey-request-task-assignment-characterization.md`, `reports/RF-10-03-C02.md`: focused HTTP/owned-SQL evidence covers old request, V2 task/assignment, scope and missing key; no old assignment route found. Checkpoint 08 corrections applied without before-snapshots; historical limitation documented. External consumer/deployed proof stays F/G. |
+ | 10-03-R01 shared survey internals | R; Anh RETAIN after C01, no extraction | L05-07/L11/L14; old/V2 create/postpone differ in times, JSON projection, idempotency and precondition; same-row test F04-F06 | No common plan/postpone policy extraction preserves both observed behaviors. A later pure equivalent subunit needs measured benefit and both-family baseline. |
+ | 10-03-F01/G01 discriminator, coverage/baseline and route retirement | F/G; unassigned, BLOCKED | Q-RF02-03/05 and Android/survey consumers unknown | Approved data meaning, additive migration/backfill, old reader and consumer fixtures; no row/route deletion from reference search. |
+ | 10-04-C01 upload boundary: `UploadCreateRequestDto`, `UploadsController.Create`, `UploadPersistenceService.CreateAsync` | C; Anh DONE locally, report `reports/RF-10-04-C01.md` | 38 Accepted, CG17, RF-09 test-only SQL reader proof | Isolated HTTP shows values above `int.MaxValue` return current 500 `internal_error` from validation `OverflowException` and create no file/session; 1/1 focused case. This is a bug finding, not accepted target. |
+@@ -25,8 +25,8 @@ Checkpoint 2026-10-01: branch `anh`, local HEAD `2efc8a5775f834c7f0fe37cc0ce7030
+ | 10-06-C01 Reporter/defect authority map: `ReporterRegistrationsController`, `ProcessingV2Controller`, `Defect`, `AIDetection` | C; Anh DONE for current implemented path, parent Partial | 33A/34A, CG07/08, Q-RF02-07; RF-10-05 reachable-state evidence | `10-reporter-defect-characterization-baseline.md`, `reports/RF-10-06-C01.md`, focused API 1/1: processing-job Supervisor 200, Reporter/wrong-project PM 403 `access_forbidden`, projection and fresh SQL no-write. Report/case, PM review and label/export are NOT_IMPLEMENTED; no HTTP coverage claimed. |
+ | 10-06-R01 current onboarding | R; Anh RETAIN provisionally | RF-01 current action inventory; no measured structural defect or duplicate accepted policy | Preserve existing API. Reassess only against a concrete failing characterization; do not invent case abstraction. |
+ | 10-06-F01/G01 report/case/PM review/training export | F/G; unassigned, BLOCKED | 33A/34A, Q-RF02-07, AI candidate interface and privacy decision | Approved actor/public projection, no-auto-merge, SQL audit, only approved labels exported and client/AI consumer tests. |
+-| 10-07-C01 inspection/measurement: `InspectionTasksController.List`, validation/measurement entities | C; Anh DONE locally with correction-02 verified | 32A/35A, CG09; RF-04 ownership correction makes C027/BR-46 this module | `10-inspection-measurement-characterization-baseline.md`, `reports/RF-10-07-C01.md`: correction-02 focused HTTP/owned-SQL 5/5 covers RepairCrew list, PM/Supervisor forbidden, project scope filtering, success GET immutability (comprehensive snapshots with byte-order RowVersion), measurement provenance. Complete source-to-binary provenance chain established. Task creation/assignment, PM workflows, policy, repair acceptance NOT_IMPLEMENTED. |
+-| 10-07-R01 current inspection read | R; Anh DONE locally, RETAIN recommendation | No approved policy dossier or structural duplicate established; RF-01 C027 inventory; `reports/RF-10-07-R01.md` | Keep read behavior; cursor encoding is API contract, authorization/projection diverges from other services, low reuse (2 repositories). Extraction overhead not justified. Reassess if PM batch review or Fast Track introduce 3+ identical query patterns. |
++| 10-07-C01 inspection/measurement: `InspectionTasksController.List`, validation/measurement entities | C; Anh DONE locally with correction-02 verified | 32A/35A, CG09; RF-04 ownership correction makes C027/BR-46 this module | `10-inspection-measurement-characterization-baseline.md`, `reports/RF-10-07-C01.md`: correction-02 focused HTTP/owned-SQL 5/5 covers RepairCrew list, PM/Supervisor forbidden, project scope filtering, success GET immutability (comprehensive snapshots with byte-order RowVersion), measurement provenance. Correction-02 provenance: build log, TRX 5/5, test + 2 fixtures hashed before/after, assembly hash recorded; no production-source fingerprint; build end approximate. Task creation/assignment, PM workflows, policy, repair acceptance NOT_IMPLEMENTED. |
++| 10-07-R01 current inspection read | R; Anh DONE locally, RETAIN recommendation | No approved policy dossier or structural duplicate established; RF-01 C027 inventory; `reports/RF-10-07-R01.md` | Keep read behavior; cursor encoding is API contract, authorization/projection diverges from other services, low reuse (2 repositories). Extraction overhead not justified. Reassess when duplicate equivalent patterns emerge or concrete extraction benefit identified. |
+ | 10-07-F01/G01 PM batch, safety, policy, repair/acceptance | F/G; unassigned, BLOCKED | 32A/35A; Q-RF02-04/07 method/material and threshold UNKNOWN | Separate PM reminder from auto-assignment; temporary safety does not close defect; approved policy/state and API/SQL/actor evidence before release. |
+ | 10-08-C01 per-command replay: `IdempotencyOperationService`, upload/survey/project callers | C; Anh START, RF-08 partial | 42A/43A, CG12; Android contract UNKNOWN | Record key/fingerprint/scope and stale actor behavior per command with isolated SQL. No universal guarantee from one endpoint. |
+ | 10-08-R01 common idempotency primitive | R; Anh RETAIN | RF-08 source graph: unique race/commit ambiguity and transport-specific keys differ | No generic rewrite; preserve stored outcome/replay and caller-specific 409/412/428. |
+diff --git a/correction-01-before/10-refactor-checklist.md b/../../10-refactor-checklist.md
+index ac37a17..26cf66e 100644
+--- a/correction-01-before/10-refactor-checklist.md
++++ b/../../10-refactor-checklist.md
+@@ -21,11 +21,11 @@ These are local BE investigation/structure gates; missing Web/Android/AI owners
+ | 10-01-C01 / identity | **Done for local current-behavior characterization.** Same-account `/profile`/`/me`, separate-target reset families, bearer/refresh and OTP guards were checked with owned SQL; identity routes have no project scope. | `10-identity-characterization-baseline.md` and `reports/RF-10-01-C01.md`; final new C01 5/5, selected existing 6/6 + 2/2 + 2/2, 0 skipped. | Consumer/transport/PII choice and deployed config remain F/G under Q-RF02-02; local C is complete. |
+ | 10-02-C01 / project/GIS | **Done locally for current project/GIS/warranty characterization.** Membership/effective-date source and historical API/SQL evidence were reconciled; a new owned SQL HTTP test checks geometry/version round-trip and prior-version preservation. | `10-project-gis-characterization-baseline.md` and `reports/RF-10-02-C01.md`; new focused test 1/1 after final verification, reused P112/P120/P121/P211 evidence. | Route-specific Supervisor versus membership policy, real geometry samples, deployed consumers and 39A segment/publish target remain F/G/decision work. |
+ | 10-03-C01 / survey | **Done for local same-row plan characterization.** New focused HTTP/owned-SQL 2/2 exercises both create->other-family postpone directions, replay/key scope, stale/current version and wrong actor. | `reports/RF-10-03-C01.md` records exact row/content and F04-F06 findings. Request/task cross-family and external consumer/deployed data are not proven by this plan-only slice. | R01 RETAIN for distinct semantics; Q-RF02-03 blocks F consolidation, not this C. |
+-| 10-03-C02 / survey request/task and assignment | **Done locally for reachable current behavior after checkpoint-07 correction.** Old request creation, assigned V2 read, Reporter/wrong-project authorization, replay side effects, assignment persistence and missing-key behavior were checked with owned HTTP/SQL; absent old-request assignment route is recorded. | `10-survey-request-task-assignment-characterization.md`, `reports/RF-10-03-C02.md`, final API 2/2 and P211 4/4; failed correction attempts are retained. | External consumers/deployed rows and desired coexistence remain later F/G gates; Q-RF02-03 still blocks F/backfill. |
++| 10-03-C02 / survey request/task and assignment | **Partial for C02.** Old request creation, assigned V2 read, Reporter/wrong-project authorization, replay side effects, assignment persistence and missing-key behavior were checked with owned HTTP/SQL; absent old-request assignment route is recorded. Checkpoint 08 corrections applied without before-snapshots; historical limitation documented in baseline. | `10-survey-request-task-assignment-characterization.md`, `reports/RF-10-03-C02.md`, final API 2/2 and P211 4/4; failed correction attempts are retained. | External consumers/deployed rows and desired coexistence remain later F/G gates; Q-RF02-03 still blocks F/backfill. |
+ | 10-05-C01 / processing AI | **Done for reachable-state local characterization.** Retry from queued is rejected; no production transition to `RetryableFailure` was found, so A -> retry -> B -> late A cannot be executed without an artificial state write. | Fresh owned SQL 1/1: current A callback, same-key replay, new-key request, manifest/model/raw-source mismatch; fresh-context job/attempt/detection/audit/outbox/receipt reads. See `reports/RF-10-05-C01.md`. | CG11 late-A fencing remains unproven, not disproven; provider/state-failure protocol and F fix require separate decisions. |
+ | 10-06-C01 / Reporter/defect | **Done for current implemented-path characterization.** Processing-job read role/project scope, response projection and read-side SQL effects were checked; Reporter onboarding and defect/AI caller inventory were source-inspected. | `10-reporter-defect-characterization-baseline.md`, `reports/RF-10-06-C01.md`, focused API 1/1. | Report/case, PM review and label/export have no production path (`NOT_IMPLEMENTED`); Q-RF02-07 and F/G consumer/privacy gates remain open. |
+-| 10-07-C01 / inspection | **Done locally with correction-02 verified for current task list characterization.** RepairCrew-only authorization, project scope filtering, response projection and success GET immutability (comprehensive snapshots with byte-order RowVersion) were checked; measurement provenance linkage to defect/survey/road version was inspected. Complete source-to-binary provenance chain established. | `10-inspection-measurement-characterization-baseline.md` and `reports/RF-10-07-C01.md`; correction-02 focused test 5/5, evidence archive SHA-256 `f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d`. | Task creation/assignment/mutation, PM batch/reminder, safety actions, policy evaluation, repair acceptance remain NOT_IMPLEMENTED; Q-RF02-04 and Q-RF02-07 block F/G. |
+-| 10-07-R01 / inspection read | **Done locally with RETAIN recommendation.** No extraction justified: cursor encoding is API contract, authorization/projection diverges from other services, low reuse (2 repositories), abstraction overhead not justified. | `reports/RF-10-07-R01.md` source/symbol assessment. | Reassess only if PM batch review or Fast Track introduce 3+ identical query patterns. |
++| 10-07-C01 / inspection | **Done locally with correction-02 verified for current task list characterization.** RepairCrew-only authorization, project scope filtering, response projection and success GET immutability (comprehensive snapshots with byte-order RowVersion) were checked; measurement provenance linkage to defect/survey/road version was inspected. Correction-02 provenance: build log, TRX 5/5, test + 2 fixtures hashed before/after, assembly hash recorded; no production-source fingerprint; build end approximate. | `10-inspection-measurement-characterization-baseline.md` and `reports/RF-10-07-C01.md`; correction-02 archive SHA-256 `f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d`. | Task creation/assignment/mutation, PM batch/reminder, safety actions, policy evaluation, repair acceptance remain NOT_IMPLEMENTED; Q-RF02-04 and Q-RF02-07 block F/G. |
++| 10-07-R01 / inspection read | **Done locally with RETAIN recommendation.** No extraction justified: cursor encoding is API contract, authorization/projection diverges from other services, low reuse (2 repositories), abstraction overhead not justified. | `reports/RF-10-07-R01.md` source/symbol assessment. | Reassess when duplicate equivalent patterns emerge or concrete extraction benefit identified. |
+ | 10-08-C01 / offline primitives | Compare per-command key/fingerprint/replay/stale-actor semantics across project, survey and upload. | Selected isolated SQL/API cases per caller, no universal claim from one endpoint. | Android wire blocks F sync, not local current-command audit. |
+ | 10-09-C01 / messaging | Trace production dispatcher caller and characterize inbox/outbox lease/receipt. | Caller graph, inbox HTTP and owned SQL crash/replay/atomicity. | Deployment operator needed to verify real dispatcher, not local source/test work. |
+ | 11-C01 / final local audit | Complete source/diff attribution and cross-module verification after the remaining R/C decisions. | Final allowlist, link/tool validators, affected fresh builds/tests and no serious regression. | Existing dirty work must remain separated; hosted CI belongs to release. |
+diff --git a/correction-01-before/10-survey-request-task-assignment-characterization.md b/../../10-survey-request-task-assignment-characterization.md
+index b6a42f1..3fd631f 100644
+--- a/correction-01-before/10-survey-request-task-assignment-characterization.md
++++ b/../../10-survey-request-task-assignment-characterization.md
+@@ -7,6 +7,7 @@
+ - `RUNTIME_TESTED`: final `Rf1003RequestTaskAssignmentCharacterizationTests` passed 1/1 on the owned SQL Server API fixture. `old request -> V2 GET` returned 404; assigned operator GET returned 200; Reporter GET returned 403; manager A POST creating in project B returned 403 while the project-B manager positive control succeeded; replay returned the same task and SQL counts remained unchanged; missing idempotency header returned 428. Durable request/assignment state was checked in a new DbContext.
+ - `HISTORICAL_RUNTIME`: P122 and P2 existing tests remain separate-family evidence and are not counted as this cross-family test.
+ - `NOT_VERIFIED/N/A`: no production route was found that assigns an old request; no reverse old mutation route exists for a V2 task; external clients, deployed rows and coexistence policy remain unknown.
++- `HISTORICAL_LIMITATION`: Checkpoint 08 corrections were applied without before-snapshots; this baseline documents the gap but does not retroactively reconstruct missing snapshots.
+ 
+ ## Current matrix
+ 
+@@ -26,7 +27,7 @@
+ - After reassignment, operator B GET returns `200` with the task identity, project, operator B and `REASSIGNED` status; fresh SQL confirms the active assignment.
+ - Outbox status is `SOURCE_INSPECTED` only for the C02 V2 call chain. `SurveyV2PersistenceService.MutateTaskAsync` does not enqueue an outbox message; `SurveyAssignmentPersistenceService` is a separate source path and must not be used as C02 runtime evidence. No outbox runtime claim is made.
+ - Checkpoint 10 correction: old replay reads the actual `SurveyRequest` row and project request-id set; V2 create, stale reassign and reassign replay read `IdempotencyRecords` by actor/project/operation/key. The stale request gets one receipt containing the observed concurrency outcome. Snapshot comparisons use content equivalence, not reference equality.
+-- V2 create replay response is asserted as the stored create projection (`operatorId` A, `NEW_ASSIGNED`, original version), while fresh SQL confirms the task has since been reassigned to operator B. This is current behavior, not a target contract.
++- V2 create replay response is asserted as the stored create projection (`operatorId` A, `NEW_ASSIGNED`, original version), while fresh SQL confirms the task has since been reassigned to operator B. This is observed stored create replay behavior; no claim that replay response reflects current reassignment state.
+ 
+ - `RF10-03-C02-F01` (high): old request and V2 task share `SurveyRequests` but differ in assignment creation and V2 read visibility. Keep both paths; do not infer coexistence or backfill policy.
+ - `RF10-03-C02-F02` (medium): V2 task creation is the reachable production path that establishes `SurveyAssignment`; no valid old-request assignment creator was identified in the repository. Treat old-to-task linkage as UNKNOWN, not as an absent external consumer.
+diff --git a/correction-01-before/RF-10-07-C01.md b/../../reports/RF-10-07-C01.md
+index 5a09a3b..2ae65e1 100644
+--- a/correction-01-before/RF-10-07-C01.md
++++ b/../../reports/RF-10-07-C01.md
+@@ -13,7 +13,7 @@
+ 
+ Verified: inspection task list endpoint (`GET /api/v1/me/inspection-tasks`) is restricted to RepairCrew role; ProjectManager and Supervisor roles receive 403 Forbidden. Project membership scope filtering excludes tasks outside crew's project access. Response projection includes task id, projectId, defectIds array, hardcoded "MEASURE_ONLY" mode, crewId, null policyVersionId, uppercase status, and base64 version. Fresh DbContext snapshots for **success GET scenario** (RepairCrew with valid membership) show no observed changes to asserted record fields: task (Id, Status, TaskCode, ProjectId, DefectId, RowVersion), assignment (Id, Status, AssignedToUserId, AssignedByUserId, AssignedAt), defect (Id, Status, ProjectId, RoadSectionVersionId), measurement (Id, DefectId, SurveyId, RoadSectionVersionId, SessionId, MeasurementType, Value, Unit, Location SRID/coordinates). Denied GET (PM/Supervisor) and filtered GET (crew without membership) immutability NOT verified. GroundTruthMeasurement schema and linkage to defect/survey/road version were inspected; runtime constraint enforcement NOT verified.
+ 
+-**Correction-02 applied:** Snapshot gaps from correction-01 were fixed: changed from measurement count to full record capture; fixed RowVersion byte-order comparison (BeEquivalentTo → Equal); moved baseline after authentication; added comprehensive field assertions for task (Id, Status, TaskCode, ProjectId, DefectId, RowVersion), assignment (Id, Status, AssignedToUserId, AssignedByUserId, AssignedAt), defect (Id, Status, ProjectId, RoadSectionVersionId), measurement (Id, DefectId, SurveyId, RoadSectionVersionId, SessionId, MeasurementType, Value, Unit, Location SRID/coordinates). Complete source-to-binary provenance chain established with verified hashes. Evidence: correction-02 archive SHA-256 `f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d`.
++**Correction-02 applied:** Snapshot gaps from correction-01 were fixed: changed from measurement count to full record capture; fixed RowVersion byte-order comparison (BeEquivalentTo → Equal); moved baseline after authentication; added comprehensive field assertions for task (Id, Status, TaskCode, ProjectId, DefectId, RowVersion), assignment (Id, Status, AssignedToUserId, AssignedByUserId, AssignedAt), defect (Id, Status, ProjectId, RoadSectionVersionId), measurement (Id, DefectId, SurveyId, RoadSectionVersionId, SessionId, MeasurementType, Value, Unit, Location SRID/coordinates). Correction-02 provenance: build log with timestamps/warnings/exit, TRX 5/5 passed, source hashes before/after for test + 2 fixtures (3 files), assembly hash recorded after build and after test. No production-source fingerprint; build end timestamp approximate. Evidence: correction-02 archive SHA-256 `f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d`.
+ 
+ Files added or changed:
+ 
+@@ -38,7 +38,7 @@ Files added or changed:
+ 
+ ## 4. Verification
+ 
+-**Correction-02 provenance chain:**
++**Correction-02 provenance:**
+ - Source hashes captured before build: test + 2 fixtures (3 files)
+ - Clean build: `dotnet build --no-incremental`, 2026-10-01 08:13:10-08:13:25 UTC, exit 0, 164 warnings, 0 errors
+ - Assembly hashed after build: `aa67f8fee46552fdd3f823c3c72ee3c9e817a644694b479124fcc2a1a03a0c2c`
+@@ -46,7 +46,7 @@ Files added or changed:
+ - Test results: 5 discovered, 5 executed, 5 passed, 0 failed, 0 skipped
+ - Assembly hash after test: `aa67f8fee46552fdd3f823c3c72ee3c9e817a644694b479124fcc2a1a03a0c2c` (unchanged)
+ - Source hashes after test: all 3 files unchanged (match before-build hashes)
+-- Source-to-binary linkage: VERIFIED
++- Provenance coverage: test + 2 fixtures hashed; no production-source fingerprint for this build; build end timestamp approximate; assembly hash recorded but not claiming reproducible build
+ 
+ **Test cases (correction-02):**
+ 1. `InspectionTaskList_RepairCrewWithScope_ReturnsTasksAndDoesNotMutateDatabase` (279 ms): RepairCrew 200 OK, response projection fields, comprehensive snapshots (task/assignment/defect/measurement) before/after with byte-order RowVersion comparison
+@@ -56,9 +56,9 @@ Files added or changed:
+ 5. `InspectionTaskList_MeasurementProvenance_ExistsInDatabase` (857 ms): Measurement linkage DefectId/SurveyId/RoadSectionVersionId, MeasurementType/Value/Unit, Location SRID 4326
+ 
+ **Historical evidence:**
+-- Checkpoint 11 initial attempt: failed run documented
+-- Correction-01: 5/5 passed but source-to-binary linkage NOT_VERIFIED (metadata conflict between build-metadata and test-run-metadata)
+-- Correction-02: supersedes correction-01 for provenance verification; correction-01 retained as historical evidence
++- Checkpoint 11: initial attempt with test failures documented
++- Correction-01 of checkpoint 11: 5/5 passed but source-to-binary linkage NOT_VERIFIED (metadata conflict between build-metadata and test-run-metadata)
++- Checkpoint 12 correction-02: supersedes correction-01 for verification; test + 2 fixtures hashed before/after, assembly hash recorded; correction-01 retained as historical evidence
+ 
+ **NOT_VERIFIED:**
+ - Response version field mapping to Base64 RowVersion (assertion only checks non-empty string, not round-trip decode)
+@@ -97,7 +97,7 @@ Correction-02 applied:
+ 2. Changed to `.Should().Equal()` for byte-order sensitive RowVersion comparison
+ 3. Moved baseline capture after authentication, immediately before GET
+ 4. Added comprehensive assertions: task (Id, Status, TaskCode, ProjectId, DefectId, RowVersion), assignment (Id, Status, AssignedToUserId, AssignedByUserId, AssignedAt), defect (Id, Status, ProjectId, RoadSectionVersionId), measurement (Id, DefectId, SurveyId, RoadSectionVersionId, SessionId, MeasurementType, Value, Unit, Location SRID/coordinates)
+-5. Established complete source-to-binary provenance chain with verified hashes
++5. Provenance: build log, TRX 5/5, test + 2 fixtures hashed before/after, assembly hash recorded; no production-source fingerprint; build end approximate
+ 
+ Correction-01 evidence retained as historical record. Source-to-binary linkage for correction-01 remains NOT_VERIFIED (metadata conflict documented).
+ 
+@@ -127,4 +127,4 @@ The reports do NOT claim that replay response reflects current reassignment stat
+ 
+ ## 8. Summary for planner
+ 
+-RF-10-07-C01 is complete locally for the current inspection task list endpoint with correction-02 verified: RepairCrew role receives 200 OK with project-scoped tasks; PM/Supervisor roles receive 403 Forbidden. Response projection includes id, projectId, defectIds array, hardcoded "MEASURE_ONLY" mode, crewId, null policyVersionId, status, and version. Fresh SQL snapshots for success GET scenario confirmed no observed changes to asserted record fields: task (Id, Status, TaskCode, ProjectId, DefectId, RowVersion), assignment (Id, Status, AssignedToUserId, AssignedByUserId, AssignedAt), defect (Id, Status, ProjectId, RoadSectionVersionId), measurement (Id, DefectId, SurveyId, RoadSectionVersionId, SessionId, MeasurementType, Value, Unit, Location SRID/coordinates). Denied/filtered GET immutability NOT verified. Correction-02 fixed snapshot gaps: full measurement record capture (not count), byte-order RowVersion comparison, baseline after authentication, comprehensive field assertions for all entities. Complete source-to-binary provenance chain established with verified hashes. GroundTruthMeasurement schema and provenance linkage to defect/survey/road version inspected; runtime constraint enforcement NOT verified. RF-10-07-R01 assessment complete: RETAIN recommendation (no extraction justified; cursor encoding is API contract, authorization/projection diverges from other services, low reuse with 2 repositories, abstraction overhead not justified). Checkpoint 11 initial failures, correction-01 source-to-binary linkage NOT_VERIFIED, correction-02 supersedes for verification. Task creation/assignment/mutation, PM workflows, policy evaluation, repair acceptance, measurement submission HTTP, and external consumers remain NOT_IMPLEMENTED or NOT_VERIFIED. RF-10-06-C01 documentation corrected for build warnings count and checkpoint sequence clarity. Parent RF-10-07 and overall refactor remain Partial pending F/G work and decisions.
++RF-10-07-C01 is complete locally for the current inspection task list endpoint with correction-02 verified: RepairCrew role receives 200 OK with project-scoped tasks; PM/Supervisor roles receive 403 Forbidden. Response projection includes id, projectId, defectIds array, hardcoded "MEASURE_ONLY" mode, crewId, null policyVersionId, status, and version. Fresh SQL snapshots for success GET scenario confirmed no observed changes to asserted record fields: task (Id, Status, TaskCode, ProjectId, DefectId, RowVersion), assignment (Id, Status, AssignedToUserId, AssignedByUserId, AssignedAt), defect (Id, Status, ProjectId, RoadSectionVersionId), measurement (Id, DefectId, SurveyId, RoadSectionVersionId, SessionId, MeasurementType, Value, Unit, Location SRID/coordinates). Denied/filtered GET immutability NOT verified. Correction-02 fixed snapshot gaps: full measurement record capture (not count), byte-order RowVersion comparison, baseline after authentication, comprehensive field assertions for all entities. Correction-02 provenance: build log, TRX 5/5, test + 2 fixtures hashed before/after, assembly hash recorded; no production-source fingerprint; build end approximate. GroundTruthMeasurement schema and provenance linkage to defect/survey/road version inspected; runtime constraint enforcement NOT verified. RF-10-07-R01 assessment complete: RETAIN recommendation (no extraction justified; cursor encoding is API contract, authorization/projection diverges from other services, low reuse with 2 repositories, abstraction overhead not justified). Checkpoint 11 initial failures, correction-01 source-to-binary linkage NOT_VERIFIED, correction-02 supersedes for verification. Task creation/assignment/mutation, PM workflows, policy evaluation, repair acceptance, measurement submission HTTP, and external consumers remain NOT_IMPLEMENTED or NOT_VERIFIED. RF-10-06-C01 documentation corrected for build warnings count and checkpoint sequence clarity. Parent RF-10-07 and overall refactor remain Partial pending F/G work and decisions.
+diff --git a/correction-01-before/RF-10-07-R01.md b/../../reports/RF-10-07-R01.md
+index 716f309..641355c 100644
+--- a/correction-01-before/RF-10-07-R01.md
++++ b/../../reports/RF-10-07-R01.md
+@@ -142,16 +142,16 @@ Evaluate whether `InspectionTaskQueryService` and `InspectionTaskReadRepository`
+ 
+ **Provisional RETAIN:**
+ - Decision holds until PM batch review and Fast Track workflows (F/G) are characterized
+-- If F/G introduces 3+ similar query services with identical authorization patterns, reassess
+-- Current assessment is NOT_VERIFIED for future multi-role query requirements
++- Reassess when duplicate equivalent patterns emerge or concrete extraction benefit identified
++- Current assessment does not claim to predict future multi-role query requirements
+ 
+ ## 9. Summary
+ 
+ InspectionTaskQueryService and InspectionTaskReadRepository represent domain-specific query logic with authorization, projection, and pagination requirements that differ from other services. Superficial duplication (cursor encoding, scope guard loop) does not justify extraction given single-operation scope, API contract stability concerns, and authorization divergence. **Recommendation: RETAIN current implementation.**
+ 
+ Future triggers for reassessment:
+-- PM batch review query service (if authorization pattern identical)
+-- Fast Track repair acceptance query (if scope filtering identical)
+-- 3+ query services with same role restriction and cursor format
++- Duplicate equivalent query patterns with same authorization model emerge
++- Concrete extraction benefit identified (not speculative reuse)
++- Measured overhead from maintaining separate implementations exceeds abstraction cost
+ 
+ **Next:** R01 assessment complete. RF-10-07 parent remains Partial pending F/G work and decisions.

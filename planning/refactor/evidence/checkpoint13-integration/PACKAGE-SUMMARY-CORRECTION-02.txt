@@ -1,0 +1,184 @@
+================================================================================
+RF-10-CHECKPOINT-13-CORRECTION-02-HANDOFF
+================================================================================
+
+Package:    RF-10-checkpoint-13-correction-02-handoff.tar.gz
+SHA-256:    620d83a5bd0a834f6e8aa68c1899d6b092dd53cb20fcd55d390fabc41df3822a
+Size:       453,632 bytes (443 KB)
+Created:    2026-10-01T22:30:00
+Writer:     BOX 3 (sole writer, continuation from correction-01)
+Branch:     anh
+Commit:     2efc8a5775f834c7f0fe37cc0ce703011649e1f1
+
+================================================================================
+TEST RESULTS COMPARISON
+================================================================================
+
+PREVIOUS PACKAGE (RF-10-checkpoint-13-correction-01-handoff.zip):
+  BOX 1 (RF-10-08-C01):  8/10 PASS (80%)
+  BOX 2 (RF-10-09-C01):  4/5  PASS (80%)
+  Overall:              12/15 PASS (80%)
+
+CURRENT PACKAGE (RF-10-checkpoint-13-correction-02-handoff.tar.gz):
+  BOX 1 (RF-10-08-C01): 10/10 PASS (100%)
+  BOX 2 (RF-10-09-C01):  5/5  PASS (100%)
+  Overall:              15/15 PASS (100%)
+
+IMPROVEMENT: +3 tests fixed (+20% pass rate improvement to 100%)
+
+================================================================================
+CORRECTIONS APPLIED
+================================================================================
+
+[1] BOX 1 Role Revocation Replay (F-C13-01c) - FIXED
+    - Changed expected status from 201 Created to 403 Forbidden
+    - Added security boundary assertions
+    - Root cause: Production correctly enforces current JWT claims before replay
+    - Test now characterizes secure authorization boundary
+
+[2] BOX 1 SurveyPlan Postpone Dates (F-C13-02) - FIXED
+    - Fixed property name: "planId" → "id"
+    - Used known plannedEndAt from request payload (2026-12-31)
+    - Calculated safe postpone dates within business rule constraint
+    - Changed assertion to compare semantic properties (not exact JSON)
+    - Root cause: Test dates violated newPlannedStartAt <= PlannedEndAt rule
+
+[3] BOX 2 SurveyAssignmentData Entity (F-C13-03) - FIXED
+    - Replaced raw entity seeding with domain factory
+    - Changed: SurveyAssignmentData.Add() → SurveyAssignment.Create()
+    - Root cause: Helper class not registered in EF Core DbContext
+    - Test now uses production-aligned entity creation pattern
+
+================================================================================
+FINDINGS SUMMARY
+================================================================================
+
+ID          Severity  Component  Status        Correction  Tests
+----------  --------  ---------  ------------  ----------  -----
+F-C13-01a   High      BOX 1      FIXED         C01         2
+F-C13-01b   High      BOX 1      VERIFIED      C01         0
+F-C13-01c   High      BOX 1      FIXED         C02         1
+F-C13-02    Medium    BOX 1      FIXED         C02         1
+F-C13-03    High      BOX 2      FIXED         C02         1
+F-C13-04    Medium    BOX 2      VERIFIED      C01         0
+
+Total: 6 findings (5 fixed, 1 verified by source)
+Correction-02 Contribution: 3 fixes
+
+================================================================================
+PACKAGE CONTENTS (20 files)
+================================================================================
+
+MANIFEST & REPORTS:
+  - correction-02-manifest.json (8,822 bytes)
+  - correction-02-summary.md (8,809 bytes)
+  - correction-02-handoff-vietnamese.md (9,217 bytes)
+
+STATE PRESERVATION:
+  - correction-02-state-preservation.md (4,308 bytes)
+
+FINDINGS ANALYSIS:
+  - correction-02-findings-matrix.md (8,387 bytes)
+  - correction-02-finding-role-revocation.md (4,815 bytes)
+  - correction-02-finding-postpone-dates.md (6,650 bytes)
+  - correction-02-finding-assignment-entity.md (5,428 bytes)
+
+SOURCE HASHES:
+  - correction-02-tests-before.sha256 (252 bytes)
+  - correction-02-tests-after.sha256 (314 bytes)
+  - correction-02-assembly-after.sha256 (95 bytes)
+
+BUILD & TEST LOGS:
+  - correction-02-build.log (3,836,928 bytes)
+  - correction-02-box1-console.txt (295,936 bytes)
+  - correction-02-box1-final-console.txt (291,840 bytes)
+  - correction-02-box2-build.txt (178,176 bytes)
+  - correction-02-box2-console.txt (52,224 bytes)
+  - correction-02-box2-final-console.txt (43,008 bytes)
+
+TEST RESULTS (TRX):
+  - RF-10-08-C01-correction-02-final.trx (320,593 bytes)
+  - RF-10-09-C01-correction-02-final.trx (54,529 bytes)
+
+PREVIOUS CONTEXT:
+  - RF-10-checkpoint-13-correction-01-handoff.zip (146,929 bytes)
+
+================================================================================
+CONSTRAINTS COMPLIANCE
+================================================================================
+
+✓ No production/schema/contract/migration/CI modification
+✓ No commit/push/reset/clean/stash operations
+✓ No shared database writes
+✓ Test files only modified (allowlist)
+✓ Isolated fixture DB only
+✓ Before/after hashes captured
+✓ Sequential test runs with TRX
+✓ Full build and console logs preserved
+
+================================================================================
+TECHNICAL INSIGHTS
+================================================================================
+
+[1] Authorization Timing in Idempotency Flow
+    Discovery: Service layer authorization check BEFORE persistence layer replay
+    Implication: Current JWT claims always enforced
+    Security: Authorization boundary protects idempotency records
+
+[2] API Response Structure vs Domain Entity
+    Discovery: SurveyPlanV2ResponseDto omits plannedEndAt field
+    Implication: Tests cannot read plannedEndAt from response
+    Solution: Track request payload values or query database directly
+
+[3] Entity Framework Core Entity Factories
+    Discovery: Helper classes not registered as DbSet entities
+    Implication: Direct DbContext.Add() fails for non-entity classes
+    Best Practice: Always use domain factory methods in tests
+
+================================================================================
+MANDATE FULFILLMENT
+================================================================================
+
+✓ Step 1: Evidence preserved (state snapshot, hashes)
+✓ Step 2: Test errors fixed (3 fixes applied)
+✓ Step 3: Assertion gaps completed (security, dates, entities)
+✓ Step 4: Reports fixed from actual evidence (findings, summary)
+✓ Step 5: Verification complete (source frozen, hashes, build+test)
+✓ Step 6: Package created (RF-10-checkpoint-13-correction-02-handoff.tar.gz)
+
+================================================================================
+COMPLETION STATUS
+================================================================================
+
+STATUS:     COMPLETE
+PASS RATE:  100% (15/15 tests)
+OPEN ISSUES: 0
+STATE:      All findings resolved
+QUALITY:    Full evidence preservation and verification
+
+================================================================================
+VERIFICATION
+================================================================================
+
+Location: planning/refactor/evidence/checkpoint13-integration/
+
+Verify package integrity:
+  sha256sum -c RF-10-checkpoint-13-correction-02-handoff.tar.gz.sha256
+
+Expected output:
+  RF-10-checkpoint-13-correction-02-handoff.tar.gz: OK
+
+Extract package:
+  tar -xzf RF-10-checkpoint-13-correction-02-handoff.tar.gz
+
+================================================================================
+BOX 3 SIGNATURE
+================================================================================
+
+Status:     CORRECTION-02 DELIVERED
+Timestamp:  2026-10-01T22:30:00Z
+Pass Rate:  100% (15/15 tests)
+State:      COMPLETE - All findings resolved
+Package:    620d83a5bd0a834f6e8aa68c1899d6b092dd53cb20fcd55d390fabc41df3822a
+
+================================================================================

@@ -1,0 +1,50 @@
+# Test Run Metadata - RF-10-07-C02
+
+Test Run Start: 2026-10-01 08:14:47 UTC
+Test Run End: 2026-10-01 08:15:09 UTC
+Command: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build -nologo --filter 'FullyQualifiedName~Rf1007InspectionMeasurementCharacterizationTests' --logger 'trx;LogFileName=rf1007-c02-test.trx' --logger 'console;verbosity=detailed' --results-directory planning/refactor/evidence/rf1007-c02
+Working Directory: D:\Project BE\RoadGuardSystem
+Exit Code: 0
+Duration: 22 seconds
+Tests Discovered: 5
+Tests Executed: 5
+Passed: 5
+Failed: 0
+Skipped: 0
+
+Assembly Used:
+- Path: tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.ApiTests.dll
+- SHA-256 before test: aa67f8fee46552fdd3f823c3c72ee3c9e817a644694b479124fcc2a1a03a0c2c
+- SHA-256 after test: aa67f8fee46552fdd3f823c3c72ee3c9e817a644694b479124fcc2a1a03a0c2c
+- Verification: Assembly unchanged during test (binary stable)
+
+Source Files:
+- SHA-256 before build: (recorded in source-hashes-before.txt)
+- SHA-256 after test: (recorded in source-hashes-after.txt)
+- Verification: All source files unchanged (test with --no-build used correct assembly)
+
+Test Results:
+1. InspectionTaskList_RepairCrewWithScope_ReturnsTasksAndDoesNotMutateDatabase - PASSED (279 ms)
+2. InspectionTaskList_ProjectManagerRole_ReturnsForbidden - PASSED (960 ms)
+3. InspectionTaskList_SupervisorRole_ReturnsForbidden - PASSED (99 ms)
+4. InspectionTaskList_CrewWithoutProjectMembership_FiltersOutTask - PASSED (130 ms)
+5. InspectionTaskList_MeasurementProvenance_ExistsInDatabase - PASSED (857 ms)
+
+TRX File: planning/refactor/evidence/rf1007-c02/rf1007-c02-test.trx
+Console Output: planning/refactor/evidence/rf1007-c02/test-output.txt
+
+Source-to-Binary Linkage:
+- Test file hash before build: ca51ee9d49be65763603e3f5a777c4c67c758619945ccf89cbcfda0b1cf8b428
+- Assembly hash after build: aa67f8fee46552fdd3f823c3c72ee3c9e817a644694b479124fcc2a1a03a0c2c
+- Assembly used by test: aa67f8fee46552fdd3f823c3c72ee3c9e817a644694b479124fcc2a1a03a0c2c
+- Verification: Test executed against assembly built from known source state
+
+Provenance Chain:
+1. Source hashes captured before build
+2. Clean build (--no-incremental) executed from known source
+3. Assembly hash captured after build
+4. Test executed with --no-build against captured assembly
+5. Assembly hash verified unchanged after test
+6. Source hashes verified unchanged after test
+
+Note: This verification establishes complete provenance for RF-10-07-C02 test execution.

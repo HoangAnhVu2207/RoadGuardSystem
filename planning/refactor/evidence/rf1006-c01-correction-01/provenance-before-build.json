@@ -1,0 +1,39 @@
+{
+  "phase": "before-build",
+  "timestamp": "2026-10-01T14:09:02.0837982+07:00",
+  "cwd": "D:\\Project BE\\RoadGuardSystem",
+  "branch": "anh",
+  "head": "2efc8a5775f834c7f0fe37cc0ce703011649e1f1",
+  "files": [
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/Defects/Rf1006ReporterDefectCharacterizationTests.cs",
+      "length": 13705,
+      "sha256": "35E529302E84B2AA1BB0B8C648C4949F1EE88C2087DDB375E42B8B9354A9F8B6"
+    },
+    {
+      "path": "RoadGuardSystem.API/Controllers/ProcessingV2Controller.cs",
+      "length": 7512,
+      "sha256": "82E7D0E4E7A0059336FFA5F4A7B863BAB302022E4A5C758F00F128B08F669F47"
+    },
+    {
+      "path": "RoadGuardSystem.Services/Implementations/Processing/ProcessingV2Service.cs",
+      "length": 10792,
+      "sha256": "C54B1CFA24010F86079C76FDA97842E9F1F03D45431722039C018F4A69FC6B60"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+      "length": 26928,
+      "sha256": "B9D66FF0580AB652D0B268DEBBE2C94B59661AF17FF3A6E4F0133C0F85C1762C"
+    },
+    {
+      "path": "RoadGuardSystem.DTOs/Processing/ProcessingJobResponseDto.cs",
+      "length": 226,
+      "sha256": "B6758F972FD458869E70414C2BB0D36BE791F811970CEA300EB58B235207F677"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs",
+      "length": 5357,
+      "sha256": "2EDA4969413DB8B2B50F84CA922085B5339283E4F6B4941E5C8CAA2690C4BB29"
+    }
+  ]
+}

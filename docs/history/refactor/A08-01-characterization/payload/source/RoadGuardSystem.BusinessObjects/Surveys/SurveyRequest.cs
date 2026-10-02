@@ -1,0 +1,185 @@
+using System.Text.Json;
+using RoadGuardSystem.aBusinessObjects.Commons;
+
+namespace RoadGuardSystem.BusinessObjects.Surveys;
+
+public sealed class SurveyRequest
+{
+    private SurveyRequest()
+    {
+    }
+
+    public Guid Id { get; private set; }
+
+    public Guid ProjectId { get; private set; }
+
+    public Guid RoadSectionId { get; private set; }
+
+    public Guid? RoadSectionVersionId { get; private set; }
+
+    public Guid? SurveyPlanId { get; private set; }
+
+    public Guid RequestedByUserId { get; private set; }
+
+    public SurveyType SurveyType { get; private set; }
+
+    public SurveyRequestStatus Status { get; private set; }
+
+    public DateTimeOffset RequestedAt { get; private set; }
+
+    public DateTimeOffset DueAt { get; private set; }
+
+    public string OutputRequirements { get; private set; } = "{}";
+
+    public byte[] RowVersion { get; private set; } = [];
+
+    public DateTimeOffset? CancelledAt { get; private set; }
+
+    public string? CancellationReason { get; private set; }
+
+    public static SurveyRequest Create(
+        Guid id,
+        Guid projectId,
+        Guid roadSectionId,
+        Guid? surveyPlanId,
+        Guid requestedByUserId,
+        SurveyType surveyType,
+        SurveyRequestStatus status,
+        DateTimeOffset requestedAt,
+        DateTimeOffset? dueAt = null,
+        string outputRequirements = "{}",
+        Guid? roadSectionVersionId = null)
+    {
+        if (id == Guid.Empty || projectId == Guid.Empty || roadSectionId == Guid.Empty || requestedByUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Survey request, project, road section, and requester ids must not be empty.");
+        }
+
+        if (surveyType == SurveyType.Unknown)
+        {
+            throw new ArgumentException("Survey request type must be specified.", nameof(surveyType));
+        }
+
+        if (status == SurveyRequestStatus.Unknown)
+        {
+            throw new ArgumentException("Survey request status must be specified.", nameof(status));
+        }
+
+        ValidateJson(outputRequirements, nameof(outputRequirements));
+
+        return new SurveyRequest
+        {
+            Id = id,
+            ProjectId = projectId,
+            RoadSectionId = roadSectionId,
+            RoadSectionVersionId = roadSectionVersionId,
+            SurveyPlanId = surveyPlanId,
+            RequestedByUserId = requestedByUserId,
+            SurveyType = surveyType,
+            Status = status,
+            RequestedAt = requestedAt.ToUniversalTime(),
+            DueAt = (dueAt ?? requestedAt).ToUniversalTime(),
+            OutputRequirements = outputRequirements.Trim()
+        };
+    }
+
+    public void Accept()
+    {
+        EnsureMutable();
+        if (Status != SurveyRequestStatus.NewAssigned && Status != SurveyRequestStatus.Reassigned)
+        {
+            throw new InvalidOperationException("Only a newly assigned survey request can be accepted.");
+        }
+
+        Status = SurveyRequestStatus.Accepted;
+    }
+
+    public void MarkRejected()
+    {
+        EnsureMutable();
+        if (Status != SurveyRequestStatus.NewAssigned && Status != SurveyRequestStatus.Reassigned)
+        {
+            throw new InvalidOperationException("Only a newly assigned survey request can be rejected.");
+        }
+
+        Status = SurveyRequestStatus.Rejected;
+    }
+
+    public void MarkReassigned()
+    {
+        EnsureMutable();
+        if (Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed or SurveyRequestStatus.Submitted)
+        {
+            throw new InvalidOperationException("A completed survey request cannot be reassigned.");
+        }
+
+        Status = SurveyRequestStatus.Reassigned;
+    }
+
+    public void MarkSupplementRequired()
+    {
+        EnsureMutable();
+        if (Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed)
+        {
+            throw new InvalidOperationException("A closed survey request cannot require a supplement.");
+        }
+
+        Status = SurveyRequestStatus.SupplementRequired;
+    }
+
+    public void MarkSubmitted()
+    {
+        EnsureMutable();
+        if (Status is not (SurveyRequestStatus.Accepted or SurveyRequestStatus.InProgress or SurveyRequestStatus.SupplementRequired))
+        {
+            throw new InvalidOperationException("Only an active accepted survey request can be submitted.");
+        }
+
+        Status = SurveyRequestStatus.Submitted;
+    }
+
+    public void Cancel(string reason, DateTimeOffset cancelledAt)
+    {
+        EnsureMutable();
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed or SurveyRequestStatus.Submitted)
+        {
+            throw new InvalidOperationException("Only an open survey request can be cancelled.");
+        }
+
+        Status = SurveyRequestStatus.Cancelled;
+        CancelledAt = cancelledAt.ToUniversalTime();
+        CancellationReason = reason.Trim();
+    }
+
+    public void ChangeDueAt(DateTimeOffset dueAt)
+    {
+        EnsureMutable();
+        DueAt = dueAt.ToUniversalTime();
+    }
+
+    private void EnsureMutable()
+    {
+        if (Status == SurveyRequestStatus.Unknown)
+        {
+            throw new InvalidOperationException("Survey request status is invalid.");
+        }
+    }
+
+    private static void ValidateJson(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            if (document.RootElement.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+            {
+                throw new ArgumentException("Output requirements must be a JSON object or array.", parameterName);
+            }
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("Output requirements must be valid JSON.", parameterName, exception);
+        }
+    }
+}

@@ -15,5 +15,6 @@ Các task trong thư mục này quản lý việc đồng bộ tài liệu, cont
 | [CODE-V2-RECON](CODE-V2-RECON.md) | anh | anh | DONE | 133-row source inventory; 5 reuse candidates, 14 partial, 114 no-symbol; no implementation claim |
 | [ALIGNMENT-FINAL-REVIEW](ALIGNMENT-FINAL-REVIEW.md) | anh | anh | DONE | Final decision/contract/model review; corrected proposed snapshots/fixtures and scoped P1-001..005 |
 | [FIX-V2-ALL-API-REVIEW](FIX-V2-ALL-API-REVIEW.md) | anh | anh-review | PARTIAL | RV-12 and seeder findings verified; 133/133 required metadata guard passes; status/evidence conflicts remain open |
+| [COV-BASELINE-Q11-CONTRACT](COV-BASELINE-Q11-CONTRACT.md) | anh | anh | TODO | Chot Q11 coverage/position/quality va schema baseline theo segment/band truoc migration/API |
 
 Trạng thái `DONE` chỉ được ghi sau khi completion history có file thay đổi, acceptance criteria, lệnh kiểm tra, kết quả thật và phần chưa xác minh. Tài liệu governance không chứng minh backend, SQL, API, thiết bị hoặc provider đã chạy.

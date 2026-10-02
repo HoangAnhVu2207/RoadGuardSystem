@@ -1,0 +1,20 @@
+{
+  "exitCode": 1,
+  "executable": "dotnet",
+  "startUtc": "2026-10-01T19:09:26.6890775+00:00",
+  "arguments": [
+    "test",
+    "tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj",
+    "--no-build",
+    "--no-restore",
+    "--filter",
+    "FullyQualifiedName~A0801CallbackIdentityCharacterizationTests",
+    "--logger",
+    "trx;LogFileName=A08-01.trx",
+    "--results-directory",
+    "\"D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\A08-01-characterization\\payload/runtime/test-01\"",
+    "--nologo"
+  ],
+  "endUtc": "2026-10-01T19:09:50.4375136+00:00",
+  "cwd": "D:\\Project BE\\RoadGuardSystem"
+}

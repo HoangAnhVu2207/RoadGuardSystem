@@ -1,0 +1,16 @@
+./documentation/CONTENT-DIFF.md|9299|8311d7a668ce8c73ec9e1c68fb3ff9a1c129ae540f56e9d3b4edc1a07037479f
+./documentation/FINDINGS-LEDGER.md|11345|33fdf5d3655e54d82f6491578607ed2c146f5c6e8671c4237b80e600ad2d9a7a
+./documentation/SOURCE-PROVENANCE.md|6127|2a02d8ed6de00be983a59aeee7505bba0814ac43792dee1262809d99243609e5
+./evidence/RF-10-08-C01-correction-04-final.trx|321428|213e78a5a7b9f67f568139f7b99f824e0e03a323ef6210d516d6499103d6725f
+./evidence/RF-10-09-C01-correction-03-final.trx|51483|85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c
+./evidence/correction-04-box1-run.log|457|3cc2fa79d4dedd223c6d859163ac6b9139182ee78e5100e45268a3cdbe98cd82
+./evidence/correction-04-box2-reuse-note.txt|978|59de86cc240e578659bd58b43da76fa9bd0d446f25e8e03960fd890b9f613bdf
+./evidence/correction-04-build.log|172538|7412f7fa5a4f3759c2db2cd32a3c9ab58157427c08ea02d955ede7a81d163ec8
+./reports/SUPPLEMENT-DELIVERY-REPORT.md|6844|02b3741a901d9143862a1fce35963523afa030e8ef0ef76cef1c235fbb3e26d2
+./reports/box3-final-report-vietnamese.md|8590|9589bd2e61f33f4d00bbd2bd97a1fc5efa9c75ca08846363119ecf71343917fa
+./reports/box3-phase-a-vietnamese-report.md|7693|4aeba49318b4c342a375e43068084bab7fe4e7670967d80f246feef4b1641fe4
+./reports/correction-02-findings-matrix.md|8390|c5f5a52c1414a18e6984578f85331d752f02316dbb232bc047a51d1cc0202ed0
+./source-snapshots/correction-03-tests-after.sha256|226|04e998939a8535723c4f1ffcfde96ab30ac934364ba289963c5ca7e0518b8332
+./source-snapshots/correction-03-tests-before.sha256|226|289156e55e98c105649bb90520bf6c2ba1e8b26db66e131bd47347d722919cd7
+./source-snapshots/correction-04-tests-after.sha256|314|ff23bbbdc2f2b0db75a31d3dd75ec3b8d71d59770344634dd42f8e6ea208fc79
+./source-snapshots/correction-04-tests-before.sha256|314|00fc7fc6bba5e8bd31c9eeaefcefb997ffb2f8fadbcd43fa0369ef385995b39e

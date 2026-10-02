@@ -1,0 +1,26 @@
+[
+  {
+    "total": "10",
+    "sha256": "213e78a5a7b9f67f568139f7b99f824e0e03a323ef6210d516d6499103d6725f",
+    "classification": "HISTORICAL reused runtime; NOT a new execution",
+    "finish": "2026-10-01T23:42:41.7834914+07:00",
+    "notExecuted": "0",
+    "path": "reused/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/RF-10-08-C01-correction-04-final.trx",
+    "executed": "10",
+    "start": "2026-10-01T23:42:17.7001792+07:00",
+    "passed": "10",
+    "failed": "0"
+  },
+  {
+    "total": "5",
+    "sha256": "85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c",
+    "classification": "HISTORICAL reused runtime; NOT a new execution",
+    "finish": "2026-10-01T23:23:27.2309878+07:00",
+    "notExecuted": "0",
+    "path": "reused/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/RF-10-09-C01-correction-03-final.trx",
+    "executed": "5",
+    "start": "2026-10-01T23:23:10.1713916+07:00",
+    "passed": "5",
+    "failed": "0"
+  }
+]

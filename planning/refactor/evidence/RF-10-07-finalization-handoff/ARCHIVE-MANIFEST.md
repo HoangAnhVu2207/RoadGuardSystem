@@ -1,0 +1,146 @@
+# RF-10-07 Finalization Archive Manifest
+
+**Package:** RF-10-07-finalization-handoff.zip
+**Generated:** 2026-10-01 17:27 UTC+7
+**Purpose:** 10-07-C01 finalization after correction-02 review + 10-07-R01 assessment
+
+## Archive Structure
+
+```
+RF-10-07-finalization-handoff/
+├── docs/
+│   ├── 10-inspection-measurement-characterization-baseline.md
+│   ├── 10-refactor-checklist.md
+│   ├── 10-refactor-slices.md
+│   └── reports/
+│       ├── RF-10-07-C01.md
+│       └── RF-10-07-R01.md
+├── verification/
+│   ├── documentation-before.sha256
+│   ├── documentation-after.sha256
+│   └── documentation-changes.diff
+├── HANDOFF-MANIFEST.md
+├── DOCUMENTATION-CHANGES.md
+├── HANDOFF-SUMMARY.txt
+└── ARCHIVE-MANIFEST.md (this file)
+```
+
+## File Inventory
+
+| Relative Path | Size (bytes) | SHA-256 |
+|---------------|--------------|---------|
+| docs/10-inspection-measurement-characterization-baseline.md | 13170 | efa35277b7f3cb905e6239944c62e48850619ede8bc726defb1cf4a26d691d77 |
+| docs/10-refactor-checklist.md | 9961 | 294fa106ec013053272cb087c9e8cbfa991d032624c0556332f0950116298526 |
+| docs/10-refactor-slices.md | 13710 | aae572897faea8574df7f16c3b17bff0827af45854a348d5bac61e1f30488e62 |
+| docs/reports/RF-10-07-C01.md | 7865 | d90c4a897e12606b0b75b1fad9c13de74245a4a2f31e63a0ecbc3d6b3115be4e |
+| docs/reports/RF-10-07-R01.md | 6533 | 85347367bd1801c292cc42c56ce6566479ce15cb4401bf9241411fa613faf30e |
+| verification/documentation-before.sha256 | 390 | 57ff80a5b45d59575370cb30775227dc8d14fb7c1a6c3155d1ec72b7dc14dad7 |
+| verification/documentation-after.sha256 | 480 | 052fc1563835a0da5ad8a41f9339abb3a21ed95d3297433de3244722625383f7 |
+| verification/documentation-changes.diff | 396 | 65263dff087a7351a4bcb44fd59429088d6a23b70258499c29088475d5ed0d8f |
+| HANDOFF-MANIFEST.md | 12288 | b379d1be1e003105e08252cf029db04bd56cbfc0e15aecf2e5d5e8bcbb5c20cf |
+| DOCUMENTATION-CHANGES.md | 13312 | 9cefd4cd96350814301925803ffbf98e1e8ee693155f131331f38feca97c98b5 |
+| HANDOFF-SUMMARY.txt | 6246 | d6ad8f470f82906bcf1218bd7405656afc3eae82a50537ff16a84b1c55302655 |
+
+**Total files:** 11  
+**Total size:** 84,351 bytes (~82 KB)
+
+## Runtime Evidence Reference
+
+**NOT included in this archive** (already reviewed separately):
+
+- **Archive:** `RF-10-refactor-checkpoint-12-correction-02-handoff.tar.gz`
+- **Location:** `D:\Project BE\RoadGuardSystem\planning\refactor\evidence\`
+- **SHA-256:** `f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d`
+- **Status:** Reviewer verified
+- **Contains:** Test execution, build provenance, source files, TRX results
+
+This finalization package contains ONLY documentation updates and R01 assessment. Runtime evidence remains in correction-02 archive.
+
+## Verification Instructions
+
+### 1. Extract archive
+```bash
+unzip RF-10-07-finalization-handoff.zip
+cd RF-10-07-finalization-handoff
+```
+
+### 2. Verify file count
+```bash
+find . -type f | wc -l
+# Expected: 12 (11 payload + 1 ARCHIVE-MANIFEST.md)
+```
+
+### 3. Verify checksums
+```bash
+# From docs/ directory
+cd docs
+sha256sum -c ../verification/documentation-after.sha256
+
+# From root directory
+cd ..
+sha256sum HANDOFF-MANIFEST.md DOCUMENTATION-CHANGES.md HANDOFF-SUMMARY.txt
+```
+
+### 4. Check for missing/extra files
+```bash
+# All files should be listed in this manifest
+find . -type f -name "*.md" -o -name "*.txt" -o -name "*.sha256" -o -name "*.diff"
+```
+
+## What Changed
+
+### Documentation Updates (5 files)
+1. **10-inspection-measurement-characterization-baseline.md**
+   - Status reflects correction-02 verification + R01 RETAIN
+   - Claims normalized to exact fields verified
+   - Scope clarified: success GET only
+   - NOT_VERIFIED expanded
+
+2. **10-refactor-slices.md**
+   - 10-07-C01: DONE with correction-02
+   - 10-07-R01: DONE with RETAIN
+
+3. **10-refactor-checklist.md**
+   - 10-07-C01: Complete with evidence hash
+   - 10-07-R01: Complete with RETAIN
+
+4. **reports/RF-10-07-C01.md**
+   - Findings updated with C02 IDs
+   - Claims normalized
+   - Limitations documented
+
+5. **reports/RF-10-07-R01.md** (NEW)
+   - Assessment scope and components
+   - Comparison with SurveyV2Service
+   - Extraction risk analysis
+   - RETAIN decision with rationale
+   - Source/symbol evidence
+
+### No Changes
+- Production code: unchanged
+- Test code: unchanged
+- Schema: unchanged
+- CI configuration: unchanged
+
+## Status Summary
+
+- **10-07-C01:** DONE locally with correction-02 verified
+- **10-07-R01:** DONE locally, RETAIN recommendation
+- **RF-10-07 parent:** Partial (C01/R01 complete, F/G pending)
+
+## Critical Constraints Observed
+
+✓ No production/schema/CI changes  
+✓ No commits/push  
+✓ No shared database writes  
+✓ Raw evidence unchanged  
+✓ Stopped after handoff  
+
+## Package Metadata
+
+- **Repository:** D:\Project BE\RoadGuardSystem
+- **Branch:** anh
+- **Commit:** 2efc8a5775f834c7f0fe37cc0ce703011649e1f1
+- **Working tree:** Dirty (preserved)
+- **Generated by:** Kiro (Claude Code)
+- **Handoff chain:** Codex → Anh → Kiro (C01) → Kiro (C02) → Kiro (finalization + R01) → Reviewer

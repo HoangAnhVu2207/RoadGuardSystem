@@ -1,0 +1,113 @@
+{
+  "branch": "anh",
+  "head": "2efc8a5775f834c7f0fe37cc0ce703011649e1f1",
+  "staging": "temporary directory outside worktree",
+  "checks": [
+    {
+      "command": "git apply --check D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\rf05\\patches\\planning__refactor__tools__build_rf04_sources.py.patch D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\rf05\\patches\\planning__refactor__tools__verify_rf04.py.patch D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\rf05\\patches\\tests__Tooling__Verify-AgentSetup.ps1.patch D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\rf05\\patches\\tests__Documentation__Verify-P102Docs.ps1.patch D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\rf05\\patches\\.github__workflows__ci.yml.patch",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "manifest and exact-source overlay",
+      "result": "PASS",
+      "files": 16,
+      "retired_in_stage": 22
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\tools\\build_rf04_sources.py",
+      "exit": 0,
+      "stdout": "FR 37 BR 48 US 41 PF 8 NFR 14 ADR 6 decisions 13 documents 85\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\tools\\verify_rf04.py",
+      "exit": 0,
+      "stdout": "PASS static: {'controllers': 17, 'actions': 57, 'controller_routes': 57, 'current_routes_including_health': 58, 'draft_operations': 133, 'unique_operation_ids': 133, 'draft_source_matches': 44, 'current_draft_matches': 44, 'postman_requests': 84}; delta from 57/58/133={'actions': 0, 'current_routes_including_health': 0, 'draft_operations': 0}; historical content={'fr': 37, 'br': 48, 'us': 41, 'pf': 8, 'nfr': 14, 'adr': 6, 'decisions': 13, 'documents': 85}; pilot schemas=4; Markdown=28\nNOT RUN: full formal OpenAPI validator, HTTP/API/SQL, provider/Android consumers, FE lock\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\tools\\test_rf04.py",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.164s\n\nOK\n"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\rf05\\checks\\verify_repository_readiness.py --root C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv",
+      "exit": 0,
+      "stdout": "PASS repository readiness: 148 mapped requirements (historical delta +0), 0 registry decisions; read-only\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\rf05\\checks\\verify_guidance.py --root C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv --source-root D:\\Project BE\\RoadGuardSystem --staging --self-test",
+      "exit": 0,
+      "stdout": "Requirement count 148 (historical baseline 148; delta +0)\nPASS guidance 7 paths, all mode; staging=True; runtime NOT RUN\nRequirement count 148 (historical baseline 148; delta +0)\nPASS negative missing guidance\nPASS negative missing owner acceptance metadata\nPASS negative old active guidance remains\n",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\rf05\\checks\\test_readiness.py",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.102s\n\nOK\n"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\rf05\\checks\\test_guidance.py",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ".......\n----------------------------------------------------------------------\nRan 7 tests in 0.042s\n\nOK\n"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\rf05\\checks\\test_repository_readiness.py",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nOK\n"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\planning\\refactor\\rf05\\checks\\test_readiness_flow.py --root C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv --source-root D:\\Project BE\\RoadGuardSystem",
+      "exit": 0,
+      "stdout": "BASELINE FR-02: 4 historical claims, BLOCKED\nACCEPTED FR-02: historical origin retained, confirmed authority, READY, real-data validator PASS\nREGENERATION stable; decision content and READY retained\nPARTIAL FR-02: one claim confirmed, 3 blocked, validator PASS\nREJECTIONS 12: Proposed, Unknown, historical source, wrong anchor, missing decision source, unrelated decision, unrelated claim, scope absent from source, changed claim, forged output, forged registry, stale output after decision change\n",
+      "stderr": ""
+    },
+    {
+      "name": "actual staged readiness remains blocked",
+      "result": "PASS",
+      "requirements": 148,
+      "ready": 0,
+      "indexed_decisions": 0
+    },
+    {
+      "name": "real-data validator rejects unknown registry ID",
+      "result": "PASS"
+    },
+    {
+      "name": "real-data validator rejects stale generated output",
+      "result": "PASS"
+    },
+    {
+      "name": "CI YAML parse and retained verify steps",
+      "result": "PASS"
+    },
+    {
+      "command": "pwsh -File C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\tests\\Documentation\\Verify-P102Docs.ps1 -SelfTestNegative",
+      "exit": 0,
+      "stdout": "PASS guidance 7 paths, docs mode; staging=False; runtime NOT RUN\nPASS negative missing guidance\nPASS negative missing owner acceptance metadata\nPASS negative old active guidance remains\n",
+      "stderr": ""
+    },
+    {
+      "command": "pwsh -File C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\\tests\\Tooling\\Verify-AgentSetup.ps1 -SelfTest",
+      "exit": 0,
+      "stdout": "Requirement count 148 (historical baseline 148; delta +0)\nPASS guidance 7 paths, all mode; staging=False; runtime NOT RUN\nRequirement count 148 (historical baseline 148; delta +0)\nPASS negative missing guidance\nPASS negative missing owner acceptance metadata\nPASS negative old active guidance remains\n",
+      "stderr": ""
+    },
+    {
+      "command": "pwsh -File D:\\Project BE\\RoadGuardSystem\\tests\\CI\\Verify-CiWorkflow.ps1 -RepoRoot C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv",
+      "exit": 0,
+      "stdout": "=== GitHub Actions CI Workflow Verification ===\nRepository root: C:\\Users\\HOANGA~1\\AppData\\Local\\Temp\\roadguard-rf05-45cilykv\nSUCCESS: CI workflow configuration verified cleanly.\n",
+      "stderr": ""
+    }
+  ],
+  "protected_count": 28,
+  "protected_unchanged": true,
+  "status": "PASS"
+}

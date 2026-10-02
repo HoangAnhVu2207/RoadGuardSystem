@@ -1,0 +1,51 @@
+# RF-10-07-C01 Test Execution Summary
+
+## Test Run Details
+- Date: 2026-10-01
+- Filter: FullyQualifiedName~Rf1007InspectionMeasurementCharacterizationTests
+- Project: tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj
+- Build: 113 warnings, 0 errors
+- Test Framework: xUnit.net
+
+## First Run (Failed)
+- Tests discovered: 5
+- Tests executed: 5
+- Passed: 3
+- Failed: 2
+- Skipped: 0
+
+Failures:
+1. InspectionTaskList_RepairCrewWithScope_ReturnsTasksAndDoesNotMutateDatabase
+   - Cause: Invalid EF Core Include expression on scalar property DefectId
+   - Fix: Removed incorrect .Include(t => t.DefectId)
+
+2. InspectionTaskList_ProjectManagerRole_ReturnsForbidden
+   - Cause: Expected "extensions" property in ProblemDetails not present in response
+   - Fix: Read response body after status assertion to avoid KeyNotFoundException
+
+## Final Run (Passed)
+- Tests discovered: 5
+- Tests executed: 5
+- Passed: 5
+- Failed: 0
+- Skipped: 0
+- Duration: ~4s
+
+## Test Coverage
+1. InspectionTaskList_RepairCrewWithScope_ReturnsTasksAndDoesNotMutateDatabase
+   - Verifies RepairCrew 200 OK response
+   - Checks task projection fields (id, projectId, defectIds, mode, crewId, status, version)
+   - Confirms SQL immutability (task, assignment, defect, measurements unchanged)
+
+2. InspectionTaskList_ProjectManagerRole_ReturnsForbidden
+   - Verifies ProjectManager role returns 403 Forbidden
+
+3. InspectionTaskList_SupervisorRole_ReturnsForbidden
+   - Verifies Supervisor role returns 403 Forbidden
+
+4. InspectionTaskList_CrewWithoutProjectMembership_FiltersOutTask
+   - Verifies project scope filtering via membership
+
+5. InspectionTaskList_MeasurementProvenance_ExistsInDatabase
+   - Verifies GroundTruthMeasurement linkage to defect/survey/road version
+   - Confirms measurement type, value, unit, and SRID 4326

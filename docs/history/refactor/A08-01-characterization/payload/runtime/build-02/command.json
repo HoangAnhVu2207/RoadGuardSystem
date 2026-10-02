@@ -1,0 +1,13 @@
+{
+  "cwd": "D:\\Project BE\\RoadGuardSystem",
+  "startUtc": "2026-10-01T19:11:11.844958+00:00",
+  "exitCode": 0,
+  "arguments": [
+    "build",
+    "tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj",
+    "--no-incremental",
+    "--nologo"
+  ],
+  "executable": "dotnet",
+  "endUtc": "2026-10-01T19:11:19.5508353+00:00"
+}

@@ -1,0 +1,183 @@
+{
+  "status": "DRAFT_RF04_NOT_ACTIVE",
+  "branch": "anh",
+  "head": "2efc8a5775f834c7f0fe37cc0ce703011649e1f1",
+  "dirty": true,
+  "files": [
+    {
+      "path": "contracts/events/README.md",
+      "sha256": "51e91689cf10ce3b399a554138182af391410f33cbce929bdee5b5e0bad5642d"
+    },
+    {
+      "path": "contracts/http/work-package.proposed.yaml",
+      "sha256": "4d29fe5b33f5de650303aaca6519e9d6682db7641d943be0fee169684d2488dd"
+    },
+    {
+      "path": "contracts/README.md",
+      "sha256": "7212b237d7443cc4111eef60aa5e0171cb54695ce87d239da12495ea65d78294"
+    },
+    {
+      "path": "docs/backend/persistence-and-operations.md",
+      "sha256": "064ddd67e95dc691a85f3e96626a15b54ab9afccc382803b13f2a348ddc45040"
+    },
+    {
+      "path": "docs/backend/README.md",
+      "sha256": "a5d2b7cf1f8883226e33a9ad846b93fdecc37dd458b710e0ed4d64c90671d130"
+    },
+    {
+      "path": "docs/decisions/D-ARCH-proposed.md",
+      "sha256": "e9aeaa89db54140db8f87e063bafd8bba70c3b7711937e558bf62eeb87e1c581"
+    },
+    {
+      "path": "docs/decisions/D-ASYNC-proposed.md",
+      "sha256": "ac58bae89fa5d83be3de484ab7387e685c44f224abe7b85ba86df39b31a38c6c"
+    },
+    {
+      "path": "docs/decisions/D-AUTH-proposed.md",
+      "sha256": "a8667698cc56f75ea2ffb5b9bd2923677aed344f3948a2c551e757f3688cae85"
+    },
+    {
+      "path": "docs/decisions/D-DELIVERY-proposed.md",
+      "sha256": "7c88e84c74b587cd36356b5fbf33ef1f89bcdfd3da62a3372b377c0281129803"
+    },
+    {
+      "path": "docs/decisions/D-WORKFLOW-proposed.md",
+      "sha256": "858b23db45bc0f936f572cade01cae32561250f1b08a28df3ccc1f1a339ec9c4"
+    },
+    {
+      "path": "docs/decisions/README.md",
+      "sha256": "cb44829618032e71aae0885fb86eba90474e6dfe7f05e9d7ed3fe0c812a10679"
+    },
+    {
+      "path": "docs/product/confirmed-decisions.md",
+      "sha256": "2b0b042510bc3fe6e7ee3569180e6c2968b0c1c75392b9d77ee16f2f3f2ead90"
+    },
+    {
+      "path": "docs/product/data-and-quality.md",
+      "sha256": "3363a688c4f39678d610a1ebd000a6b276fc10885852e73a79a8d4dca4e35c97"
+    },
+    {
+      "path": "docs/product/historical-fr-br.md",
+      "sha256": "51c766edbb0afac5f3143eb9c1311c2b958aee4d138f4db787fa64f12a2ecbe5"
+    },
+    {
+      "path": "docs/product/historical-nfr.md",
+      "sha256": "50d495837cbff85599df2cd13b7f169c764acbcfbf8575275f5b96be97ab1392"
+    },
+    {
+      "path": "docs/product/historical-pf.md",
+      "sha256": "ce509df1c2bb59d62649aae77b4828dabdeddb4ff6e01ebebb58cf663209d4dd"
+    },
+    {
+      "path": "docs/product/historical-us.md",
+      "sha256": "5a394f2c90204e120c55bdf5af6966f4188e9b7742cd08037985c799402f5d92"
+    },
+    {
+      "path": "docs/product/README.md",
+      "sha256": "8b123fd436dac17ec0fafcb148c8b35e5515b661a63ad1cdd60795cbd1912b6a"
+    },
+    {
+      "path": "docs/product/requirements.md",
+      "sha256": "767bc96bf5f792ccd924819eb2c562fbf5079a76dcd3c7be7c49bb2a5ab4ff1e"
+    },
+    {
+      "path": "docs/product/workflows.md",
+      "sha256": "24d4e84aac0c5346ae57a676b84817fecb59a228a572820ad95b1cf9d1d3d2f4"
+    },
+    {
+      "path": "planning/refactor/04-delivery-slices.md",
+      "sha256": "db263056253e06d67a50d3ff9244850f24271a2e8a9c1552f42f145b9167d153"
+    },
+    {
+      "path": "planning/refactor/04-operation-crosswalk.json",
+      "sha256": "18122d05cd290d2d883d21cc3a8876d3da838175df26c79400ba26e64ec1b545"
+    },
+    {
+      "path": "planning/refactor/04-operation-crosswalk.md",
+      "sha256": "c06cf70d1c9693c0405919a19c72e40400e834ead12835a14885d8fb38af3272"
+    },
+    {
+      "path": "planning/refactor/04-source-crosswalk.json",
+      "sha256": "2aadaeb9a2ac9405453af8f7c652f86febfcd5da40d08f8f83bebe79464572cc"
+    },
+    {
+      "path": "planning/refactor/04-source-crosswalk.md",
+      "sha256": "77baa70d9775029d5583408881dc6dfb661ba9576da05ddb682d5aded575ce58"
+    },
+    {
+      "path": "planning/refactor/coordination/RF-04-A-CN-001.md",
+      "sha256": "f82e6834c4d56017d00a67a364fca7e2448881885bf877c3bdb043f1c4ff02b2"
+    },
+    {
+      "path": "planning/refactor/coordination/RF-04-A-CN-002.md",
+      "sha256": "cf261575dcecc61b9c9cbe94ea0410b20d1353244fba4df329037290e5293102"
+    },
+    {
+      "path": "planning/refactor/coordination/RF-04-A-CN-003.md",
+      "sha256": "7e9638587ccbe1463bade34fd882423ec3b0a71659ae91612ddb10e79e5b6390"
+    },
+    {
+      "path": "planning/refactor/README.md",
+      "sha256": "21f69c816f8734cc704c3334d550953126cad2d998e76d052146be98579ddab7"
+    },
+    {
+      "path": "planning/refactor/reports/RF-04-correction.md",
+      "sha256": "94c00b2a4aa9fd332107cab84b2d20b76a81a589959a5e854b345948343e327a"
+    },
+    {
+      "path": "planning/refactor/reports/RF-04.md",
+      "sha256": "9d08b9f84508cadf311fb0b1bc66fd529c827bcfe60e66969a6d666ac6e89b0c"
+    },
+    {
+      "path": "planning/refactor/tasks/RF-04-documentation-contract-crosswalk.md",
+      "sha256": "f2ba3f4a7a39542d5235836ddd775c1da095f060a958d6b98731a24e8bd5c841"
+    },
+    {
+      "path": "planning/refactor/tools/build_rf04_crosswalk.py",
+      "sha256": "c38ab57baa5607c6256d4c1a5048f265b26f560c166cad83fa986902994ac5c5"
+    },
+    {
+      "path": "planning/refactor/tools/build_rf04_sources.py",
+      "sha256": "39eac635fafe21f0c437794231a8d26c80889d28d6ae90b29d32f26ec6f33772"
+    },
+    {
+      "path": "planning/refactor/tools/package_rf04.py",
+      "sha256": "bedf6e164cc7b249c451007a3379c68a61d130f37183000ea55232de76901766"
+    },
+    {
+      "path": "planning/refactor/tools/rf04_ownership.py",
+      "sha256": "e7cff6911a8bb97fe26d06dfa66fede32e6e79a3906888477c5b21f54c1e7166"
+    },
+    {
+      "path": "planning/refactor/tools/test_rf04.py",
+      "sha256": "35b9f7a1bae35df714a80965626bc7bdc22891756a4668afbe4d3e09be1bc355"
+    },
+    {
+      "path": "planning/refactor/tools/verify_rf04.py",
+      "sha256": "ffb80c272a098dc10e0824978206cc3c740c420de955b25a268a9cbf7650f8ea"
+    }
+  ],
+  "read_only_pilot_evidence_sha256": {
+    "RoadGuardSystem.API/Controllers/ProjectWorkPackagesController.cs": "0835d3ce22df8e877826531b88d9d16207051f6fe4ccb7ddb205546184ce7f13",
+    "RoadGuardSystem.DTOs/Projects/ProjectWorkPackageResponseDto.cs": "7131f53ca2221cced7c3a1d3aee59a72d1a889f948c327758a189a5e3203ccfc",
+    "RoadGuardSystem.DTOs/Projects/RoadSectionWorkPackageDto.cs": "c80a7efe369a661b7591d0777f6a95ae6c33e699a05e8af2a3e345500a986ac1",
+    "RoadGuardSystem.DTOs/Projects/WarrantyWorkPackageDto.cs": "5e61c2a2b3c383b01d9aab684b3517dc1661ff65d2a5da3e66f5c07358e54b5c",
+    "RoadGuardSystem.Services/Implementations/Projects/ProjectWorkPackageService.cs": "d0235e8ffcab3d495dfe0a5f8c6e189bd625f24ec3040e24282124aefc4e1497",
+    "RoadGuardSystem.BusinessObjects/Common/Enums.cs": "227a284011b7ec6e34a5610d7670122b99279340e0d88234c38c72070a734135",
+    "RoadGuardSystem.BusinessObjects/Common/Extensions/UserRoleCodeExtensions.cs": "2ab066abdc701f26260fe353c4f24d7079e5a850351fbecf67bc4ecc9e35664c",
+    "RoadGuardSystem.BusinessObjects/Common/Extensions/WarrantyScopeExtensions.cs": "090f06baea4c1a6ca17b346abd92bb634a271a334f9e82c8a2056560407c2d15"
+  },
+  "verification": {
+    "verify_rf04": "PASS static: {'controllers': 17, 'actions': 57, 'controller_routes': 57, 'current_routes_including_health': 58, 'draft_operations': 133, 'unique_operation_ids': 133, 'draft_source_matches': 44, 'current_draft_matches': 44, 'postman_requests': 84}; delta from 57/58/133={'actions': 0, 'current_routes_including_health': 0, 'draft_operations': 0}; historical content={'fr': 37, 'br': 48, 'us': 41, 'pf': 8, 'nfr': 14, 'adr': 6, 'decisions': 13, 'documents': 85}; pilot schemas=4; Markdown=28\nNOT RUN: full formal OpenAPI validator, HTTP/API/SQL, provider/Android consumers, FE lock",
+    "test_rf04": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.096s\n\nOK",
+    "git_diff_check": "exit 0"
+  },
+  "not_run": [
+    "API/SQL",
+    "full formal OpenAPI validator",
+    "FE lock",
+    "external provider/Android",
+    "peer review"
+  ],
+  "scope": "RF-04 inactive drafts, generators, validators, coordination and reports only"
+}

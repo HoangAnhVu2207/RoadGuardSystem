@@ -1,0 +1,27 @@
+# Build Metadata
+
+## First build (after test creation, before first run)
+Command: dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj -nologo -v q -clp:ErrorsOnly 2>&1 | tee planning/refactor/evidence/rf1007-c01/build-output.txt
+Working directory: D:\Project BE\RoadGuardSystem
+Exit code: 0
+Result: 113 warnings, 0 errors
+Time elapsed: ~7.6 seconds
+Output saved: planning/refactor/evidence/rf1007-c01/build-output.txt
+
+## Build verification before final test
+Command: dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj -nologo -v q -clp:ErrorsOnly 2>&1 | tail -5
+Exit code: 0
+Result: 113 warnings, 0 errors (consistent with first build)
+Time elapsed: ~4 seconds (incremental)
+
+## Assembly produced
+Path: tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.ApiTests.dll
+Framework: .NETCoreApp,Version=v8.0
+Used by: both test runs (first run 3/2 pass/fail, final run 5/0 pass/fail)
+
+## Source state
+Test file created: tests/RoadGuardSystem.ApiTests/Inspections/Rf1007InspectionMeasurementCharacterizationTests.cs
+Test corrections: 
+  - Removed invalid .Include(t => t.DefectId) on scalar property
+  - Moved JSON body read after status assertion in PM forbidden test
+Production source: unchanged (read-only characterization)

@@ -1,0 +1,130 @@
+{
+  "package": "RF-10-checkpoint-13-correction-01-handoff",
+  "version": "1.0",
+  "created": "2026-10-01T14:15:00Z",
+  "branch": "anh",
+  "commit": "2efc8a5775f834c7f0fe37cc0ce703011649e1f1",
+  "writer": "BOX 3",
+  "mandate": "Fix test logic to match current production implementation",
+  "previous_package": {
+    "name": "RF-10-checkpoint-13-three-box-handoff.zip",
+    "sha256": "a72af4e20c52e1ad2aff5b2d2740212b40ebaa4f976fe1e43cdcfd3dda81efe5",
+    "test_results": {
+      "box1_passed": 5,
+      "box1_failed": 5,
+      "box2_passed": 3,
+      "box2_failed": 2,
+      "overall_passed": 8,
+      "overall_total": 15,
+      "pass_rate": "53%"
+    }
+  },
+  "test_results": {
+    "box1_task": "RF-10-08-C01",
+    "box1_passed": 8,
+    "box1_failed": 2,
+    "box1_total": 10,
+    "box2_task": "RF-10-09-C01",
+    "box2_passed": 4,
+    "box2_failed": 1,
+    "box2_total": 5,
+    "overall_passed": 12,
+    "overall_failed": 3,
+    "overall_total": 15,
+    "pass_rate": "80%",
+    "improvement": "+4 tests (+27%)"
+  },
+  "corrections_applied": {
+    "compilation_fixes": 5,
+    "test_logic_fixes": 4,
+    "source_inspections": 2,
+    "total_corrections": 11
+  },
+  "findings": {
+    "fixed": 2,
+    "source_inspected": 2,
+    "open": 3,
+    "total": 7
+  },
+  "artifacts": {
+    "state": [
+      "correction-01-state-preservation.md"
+    ],
+    "findings": [
+      "correction-01-finding-upload-status.md",
+      "correction-01-finding-actor-isolation.md",
+      "correction-01-findings-matrix.md"
+    ],
+    "summary": [
+      "correction-01-summary.md"
+    ],
+    "hashes": [
+      "correction-01-tests-before.sha256",
+      "correction-01-tests-after.sha256"
+    ],
+    "test_logs": [
+      "correction-01-box1-console.txt",
+      "correction-01-box1-final-console.txt",
+      "correction-01-box2-final-console.txt"
+    ],
+    "test_results": [
+      "RF-10-08-C01-correction-final.trx",
+      "RF-10-09-C01-correction-final.trx"
+    ],
+    "previous_context": [
+      "RF-10-checkpoint-13-three-box-handoff.zip"
+    ]
+  },
+  "test_files_modified": [
+    "tests/RoadGuardSystem.ApiTests/Idempotency/IdempotencyPerCommandCharacterizationTests.cs",
+    "tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs"
+  ],
+  "source_hashes": {
+    "before": {
+      "IdempotencyPerCommandCharacterizationTests.cs": "See correction-01-tests-before.sha256",
+      "Rf1009NotificationInboxCharacterizationTests.cs": "See correction-01-tests-before.sha256"
+    },
+    "after": {
+      "IdempotencyPerCommandCharacterizationTests.cs": "21563b544d8403b0b925fb8339f30ed86d27a34c1cc43c68d581889b4d80850f",
+      "Rf1009NotificationInboxCharacterizationTests.cs": "714fa8780750be1748e131c959d1ab845e1b8d70a53bf43dfd332095d4462675"
+    }
+  },
+  "open_issues": [
+    {
+      "id": "F-C13-01c",
+      "test": "ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome",
+      "issue": "Replay expects 201 Created but gets 403 Forbidden",
+      "requires": "Production inspection of IdempotencyOperationService authorization timing"
+    },
+    {
+      "id": "F-C13-02",
+      "test": "SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure",
+      "issue": "ArgumentException - New planned start must not be after planned end",
+      "requires": "Test date adjustment to satisfy SurveyPlan.Postpone business rule"
+    },
+    {
+      "id": "F-C13-03",
+      "test": "Producer_CreateOutbox_LinksCorrectCorrelationAndType",
+      "issue": "SurveyAssignmentData entity not registered in DbContext",
+      "requires": "Replace raw entity seeding with factory/service pattern"
+    }
+  ],
+  "constraints_compliance": {
+    "no_production_modification": true,
+    "no_schema_modification": true,
+    "no_git_operations": true,
+    "no_shared_db_writes": true,
+    "test_files_only": true,
+    "hashes_captured": true,
+    "sequential_runs": true,
+    "trx_captured": true
+  },
+  "next_steps": [
+    "Inspect IdempotencyOperationService.ExecuteAsync for authorization timing",
+    "Fix SurveyPlan postpone dates in test",
+    "Rewrite SurveyAssignmentData seeding with valid factory",
+    "Re-run tests after fixes",
+    "Generate final package with complete evidence"
+  ],
+  "status": "Partial - 80% pass rate achieved, 3 issues documented for further work"
+}

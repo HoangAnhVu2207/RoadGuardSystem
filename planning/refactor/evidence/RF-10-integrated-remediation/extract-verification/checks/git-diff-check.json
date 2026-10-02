@@ -1,0 +1,8 @@
+{
+  "exitCode": 0,
+  "lines": [
+    "warning: in the working copy of '.github/workflows/ci.yml', LF will be replaced by CRLF the next time Git touches it",
+    "warning: in the working copy of 'tests/Documentation/Verify-P102Docs.ps1', LF will be replaced by CRLF the next time Git touches it",
+    "warning: in the working copy of 'tests/Tooling/Verify-AgentSetup.ps1', LF will be replaced by CRLF the next time Git touches it"
+  ]
+}

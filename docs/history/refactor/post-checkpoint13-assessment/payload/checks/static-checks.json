@@ -1,0 +1,21 @@
+{
+  "review": "two-pass self review; peer PENDING",
+  "databaseOperations": 0,
+  "reportSections": [
+    {
+      "sections": 7,
+      "path": "RF-10-08-assessment.md"
+    },
+    {
+      "sections": 7,
+      "path": "RF-10-09-assessment.md"
+    }
+  ],
+  "missingLinks": 0,
+  "command": "PowerShell source/hash/TRX/link/section/archive checks, no runtime",
+  "packageScriptSyntaxErrors": 0,
+  "markdownDocsChecked": 20,
+  "runtimeExecutions": 0,
+  "sourceFiles": 321,
+  "readonlyBaselineFiles": 1000
+}

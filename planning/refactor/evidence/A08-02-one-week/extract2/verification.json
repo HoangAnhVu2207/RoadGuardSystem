@@ -1,0 +1,37 @@
+{
+  "missing": [
+    "pack.ps1",
+    "README.md",
+    "verify.ps1",
+    "planning/refactor/evidence/post-checkpoint13-assessment/findings-ledger.md",
+    "planning/refactor/evidence/RF-10-integrated-remediation/payload/diffs/a08-02-production-fix.diff",
+    "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/build-a0802.command.json",
+    "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/build-a0802.stdout.txt",
+    "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final.command.json",
+    "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final.stdout.txt",
+    "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802/A0802-validation-replay.trx",
+    "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final/A0802-validation-replay-final.trx",
+    "planning/refactor/reports/RF-10-A08-02-one-week.md",
+    "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+    "tests/RoadGuardSystem.IntegrationTests/Processing/A0802ValidationReplayTests.cs"
+  ],
+  "mismatch": [],
+  "unlisted": [
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/build-a0802.command.json",
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/RF-10-integrated-remediation/payload/diffs/a08-02-production-fix.diff",
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final.stdout.txt",
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/build-a0802.stdout.txt",
+    "ence/A08-02-one-week/extract2/RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+    "ence/A08-02-one-week/extract2/MANIFEST.json",
+    "ence/A08-02-one-week/extract2/tests/RoadGuardSystem.IntegrationTests/Processing/A0802ValidationReplayTests.cs",
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final.command.json",
+    "ence/A08-02-one-week/extract2/planning/refactor/reports/RF-10-A08-02-one-week.md",
+    "ence/A08-02-one-week/extract2/README.md",
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/post-checkpoint13-assessment/findings-ledger.md",
+    "ence/A08-02-one-week/extract2/verify.ps1",
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802/A0802-validation-replay.trx",
+    "ence/A08-02-one-week/extract2/planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final/A0802-validation-replay-final.trx",
+    "ence/A08-02-one-week/extract2/pack.ps1"
+  ],
+  "duplicates": []
+}

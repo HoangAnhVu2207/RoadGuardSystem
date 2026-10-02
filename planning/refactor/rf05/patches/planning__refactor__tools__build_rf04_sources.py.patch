@@ -1,0 +1,67 @@
+--- a/planning/refactor/tools/build_rf04_sources.py
++++ b/planning/refactor/tools/build_rf04_sources.py
+@@ -9,6 +9,8 @@
+ import hashlib
+ import html
+ import json
++import os
++from rf05_readiness import apply_readiness
+ import re
+ import subprocess
+ from pathlib import Path
+@@ -16,7 +18,7 @@
+ from rf04_ownership import (CG_TASK, DECISION_TASK, L_TASK, R_TASK,
+                            SOURCE_COORDINATION, SOURCE_TASK, TASK_OWNER, TASK_REQUIREMENTS)
+ 
+-ROOT = Path(__file__).resolve().parents[3]
++ROOT = Path(os.environ["ROADGUARD_ROOT"]).resolve() if os.environ.get("ROADGUARD_ROOT") else Path(__file__).resolve().parents[3]
+ PLAN = ROOT / "planning/refactor"
+ PRODUCT = ROOT / "docs/product"
+ SOURCES = {
+@@ -46,7 +48,7 @@
+ 
+ 
+ def git(*args):
+-    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
++    return subprocess.check_output(["git", *args], cwd=Path(os.environ.get("ROADGUARD_GIT_ROOT", ROOT)), text=True).strip()
+ 
+ 
+ def document_map():
+@@ -171,12 +173,17 @@
+               "These are source contents, not newly Accepted rules. The per-item source status is retained as evidence; current authority and implementation readiness are separate. Owner review is required before each named module uses unconfirmed detail. Accepted 32-44 are in [requirements](requirements.md).", ""]
+     for row in rows:
+         output += [f"<a id=\"{row['id'].lower()}\"></a>", "", f"### {row['id']} - {row['title']}", "",
+-                   f"Source: `{row['source']}:{row['line']}`; primary `{row['rf_task']}` / proposed {row['proposed_owner']}; coordination {', '.join(row['coordination_tasks']) or 'none'}. Authority: `{row['authority']}`; confirmed overlap `{row.get('confirmed_reference') or 'none'}`; source label: `{row.get('legacy_status', 'UNSPECIFIED')}`. Readiness: `{row['implementation_readiness']}`.", "",
++                   f"Source: `{row['source']}:{row['line']}`; primary `{row['rf_task']}` / proposed {row['proposed_owner']}; coordination {', '.join(row['coordination_tasks']) or 'none'}. Historical authority: `{row['source_authority']}`; current authority: `{row['authority']}`; confirmed overlap `{row.get('confirmed_reference') or 'none'}`; source label: `{row.get('legacy_status', 'UNSPECIFIED')}`. Readiness: `{row['implementation_readiness']}`.", "",
+                    "Transferred source text and acceptance conditions:", ""]
+         for claim in row["claims"]:
+-            output += [f"**{claim['id']}** (`{claim['authority']}`):", "",
++            output += [f"**{claim['id']}** (origin `{claim['authority']}`, current `{claim['current_authority']}`):", "",
+                        "<pre>" + html.escape(claim["content"]) + "</pre>", ""]
+-        output += [f"Review gate: {row['missing_decision']}. Blocked: {row['blocked_checkpoint']}.", ""]
++        for approved in row["readiness"].get("approved_scopes", []):
++            output += [f"Confirmed implementation scope ({approved['decision_id']} / {', '.join(approved['claim_ids'])}): {html.escape(approved['scope'])}. Historical excerpt text remains unconfirmed outside this scope.", ""]
++        if row["readiness"]["state"] == "READY":
++            output += [f"Ready for scoped implementation. Planned checks (not executed proof): {'; '.join(row['readiness']['required_evidence'])}.", ""]
++        else:
++            output += [f"Review gate: {row['readiness'].get('reason', row['missing_decision'])}. Checkpoint: {row['readiness'].get('checkpoint', row['blocked_checkpoint'])}.", ""]
+     (PRODUCT / name).write_text("\n".join(output), encoding="utf-8")
+ 
+ 
+@@ -204,6 +211,7 @@
+     ids = {row["id"] for group in groups.values() for row in group}
+     if ids != set(SOURCE_TASK):
+         raise ValueError({"unmapped": sorted(ids - set(SOURCE_TASK)), "missing": sorted(set(SOURCE_TASK) - ids)})
++    apply_readiness([row for group in groups.values() for row in group], ROOT, PLAN / "04-readiness-decisions.json", PLAN / "04-source-crosswalk.json")
+     write_product(groups["fr"] + groups["br"], "historical-fr-br.md", "Functional and business rules")
+     write_product(groups["us"], "historical-us.md", "User stories and acceptance criteria")
+     write_product(groups["pf"], "historical-pf.md", "Process flows")
+@@ -232,7 +240,7 @@
+                 ]}
+     source_paths = [spec[0] for spec in SOURCES.values()] + ["docs/diagram/V2/02_Requirements/07_Non_Functional_Requirements.md",
+                    "planning/refactor/tools/rf04_ownership.py", "planning/refactor/tools/build_rf04_sources.py",
+-                   "planning/refactor/02-decision-register.md"]
++                   "planning/refactor/02-decision-register.md", "planning/refactor/04-decision-index.json", "planning/refactor/04-readiness-decisions.json", "planning/refactor/tools/rf05_readiness.py"]
+     data = {"status": "DRAFT_RF04_NOT_ACTIVE", "branch": git("branch", "--show-current"),
+             "head": git("rev-parse", "HEAD"), "dirty": bool(git("status", "--porcelain")),
+             "input_sha256": {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in sorted(set(source_paths))},

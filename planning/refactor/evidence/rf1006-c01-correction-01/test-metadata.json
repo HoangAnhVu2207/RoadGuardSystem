@@ -1,0 +1,8 @@
+{
+  "phase": "focused-test",
+  "command": "dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build -nologo --filter FullyQualifiedName~Rf1006ReporterDefectCharacterizationTests --logger trx;LogFileName=rf1006-c01-correction-01-test.trx --results-directory planning/refactor/evidence/rf1006-c01-correction-01",
+  "cwd": "D:\\Project BE\\RoadGuardSystem",
+  "start": "2026-10-01T14:09:45.1457918+07:00",
+  "end": "2026-10-01T14:10:05.4697546+07:00",
+  "exitCode": 0
+}

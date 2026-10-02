@@ -1,0 +1,352 @@
+{
+  "sourceCount": 728,
+  "commands": [
+    {
+      "endUtc": "2026-10-02T02:09:02.0121476+07:00",
+      "cwd": "D:\\Project BE\\RoadGuardSystem",
+      "startUtc": "2026-10-02T02:08:49.0757948+07:00",
+      "arguments": [
+        "build",
+        "tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj",
+        "--no-incremental",
+        "--nologo"
+      ],
+      "executable": "dotnet",
+      "exitCode": 0
+    },
+    {
+      "exitCode": 1,
+      "executable": "dotnet",
+      "startUtc": "2026-10-02T02:09:26.6890775+07:00",
+      "arguments": [
+        "test",
+        "tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj",
+        "--no-build",
+        "--no-restore",
+        "--filter",
+        "FullyQualifiedName~A0801CallbackIdentityCharacterizationTests",
+        "--logger",
+        "trx;LogFileName=A08-01.trx",
+        "--results-directory",
+        "\"D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\A08-01-characterization\\payload/runtime/test-01\"",
+        "--nologo"
+      ],
+      "endUtc": "2026-10-02T02:09:50.4375136+07:00",
+      "cwd": "D:\\Project BE\\RoadGuardSystem"
+    },
+    {
+      "cwd": "D:\\Project BE\\RoadGuardSystem",
+      "startUtc": "2026-10-02T02:11:11.844958+07:00",
+      "exitCode": 0,
+      "arguments": [
+        "build",
+        "tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj",
+        "--no-incremental",
+        "--nologo"
+      ],
+      "executable": "dotnet",
+      "endUtc": "2026-10-02T02:11:19.5508353+07:00"
+    },
+    {
+      "executable": "dotnet",
+      "startUtc": "2026-10-02T02:11:29.7491258+07:00",
+      "cwd": "D:\\Project BE\\RoadGuardSystem",
+      "endUtc": "2026-10-02T02:11:49.7136252+07:00",
+      "exitCode": 0,
+      "arguments": [
+        "test",
+        "tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj",
+        "--no-build",
+        "--no-restore",
+        "--filter",
+        "FullyQualifiedName~A0801CallbackIdentityCharacterizationTests",
+        "--logger",
+        "trx;LogFileName=A08-01.trx",
+        "--results-directory",
+        "\"D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\A08-01-characterization\\payload/runtime/test-02\"",
+        "--nologo"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "times": {
+        "start": "2026-10-02T02:09:27.3860389+07:00",
+        "queuing": "2026-10-02T02:09:43.7459634+07:00",
+        "creation": "2026-10-02T02:09:43.7459630+07:00",
+        "finish": "2026-10-02T02:09:50.3533355+07:00"
+      },
+      "cases": [
+        {
+          "error": null,
+          "duration": "00:00:00.2849610",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"ModelVersionId\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.3328896",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"AttemptId\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2590669",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.SameKeyAndFingerprint_DifferentProject_ExecutesIndependentReceipt"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.1923933",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.MissingAiCredential_IsUnauthorizedAndHasNoSqlEffect"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2984087",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"JobId\")"
+        },
+        {
+          "error": "Expected problem.RootElement.GetProperty(\"detail\").GetString() to be \"Idempotency key was reused with a different request\" with a length of 51, but \"The processing request could not be completed.\" has a length of 46, differs near \"The\" (index 0).",
+          "duration": "00:00:00.2700592",
+          "outcome": "Failed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedFingerprint_WithValidStructure_ReturnsConflictWithoutSqlChange(field: \"Checksum\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2806867",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"RawResultFileId\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2376312",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ValidCallback_ThenSameKeyReplay_ReturnsStoredOutcomeAndOneEffect"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2507318",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.InvalidUpstreamIdentity_IsRejectedBeforeReceiptEvenWithReplayKey(field: \"AttemptId\", expected: UnprocessableEntity)"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2888160",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"Mode\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:02.1975015",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"ManifestHash\")"
+        },
+        {
+          "error": "Expected problem.RootElement.GetProperty(\"detail\").GetString() to be \"Idempotency key was reused with a different request\" with a length of 51, but \"The processing request could not be completed.\" has a length of 46, differs near \"The\" (index 0).",
+          "duration": "00:00:00.2178673",
+          "outcome": "Failed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedFingerprint_WithValidStructure_ReturnsConflictWithoutSqlChange(field: \"Detections\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2449664",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.InvalidUpstreamIdentity_IsRejectedBeforeReceiptEvenWithReplayKey(field: \"Mode\", expected: BadRequest)"
+        }
+      ],
+      "counters": {
+        "executed": "13",
+        "aborted": "0",
+        "inProgress": "0",
+        "passedButRunAborted": "0",
+        "inconclusive": "0",
+        "error": "0",
+        "timeout": "0",
+        "total": "13",
+        "passed": "11",
+        "notRunnable": "0",
+        "completed": "0",
+        "warning": "0",
+        "pending": "0",
+        "failed": "2",
+        "notExecuted": "0",
+        "disconnected": "0"
+      },
+      "run": "test-01"
+    },
+    {
+      "times": {
+        "start": "2026-10-02T02:11:30.4592348+07:00",
+        "queuing": "2026-10-02T02:11:42.9530161+07:00",
+        "creation": "2026-10-02T02:11:42.9530157+07:00",
+        "finish": "2026-10-02T02:11:49.6290498+07:00"
+      },
+      "cases": [
+        {
+          "error": null,
+          "duration": "00:00:00.3247479",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"JobId\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2762832",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"RawResultFileId\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.3041774",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"Mode\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2985915",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.InvalidUpstreamIdentity_IsRejectedBeforeReceiptEvenWithReplayKey(field: \"Mode\", expected: BadRequest)"
+        },
+        {
+          "error": null,
+          "duration": "00:00:02.1761488",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"ManifestHash\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.3402961",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"AttemptId\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2276993",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.InvalidUpstreamIdentity_IsRejectedBeforeReceiptEvenWithReplayKey(field: \"AttemptId\", expected: UnprocessableEntity)"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2550326",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedFingerprint_WithValidStructure_ReturnsConflictWithoutSqlChange(field: \"Detections\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.1962497",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.MissingAiCredential_IsUnauthorizedAndHasNoSqlEffect"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2409907",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ValidCallback_ThenSameKeyReplay_ReturnsStoredOutcomeAndOneEffect"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2757085",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.SameKeyAndFingerprint_DifferentProject_ExecutesIndependentReceipt"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.3098674",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(field: \"ModelVersionId\")"
+        },
+        {
+          "error": null,
+          "duration": "00:00:00.2417430",
+          "outcome": "Passed",
+          "name": "RoadGuardSystem.ApiTests.Processing.A0801CallbackIdentityCharacterizationTests.ChangedFingerprint_WithValidStructure_ReturnsConflictWithoutSqlChange(field: \"Checksum\")"
+        }
+      ],
+      "counters": {
+        "executed": "13",
+        "aborted": "0",
+        "inProgress": "0",
+        "passedButRunAborted": "0",
+        "inconclusive": "0",
+        "error": "0",
+        "timeout": "0",
+        "total": "13",
+        "passed": "13",
+        "notRunnable": "0",
+        "completed": "0",
+        "warning": "0",
+        "pending": "0",
+        "failed": "0",
+        "notExecuted": "0",
+        "disconnected": "0"
+      },
+      "run": "test-02"
+    }
+  ],
+  "sourceDiffTest": [],
+  "assemblyDiff": [],
+  "assemblies": [
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.aBusinessObjects.dll",
+      "size": 153088,
+      "sha256": "ea7c843b50b29229a0578344cfedc6a6ec7f782150d1cdc054b6321339a49ad0"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.aBusinessObjects.pdb",
+      "size": 60552,
+      "sha256": "ea04071206d5f4bf267d98d485fb183dc6331d3862b066c5f9f6ef9c147db338"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.ApiTests.dll",
+      "size": 1151488,
+      "sha256": "863eba93106f64c830d5b1f152f4f9f4577de7cc792a176a81712787cbcf6109"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.ApiTests.pdb",
+      "size": 198760,
+      "sha256": "53812515978744f5055c630acb49b017feefc7c6e9368d45816e9ecf5abed51b"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.bDTOs.dll",
+      "size": 166400,
+      "sha256": "fc77c5ccebf407b41c1067491cc96e55ec3553a93c69d60f9413717de3dc0acc"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.bDTOs.pdb",
+      "size": 45516,
+      "sha256": "e39762ca48c0b1ef0a3d42d70bdb30b71e1789dca8d04364f13387e0eb36cf2a"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.cRepositories.dll",
+      "size": 2576896,
+      "sha256": "ccb9338808fff7719cfa13903e4f84524dde2d1fe16f355cd4b18991a4bccf05"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.cRepositories.pdb",
+      "size": 423036,
+      "sha256": "cbe7a79607276147da93034e8a2c737413a21df8ebee8084d2db3134437df752"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.dServices.dll",
+      "size": 337920,
+      "sha256": "09ef110a3fd1837726de541b7eac7f35ab8c4df6fbae538aa6db6de840308535"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.dServices.pdb",
+      "size": 77848,
+      "sha256": "cc430cda4f5d9f3eb919e14fde78a1f302feb5aa930d775ae3c0b5ebcc978be0"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.eAPI.dll",
+      "size": 171008,
+      "sha256": "ecc71d163bd94721c013cd4f872ad7442b5235faa6a0be0696c440a044f06693"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.eAPI.pdb",
+      "size": 65244,
+      "sha256": "9258ce74ed38ba66dfb99551f060085536cd82d86f657f5a2b2c8c9ffd6628af"
+    }
+  ],
+  "sourceDiffBuild": []
+}

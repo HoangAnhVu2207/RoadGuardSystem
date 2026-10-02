@@ -1,0 +1,41 @@
+Test run for D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\bin\Debug\net8.0\RoadGuardSystem.ApiTests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:15.13]     RF-10-09-C01: inbox GET filters by recipient and projects correct fields [FAIL]
+[xUnit.net 00:00:15.19]     RF-10-09-C01: producer creates outbox with correct correlation and message type [FAIL]
+  Failed RF-10-09-C01: inbox GET filters by recipient and projects correct fields [272 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.
+  Stack Trace:
+     at System.Text.Json.JsonElement.GetProperty(String propertyName)
+   at RoadGuardSystem.ApiTests.Notifications.Rf1009NotificationInboxCharacterizationTests.InboxGet_RecipientScopeAndProjection_FiltersAndReturnsExpectedFields() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Notifications\Rf1009NotificationInboxCharacterizationTests.cs:line 99
+   at RoadGuardSystem.ApiTests.Notifications.Rf1009NotificationInboxCharacterizationTests.InboxGet_RecipientScopeAndProjection_FiltersAndReturnsExpectedFields() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Notifications\Rf1009NotificationInboxCharacterizationTests.cs:line 125
+--- End of stack trace from previous location ---
+  Failed RF-10-09-C01: producer creates outbox with correct correlation and message type [63 ms]
+  Error Message:
+   Microsoft.Data.SqlClient.SqlException : Invalid column name 'Address'.
+Invalid column name 'WarrantyStartDate'.
+Invalid column name 'WarrantyEndDate'.
+  Stack Trace:
+     at Microsoft.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at Microsoft.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at Microsoft.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   at Microsoft.Data.SqlClient.SqlCommand.CompleteAsyncExecuteReader(Boolean isInternal, Boolean forDescribeParameterEncryption)
+   at Microsoft.Data.SqlClient.SqlCommand.InternalEndExecuteNonQuery(IAsyncResult asyncResult, Boolean isInternal, String endMethod)
+   at Microsoft.Data.SqlClient.SqlCommand.EndExecuteNonQueryInternal(IAsyncResult asyncResult)
+   at Microsoft.Data.SqlClient.SqlCommand.EndExecuteNonQueryAsync(IAsyncResult asyncResult)
+   at Microsoft.Data.SqlClient.SqlCommand.<>c.<InternalExecuteNonQueryAsync>b__210_1(IAsyncResult result)
+   at System.Threading.Tasks.TaskFactory`1.FromAsyncCoreLogic(IAsyncResult iar, Func`2 endFunction, Action`1 endAction, Task`1 promise, Boolean requiresSynchronization)
+--- End of stack trace from previous location ---
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(DatabaseFacade databaseFacade, String sql, IEnumerable`1 parameters, CancellationToken cancellationToken)
+   at RoadGuardSystem.ApiTests.Notifications.Rf1009NotificationInboxCharacterizationTests.CreateProjectWithMemberAsync(RoadGuardDbContext context, Guid pmUserId) in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Notifications\Rf1009NotificationInboxCharacterizationTests.cs:line 443
+   at RoadGuardSystem.ApiTests.Notifications.Rf1009NotificationInboxCharacterizationTests.Producer_CreateOutbox_LinksCorrectCorrelationAndType() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Notifications\Rf1009NotificationInboxCharacterizationTests.cs:line 333
+   at RoadGuardSystem.ApiTests.Notifications.Rf1009NotificationInboxCharacterizationTests.Producer_CreateOutbox_LinksCorrectCorrelationAndType() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Notifications\Rf1009NotificationInboxCharacterizationTests.cs:line 341
+--- End of stack trace from previous location ---
+Results File: D:\Project BE\RoadGuardSystem\planning\refactor\evidence\checkpoint13-integration\RF-10-09-C01.trx
+
+Failed!  - Failed:     2, Passed:     3, Skipped:     0, Total:     5, Duration: 2 s - RoadGuardSystem.ApiTests.dll (net8.0)

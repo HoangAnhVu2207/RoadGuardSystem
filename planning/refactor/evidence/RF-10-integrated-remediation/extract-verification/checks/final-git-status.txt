@@ -1,0 +1,80 @@
+ D .agents/references/completion-log-template.md
+ D .agents/references/task-log-template.md
+ D .agents/references/task-workflow.md
+ D .agents/rules/roadguard.md
+ D .agents/skills/roadguard-endpoint-delivery/SKILL.md
+ D .agents/skills/roadguard-endpoint-delivery/agents/openai.yaml
+ D .agents/skills/roadguard-endpoint-delivery/assets/icon.svg
+ D .agents/skills/roadguard-endpoint-delivery/references/product-gates.md
+ D .agents/skills/roadguard-endpoint-delivery/references/source-map.md
+ D .agents/skills/roadguard-persistence/SKILL.md
+ D .agents/skills/roadguard-persistence/agents/openai.yaml
+ D .agents/skills/roadguard-persistence/assets/icon.svg
+ D .agents/skills/roadguard-persistence/references/risk-cases.md
+ D .agents/skills/roadguard-postman/SKILL.md
+ D .agents/skills/roadguard-postman/agents/openai.yaml
+ D .agents/skills/roadguard-review-autofix/SKILL.md
+ D .agents/skills/roadguard-review-autofix/agents/openai.yaml
+ D .agents/skills/roadguard-review-autofix/assets/icon.svg
+ D .agents/skills/roadguard-test-selection/SKILL.md
+ D .agents/skills/roadguard-test-selection/agents/openai.yaml
+ D .agents/skills/roadguard-test-selection/assets/icon.svg
+ D .agents/skills/roadguard-test-selection/references/commands.md
+ M .github/workflows/ci.yml
+ M AGENTS.md
+ M RoadGuardSystem.API/Authorization/ProjectAccessAuthorization.cs
+ M RoadGuardSystem.API/Controllers/ProjectRoadSectionsController.cs
+ M RoadGuardSystem.API/Controllers/ProjectsController.cs
+ M RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs
+ M RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs
+ M RoadGuardSystem.Services/Implementations/Projects/ProjectWorkPackageService.cs
+ M planning/CROSS_OWNER_HANDOFFS.md
+ M planning/V2/Execution/ANH-02-project-survey.md
+ M planning/V2/Governance/README.md
+ M tests/Documentation/Verify-P102Docs.ps1
+ M tests/RoadGuardSystem.ApiTests/Authorization/P112ProjectAuthorizationTests.cs
+ M tests/RoadGuardSystem.ApiTests/Files/UploadApiTests.cs
+ M tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs
+ M tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationWebApplicationFactory.cs
+ M tests/RoadGuardSystem.ApiTests/Infrastructure/CustomWebApplicationFactory.cs
+ M tests/RoadGuardSystem.ApiTests/Surveys/P2SurveyV2ApiTests.cs
+ M tests/RoadGuardSystem.IntegrationTests/Infrastructure/SqlServerTestFixture.cs
+ M tests/RoadGuardSystem.IntegrationTests/Persistence/SqlServerDiagnosticTests.cs
+ M tests/RoadGuardSystem.IntegrationTests/Seeding/SeederTests.cs
+ M tests/RoadGuardSystem.IntegrationTests/Surveys/P2V2SurveyScopeConcurrencyTests.cs
+ M tests/Tooling/Verify-AgentSetup.ps1
+?? .agents/README.md
+?? .agents/manifest.json
+?? .agents/modules/
+?? .agents/rules/delivery.md
+?? .agents/rules/evidence.md
+?? .agents/rules/review-and-coordination.md
+?? .agents/rules/safety.md
+?? RoadGuardSystem.API/Authorization/ProjectRoleClaimParser.cs
+?? RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs
+?? contracts/
+?? docs/backend/
+?? docs/decisions/
+?? docs/history/agent-pre-rf05/
+?? docs/product/
+?? planning/V2/Governance/COV-BASELINE-Q11-CONTRACT.md
+?? planning/refactor/
+?? tests/RoadGuardSystem.ApiTests/Defects/
+?? tests/RoadGuardSystem.ApiTests/Idempotency/
+?? tests/RoadGuardSystem.ApiTests/Identity/Rf1001IdentityCharacterizationTests.cs
+?? tests/RoadGuardSystem.ApiTests/Infrastructure/Rf06IsolationTests.cs
+?? tests/RoadGuardSystem.ApiTests/Inspections/Rf1007InspectionMeasurementCharacterizationTests.cs
+?? tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs
+?? tests/RoadGuardSystem.ApiTests/Processing/
+?? tests/RoadGuardSystem.ApiTests/Projects/Rf1002ProjectGisCharacterizationTests.cs
+?? tests/RoadGuardSystem.ApiTests/Surveys/Rf1003RequestTaskAssignmentCharacterizationTests.cs
+?? tests/RoadGuardSystem.ApiTests/Surveys/Rf1003SameRowSurveyTests.cs
+?? tests/RoadGuardSystem.ApiTests/correction-02-box1-final-console.txt
+?? tests/RoadGuardSystem.ApiTests/correction-02-box2-final-console.txt
+?? tests/RoadGuardSystem.ApiTests/correction-02-tests-after.sha256
+?? tests/RoadGuardSystem.IntegrationTests/Infrastructure/Rf06aSchemaInventoryTests.cs
+?? tests/RoadGuardSystem.IntegrationTests/Infrastructure/Rf09TransitionRehearsalTests.cs
+?? tests/RoadGuardSystem.IntegrationTests/Processing/Rf1005CallbackCharacterizationTests.cs
+?? tests/Tooling/Write-Rf06aSchemaDocs.ps1
+?? tests/Tooling/rf09_transition_guard.py
+?? tests/Tooling/test_rf09_transition_guard.py

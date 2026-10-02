@@ -1,0 +1,202 @@
+[
+  {
+    "manifestEntries": 23,
+    "fileCount": 27,
+    "sources": [
+      {
+        "currentSha256": "2eda4969413db8b2b50f84ca922085b5339283e4f6b4941e5c8caa2690c4bb29",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "2eda4969413db8b2b50f84ca922085b5339283e4f6b4941e5c8caa2690c4bb29",
+        "currentPath": "tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs",
+        "archivedPath": "fixtures/AuthenticationSqlServerFixture.cs"
+      },
+      {
+        "currentSha256": "9f0add52f32dafa8580d58d9ac14a01ea1b21e76c6d6e66d18c42c173dc15cf3",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "9f0add52f32dafa8580d58d9ac14a01ea1b21e76c6d6e66d18c42c173dc15cf3",
+        "currentPath": "RoadGuardSystem.BusinessObjects/Messaging\\ConsumerEffectReceipt.cs",
+        "archivedPath": "production/ConsumerEffectReceipt.cs"
+      },
+      {
+        "currentSha256": "cb5b75dc0c943dcfb7d255697189ff74844fa9addc8583fb8e54a56e1223c9a3",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "cb5b75dc0c943dcfb7d255697189ff74844fa9addc8583fb8e54a56e1223c9a3",
+        "currentPath": "RoadGuardSystem.Repositories/Implementations\\Messaging\\ConsumerEffectService.cs",
+        "archivedPath": "production/ConsumerEffectService.cs"
+      },
+      {
+        "currentSha256": "88ad0c93216cbe4bfe8fe285e1170844f0a223b03927715c00bbbda84ef80fdc",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "88ad0c93216cbe4bfe8fe285e1170844f0a223b03927715c00bbbda84ef80fdc",
+        "currentPath": "RoadGuardSystem.Repositories/Idempotency\\IdempotencyOperationService.cs",
+        "archivedPath": "production/IdempotencyOperationService.cs"
+      },
+      {
+        "currentSha256": "cfde65be9012725fe233202353d6675b23227ef869d3332a0de4cefe40a84431",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "cfde65be9012725fe233202353d6675b23227ef869d3332a0de4cefe40a84431",
+        "currentPath": "RoadGuardSystem.BusinessObjects/Messaging\\Notification.cs",
+        "archivedPath": "production/Notification.cs"
+      },
+      {
+        "currentSha256": "ff7ebbd5f28b64b2233155affe2c24e48a33b20ad6f0b7bf8fb85470fe3f4986",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "ff7ebbd5f28b64b2233155affe2c24e48a33b20ad6f0b7bf8fb85470fe3f4986",
+        "currentPath": "RoadGuardSystem.Repositories/Implementations\\Messaging\\NotificationOutboxConsumer.cs",
+        "archivedPath": "production/NotificationOutboxConsumer.cs"
+      },
+      {
+        "currentSha256": "a5c30e0d72ce0fa1e77e554c2b83a906c536f6a7f5802b7db0fbbe2753639b9e",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "a5c30e0d72ce0fa1e77e554c2b83a906c536f6a7f5802b7db0fbbe2753639b9e",
+        "currentPath": "RoadGuardSystem.Services/Implementations\\Projects\\ProjectCreationService.cs",
+        "archivedPath": "production/ProjectCreationService.cs"
+      },
+      {
+        "currentSha256": "abeb9d3dd02db587bcc885b526f6eb398e142ecc43e9ac11b52572a0bb40a1ce",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "abeb9d3dd02db587bcc885b526f6eb398e142ecc43e9ac11b52572a0bb40a1ce",
+        "currentPath": "RoadGuardSystem.API/Controllers\\ProjectsController.cs",
+        "archivedPath": "production/ProjectsController.cs"
+      },
+      {
+        "currentSha256": "5c92878f3c542290ca64215b600e2bde131ba947744c55a1ec1d355773da14e6",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "5c92878f3c542290ca64215b600e2bde131ba947744c55a1ec1d355773da14e6",
+        "currentPath": "RoadGuardSystem.Repositories/Implementations\\Surveys\\SurveyV2PersistenceService.cs",
+        "archivedPath": "production/SurveyV2PersistenceService.cs"
+      },
+      {
+        "currentSha256": "a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f",
+        "currentPath": "tests/RoadGuardSystem.ApiTests/Idempotency/IdempotencyPerCommandCharacterizationTests.cs",
+        "archivedPath": "tests/IdempotencyPerCommandCharacterizationTests.cs"
+      },
+      {
+        "currentSha256": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e",
+        "currentPath": "tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs",
+        "archivedPath": "tests/Rf1009NotificationInboxCharacterizationTests.cs"
+      }
+    ],
+    "archive": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-04-handoff.tar.gz",
+    "unlistedExceptManifest": [
+      "CORRECTION-04-SUMMARY.md",
+      "generate_manifest.py",
+      "payload-inventory.txt"
+    ]
+  },
+  {
+    "manifestEntries": 27,
+    "fileCount": 31,
+    "sources": [
+      {
+        "currentSha256": "2eda4969413db8b2b50f84ca922085b5339283e4f6b4941e5c8caa2690c4bb29",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "2eda4969413db8b2b50f84ca922085b5339283e4f6b4941e5c8caa2690c4bb29",
+        "currentPath": "tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs",
+        "archivedPath": "finalization-handoff/fixtures/AuthenticationSqlServerFixture.cs"
+      },
+      {
+        "currentSha256": "9f0add52f32dafa8580d58d9ac14a01ea1b21e76c6d6e66d18c42c173dc15cf3",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "9f0add52f32dafa8580d58d9ac14a01ea1b21e76c6d6e66d18c42c173dc15cf3",
+        "currentPath": "RoadGuardSystem.BusinessObjects/Messaging\\ConsumerEffectReceipt.cs",
+        "archivedPath": "finalization-handoff/production/ConsumerEffectReceipt.cs"
+      },
+      {
+        "currentSha256": "cb5b75dc0c943dcfb7d255697189ff74844fa9addc8583fb8e54a56e1223c9a3",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "cb5b75dc0c943dcfb7d255697189ff74844fa9addc8583fb8e54a56e1223c9a3",
+        "currentPath": "RoadGuardSystem.Repositories/Implementations\\Messaging\\ConsumerEffectService.cs",
+        "archivedPath": "finalization-handoff/production/ConsumerEffectService.cs"
+      },
+      {
+        "currentSha256": "88ad0c93216cbe4bfe8fe285e1170844f0a223b03927715c00bbbda84ef80fdc",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "88ad0c93216cbe4bfe8fe285e1170844f0a223b03927715c00bbbda84ef80fdc",
+        "currentPath": "RoadGuardSystem.Repositories/Idempotency\\IdempotencyOperationService.cs",
+        "archivedPath": "finalization-handoff/production/IdempotencyOperationService.cs"
+      },
+      {
+        "currentSha256": "cfde65be9012725fe233202353d6675b23227ef869d3332a0de4cefe40a84431",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "cfde65be9012725fe233202353d6675b23227ef869d3332a0de4cefe40a84431",
+        "currentPath": "RoadGuardSystem.BusinessObjects/Messaging\\Notification.cs",
+        "archivedPath": "finalization-handoff/production/Notification.cs"
+      },
+      {
+        "currentSha256": "ff7ebbd5f28b64b2233155affe2c24e48a33b20ad6f0b7bf8fb85470fe3f4986",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "ff7ebbd5f28b64b2233155affe2c24e48a33b20ad6f0b7bf8fb85470fe3f4986",
+        "currentPath": "RoadGuardSystem.Repositories/Implementations\\Messaging\\NotificationOutboxConsumer.cs",
+        "archivedPath": "finalization-handoff/production/NotificationOutboxConsumer.cs"
+      },
+      {
+        "currentSha256": "a5c30e0d72ce0fa1e77e554c2b83a906c536f6a7f5802b7db0fbbe2753639b9e",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "a5c30e0d72ce0fa1e77e554c2b83a906c536f6a7f5802b7db0fbbe2753639b9e",
+        "currentPath": "RoadGuardSystem.Services/Implementations\\Projects\\ProjectCreationService.cs",
+        "archivedPath": "finalization-handoff/production/ProjectCreationService.cs"
+      },
+      {
+        "currentSha256": "abeb9d3dd02db587bcc885b526f6eb398e142ecc43e9ac11b52572a0bb40a1ce",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "abeb9d3dd02db587bcc885b526f6eb398e142ecc43e9ac11b52572a0bb40a1ce",
+        "currentPath": "RoadGuardSystem.API/Controllers\\ProjectsController.cs",
+        "archivedPath": "finalization-handoff/production/ProjectsController.cs"
+      },
+      {
+        "currentSha256": "5c92878f3c542290ca64215b600e2bde131ba947744c55a1ec1d355773da14e6",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "5c92878f3c542290ca64215b600e2bde131ba947744c55a1ec1d355773da14e6",
+        "currentPath": "RoadGuardSystem.Repositories/Implementations\\Surveys\\SurveyV2PersistenceService.cs",
+        "archivedPath": "finalization-handoff/production/SurveyV2PersistenceService.cs"
+      },
+      {
+        "currentSha256": "a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f",
+        "currentPath": "tests/RoadGuardSystem.ApiTests/Idempotency/IdempotencyPerCommandCharacterizationTests.cs",
+        "archivedPath": "finalization-handoff/tests/IdempotencyPerCommandCharacterizationTests.cs"
+      },
+      {
+        "currentSha256": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e",
+        "matches": true,
+        "impact": "byte identity only; runtime linkage still bounded",
+        "archiveSha256": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e",
+        "currentPath": "tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs",
+        "archivedPath": "finalization-handoff/tests/Rf1009NotificationInboxCharacterizationTests.cs"
+      }
+    ],
+    "archive": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-finalization-handoff.tar.gz",
+    "unlistedExceptManifest": [
+      "FINALIZATION-SUMMARY.md",
+      "generate_manifest.py",
+      "payload-inventory.txt"
+    ]
+  }
+]

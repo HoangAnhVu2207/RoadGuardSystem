@@ -1,0 +1,76 @@
+{
+  "format": "A08-02-one-week/v1",
+  "manifestSelfExcluded": true,
+  "entries": [
+    {
+      "path": "pack.ps1",
+      "size": 1175,
+      "sha256": "7b1c81141ce2ac8dffc7e175e57916af3250e6f313805170b029699cfb22d21b"
+    },
+    {
+      "path": "README.md",
+      "size": 341,
+      "sha256": "3ff63244b4b9bd989bee15a7a1706260c360fc085dec7b415892f1871c14ccc0"
+    },
+    {
+      "path": "verify.ps1",
+      "size": 1379,
+      "sha256": "8522f356004b3bfa248b1d34c5a4e45325ad92495c9f70186bc22c78ee5fb0dc"
+    },
+    {
+      "path": "planning/refactor/evidence/post-checkpoint13-assessment/findings-ledger.md",
+      "size": 11538,
+      "sha256": "6efaf1ed3775227059c093e23940df3cea421fd414fa93c77b527bc60e6ee885"
+    },
+    {
+      "path": "planning/refactor/evidence/RF-10-integrated-remediation/payload/diffs/a08-02-production-fix.diff",
+      "size": 1696,
+      "sha256": "bf910a3c204b329795ae32b58127774a753ff93fada3ad342223aa30926fe413"
+    },
+    {
+      "path": "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/build-a0802.command.json",
+      "size": 210,
+      "sha256": "1fb670fb9bd91de24f7fc82daf19a8be9b4093ad2508a9efd8575ebc112040df"
+    },
+    {
+      "path": "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/build-a0802.stdout.txt",
+      "size": 382843,
+      "sha256": "e54cbccd6b25910227e81d91ddddaf0cd239a0b88d084d838f4520ccbb24c915"
+    },
+    {
+      "path": "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final.command.json",
+      "size": 407,
+      "sha256": "37b8f9b85577c8b726757974c74f7d107c42bc735c9ddcc98a0fa2913783e0e6"
+    },
+    {
+      "path": "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final.stdout.txt",
+      "size": 524,
+      "sha256": "bc1f4cc83d7e2c6f8682dc95268ebd06842accab440e59a2326e5ab34d11d6a3"
+    },
+    {
+      "path": "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802/A0802-validation-replay.trx",
+      "size": 41451,
+      "sha256": "5bc164f4feb9f640aed0578041922f4bb9f3ee86234467371b1d8d58b7f7209c"
+    },
+    {
+      "path": "planning/refactor/evidence/RF-10-integrated-remediation/payload/runtime/test-a0802-final/A0802-validation-replay-final.trx",
+      "size": 7740,
+      "sha256": "c59b134d9b1525ddf077eb7b8bac24c73c940e4ba0d0539fd60cf06a518e11cc"
+    },
+    {
+      "path": "planning/refactor/reports/RF-10-A08-02-one-week.md",
+      "size": 1675,
+      "sha256": "19274f5d34ecf9c0f0ab446b74a53ef822557f8376fa1a5ab9e032303311a1eb"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+      "size": 27275,
+      "sha256": "98b5c62dddb12aaf706438bba1513f7740b2e94f857ba99877818fa1ca600f7c"
+    },
+    {
+      "path": "tests/RoadGuardSystem.IntegrationTests/Processing/A0802ValidationReplayTests.cs",
+      "size": 7760,
+      "sha256": "ec098cf74bd87cf589c396a03dfc9ce5828170e423eedac391d6e2d576b2539d"
+    }
+  ]
+}

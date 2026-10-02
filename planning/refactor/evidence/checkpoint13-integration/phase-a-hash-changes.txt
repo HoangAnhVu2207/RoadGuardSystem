@@ -1,0 +1,31 @@
+File: planning/refactor/10-refactor-checklist.md
+  Before: fa1a4045ba8a7d6549ef42085bf50cb2242960f415fdee335eeac8317aad1894
+  After:  2ea9b1dd91e773c1c926869b9b5b866bdddf3261e05417c848f0d47d0ab01213
+
+File: planning/refactor/10-refactor-slices.md
+  Before: 9ad753de1adf2acd1b23e1d5d2e003c934f30e82a508c20deb8d124e2a7b7234
+  After:  cb97fd53d11c5ca8e7aa457ee8a5d2a42be758e732c574e58254926012a24c2e
+
+File: planning/refactor/10-survey-coexistence-baseline.md
+  Before: d3666110167ee78a2ca618d0094d8cbf18d48e28e30e08c2d3526aaa5f7a7acc
+  After:  6b806434f1cee4019de60788688872840f400a8c564ad79ab978aea47efd24fe
+
+File: planning/refactor/10-inspection-measurement-characterization-baseline.md
+  Before: c16a4bd05920020024a7015dec4f6215bce56b8ae9fbe611b45fe3e0179b8777
+  After:  2220835c6506b3be696b8743938c2f7d218066b4d46f86f210913f938955d354
+
+File: planning/refactor/10-survey-request-task-assignment-characterization.md
+  Before: 859b995056ad020a3707683e49d98813a949950b3902a269ac61ae6d3f3aa29a
+  After:  c6a84c3669cc488d811ad9cd8c47ba5b503f7cfdddf89e4850b0ae93227bc616
+
+File: planning/refactor/reports/RF-10-03-C02.md
+  Before: 867b7b9784f78515e6f543b0ec7c4ff55eb7de6bb2a4d33d62fc384a435b610b
+  After:  92d1a62841bda13e64fa2cb8b2edf7f554284de144cfa4ea27084fb463b98a3e
+
+File: planning/refactor/reports/RF-10-07-C01.md
+  Before: 78087a39576f07b6bbc0917058c18f335ba0431c6da94fe0127098176ad47179
+  After:  ef62241b1ed7867aba09a6ca32475073a27a1e9f764007a6736d39faf072a971
+
+File: planning/refactor/reports/RF-10-07-R01.md
+  Before: f8d29f715040363dcc4369bce2c65f999561e0275174e33ff1da1bbe284823c3
+  After:  835faf57466894360c3e29e17d3e038505eb0dc124b1829f25a93f6fcbf307ec

@@ -1,0 +1,62 @@
+RF-10-checkpoint-13-correction-01-handoff Package Contents
+===========================================================
+
+MANIFEST
+--------
+correction-01-manifest.json                     - Package metadata with hashes and results
+
+STATE PRESERVATION
+------------------
+correction-01-state-preservation.md             - State snapshot before corrections
+
+FINDINGS ANALYSIS
+-----------------
+correction-01-finding-upload-status.md          - F-C13-01a: Upload status PENDING vs ACTIVE
+correction-01-finding-actor-isolation.md        - F-C13-01b: Actor isolation verification
+correction-01-findings-matrix.md                - Complete findings matrix (6 findings)
+
+SUMMARY
+-------
+correction-01-summary.md                        - Detailed corrections and results
+correction-01-handoff-vietnamese.md             - Vietnamese handoff report
+
+SOURCE HASHES
+-------------
+correction-01-tests-before.sha256               - Test file hashes before corrections
+correction-01-tests-after.sha256                - Test file hashes after corrections
+
+TEST EXECUTION LOGS
+-------------------
+correction-01-box1-console.txt                  - BOX 1 first test run (4 fails)
+correction-01-box1-final-console.txt            - BOX 1 final test run (2 fails)
+correction-01-box2-final-console.txt            - BOX 2 final test run (1 fail)
+
+TEST RESULTS (TRX)
+------------------
+RF-10-08-C01-correction-final.trx              - BOX 1 TRX (8 pass, 2 fail)
+RF-10-09-C01-correction-final.trx              - BOX 2 TRX (4 pass, 1 fail)
+
+PREVIOUS CONTEXT
+----------------
+RF-10-checkpoint-13-three-box-handoff.zip      - Previous package (baseline)
+
+TEST FILES MODIFIED
+-------------------
+Source files NOT included in package (available in working tree):
+- tests/RoadGuardSystem.ApiTests/Idempotency/IdempotencyPerCommandCharacterizationTests.cs
+- tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs
+
+SUMMARY STATISTICS
+------------------
+Total artifacts:     15 files
+Test results:        12/15 PASS (80%)
+Improvement:         +4 tests from baseline (53% → 80%)
+Open issues:         3 findings documented
+Evidence complete:   Yes (hashes, TRX, logs, findings)
+
+VERIFICATION
+------------
+All files include SHA-256 hashes in manifest.json
+Sequential test runs with isolated fixture DB
+No production/schema/CI modifications
+No git operations (commit/push/stash)

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "planning/refactor/10-refactor-slices.md:32:| 10-08-R01 common idempotency primitive (ledger candidate, no separate R01 task definition) | R; RETAIN recommendation; assessment ready for review, implementation not assigned | `tasks/RF-10-08-offline-sync.md`; current source/caller matrix in `evidence/post-checkpoint13-assessment/idempotency-matrix.md` | `reports/RF-10-08-assessment.md`: retain command scope, authorization/version ordering, stored failure and transaction recovery. No R01 Done status inferred from this ledger row. |",
+    "planning/refactor/10-refactor-slices.md:35:| 10-09-R01 transaction/outbox (ledger candidate, no separate R01 task definition) | R; RETAIN recommendation; assessment ready for review, implementation not assigned | `tasks/RF-10-09-messaging-reporting-retention.md`; current source/caller matrix in `evidence/post-checkpoint13-assessment/notification-matrix.md` | Preserve command receipt versus consumer effect receipt, lease owner, supplied retry delay, projection and cursor semantics. No worker added or R01 Done status inferred. |"
+  ],
+  "command": "rg -n 10-08-R01|10-09-R01 planning/refactor/tasks planning/refactor/10-refactor-slices.md",
+  "exitCode": 0,
+  "scope": "local production source / task docs; normal rg ignore rules; no deployed environment search"
+}

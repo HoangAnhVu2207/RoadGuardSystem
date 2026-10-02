@@ -1,0 +1,52 @@
+{
+  "phase": "pre-build-source-capture",
+  "capturedAtUtc": "2026-10-01T23:43:52.4337202Z",
+  "note": "Bytes copied before build; hashes calculated from those immutable copies.",
+  "files": [
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.API/Controllers/ProcessingV2Controller.cs",
+      "sha256": "82e7d0e4e7a0059336ffa5f4a7b863bab302022e4a5c758f00f128b08f669f47",
+      "length": 7512
+    },
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.BusinessObjects/Idempotency/IdempotencyRecord.cs",
+      "sha256": "321421ecd3cc2df4cbf536741f1b0f4bba1b5500569b5dc1c99f6defb7bdd589",
+      "length": 3885
+    },
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.DTOs/Processing/ReceiveAiResultRequestDto.cs",
+      "sha256": "9b3e01805023ff029c0774d78b3ebacff1df202efb32c2c0002b14892af5e310",
+      "length": 510
+    },
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.Repositories/Configurations/IdempotencyRecordConfiguration.cs",
+      "sha256": "d01d096141cb25d001bf3a82963c0a1438955cc1b23d8037aa4ae838754386aa",
+      "length": 1615
+    },
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs",
+      "sha256": "88ad0c93216cbe4bfe8fe285e1170844f0a223b03927715c00bbbda84ef80fdc",
+      "length": 7181
+    },
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+      "sha256": "98b5c62dddb12aaf706438bba1513f7740b2e94f857ba99877818fa1ca600f7c",
+      "length": 27275
+    },
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingAiResultRequest.cs",
+      "sha256": "e75b82e38429d35c0ccb6aca1c75c5dec8d23942e67afba36ebb46121e2c66c4",
+      "length": 274
+    },
+    {
+      "path": "ed-remediation/payload/source/RoadGuardSystem.Services/Implementations/Processing/ProcessingV2Service.cs",
+      "sha256": "c54b1cfa24010f86079c76fda97842e9f1f03d45431722039c018f4a69fc6b60",
+      "length": 10792
+    },
+    {
+      "path": "ed-remediation/payload/source/tests/RoadGuardSystem.ApiTests/Processing/A0801CallbackIdentityCharacterizationTests.cs",
+      "sha256": "34bab2bd740ce34519689d833f491dbda8b3ad98158cfe2b3e9aa357a5f59137",
+      "length": 23727
+    }
+  ]
+}

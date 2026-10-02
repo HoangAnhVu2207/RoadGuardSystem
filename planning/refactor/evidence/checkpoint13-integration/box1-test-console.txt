@@ -1,0 +1,77 @@
+Test run for D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\bin\Debug\net8.0\RoadGuardSystem.ApiTests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:19.29]     RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_SameKeySamePayload_ReplaysWithIdenticalOutcome [FAIL]
+  Failed RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_SameKeySamePayload_ReplaysWithIdenticalOutcome [2 s]
+  Error Message:
+   Expected status to be "ACTIVE" with a length of 6, but "PENDING" has a length of 7, differs near "PEN" (index 0).
+  Stack Trace:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Primitives.StringEqualityValidator.ValidateAgainstLengthDifferences()
+   at FluentAssertions.Primitives.StringValidator.Validate()
+   at FluentAssertions.Primitives.StringAssertions`1.Be(String expected, String because, Object[] becauseArgs)
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_SameKeySamePayload_ReplaysWithIdenticalOutcome() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 85
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_SameKeySamePayload_ReplaysWithIdenticalOutcome() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 150
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:19.60]     RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_StatusMutatedAfterCreate_ReplayReturnsOriginalStatus [FAIL]
+[xUnit.net 00:00:19.86]     RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_DifferentActorsSameKey_BothExecute [FAIL]
+  Failed RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_StatusMutatedAfterCreate_ReplayReturnsOriginalStatus [302 ms]
+  Error Message:
+   Expected originalStatus to be "ACTIVE" with a length of 6, but "PENDING" has a length of 7, differs near "PEN" (index 0).
+  Stack Trace:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Primitives.StringEqualityValidator.ValidateAgainstLengthDifferences()
+   at FluentAssertions.Primitives.StringValidator.Validate()
+   at FluentAssertions.Primitives.StringAssertions`1.Be(String expected, String because, Object[] becauseArgs)
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_StatusMutatedAfterCreate_ReplayReturnsOriginalStatus() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 923
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_StatusMutatedAfterCreate_ReplayReturnsOriginalStatus() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 955
+--- End of stack trace from previous location ---
+  Failed RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_DifferentActorsSameKey_BothExecute [258 ms]
+  Error Message:
+   Expected actor2Response.StatusCode to be HttpStatusCode.Created {value: 201}, but found HttpStatusCode.Forbidden {value: 403}.
+  Stack Trace:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.EnumAssertions`2.Be(TEnum expected, String because, Object[] becauseArgs)
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_DifferentActorsSameKey_BothExecute() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 471
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.UploadCreate_DifferentActorsSameKey_BothExecute() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 497
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:22.17]     RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome [FAIL]
+  Failed RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome [193 ms]
+  Error Message:
+   System.InvalidOperationException : Direct modification of ApplicationUser.RoleCode is forbidden. Role mutations must execute through the atomic role change boundary (IIdentityRepository.ChangeUserRoleAtomicAsync).
+  Stack Trace:
+     at RoadGuardSystem.Repositories.RoadGuardDbContext.ValidatePersistenceInvariants() in D:\Project BE\RoadGuardSystem\RoadGuardSystem.Repositories\RoadGuardDbContext.cs:line 442
+   at RoadGuardSystem.Repositories.RoadGuardDbContext.SaveChangesAsync(CancellationToken cancellationToken) in D:\Project BE\RoadGuardSystem\RoadGuardSystem.Repositories\RoadGuardDbContext.cs:line 188
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 851
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 852
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 872
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:22.42]     RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure [FAIL]
+  Failed RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure [242 ms]
+  Error Message:
+   System.ObjectDisposedException : Cannot access a closed Stream.
+  Stack Trace:
+     at System.IO.MemoryStream.Read(Byte[] buffer, Int32 offset, Int32 count)
+   at System.IO.MemoryStream.ReadAsync(Memory`1 buffer, CancellationToken cancellationToken)
+--- End of stack trace from previous location ---
+   at System.Text.Json.Serialization.ReadBufferState.ReadFromStreamAsync(Stream utf8Json, CancellationToken cancellationToken, Boolean fillBuffer)
+   at System.Text.Json.Serialization.Metadata.JsonTypeInfo`1.DeserializeAsync(Stream utf8Json, CancellationToken cancellationToken)
+   at System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsyncCore[T](HttpContent content, JsonSerializerOptions options, CancellationToken cancellationToken)
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 734
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 812
+--- End of stack trace from previous location ---
+Results File: D:\Project BE\RoadGuardSystem\planning\refactor\evidence\checkpoint13-integration\RF-10-08-C01.trx
+
+Failed!  - Failed:     5, Passed:     5, Skipped:     0, Total:    10, Duration: 5 s - RoadGuardSystem.ApiTests.dll (net8.0)

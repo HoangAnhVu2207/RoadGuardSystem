@@ -1,0 +1,119 @@
+# Test Summary - RF-10-07-C02
+
+## Execution Summary
+
+**Date:** 2026-10-01
+**Duration:** 22 seconds
+**Result:** All tests passed (5/5)
+
+## Test Corrections Applied
+
+### 1. Snapshot Completeness
+**Previous Issue:** Only counted measurements; did not capture full record state
+**Correction:**
+- Changed from count-only to full record capture using SingleAsync
+- Added comprehensive field assertions for measurement provenance
+- Added detailed assertions for task, assignment, defect identity and linkage
+
+### 2. RowVersion Comparison
+**Previous Issue:** Used BeEquivalentTo which ignores byte order
+**Correction:** Changed to `.Should().Equal()` for proper byte sequence comparison
+
+### 3. Baseline Timing
+**Previous Issue:** Baseline captured before authentication
+**Correction:** Moved baseline capture after authentication, immediately before GET operation
+
+### 4. Assignment State Coverage
+**Previous Issue:** Only checked status and user; missed assignment metadata
+**Correction:** Added assertions for Id, AssignedByUserId, AssignedAt timestamp
+
+### 5. Entity Linkage Coverage
+**Previous Issue:** Only checked IDs and status
+**Correction:** Added ProjectId, RoadSectionVersionId assertions for provenance chain
+
+## Test Results Detail
+
+### Test 1: InspectionTaskList_RepairCrewWithScope_ReturnsTasksAndDoesNotMutateDatabase
+- **Status:** PASSED
+- **Duration:** 279 ms
+- **Coverage:** RepairCrew authorization, response projection, SQL immutability
+- **Snapshot:** Full entity state (task, assignment, defect, measurement) before/after GET
+- **Assertions:**
+  - Response: 200 OK with correct task projection
+  - Task: Id, Status, TaskCode, ProjectId, DefectId, RowVersion unchanged
+  - Assignment: Id, Status, AssignedToUserId, AssignedByUserId, AssignedAt unchanged
+  - Defect: Id, Status, ProjectId, RoadSectionVersionId unchanged
+  - Measurement: Id, DefectId, SurveyId, RoadSectionVersionId, SessionId, Type, Value, Unit, Location SRID/coordinates unchanged
+
+### Test 2: InspectionTaskList_ProjectManagerRole_ReturnsForbidden
+- **Status:** PASSED
+- **Duration:** 960 ms
+- **Coverage:** PM role rejection
+- **Assertions:** 403 Forbidden status, problem details status field
+
+### Test 3: InspectionTaskList_SupervisorRole_ReturnsForbidden
+- **Status:** PASSED
+- **Duration:** 99 ms
+- **Coverage:** Supervisor role rejection
+- **Assertions:** 403 Forbidden status
+
+### Test 4: InspectionTaskList_CrewWithoutProjectMembership_FiltersOutTask
+- **Status:** PASSED
+- **Duration:** 130 ms
+- **Coverage:** Project scope filtering via IProjectScopeGuard
+- **Assertions:** Task not present in filtered response
+
+### Test 5: InspectionTaskList_MeasurementProvenance_ExistsInDatabase
+- **Status:** PASSED
+- **Duration:** 857 ms
+- **Coverage:** Measurement-to-defect/survey/road linkage, SRID 4326 enforcement
+- **Assertions:** DefectId, SurveyId, RoadSectionVersionId linkage, MeasurementType, Value, Unit, Location.SRID
+
+## Provenance Verification
+
+**Source to Binary Linkage:** VERIFIED
+- Source files hashed before build
+- Clean build (--no-incremental) from known source
+- Assembly hashed after build, before test
+- Test used --no-build with captured assembly
+- Assembly verified unchanged after test
+- Source verified unchanged after test
+
+**Build:** 164 warnings, 0 errors (consistent with project baseline)
+**Test Execution:** All assertions passed, no exceptions
+
+## Findings Confirmed
+
+| Finding ID | Description | Status |
+|-----------|-------------|--------|
+| RF1007-C02-F01 | RepairCrew-only authorization; PM/Supervisor receive 403 | CONFIRMED |
+| RF1007-C02-F02 | Response projection includes id, projectId, defectIds, mode, crewId, status, version | CONFIRMED |
+| RF1007-C02-F03 | Project membership filtering at service layer after repository fetch | CONFIRMED |
+| RF1007-C02-F04 | GET endpoint performs no SQL writes to task, assignment, defect, measurement | CONFIRMED |
+| RF1007-C02-F05 | GroundTruthMeasurement provenance: session/defect/survey/road linkage, SRID 4326 | CONFIRMED |
+| RF1007-C02-F06 | mode="MEASURE_ONLY" hardcoded, policyVersionId=null | CONFIRMED |
+
+## Scope Clarifications
+
+**SQL Immutability Coverage:**
+- Verified for success GET only (RepairCrew with valid membership)
+- NOT verified for denied/filtered GET operations (out of scope for C02)
+- Claims apply only to tested scenario, not all GET variations
+
+**Measurement Evidence:**
+- Captured full record state: identity, provenance linkage, type/value/unit, location SRID/coordinates
+- NOT captured: raw SQL bytes, database triggers, constraint enforcement at runtime
+- Constraint declarations (SRID 4326, unit check) remain SOURCE_INSPECTED (EF configuration only)
+
+**NOT_VERIFIED:**
+- Response version field mapping to Base64 RowVersion (assertion only checks non-empty)
+- Cursor pagination boundary conditions
+- Concurrency during active assignment changes
+- RowVersion optimistic locking on updates (no update endpoint tested)
+
+## Historical Evidence Retained
+
+- Checkpoint 12 correction-01 evidence retained as historical record
+- Previous TRX files document test evolution (first failures, corrections)
+- This correction-02 supersedes correction-01 for provenance verification
+- Source-to-binary linkage for correction-01 marked NOT_VERIFIED (metadata conflict)

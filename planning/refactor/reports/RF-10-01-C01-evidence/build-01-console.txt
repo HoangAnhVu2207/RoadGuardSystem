@@ -1,0 +1,7 @@
+D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Identity\Rf1001IdentityCharacterizationTests.cs(346,44): error CS0535: 'Rf1001IdentityCharacterizationTests.CapturingSender' does not implement interface member 'IIdentityMessageSender.SendInvitationAsync(string, string, string, string, DateTimeOffset, CancellationToken)' [D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\RoadGuardSystem.ApiTests.csproj]
+
+Build FAILED.
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:04.12

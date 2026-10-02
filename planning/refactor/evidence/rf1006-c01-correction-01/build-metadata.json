@@ -1,0 +1,8 @@
+{
+  "phase": "build",
+  "command": "dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj -nologo -v q -clp:ErrorsOnly",
+  "cwd": "D:\\Project BE\\RoadGuardSystem",
+  "start": "2026-10-01T14:09:17.8871034+07:00",
+  "end": "2026-10-01T14:09:25.0358952+07:00",
+  "exitCode": 0
+}

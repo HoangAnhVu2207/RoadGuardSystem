@@ -1,0 +1,24 @@
+# RF-10-03: Survey planning, tasks, dataset and coverage
+
+> Current execution 2026-10-01: Anh alone owns R/C refactor on `anh`, subject to attribution of existing dirty survey files. F/G is unassigned for later development; proposed A/B text below is historical only. Future identity after a common baseline is Huy/A (`huy`), Anh/B (`anh`). See `../10-refactor-slices.md` and `../11-development-plan.md`.
+
+- **Status/checkpoint:** PARTIAL parent as of 2026-10-01: C00 attributed dirty source to prior Anh ANH-02 checkpoint (fresh SQL 6/6); C01 old/V2 same-plan-row characterization and C02 request/task/assignment characterization are **Done locally**. C02 uses focused HTTP/owned-SQL 1/1 plus fresh P211 provenance 4/4; it records V2 assignment creation and the absent old-request assignment route. R01 RETAIN: plan/postpone command semantics differ and no equivalent policy extraction is shown. C01 F04-F06 remain current findings. Reports `RF-10-03-C00.md`, `RF-10-03-C01.md`, `RF-10-03-C02.md`; external consumer/deployed data and all F/G gates remain pending. Branch `anh`, local HEAD `2efc8a5` plus preserved dirty tree; no change commit.
+- **Goal:** reconcile R06-07, L05-07/L11/L14, CG04/06 and survey part of CG10; preserve old and V2 behavior until Q-RF02-03 resolves shared-row semantics.
+- **In scope:** plan/request/postpone/task/scope/assignment, dataset admission and UNKNOWN coverage/baseline decision. **Out of scope:** treating V2 as canonical by name, inventing Q11 thresholds, overwriting active dirty survey edits, deleting old rows/routes.
+- **Dependencies/decisions:** RF-10-02 road version/scope, RF-10-04 verified file facts, RF-09; Q-RF02-03 for coexistence/backfill, Q-RF02-05 for position/quality/coverage authority. Source video/SRT/route samples remain needed.
+- **Read first:** R06-07, CG04/06/10, L05-07/L11, current dirty `SurveyV2PersistenceService.cs` and `.Dataset.cs`, `SurveyPlanningController`, `SurveyV2Controller`, related DTOs/entities/migrations/API/SQL tests and external consumer samples.
+- **Likely files:** SurveyPlanning/SurveyV2 Controller/Service/Repository, survey DTOs/entities/EF mappings, isolated tests, approved contract/Postman/`.http` changes; reserve shared `RoadGuardDbContext` and migration snapshot.
+- **Contract/data/consumer effect:** two existing route families remain until consumer and row audit. If approved, add explicit row/contract discriminator and dual-read/backfill with counts/replay checks. Coverage `UNKNOWN` is retained until measured method and review authority are approved; `confirmBaseline` stays blocked meanwhile.
+- **Steps:** freeze/attribute dirty work -> characterize old/V2 writes to same tables and concurrency -> split identical internals without behavior drift -> get owner data/contract decision -> rehearse additive migration/backfill -> deliver approved state/coverage slice.
+- **Verify:** isolated API old/V2 status/body/header and wrong-scope tests, Testcontainers SQL old-row/new-row/replay/stale-version races, dataset file scope/immutability, UNKNOWN coverage non-promotion; no blanket DB update.
+- **Done when:** no data loss/ambiguous row semantics, consumer transition explicit, accepted Q11-independent work verified; pending Q11 slice remains Partial rather than false Done.
+- **Recovery:** maintain old readers/routes and row audit, stop new writer via flag if needed; backfill is restartable and reversible through backup/forward repair, applied migrations retained.
+
+## Two-developer delivery supplement
+
+- **Proposed owner:** B. Split dual-owner parent tasks into single-owner slices before edits. See [ownership plan](../03-two-developer-plan.md).
+- **Pre-edit checkpoint:** record exact allowed files/symbols, read-only dependencies, shared-file reservation, baseline commit and preserved dirty changes. Record START / INTEGRATE / RELEASE gates for this slice; existing decision/data gates remain in force.
+- **Independence:** use an agreed interface/version and fixture for consumer work; label test-double evidence separately. Do not claim parent Done before required real integration.
+- **Self-review:** correctness pass plus ownership/consumer impact pass, safe in-scope autofix, focused verification and final diff review. Record unresolved findings.
+- **Cross-owner impact:** create a note from [coordination template](../templates/coordination-note.md), recommend primary fixer and wait for the two developers to assign the overlapping change. Continue independent work; do not edit the other owner's files or duplicate their business logic.
+- **Report:** [revised seven-section template](../templates/task-report.md); single-owner task may retain its existing report path, slices use `reports/<TASK-ID>-<SLICE>-<A|B>.md`. Record implementation status separately from delivery stage.

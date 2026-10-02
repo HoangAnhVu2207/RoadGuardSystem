@@ -1,0 +1,4 @@
+command=dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q -clp:ErrorsOnly --filter FullyQualifiedName~Rf1003SameRowSurveyTests --logger trx:LogFileName=rf1003-c01-final2.trx --results-directory planning/refactor/reports/RF-10-03-C01-evidence
+start=2026-10-01T04:10:21.8393436+07:00
+end=2026-10-01T04:10:38.1264468+07:00
+exit=0

@@ -1,0 +1,22 @@
+# Build Metadata - RF-10-07-C02
+
+Build Start: 2026-10-01 08:13:10 UTC
+Build End: 2026-10-01 08:13:25 UTC (approximately)
+Command: dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj -c Debug --no-incremental
+Working Directory: D:\Project BE\RoadGuardSystem
+Exit Code: 0
+Duration: ~15 seconds
+Warnings: 164
+Errors: 0
+Configuration: Debug
+Build Type: Clean (--no-incremental)
+
+Assembly Output: tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.ApiTests.dll
+Framework: .NETCoreApp,Version=v8.0
+
+Source Hashes Before Build:
+ca51ee9d49be65763603e3f5a777c4c67c758619945ccf89cbcfda0b1cf8b428 *tests/RoadGuardSystem.ApiTests/Inspections/Rf1007InspectionMeasurementCharacterizationTests.cs
+2eda4969413db8b2b50f84ca922085b5339283e4f6b4941e5c8caa2690c4bb29 *tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs
+62eef5274095e9dbf59082d3db4f4caacedfdb025c6f0dbdc1be59d4aa9490a5 *tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationWebApplicationFactory.cs
+
+Note: Clean build with --no-incremental ensures reproducible binary from known source state.

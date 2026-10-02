@@ -1,0 +1,37 @@
+================================================================================
+SOURCE HASH VERIFICATION
+================================================================================
+
+Package: RF-10-checkpoint-13-correction-02-source-supplement
+Date: 2026-10-01
+Purpose: Source evidence supplement for correction-02 TRX verification
+
+================================================================================
+HASH COMPARISON: CURRENT SOURCE vs CORRECTION-02-TESTS-AFTER
+================================================================================
+
+Expected (correction-02-tests-after.sha256):
+  ef1a734a291e295297eb91b74f39d760945a5fdb5121daadc2bd7a9ad83ec101  Idempotency/IdempotencyPerCommandCharacterizationTests.cs
+  ec449b3655a4c8d1719336e72b02c97e6648c3da8d533076fbb57e746bcaef9e  Notifications/Rf1009NotificationInboxCharacterizationTests.cs
+
+Actual (current source at 2026-10-01T22:45:00):
+  ef1a734a291e295297eb91b74f39d760945a5fdb5121daadc2bd7a9ad83ec101  tests/RoadGuardSystem.ApiTests/Idempotency/IdempotencyPerCommandCharacterizationTests.cs
+  ec449b3655a4c8d1719336e72b02c97e6648c3da8d533076fbb57e746bcaef9e  tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs
+
+RESULT: ✓ EXACT MATCH
+
+Current source payload matches recorded correction-02-tests-after.sha256 hashes.
+These are the source files that produced the 15/15 PASS TRX results.
+
+================================================================================
+SOURCE PROVENANCE
+================================================================================
+
+Status: VERIFIED - Current source matches correction-02 final snapshot
+TRX Correspondence: RF-10-08-C01-correction-02-final.trx (10/10 PASS)
+                    RF-10-09-C01-correction-02-final.trx (5/5 PASS)
+Build Correspondence: correction-02-build.log (180 warnings, 0 errors)
+
+No source drift detected since correction-02 completion.
+
+================================================================================

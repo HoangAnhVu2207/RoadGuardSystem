@@ -1,0 +1,7 @@
+{
+  "command": "dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-incremental --nologo",
+  "startUtc": "2026-10-01T23:44:09.0305203Z",
+  "endUtc": "2026-10-01T23:44:22.3607382Z",
+  "exitCode": 0,
+  "cwd": "D:\\Project BE\\RoadGuardSystem"
+}

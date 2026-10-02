@@ -1,0 +1,12 @@
+diff --git "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\reports\\RF-10-08-C01.md" "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\reports\\RF-10-08-C01.md"
+index 7d8cc54..af7e633 100644
+--- "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\reports\\RF-10-08-C01.md"	
++++ "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\reports\\RF-10-08-C01.md"	
+@@ -1,5 +1,7 @@
+ # RF-10-08-C01 Characterization Report
+ 
++> Current correction 2026-10-02: bounded characterization accepted per owner handoff. Reuse BOX 1 correction-04 TRX 10/10; current test SHA-256 `a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f`. No new run. The original report below is HISTORICAL BOX 1 authoring evidence: its 11-test total counted a helper; the runtime total is 10. Project create actually checks Supervisor role and input, then `TryGetReplayAsync`, then PM/file/warranty facts on a miss. Its old Pattern B omitted that replay probe. Postpone receipt/state assertions are runtime evidence; callback skipping is SOURCE_INSPECTED from `IdempotencyOperationService.MapExisting` before handler and `SurveyV2PersistenceService.PostponePlanAsync` version check inside handler. New JWT after atomic role change returns 403; old JWT revocation is NOT_VERIFIED. See [current assessment](RF-10-08-assessment.md) and [provenance](../evidence/post-checkpoint13-assessment/provenance.md). Historical instructions below do not authorize a rerun.
++
+ **Task:** RF-10-08-C01 per-command idempotency characterization  
+ **Branch:** anh  
+ **HEAD:** 2efc8a5775f834c7f0fe37cc0ce703011649e1f1  

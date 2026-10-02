@@ -1,0 +1,174 @@
+# RF-10-07 Finalization Handoff Summary
+
+**Generated:** 2026-10-01 16:53 UTC+7
+**Status:** Complete, ready for reviewer verification
+**Task:** 10-07-C01 finalization with correction-02 review + 10-07-R01 assessment
+
+## Package Overview
+
+**Location:** `D:\Project BE\RoadGuardSystem\planning\refactor\evidence\RF-10-07-finalization-handoff`
+**Total files:** 8 (2 documentation + 6 supporting)
+**Total size:** 53 KB
+
+## Quick Verification
+
+```bash
+cd "D:\Project BE\RoadGuardSystem\planning\refactor\evidence\RF-10-07-finalization-handoff"
+sha256sum -c package-checksums.txt
+```
+
+Expected output: All 7 files OK
+
+## Package Contents
+
+### Documentation Files (2)
+1. **HANDOFF-MANIFEST.md** (12 KB)
+   - Package purpose and structure
+   - Update summary and evidence mapping
+   - Status summary for C01/R01/parent/overall
+   - Verification instructions
+
+2. **DOCUMENTATION-CHANGES.md** (13 KB)
+   - Detailed change log per file
+   - Before/after comparison
+   - Rationale for each change
+   - User requirements satisfaction checklist
+
+### Supporting Files (6)
+3. **documentation-before.sha256** (390 bytes)
+   - SHA-256 hashes before updates
+
+4. **documentation-after.sha256** (480 bytes)
+   - SHA-256 hashes after updates
+
+5. **documentation-changes.diff** (396 bytes)
+   - Note explaining untracked status
+
+6. **updated-files.tar.gz** (20 KB)
+   - Tarball of 5 updated documentation files
+
+7. **updated-files.tar.gz.sha256** (87 bytes)
+   - Integrity checksum for tarball
+
+8. **package-checksums.txt** (638 bytes)
+   - SHA-256 for all 7 files above
+
+## Package Checksums
+
+```
+b379d1be1e003105e08252cf029db04bd56cbfc0e15aecf2e5d5e8bcbb5c20cf *HANDOFF-MANIFEST.md
+9cefd4cd96350814301925803ffbf98e1e8ee693155f131331f38feca97c98b5 *DOCUMENTATION-CHANGES.md
+57ff80a5b45d59575370cb30775227dc8d14fb7c1a6c3155d1ec72b7dc14dad7 *documentation-before.sha256
+052fc1563835a0da5ad8a41f9339abb3a21ed95d3297433de3244722625383f7 *documentation-after.sha256
+65263dff087a7351a4bcb44fd59429088d6a23b70258499c29088475d5ed0d8f *documentation-changes.diff
+57aba1e7ec9d532a49793305f6fb8c9a304d43551925a3a630ba78cc789da461 *updated-files.tar.gz
+251a5518b4075849329aa961e4c255a8d0d6dab9db04d13ad91449dca6504e10 *updated-files.tar.gz.sha256
+```
+
+## Updated Documentation Files (5)
+
+Contained in `updated-files.tar.gz`:
+
+1. **10-inspection-measurement-characterization-baseline.md**
+2. **10-refactor-slices.md**
+3. **10-refactor-checklist.md**
+4. **reports/RF-10-07-C01.md**
+5. **reports/RF-10-07-R01.md** (newly created)
+
+## Key Changes
+
+### Documentation Normalization
+- ✓ Task remains `10-07-C01` with correction-02, no new `10-07-C02` task
+- ✓ Claims normalized from broad "all fields" to exact fields verified
+- ✓ Scope clarified: success GET only, denied/filtered NOT_VERIFIED
+- ✓ NOT_VERIFIED expanded with runtime constraint enforcement gaps
+- ✓ Correction-02 improvements documented
+- ✓ Historical evidence mapping preserved
+
+### R01 Assessment Completed
+- ✓ Read InspectionTaskQueryService, InspectionTaskReadRepository, InspectionTasksController
+- ✓ Compared with SurveyV2Service and other patterns
+- ✓ Evaluated authorization divergence, projection coupling, cursor stability
+- ✓ **Decision: RETAIN** - superficial duplication, domain-specific logic, API contract stability
+- ✓ Documented source/symbol evidence and reassessment triggers
+- ✓ No abstraction created, no implementation changed
+
+## Evidence Reference
+
+### Runtime Evidence (Unchanged)
+**Archive:** `evidence/RF-10-refactor-checkpoint-12-correction-02-handoff.tar.gz`
+**SHA-256:** `f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d`
+**Status:** Reviewer verified, authoritative
+
+This package does NOT contain new runtime evidence. Correction-02 archive remains authoritative for all test execution and build provenance.
+
+## Status Summary
+
+### RF-10-07-C01: DONE locally with correction-02 verified
+- Focused HTTP/owned-SQL: 5/5 passed
+- RepairCrew authorization, PM/Supervisor forbidden
+- Project scope filtering
+- Success GET immutability (exact fields listed)
+- Measurement provenance linkage
+- Complete source-to-binary provenance chain
+- Denied/filtered GET: NOT_VERIFIED (acceptable scope)
+- Runtime constraints: NOT_VERIFIED (configuration only)
+
+### RF-10-07-R01: DONE locally, RETAIN recommendation
+- InspectionTaskQueryService assessed
+- SurveyV2Service comparison documented
+- Authorization divergence identified
+- Extraction overhead vs duplication evaluated
+- **Decision:** RETAIN current implementation
+- Reassess if 3+ identical patterns emerge
+
+### RF-10-07 Parent: Partial
+- C01 and R01 complete locally
+- F/G workflows NOT_IMPLEMENTED
+- Blocked by Q-RF02-04, Q-RF02-07
+
+## Critical Constraints Observed
+
+✓ "Không sửa production hoặc test"
+✓ "Không build/test lại cho các thay đổi tài liệu"
+✓ "Không commit/push hoặc ghi DB dùng chung"
+✓ "Giữ nguyên tên/path/hash của raw evidence cũ"
+✓ "Dừng sau handoff"
+
+No production code, schema, CI, test code, or shared database modified.
+No commits created. No push performed.
+All documentation files remain untracked (planning/refactor/ not in git).
+
+## Next Steps After Review
+
+### If Approved
+1. Reviewer updates RF-10-07 parent status from Partial to "C01/R01 Done locally, F/G pending"
+2. Assign next approved C/R slice (10-08-C01 or 10-09-C01)
+3. F/G work remains blocked by Q-RF02-04 and Q-RF02-07 decisions
+
+### If Corrections Needed
+1. Reviewer documents specific issues
+2. Apply corrections without changing production or committing
+3. Repackage and resubmit for review
+
+## Package Metadata
+
+- **Repository:** D:\Project BE\RoadGuardSystem
+- **Branch:** anh
+- **Commit:** 2efc8a5775f834c7f0fe37cc0ce703011649e1f1
+- **Working tree:** Dirty (pre-existing changes preserved)
+- **Planning directory:** Untracked by git
+- **Production changes:** None
+- **Commits created:** None
+- **Generated by:** Kiro (Claude Code)
+- **Handoff chain:** Codex → Anh → Kiro (C01) → Kiro (C02 review) → Kiro (finalization + R01)
+
+---
+
+**Package ready for reviewer verification**
+
+**Verification command:**
+```bash
+cd "D:\Project BE\RoadGuardSystem\planning\refactor\evidence\RF-10-07-finalization-handoff"
+sha256sum -c package-checksums.txt
+```

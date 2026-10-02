@@ -1,0 +1,4 @@
+command=dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q -clp:ErrorsOnly --filter 'FullyQualifiedName~AuthenticationFlowTests.Refresh_ConcurrentDuplicate_OneWinnerOneRejectedAndFamilyRevoked|FullyQualifiedName~AuthenticationFlowTests.Bearer_ExpiredServerSession_ReturnsSessionRevoked' --logger 'trx;LogFileName=identity-existing-corrected.trx' --results-directory planning/refactor/reports/RF-10-01-C01-evidence
+start=2026-10-01T04:37:24.4209653+07:00
+end=2026-10-01T04:37:38.9270500+07:00
+exit=0

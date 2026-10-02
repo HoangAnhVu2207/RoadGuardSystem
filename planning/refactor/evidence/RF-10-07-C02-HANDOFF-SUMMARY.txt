@@ -1,0 +1,264 @@
+# RF-10-07-C02 Handoff Summary
+
+**Generated:** 2026-10-01 15:19 UTC+7
+**Status:** Partial pending review
+**Supersedes:** correction-01 (retained as historical evidence)
+
+## Package Files
+
+Located in: `D:\Project BE\RoadGuardSystem\planning\refactor\evidence`
+
+1. **RF-10-refactor-checkpoint-12-correction-02-handoff.tar.gz** (33 KB)
+   - Main evidence archive
+   - SHA-256: f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d
+
+2. **RF-10-refactor-checkpoint-12-correction-02-handoff.tar.gz.sha256** (124 bytes)
+   - Archive checksum for integrity verification
+
+3. **RF-10-07-C02-HANDOFF.md** (5.8 KB)
+   - Package overview with quick verification instructions
+
+4. **RF-10-07-C02-VERIFICATION.md** (8.7 KB)
+   - Detailed verification report with reviewer checklist
+
+5. **RF-10-07-C02-HANDOFF-SUMMARY.txt** (this file)
+   - Consolidated handoff information
+
+## Archive Contents
+
+**Total entries:** 19 (2 directories + 17 files)
+**Uncompressed size:** ~260 KB
+
+### Root Evidence Files (12)
+- COMPREHENSIVE-MANIFEST.md - Package structure, corrections, findings
+- build-metadata.txt - Build provenance with timestamps
+- build-output.txt - Full build console (164 warnings, 0 errors)
+- test-run-metadata.txt - Test execution provenance
+- test-output.txt - Test console (5/5 passed)
+- rf1007-c02-test.trx - TRX XML test results
+- test-summary.txt - Corrections applied, findings confirmed
+- source-hashes-before.txt - Source SHA-256 before build
+- source-hashes-after.txt - Source SHA-256 after test (matches before)
+- assembly-hash-after-build.txt - Assembly SHA-256 after build
+- assembly-hash-after-test.txt - Assembly SHA-256 after test (matches after-build)
+- evidence-checksums.txt - SHA-256 for all files
+
+### Source Directory Files (5)
+- source-manifest.md - Source file documentation with corrections
+- source-files-checksums.txt - Source file SHA-256
+- Rf1007InspectionMeasurementCharacterizationTests.cs - Corrected test file
+- AuthenticationSqlServerFixture.cs - Test fixture (unchanged)
+- AuthenticationWebApplicationFactory.cs - Test factory (unchanged)
+
+## Corrections Applied
+
+### 1. Snapshot Completeness
+**C01 Issue:** Only counted measurements; RowVersion compared with BeEquivalentTo
+**C02 Fix:**
+- Changed CountAsync to SingleAsync for full measurement record
+- Added comprehensive assertions for all entity fields
+- Fixed RowVersion comparison to Equal (byte-order sensitive)
+- Added measurement provenance: DefectId, SurveyId, RoadSectionVersionId, SessionId
+- Added measurement content: MeasurementType, Value, Unit, Location SRID/coordinates
+- Added task/assignment/defect full state assertions
+
+### 2. Baseline Timing
+**C01 Issue:** Baseline captured before authentication
+**C02 Fix:** Moved baseline after authentication, immediately before GET operation
+
+### 3. Provenance Chain
+**C01 Issue:** Metadata conflict between build-metadata and test-run-metadata
+**C02 Fix:**
+- Source hashes captured before build → Known source state
+- Clean build (--no-incremental) executed → Known build inputs
+- Assembly hashed after build → Known binary output
+- Test with --no-build → Binary stable during execution
+- Assembly verified unchanged after test → No rebuild
+- Source verified unchanged after test → Correct assembly used
+
+## Verification Quick Start
+
+### 1. Verify archive integrity
+```bash
+cd "D:\Project BE\RoadGuardSystem\planning\refactor\evidence"
+sha256sum -c RF-10-refactor-checkpoint-12-correction-02-handoff.tar.gz.sha256
+```
+
+### 2. Extract archive
+```bash
+tar -xzf RF-10-refactor-checkpoint-12-correction-02-handoff.tar.gz
+cd rf1007-c02
+```
+
+### 3. Verify all evidence checksums
+```bash
+sha256sum -c evidence-checksums.txt
+```
+
+### 4. Verify source checksums
+```bash
+cd source
+sha256sum -c source-files-checksums.txt
+cd ..
+```
+
+### 5. Verify provenance chain
+```bash
+# Source unchanged during build/test
+diff source-hashes-before.txt source-hashes-after.txt
+# Expected: files are identical (exit code 0)
+
+# Assembly unchanged during test
+diff assembly-hash-after-build.txt assembly-hash-after-test.txt
+# Expected: files are identical (exit code 0)
+```
+
+### 6. Read comprehensive manifest
+```bash
+less COMPREHENSIVE-MANIFEST.md
+```
+
+## Findings Confirmed
+
+All 6 findings from C01 confirmed with improved verification:
+
+**RF1007-C02-F01:** RepairCrew-only authorization; PM/Supervisor receive 403 Forbidden
+**RF1007-C02-F02:** Response projection includes id, projectId, defectIds, mode, crewId, status, version
+**RF1007-C02-F03:** Project membership filtering at service layer after repository fetch
+**RF1007-C02-F04:** GET endpoint performs no SQL writes to task, assignment, defect, measurement (success case verified)
+**RF1007-C02-F05:** GroundTruthMeasurement provenance linkage: session/defect/survey/road, SRID 4326
+**RF1007-C02-F06:** mode="MEASURE_ONLY" hardcoded, policyVersionId always null
+
+## Scope Clarifications
+
+### SQL Immutability
+**Verified:** Success GET only (RepairCrew with valid membership)
+**NOT verified:** Denied GET (PM/Supervisor), filtered GET (crew without membership)
+
+Per user instruction, scope kept focused. Separate snapshots for denied/filtered operations not added. Claims apply only to tested success scenario.
+
+### Measurement Evidence
+**Captured:** Full record state
+- Identity: Id
+- Provenance linkage: DefectId, SurveyId, RoadSectionVersionId, SessionId
+- Content: MeasurementType, Value, Unit
+- Location: SRID, coordinates
+
+**NOT captured:** Raw SQL bytes, database triggers, constraint enforcement at runtime
+
+### NOT_VERIFIED (Acceptable Limitations)
+- Response version field mapping to Base64 RowVersion (only checks non-empty)
+- Denied/filtered GET immutability
+- Cursor pagination boundary conditions
+- Concurrency during active assignment changes
+- RowVersion optimistic locking on updates
+- Database trigger enforcement (SOURCE_INSPECTED only)
+- SRID 4326 constraint runtime enforcement (configuration only)
+
+## Historical Evidence Status
+
+### C01 Package Status
+- **Location:** `planning/refactor/evidence/RF-10-refactor-checkpoint-12-correction-01-handoff.tar.gz`
+- **Retained as:** Historical evidence
+- **Source-to-binary linkage:** NOT_VERIFIED (metadata conflict documented)
+- **Purpose:** Documents test evolution and initial corrections
+
+### C02 vs C01
+- **C02 supersedes C01 for:** Verification purposes (complete provenance)
+- **C01 retained for:** Historical record (test evolution, initial corrections)
+- **Both preserved:** No evidence deleted
+
+### Survey Baseline Historical Gaps
+- Checkpoint 08 corrections applied without before-snapshot
+- Documented limitation in survey baseline
+- C02 does not retroactively create missing snapshots
+- Limitation acknowledged, not corrected
+
+## User Requirements Satisfied
+
+✓ Sửa các finding còn mở của checkpoint 12
+✓ Giải quyết provenance bằng một lượt verification mới
+✓ Dùng fresh DbContext, projection ổn định để so IDs và relevant state
+✓ RowVersion là byte sequence: so theo đúng thứ tự
+✓ Đặt baseline sau authentication, ngay trước operation cần đo
+✓ Giữ nguyên archive/evidence cũ làm lịch sử; xuất gói mới tên correction-02
+✓ Tạo root manifest machine-readable gồm relative path, size, SHA-256
+✓ Verify sau khi giải nén: missing/mismatch/unlisted/duplicates đều 0
+✓ Không sửa production/schema/CI, không commit/push hoặc ghi DB dùng chung
+✓ Dừng sau handoff để reviewer kiểm
+
+## NOT_IMPLEMENTED (No Production Endpoint)
+
+- Task creation/assignment/mutation
+- PM batch review workflow
+- Temporary safety action recording
+- Policy evaluation and versioning
+- Repair proposal/attempt/acceptance
+- Fast Track dossier application
+
+## Blocking Decisions
+
+**Q-RF02-04:** Fast Track method/material dossier and numeric thresholds
+**Q-RF02-07:** PM visibility scope, report-to-defect mapping, out-of-warranty routing, PII projection
+
+These block future F/G implementation, NOT the completed C02 characterization.
+
+## Handoff Constraints
+
+**CRITICAL:** Per user instructions:
+- "Không sửa production, không commit/push, không ghi DB dùng chung"
+- "Giữ nguyên failed evidence và dirty work"
+- "Dừng sau handoff để reviewer kiểm; không tự nâng Done hoặc chuyển task"
+
+**Status:** Partial pending review
+
+Do NOT:
+- Promote RF-10-07-C01 to Done status
+- Commit or push changes
+- Modify production code
+- Write to shared database
+- Assign next task
+
+## Next Steps After Review
+
+### If Approved
+1. Reviewer updates RF-10-07-C01 status from Partial to Done
+2. Update baseline with C02 corrections and scope clarifications
+3. Update report with C02 findings and historical gap documentation
+4. Decide whether to proceed with RF-10-07-R01 assessment or RETAIN provisionally
+5. Assign next approved C/R slice from ledger (10-08-C01 or 10-09-C01)
+
+### If Corrections Needed
+1. Reviewer documents specific issues in RF-10-07-C01 report
+2. Apply corrections without changing production or committing
+3. Repackage as correction-03 and resubmit for review
+
+## Related Documentation
+
+To be updated with C02 corrections after review approval:
+
+- **Baseline:** `planning/refactor/10-inspection-measurement-characterization-baseline.md`
+- **Report:** `planning/refactor/reports/RF-10-07-C01.md`
+- **Slices:** `planning/refactor/10-refactor-slices.md` (10-07-C01: remains Partial)
+- **Checklist:** `planning/refactor/10-refactor-checklist.md` (10-07-C01: not promoted)
+
+## Package Metadata
+
+- **Repository:** D:\Project BE\RoadGuardSystem
+- **Branch:** anh
+- **Commit:** 2efc8a5775f834c7f0fe37cc0ce703011649e1f1
+- **Working tree:** Dirty (pre-existing changes preserved)
+- **Production changes:** None
+- **Commits created:** None
+- **Test database:** Isolated SQL Server fixture
+- **Generated by:** Kiro (Claude Code)
+- **Handoff chain:** Codex → Anh → Kiro (C01) → Kiro (C02) → Reviewer
+
+---
+
+**Package ready for reviewer verification**
+
+Archive checksum:
+```
+f7581e219d76bec870aa8eb7ffb4ca09baa3fe3271691c9e1cadb8b981e1de8d *RF-10-refactor-checkpoint-12-correction-02-handoff.tar.gz
+```

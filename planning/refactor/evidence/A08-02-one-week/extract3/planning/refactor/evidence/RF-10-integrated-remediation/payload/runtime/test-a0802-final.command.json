@@ -1,0 +1,6 @@
+{
+  "command": "dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --no-restore --filter FullyQualifiedName~A0802ValidationReplayTests --logger trx;LogFileName=A0802-validation-replay-final.trx --results-directory test-a0802-final --nologo",
+  "startUtc": "2026-10-02T00:03:07.2273490Z",
+  "endUtc": "2026-10-02T00:03:22.7931148Z",
+  "exitCode": 0
+}

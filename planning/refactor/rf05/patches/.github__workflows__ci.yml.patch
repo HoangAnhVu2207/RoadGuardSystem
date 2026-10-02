@@ -1,0 +1,18 @@
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -34,7 +34,15 @@
+           path: ~/.nuget/packages
+           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
+           restore-keys: nuget-${{ runner.os }}-
++      - uses: actions/setup-python@v5
++        with:
++          python-version: '3.11'
+       - run: pwsh -File tests/Documentation/Verify-P102Docs.ps1
++      - run: pwsh -File tests/Tooling/Verify-AgentSetup.ps1
++      - run: python planning/refactor/rf05/checks/test_readiness.py
++      - run: python planning/refactor/rf05/checks/test_guidance.py
++      - run: python planning/refactor/rf05/checks/test_repository_readiness.py
++      - run: python planning/refactor/rf05/checks/verify_repository_readiness.py --root .
+       - run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
+       - run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
+       - run: pwsh -File tests/Security/Verify-DependencySecurity.ps1

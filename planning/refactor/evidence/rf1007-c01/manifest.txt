@@ -1,0 +1,28 @@
+# RF-10-07-C01 Evidence Manifest
+
+## Source hashes (before)
+source-hashes-before.txt
+  - RoadGuardSystem.API/Controllers/InspectionTasksController.cs
+  - RoadGuardSystem.Services/Implementations/Inspections/InspectionTaskQueryService.cs
+  - RoadGuardSystem.Repositories/Implementations/Inspections/InspectionTaskReadRepository.cs
+
+## Test file
+test-file-hash.txt
+  - tests/RoadGuardSystem.ApiTests/Inspections/Rf1007InspectionMeasurementCharacterizationTests.cs
+
+## Build and test outputs
+build-output.txt (113 warnings, 0 errors)
+test-output.txt (first run: 3 passed, 2 failed)
+test-output-final.txt (final run: 5 passed, 0 failed)
+rf1007-c01-test.trx (first run)
+rf1007-c01-test-final.trx (final run)
+
+## Documentation
+test-summary.txt
+before-snapshot.md
+
+## Metadata
+Date: 2026-10-01
+Branch: anh
+HEAD: 2efc8a5775f834c7f0fe37cc0ce703011649e1f1
+Working tree: dirty (pre-existing)

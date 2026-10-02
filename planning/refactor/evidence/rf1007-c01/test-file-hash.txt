@@ -1,0 +1,1 @@
+9566e0ec69e05398417e100930900fb4c5c93ac2378a34bc6ef3ada3ba8ffdb0 *tests/RoadGuardSystem.ApiTests/Inspections/Rf1007InspectionMeasurementCharacterizationTests.cs

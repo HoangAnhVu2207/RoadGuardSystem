@@ -1,0 +1,2113 @@
+{
+  "excluded": [
+    "MANIFEST.json"
+  ],
+  "entries": [
+    {
+      "path": "assessment/findings-ledger.md",
+      "sha256": "4508ba0b2f0254cf3917eeed7010361a9732c8352695f64974eab794a731b2a9",
+      "size": 10810
+    },
+    {
+      "path": "assessment/idempotency-matrix.md",
+      "sha256": "d14b24ee4d1abab4223bc4fd86c0dd57579e55b47e436fd402079c0f69a4ee1f",
+      "size": 16252
+    },
+    {
+      "path": "assessment/notification-matrix.md",
+      "sha256": "be5936bfa7ee411b9c82fdaab33c330ceec3f030ed7dd7341dcb2d50eabcd1d7",
+      "size": 9626
+    },
+    {
+      "path": "assessment/pack-handoff.ps1",
+      "sha256": "63f5a46e2fe26c72ec6896bc59f2ead87df59f77e2439539874261696ac4cf99",
+      "size": 18924
+    },
+    {
+      "path": "assessment/provenance.md",
+      "sha256": "4792c6bab82f499884bf622270a7490de01c9e982ea4196682fd2c3e09fd28e3",
+      "size": 3321
+    },
+    {
+      "path": "assessment/README.md",
+      "sha256": "17bbb7489377817fc5d7a6552858bfb8e66a2dfd6791ffa343492452c57e6ac4",
+      "size": 3508
+    },
+    {
+      "path": "assessment/review.md",
+      "sha256": "f17a7b8453d628728be3383adb734d4791769172b70f73da9a64415744bc5892",
+      "size": 3553
+    },
+    {
+      "path": "baseline.json",
+      "sha256": "c3d91838895a9a06b1c46063bf595c5ee5c9adeaecad65200a96f8ecf53b3c8c",
+      "size": 265050
+    },
+    {
+      "path": "before/planning/refactor/10-inspection-measurement-characterization-baseline.md",
+      "sha256": "2220835c6506b3be696b8743938c2f7d218066b4d46f86f210913f938955d354",
+      "size": 14016
+    },
+    {
+      "path": "before/planning/refactor/10-notification-outbox-characterization-baseline.md",
+      "sha256": "0d7474d6bf7cb5cbf09d8f73aadda40b95d34babd3fca432310623287ea76526",
+      "size": 13878
+    },
+    {
+      "path": "before/planning/refactor/10-refactor-checklist.md",
+      "sha256": "2ea9b1dd91e773c1c926869b9b5b866bdddf3261e05417c848f0d47d0ab01213",
+      "size": 10192
+    },
+    {
+      "path": "before/planning/refactor/10-refactor-slices.md",
+      "sha256": "cb97fd53d11c5ca8e7aa457ee8a5d2a42be758e732c574e58254926012a24c2e",
+      "size": 14231
+    },
+    {
+      "path": "before/planning/refactor/10-survey-coexistence-baseline.md",
+      "sha256": "6b806434f1cee4019de60788688872840f400a8c564ad79ab978aea47efd24fe",
+      "size": 11511
+    },
+    {
+      "path": "before/planning/refactor/10-survey-request-task-assignment-characterization.md",
+      "sha256": "c6a84c3669cc488d811ad9cd8c47ba5b503f7cfdddf89e4850b0ae93227bc616",
+      "size": 6306
+    },
+    {
+      "path": "before/planning/refactor/reports/RF-10-03-C02.md",
+      "sha256": "92d1a62841bda13e64fa2cb8b2edf7f554284de144cfa4ea27084fb463b98a3e",
+      "size": 10484
+    },
+    {
+      "path": "before/planning/refactor/reports/RF-10-06-C01.md",
+      "sha256": "da86460a3ba178f2a247268a911914e71003a6703a06db7303ab3c6d7611c165",
+      "size": 5665
+    },
+    {
+      "path": "before/planning/refactor/reports/RF-10-07-C01.md",
+      "sha256": "ef62241b1ed7867aba09a6ca32475073a27a1e9f764007a6736d39faf072a971",
+      "size": 16079
+    },
+    {
+      "path": "before/planning/refactor/reports/RF-10-07-R01.md",
+      "sha256": "835faf57466894360c3e29e17d3e038505eb0dc124b1829f25a93f6fcbf307ec",
+      "size": 9540
+    },
+    {
+      "path": "before/planning/refactor/reports/RF-10-08-C01.md",
+      "sha256": "9d4301dbe3489d18c48c379728ea476139b7d75b2aa428a1220448f69c4e24a7",
+      "size": 12575
+    },
+    {
+      "path": "before/planning/refactor/reports/RF-10-09-C01.md",
+      "sha256": "4643ef3c1fc2cebcd6ed7e3f2bd178974c8dc418f3153c9ca1fb933ce9985097",
+      "size": 23717
+    },
+    {
+      "path": "checks/current-state.json",
+      "sha256": "9c16944981e695f6236cdf3370587e8bbd2edf266ba1a57ff27eb868af4398f5",
+      "size": 207350
+    },
+    {
+      "path": "checks/external-runtime-archives.json",
+      "sha256": "53a624d2fc0d4a1c22969bcf96809c393b01b921752c642f843504e678fbb739",
+      "size": 464
+    },
+    {
+      "path": "checks/historical-evidence-index.json",
+      "sha256": "5ac80dd7458d6553a5eae052dbaecdef20d23bae90babe23ade52b6f73974313",
+      "size": 43602
+    },
+    {
+      "path": "checks/idempotency-callers.json",
+      "sha256": "cb46672358ff62f514a7c88a309e8fa85e20a2f2ddf80e559e221ad898b854ac",
+      "size": 10311
+    },
+    {
+      "path": "checks/outbox-reachability.json",
+      "sha256": "af718c99819528d54c19c25ae2c990e94e278006cb580600b57744edbe0400af",
+      "size": 3108
+    },
+    {
+      "path": "checks/producer-callers.json",
+      "sha256": "568e4542ffe2c2b28fdcc2791dc8415168359e6ec27986cee8907d5dcc722b11",
+      "size": 4378
+    },
+    {
+      "path": "checks/reused-trx.json",
+      "sha256": "5b7c75279e3225f3749c825fd71c26d56d161547c8637667447cd97300fa13e4",
+      "size": 1042
+    },
+    {
+      "path": "checks/runtime-archive-source.json",
+      "sha256": "665ca5e1f6bace914033d4787b6f820079a2556c9a9cc0f4ba5b068b9d07cb7b",
+      "size": 11400
+    },
+    {
+      "path": "checks/static-checks.json",
+      "sha256": "98d98e6a977aeade475e64904942d3d99d86723c7842027327d4c60fe79dc5c1",
+      "size": 521
+    },
+    {
+      "path": "checks/task-ids.json",
+      "sha256": "267b9dc4df8ffa5b53642331828430df5b7bb7482ec9872b569239bd9daa095f",
+      "size": 1340
+    },
+    {
+      "path": "current/planning/refactor/10-inspection-measurement-characterization-baseline.md",
+      "sha256": "620661ea30278e1f1497d37646e708e094f0a6edd8b786a4a6a22e4543de2811",
+      "size": 14081
+    },
+    {
+      "path": "current/planning/refactor/10-notification-outbox-characterization-baseline.md",
+      "sha256": "653c53c6463d4f671cc8ae805815140640fb4ea35e26b4c889834be9e634d6a5",
+      "size": 5000
+    },
+    {
+      "path": "current/planning/refactor/10-refactor-checklist.md",
+      "sha256": "575dbc37d4102b611b7609021d679b170430dbddd7174258522f8aa21f9f65f8",
+      "size": 10977
+    },
+    {
+      "path": "current/planning/refactor/10-refactor-slices.md",
+      "sha256": "cd5860f8f420594e284cbf8a535066d4ee945010fc2a91268b1ea0899aa7a016",
+      "size": 15228
+    },
+    {
+      "path": "current/planning/refactor/10-survey-coexistence-baseline.md",
+      "sha256": "05fd3443f6775db88fa405af09f9f508350ed755b03363d5325002f6f81c1b38",
+      "size": 11428
+    },
+    {
+      "path": "current/planning/refactor/10-survey-request-task-assignment-characterization.md",
+      "sha256": "c6a84c3669cc488d811ad9cd8c47ba5b503f7cfdddf89e4850b0ae93227bc616",
+      "size": 6306
+    },
+    {
+      "path": "current/planning/refactor/evidence/post-checkpoint13-assessment/findings-ledger.md",
+      "sha256": "4508ba0b2f0254cf3917eeed7010361a9732c8352695f64974eab794a731b2a9",
+      "size": 10810
+    },
+    {
+      "path": "current/planning/refactor/evidence/post-checkpoint13-assessment/idempotency-matrix.md",
+      "sha256": "d14b24ee4d1abab4223bc4fd86c0dd57579e55b47e436fd402079c0f69a4ee1f",
+      "size": 16252
+    },
+    {
+      "path": "current/planning/refactor/evidence/post-checkpoint13-assessment/notification-matrix.md",
+      "sha256": "be5936bfa7ee411b9c82fdaab33c330ceec3f030ed7dd7341dcb2d50eabcd1d7",
+      "size": 9626
+    },
+    {
+      "path": "current/planning/refactor/evidence/post-checkpoint13-assessment/provenance.md",
+      "sha256": "4792c6bab82f499884bf622270a7490de01c9e982ea4196682fd2c3e09fd28e3",
+      "size": 3321
+    },
+    {
+      "path": "current/planning/refactor/evidence/post-checkpoint13-assessment/README.md",
+      "sha256": "17bbb7489377817fc5d7a6552858bfb8e66a2dfd6791ffa343492452c57e6ac4",
+      "size": 3508
+    },
+    {
+      "path": "current/planning/refactor/evidence/post-checkpoint13-assessment/review.md",
+      "sha256": "f17a7b8453d628728be3383adb734d4791769172b70f73da9a64415744bc5892",
+      "size": 3553
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-03-C02.md",
+      "sha256": "92d1a62841bda13e64fa2cb8b2edf7f554284de144cfa4ea27084fb463b98a3e",
+      "size": 10484
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-06-C01.md",
+      "sha256": "da86460a3ba178f2a247268a911914e71003a6703a06db7303ab3c6d7611c165",
+      "size": 5665
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-07-C01.md",
+      "sha256": "fcb9aa419bbd593ef18a9f9c25c0781ac3e0ad1d191e6410eb0e6ce0d0759e40",
+      "size": 16081
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-07-R01.md",
+      "sha256": "01e61678799bde372e8f87cdf5100739b8fe6844c07337c409dd2aa27f896c4b",
+      "size": 9401
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-08-assessment.md",
+      "sha256": "ad4e4bf8b06aa67edfe04536e5938566ed6a1ec26b3bc24f72580814abdc1612",
+      "size": 6238
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-08-C01.md",
+      "sha256": "742f23b07de820bca9559418781af801d0aa69a00072b3cbfa4704bbd4d89d2f",
+      "size": 13593
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-09-assessment.md",
+      "sha256": "7d8550f0b4eb410d8c83b9ff35b2fb963890f1d8b676a12a202380e3791ae1d3",
+      "size": 6004
+    },
+    {
+      "path": "current/planning/refactor/reports/RF-10-09-C01.md",
+      "sha256": "2f58d5257b477937fce0343565cb7a59e47188e4c4169ee4fffa5c9eb9ddd82b",
+      "size": 4216
+    },
+    {
+      "path": "diffs/planning__refactor__10-inspection-measurement-characterization-baseline.md.diff",
+      "sha256": "80972425a8fdf0a745e7fbdd75dfd51f69467299cc2ed46662e91f59bc0b6aeb",
+      "size": 1680
+    },
+    {
+      "path": "diffs/planning__refactor__10-notification-outbox-characterization-baseline.md.diff",
+      "sha256": "959b1f354174dc8c09d80c3726483d5dd24f5394bf523a853f3a315620485dd0",
+      "size": 20206
+    },
+    {
+      "path": "diffs/planning__refactor__10-refactor-checklist.md.diff",
+      "sha256": "08fc03b1c8ed8436df3297bf30aaee170df34c1d09c72d358c29a2e57c6ef5fe",
+      "size": 5555
+    },
+    {
+      "path": "diffs/planning__refactor__10-refactor-slices.md.diff",
+      "sha256": "27ca5383c208fc584a639e39ed639e186deba1aece9e627f550fdd69ba241d09",
+      "size": 6735
+    },
+    {
+      "path": "diffs/planning__refactor__10-survey-coexistence-baseline.md.diff",
+      "sha256": "584dd3a9267b26972f8ee1f0f4ab1f710f62134aac04a90fefc3e9c66418186b",
+      "size": 4046
+    },
+    {
+      "path": "diffs/planning__refactor__reports__RF-10-07-C01.md.diff",
+      "sha256": "c2202f6a930fde169945e923e77f32014b9dbc05ad64a1dc36ffd49f5e412949",
+      "size": 2766
+    },
+    {
+      "path": "diffs/planning__refactor__reports__RF-10-07-R01.md.diff",
+      "sha256": "23609af2c9d4bf206aed62bb8b88e97eda6c46dc6d20aef133de9a9f2e7d2ac8",
+      "size": 1508
+    },
+    {
+      "path": "diffs/planning__refactor__reports__RF-10-08-C01.md.diff",
+      "sha256": "36757163feddef05740336ccb59584bc6b23963f4e1e4a3492e01118eb0268bc",
+      "size": 1763
+    },
+    {
+      "path": "diffs/planning__refactor__reports__RF-10-09-C01.md.diff",
+      "sha256": "e3ecd23b957d97d4cd8f98e0d789e665e18343b531f149fc4dfe8bbf1370433f",
+      "size": 29491
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/box3-final-report-vietnamese.md",
+      "sha256": "9589bd2e61f33f4d00bbd2bd97a1fc5efa9c75ca08846363119ecf71343917fa",
+      "size": 8590
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/box3-phase-a-vietnamese-report.md",
+      "sha256": "4aeba49318b4c342a375e43068084bab7fe4e7670967d80f246feef4b1641fe4",
+      "size": 7693
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/correction-01-findings-matrix.md",
+      "sha256": "f462d033b5384168d468ce7a1c3a661fd48026b917df6740a190713acfef04dd",
+      "size": 9058
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/correction-02-findings-matrix.md",
+      "sha256": "c5f5a52c1414a18e6984578f85331d752f02316dbb232bc047a51d1cc0202ed0",
+      "size": 8390
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/FINDINGS-MATRIX.md",
+      "sha256": "db0a804a840c91e52a41c269153e295a750a207b338c2968a92f6f3c7b77f8fb",
+      "size": 8345
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/correction-04-handoff/documentation/FINDINGS-MATRIX.md",
+      "sha256": "fb63bb2068c7843b5d1e5a8884a6a57095fb4838df3a3d03a671e65e4966d7ce",
+      "size": 10625
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/documentation/CONTENT-DIFF.md",
+      "sha256": "8311d7a668ce8c73ec9e1c68fb3ff9a1c129ae540f56e9d3b4edc1a07037479f",
+      "size": 9299
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/documentation/FINDINGS-LEDGER.md",
+      "sha256": "33fdf5d3655e54d82f6491578607ed2c146f5c6e8671c4237b80e600ad2d9a7a",
+      "size": 11345
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/documentation/SOURCE-PROVENANCE.md",
+      "sha256": "2a02d8ed6de00be983a59aeee7505bba0814ac43792dee1262809d99243609e5",
+      "size": 6127
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/FINALIZATION-SUMMARY.md",
+      "sha256": "0fe3ccd188875217c0b4aab544e5744743996750d600e4b27a72c6f5df75d000",
+      "size": 7257
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/generate_manifest.py",
+      "sha256": "c1dce323c6cbcbd1adf0102768f0cdc29a618745a7dd48a019db6cc9635a15bf",
+      "size": 8241
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/MANIFEST.json",
+      "sha256": "de50dc83fc2bed0b4ecdcaf185e9b68def13c3670d742ab1a5ecd10b5afbf503",
+      "size": 9672
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/payload-inventory.txt",
+      "sha256": "8913155df45e336df46d58b0921f02eb3411b6949015923e612d91a33123e2c9",
+      "size": 1208
+    },
+    {
+      "path": "historical/planning/refactor/evidence/checkpoint13-integration/phase-a-summary.md",
+      "sha256": "10f2ddd0f0a6d0dce7537c3168be5469345928baf0ff3820d5f83714ad475bfc",
+      "size": 3912
+    },
+    {
+      "path": "payload-inventory.txt",
+      "sha256": "e780fa0279530925b5c3d9c0138aca0855ab2736ad5dd179fbcef888598edbb1",
+      "size": 32007
+    },
+    {
+      "path": "reference/.agents/manifest.json",
+      "sha256": "db1f44ae4198c32507c93a284c691cfc4b7477edaeeb763ea52f9a7f4e305410",
+      "size": 2601
+    },
+    {
+      "path": "reference/.agents/modules/README.md",
+      "sha256": "51cf8db1d7644dd237ecdd9076d36b3e43f5271a4a1f7df725dcf6fd3eec9ad5",
+      "size": 5202
+    },
+    {
+      "path": "reference/.agents/rules/delivery.md",
+      "sha256": "578f9b121d94b8cc7d24e100fb47c1f2e92bb0f787a7906966592708553c2c4e",
+      "size": 2091
+    },
+    {
+      "path": "reference/.agents/rules/evidence.md",
+      "sha256": "3760c8cad323a720588516de0b2af059a82ed47c6944168990ba6e5bd5a7326b",
+      "size": 1833
+    },
+    {
+      "path": "reference/.agents/rules/review-and-coordination.md",
+      "sha256": "018eab0afbf8c0a2175a44e77c2100287e5666701a9c1e50d58ce747cb25d489",
+      "size": 1544
+    },
+    {
+      "path": "reference/.agents/rules/safety.md",
+      "sha256": "71f1847fcb092cb8dad443b8946124e9de06020518f7feb612dd1d7de7566bdb",
+      "size": 1049
+    },
+    {
+      "path": "reference/AGENTS.md",
+      "sha256": "005628386d0492e10babcfd76125a85a3cfd652d00462bd22960df9d1c1df476",
+      "size": 2049
+    },
+    {
+      "path": "reference/contracts/events/README.md",
+      "sha256": "51e91689cf10ce3b399a554138182af391410f33cbce929bdee5b5e0bad5642d",
+      "size": 2462
+    },
+    {
+      "path": "reference/docs/backend/persistence-and-operations.md",
+      "sha256": "064ddd67e95dc691a85f3e96626a15b54ab9afccc382803b13f2a348ddc45040",
+      "size": 4592
+    },
+    {
+      "path": "reference/docs/product/confirmed-decisions.md",
+      "sha256": "2b0b042510bc3fe6e7ee3569180e6c2968b0c1c75392b9d77ee16f2f3f2ead90",
+      "size": 3604
+    },
+    {
+      "path": "reference/planning/refactor/02-decision-register.md",
+      "sha256": "addb5a771164d10398b03668c5bd31b25137d3cf91ca6f6f31e601c4228c49bc",
+      "size": 16060
+    },
+    {
+      "path": "reference/planning/refactor/03-two-developer-plan.md",
+      "sha256": "1e9c3642e2846125c4aa976fe844bc93672af951d82eeb908af4523bbf8cdaba",
+      "size": 17964
+    },
+    {
+      "path": "reference/planning/refactor/11-handoff-baseline.md",
+      "sha256": "56ebd72c649bdd349b9a4a0f6e7ece3ab53f8e84a38a9de0d928cfc456a03d0e",
+      "size": 7518
+    },
+    {
+      "path": "reference/planning/refactor/reports/RF-10-refactor.md",
+      "sha256": "3214a0e13850c1b6ca611a480d29d3be7cb8783902d050c1481b96d61c7efb1c",
+      "size": 16797
+    },
+    {
+      "path": "reference/planning/refactor/tasks/RF-10-08-offline-sync.md",
+      "sha256": "f4c3d203b0f7aac398f5f2845d742e5e807da74a1b2467a38b06afa46e8fc550",
+      "size": 4369
+    },
+    {
+      "path": "reference/planning/refactor/tasks/RF-10-09-messaging-reporting-retention.md",
+      "sha256": "c219efa437b360333afdf905b970e8bf537c8a884fbe643f1fc4f95e9651e708",
+      "size": 4790
+    },
+    {
+      "path": "reference/planning/refactor/templates/task-report.md",
+      "sha256": "430dfba83691bc0872e6c7bdbb9945d9414771dc12d3c6ab883e9b3b619fc33e",
+      "size": 3472
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/correction-03-tests-after.sha256",
+      "sha256": "fb8e242fb6ecea1e9a9cf4a163b34d099a4dfdb3a0b2557e5648220112b64e66",
+      "size": 314
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/correction-03-tests-before.sha256",
+      "sha256": "bb898b2fd483529f0250cf014438a0f331c52f94f3952c48838bd2695d1d61a5",
+      "size": 314
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/correction-04-tests-after.sha256",
+      "sha256": "ff23bbbdc2f2b0db75a31d3dd75ec3b8d71d59770344634dd42f8e6ea208fc79",
+      "size": 314
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/correction-04-tests-before.sha256",
+      "sha256": "00fc7fc6bba5e8bd31c9eeaefcefb997ffb2f8fadbcd43fa0369ef385995b39e",
+      "size": 314
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/correction-04-box1-run.log",
+      "sha256": "3cc2fa79d4dedd223c6d859163ac6b9139182ee78e5100e45268a3cdbe98cd82",
+      "size": 457
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/correction-04-box2-reuse-note.txt",
+      "sha256": "59de86cc240e578659bd58b43da76fa9bd0d446f25e8e03960fd890b9f613bdf",
+      "size": 978
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/correction-04-build.log",
+      "sha256": "7412f7fa5a4f3759c2db2cd32a3c9ab58157427c08ea02d955ede7a81d163ec8",
+      "size": 172538
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/RF-10-08-C01-correction-04-final.trx",
+      "sha256": "213e78a5a7b9f67f568139f7b99f824e0e03a323ef6210d516d6499103d6725f",
+      "size": 321428
+    },
+    {
+      "path": "reused/planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/RF-10-09-C01-correction-03-final.trx",
+      "sha256": "85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c",
+      "size": 51483
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Authorization/ProjectAccessAuthorization.cs",
+      "sha256": "6b52680f8c28c79f9a63d493e1697f5f36bee1df1c42bbfca40a9b23179c773a",
+      "size": 1851
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Authorization/ProjectAuthorizationMiddlewareResultHandler.cs",
+      "sha256": "d817cd89d99cac3f72af85a79fdfaaad117ac2df45006e1f8c40f2b9a46f5a66",
+      "size": 1736
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Authorization/ProjectRoleClaimParser.cs",
+      "sha256": "3e8d2ccaf507c0f255e71123cbdde50422fabd8fcc169610381afa84b556d205",
+      "size": 517
+    },
+    {
+      "path": "source/RoadGuardSystem.API/BackgroundServices/ValidationRunWorker.cs",
+      "sha256": "45c4d8bb7ede4d376ed72555076ac9ad6b7d02316cbb97084427a9cd9da13dff",
+      "size": 1517
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Constants/ApiErrorCodes.cs",
+      "sha256": "aa4404df3f384180d34e00a4542e8af21c2db36b8276a5edaa8e433391ec17de",
+      "size": 3413
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/NotificationsController.cs",
+      "sha256": "7df52edcc434cd762d254f49669019ed4babe8718c6294dfff033fff41e5f937",
+      "size": 6760
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/ProcessingV2Controller.cs",
+      "sha256": "82e7d0e4e7a0059336ffa5f4a7b863bab302022e4a5c758f00f128b08f669f47",
+      "size": 7512
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/ProjectRoadSectionsController.cs",
+      "sha256": "b2b67d9df44df5b9b458165cf9be0c84719776476a2a59e364bb83ff0fcd35b0",
+      "size": 8516
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/ProjectsController.cs",
+      "sha256": "abeb9d3dd02db587bcc885b526f6eb398e142ecc43e9ac11b52572a0bb40a1ce",
+      "size": 14541
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/ProjectWarrantiesController.cs",
+      "sha256": "22019e0fe7d1c4a8eb967aa46cb121339d93dca469804e29fecaf10060161ed6",
+      "size": 6484
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/SurveyPlanningController.cs",
+      "sha256": "91c45096efc4e3c9a86addd8089adc007debdc238329daf1dbbed2630d7fb0bf",
+      "size": 11545
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/SurveyV2Controller.cs",
+      "sha256": "fdf5ef5e05196902fc50a2b4802e14935f411e5d2b652303dbb10975ea072192",
+      "size": 16778
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Controllers/UploadsController.cs",
+      "sha256": "034dfd786c7e7e43cf2063e0ec52fe84294a820677512f85bdd0b7d969a27293",
+      "size": 9296
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Extensions/ServiceCollectionExtensions.cs",
+      "sha256": "a39f565a2edcf81bc342e2445257a06e9b8c10eead8f820fa1503eb963798e64",
+      "size": 12596
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Middlewares/CorrelationIdMiddleware.cs",
+      "sha256": "12304584053e5856be5747602a58585138d244e1cd56c4adbd261a1968bc0a5c",
+      "size": 2262
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Program.cs",
+      "sha256": "d7a69d1ee3d252b9fb7e2232a83685f400e177b88e6afb0fe6030e680dec6173",
+      "size": 2669
+    },
+    {
+      "path": "source/RoadGuardSystem.API/Workers/UploadVerificationWorker.cs",
+      "sha256": "87e0d608bc82f1dd7ebea3de125a78aed2f8609389921e888fb002c46f4b19df",
+      "size": 1527
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs",
+      "sha256": "98c22865bfa0cdf57eaeb1590bc80e698cca1243e660b5143cd54a786e78e38e",
+      "size": 4793
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Common/Enums.cs",
+      "sha256": "227a284011b7ec6e34a5610d7670122b99279340e0d88234c38c72070a734135",
+      "size": 6998
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Common/Extensions/EnumExtensions.cs",
+      "sha256": "b57697270097de800450bb35fb1d83835522858df80bbbfb154e5baed29d7f6e",
+      "size": 900
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Common/Extensions/UserRoleCodeExtensions.cs",
+      "sha256": "2ab066abdc701f26260fe353c4f24d7079e5a850351fbecf67bc4ecc9e35664c",
+      "size": 1725
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Common/Extensions/WarrantyScopeExtensions.cs",
+      "sha256": "090f06baea4c1a6ca17b346abd92bb634a271a334f9e82c8a2056560407c2d15",
+      "size": 483
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Defects/Defect.cs",
+      "sha256": "a160687fe200c528c220b1dc35a732eac56dc8a843e9fefee0b0b37912a16fc8",
+      "size": 3576
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Defects/DefectVerificationLog.cs",
+      "sha256": "0b37a8bf63ccc439aa6e0733ac9f1cd530256041d49008a3b91203fef596c156",
+      "size": 3681
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Files/FileScope.cs",
+      "sha256": "6bf2988d10d97a510b62951d949e0a83465b8093ec27b695b40e2a66609392d9",
+      "size": 1409
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Files/StoredFile.cs",
+      "sha256": "86f61bb6aab6ebb310985953e3d6d72985233e48f7305a61b2e402417a637992",
+      "size": 3433
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Files/UploadPart.cs",
+      "sha256": "f7b581b52b44dbcc5aedad79f17346da7c7cd86f5dd2e8f4270789f3f0cd7d2c",
+      "size": 1396
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Files/UploadSession.cs",
+      "sha256": "b40a15539c3db71fafcce03cf428a0706d87adf908b2b300c1e3378265f3fcd3",
+      "size": 4514
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Idempotency/IdempotencyRecord.cs",
+      "sha256": "321421ecd3cc2df4cbf536741f1b0f4bba1b5500569b5dc1c99f6defb7bdd589",
+      "size": 3885
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Inspections/FieldInspectionAssignment.cs",
+      "sha256": "a08aa350d98430a6e61fa8e84259e30650685c1fb162d60136409fcd2b089787",
+      "size": 3025
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Inspections/FieldInspectionSession.cs",
+      "sha256": "4124af0961a13c31931e869fcf202d6512adb109b825b9c85b4dc0a56f31ca2d",
+      "size": 4414
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Inspections/FieldInspectionTask.cs",
+      "sha256": "e9764135ea84667717c1796004ddf5afd06275a084cd017501f9ed6b2abc6974",
+      "size": 5844
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Inspections/GroundTruthMeasurement.cs",
+      "sha256": "2e2dfa816b3bc6f63fdedf5bf302eac06f45e1b37689e9f3512aa8f2f27c0fb6",
+      "size": 5160
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Messaging/ConsumerEffectReceipt.cs",
+      "sha256": "9f0add52f32dafa8580d58d9ac14a01ea1b21e76c6d6e66d18c42c173dc15cf3",
+      "size": 1302
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Messaging/Notification.cs",
+      "sha256": "cfde65be9012725fe233202353d6675b23227ef869d3332a0de4cefe40a84431",
+      "size": 3648
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Messaging/OutboxMessage.cs",
+      "sha256": "095ec18fdb80fa4a8eb0fbac645b3ff1ad9246191b5569f8491ad5ac56775703",
+      "size": 5365
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/AIDetection.cs",
+      "sha256": "67334b9a8da39645bfd2c61c3b0b8eedeacef171fdaa6524898a0ff9cfad48a2",
+      "size": 3639
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/AIModelVersion.cs",
+      "sha256": "acbd96e5929db8bc94a2d3358765b7ae2bd85359cf95ba4f298a901a553c8344",
+      "size": 3387
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/DerivedMeasurement.cs",
+      "sha256": "5f2e234478b91bfbb82733db45abeb6597c3854bddcb9f4263579ff01f9cb9a5",
+      "size": 3468
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/MeasurementValidationSample.cs",
+      "sha256": "0ed2a65a607180fc455278778510787197243bb20017129d98e7b4afe7156564",
+      "size": 2234
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/ProcessingAttempt.cs",
+      "sha256": "f11d621c7b6b84d6bb9c5d1093031f7cf6c50dc112be0df75a263ba28318532d",
+      "size": 2447
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/ProcessingBlock.cs",
+      "sha256": "5b0e75e6bd2b0cd05fe31ec197b1239316f1b4c790607b56ab1305d7368f1fde",
+      "size": 1657
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/ProcessingJob.cs",
+      "sha256": "89e4cb5dde1e5e69e6dff4f3d616daa9b3dff372962aca95bb62ca9e8256af05",
+      "size": 5288
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Processing/ValidationRun.cs",
+      "sha256": "71982bb18a94ae855327cd8c8fcb22a37756b769f84b932b0afe5b9fc2885637",
+      "size": 3910
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Projects/HandoverDocument.cs",
+      "sha256": "f907cd33a76e846186990ed7ba9a0b1fd0ccd847f0b4a773f00efbe5d50e6cfa",
+      "size": 1698
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Projects/Project.cs",
+      "sha256": "5b3c0afc0a8c2b20ac34c528548a6df597bfd20cb3778e7865c92d9b3548b679",
+      "size": 2727
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Projects/ProjectMember.cs",
+      "sha256": "c326a704398aebf6b0a2ce4de4f396f36a556ad186dc3cd71436564f7dbf487a",
+      "size": 1862
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Projects/RoadSection.cs",
+      "sha256": "5751286cb7884984e3e87c67bf5e3145f42a7fc984eb0b9edfed19e23fac3708",
+      "size": 1806
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Projects/RoadSectionVersion.cs",
+      "sha256": "ea87c50d07a1b316d9caf6f5c258a604baed3d30f4582c01dd66df74fc986ba5",
+      "size": 2000
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Projects/RoadSegment.cs",
+      "sha256": "7f3a1d454d1689c48724022fe491614c6ddb3d7b7002fe0c1352d640537faf0e",
+      "size": 840
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Projects/RoadSegmentSet.cs",
+      "sha256": "941cf13f3ccbe69cfb6e60b58746a7a835ea25eee56f2731fe6b9696478b04fe",
+      "size": 892
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/Flight.cs",
+      "sha256": "cffb78c3ef0588548b38a3f3973b4b9812219658188fa7bc3814d8b13309fe75",
+      "size": 1744
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/QualityCheck.cs",
+      "sha256": "aa1c1b33e030af9cc6b9655c1d76879ba97a5b05bccd11d7fa228a9cfd373452",
+      "size": 3988
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SupplementarySurveyRequest.cs",
+      "sha256": "b987cb0db438f1a839cfe94202f228c0da2632a0afe9b391bf5436b8d71ec772",
+      "size": 3456
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/Survey.cs",
+      "sha256": "b0c1e44e38803f42637ac2c2a0ea88c3b0649d534c1bd1bb605411b241d857eb",
+      "size": 2337
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyAssignment.cs",
+      "sha256": "4e2010eebfbc7ae326b8b5249a5b6f7d891c225494f535f4c0e63c503b433b8a",
+      "size": 5740
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyDataVersion.cs",
+      "sha256": "87444ec90148cfe1b657fe45444ebfaafae344778883efed8ade58059bbb3b88",
+      "size": 4316
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyFile.cs",
+      "sha256": "92c4e5ed8134eb1140a07766da6c0aa646e57eeb51dd1c6b25007e4f8e8e83cb",
+      "size": 2597
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyPlan.cs",
+      "sha256": "d0f002697c114aaafa2142e87ba2d50aa956f972b42e54787a52260b65a6df0d",
+      "size": 3721
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyPlanPostponement.cs",
+      "sha256": "576e809e092f969775028318d0f8f7a78eeac9882f1c243737e021a89706154f",
+      "size": 1167
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyPlanScope.cs",
+      "sha256": "54b89401eba3a97b1a74b60fea830b90525ae923d2c02de10ccf72266febfb40",
+      "size": 2227
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyRequest.cs",
+      "sha256": "ef707c8f466c29fc3bcbb321a8f7b70917ef57b92650e1fe625a05ee72375e43",
+      "size": 5944
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Surveys/SurveyRequestScope.cs",
+      "sha256": "6c799560af0f65e6a4651b58c9fdc7d2fca74bcde03be34d9cadfd3746c4f239",
+      "size": 2260
+    },
+    {
+      "path": "source/RoadGuardSystem.BusinessObjects/Warranties/Warranty.cs",
+      "sha256": "26c4bd3f2bc349d8952523e377c3418e43835bda2d7b00b47a394f7484731546",
+      "size": 3112
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Commons/BatchOperationErrorDTO.cs",
+      "sha256": "e3e09eaa59db097a093442f364b38086043e7be4ef0c030773e67e8c9b5cf4f6",
+      "size": 306
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Commons/ErrorResponse.cs",
+      "sha256": "ab77936934e29f85033f27dce0092fc04b868ea8e23cc7fdad230fee2b27823c",
+      "size": 420
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/CompletedUploadPartDto.cs",
+      "sha256": "c85e5071775e5a1c9f1d5a014f9a909b20d938a62cc15b59edbba50e1577003d",
+      "size": 220
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/FileMetadataResponseDto.cs",
+      "sha256": "46a398e8e43f149468d5b189227cba53b8d29fd6af85010fafbf4a5b4ab51337",
+      "size": 207
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/UploadCompleteRequestDto.cs",
+      "sha256": "ab46049446027bf488a58e1056da263210aa741fd33b08f561f29e3b9d2084d5",
+      "size": 282
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/UploadCreateRequestDto.cs",
+      "sha256": "1e31d853476ce44a929cc2fe8dfa618e6e392dfc886fa23eb13db3fd7a4ab97c",
+      "size": 435
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/UploadPartUrlResponseDto.cs",
+      "sha256": "d4c48e53e9dfafbdf3caff9b77f7bce331506c3b59615e7e019e69c7c40fce95",
+      "size": 140
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/UploadPartUrlsRequestDto.cs",
+      "sha256": "bd5c170d6b8585f6ca05e0fbcf49fa1395063712d715007df17be326988e34d4",
+      "size": 194
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/UploadPartUrlsResponseDto.cs",
+      "sha256": "ea4ffc04aa3f10a01f640033e82a1c0ea24c2effad348e74078b543177662f8a",
+      "size": 134
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Files/UploadSessionResponseDto.cs",
+      "sha256": "6d5c3bd24a1222f2c9ba734304b43c772284216c064f677a0ef1b799566ff935",
+      "size": 209
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Messaging/NotificationDto.cs",
+      "sha256": "0776699a705d78cc9076b0eb12f1cf1b402b21caa1eceb80905d1b6e12d0eed5",
+      "size": 203
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Messaging/NotificationPageDto.cs",
+      "sha256": "b10f85b55ad5accb8bd17d5e588d36ae77622e4f00823f8b594cb937b6374130",
+      "size": 177
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/AiDetectionDto.cs",
+      "sha256": "9d05ab637a0968e005b9edc2123e0ab8a595772ce1b18ac8a294580ca7b2b35a",
+      "size": 369
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/CreateProcessingJobRequestDto.cs",
+      "sha256": "5d047c0a05c28847e304309c54a5693f2a8b7a5ad3a2177eee27d0f4b507f914",
+      "size": 442
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/CreateValidationRunRequestDto.cs",
+      "sha256": "c2f9c852ccb65571d9414f5855c7acbaff79ab92ce846e87162f5607b9614ece",
+      "size": 378
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/ProcessingJobResponseDto.cs",
+      "sha256": "b6758f972fd458869e70414c2bb0d36be791f811970cea300eb58b235207f677",
+      "size": 226
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/ReceiveAiResultRequestDto.cs",
+      "sha256": "9b3e01805023ff029c0774d78b3ebacff1df202efb32c2c0002b14892af5e310",
+      "size": 510
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/RetryProcessingJobRequestDto.cs",
+      "sha256": "30563d62135162ba757031d8e79625622b7e5ab887ce16b55e41c6807b26fce7",
+      "size": 205
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/ValidationPairDto.cs",
+      "sha256": "257e93980a3e7ca339a3cb25c6b8a07fcaad03c77cea8a2dc81535a8773d8b38",
+      "size": 131
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Processing/ValidationResultDto.cs",
+      "sha256": "38c4c83555206ae714173fbcd98a36552711873a895d84704a3ac9e9785609d4",
+      "size": 259
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/CreateHandoverRequestDto.cs",
+      "sha256": "5db23fbb37d0947b015b7cf16769e54b21eef142ea92e5dfefb0eb0f22289f21",
+      "size": 261
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/CreateProjectRequestDto.cs",
+      "sha256": "4b54bc5c3f75a9e1f7f5ee663beae85cf7856cfa2aafafb6cf3c6edb51212da0",
+      "size": 625
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/CreateProjectResponseDto.cs",
+      "sha256": "34643faf8ec4095ef74c1171ef145dce28dbb2af8a67a38ec676d1d545cf0d03",
+      "size": 389
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/CreateRoadSectionRequestDto.cs",
+      "sha256": "ee49700e1b1d015c3ca0f71c101903e130bbcb56b730fb274c2e66c29d4c7ea2",
+      "size": 433
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/CreateRoadSectionVersionRequestDto.cs",
+      "sha256": "c4af823c4bb28399ca2e6da5e0bd7467830d8a94eef55e0a07645e3cf1c8e99b",
+      "size": 391
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/ProjectWorkPackageResponseDto.cs",
+      "sha256": "7131f53ca2221cced7c3a1d3aee59a72d1a889f948c327758a189a5e3203ccfc",
+      "size": 436
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/ReassignPrimaryProjectManagerRequestDto.cs",
+      "sha256": "9c96140623d06b619ef0f69a3de76fed982049f9963df4bba29fae771869a1f2",
+      "size": 357
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/ReassignPrimaryProjectManagerResponseDto.cs",
+      "sha256": "d452480ee0453d35b62f4e6e3d02ac5decbf6276620ebca5ecee25e7fce45568",
+      "size": 207
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/RoadSectionCoordinateDto.cs",
+      "sha256": "9b0a29e2db94bc7262fd8264129345ad404b9e6da268909645a313ad006cd912",
+      "size": 109
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/RoadSectionVersionResponseDto.cs",
+      "sha256": "984f629e4a2dce5c68d0b469c42812a94e7009bc5b583418963b2cedd50fc7bf",
+      "size": 285
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/RoadSectionWorkPackageDto.cs",
+      "sha256": "c80a7efe369a661b7591d0777f6a95ae6c33e699a05e8af2a3e345500a986ac1",
+      "size": 293
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/UpdateProjectRequestDto.cs",
+      "sha256": "bfc1546201518f7dab2b25c41439e49877b193c332abe51482999deb9b1a7c4e",
+      "size": 345
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/UpdateProjectResponseDto.cs",
+      "sha256": "38748e98b7c75c17cd81d0460847efee4443ba7832b2178c153382cceabb2f35",
+      "size": 295
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Projects/WarrantyWorkPackageDto.cs",
+      "sha256": "5e61c2a2b3c383b01d9aab684b3517dc1661ff65d2a5da3e66f5c07358e54b5c",
+      "size": 365
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/BandScopeDto.cs",
+      "sha256": "cbb8cf9f360369485066a5f3703297da5e84608cd4d34a92122d64eaf4086fe8",
+      "size": 270
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/CreateSurveyPlanRequestDto.cs",
+      "sha256": "f25063c3e671af63111653e297df7860d438a0f6c402926bc3fbdbb6a7165b6e",
+      "size": 375
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/CreateSurveyPlanResponseDto.cs",
+      "sha256": "ba0bd206fdc1e5a572d80b7e881c1cebc399de206fda8252d5fff288e9b2335f",
+      "size": 389
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/CreateSurveyPlanV2RequestDto.cs",
+      "sha256": "6ae39bbc0f5b9b7afb5be7cb555cd81cc83d205fa54e5051848ee438fa8f4b40",
+      "size": 267
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/CreateSurveyRequestRequestDto.cs",
+      "sha256": "2d668c9177f05581cdaec6c5cfc4acc2dfe9bc281907ab3fd1fc0d147b1aed11",
+      "size": 361
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/CreateSurveyRequestResponseDto.cs",
+      "sha256": "599a454b891064a4c9a73f9abd348e3353083ed3e8db488dfde5b83250472d49",
+      "size": 440
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/CreateSurveyTaskV2RequestDto.cs",
+      "sha256": "f9475e94e2666ac363316de9b95d5cb18abe518a0418dc191326c6f163e4efee",
+      "size": 315
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/DatasetCoverageItemDto.cs",
+      "sha256": "92a1177e71034f44864fb53764299f80bdff41264244ce5ee0d03f7c98cd84b7",
+      "size": 231
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/DatasetCoverageResponseDto.cs",
+      "sha256": "683e250cca99335f4c59e227c18868eed286b682498e333c5ec76827e11cd57a",
+      "size": 186
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/DatasetResponseDto.cs",
+      "sha256": "bd2580789a932dd005a6bcf45dde9572be12f645d93edcf48a8efa129d888e0c",
+      "size": 219
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/PointDto.cs",
+      "sha256": "b275c37f5374cf140de75405450bc69c2d52a6fab77e0e2de9eb70d59bfbde59",
+      "size": 198
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/PositionDto.cs",
+      "sha256": "59d237e26f87e8d20edbfab823f952793350d07a7ca1d5a90bab97caee67b5f8",
+      "size": 257
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/PostponeSurveyPlanRequestDto.cs",
+      "sha256": "3cf10ed73fd2e6e71f9b065fe6f5e7a7c2c766cc3f0cba45ae8e9f3be77715b4",
+      "size": 244
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/PostponeSurveyPlanResponseDto.cs",
+      "sha256": "e2a9890b6ef8a70ddba05a0691ebb70010b39462098c93dc75507d4ca01a471b",
+      "size": 253
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/PostponeSurveyPlanV2RequestDto.cs",
+      "sha256": "47b5119d4514ab7fd8a8704ffcc40a7672c6fa1033a5ca130eb5b93a0421390c",
+      "size": 185
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/ReassignSurveyTaskV2RequestDto.cs",
+      "sha256": "6b1e9ca30e38e4d83a69c78abe49750f91572c6ebdfe2e2b6e57ad014fb83122",
+      "size": 240
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/SubmitDatasetRequestDto.cs",
+      "sha256": "3482f192898e59a1c035fe2156877ae385e454c88c3f6ad1003f4ab6a06f9717",
+      "size": 404
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/SupplementSurveyTaskV2RequestDto.cs",
+      "sha256": "5c48e15eee6a5b727b1f9e501d32e4dd5c9a5834abc7f9d4d64911b7f27ea909",
+      "size": 272
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/SurveyPlanV2ResponseDto.cs",
+      "sha256": "2454ab1f70e684ea6225a006ac18a009c05557258df13a5943affc65d844e2e9",
+      "size": 229
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/SurveyTaskPageV2ResponseDto.cs",
+      "sha256": "494f52349235eac081d2cfb372fcf160e9a6a1d0a4b80476fd0656a542112805",
+      "size": 191
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/SurveyTaskReasonV2RequestDto.cs",
+      "sha256": "12ca4ad4dd0dfc01acedb9fb75da975a657ff5d064db7b99eb994935b36535cc",
+      "size": 183
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Surveys/SurveyTaskV2ResponseDto.cs",
+      "sha256": "7d055d50c080353de91274ac812c2099b25cc7f7adf88ca05b80356d6e97b90c",
+      "size": 220
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Warranties/CreateWarrantyRequestDto.cs",
+      "sha256": "9fb118d3a64f282a96f064cbe75695a7bf2e834fabd6bfb63b3f6be9f746376e",
+      "size": 370
+    },
+    {
+      "path": "source/RoadGuardSystem.DTOs/Warranties/CreateWarrantyResponseDto.cs",
+      "sha256": "f15892718376c84f3fbcb21938c79f847f05819fad3c89f9d3cfe4a32eb82d8a",
+      "size": 390
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/ConsumerEffectReceiptConfiguration.cs",
+      "sha256": "18b2dac9ee6cab5597febce80c3dcb4a1f165281d2f23af9fa2bc59480ed77a9",
+      "size": 1062
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/FileScopeConfiguration.cs",
+      "sha256": "f5916f286fb6614abef19d9b3a187a68a803a513f972f3a210412c3505eedd1d",
+      "size": 1435
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/IdempotencyRecordConfiguration.cs",
+      "sha256": "d01d096141cb25d001bf3a82963c0a1438955cc1b23d8037aa4ae838754386aa",
+      "size": 1615
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/NotificationConfiguration.cs",
+      "sha256": "61fdb6e00e67093dda4187952c345644a43aefd91bf04364840f9fa2902b1968",
+      "size": 3439
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/OutboxMessageConfiguration.cs",
+      "sha256": "215b68a129fa55d84665dcb842f297de4a92c2271050180cff42aae027821bfb",
+      "size": 2478
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/ProcessingAttemptConfiguration.cs",
+      "sha256": "b780145c0933aa88c9d37bd9abd9b64fe374dfcc7d59507ff254e6ee0bb83ee7",
+      "size": 2852
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/ProcessingBlockConfiguration.cs",
+      "sha256": "cddf72088b5c1b663731af8b0faf85f26bb962bc3481a06b42fcf822bb189df0",
+      "size": 2026
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Configurations/ProcessingJobConfiguration.cs",
+      "sha256": "59f8964705f066d9776202da1bd1d99ad11d5f81607e142778dbab70714de1d2",
+      "size": 2664
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs",
+      "sha256": "094ce79da3728959181dd7fae4ee2aff3edb6ae1641bae4a11b077b569347e7e",
+      "size": 7984
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationResult.cs",
+      "sha256": "58548f3058998560e1ce34b6a286da925c256b6c6b7f6b482507da7a1632653e",
+      "size": 351
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs",
+      "sha256": "88ad0c93216cbe4bfe8fe285e1170844f0a223b03927715c00bbbda84ef80fdc",
+      "size": 7181
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Defects/DetectionReviewPersistenceRequest.cs",
+      "sha256": "7c8b869e8be3bd4b6099e7d4db9358a47aac2201f94d385e09692f6b4b61a5a5",
+      "size": 601
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Defects/DetectionReviewPersistenceResult.cs",
+      "sha256": "316918f99f6a0f42e0183b15f69f1221eadd3af67454c3986dc0cf32636b2460",
+      "size": 277
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Defects/DetectionReviewPersistenceService.cs",
+      "sha256": "cef28778c59cbcaf328c31ea51b3aa3a9b2038e6a3b3c8c475cbc4c0a2427f67",
+      "size": 6974
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Defects/DetectionReviewPersistenceStatus.cs",
+      "sha256": "207ca06f58acd0c2f387c25c2c7849aca5f65aa72264cf9e449ee1a452d6e9ef",
+      "size": 246
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Files/FileRepository.cs",
+      "sha256": "834fd1d46605fe7a0cdedc80647b7773adec717c06e5cad7e2cad84d1a140d41",
+      "size": 6900
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Files/FileStoreResult.cs",
+      "sha256": "b4143649743ec58c82f9813a42e17f0b85152b024498457cf434e8f103cb8678",
+      "size": 392
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Files/StoreFileRequest.cs",
+      "sha256": "8ef527ec1a67b7eb6ee41897e12f7efa2b75a773c66698124a9ce6c16eccbb11",
+      "size": 364
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Files/UploadPersistenceService.cs",
+      "sha256": "2ee065401ea173f12be25dba62cc7178c24f3b45e799587e834ef56a3c431d0c",
+      "size": 18151
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.Profiles.cs",
+      "sha256": "9d1da19b29e11fe359bd7f643980e4e53a35063f9a5a6bad70169f1ac13251b2",
+      "size": 7678
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Messaging/ConsumerEffectService.cs",
+      "sha256": "cb5b75dc0c943dcfb7d255697189ff74844fa9addc8583fb8e54a56e1223c9a3",
+      "size": 4235
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Messaging/NotificationOutboxConsumer.cs",
+      "sha256": "ff7ebbd5f28b64b2233155affe2c24e48a33b20ad6f0b7bf8fb85470fe3f4986",
+      "size": 1734
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Messaging/NotificationPersistenceService.cs",
+      "sha256": "6173ff90ad37a337eda9306bfc7f9d841e212b05d8019d0801f2e72e9d7abf5a",
+      "size": 6431
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Messaging/OutboxWorkLease.cs",
+      "sha256": "d43946b3cbcca154becdced454b0225a0db894da88d028d552d6462aef48750c",
+      "size": 277
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Messaging/OutboxWorkRepository.cs",
+      "sha256": "af40b6843381a4f05a3e1fb91edea54a238939a99c19ae0eb7a3dea3cd5f8f9a",
+      "size": 5051
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+      "sha256": "b9d66ff0580ab652d0b268debbe2c94b59661af17ff3a6e4f0133c0f85c1762c",
+      "size": 26928
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/PrimaryProjectManagerFacts.cs",
+      "sha256": "7029a00d49b5e39a6f0b2d23127dfdebd9f6cbed996a60b01649d016e55baee6",
+      "size": 351
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/PrimaryProjectManagerPersistenceService.cs",
+      "sha256": "15b0975469256176b6da023a1c21e64511e6e60542cccfca52c9fd1a039cc353",
+      "size": 8943
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/PrimaryProjectManagerWriteRequest.cs",
+      "sha256": "2e1f15d45cfd7e740a4147716a0a9e15dad8ca7152a37d0a6dd9305496f4f22b",
+      "size": 364
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/PrimaryProjectManagerWriteResult.cs",
+      "sha256": "fc6d02b7516ab573347a077cbeafaa14b96e103e47fc9f409d81fe59f1f1bccb",
+      "size": 266
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/PrimaryProjectManagerWriteStatus.cs",
+      "sha256": "b60a8e63fc268185bc00088c57abcf81cefcef953310a835b3a849a11e28bf5b",
+      "size": 203
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/ProjectCreationFacts.cs",
+      "sha256": "45f3591bb78a13ec537c783cc375f72f9f86a219d3b98502d06cd6e565c1704c",
+      "size": 165
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/ProjectCreationPersistenceService.cs",
+      "sha256": "e3020c2ab84e3926ecf1b8152509231649e64840af4732bf7860adb8e9f07a0e",
+      "size": 10559
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/ProjectMembershipReadModel.cs",
+      "sha256": "453416715be96b971ddb29c8b035164804521e707c2a1883982a767c5f4e33f3",
+      "size": 2796
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/ProjectUpdatePersistenceService.cs",
+      "sha256": "64b580fb84e8f7f6632251c39096292a7c54659ffadf81cd7bf9eba0fd376817",
+      "size": 9692
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/ProjectWorkPackageReadModel.cs",
+      "sha256": "4a5df855aa294a18f72c1a429cc49ebb53619cd2b5fdc6b9b3da7a955ed8a7f3",
+      "size": 4499
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/RoadSectionInitialVersionWriteRequest.cs",
+      "sha256": "4d23d9d52abbba296c8671b8bc0b680d31139344b22e3587e364afe401cb33ea",
+      "size": 355
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/RoadSectionNextVersionWriteRequest.cs",
+      "sha256": "2ed5e817be085b83c5c3e6641fe98e1c620491b012384e91beb484311985eefa",
+      "size": 376
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/RoadSectionVersionFacts.cs",
+      "sha256": "121fb88e42b4ad222f4467a8cca8a1ea453cc944a4e2e787ad5e39b9f229291b",
+      "size": 201
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/RoadSectionVersionPersistenceService.cs",
+      "sha256": "6ef283351f2ad95610739ec4fd49528e3cbf7275b3879758a19b9b0be88fd75a",
+      "size": 17093
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/RoadSectionVersionWriteResult.cs",
+      "sha256": "e1c6e75f86a5855d014d2b120db767b5ea8209fa1c7908613022f04f1f60ccf1",
+      "size": 194
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/RoadSectionVersionWriteStatus.cs",
+      "sha256": "b814021efe731f1c006311e353a4c56b5455be5621e0a93d4b1c6183e968759e",
+      "size": 280
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Projects/RoadSectionVersionWriteView.cs",
+      "sha256": "5e99a9c7d3d5a9ee4e84b2a4ed30f970063987b3ac31ba6de65291c6e50f5543",
+      "size": 291
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Seeding/DatabaseNotReadyException.cs",
+      "sha256": "b9626e29e1200077503d30bcad00245affdebd078c19911795a74dbabc97372b",
+      "size": 531
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Storage/FileStorageErrorCodes.cs",
+      "sha256": "66fe761e3fea4a3de2818c6db1eb239b77d436c2115a796cfa5cb005474b48a5",
+      "size": 720
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Storage/FileStorageException.cs",
+      "sha256": "3ac6668561345681e7654f8317d7dcc4d637539f69ea60fba7e277b273bd3511",
+      "size": 307
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Storage/LocalFileContentStore.cs",
+      "sha256": "8e4bb6206d522ce9858c535d3fd3af301fd4d771b927cfc89d07d2ed9f74947c",
+      "size": 14707
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Storage/MinioUploadObjectStorage.cs",
+      "sha256": "196e0f65b14a38bb8af6aba76ca73a606be54adbb249372a84a5f654c7bcff4a",
+      "size": 7454
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Storage/S3ResponseStream.cs",
+      "sha256": "5820b020451e9b23d33189d4c03c861685a42d369237f5a3dc462ed7927c531d",
+      "size": 2147
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Storage/StoredContent.cs",
+      "sha256": "9d5def8a0f67a385d2a9b0bc5cf4eb2f501f4547f94fd5fc1fd390e41b8e9db1",
+      "size": 195
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssignmentPersistenceService.cs",
+      "sha256": "ba96288309f73361eb249ff1869b97339cdd4c02b13c960be31ac2f189dbd41a",
+      "size": 5745
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssignmentReassignmentFacts.cs",
+      "sha256": "f8a37496b224fb343b5ca35fa97f5825b482cd7f2a27c8b85bb2480ba065fb56",
+      "size": 155
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyDataValidationAdmissionPersistenceService.cs",
+      "sha256": "3ab6d783982a8539ade96855996e2dfce3d68eee369e00f6285fb9312d34fb28",
+      "size": 6466
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyDataValidationAdmissionRequest.cs",
+      "sha256": "9c1ed12bb10600cd693b93575774dcf6331e2a77d5cfebd23f3eb3b0fcf3f390",
+      "size": 341
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyDataValidationAdmissionResult.cs",
+      "sha256": "b911a670737913787cd7c562f5884e91342b4fbfdac27905a192af3c7810b41a",
+      "size": 252
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanCreationPersistenceRequest.cs",
+      "sha256": "b2a09af7971edf47be82bfe2e280426d23f461be388fa3a9ddaf6d826b88cf19",
+      "size": 478
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanningPersistenceService.cs",
+      "sha256": "67f2b87a22471d520883018a77c6dd1beb1054ca6af1569571048cf4298be82f",
+      "size": 16948
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanPersistenceResult.cs",
+      "sha256": "921c330e90775f4b9b052164685421439a39a37db97a0e08ba4ec19e88da3de9",
+      "size": 184
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanPersistenceStatus.cs",
+      "sha256": "52ee79e593bd80efd365729db2149fe6267514684d55cc047e8a253e33b585b3",
+      "size": 236
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanPersistenceView.cs",
+      "sha256": "ab1fa35a0ccc1a5bd00bd06fd8e10f1ea724a4430aaa933c3b27c912b5da6c02",
+      "size": 395
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanPostponementPersistenceRequest.cs",
+      "sha256": "be243000c81fcc2e89ec283d87b05f7f56878848a79c9abad385debb05d8c994",
+      "size": 341
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanPostponementPersistenceResult.cs",
+      "sha256": "ebab02af40e53017470c7b9f7b59bcfe4a9891c4f738d10052d752a52ddd12d3",
+      "size": 228
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanPostponementPersistenceStatus.cs",
+      "sha256": "20483fa5771e729f4c9267bf0aeb7fb9066e53a1163e75a2e3a06394ac6adf71",
+      "size": 248
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanPostponementPersistenceView.cs",
+      "sha256": "b9c8a671eb727fbe7821438b773fd9bad65a1c32121d989de6d383f2000bf3ca",
+      "size": 269
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyRequestCreationPersistenceRequest.cs",
+      "sha256": "39408e0a295083f32f72bbec48a84c838cac571b0c49738b1e5abb4c4fa97980",
+      "size": 463
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyRequestPersistenceResult.cs",
+      "sha256": "cf76b527af3925f8a9f5157314dd44bb632f920f8a523fbcd5f4f82f108f257c",
+      "size": 196
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyRequestPersistenceStatus.cs",
+      "sha256": "a66972f3044557f4d69e6bbe8f95de2e2fd2da9f979e3cf15b9a090b230e581b",
+      "size": 239
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyRequestPersistenceView.cs",
+      "sha256": "f951df5bb90be140353764cc6bb65c8cf2a32ad5f95103597e67edd9531cb9ac",
+      "size": 446
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
+      "sha256": "5c92878f3c542290ca64215b600e2bde131ba947744c55a1ec1d355773da14e6",
+      "size": 29980
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs",
+      "sha256": "88bce3f290e64169127f4cd29d89a02b20387dfaa5003f959b3b114a61aef5f9",
+      "size": 12355
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyCreationFacts.cs",
+      "sha256": "1a9556e5c638c9c01e999d5f91db7004065dfa4323ad6f9fcde1226c60292235",
+      "size": 288
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyPersistenceService.cs",
+      "sha256": "8fb91ec9a36b915faeb33d6f5b12348fdb1434ea449bb909a15d5c093ef318a7",
+      "size": 9991
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Defects/IDetectionReviewRepository.cs",
+      "sha256": "6a4175ed258314dd39d83829d9fa62452da9726f2e0d93c16d2ad02f581b4eb1",
+      "size": 317
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/FileMetadataPersistenceView.cs",
+      "sha256": "efaacd72014e1cc97b63ab314ed3644139d7784163d5c8c11dfd142c0c134d2f",
+      "size": 283
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/IFileRepository.cs",
+      "sha256": "b69975b1a0855172f4261c3b11e86909435c6c6effbea4bfd1da639b47ca41be",
+      "size": 212
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/IUploadRepository.cs",
+      "sha256": "ff1afd659d6dbeb917d90ff117661f7b6a8e1b1200434a6334e423e0ac537892",
+      "size": 1096
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/UploadCompletePersistenceRequest.cs",
+      "sha256": "d7e07aab32e7d7baf1cf50a37f126da75874b1edf2268026b1b1684b45d77bf1",
+      "size": 394
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/UploadCreatePersistenceRequest.cs",
+      "sha256": "0adc8d3724a38ed6575b748e03c1209ca2a4daecee6b6262f43fd167dcb43352",
+      "size": 409
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/UploadMutationPersistenceResult.cs",
+      "sha256": "e864671b688a3f7cff52e0be284363264be8bb3cf02ee3b1ba51be12379c6a6b",
+      "size": 172
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/UploadPartUrlsPersistenceResult.cs",
+      "sha256": "2b459900279b4c310e938e1934ac6bb61be9ada088f5c533840f9d4b13de7e8b",
+      "size": 220
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/UploadPersistenceStatus.cs",
+      "sha256": "b81b3a6e3242248c39015a2ae92dd73df62b595f9c3ad8160f187c9225badc2a",
+      "size": 236
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Files/UploadSessionPersistenceView.cs",
+      "sha256": "4f228bb1aadf54419101d51c86b3f3f182b7a2114485126af0fb607aab7a87d0",
+      "size": 285
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Messaging/INotificationRepository.cs",
+      "sha256": "c4415f85f299ee9d6053fb6195d2f6d6ae9796863d199237f8de4643b6eaf4b2",
+      "size": 753
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Messaging/IOutboxWorkRepository.cs",
+      "sha256": "f5298a56c78927f1729c06a452b17aef8af1b178572f63cebebfdae580bdd5fb",
+      "size": 721
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Messaging/NotificationMarkReadPersistenceResult.cs",
+      "sha256": "9333eabdfff6ceae193a9a3ee55b1bc26a3026dce68b94784973aec6c312559c",
+      "size": 209
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Messaging/NotificationMarkReadPersistenceStatus.cs",
+      "sha256": "6faf972b131a5f95b6a2dd4d2e2d39c382187dc06b68a24ed2cbe81412d24685",
+      "size": 211
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Messaging/NotificationPageReadResult.cs",
+      "sha256": "434aa250f8583374aaa1b029eeb069c58aae06c858c2f3c02dab480bfc5321b8",
+      "size": 230
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Messaging/NotificationReadView.cs",
+      "sha256": "b8503aa60e54a45a1fe1a90121be01e3e0d4aad77f85358c7ca90a7d4da9df0f",
+      "size": 221
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/IProcessingV2Repository.cs",
+      "sha256": "ac788c1128fbdbfe2cb710e27da91da68dc9a9589fa769751534cb0e13cd0c88",
+      "size": 1086
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingAiResultRequest.cs",
+      "sha256": "e75b82e38429d35c0ccb6aca1c75c5dec8d23942e67afba36ebb46121e2c66c4",
+      "size": 274
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingJobCreateRequest.cs",
+      "sha256": "5d5b46946794561ffbf83a8ffaa169a40d5fd9e2b5a896248ac69c752dd3cc12",
+      "size": 309
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingJobPersistenceResult.cs",
+      "sha256": "fd9b6acf8c31b60d9fdc754792b90d20157af63efc6ad2e92c441cb43f10e8a8",
+      "size": 186
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingJobPersistenceStatus.cs",
+      "sha256": "188dc12705d04116e660431100f993310a74e8ad6faa6d0d96cfaa0f74cfcf32",
+      "size": 220
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingJobPersistenceView.cs",
+      "sha256": "1f068a94983e01a77c6eff592369042ebd2923de97907fa8216baa6b2d70fd75",
+      "size": 209
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingJobRetryRequest.cs",
+      "sha256": "0895c747cfde5fbc2e17f40597ffadee3057c9fa0293a9d04cfe3483b74c213c",
+      "size": 240
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ValidationRunCreateRequest.cs",
+      "sha256": "e87277f7ff6d47941fd5f901bae17e98e831264725d0c901aca6a45bcf7178a1",
+      "size": 305
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ValidationRunPersistenceResult.cs",
+      "sha256": "d19005ff1835afb00aab2522666f3a94fe54cb20327990d2c48c9f107cdb08ec",
+      "size": 186
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Processing/ValidationRunPersistenceView.cs",
+      "sha256": "c0bc55d9e2df6d1b74d16ea5d73147bfe596fa493af27d3b3d53ee5ee709fa55",
+      "size": 279
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Projects/IPrimaryProjectManagerRepository.cs",
+      "sha256": "8d522c1c2f0ee8db892cd6736429af1ccf98fbd5014e0942111626762c480df7",
+      "size": 618
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Projects/IProjectCreationRepository.cs",
+      "sha256": "007d0794b9a7707649a957793189f8d308f69dc1ebe583931c97858a5aa5e2be",
+      "size": 623
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Projects/IProjectMembershipRepository.cs",
+      "sha256": "3b0e34257176775b741ef056c4d9ab48f6889ca28051dc77f94d110e3f6d05cb",
+      "size": 266
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Projects/IProjectUpdateRepository.cs",
+      "sha256": "1dd4bf06f568f8460be5abe6cf6236b991f10db04f6a4284c522c9914c87c29d",
+      "size": 255
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Projects/IProjectWorkPackageRepository.cs",
+      "sha256": "dfa1129d6012ab52395a1cedb79ad9604a8c7294971d4a926ded9db1758bec0f",
+      "size": 232
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Projects/IRoadSectionVersionRepository.cs",
+      "sha256": "0012f0704d93b67421563f706af2083b07be6868218bb05c9970ebe094a39f7d",
+      "size": 1087
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Storage/CompletedStoragePart.cs",
+      "sha256": "3d27462a0c162baabb8bb47d0a4c44d0338594bd5d1fc41639b94032f63abc13",
+      "size": 121
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Storage/IFileContentStore.cs",
+      "sha256": "bfe9bdd1ca7ce69edfe8edb0188bae70674149bc700960c5d46672711dbf687d",
+      "size": 563
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Storage/IUploadObjectStorage.cs",
+      "sha256": "3240561240e612e80736fb7901dc1ffb2d2fc0e0f5ff04085cf88ff0d6d99628",
+      "size": 691
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Storage/PresignedUploadPart.cs",
+      "sha256": "43cffe547ca6bcd5904fb87116b496b503ac78ab07516551e9cb9e41cb1136be",
+      "size": 145
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Storage/UploadObjectVerification.cs",
+      "sha256": "872e42ee94017f0e34680a7ada4c9171a5ece7d67cb460cf2663f3a000da8978",
+      "size": 152
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/ISurveyAssignmentRepository.cs",
+      "sha256": "7155add8c7ea082fbdcf78c0d1b5d5b5807cb83dde1fc73c20e5ff5accb64887",
+      "size": 728
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/ISurveyDataValidationAdmissionRepository.cs",
+      "sha256": "769ca34c2d80b1223742284f5bdf4118ad313d1ac79935aa2e5e41feb57e4134",
+      "size": 335
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/ISurveyPlanningRepository.cs",
+      "sha256": "6ad4b1b92090efae22d761f78ef82a9f97f5abb9a2b92a571bb4fa27a567bdde",
+      "size": 620
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/ISurveyV2Repository.cs",
+      "sha256": "5ddb5dbf19cf995ffe2ff6e1b1f2bd1124adb68898a936c4ed33a73a4d3b705b",
+      "size": 1347
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyDatasetAccessView.cs",
+      "sha256": "41891bf583cfbcefb47d2d263187c71a45e52645d50c0668354b3de39e9f1f92",
+      "size": 222
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyDatasetPersistenceResult.cs",
+      "sha256": "4f7420a92f1fa403c7cdff27bc89e3a173aadb2ba7649ba6b6145c37e9f38d1d",
+      "size": 196
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyDatasetPersistenceStatus.cs",
+      "sha256": "4bb26d753db1e8ac7484c0dbef30a7a9176a2033995c2c680f3a3eada0d61c23",
+      "size": 245
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyDatasetPersistenceView.cs",
+      "sha256": "936ebb833e79c1d4d451b8244045dc03e470cf5bf5fa55b142d895f3f6d0a016",
+      "size": 279
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyDatasetSubmissionRequest.cs",
+      "sha256": "0714f04964888cf37cba9e9f8b4f968c988a3d1a13f20c7fd12bb6c38c431264",
+      "size": 409
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2PersistenceStatus.cs",
+      "sha256": "51e889bb4f48d627c4a3f8fb80fc0711c272b0871b83e4ee0d35df61f745427b",
+      "size": 234
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2PlanCreationRequest.cs",
+      "sha256": "b8ce2c3de3af96e869da49660a43cef4e685e68d876f1cea83f0fc9cab462dd4",
+      "size": 432
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2PlanPersistenceResult.cs",
+      "sha256": "c3f2e71a8358113cb8c660a2ff4aab9ff396c720defacdbffcda325379098b2c",
+      "size": 177
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2PlanPersistenceView.cs",
+      "sha256": "80e101755f1216620161c1c68ded40100a28a29bfa6456aa6dc922e992453342",
+      "size": 199
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2PlanPostponementRequest.cs",
+      "sha256": "6b3b521d91dd48dd06e4ff97be77fef2cc815a2d01d1e253ae993ca5f47302a2",
+      "size": 244
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2ScopeRequest.cs",
+      "sha256": "f53aff45e1823ea0f74b180f5ff91bfbb036cd5654626f1d87e5bbba527222b8",
+      "size": 191
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2TaskCreationRequest.cs",
+      "sha256": "d22309e63994d85130689607e89d18e25a631a79e809eae92dce566b4f4644d8",
+      "size": 479
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2TaskMutationRequest.cs",
+      "sha256": "aaf5dc0b908f90fe858e8b41559bea53618acaffc6d5a79509aff5524a02c287",
+      "size": 364
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2TaskPagePersistenceResult.cs",
+      "sha256": "10cbaa1770c6f8d1331a98870981d90981a1fd1ff0a02d9484b947c1d36a5162",
+      "size": 209
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2TaskPersistenceResult.cs",
+      "sha256": "9b94ad7bab27c2c59da139c0f9ce5fcd63103504fedb1a626272d84c29e69771",
+      "size": 177
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Surveys/SurveyV2TaskPersistenceView.cs",
+      "sha256": "7efaa104cf2d552a618c68f5b9f03641004889f11f5dfc2d7c482db5158fd298",
+      "size": 238
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Interfaces/Warranties/IWarrantyRepository.cs",
+      "sha256": "e544793a1ef274be17f8c5cd79590dd66acda09e5be20f3b75421a615e650a47",
+      "size": 481
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/FileStorageOptions.cs",
+      "sha256": "21207f80192a510d1b2e7b9b1567ef3c214ffe7858fcb66b79df65860e5eccc1",
+      "size": 251
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/MinioStorageOptions.cs",
+      "sha256": "b841f9467260bfcf6c30d4a18508e1decf755cfd49cb1678a8f3c7de93804af4",
+      "size": 417
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptions.cs",
+      "sha256": "7fa59456556d113467aed6dfbc1aeed5d307a405b0107beaadcdbba87762f225",
+      "size": 1256
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptionsValidator.cs",
+      "sha256": "d1ebe1a28e2ac2ddf9e5e2332af3f74ad105ed263a74e2ad656c5200e9f3c914",
+      "size": 3810
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/SessionDeviceMetadataOptions.cs",
+      "sha256": "5e6cb13955e5f5238be12f34c55c7d1ced3dbf0747b3801ca2221336140505b8",
+      "size": 521
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/SessionDeviceMetadataValidationResult.cs",
+      "sha256": "7b01ac7cf3b6778c588e7d15ee6b281c99a46860575f76aaca94fedc4d742dc9",
+      "size": 337
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/SessionDeviceMetadataValidator.cs",
+      "sha256": "d7e1d6252fb9b3b782bb204a88d1924b7a7464af1f21815091e51c979afae61d",
+      "size": 3517
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Options/UploadSessionOptions.cs",
+      "sha256": "0fed2fecf3a36cf735a52979ea10287e68a2da7887a5a98ee451b0b0af93cca5",
+      "size": 331
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/RoadGuardDbContext.cs",
+      "sha256": "c941f2d923317edda46e44eda934dcc47ce8b0587341129939c0ea23dd52aaaf",
+      "size": 18728
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Spatial/SpatialConstants.cs",
+      "sha256": "44d064d46e9ce9d0b350753abdb4b9a3f6550de1c82b04b70eb8278bcc1d820f",
+      "size": 1622
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Spatial/SpatialValidation.cs",
+      "sha256": "03913c47b483a92c28cc78f66dd662510792324793c702b4a0609eacdef9626a",
+      "size": 2519
+    },
+    {
+      "path": "source/RoadGuardSystem.Repositories/Transactions/RoadGuardTransactionService.cs",
+      "sha256": "4e599f31be6b2901e97aefff6305ceb5d06bfcd8085416f819b7e65663e4dbe9",
+      "size": 1440
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Authorization/ProjectScopeGuard.cs",
+      "sha256": "7296a2fdc1ebfde09c7475881b3bcfa4b383d1da78934d14c3f27844f12f2530",
+      "size": 1689
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Files/UploadService.cs",
+      "sha256": "58cc65a52841a05a54820fa50df7339111e5201cfe25984107df08c962dbdfb8",
+      "size": 11961
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Messaging/NotificationService.cs",
+      "sha256": "0d7ca61208551cb5e58bbd2c873939961fe886b65f8d029d71e30cb7fc522073",
+      "size": 5439
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Processing/ProcessingV2Service.cs",
+      "sha256": "c54b1cfa24010f86079c76fda97842e9f1f03d45431722039c018f4a69fc6b60",
+      "size": 10792
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Processing/ProcessingV2ServiceResult.cs",
+      "sha256": "43d77f6e45a20b4a182160228c24001bcf686bcdcc7c94af3744d795978debeb",
+      "size": 261
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Processing/ProcessingV2ServiceStatus.cs",
+      "sha256": "2ec6d6e62a895a7f7b5ab1eba2db56af6bf2ea736bd4a19726068da040a1263b",
+      "size": 226
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/CreateRoadSectionCommand.cs",
+      "sha256": "baee7204dc3742a12ee4715235e99288a3623e294218e77a8b74020ef342f5d5",
+      "size": 323
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/CreateRoadSectionVersionCommand.cs",
+      "sha256": "08c85da28bc280b0c56b4cbdcd422064c6588ca3cb38591ae990661e03c85b02",
+      "size": 354
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/PrimaryProjectManagerReassignmentResult.cs",
+      "sha256": "db7ce93687f518b46b291436279973626b26fd99d205e6a2977ba1bc6e89db4e",
+      "size": 223
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/PrimaryProjectManagerReassignmentStatus.cs",
+      "sha256": "97b2f39726be19750c6482eb1e09d3c7f6545916e301dac4f872cafcc476c327",
+      "size": 286
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/PrimaryProjectManagerReassignmentView.cs",
+      "sha256": "0387483ff1abdac213ff71130eb5c04bd8f09a6957acec360e5da84cfb0c94b3",
+      "size": 208
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/PrimaryProjectManagerService.cs",
+      "sha256": "aac9bc4dfdf53ed813aa6d80f46786ed0b31266caf568c046c5f1a467bed1c0a",
+      "size": 4539
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/ProjectCreationService.cs",
+      "sha256": "a5c30e0d72ce0fa1e77e554c2b83a906c536f6a7f5802b7db0fbbe2753639b9e",
+      "size": 4630
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/ProjectUpdateService.cs",
+      "sha256": "c71065350d52bb33108336cda7dba5ca6780befe1ee8820246df719ffa103676",
+      "size": 3416
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/ProjectWorkPackageService.cs",
+      "sha256": "37840ebc170ee3f539bf19e7b5a2b8055ea24312b4b6abb1b295f4b5936d60fb",
+      "size": 2192
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/ReassignPrimaryProjectManagerCommand.cs",
+      "sha256": "4a7055738ac421e1a53c670f6e3df028713db41573a552f88c92a73120345f45",
+      "size": 286
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/RoadSectionCoordinate.cs",
+      "sha256": "b806a1902f23549ef9af40bb1011f0fdde762a76e1d089211bab4a2ddf8ee9f0",
+      "size": 110
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/RoadSectionVersionService.cs",
+      "sha256": "987f935322a976a9c4d3d8f7d6483dfef515178f6826391d795ec7504edf7729",
+      "size": 8089
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/RoadSectionVersionServiceResult.cs",
+      "sha256": "f5ab9de76aa5a93a232c778276c77e937919290f4a8755ff6001fb0b70f1cb32",
+      "size": 189
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/RoadSectionVersionServiceStatus.cs",
+      "sha256": "b8469e76543628b5abe4b8a1806e283dd64698bef1e307a50682a310ff3c6f2d",
+      "size": 293
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Projects/RoadSectionVersionView.cs",
+      "sha256": "e94c1ddfb64b6843c02e0e53e44aedfc24ff357776ff49cc6ea46b047da2d34e",
+      "size": 282
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/CreateSurveyPlanCommand.cs",
+      "sha256": "a316c0fc5276b05908c94f65e8994ea8f1a122ce562606473924398115523fd9",
+      "size": 389
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/CreateSurveyRequestCommand.cs",
+      "sha256": "a9f79fedce8fba3d0e7edeb2fe45817eaf1c81bc199b13948f594c0cf451b0c1",
+      "size": 375
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/DatasetCoverageServiceResult.cs",
+      "sha256": "c15092a069baeca10a31f9ce8b3db3650a3cfb05b9c5b297f086228a3a7fe24e",
+      "size": 208
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/PostponeSurveyPlanCommand.cs",
+      "sha256": "1220802459aaf88d1e3138e3f6b61ff960a23473c769524c43b1af55fcac19b1",
+      "size": 242
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyAssignmentService.cs",
+      "sha256": "7844eadc8ce26d6cacd7e9bcf23fc0341e5b28ff98898e5ae0883b1f40bdaa4f",
+      "size": 2483
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyPlanningService.cs",
+      "sha256": "7a2792203ce087bd0df5d44b50bc2c2d9cc225f7202ea110d10c0e7de708767a",
+      "size": 9306
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyPlanningServiceStatus.cs",
+      "sha256": "12a3eda93dff838f80b236e0e6e72c360a5acafd165bab77450eb3a641c21845",
+      "size": 228
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyPlanPostponementServiceResult.cs",
+      "sha256": "7d3ea24ad38c2a2caf4a6c86310fd11b4bc6c2e519eec33a64fcadd7de2a7c3f",
+      "size": 253
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyPlanServiceResult.cs",
+      "sha256": "0ccaee32ea3160517abd47d8cf633c316c2c1adab123d6291b595a66523ff87e",
+      "size": 221
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyRequestServiceResult.cs",
+      "sha256": "1d056b1b926639d11c00f3c791d4f3bf5a861d2635b59e112efe591da0b6c8d6",
+      "size": 230
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyV2Service.cs",
+      "sha256": "3fe7337ba6dca9a8df90e94e45a12e8a5413cfa8c23f3d6354182fb794b2d91c",
+      "size": 20940
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyV2ServiceResult.cs",
+      "sha256": "fa471c0dcbfe29f465357abba3ef6a6cc8c9dcb96ae9b7e0adee67b57ff6181d",
+      "size": 285
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Surveys/SurveyV2ServiceStatus.cs",
+      "sha256": "3da8ec0a14048986cd1244fcffcd183cec2e29a43359e9cd5ce0cb98952789fa",
+      "size": 241
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Implementations/Warranties/WarrantyCreationService.cs",
+      "sha256": "7112c286e396269fff6d6bf813247ceca75abe888362349f3eb2475680ddef30",
+      "size": 5812
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Authorization/ProjectScopeGuardContracts.cs",
+      "sha256": "fe039a14816835f56bc35254bbf4270059360e598c7dd0ea327129419294acf4",
+      "size": 475
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Files/IUploadService.cs",
+      "sha256": "9ce48796a4e6b94914af4f8bf135aa94f63f0aa3d9bc796066f0706a87dbe4b1",
+      "size": 1337
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Files/UploadServiceResult.cs",
+      "sha256": "e05b39edddfeae241ed8870e824cdad23ef8a491339ee922bc421f0ae6a243f5",
+      "size": 317
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Files/UploadServiceStatus.cs",
+      "sha256": "61b35edb192d7fbb263788d4a38f0aa5139aebc6239c2fb2942a1945c81f5947",
+      "size": 246
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Messaging/INotificationService.cs",
+      "sha256": "75c0ae54c9917cd8aada0cf5be97987781d11ec6b70e73a719eb03d4e8189f35",
+      "size": 697
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Messaging/NotificationPageServiceResult.cs",
+      "sha256": "fcde2b3fea7a00286156a3318067008b449337d1ada64fc583793e0811050490",
+      "size": 215
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Messaging/NotificationReadServiceResult.cs",
+      "sha256": "95d68acfb569d2de0dbdc12e420b5c8958d4af6406189220ec7da80f5d98af4a",
+      "size": 219
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Messaging/NotificationServiceStatus.cs",
+      "sha256": "53e64b40195587044da6bffdc9c2b83ea2a2ca4fd82d7ec2cc4b37400281d9df",
+      "size": 217
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Processing/IProcessingV2Service.cs",
+      "sha256": "e0b46fe08fd60b910a246ba9c0504893537b6dd132ca22b4902a709b5bba5408",
+      "size": 1348
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Projects/IPrimaryProjectManagerService.cs",
+      "sha256": "e5839eacb4271fd56921694958e9099361c08c5b99b56672ebd088e229bbe489",
+      "size": 403
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Projects/IRoadSectionVersionService.cs",
+      "sha256": "56ed0267217fda5070f0f396abe3931e38d234a27e622a87d51f0c652f49bbe6",
+      "size": 959
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Projects/ProjectCreationContracts.cs",
+      "sha256": "2838e7defadd2c9d08c145b227a89fcc0f87d9e848d5a009069051e304bec0f3",
+      "size": 1514
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Projects/ProjectUpdateContracts.cs",
+      "sha256": "9dfb04447059d67f83df6bbfca9fa33077b4e81d4384dfe1a1eddf07d12f6122",
+      "size": 1199
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Projects/ProjectWorkPackageContracts.cs",
+      "sha256": "730d38887150cf2a49b13593d099b36be59ac3b5b26d73740a16d108b7b63552",
+      "size": 389
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Surveys/ISurveyAssignmentService.cs",
+      "sha256": "89b88e1e2b2a7c969672800606555c5a5262beee2ff0473a3df6beb298c81cc7",
+      "size": 539
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Surveys/ISurveyPlanningService.cs",
+      "sha256": "020246f1ec323e38b49428d889d2635c899dd258fd6230a7f131f9b9c42896c3",
+      "size": 783
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Surveys/ISurveyV2Service.cs",
+      "sha256": "c597e4aa82feed35f50c1bd9099967a95442a54bfb7fe4c20462328b38e88094",
+      "size": 2850
+    },
+    {
+      "path": "source/RoadGuardSystem.Services/Interfaces/Warranties/WarrantyCreationContracts.cs",
+      "sha256": "95212762d0a5612faf5186433c73afc867a45c448cb111ac4df0c8d8e08608d0",
+      "size": 1473
+    },
+    {
+      "path": "source/tests/RoadGuardSystem.ApiTests/Idempotency/IdempotencyPerCommandCharacterizationTests.cs",
+      "sha256": "a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f",
+      "size": 57604
+    },
+    {
+      "path": "source/tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs",
+      "sha256": "2eda4969413db8b2b50f84ca922085b5339283e4f6b4941e5c8caa2690c4bb29",
+      "size": 5357
+    },
+    {
+      "path": "source/tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationWebApplicationFactory.cs",
+      "sha256": "62eef5274095e9dbf59082d3db4f4caacedfdb025c6f0dbdc1be59d4aa9490a5",
+      "size": 5248
+    },
+    {
+      "path": "source/tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs",
+      "sha256": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e",
+      "size": 30692
+    }
+  ],
+  "algorithm": "SHA-256"
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "Path": "tests/RoadGuardSystem.ApiTests/Surveys/Rf1003RequestTaskAssignmentCharacterizationTests.cs",
+    "SHA256": "250870A24E67BF6D5C1B8A72D6A0CBBB4D4BAEA7379A88959A83C461F6B8F42D"
+  },
+  {
+    "Path": "RoadGuardSystem.API/Controllers/SurveyV2Controller.cs",
+    "SHA256": "FDF5EF5E05196902FC50A2B4802E14935F411E5D2B652303DBB10975EA072192"
+  },
+  {
+    "Path": "RoadGuardSystem.Services/Implementations/Surveys/SurveyV2Service.cs",
+    "SHA256": "3FE7337BA6DCA9A8DF90E94E45A12E8A5413CFA8C23F3D6354182FB794B2D91C"
+  },
+  {
+    "Path": "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
+    "SHA256": "5C92878F3C542290CA64215B600E2BDE131BA947744C55A1EC1D355773DA14E6"
+  },
+  {
+    "Path": "RoadGuardSystem.BusinessObjects/Idempotency/IdempotencyRecord.cs",
+    "SHA256": "321421ECD3CC2DF4CBF536741F1B0F4BBA1B5500569B5DC1C99F6DEFB7BDD589"
+  },
+  {
+    "Path": "RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs",
+    "SHA256": "88AD0C93216CBE4BFE8FE285E1170844F0A223B03927715C00BBBDA84EF80FDC"
+  },
+  {
+    "Path": "RoadGuardSystem.BusinessObjects/Surveys/SurveyRequest.cs",
+    "SHA256": "EF707C8F466C29FC3BCBB321A8F7B70917EF57B92650E1FE625A05EE72375E43"
+  },
+  {
+    "Path": "tests/RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs",
+    "SHA256": "2EDA4969413DB8B2B50F84CA922085B5339283E4F6B4941E5C8CAA2690C4BB29"
+  }
+]

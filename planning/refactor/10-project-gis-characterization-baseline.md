@@ -1,0 +1,29 @@
+# 10-02-C01 project, membership, road/GIS and warranty baseline
+
+Branch `anh`, local HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1`, dirty working tree, 2026-10-01. This is a current-behavior baseline; it does not accept the 39A target or authorize segment/publish work.
+
+## Evidence matrix
+
+| Operation / area | Current route and actor | Current guard and durable effect | Evidence disposition |
+|---|---|---|---|
+| Project authorization middleware | Project-scoped operations use `ProjectAccessAuthorizationHandler` and `ProjectScopeGuard`; role is read from the JWT `role` claim, then membership is read by user/project. Supervisor bypasses membership; other roles require `Active`, `ValidFrom <= UTC date` and `ValidTo` null or not elapsed. | Scope is placed in `HttpContext.Items`; denied requests stop before the action. No project row is written by the guard. | `HISTORICAL_RUNTIME`: P112 API wrong-project/ended membership and P211 SQL effective-date/read-model cases. No new test was needed because source and fixture are unchanged. Token role mismatch behavior is covered by P112 and remains current evidence only. |
+| Warranty creation | `POST /api/v1/projects/{projectId}/warranties`; authenticated Supervisor only. | Service checks role before facts lookup; persistence verifies project, optional road and handover belong to the project, date/value/enum validation, idempotency and audit. Rejected references have no warranty effect; audit/receipt behavior is separate. | `HISTORICAL_RUNTIME`: P120 creation tests cover success/replay, wrong role/project/road/reference/date and no-write counts. `SOURCE_INSPECTED`: no Reporter or membership-based warranty grant is present. Real deployed warranty policy is `NOT_VERIFIED`. |
+| Road section initial version | `POST /api/v1/projects/{projectId}/road-sections`; authenticated Supervisor only. | Service creates a LineString from request coordinates; repository requires project open, configured project UTM SRID, idempotency and one current version. SQL persists `geometry` and an audit/receipt. | `RUNTIME_TESTED`: `Rf1002ProjectGisCharacterizationTests.RoadVersionProductionPath_RoundTripsSqlSpatialFactsAndPreservesPriorVersion` (HTTP + fresh SQL reads). `HISTORICAL_RUNTIME`: P121 success/replay, wrong role and invalid SRID. |
+| Road section next version | `POST /api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions`; authenticated Supervisor only. | Project/road association and open status are checked; request SRID must match project; expected current version is a stale guard; prior version is cleared and next version becomes current in the transaction/idempotency path. | `RUNTIME_TESTED`: new C01 test checks version 1/version 2, current flags, geometry type/SRID/coordinates and association after each write. `HISTORICAL_RUNTIME`: P121 stale/replay/concurrency cases. |
+| Membership effective dates | Membership read model uses `DateOnly` from the injected UTC clock; `Status`, `ValidFrom` and `ValidTo` all participate. Supervisor does not require a membership in `ProjectScopeGuard`. | Read model returns facts, not account-role decisions. Membership changes are immediately visible in a new context. | `HISTORICAL_RUNTIME`: P211 active/effective, cross-project/ended, account-role mismatch and ended-after-read cases; P112 API date/status cases. Boundary with a production operation not protected by project middleware is `SOURCE_INSPECTED` and needs a future consumer-specific test. |
+
+## Findings and limits
+
+- **RF10-02-C01-F01 (high, current policy split):** project-scoped middleware applies membership/effective-date checks, while road/version and warranty services authorize only the `Supervisor` account role. This is observed in `ProjectScopeGuard`, `RoadSectionVersionService` and `WarrantyCreationService`; it is not a defect until the owner confirms the intended policy for each route.
+- **RF10-02-C01-F02 (medium, spatial integrity):** the reachable road/version path preserves project SRID, LineString type, coordinate order and prior-version immutability in owned SQL. This is a local fixture fact, not field-survey accuracy or proof for GPX/segment targets.
+- **RF10-02-C01-F03 (medium, warranty scope):** warranty creation supports `PROJECT`, `ROAD_SECTION`, `CONTRACT_ITEM` and `OTHER` enum values in the parser, while entity validation constrains project/road association for the first two. The accepted warranty authority, retention and expiration policy remain `UNKNOWN`.
+- **RF10-02-C01-F04 (medium, target gap):** no current route for segment preview/publish or the 39A adjustable 100 m suggestion was found in the controllers/source inventory. These are target-only and remain F/G work; no implementation or schema was added.
+
+No geometry importer, segment rule, warranty duration, Reporter permission or retention/delete authority was inferred. No shared database or production data was used.
+
+## Final runtime evidence
+
+- `Rf1002ProjectGisCharacterizationTests.RoadVersionProductionPath_RoundTripsSqlSpatialFactsAndPreservesPriorVersion`: `RUNTIME_TESTED`, owned SQL/API fixture, 1/1 passed, TRX `reports/RF-10-02-C01-evidence/rf1002-c01.trx`.
+- `P112ProjectAuthorizationTests`, `P120WarrantyCreationTests`, `P121RoadSectionVersionTests`: `RUNTIME_TESTED` in the current source run, 14/14 passed, TRX `rf1002-existing.trx`; this covers wrong-project/effective-date, warranty role/reference/date/replay and road SRID/stale/concurrency/no-write paths.
+- `P211ProjectMembershipReadModelTests`: `RUNTIME_TESTED` in the current source run, 4/4 passed, TRX `rf1002-membership.trx`; this covers active/effective, cross-project/ended and account-role mismatch facts.
+- These runs prove the named local routes and fixture-owned SQL effects only. Deployed configuration, real geometry samples, segment consumers and field accuracy are `NOT_VERIFIED`/target-only.

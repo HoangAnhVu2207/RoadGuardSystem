@@ -1,0 +1,49 @@
+{
+  "files": [
+    {
+      "source": "planning/refactor/tools/build_rf04_sources.py",
+      "target": "planning/refactor/tools/build_rf04_sources.py",
+      "action": "replace",
+      "source_sha256": "39eac635fafe21f0c437794231a8d26c80889d28d6ae90b29d32f26ec6f33772",
+      "proposed_sha256": "0061bfc170aa9c6119e3c66430652c2083ffbb7308ca14c2fe1a5a709fd672ff",
+      "draft": "planning/refactor/rf05/patches/targets/planning/refactor/tools/build_rf04_sources.py.draft",
+      "patch": "planning/refactor/rf05/patches/planning__refactor__tools__build_rf04_sources.py.patch"
+    },
+    {
+      "source": "planning/refactor/tools/verify_rf04.py",
+      "target": "planning/refactor/tools/verify_rf04.py",
+      "action": "replace",
+      "source_sha256": "ffb80c272a098dc10e0824978206cc3c740c420de955b25a268a9cbf7650f8ea",
+      "proposed_sha256": "46c7e83cbfea5108944ad6ae592cb7cf2dd8663468c7af36b6b60d2756544b68",
+      "draft": "planning/refactor/rf05/patches/targets/planning/refactor/tools/verify_rf04.py.draft",
+      "patch": "planning/refactor/rf05/patches/planning__refactor__tools__verify_rf04.py.patch"
+    },
+    {
+      "source": "tests/Tooling/Verify-AgentSetup.ps1",
+      "target": "tests/Tooling/Verify-AgentSetup.ps1",
+      "action": "replace",
+      "source_sha256": "680b054691870ea225b5b90b80a389200620820503c5aeff7a9d7544a5b80138",
+      "proposed_sha256": "8d6178f8f23b105d43bce1ca94d0600e6bd7981aa51e97adf96d27a3eeeec580",
+      "draft": "planning/refactor/rf05/patches/targets/tests/Tooling/Verify-AgentSetup.ps1.draft",
+      "patch": "planning/refactor/rf05/patches/tests__Tooling__Verify-AgentSetup.ps1.patch"
+    },
+    {
+      "source": "tests/Documentation/Verify-P102Docs.ps1",
+      "target": "tests/Documentation/Verify-P102Docs.ps1",
+      "action": "replace",
+      "source_sha256": "37d476e54347e5b55bc2ffd953d1d0ecbf0f9670b73fd79658e4d6d501488b91",
+      "proposed_sha256": "e13805adc0488a53b8500331a968556023545de22089658fe70417cc079d5e92",
+      "draft": "planning/refactor/rf05/patches/targets/tests/Documentation/Verify-P102Docs.ps1.draft",
+      "patch": "planning/refactor/rf05/patches/tests__Documentation__Verify-P102Docs.ps1.patch"
+    },
+    {
+      "source": ".github/workflows/ci.yml",
+      "target": ".github/workflows/ci.yml",
+      "action": "replace",
+      "source_sha256": "29c095262df7657c62ea4c8cbb812ce21849acc78aa7c3b88ff5fc4ec428389f",
+      "proposed_sha256": "ffb9db789e079209b6bb0015fb183658c6953702d428b2813ad3042bf34a28dd",
+      "draft": "planning/refactor/rf05/patches/targets/.github/workflows/ci.yml.draft",
+      "patch": "planning/refactor/rf05/patches/.github__workflows__ci.yml.patch"
+    }
+  ]
+}

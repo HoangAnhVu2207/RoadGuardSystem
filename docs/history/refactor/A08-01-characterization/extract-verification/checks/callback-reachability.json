@@ -1,0 +1,30 @@
+{
+  "scope": "Production C# in API/Services/Repositories excluding migrations/bin/obj, normal rg ignore rules; no external provider repository searched",
+  "arguments": [
+    "-n",
+    "ReceiveResultAsync|processing_job.dispatch",
+    "RoadGuardSystem.API",
+    "RoadGuardSystem.Services",
+    "RoadGuardSystem.Repositories",
+    "-g",
+    "*.cs",
+    "-g",
+    "!**/Migrations/**",
+    "-g",
+    "!**/bin/**",
+    "-g",
+    "!**/obj/**"
+  ],
+  "output": [
+    "RoadGuardSystem.Repositories\\Implementations\\Processing\\ProcessingV2PersistenceService.cs:67:                _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), \"processing_job.dispatch\", DateTimeOffset.UtcNow, job.Id, JsonSerializer.Serialize(new { jobId = job.Id, attemptId = attempt.Id, job.ManifestHash })));",
+    "RoadGuardSystem.Repositories\\Implementations\\Processing\\ProcessingV2PersistenceService.cs:106:                _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), \"processing_job.dispatch\", DateTimeOffset.UtcNow, tracked.Id, JsonSerializer.Serialize(new { jobId = tracked.Id, attemptNumber = nextAttempt, tracked.ManifestHash })));",
+    "RoadGuardSystem.Repositories\\Implementations\\Processing\\ProcessingV2PersistenceService.cs:117:    public async Task<ProcessingJobPersistenceResult> ReceiveResultAsync(ProcessingAiResultRequest request, CancellationToken cancellationToken = default)",
+    "RoadGuardSystem.API\\Controllers\\ProcessingV2Controller.cs:57:        return Map(await _service.ReceiveResultAsync(jobId, request, idempotencyKey, cancellationToken));",
+    "RoadGuardSystem.Repositories\\Interfaces\\Processing\\IProcessingV2Repository.cs:9:    Task<ProcessingJobPersistenceResult> ReceiveResultAsync(ProcessingAiResultRequest request, CancellationToken cancellationToken = default);",
+    "RoadGuardSystem.Services\\Interfaces\\Processing\\IProcessingV2Service.cs:11:    Task<ProcessingV2ServiceResult> ReceiveResultAsync(Guid jobId, ReceiveAiResultRequestDto request, string idempotencyKey, CancellationToken cancellationToken = default);",
+    "RoadGuardSystem.Services\\Implementations\\Processing\\ProcessingV2Service.cs:53:    public async Task<ProcessingV2ServiceResult> ReceiveResultAsync(Guid jobId, ReceiveAiResultRequestDto request, string idempotencyKey, CancellationToken cancellationToken = default)",
+    "RoadGuardSystem.Services\\Implementations\\Processing\\ProcessingV2Service.cs:68:        return Map(await _repository.ReceiveResultAsync(new(jobId, request.JobAttemptId, request.ManifestHash, request.ModelVersionId, request.Mode, request.RawResultFileId, request.ChecksumSha256, detectionsJson, idempotencyKey), cancellationToken));"
+  ],
+  "exitCode": 0,
+  "executable": "rg"
+}

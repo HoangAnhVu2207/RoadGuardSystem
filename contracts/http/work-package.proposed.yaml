@@ -1,0 +1,126 @@
+openapi: 3.1.1
+info:
+  title: RoadGuard work-package source-grounded draft
+  version: 0.0.0-rf04-draft
+  description: Inactive source characterization; response wire and external consumers await RF-06/07.
+x-contract-status: PROPOSED
+x-source: RoadGuardSystem.API/Controllers/ProjectWorkPackagesController.cs
+x-static-evidence:
+  - RoadGuardSystem.DTOs/Projects/ProjectWorkPackageResponseDto.cs
+  - RoadGuardSystem.DTOs/Projects/RoadSectionWorkPackageDto.cs
+  - RoadGuardSystem.DTOs/Projects/WarrantyWorkPackageDto.cs
+  - RoadGuardSystem.Services/Implementations/Projects/ProjectWorkPackageService.cs
+paths:
+  /api/v1/projects/{projectId}/work-package:
+    get:
+      operationId: getCurrentProjectWorkPackageDraft
+      summary: Read project work package
+      x-implementation-status: CURRENT_SOURCE_OBSERVED_NOT_HTTP_VERIFIED
+      x-requirement-status: UNKNOWN_PENDING_PRODUCT_AND_CONSUMER_REVIEW
+      x-policy-source: ProjectAuthorizationPolicies.WorkPackageRead
+      security:
+        - currentBearerSource: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: X-Correlation-ID
+          in: header
+          required: false
+          schema: { type: string }
+          description: CorrelationIdMiddleware accepts or creates a value; exact validation awaits HTTP capture.
+      responses:
+        '200':
+          description: DTO source shape; serialization and real values await isolated HTTP capture.
+          headers:
+            X-Correlation-ID:
+              description: Added by CorrelationIdMiddleware.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectWorkPackageResponse' }
+        '401':
+          description: Unauthorized, declared by controller; middleware wire pending capture.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetailsObserved' }
+        '403':
+          description: Policy or missing scope denial; controller branch uses project access code.
+          x-observed-controller-code: project_access_forbidden
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetailsObserved' }
+        '404':
+          description: Project not found; controller returns ProjectNotFound code.
+          x-observed-controller-code: project_not_found
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetailsObserved' }
+components:
+  securitySchemes:
+    currentBearerSource:
+      type: http
+      scheme: bearer
+      description: Current source scheme; not approved future Web transport.
+  schemas:
+    ProjectWorkPackageResponse:
+      type: object
+      description: C# non-nullable record members are required source intent; runtime null behavior awaits RF-06/07.
+      required: [projectId, projectCode, name, status, accessRole, rowVersion, roadSections, warranties]
+      properties:
+        projectId: { type: string, format: uuid }
+        projectCode: { type: string }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        engineeringUtmSrid: { type: [integer, 'null'], format: int32 }
+        status: { type: string, enum: [PLANNING, ACTIVE, CLOSED] }
+        startDate: { type: [string, 'null'], format: date }
+        endDate: { type: [string, 'null'], format: date }
+        accessRole: { type: string, enum: [SUPERVISOR, PM, DRONE_OPERATOR, REPAIR_CREW, REPORTER], description: UserRoleCode.ToDbCode output. }
+        rowVersion: { type: string, format: byte, description: Base64 from Convert.ToBase64String; not an HTTP ETag in this action. }
+        roadSections:
+          type: array
+          items: { $ref: '#/components/schemas/RoadSectionWorkPackage' }
+        warranties:
+          type: array
+          items: { $ref: '#/components/schemas/WarrantyWorkPackage' }
+    RoadSectionWorkPackage:
+      type: object
+      required: [roadSectionId, code, currentVersionId, versionNo, geometryWkt, srid, effectiveFrom, changeReason]
+      properties:
+        roadSectionId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: [string, 'null'] }
+        currentVersionId: { type: string, format: uuid }
+        versionNo: { type: integer, format: int32 }
+        geometryWkt: { type: string }
+        srid: { type: integer, format: int32 }
+        effectiveFrom: { type: string, format: date-time }
+        changeReason: { type: string }
+    WarrantyWorkPackage:
+      type: object
+      required: [warrantyId, handoverDate, warrantyStartDate, warrantyEndDate, scope, status]
+      properties:
+        warrantyId: { type: string, format: uuid }
+        roadSectionId: { type: [string, 'null'], format: uuid }
+        handoverDocumentId: { type: [string, 'null'], format: uuid }
+        handoverDate: { type: string, format: date }
+        warrantyStartDate: { type: string, format: date }
+        warrantyEndDate: { type: string, format: date }
+        retainedValue: { type: [number, 'null'], description: C# decimal; precision/scale of wire number awaits capture. }
+        scope: { type: string, enum: [PROJECT, ROAD_SECTION, CONTRACT_ITEM, OTHER] }
+        terms: { type: [string, 'null'] }
+        sourceDocumentId: { type: [string, 'null'], format: uuid }
+        status: { type: string, enum: [UNKNOWN, PLANNED, ACTIVE, EXPIRED, SUSPENDED] }
+    ProblemDetailsObserved:
+      type: object
+      description: Controller constructs RFC ProblemDetails; policy/middleware branches may differ on HTTP wire.
+      properties:
+        type: { type: [string, 'null'] }
+        title: { type: [string, 'null'] }
+        status: { type: [integer, 'null'] }
+        detail: { type: [string, 'null'] }
+        instance: { type: [string, 'null'] }
+        code: { type: string }
+        correlationId: { type: string }

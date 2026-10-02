@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    P1-00 F2 fix: removed EF Core, HTTP, and Configuration packages from DTOs.
+    DTOs must contain only public contract types (requests, responses, pagination, envelopes).
+    Per AGENTS.md: "DTOs owns request, response, pagination, and public contract types."
+
+    Packages removed and their correct home:
+      Microsoft.EntityFrameworkCore.SqlServer     -> Repositories (P2-00)
+      Microsoft.EntityFrameworkCore.Design        -> Repositories (P2-00, private asset)
+      Microsoft.EntityFrameworkCore.Tools         -> Repositories (P2-00, private asset)
+      Microsoft.AspNetCore.Http                   -> API (already there via SDK.Web)
+      Microsoft.AspNetCore.Http.Abstractions      -> API (already there via SDK.Web)
+      Microsoft.Extensions.Configuration.*        -> Services (already there), API (via Web SDK)
+      Microsoft.Extensions.Configuration.UserSecrets -> API/development only
+
+    No DTO source file currently uses any of these packages directly.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\RoadGuardSystem.BusinessObjects\RoadGuardSystem.aBusinessObjects.csproj" />
+  </ItemGroup>
+
+</Project>

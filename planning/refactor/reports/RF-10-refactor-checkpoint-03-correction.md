@@ -1,0 +1,8 @@
+# Checkpoint 03 review correction (append-only metadata)
+
+Branch `anh`, local HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1` plus dirty working tree, 2026-10-01. This note does not rewrite checkpoint 03's ZIP, sidecar, console log, TRX or survey test result. Its ZIP and external SHA-256 sidecar still match `97be73f7fdd705228e658b45f0788c65dc9e82156f8d25181b0d2e1dc4dc619b` by `Get-FileHash`.
+
+1. `RF-10-03-C01-evidence/test-final3-run.txt` records `--logger trx:LogFileName=rf1003-c01-final3.trx`. `RF-10-03-C01.md` and checkpoint-03 README instead print `--logger 'trx;LogFileName=rf1003-c01-final3.trx'`. Both point to the same retained `rf1003-c01-final3.trx` (2/2 pass). The sidecar is the nearest contemporaneous command record, but no independent shell invocation transcript remains to resolve whether the runner received `:` or `;` verbatim. **Exact historical argument string NOT_VERIFIED**; the report/README's semicolon is not promoted over the sidecar. No survey rerun was made for metadata.
+2. `10-03-C01` Done is limited to same-row **plan** create/postpone. Its two tests do not exercise old `SurveyRequest` against V2 task/assignment. `10-refactor-checklist.md` and `10-refactor-slices.md` now assign that current-behavior gap to pending `10-03-C02`, with reachable routes and absent reverse routes to be documented. It cannot be counted as F work or silently closed by the plan tests. External consumers, deployed rows and intended coexistence remain F/G and Q-RF02-03 decisions.
+
+`10-05-C01` reachable-state Done and CG11 unresolved, survey F04 durable-write/422, both Partial parents and overall refactor Partial remain unchanged. This note is included in checkpoint 04 for reviewers of the unchanged checkpoint 03 archive.

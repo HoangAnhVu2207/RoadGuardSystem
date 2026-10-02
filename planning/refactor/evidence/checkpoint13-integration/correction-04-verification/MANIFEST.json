@@ -1,0 +1,252 @@
+{
+  "package": {
+    "name": "RF-10-checkpoint-13-correction-04-handoff",
+    "version": "correction-04",
+    "date": "2026-10-01",
+    "writer": "BOX 3",
+    "purpose": "Close assertion gaps: postpone receipt snapshot timing, upload/survey scoped effect-sets"
+  },
+  "test_results": {
+    "overall": {
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "pass_rate": "100%"
+    },
+    "boxes": [
+      {
+        "id": "RF-10-08-C01",
+        "name": "IdempotencyPerCommandCharacterizationTests",
+        "total": 10,
+        "passed": 10,
+        "failed": 0,
+        "duration": "5s"
+      },
+      {
+        "id": "RF-10-09-C01",
+        "name": "Rf1009NotificationInboxCharacterizationTests",
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "duration": "2s",
+        "note": "Evidence reused from correction-03 - source unchanged"
+      }
+    ]
+  },
+  "build": {
+    "warnings": 180,
+    "errors": 0,
+    "status": "success"
+  },
+  "findings": [
+    {
+      "id": "F-C13-01a",
+      "status": "FIXED",
+      "description": "Upload Create Replay - OperationId + OutcomeJson immutability + scoped effect-set",
+      "coverage": "correction-04",
+      "open_issues": []
+    },
+    {
+      "id": "F-C13-01b",
+      "status": "FIXED",
+      "description": "SurveyPlan Create Replay - OperationId + OutcomeJson immutability + scoped effect-set",
+      "coverage": "correction-04",
+      "open_issues": []
+    },
+    {
+      "id": "F-C13-01c",
+      "status": "VERIFIED",
+      "description": "Role Revocation Replay Authorization with new JWT",
+      "coverage": "correction-02",
+      "open_issues": [
+        "NOT_VERIFIED: original JWT behavior after role change (F-C13-01c-HISTORICAL)"
+      ]
+    },
+    {
+      "id": "F-C13-02",
+      "status": "FIXED",
+      "description": "Postpone receipt snapshot timing + OperationId + OutcomeJson immutability",
+      "coverage": "correction-04",
+      "open_issues": []
+    },
+    {
+      "id": "F-C13-03",
+      "status": "VERIFIED",
+      "description": "Consumer replay with candidate ID + fresh DbContext",
+      "coverage": "correction-02",
+      "open_issues": []
+    },
+    {
+      "id": "F-C13-04",
+      "status": "VERIFIED",
+      "description": "MarkRead ReadAt/RowVersion + receipt immutability",
+      "coverage": "correction-02",
+      "open_issues": []
+    }
+  ],
+  "source_provenance": {
+    "before_build": {
+      "IdempotencyPerCommandCharacterizationTests.cs": "6f0bebf1bb2ad34abe8efce2b511556fdd4e901b118bc5e055fb57f2023aceb1",
+      "Rf1009NotificationInboxCharacterizationTests.cs": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e"
+    },
+    "after_build": {
+      "IdempotencyPerCommandCharacterizationTests.cs": "a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f",
+      "Rf1009NotificationInboxCharacterizationTests.cs": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e"
+    },
+    "changes": [
+      "IdempotencyPerCommandCharacterizationTests.cs: postpone receipt snapshot timing (lines 803-826, 860-883)",
+      "IdempotencyPerCommandCharacterizationTests.cs: upload scoped effect-set count checks (lines 131-165)",
+      "IdempotencyPerCommandCharacterizationTests.cs: survey plan scoped effect-set count checks (lines 245-275)"
+    ]
+  },
+  "payload": {
+    "tests": [
+      {
+        "path": "tests/IdempotencyPerCommandCharacterizationTests.cs",
+        "size_bytes": 57604,
+        "sha256": "a7bbae78744e69ca028c4f6e727637ae3872c0144537b5f3c94619b9e5c3789f"
+      },
+      {
+        "path": "tests/Rf1009NotificationInboxCharacterizationTests.cs",
+        "size_bytes": 30692,
+        "sha256": "f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e"
+      }
+    ],
+    "fixtures": [
+      {
+        "path": "fixtures/AuthenticationSqlServerFixture.cs",
+        "size_bytes": 5357,
+        "sha256": "2eda4969413db8b2b50f84ca922085b5339283e4f6b4941e5c8caa2690c4bb29"
+      }
+    ],
+    "production": [
+      {
+        "path": "production/ConsumerEffectReceipt.cs",
+        "size_bytes": 1302,
+        "sha256": "9f0add52f32dafa8580d58d9ac14a01ea1b21e76c6d6e66d18c42c173dc15cf3"
+      },
+      {
+        "path": "production/ConsumerEffectService.cs",
+        "size_bytes": 4235,
+        "sha256": "cb5b75dc0c943dcfb7d255697189ff74844fa9addc8583fb8e54a56e1223c9a3"
+      },
+      {
+        "path": "production/IdempotencyOperationService.cs",
+        "size_bytes": 7181,
+        "sha256": "88ad0c93216cbe4bfe8fe285e1170844f0a223b03927715c00bbbda84ef80fdc"
+      },
+      {
+        "path": "production/Notification.cs",
+        "size_bytes": 3648,
+        "sha256": "cfde65be9012725fe233202353d6675b23227ef869d3332a0de4cefe40a84431"
+      },
+      {
+        "path": "production/NotificationOutboxConsumer.cs",
+        "size_bytes": 1734,
+        "sha256": "ff7ebbd5f28b64b2233155affe2c24e48a33b20ad6f0b7bf8fb85470fe3f4986"
+      },
+      {
+        "path": "production/ProjectCreationService.cs",
+        "size_bytes": 4630,
+        "sha256": "a5c30e0d72ce0fa1e77e554c2b83a906c536f6a7f5802b7db0fbbe2753639b9e"
+      },
+      {
+        "path": "production/ProjectsController.cs",
+        "size_bytes": 14541,
+        "sha256": "abeb9d3dd02db587bcc885b526f6eb398e142ecc43e9ac11b52572a0bb40a1ce"
+      },
+      {
+        "path": "production/SurveyV2PersistenceService.cs",
+        "size_bytes": 29980,
+        "sha256": "5c92878f3c542290ca64215b600e2bde131ba947744c55a1ec1d355773da14e6"
+      }
+    ],
+    "evidence": [
+      {
+        "path": "evidence/correction-04-box1-run.log",
+        "size_bytes": 457,
+        "sha256": "3cc2fa79d4dedd223c6d859163ac6b9139182ee78e5100e45268a3cdbe98cd82"
+      },
+      {
+        "path": "evidence/correction-04-box2-reuse-note.txt",
+        "size_bytes": 978,
+        "sha256": "59de86cc240e578659bd58b43da76fa9bd0d446f25e8e03960fd890b9f613bdf"
+      },
+      {
+        "path": "evidence/correction-04-build.log",
+        "size_bytes": 172538,
+        "sha256": "7412f7fa5a4f3759c2db2cd32a3c9ab58157427c08ea02d955ede7a81d163ec8"
+      },
+      {
+        "path": "evidence/correction-04-tests-after.sha256",
+        "size_bytes": 314,
+        "sha256": "ff23bbbdc2f2b0db75a31d3dd75ec3b8d71d59770344634dd42f8e6ea208fc79"
+      },
+      {
+        "path": "evidence/correction-04-tests-before.sha256",
+        "size_bytes": 314,
+        "sha256": "00fc7fc6bba5e8bd31c9eeaefcefb997ffb2f8fadbcd43fa0369ef385995b39e"
+      },
+      {
+        "path": "evidence/RF-10-08-C01-correction-04-final.trx",
+        "size_bytes": 321428,
+        "sha256": "213e78a5a7b9f67f568139f7b99f824e0e03a323ef6210d516d6499103d6725f"
+      },
+      {
+        "path": "evidence/RF-10-09-C01-correction-03-final.trx",
+        "size_bytes": 51483,
+        "sha256": "85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c"
+      }
+    ],
+    "reports": [
+      {
+        "path": "reports/box3-final-report-vietnamese.md",
+        "size_bytes": 8590,
+        "sha256": "9589bd2e61f33f4d00bbd2bd97a1fc5efa9c75ca08846363119ecf71343917fa"
+      },
+      {
+        "path": "reports/box3-phase-a-vietnamese-report.md",
+        "size_bytes": 7693,
+        "sha256": "4aeba49318b4c342a375e43068084bab7fe4e7670967d80f246feef4b1641fe4"
+      },
+      {
+        "path": "reports/correction-02-findings-matrix.md",
+        "size_bytes": 8390,
+        "sha256": "c5f5a52c1414a18e6984578f85331d752f02316dbb232bc047a51d1cc0202ed0"
+      },
+      {
+        "path": "reports/SUPPLEMENT-DELIVERY-REPORT.md",
+        "size_bytes": 6844,
+        "sha256": "02b3741a901d9143862a1fce35963523afa030e8ef0ef76cef1c235fbb3e26d2"
+      }
+    ],
+    "documentation": [
+      {
+        "path": "documentation/FINDINGS-MATRIX.md",
+        "size_bytes": 10625,
+        "sha256": "fb63bb2068c7843b5d1e5a8884a6a57095fb4838df3a3d03a671e65e4966d7ce"
+      }
+    ]
+  },
+  "historical_limitations": [
+    "NOT_VERIFIED: Original JWT behavior after role change (F-C13-01c-HISTORICAL)",
+    "Survey checkpoint 08 inspection provenance",
+    "Dispatcher/delivery workflow (not yet implemented)",
+    "Before-build provenance for correction-02 (placeholder hashes)"
+  ],
+  "constraints_compliance": {
+    "no_production_changes": true,
+    "no_schema_changes": true,
+    "no_contract_changes": true,
+    "no_migration_changes": true,
+    "no_ci_changes": true,
+    "no_git_operations": true,
+    "no_shared_database_writes": true,
+    "isolated_fixtures_only": true,
+    "historical_evidence_preserved": true
+  },
+  "checkpoint_status": {
+    "checkpoint_13": "COMPLETE",
+    "rf_10_parent": "PARTIAL"
+  }
+}

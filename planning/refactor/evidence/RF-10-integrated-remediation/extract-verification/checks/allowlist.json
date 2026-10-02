@@ -1,0 +1,5 @@
+[
+  "planning/refactor/evidence/RF-10-integrated-remediation/**",
+  "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+  "tests/RoadGuardSystem.ApiTests/Processing/A0801CallbackIdentityCharacterizationTests.cs"
+]

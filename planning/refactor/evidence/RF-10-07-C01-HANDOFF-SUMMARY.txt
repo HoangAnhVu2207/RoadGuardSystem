@@ -1,0 +1,159 @@
+# RF-10-07-C01 Handoff Summary
+
+Date: 2026-10-01 15:03 UTC+7
+Repository: D:\Project BE\RoadGuardSystem
+Branch: anh
+Commit: 2efc8a5775f834c7f0fe37cc0ce703011649e1f1
+Status: Partial pending review
+
+## Package Files
+
+Location: planning/refactor/evidence/
+
+1. RF-10-refactor-checkpoint-12-correction-01-handoff.tar.gz (33 KB)
+   SHA-256: b95faa6b9948de5caf9d3560076b95623c5c3d01a517e67cd11758dcfd81d49a
+
+2. RF-10-refactor-checkpoint-12-correction-01-handoff.tar.gz.sha256 (124 bytes)
+   Checksum verification sidecar
+
+3. RF-10-07-C01-HANDOFF.md (5.8 KB)
+   Package overview and quick verification instructions
+
+4. RF-10-07-C01-VERIFICATION.md (8.4 KB)
+   Detailed verification report with reviewer checklist
+
+## Archive Contents (39 entries)
+
+- 37 files total
+- 15 root evidence files (build, test, metadata, checksums)
+- 22 source directory files (20 .cs sources + 2 manifests)
+
+### Full Source Files Included
+- Rf1007InspectionMeasurementCharacterizationTests.cs (test, 13 KB)
+- InspectionTasksController.cs (controller)
+- InspectionTaskQueryService.cs, IInspectionTaskQueryService.cs (service)
+- InspectionTaskReadRepository.cs, IInspectionTaskReadRepository.cs (repository)
+- FieldInspectionTask.cs, FieldInspectionAssignment.cs (entities)
+- FieldInspectionSession.cs, GroundTruthMeasurement.cs (entities)
+- 4 EF Core configuration files
+- InspectionTaskResponseDto.cs, InspectionTaskPageResponseDto.cs (DTOs)
+- ProjectScopeGuard.cs, ProjectScopeGuardContracts.cs (authorization)
+- AuthenticationSqlServerFixture.cs, AuthenticationWebApplicationFactory.cs (test infra)
+
+### Build Evidence
+- build-metadata.txt: Commands, timestamps, exit codes, assembly path
+- build-output.txt: Full console (113 warnings, 0 errors)
+
+### Test Evidence
+- First run: rf1007-c01-test.trx, test-output.txt (3/5 passed)
+- Final run: rf1007-c01-test-final.trx, test-output-final.txt (5/5 passed)
+- test-run-metadata.txt: Complete provenance both runs
+
+### Documentation
+- COMPREHENSIVE-MANIFEST.md: Package structure, verification, findings
+- source-manifest.md: Source files with origins and roles
+- before-snapshot.md: Repository state before changes
+- changed-files-hashes.txt: All modified documentation
+
+### Integrity
+- evidence-checksums.txt: SHA-256 for all root + source manifests
+- source-files-checksums.txt: SHA-256 for all 20 .cs files
+
+## Task Completion
+
+RF-10-07-C01 characterization DONE locally for:
+- Inspection task list endpoint (GET /api/v1/me/inspection-tasks)
+- RepairCrew-only authorization (PM/Supervisor forbidden)
+- Project membership scope filtering
+- Response projection (id, projectId, defectIds, mode, crewId, status, version)
+- SQL read-side immutability (task, assignment, defect, measurement)
+- GroundTruthMeasurement provenance (defect, survey, road version, SRID 4326)
+
+Test corrections applied:
+1. Invalid EF Include on scalar DefectId removed
+2. JSON read moved after status assertion
+
+Historical documentation corrections:
+- RF-10-06-C01 build warnings count (0→108)
+- Checkpoint-11 vs correction-01 sequence clarified
+
+## Verification Quick Start
+
+cd "D:\Project BE\RoadGuardSystem\planning\refactor\evidence"
+sha256sum -c RF-10-refactor-checkpoint-12-correction-01-handoff.tar.gz.sha256
+tar -xzf RF-10-refactor-checkpoint-12-correction-01-handoff.tar.gz
+cd rf1007-c01
+sha256sum -c evidence-checksums.txt
+cd source
+sha256sum -c source-files-checksums.txt
+
+## User Requirements Satisfied
+
+✓ Full source files (20 files, not just hashes)
+✓ Repository paths preserved (in source-manifest.md)
+✓ Exact commands/timestamps for build and test
+✓ Comprehensive manifest with verification instructions
+✓ Historical documentation corrections applied
+✓ Status held Partial pending review (no auto-promotion)
+
+## Limitations Documented
+
+⚠ C# object snapshots (not raw SQL bytes) - acceptable for EF Core
+⚠ Build cache state (incremental warnings) - documented
+⚠ EF query logs not captured - would require config changes
+
+These do not block review or approval.
+
+## Blocking Decisions (F/G work, not C01)
+
+- Q-RF02-04: Fast Track method/material dossier
+- Q-RF02-07: PM visibility, report-to-defect mapping, PII projection
+
+## NOT_IMPLEMENTED (No production endpoint)
+
+- Task creation/assignment/mutation
+- PM batch review workflow
+- Safety action recording
+- Policy evaluation/versioning
+- Repair acceptance workflows
+
+## Handoff Constraints
+
+Per user instructions:
+- "Không sửa production, không commit/push, không ghi DB dùng chung"
+- "Giữ nguyên failed evidence và dirty work"
+- "Dừng sau handoff để reviewer kiểm; không tự nâng Done hoặc chuyển task"
+
+STATUS: Partial pending review
+
+This package awaits reviewer verification. Do NOT:
+- Promote to Done status
+- Commit or push changes
+- Modify production code
+- Write to shared database
+- Assign next task
+
+## Related Repository Documentation
+
+All updated in place (not archived):
+- planning/refactor/10-inspection-measurement-characterization-baseline.md
+- planning/refactor/reports/RF-10-07-C01.md
+- planning/refactor/10-refactor-slices.md (10-07-C01: DONE locally)
+- planning/refactor/10-refactor-checklist.md (10-07-C01: row updated)
+- planning/refactor/reports/RF-10-06-C01.md (corrections applied)
+
+## Next Steps After Review
+
+If approved:
+1. Reviewer updates RF-10-07-C01 status to Done
+2. Decide R01 assessment or RETAIN provisionally
+3. Assign next slice: 10-08-C01, 10-09-C01, or other
+
+If corrections needed:
+1. Reviewer documents specific issues
+2. Apply corrections (no production/commit)
+3. Repackage and resubmit
+
+---
+Generated by: Kiro (Claude Code)
+Handoff: Codex → Anh → Reviewer

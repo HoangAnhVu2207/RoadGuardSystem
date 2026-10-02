@@ -1,0 +1,7 @@
+{
+  "command": "dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --no-restore --filter FullyQualifiedName~A0801CallbackIdentityCharacterizationTests --logger trx;LogFileName=A0801-regression.trx --results-directory test-a0801 --nologo",
+  "startUtc": "2026-10-01T23:44:48.2375780Z",
+  "endUtc": "2026-10-01T23:45:13.4851274Z",
+  "exitCode": 0,
+  "cwd": "D:\\Project BE\\RoadGuardSystem"
+}

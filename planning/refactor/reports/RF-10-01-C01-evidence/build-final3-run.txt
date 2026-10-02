@@ -1,0 +1,4 @@
+command=dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj -nologo -v q -clp:ErrorsOnly
+start=2026-10-01T04:40:29.7869911+07:00
+end=2026-10-01T04:40:32.1723640+07:00
+exit=0

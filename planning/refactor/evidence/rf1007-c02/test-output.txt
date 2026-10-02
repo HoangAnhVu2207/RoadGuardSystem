@@ -1,0 +1,255 @@
+Test run for D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\bin\Debug\net8.0\RoadGuardSystem.ApiTests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\bin\Debug\net8.0\RoadGuardSystem.ApiTests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.08]   Discovering: RoadGuardSystem.ApiTests
+[xUnit.net 00:00:00.14]   Discovered:  RoadGuardSystem.ApiTests
+[xUnit.net 00:00:00.14]   Starting:    RoadGuardSystem.ApiTests
+[testcontainers.org 00:00:00.10] Connected to Docker:
+  Host: npipe://./pipe/docker_engine
+  Server Version: 29.6.1
+  Kernel Version: 6.18.33.2-microsoft-standard-WSL2
+  API Version: 1.55
+  Operating System: Docker Desktop
+  Total Memory: 3.78 GB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+[testcontainers.org 00:00:00.26] Docker container 9ef996afa369 created
+[testcontainers.org 00:00:00.29] Start Docker container 9ef996afa369
+[testcontainers.org 00:00:00.46] Wait for Docker container 9ef996afa369 to complete readiness checks
+[testcontainers.org 00:00:01.50] Docker container 9ef996afa369 ready
+[testcontainers.org 00:00:01.56] Docker container 5de0b68d9d3c created
+[testcontainers.org 00:00:01.57] Start Docker container 5de0b68d9d3c
+[testcontainers.org 00:00:01.71] Wait for Docker container 5de0b68d9d3c to complete readiness checks
+[testcontainers.org 00:00:01.72] Execute "/bin/sh -c find /opt/mssql-tools*/bin/sqlcmd -type f -print -quit" at Docker container 5de0b68d9d3c
+[testcontainers.org 00:00:01.79] Execute "/opt/mssql-tools/bin/sqlcmd -C -b -r 1 -d master -Q SELECT 1;" at Docker container 5de0b68d9d3c
+[testcontainers.org 00:00:05.39] Docker container 5de0b68d9d3c ready
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [o].[Id], [o].[CorrelationId], [o].[DeliveryAttemptCount], [o].[DeliveryStatus], [o].[LastErrorCode], [o].[LastErrorMessage], [o].[LeaseExpiresAtUtc], [o].[LeaseOwner], [o].[MessageType], [o].[NextAttemptAtUtc], [o].[OccurredAtUtc], [o].[PayloadJson], [o].[RowVersion]
+      FROM [OutboxMessages] AS [o]
+      WHERE [o].[MessageType] = 'validation_run.dispatch' AND [o].[DeliveryStatus] = CAST(1 AS tinyint) AND [o].[NextAttemptAtUtc] <= CAST(SYSUTCDATETIME() AS datetimeoffset(7))
+      ORDER BY [o].[OccurredAtUtc]
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+  Passed RoadGuardSystem.ApiTests.Inspections.Rf1007InspectionMeasurementCharacterizationTests.InspectionTaskList_MeasurementProvenance_ExistsInDatabase [857 ms]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (9ms) [Parameters=[@__normalizedEmail_0='?' (Size = 254)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[NormalizedEmail] = @__normalizedEmail_0 OR [u].[Email] = @__normalizedEmail_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Size = 4000), @p2='?' (Scale = 7) (DbType = DateTimeOffset), @p3='?' (Scale = 7) (DbType = DateTimeOffset), @p4='?' (Scale = 7) (DbType = DateTimeOffset), @p5='?' (DbType = Guid), @p7='?' (DbType = Guid), @p6='?' (Scale = 7) (DbType = DateTimeOffset), @p8='?' (Size = 8) (DbType = Binary), @p9='?' (DbType = Guid), @p10='?' (Scale = 7) (DbType = DateTimeOffset), @p11='?' (Scale = 7) (DbType = DateTimeOffset), @p12='?' (DbType = Guid), @p13='?' (Size = 128) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SET NOCOUNT ON;
+      INSERT INTO [Sessions] ([Id], [DeviceMetadataJson], [ExpiresAt], [IssuedAt], [RevokedAt], [UserId])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+      UPDATE [Users] SET [LastLoginAt] = @p6
+      OUTPUT INSERTED.[RowVersion]
+      WHERE [Id] = @p7 AND [RowVersion] = @p8;
+      INSERT INTO [RefreshTokens] ([Id], [ExpiresAt], [RevokedAt], [SessionId], [TokenHash])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p9, @p10, @p11, @p12, @p13);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__sessionId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [s].[Id], [s].[UserId], [s].[IssuedAt], [s].[ExpiresAt], [s].[RevokedAt], CASE
+          WHEN [s].[RevokedAt] IS NULL AND [s].[ExpiresAt] > CAST(SYSUTCDATETIME() AS datetimeoffset(7)) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END, [s].[RowVersion]
+      FROM [Sessions] AS [s]
+      WHERE [s].[Id] = @__sessionId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [o].[Id], [o].[CorrelationId], [o].[DeliveryAttemptCount], [o].[DeliveryStatus], [o].[LastErrorCode], [o].[LastErrorMessage], [o].[LeaseExpiresAtUtc], [o].[LeaseOwner], [o].[MessageType], [o].[NextAttemptAtUtc], [o].[OccurredAtUtc], [o].[PayloadJson], [o].[RowVersion]
+      FROM [OutboxMessages] AS [o]
+      WHERE [o].[MessageType] = 'validation_run.dispatch' AND [o].[DeliveryStatus] = CAST(1 AS tinyint) AND [o].[NextAttemptAtUtc] <= CAST(SYSUTCDATETIME() AS datetimeoffset(7))
+      ORDER BY [o].[OccurredAtUtc]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__normalizedEmail_0='?' (Size = 254)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[NormalizedEmail] = @__normalizedEmail_0 OR [u].[Email] = @__normalizedEmail_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Size = 4000), @p2='?' (Scale = 7) (DbType = DateTimeOffset), @p3='?' (Scale = 7) (DbType = DateTimeOffset), @p4='?' (Scale = 7) (DbType = DateTimeOffset), @p5='?' (DbType = Guid), @p7='?' (DbType = Guid), @p6='?' (Scale = 7) (DbType = DateTimeOffset), @p8='?' (Size = 8) (DbType = Binary), @p9='?' (DbType = Guid), @p10='?' (Scale = 7) (DbType = DateTimeOffset), @p11='?' (Scale = 7) (DbType = DateTimeOffset), @p12='?' (DbType = Guid), @p13='?' (Size = 128) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SET NOCOUNT ON;
+      INSERT INTO [Sessions] ([Id], [DeviceMetadataJson], [ExpiresAt], [IssuedAt], [RevokedAt], [UserId])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+      UPDATE [Users] SET [LastLoginAt] = @p6
+      OUTPUT INSERTED.[RowVersion]
+      WHERE [Id] = @p7 AND [RowVersion] = @p8;
+      INSERT INTO [RefreshTokens] ([Id], [ExpiresAt], [RevokedAt], [SessionId], [TokenHash])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p9, @p10, @p11, @p12, @p13);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__sessionId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [s].[Id], [s].[UserId], [s].[IssuedAt], [s].[ExpiresAt], [s].[RevokedAt], CASE
+          WHEN [s].[RevokedAt] IS NULL AND [s].[ExpiresAt] > CAST(SYSUTCDATETIME() AS datetimeoffset(7)) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END, [s].[RowVersion]
+      FROM [Sessions] AS [s]
+      WHERE [s].[Id] = @__sessionId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__p_1='?' (DbType = Int32), @__assignedToUserId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_1) [f].[Id], [f].[ProjectId], [f].[DefectId], [f0].[AssignedToUserId], [f].[Status], [f].[RequiredMeasurementType], [f].[TaskCode], [f].[DueAt], [f].[RowVersion]
+      FROM [FieldInspectionTasks] AS [f]
+      INNER JOIN [FieldInspectionAssignments] AS [f0] ON [f].[Id] = [f0].[FieldInspectionTaskId]
+      WHERE [f0].[AssignedToUserId] = @__assignedToUserId_0 AND [f0].[Status] = CAST(1 AS tinyint)
+      ORDER BY [f].[DueAt], [f].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (9ms) [Parameters=[@__userId_0='?' (DbType = Guid), @__projectId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[Id], [p].[ProjectId], [p].[UserId], [p].[RoleCode], [p].[Status], [p].[ValidFrom], [p].[ValidTo]
+      FROM [ProjectMembers] AS [p]
+      WHERE [p].[UserId] = @__userId_0 AND [p].[ProjectId] = @__projectId_1
+      ORDER BY [p].[Status] DESC, [p].[ValidFrom] DESC, [p].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [o].[Id], [o].[CorrelationId], [o].[DeliveryAttemptCount], [o].[DeliveryStatus], [o].[LastErrorCode], [o].[LastErrorMessage], [o].[LeaseExpiresAtUtc], [o].[LeaseOwner], [o].[MessageType], [o].[NextAttemptAtUtc], [o].[OccurredAtUtc], [o].[PayloadJson], [o].[RowVersion]
+      FROM [OutboxMessages] AS [o]
+      WHERE [o].[MessageType] = 'validation_run.dispatch' AND [o].[DeliveryStatus] = CAST(1 AS tinyint) AND [o].[NextAttemptAtUtc] <= CAST(SYSUTCDATETIME() AS datetimeoffset(7))
+      ORDER BY [o].[OccurredAtUtc]
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__normalizedEmail_0='?' (Size = 254)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[NormalizedEmail] = @__normalizedEmail_0 OR [u].[Email] = @__normalizedEmail_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Size = 4000), @p2='?' (Scale = 7) (DbType = DateTimeOffset), @p3='?' (Scale = 7) (DbType = DateTimeOffset), @p4='?' (Scale = 7) (DbType = DateTimeOffset), @p5='?' (DbType = Guid), @p7='?' (DbType = Guid), @p6='?' (Scale = 7) (DbType = DateTimeOffset), @p8='?' (Size = 8) (DbType = Binary), @p9='?' (DbType = Guid), @p10='?' (Scale = 7) (DbType = DateTimeOffset), @p11='?' (Scale = 7) (DbType = DateTimeOffset), @p12='?' (DbType = Guid), @p13='?' (Size = 128) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SET NOCOUNT ON;
+      INSERT INTO [Sessions] ([Id], [DeviceMetadataJson], [ExpiresAt], [IssuedAt], [RevokedAt], [UserId])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+      UPDATE [Users] SET [LastLoginAt] = @p6
+      OUTPUT INSERTED.[RowVersion]
+      WHERE [Id] = @p7 AND [RowVersion] = @p8;
+      INSERT INTO [RefreshTokens] ([Id], [ExpiresAt], [RevokedAt], [SessionId], [TokenHash])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p9, @p10, @p11, @p12, @p13);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__sessionId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [s].[Id], [s].[UserId], [s].[IssuedAt], [s].[ExpiresAt], [s].[RevokedAt], CASE
+          WHEN [s].[RevokedAt] IS NULL AND [s].[ExpiresAt] > CAST(SYSUTCDATETIME() AS datetimeoffset(7)) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END, [s].[RowVersion]
+      FROM [Sessions] AS [s]
+      WHERE [s].[Id] = @__sessionId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [o].[Id], [o].[CorrelationId], [o].[DeliveryAttemptCount], [o].[DeliveryStatus], [o].[LastErrorCode], [o].[LastErrorMessage], [o].[LeaseExpiresAtUtc], [o].[LeaseOwner], [o].[MessageType], [o].[NextAttemptAtUtc], [o].[OccurredAtUtc], [o].[PayloadJson], [o].[RowVersion]
+      FROM [OutboxMessages] AS [o]
+      WHERE [o].[MessageType] = 'validation_run.dispatch' AND [o].[DeliveryStatus] = CAST(1 AS tinyint) AND [o].[NextAttemptAtUtc] <= CAST(SYSUTCDATETIME() AS datetimeoffset(7))
+      ORDER BY [o].[OccurredAtUtc]
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__normalizedEmail_0='?' (Size = 254)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[NormalizedEmail] = @__normalizedEmail_0 OR [u].[Email] = @__normalizedEmail_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[AccessFailedCount], [u].[ConcurrencyStamp], [u].[CreatedAt], [u].[DisplayName], [u].[Email], [u].[EmailConfirmed], [u].[LastLoginAt], [u].[LockoutEnabled], [u].[LockoutEnd], [u].[MustChangePassword], [u].[NormalizedEmail], [u].[NormalizedUserName], [u].[PasswordHash], [u].[PhoneNumber], [u].[PhoneNumberConfirmed], [u].[RoleCode], [u].[RowVersion], [u].[SecurityStamp], [u].[Status], [u].[SuspendedAt], [u].[TwoFactorEnabled], [u].[UserName]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Size = 4000), @p2='?' (Scale = 7) (DbType = DateTimeOffset), @p3='?' (Scale = 7) (DbType = DateTimeOffset), @p4='?' (Scale = 7) (DbType = DateTimeOffset), @p5='?' (DbType = Guid), @p7='?' (DbType = Guid), @p6='?' (Scale = 7) (DbType = DateTimeOffset), @p8='?' (Size = 8) (DbType = Binary), @p9='?' (DbType = Guid), @p10='?' (Scale = 7) (DbType = DateTimeOffset), @p11='?' (Scale = 7) (DbType = DateTimeOffset), @p12='?' (DbType = Guid), @p13='?' (Size = 128) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SET NOCOUNT ON;
+      INSERT INTO [Sessions] ([Id], [DeviceMetadataJson], [ExpiresAt], [IssuedAt], [RevokedAt], [UserId])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+      UPDATE [Users] SET [LastLoginAt] = @p6
+      OUTPUT INSERTED.[RowVersion]
+      WHERE [Id] = @p7 AND [RowVersion] = @p8;
+      INSERT INTO [RefreshTokens] ([Id], [ExpiresAt], [RevokedAt], [SessionId], [TokenHash])
+      OUTPUT INSERTED.[RowVersion]
+      VALUES (@p9, @p10, @p11, @p12, @p13);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__sessionId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [s].[Id], [s].[UserId], [s].[IssuedAt], [s].[ExpiresAt], [s].[RevokedAt], CASE
+          WHEN [s].[RevokedAt] IS NULL AND [s].[ExpiresAt] > CAST(SYSUTCDATETIME() AS datetimeoffset(7)) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END, [s].[RowVersion]
+      FROM [Sessions] AS [s]
+      WHERE [s].[Id] = @__sessionId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [u].[Id], [u].[UserName], [u].[DisplayName], [u].[RoleCode], [u].[Status], [u].[MustChangePassword], [u].[RowVersion]
+      FROM [Users] AS [u]
+      WHERE [u].[Id] = @__userId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__p_1='?' (DbType = Int32), @__assignedToUserId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@__p_1) [f].[Id], [f].[ProjectId], [f].[DefectId], [f0].[AssignedToUserId], [f].[Status], [f].[RequiredMeasurementType], [f].[TaskCode], [f].[DueAt], [f].[RowVersion]
+      FROM [FieldInspectionTasks] AS [f]
+      INNER JOIN [FieldInspectionAssignments] AS [f0] ON [f].[Id] = [f0].[FieldInspectionTaskId]
+      WHERE [f0].[AssignedToUserId] = @__assignedToUserId_0 AND [f0].[Status] = CAST(1 AS tinyint)
+      ORDER BY [f].[DueAt], [f].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Guid), @__projectId_1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[Id], [p].[ProjectId], [p].[UserId], [p].[RoleCode], [p].[Status], [p].[ValidFrom], [p].[ValidTo]
+      FROM [ProjectMembers] AS [p]
+      WHERE [p].[UserId] = @__userId_0 AND [p].[ProjectId] = @__projectId_1
+      ORDER BY [p].[Status] DESC, [p].[ValidFrom] DESC, [p].[Id]
+  Passed RoadGuardSystem.ApiTests.Inspections.Rf1007InspectionMeasurementCharacterizationTests.InspectionTaskList_ProjectManagerRole_ReturnsForbidden [960 ms]
+  Passed RoadGuardSystem.ApiTests.Inspections.Rf1007InspectionMeasurementCharacterizationTests.InspectionTaskList_RepairCrewWithScope_ReturnsTasksAndDoesNotMutateDatabase [279 ms]
+  Passed RoadGuardSystem.ApiTests.Inspections.Rf1007InspectionMeasurementCharacterizationTests.InspectionTaskList_SupervisorRole_ReturnsForbidden [99 ms]
+  Passed RoadGuardSystem.ApiTests.Inspections.Rf1007InspectionMeasurementCharacterizationTests.InspectionTaskList_CrewWithoutProjectMembership_FiltersOutTask [130 ms]
+[testcontainers.org 00:00:15.28] Delete Docker container 5de0b68d9d3c
+[xUnit.net 00:00:20.04]   Finished:    RoadGuardSystem.ApiTests
+Results File: D:\Project BE\RoadGuardSystem\planning\refactor\evidence\rf1007-c02\rf1007-c02-test.trx
+
+Test Run Successful.
+Total tests: 5
+     Passed: 5
+ Total time: 20.4425 Seconds

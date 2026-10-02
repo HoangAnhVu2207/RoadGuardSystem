@@ -1,0 +1,7 @@
+D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Identity\Rf1001IdentityCharacterizationTests.cs(232,17): error CS0136: A local or parameter named 'session' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\RoadGuardSystem.ApiTests.csproj]
+
+Build FAILED.
+    104 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:02.38

@@ -1,0 +1,5 @@
+Test run for D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\bin\Debug\net8.0\RoadGuardSystem.ApiTests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+Results File: D:\Project BE\RoadGuardSystem\planning\refactor\reports\RF-10-03-C02-evidence\rf1003-c02-checkpoint10-test-final3.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 3 s - RoadGuardSystem.ApiTests.dll (net8.0)

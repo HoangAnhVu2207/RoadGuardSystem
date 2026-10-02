@@ -1,0 +1,30 @@
+Test run for D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\bin\Debug\net8.0\RoadGuardSystem.ApiTests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:14.24]     RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome [FAIL]
+[xUnit.net 00:00:14.47]     RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure [FAIL]
+  Failed RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome [343 ms]
+  Error Message:
+   Expected replayResponse.StatusCode to be HttpStatusCode.Created {value: 201}, but found HttpStatusCode.Forbidden {value: 403}.
+  Stack Trace:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.EnumAssertions`2.Be(TEnum expected, String because, Object[] becauseArgs)
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 874
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.ProjectCreate_ActorRoleRevokedAfterCreate_ReplayReturnsStoredOutcome() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 889
+--- End of stack trace from previous location ---
+  Failed RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure [223 ms]
+  Error Message:
+   System.ArgumentException : New planned start must not be after the planned end. (Parameter 'newPlannedStartAt')
+  Stack Trace:
+     at RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan.Postpone(Nullable`1 newPlannedStartAt) in D:\Project BE\RoadGuardSystem\RoadGuardSystem.BusinessObjects\Surveys\SurveyPlan.cs:line 91
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 744
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 746
+   at RoadGuardSystem.ApiTests.Idempotency.IdempotencyPerCommandCharacterizationTests.SurveyPlanPostpone_StaleVersionThenReplay_ReturnsStoredPreconditionFailure() in D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\Idempotency\IdempotencyPerCommandCharacterizationTests.cs:line 821
+--- End of stack trace from previous location ---
+Results File: D:\Project BE\RoadGuardSystem\tests\RoadGuardSystem.ApiTests\TestResults\RF-10-08-C01-correction-final.trx
+
+Failed!  - Failed:     2, Passed:     8, Skipped:     0, Total:    10, Duration: 4 s - RoadGuardSystem.ApiTests.dll (net8.0)

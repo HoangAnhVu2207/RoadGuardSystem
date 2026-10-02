@@ -1,0 +1,27 @@
+{
+  "output": [
+    "RoadGuardSystem.Repositories\\Extensions\\RoadGuardPersistenceExtensions.cs:114:        services.AddScoped<ISurveyAssignmentRepository, SurveyAssignmentPersistenceService>();",
+    "RoadGuardSystem.Repositories\\Extensions\\RoadGuardPersistenceExtensions.cs:115:        services.AddScoped<ISurveyDataValidationAdmissionRepository, SurveyDataValidationAdmissionPersistenceService>();",
+    "RoadGuardSystem.API\\Extensions\\ServiceCollectionExtensions.cs:80:        services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();",
+    "RoadGuardSystem.Services\\Interfaces\\Surveys\\ISurveyAssignmentService.cs:6:public interface ISurveyAssignmentService",
+    "RoadGuardSystem.Repositories\\Implementations\\Defects\\DetectionReviewPersistenceService.cs:11:public sealed class DetectionReviewPersistenceService : IDetectionReviewRepository",
+    "RoadGuardSystem.Repositories\\Implementations\\Defects\\DetectionReviewPersistenceService.cs:113:        _context.OutboxMessages.Add(OutboxMessage.Create(",
+    "RoadGuardSystem.Repositories\\Implementations\\Processing\\ProcessingV2PersistenceService.cs:67:                _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), \"processing_job.dispatch\", DateTimeOffset.UtcNow, job.Id, JsonSerializer.Serialize(new { jobId = job.Id, attemptId = attempt.Id, job.ManifestHash })));",
+    "RoadGuardSystem.Repositories\\Implementations\\Processing\\ProcessingV2PersistenceService.cs:106:                _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), \"processing_job.dispatch\", DateTimeOffset.UtcNow, tracked.Id, JsonSerializer.Serialize(new { jobId = tracked.Id, attemptNumber = nextAttempt, tracked.ManifestHash })));",
+    "RoadGuardSystem.Repositories\\Implementations\\Processing\\ProcessingV2PersistenceService.cs:183:                _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), \"validation_run.dispatch\", DateTimeOffset.UtcNow, run.Id, JsonSerializer.Serialize(new { validationRunId = run.Id, request.ModelVersionId, request.DatasetSplitId })));",
+    "RoadGuardSystem.Repositories\\Implementations\\Projects\\PrimaryProjectManagerPersistenceService.cs:165:        _context.OutboxMessages.Add(OutboxMessage.Create(",
+    "RoadGuardSystem.Repositories\\Implementations\\Surveys\\SurveyDataValidationAdmissionPersistenceService.cs:16:public sealed class SurveyDataValidationAdmissionPersistenceService : ISurveyDataValidationAdmissionRepository",
+    "RoadGuardSystem.Repositories\\Implementations\\Surveys\\SurveyDataValidationAdmissionPersistenceService.cs:108:                _context.OutboxMessages.Add(OutboxMessage.Create(",
+    "RoadGuardSystem.Repositories\\Implementations\\Surveys\\SurveyAssignmentPersistenceService.cs:21:public sealed class SurveyAssignmentPersistenceService : ISurveyAssignmentRepository",
+    "RoadGuardSystem.Repositories\\Implementations\\Surveys\\SurveyAssignmentPersistenceService.cs:100:                _context.OutboxMessages.Add(OutboxMessage.Create(",
+    "RoadGuardSystem.Repositories\\Interfaces\\Surveys\\ISurveyDataValidationAdmissionRepository.cs:5:public interface ISurveyDataValidationAdmissionRepository",
+    "RoadGuardSystem.Repositories\\Interfaces\\Surveys\\ISurveyAssignmentRepository.cs:5:public interface ISurveyAssignmentRepository",
+    "RoadGuardSystem.Services\\Implementations\\Surveys\\SurveyAssignmentService.cs:7:public sealed class SurveyAssignmentService : ISurveyAssignmentService",
+    "RoadGuardSystem.Services\\Implementations\\Surveys\\SurveyAssignmentService.cs:9:    private readonly ISurveyAssignmentRepository _repository;",
+    "RoadGuardSystem.Services\\Implementations\\Surveys\\SurveyAssignmentService.cs:11:    public SurveyAssignmentService(ISurveyAssignmentRepository repository)",
+    "RoadGuardSystem.Repositories\\Interfaces\\Defects\\IDetectionReviewRepository.cs:5:public interface IDetectionReviewRepository"
+  ],
+  "command": "rg -n ISurveyAssignmentService|ISurveyAssignmentRepository|IDetectionReviewRepository|ISurveyDataValidationAdmissionRepository|OutboxMessages.Add RoadGuardSystem.API RoadGuardSystem.Services RoadGuardSystem.Repositories -g *.cs -g !**/Migrations/** -g !**/bin/** -g !**/obj/**",
+  "exitCode": 0,
+  "scope": "local production source / task docs; normal rg ignore rules; no deployed environment search"
+}

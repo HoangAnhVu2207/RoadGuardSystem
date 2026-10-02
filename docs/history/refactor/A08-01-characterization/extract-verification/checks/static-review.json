@@ -1,0 +1,14 @@
+{
+  "sourceScope": "baseline hash preservation + final source hash equality; only new A08-01 test allowed",
+  "reportSectionCount": 7,
+  "gitDiffCheck": [
+    "warning: in the working copy of '.github/workflows/ci.yml', LF will be replaced by CRLF the next time Git touches it",
+    "warning: in the working copy of 'tests/Documentation/Verify-P102Docs.ps1', LF will be replaced by CRLF the next time Git touches it",
+    "warning: in the working copy of 'tests/Tooling/Verify-AgentSetup.ps1', LF will be replaced by CRLF the next time Git touches it"
+  ],
+  "inspectedDocs": [
+    "planning/refactor/reports/RF-10-07-C01.md",
+    "planning/refactor/evidence/post-checkpoint13-assessment/findings-ledger.md"
+  ],
+  "scriptParseErrors": 0
+}

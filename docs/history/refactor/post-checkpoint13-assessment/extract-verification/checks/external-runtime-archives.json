@@ -1,0 +1,12 @@
+[
+  {
+    "sha256": "974a483e4af551c40de0037136ca0004c4b0c81cd01779c7c7b1e23322b0217f",
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-04-handoff.tar.gz",
+    "size": 73751
+  },
+  {
+    "sha256": "19555b02ceba04c744fdd15aad9fb3de92cc829701a61ad4de8357a3be7fce8a",
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-finalization-handoff.tar.gz",
+    "size": 77999
+  }
+]

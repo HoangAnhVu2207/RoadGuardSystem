@@ -1,0 +1,62 @@
+{
+  "version": "rf05-proposed-3-correction",
+  "status": "ACTIVE_AFTER_OWNER_ACCEPTANCE",
+  "acceptance_source": "User message 2026-09-30 accepting rf05-prepare-correction-3, target manifest SHA-256 764bec3cac0450fe4219fa0e41168795efb0bc7120569c691354e587540c0448",
+  "accepted_at": "2026-09-30",
+  "guidance_paths": [
+    ".agents/modules/README.md",
+    ".agents/README.md",
+    ".agents/rules/delivery.md",
+    ".agents/rules/evidence.md",
+    ".agents/rules/review-and-coordination.md",
+    ".agents/rules/safety.md",
+    "AGENTS.md"
+  ],
+  "skills": [],
+  "retired_guidance": [
+    ".agents/references/completion-log-template.md",
+    ".agents/references/task-log-template.md",
+    ".agents/references/task-workflow.md",
+    ".agents/rules/roadguard.md",
+    ".agents/skills/roadguard-endpoint-delivery/agents/openai.yaml",
+    ".agents/skills/roadguard-endpoint-delivery/assets/icon.svg",
+    ".agents/skills/roadguard-endpoint-delivery/references/product-gates.md",
+    ".agents/skills/roadguard-endpoint-delivery/references/source-map.md",
+    ".agents/skills/roadguard-endpoint-delivery/SKILL.md",
+    ".agents/skills/roadguard-persistence/agents/openai.yaml",
+    ".agents/skills/roadguard-persistence/assets/icon.svg",
+    ".agents/skills/roadguard-persistence/references/risk-cases.md",
+    ".agents/skills/roadguard-persistence/SKILL.md",
+    ".agents/skills/roadguard-postman/agents/openai.yaml",
+    ".agents/skills/roadguard-postman/SKILL.md",
+    ".agents/skills/roadguard-review-autofix/agents/openai.yaml",
+    ".agents/skills/roadguard-review-autofix/assets/icon.svg",
+    ".agents/skills/roadguard-review-autofix/SKILL.md",
+    ".agents/skills/roadguard-test-selection/agents/openai.yaml",
+    ".agents/skills/roadguard-test-selection/assets/icon.svg",
+    ".agents/skills/roadguard-test-selection/references/commands.md",
+    ".agents/skills/roadguard-test-selection/SKILL.md"
+  ],
+  "product_paths": [
+    "docs/product/README.md",
+    "docs/product/requirements.md",
+    "docs/product/confirmed-decisions.md",
+    "docs/product/workflows.md"
+  ],
+  "backend_paths": [
+    "docs/backend/README.md",
+    "docs/backend/persistence-and-operations.md"
+  ],
+  "contract_paths": [
+    "contracts/README.md",
+    "contracts/events/README.md",
+    "contracts/http/work-package.proposed.yaml"
+  ],
+  "source_references": [
+    "planning/refactor/01-endpoint-inventory.md",
+    "planning/refactor/04-operation-crosswalk.json",
+    "planning/refactor/04-source-crosswalk.json",
+    "planning/refactor/templates/task-report.md",
+    "planning/refactor/templates/coordination-note.md"
+  ]
+}

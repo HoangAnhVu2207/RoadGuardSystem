@@ -1,0 +1,99 @@
+{
+  "status": "PASS",
+  "branch": "anh",
+  "head": "2efc8a5775f834c7f0fe37cc0ce703011649e1f1",
+  "accepted_manifest_sha256": "764bec3cac0450fe4219fa0e41168795efb0bc7120569c691354e587540c0448",
+  "acceptance_source": "User message 2026-09-30 accepting rf05-prepare-correction-3, target manifest SHA-256 764bec3cac0450fe4219fa0e41168795efb0bc7120569c691354e587540c0448",
+  "target_count": 16,
+  "retired_count": 22,
+  "active_manifest_sha256": "db1f44ae4198c32507c93a284c691cfc4b7477edaeeb763ea52f9a7f4e305410",
+  "unchanged_sha256": {
+    ".agents/mcp_config.json": "d821d329dc0091cb9245d1e7e1e6174c408b488d88a1ea5a2c6b203f4e6b18e6",
+    "docs/diagram/V2/09_Frontend/contracts/contract.lock.json": "bc2ecdb2fd130110a165fb57fb5f855c7a61714442e7f4b7b3ac42ffe08b7cad",
+    "docs/postman/RoadGuardSystem-V2.postman_collection.json": "2b311ea50196cdd16fde8d9b357ec329449b94b42a18b6f34d9cf738a5d67ea4",
+    "docs/diagram/V2/ci/check_alignment.py": "263a6fcebdb738972611edc809ac184d9d3dbd4a7153d8995a20f58cc559e846",
+    "docs/diagram/V2/09_Frontend/contracts/check_contracts.py": "d204dd48818622550f3c2937ff68ad6b90c7336f31a0b8370a29fe5314c486dc"
+  },
+  "target_sha256": {
+    ".agents/modules/README.md": "e71cfd641f1519fee589d6d5c393a203e2fbb5107869f6db27b06b68cc4e7411",
+    ".agents/README.md": "8b8497e98075a0ce9313724f56a6adf0f8c494eb52cfa6c40f710b9802129c05",
+    ".agents/rules/delivery.md": "578f9b121d94b8cc7d24e100fb47c1f2e92bb0f787a7906966592708553c2c4e",
+    ".agents/rules/evidence.md": "3760c8cad323a720588516de0b2af059a82ed47c6944168990ba6e5bd5a7326b",
+    ".agents/rules/review-and-coordination.md": "018eab0afbf8c0a2175a44e77c2100287e5666701a9c1e50d58ce747cb25d489",
+    ".agents/rules/safety.md": "71f1847fcb092cb8dad443b8946124e9de06020518f7feb612dd1d7de7566bdb",
+    "AGENTS.md": "005628386d0492e10babcfd76125a85a3cfd652d00462bd22960df9d1c1df476",
+    "planning/refactor/04-decision-index.json": "c2c1ed823e3b85f36c3776ab80a52b0ae9cbb861305e4abb7162a4f621f854e2",
+    "planning/refactor/04-readiness-decisions.json": "a79dbf358e3bad250a672a96426f36ea74c0a3030a1fb06dbb3f880081818b7c",
+    "planning/refactor/tools/rf05_readiness.py": "b6aa465247afc59c2c7cc9c02706f375ffb705772dc6f20ca72c940660a97227",
+    "planning/refactor/tools/build_rf04_sources.py": "0061bfc170aa9c6119e3c66430652c2083ffbb7308ca14c2fe1a5a709fd672ff",
+    "planning/refactor/tools/verify_rf04.py": "46c7e83cbfea5108944ad6ae592cb7cf2dd8663468c7af36b6b60d2756544b68",
+    "tests/Tooling/Verify-AgentSetup.ps1": "8d6178f8f23b105d43bce1ca94d0600e6bd7981aa51e97adf96d27a3eeeec580",
+    "tests/Documentation/Verify-P102Docs.ps1": "e13805adc0488a53b8500331a968556023545de22089658fe70417cc079d5e92",
+    ".github/workflows/ci.yml": "ffb9db789e079209b6bb0015fb183658c6953702d428b2813ad3042bf34a28dd",
+    ".agents/manifest.json": "db1f44ae4198c32507c93a284c691cfc4b7477edaeeb763ea52f9a7f4e305410"
+  },
+  "checks": [
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/tools/build_rf04_sources.py",
+      "stdout": "FR 37 BR 48 US 41 PF 8 NFR 14 ADR 6 decisions 13 documents 85",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/tools/verify_rf04.py",
+      "stdout": "PASS static: {'controllers': 17, 'actions': 57, 'controller_routes': 57, 'current_routes_including_health': 58, 'draft_operations': 133, 'unique_operation_ids': 133, 'draft_source_matches': 44, 'current_draft_matches': 44, 'postman_requests': 84}; delta from 57/58/133={'actions': 0, 'current_routes_including_health': 0, 'draft_operations': 0}; historical content={'fr': 37, 'br': 48, 'us': 41, 'pf': 8, 'nfr': 14, 'adr': 6, 'decisions': 13, 'documents': 85}; pilot schemas=4; Markdown=28\nNOT RUN: full formal OpenAPI validator, HTTP/API/SQL, provider/Android consumers, FE lock",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/tools/test_rf04.py",
+      "stdout": "",
+      "stderr": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.123s\n\nOK"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/rf05/checks/test_readiness.py",
+      "stdout": "",
+      "stderr": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.065s\n\nOK"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/rf05/checks/test_guidance.py",
+      "stdout": "",
+      "stderr": ".......\n----------------------------------------------------------------------\nRan 7 tests in 0.034s\n\nOK"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/rf05/checks/test_repository_readiness.py",
+      "stdout": "",
+      "stderr": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/rf05/checks/verify_repository_readiness.py --root D:\\Project BE\\RoadGuardSystem",
+      "stdout": "PASS repository readiness: 148 mapped requirements (historical delta +0), 0 registry decisions; read-only",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/rf05/checks/verify_guidance.py --root D:\\Project BE\\RoadGuardSystem --mode all --self-test",
+      "stdout": "Requirement count 148 (historical baseline 148; delta +0)\nPASS guidance 7 paths, all mode; staging=False; runtime NOT RUN\nRequirement count 148 (historical baseline 148; delta +0)\nPASS negative missing guidance\nPASS negative missing owner acceptance metadata\nPASS negative old active guidance remains",
+      "stderr": ""
+    },
+    {
+      "command": "D:\\SDK\\python\\python.exe planning/refactor/rf05/checks/test_readiness_flow.py --root D:\\Project BE\\RoadGuardSystem --source-root D:\\Project BE\\RoadGuardSystem",
+      "stdout": "BASELINE FR-02: 4 historical claims, BLOCKED\nACCEPTED FR-02: historical origin retained, confirmed authority, READY, real-data validator PASS\nREGENERATION stable; decision content and READY retained\nPARTIAL FR-02: one claim confirmed, 3 blocked, validator PASS\nREJECTIONS 12: Proposed, Unknown, historical source, wrong anchor, missing decision source, unrelated decision, unrelated claim, scope absent from source, changed claim, forged output, forged registry, stale output after decision change",
+      "stderr": ""
+    },
+    {
+      "command": "pwsh -File tests/Documentation/Verify-P102Docs.ps1 -SelfTestNegative",
+      "stdout": "PASS guidance 7 paths, docs mode; staging=False; runtime NOT RUN\nPASS negative missing guidance\nPASS negative missing owner acceptance metadata\nPASS negative old active guidance remains",
+      "stderr": ""
+    },
+    {
+      "command": "pwsh -File tests/Tooling/Verify-AgentSetup.ps1 -SelfTest",
+      "stdout": "Requirement count 148 (historical baseline 148; delta +0)\nPASS guidance 7 paths, all mode; staging=False; runtime NOT RUN\nRequirement count 148 (historical baseline 148; delta +0)\nPASS negative missing guidance\nPASS negative missing owner acceptance metadata\nPASS negative old active guidance remains",
+      "stderr": ""
+    },
+    {
+      "command": "pwsh -File tests/CI/Verify-CiWorkflow.ps1 -RepoRoot D:\\Project BE\\RoadGuardSystem",
+      "stdout": "=== GitHub Actions CI Workflow Verification ===\nRepository root: D:\\Project BE\\RoadGuardSystem\nSUCCESS: CI workflow configuration verified cleanly.",
+      "stderr": ""
+    }
+  ],
+  "github_ci": "NOT_RUN",
+  "runtime_tests": "NOT_RUN"
+}

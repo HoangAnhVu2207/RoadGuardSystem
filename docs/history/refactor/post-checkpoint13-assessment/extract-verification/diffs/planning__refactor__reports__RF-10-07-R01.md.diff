@@ -1,0 +1,13 @@
+diff --git "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\reports\\RF-10-07-R01.md" "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\reports\\RF-10-07-R01.md"
+index c405725..2611dbb 100644
+--- "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\reports\\RF-10-07-R01.md"	
++++ "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\reports\\RF-10-07-R01.md"	
+@@ -91,7 +91,7 @@ Evaluate whether `InspectionTaskQueryService` and `InspectionTaskReadRepository`
+ - Cursor encode/decode (30 lines): Copy-paste acceptable; format is API contract, not implementation detail
+ - `IProjectScopeGuard` loop (15 lines): Domain-specific caching strategy, not infrastructure
+ 
+-**Reassessment triggers:** Reassess when duplicate equivalent patterns emerge (similar single-role query with identical scope caching and cursor encoding) OR concrete extraction benefit is identified (measured performance gain, proven reuse across 3+ services with same authorization/projection semantics). Current assessment finds no such duplicate or benefit.
++**Reassessment triggers:** Reassess when equivalent duplication or a concrete extraction benefit is established, preserving authorization, projection, cursor ordering and wire encoding. No numeric caller threshold applies.
+ 
+ ## 6. Alternative considered: Repository-level cursor abstraction
+ 

@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-10-01T13:32:07.0298800+07:00",
+  "build_exit": 0,
+  "files": [
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/Defects/Rf1006ReporterDefectCharacterizationTests.cs",
+      "sha256": "F98699196774957EAC19D628B6C68B85F40EBB1C7863662C0AD418B23881A85F",
+      "length": 9700
+    },
+    {
+      "path": "RoadGuardSystem.API/Controllers/ProcessingV2Controller.cs",
+      "sha256": "82E7D0E4E7A0059336FFA5F4A7B863BAB302022E4A5C758F00F128B08F669F47",
+      "length": 7512
+    },
+    {
+      "path": "RoadGuardSystem.Services/Implementations/Processing/ProcessingV2Service.cs",
+      "sha256": "C54B1CFA24010F86079C76FDA97842E9F1F03D45431722039C018F4A69FC6B60",
+      "length": 10792
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
+      "sha256": "B9D66FF0580AB652D0B268DEBBE2C94B59661AF17FF3A6E4F0133C0F85C1762C",
+      "length": 26928
+    },
+    {
+      "path": "tests/RoadGuardSystem.IntegrationTests/Processing/Rf1005CallbackCharacterizationTests.cs",
+      "sha256": "3A0428D33EFA2DA2ECB82DB866E049D3CA3C8E5C6673572F18A1CD3A74E22FFF",
+      "length": 12410
+    },
+    {
+      "path": "planning/refactor/10-survey-request-task-assignment-characterization.md",
+      "sha256": "E7872DE4652B59A1C5F02C9352828B8913ACE62B0C81EFB2130CA00B5384ABE7",
+      "length": 5986
+    }
+  ]
+}

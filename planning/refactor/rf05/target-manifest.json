@@ -1,0 +1,271 @@
+{
+  "package_version": "rf05-prepare-correction-3",
+  "status": "PREPARED_INACTIVE",
+  "branch": "anh",
+  "head": "2efc8a5775f834c7f0fe37cc0ce703011649e1f1",
+  "files": [
+    {
+      "draft": "planning/refactor/rf05/drafts/agents/modules/README.md.draft",
+      "target": ".agents/modules/README.md",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "e71cfd641f1519fee589d6d5c393a203e2fbb5107869f6db27b06b68cc4e7411"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/agents/README.md.draft",
+      "target": ".agents/README.md",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "8b8497e98075a0ce9313724f56a6adf0f8c494eb52cfa6c40f710b9802129c05"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/agents/rules/delivery.md.draft",
+      "target": ".agents/rules/delivery.md",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "578f9b121d94b8cc7d24e100fb47c1f2e92bb0f787a7906966592708553c2c4e"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/agents/rules/evidence.md.draft",
+      "target": ".agents/rules/evidence.md",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "3760c8cad323a720588516de0b2af059a82ed47c6944168990ba6e5bd5a7326b"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/agents/rules/review-and-coordination.md.draft",
+      "target": ".agents/rules/review-and-coordination.md",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "018eab0afbf8c0a2175a44e77c2100287e5666701a9c1e50d58ce747cb25d489"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/agents/rules/safety.md.draft",
+      "target": ".agents/rules/safety.md",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "71f1847fcb092cb8dad443b8946124e9de06020518f7feb612dd1d7de7566bdb"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/AGENTS.md.draft",
+      "target": "AGENTS.md",
+      "action": "replace",
+      "source_sha256": "d87dd5e26a11d1c369cd574329b8330efacd3fa0b5a35251a53218a8358ee1d7",
+      "proposed_sha256": "005628386d0492e10babcfd76125a85a3cfd652d00462bd22960df9d1c1df476"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/decision-index.json.draft",
+      "target": "planning/refactor/04-decision-index.json",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "c2c1ed823e3b85f36c3776ab80a52b0ae9cbb861305e4abb7162a4f621f854e2"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/readiness-decisions.json.draft",
+      "target": "planning/refactor/04-readiness-decisions.json",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "a79dbf358e3bad250a672a96426f36ea74c0a3030a1fb06dbb3f880081818b7c"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/rf05_readiness.py.draft",
+      "target": "planning/refactor/tools/rf05_readiness.py",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "b6aa465247afc59c2c7cc9c02706f375ffb705772dc6f20ca72c940660a97227"
+    },
+    {
+      "source": "planning/refactor/tools/build_rf04_sources.py",
+      "target": "planning/refactor/tools/build_rf04_sources.py",
+      "action": "replace",
+      "source_sha256": "39eac635fafe21f0c437794231a8d26c80889d28d6ae90b29d32f26ec6f33772",
+      "proposed_sha256": "0061bfc170aa9c6119e3c66430652c2083ffbb7308ca14c2fe1a5a709fd672ff",
+      "draft": "planning/refactor/rf05/patches/targets/planning/refactor/tools/build_rf04_sources.py.draft",
+      "patch": "planning/refactor/rf05/patches/planning__refactor__tools__build_rf04_sources.py.patch"
+    },
+    {
+      "source": "planning/refactor/tools/verify_rf04.py",
+      "target": "planning/refactor/tools/verify_rf04.py",
+      "action": "replace",
+      "source_sha256": "ffb80c272a098dc10e0824978206cc3c740c420de955b25a268a9cbf7650f8ea",
+      "proposed_sha256": "46c7e83cbfea5108944ad6ae592cb7cf2dd8663468c7af36b6b60d2756544b68",
+      "draft": "planning/refactor/rf05/patches/targets/planning/refactor/tools/verify_rf04.py.draft",
+      "patch": "planning/refactor/rf05/patches/planning__refactor__tools__verify_rf04.py.patch"
+    },
+    {
+      "source": "tests/Tooling/Verify-AgentSetup.ps1",
+      "target": "tests/Tooling/Verify-AgentSetup.ps1",
+      "action": "replace",
+      "source_sha256": "680b054691870ea225b5b90b80a389200620820503c5aeff7a9d7544a5b80138",
+      "proposed_sha256": "8d6178f8f23b105d43bce1ca94d0600e6bd7981aa51e97adf96d27a3eeeec580",
+      "draft": "planning/refactor/rf05/patches/targets/tests/Tooling/Verify-AgentSetup.ps1.draft",
+      "patch": "planning/refactor/rf05/patches/tests__Tooling__Verify-AgentSetup.ps1.patch"
+    },
+    {
+      "source": "tests/Documentation/Verify-P102Docs.ps1",
+      "target": "tests/Documentation/Verify-P102Docs.ps1",
+      "action": "replace",
+      "source_sha256": "37d476e54347e5b55bc2ffd953d1d0ecbf0f9670b73fd79658e4d6d501488b91",
+      "proposed_sha256": "e13805adc0488a53b8500331a968556023545de22089658fe70417cc079d5e92",
+      "draft": "planning/refactor/rf05/patches/targets/tests/Documentation/Verify-P102Docs.ps1.draft",
+      "patch": "planning/refactor/rf05/patches/tests__Documentation__Verify-P102Docs.ps1.patch"
+    },
+    {
+      "source": ".github/workflows/ci.yml",
+      "target": ".github/workflows/ci.yml",
+      "action": "replace",
+      "source_sha256": "29c095262df7657c62ea4c8cbb812ce21849acc78aa7c3b88ff5fc4ec428389f",
+      "proposed_sha256": "ffb9db789e079209b6bb0015fb183658c6953702d428b2813ad3042bf34a28dd",
+      "draft": "planning/refactor/rf05/patches/targets/.github/workflows/ci.yml.draft",
+      "patch": "planning/refactor/rf05/patches/.github__workflows__ci.yml.patch"
+    },
+    {
+      "draft": "planning/refactor/rf05/drafts/agents/manifest.json.draft",
+      "target": ".agents/manifest.json",
+      "action": "create",
+      "source_sha256": null,
+      "proposed_sha256": "1d040bd939bad80d5096db187f66e3495e70dd2f371e0054f9ebd4b89f1dbdf6"
+    }
+  ],
+  "retire_after_acceptance": [
+    {
+      "source": ".agents/references/completion-log-template.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/references/completion-log-template.md",
+      "source_sha256": "68262a1bc4afe8b475afc5ae7504f38cd02f49e8dbb2596622a016490882ab99"
+    },
+    {
+      "source": ".agents/references/task-log-template.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/references/task-log-template.md",
+      "source_sha256": "95dafecbdc96c8013f32a3b1f1ab901adeb457d5a145dd6ac61dac39e85de0bc"
+    },
+    {
+      "source": ".agents/references/task-workflow.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/references/task-workflow.md",
+      "source_sha256": "30cec7e8b145164f4dba2647e49ca508c1189642c78448c0f43f8f33c90977e6"
+    },
+    {
+      "source": ".agents/rules/roadguard.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/rules/roadguard.md",
+      "source_sha256": "458ea1ee5267272843f2d502e4ecd597c0ce233d1870cceb23cfdb1bfeaf26cf"
+    },
+    {
+      "source": ".agents/skills/roadguard-endpoint-delivery/agents/openai.yaml",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-endpoint-delivery/agents/openai.yaml",
+      "source_sha256": "c235b190cd054a809fbdc81d79d18d2b4b36ecc451012b0574165be9329c0a42"
+    },
+    {
+      "source": ".agents/skills/roadguard-endpoint-delivery/assets/icon.svg",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-endpoint-delivery/assets/icon.svg",
+      "source_sha256": "0eeca909bc2498f216277aa4d7a05e886752957de7138ccc52e5cd06672c775f"
+    },
+    {
+      "source": ".agents/skills/roadguard-endpoint-delivery/references/product-gates.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-endpoint-delivery/references/product-gates.md",
+      "source_sha256": "6a8e486863f1daa5153adff6e2eb5363c08d4a0c8996413bf66548892fc23f0b"
+    },
+    {
+      "source": ".agents/skills/roadguard-endpoint-delivery/references/source-map.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-endpoint-delivery/references/source-map.md",
+      "source_sha256": "4b9aea149189b1199d0974eda7921c636c25842a0015b9bd004b785571a6ef1a"
+    },
+    {
+      "source": ".agents/skills/roadguard-endpoint-delivery/SKILL.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-endpoint-delivery/SKILL.md",
+      "source_sha256": "838e68c9551a954629c06de6cb7b5a265117b3a9daed724a4005a0a44c99bacc"
+    },
+    {
+      "source": ".agents/skills/roadguard-persistence/agents/openai.yaml",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-persistence/agents/openai.yaml",
+      "source_sha256": "e1ec90f4bdd77e98cc889f3fdd9136eed067d434e86ea8643b2b12e4e40a88c4"
+    },
+    {
+      "source": ".agents/skills/roadguard-persistence/assets/icon.svg",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-persistence/assets/icon.svg",
+      "source_sha256": "0eeca909bc2498f216277aa4d7a05e886752957de7138ccc52e5cd06672c775f"
+    },
+    {
+      "source": ".agents/skills/roadguard-persistence/references/risk-cases.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-persistence/references/risk-cases.md",
+      "source_sha256": "eb359de77f917a60df124f14f850e89285fe2acfe3270b97f532df7588605e93"
+    },
+    {
+      "source": ".agents/skills/roadguard-persistence/SKILL.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-persistence/SKILL.md",
+      "source_sha256": "340644c7802ec9c19f184636d6ba62e020efe162690bc5cb6bb7b0f81a78db3e"
+    },
+    {
+      "source": ".agents/skills/roadguard-postman/agents/openai.yaml",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-postman/agents/openai.yaml",
+      "source_sha256": "5a0bcbfc1397b59e90b04baa824714af2c3a74c478328054ad81eb0bb6738631"
+    },
+    {
+      "source": ".agents/skills/roadguard-postman/SKILL.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-postman/SKILL.md",
+      "source_sha256": "86f1303320c26410f6fb1a233e0301f0425051fc60650ffb522819d4acc2d68c"
+    },
+    {
+      "source": ".agents/skills/roadguard-review-autofix/agents/openai.yaml",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-review-autofix/agents/openai.yaml",
+      "source_sha256": "b93073e3b147b3878acd8cc09c7fa63d225a039f4f570fa432757afd69a624c8"
+    },
+    {
+      "source": ".agents/skills/roadguard-review-autofix/assets/icon.svg",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-review-autofix/assets/icon.svg",
+      "source_sha256": "20b465b6a08c799a550126aae66f30e8e047f07960963c3cc6b91a52b72a3df6"
+    },
+    {
+      "source": ".agents/skills/roadguard-review-autofix/SKILL.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-review-autofix/SKILL.md",
+      "source_sha256": "726d5981093ee9a996aa7f68b84732e12e8c7769f37ef8dec254d616fc97c71e"
+    },
+    {
+      "source": ".agents/skills/roadguard-test-selection/agents/openai.yaml",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-test-selection/agents/openai.yaml",
+      "source_sha256": "47c3adf99f79eaffc16e32f1b0003e30e8c9fc0c235c1c0a4b90a235e2759da1"
+    },
+    {
+      "source": ".agents/skills/roadguard-test-selection/assets/icon.svg",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-test-selection/assets/icon.svg",
+      "source_sha256": "0eb50b6b6c3a919d15fe3fd219fcf02f6c303eb903beebe53ce7020fbc7e5b79"
+    },
+    {
+      "source": ".agents/skills/roadguard-test-selection/references/commands.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-test-selection/references/commands.md",
+      "source_sha256": "cb171b4fa199082268968e73dccbcc244d48652e6d261ee7ca7eb6b50dca01a9"
+    },
+    {
+      "source": ".agents/skills/roadguard-test-selection/SKILL.md",
+      "action": "relocate_after_acceptance",
+      "target": "docs/history/agent-pre-rf05/skills/roadguard-test-selection/SKILL.md",
+      "source_sha256": "ebb52591afc2cb0e9ab268398900d6ee562d6409a7b0525f3e72d2a07fae8e28"
+    }
+  ],
+  "keep_unchanged": [
+    ".agents/mcp_config.json",
+    "docs/diagram/V2/09_Frontend/contracts/contract.lock.json",
+    "docs/postman/RoadGuardSystem-V2.postman_collection.json",
+    "docs/diagram/V2/ci/check_alignment.py",
+    "docs/diagram/V2/09_Frontend/contracts/check_contracts.py"
+  ]
+}

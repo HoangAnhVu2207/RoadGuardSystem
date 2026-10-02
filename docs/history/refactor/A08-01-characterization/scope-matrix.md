@@ -1,0 +1,31 @@
+# A08-01 scope and trace matrix
+
+SOURCE_INSPECTED on dirty `anh` HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1`. Primary parent RF-10-05; cross-reference RF-10-08 per-command assessment. Runtime results are determined by fresh TRX and SQL/HTTP output, not by this prediction table.
+
+Boundary: `POST /api/v1/internal/processing-jobs/{jobId}/results` -> `ProcessingV2Controller.ReceiveAiResult` -> `ProcessingV2Service.ReceiveResultAsync` -> `ProcessingV2PersistenceService.ReceiveResultAsync` -> `IdempotencyOperationService.ExecuteAsync/MapExisting` -> `ReadJobOutcome` -> service Map -> controller Map. `AiCallback` selects `AiServiceBearer`: configured issuer/key, audience `roadguard-be-ai`, nonempty sub and client_type AI_SERVICE; no user-session lookup or per-project membership guard on callback. Real JWT scheme is retained in tests; local token uses fixture signing key, no authentication substitute.
+
+| Field | Scope / fingerprint | Validation position | Current-source prediction / runtime case |
+|---|---|---|---|
+| JobId (route) | Job lookup derives project; job ID excluded from hash | GUID route/nonempty service; existence BEFORE receipt; attempt linkage AFTER lookup | Existing second queued job in same project + original attempt, same key/hash returns first job's stored outcome; fresh key Conflict. Missing job returns NotFound, not covered by runtime |
+| AttemptId (JobAttemptId DTO) | Excluded | Nonempty service BEFORE; belongs to job AFTER | Existing other-job attempt passes shape; reused key returns original; fresh key Conflict |
+| ManifestHash | Excluded | lowercase 64-hex DTO/service BEFORE; exact job match AFTER | Different valid 64-hex replay; fresh key Conflict |
+| ModelVersionId | Excluded | Nonempty service BEFORE; exact job model AFTER | Other released model seeded in other project; replay; fresh key Conflict |
+| Mode | Excluded | MOCK/REAL DTO/service BEFORE; exact match AFTER | REAL vs original MOCK replay; fresh key Conflict; INVALID rejected400 before persistence |
+| RawResultFileId | Excluded | Nonempty service BEFORE; stored-file checksum + verified upload + file project AFTER | Existing verified other-project file replay; fresh key Conflict; this is not a valid same-project replacement acceptance claim |
+| Detections | Hash of service-generated Web JSON (typed detection GUID) | DTO + service shape/bbox/confidence BEFORE; repository parses/inserts AFTER | Confidence0.9 ->0.8 is structurally valid but same key hashes differently: IdempotentConflict409; empty array accepted in cross-project control |
+| ChecksumSha256 | Concatenated to detections JSON then SHA256 | lowercase64-hex BEFORE; equality to stored raw file AFTER | Valid c... vs a... same key yields IdempotentConflict409 before raw-file validation; no physical object/checksum verification claim |
+| Actor/project/operation/key | null / existingJob.ProjectId / ProcessingAiResultReceived / trimmed header key | Required key controller; length/hash validation primitive BEFORE lookup | Same key/hash in two projects executes independent receipts. No provider-global-unique-key assumption |
+
+Runtime plan: 13 xUnit cases: positive1, identity theory6, fingerprint theory2, cross-project1, upstream theory2, missing credential1. Every identity case starts with a successful callback; fresh-key control follows changed replay with a fresh baseline. HTTP200 does not encode replay status: receipt/effect immutability and source MapExisting explain stored replay; runtime alone does not instrument handler-skipping.
+
+Setup boundary: project/road-version/survey/confirmed dataset/released model/file scope seeded through entities; UploadSession goes Pending -> Uploading -> Verifying -> Verified through domain methods with SaveChanges/rowversions. This establishes SQL invariants, not full upload/provider/PM HTTP workflow or physical object validity. Jobs/attempts are created through production CreateAsync repository, not direct job state mutation. No retries/late-attempt synthetic state.
+
+Snapshots: each ReadAsync opens a new DbContext, enumerates ALL detections across all three scenario jobs (detects new IDs), all three jobs including status/manifest/model/mode/linkage/rowversion/timestamps, attempts, two raw files/scopes/uploads, job-scoped audit and correlation-scoped outbox. Receipt filter is actor null, either actual scenario project, operation ProcessingAiResultReceived, exact scenario/control key; full Id/OperationId/fingerprint/outcome/time and count. SQL snapshots/HTTP payloads are captured in test output inside TRX. Counts are never limited only to original detection PK.
+
+Provider/caller search: current producer creates `processing_job.dispatch` with jobId/attemptId/manifestHash; no callback key generator or enabled provider implementation identified. `docs/diagram/V2/AI_Integration/README.md` is PROPOSED_DELTA_NOT_ENABLED, not an adopted uniqueness/canonicalization guarantee. CG11/RF10-R07 no reachable RetryableFailure transition remains untouched.
+
+## Fresh runtime classification
+
+Final test02 TRX:13 discovered/executed/passed, 0 failed/skipped. HTTP + isolated SQL CURRENT_VERIFIED for positive/replay, all six shape-valid identity changes with original key/hash (original200 outcome, unchanged scoped effects/receipt), each fresh-key control (409 and new Conflict receipt only), structured changed detection/checksum (409 duplicate_request and unchanged SQL), different project same key/hash (independent200 and receipt), invalid mode400/empty attempt422 and missing credential401 (no scoped SQL effect). Runtime test01 retained11/13 with two test assertion failures due title/detail mismatch; final build02 precedes final no-build test02. No source expectation changed to hide a production failure.
+
+SOURCE_INSPECTED: exact repository enum mapping and handler skip ordering. NOT_VERIFIED: missing-job route, same-project valid alternate raw file accepted under a new key, provider key generation/uniqueness, canonical serialization agreement, actual object bytes/checksum, external auth/mTLS deployment, full PM/upload workflow, late/retry attempt fencing and deployed incidents. Empty-array project control proves project receipt separation, not reuse of identical nonempty detection IDs across projects.

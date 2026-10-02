@@ -1,0 +1,914 @@
+[
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-01-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "fe7d49d6d4c271455dd1654fa077f4787df179dc24bef74b7e6f32e4f4d85438",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-01-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "577c116c43cddacad17db044abb5bd7fb3cbf049706f42d7f9e25cbff706e287",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-02-assembly-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "8b08c8467285a0c9c7fc50f53a22783dc4383b66f80e4faabd684d9ba38c2562",
+    "size": 95
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-02-build.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "277d0ce0ffd85c7d8a7fb16d351743accf5a48fbd7ab1d2e00878db7ef6be2d1",
+    "size": 3854058
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-02-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "dbbffce1fa06d78acc8e5cf464f6f56ccce9d886d1130508d271279e8528f64b",
+    "size": 252
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-02-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "038db03bfa29d96532ba266ac29001e66d355779f0e5e7ba86eca04fff963c2a",
+    "size": 252
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-box1-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "470ca989faf2ee277b8a61aa51ded923be369c08609e6a451c055cff09736956",
+    "size": 436
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-box2-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a7e0d548f8fb428d31ffafb4440281c9a8ab6ff7167c28c6bdafe473373edc63",
+    "size": 436
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-build.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "8163a4e1cdc55375b2f0d0e8329ebe2874eae757645ca1ae226f2e3f13d157c5",
+    "size": 253707
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/evidence/correction-03-box1-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "d3f32d15fb0e76fb592261219110343a98811d605d775a9fb9a2f4ba94c6ed56",
+    "size": 459
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/evidence/correction-03-box2-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "f36fb7abfed1ba1f0731b54835792da42653f10ecca73314263b7dcbb6168908",
+    "size": 459
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/evidence/correction-03-build.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "0e3bea666a4e3fc885720bfd0447be8dca33aa0cc10259c871dcdcb7f588e374",
+    "size": 172550
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/evidence/correction-03-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "04e998939a8535723c4f1ffcfde96ab30ac934364ba289963c5ca7e0518b8332",
+    "size": 226
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/evidence/correction-03-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "289156e55e98c105649bb90520bf6c2ba1e8b26db66e131bd47347d722919cd7",
+    "size": 226
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/evidence/RF-10-08-C01-correction-03-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "298d49167708ed54151dc5bda2c7ae500d81c678482217f447f846de2cb3c4e8",
+    "size": 321468
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-handoff/evidence/RF-10-09-C01-correction-03-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c",
+    "size": 51483
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "fb8e242fb6ecea1e9a9cf4a163b34d099a4dfdb3a0b2557e5648220112b64e66",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-03-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "bb898b2fd483529f0250cf014438a0f331c52f94f3952c48838bd2695d1d61a5",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-box1-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3cc2fa79d4dedd223c6d859163ac6b9139182ee78e5100e45268a3cdbe98cd82",
+    "size": 457
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-build.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "7412f7fa5a4f3759c2db2cd32a3c9ab58157427c08ea02d955ede7a81d163ec8",
+    "size": 172538
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-handoff/evidence/correction-04-box1-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3cc2fa79d4dedd223c6d859163ac6b9139182ee78e5100e45268a3cdbe98cd82",
+    "size": 457
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-handoff/evidence/correction-04-build.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "7412f7fa5a4f3759c2db2cd32a3c9ab58157427c08ea02d955ede7a81d163ec8",
+    "size": 172538
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-handoff/evidence/correction-04-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ff23bbbdc2f2b0db75a31d3dd75ec3b8d71d59770344634dd42f8e6ea208fc79",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-handoff/evidence/correction-04-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "00fc7fc6bba5e8bd31c9eeaefcefb997ffb2f8fadbcd43fa0369ef385995b39e",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-handoff/evidence/RF-10-08-C01-correction-04-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "213e78a5a7b9f67f568139f7b99f824e0e03a323ef6210d516d6499103d6725f",
+    "size": 321428
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-handoff/evidence/RF-10-09-C01-correction-03-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c",
+    "size": 51483
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ff23bbbdc2f2b0db75a31d3dd75ec3b8d71d59770344634dd42f8e6ea208fc79",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "00fc7fc6bba5e8bd31c9eeaefcefb997ffb2f8fadbcd43fa0369ef385995b39e",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-verification/evidence/correction-04-box1-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3cc2fa79d4dedd223c6d859163ac6b9139182ee78e5100e45268a3cdbe98cd82",
+    "size": 457
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-verification/evidence/correction-04-build.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "7412f7fa5a4f3759c2db2cd32a3c9ab58157427c08ea02d955ede7a81d163ec8",
+    "size": 172538
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-verification/evidence/correction-04-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ff23bbbdc2f2b0db75a31d3dd75ec3b8d71d59770344634dd42f8e6ea208fc79",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-verification/evidence/correction-04-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "00fc7fc6bba5e8bd31c9eeaefcefb997ffb2f8fadbcd43fa0369ef385995b39e",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-verification/evidence/RF-10-08-C01-correction-04-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "213e78a5a7b9f67f568139f7b99f824e0e03a323ef6210d516d6499103d6725f",
+    "size": 321428
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-04-verification/evidence/RF-10-09-C01-correction-03-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c",
+    "size": 51483
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "577c116c43cddacad17db044abb5bd7fb3cbf049706f42d7f9e25cbff706e287",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/correction-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "532617fc519848a0a48004c57fcc3ce790a4d06efd53f87fc7d162223d67db2a",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/docs-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a60936827b0945a02545e60df573605d3eea16eadeca12801c0f3e52bc95cc9e",
+    "size": 1148
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/docs-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ea7159f5b19601304daed62bdb673f60e934d9f67db3f047d196016c04ac88e9",
+    "size": 1042
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/correction-04-box1-run.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3cc2fa79d4dedd223c6d859163ac6b9139182ee78e5100e45268a3cdbe98cd82",
+    "size": 457
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/correction-04-build.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "7412f7fa5a4f3759c2db2cd32a3c9ab58157427c08ea02d955ede7a81d163ec8",
+    "size": 172538
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/RF-10-08-C01-correction-04-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "213e78a5a7b9f67f568139f7b99f824e0e03a323ef6210d516d6499103d6725f",
+    "size": 321428
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/evidence/RF-10-09-C01-correction-03-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "85b6dacea9d01e82b9614d281c29acfab697dc5eaa391fbfa7f233d03ffb557c",
+    "size": 51483
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/source-snapshots/correction-03-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "04e998939a8535723c4f1ffcfde96ab30ac934364ba289963c5ca7e0518b8332",
+    "size": 226
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/source-snapshots/correction-03-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "289156e55e98c105649bb90520bf6c2ba1e8b26db66e131bd47347d722919cd7",
+    "size": 226
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/source-snapshots/correction-04-tests-after.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ff23bbbdc2f2b0db75a31d3dd75ec3b8d71d59770344634dd42f8e6ea208fc79",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/finalization-handoff/source-snapshots/correction-04-tests-before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "00fc7fc6bba5e8bd31c9eeaefcefb997ffb2f8fadbcd43fa0369ef385995b39e",
+    "size": 314
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-08-C01-correction-02-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a7628bfba93583b68266e320543befc91c8fca55c66a7b1b64a5eddc3d648902",
+    "size": 321427
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-08-C01-correction-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "88af83cfd8d6cfcac7d6ad252a1f7a7f5791722446314e741c0c01d50f73ce36",
+    "size": 320593
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-08-C01.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "79140f1898dce5fb12a651a1f6e17ec901d63aaf55258df12ca2d258433b21f2",
+    "size": 318902
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-09-C01-correction-02-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "fe0d861b1fe6dd802a3f884106c1fd3fe2d16cac4e64996eda89250eafdd1dc1",
+    "size": 51463
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-09-C01-correction-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "93b65af7b8dc4d9fd7a18b4f935f48b1c5c3628b1a8b676be65b5bae5d5e0611",
+    "size": 54529
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-09-C01.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "48d080a5646891bd97f84a598aa6abef914e9a6011a1aad5e732f1d416244769",
+    "size": 62000
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-01-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3115cbe92aea845d60f28a1381236e48a6041aa3bd61e92afdd44bf171257db5",
+    "size": 146929
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-01-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "6a6d78a48f9885aedf1f250bba5259529e73e5580669ee78cfd26e5e3e0b83a0",
+    "size": 112
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-02-handoff.tar.gz",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "620d83a5bd0a834f6e8aa68c1899d6b092dd53cb20fcd55d390fabc41df3822a",
+    "size": 452865
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-02-handoff.tar.gz.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "984c9045c2424ed4421c86bf6f3b9f8cdf0b86d1ce296a523663e5a865de50ae",
+    "size": 115
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-02-source-supplement.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a2c93504803e731ef1fc5e82b291c0800295a1a49f20c46a686ecd3483702587",
+    "size": 122
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-03-handoff.tar.gz",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "47e0e6aa6cf96504a081e8155acd4b9fafc3a463911e2d33ce973a3b65b9e3f7",
+    "size": 68841
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-03-handoff.tar.gz.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "7b70ac7bcaf8a0765b8d2a2bbf4c8344d5c3a36b1eb8d8dc6287f17acc053c4c",
+    "size": 115
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-04-handoff.tar.gz",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "974a483e4af551c40de0037136ca0004c4b0c81cd01779c7c7b1e23322b0217f",
+    "size": 73751
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-correction-04-handoff.tar.gz.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "436f77c65c9967e658b7a1dfa8a716cf2567172d9cf122943d1af09f79d4df5b",
+    "size": 115
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-finalization-handoff.tar.gz",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "19555b02ceba04c744fdd15aad9fb3de92cc829701a61ad4de8357a3be7fce8a",
+    "size": 77999
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-finalization-handoff.tar.gz.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "dea3ebfa97f8b6aa0ecda0f35f9f43b8e51b34d15a794c09df7486e5fd1eeeaa",
+    "size": 114
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-three-box-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a72af4e20c52e1ad2aff5b2d2740212b40ebaa4f976fe1e43cdcfd3dda81efe5",
+    "size": 108375
+  },
+  {
+    "path": "planning/refactor/evidence/checkpoint13-integration/RF-10-checkpoint-13-three-box-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3d4e0624fb2d959a298c1053431c79eaa7ddc27a5066c4bf515d4530525e5b49",
+    "size": 108
+  },
+  {
+    "path": "planning/refactor/evidence/rf1007-c01/rf1007-c01-test-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "eddc3bb70108a1dc26aec598b540e798557a651af766ac3c31364e7358e8996b",
+    "size": 33341
+  },
+  {
+    "path": "planning/refactor/evidence/rf1007-c01/rf1007-c01-test.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "71124d963c523d02134b238b4f9ae3a468ed65a7a39e598361b6a2f78e0b2829",
+    "size": 38063
+  },
+  {
+    "path": "planning/refactor/evidence/rf1007-c02/rf1007-c02-test.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "611d9aee283c17685ebbc5917d1f3c0242bbef096b299831a1f05c4b8bcd53af",
+    "size": 33195
+  },
+  {
+    "path": "planning/refactor/reports/RF-04-correction-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "59bd372f7e98f51a4ec966cb7633d8fc38277d0c49d1f30c7c9209fe81f0c477",
+    "size": 219223
+  },
+  {
+    "path": "planning/refactor/reports/RF-05-prepare-correction-3-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ed49b235cb4966676f8b01568ae1e6be0bdaaccfb0acafb3f650b616f480d101",
+    "size": 176674
+  },
+  {
+    "path": "planning/refactor/reports/RF-05-prepare-correction-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a4591c3433998c8b0d4a4ac3423b4bd98f583ab0ba989ba3fbfa333d707e0ef3",
+    "size": 165608
+  },
+  {
+    "path": "planning/refactor/reports/RF-05-prepare-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "349a8ff789ec6851ab24aa5954adb91869d9eece6d9c685ca2d71dd4c0811a80",
+    "size": 150988
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-01-C01-evidence/identity-01.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "21aa1d3cf095f94f1364a685d7504237f5354b7d865c13ed408ff089c5c9be5b",
+    "size": 148321
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-01-C01-evidence/identity-existing-01.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3e05c3f9441f0866602a55e1109dc75cb5fd54c664594baa4d3bfba49acff603",
+    "size": 76519
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-01-C01-evidence/identity-existing-corrected.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "246160d7cc2f9429f5ee1fee277020dc1359222d11b018dd91b0e459af1cabe4",
+    "size": 25393
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-01-C01-evidence/identity-existing-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "f0b97e188b1045f4c18ad5b9efdeaff5d9456f68a297bb5d5a3928e708cd3160",
+    "size": 20042
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-01-C01-evidence/identity-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "2e41121cbb228519b8e280c441dd7167751a241c63623002a3831c5398e88bf7",
+    "size": 173076
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-01-C01-evidence/identity-final3.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "c54616bff0beaaa3e5622d3b02b0a2d495d938856a1609539f22ca3c5e7707f8",
+    "size": 169008
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-02-C01-evidence/rf1002-c01.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "bb5b9037a3de8b6617ca4bfa8734cce0dfc3d0ee273f0ab40f621477b1941072",
+    "size": 27315
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-02-C01-evidence/rf1002-existing.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "2549be1a75547f76dcc82148501fc5b724eff23e693d1f0df2734fead7ae3d8f",
+    "size": 330615
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-02-C01-evidence/rf1002-membership.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "d39c141b7f44161bf146718f0814a4843f24e8facd175a233b92a159e96828fc",
+    "size": 8824
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/build-01-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "b3dd9faf610a37b1f31c3a33b0ed73835fcb654a645ddf2ebbd8ba53eb28ccd6",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/build-current-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "76ea387664414d5ebf81b30adf72eaaf5034820c432fba7edfb9a2bf414991d3",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/build-final-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "501740c363079bd22c4f52f704ad730e262ecf6acdeb8d477c8bbd2ab83c7809",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/build-final2-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "494f137c23f389b1c59d60de17a1bce9ecbbb9a2bdc324b178402ac3887c4428",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/build-final3-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "494f137c23f389b1c59d60de17a1bce9ecbbb9a2bdc324b178402ac3887c4428",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/rf1003-c01-01.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "e98d7012d2beb9ef34f42302f8f8364d49e8c95bc598b386581e94daf021e6d2",
+    "size": 107893
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/rf1003-c01-current.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "6d91888e5444bd27a5d815b9840a56e6aaf72d17ab94f568a6493a2085138fd7",
+    "size": 104527
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/rf1003-c01-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "91096b3cf61346fb695a119c7bcea18df847387ca41ae208ef993c436bcffa85",
+    "size": 104528
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/rf1003-c01-final2.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "d3ea0d18731b1bea20fc782eba0ceb8aa94ff2e7250d1feeb457cd442deb667e",
+    "size": 106797
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/rf1003-c01-final3.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a647f404ecaf11afb31fa4a78cb804aba5512cb0d7fdf6090185ff0329832e9a",
+    "size": 106799
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/test-01-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "bf253b86e529feaf4234372246b0ba0f210f91485ec87490415ff0b6544c7dd4",
+    "size": 605
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/test-current-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "91c2fc66c737a6cf4bdacd8b9baec26b1dd7bb3ea015d1557fdf8b614a7358c5",
+    "size": 448
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/test-final-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "6e4349ef82df18a974db14052aae8c72e462d394dbcdd0047429a68c78e45fa5",
+    "size": 446
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/test-final2-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "06c790a7d39d15c7577bf9ba7c3585f0543e4b9f296e9add8ddf700ca06311a5",
+    "size": 447
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C01-evidence/test-final3-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "7d74784a4ac17cee724107436ea287a5536197f539c2795459ea1192b641b2f1",
+    "size": 447
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1002-membership-correction-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "cbb11edd09c7714d2e46428d246cf541c7df23b3e39e94de90131fdfa2ef39f7",
+    "size": 8824
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1002-membership-correction-final2.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "79494304c7413a01e9307cca0ca37a85cde44de86113280e52af846894e7af05",
+    "size": 8824
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1002-membership-rerun.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "806148f3ecaf5cd01d7d22f1b5c3b29acafa97fce1ff2e1ffdab5fcb6fac8b09",
+    "size": 8824
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1002-rf1003-c02.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3c3a043f80d951bfb37cfa81a9360dd4dc5f6c0788d43eb917eff2ac2917459b",
+    "size": 67667
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1002-rf1003-correction-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "27d6fd8de5f612a3e2a4a2f144502f7c8cd6499b0059ab0e7d6e0485efc14f79",
+    "size": 94482
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1002-rf1003-correction-final2.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3e3eab37f413d4e10e5ff06fc6c57f9c1557d68ddc821f1070f55e49c49bc0e0",
+    "size": 94479
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint08-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "9e659324989dc6c6682f5f50b4af3ef3e64d9f36d6badc625d46a07f5a4f5c46",
+    "size": 79797
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint08-final2.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3d36ccc394e50d67f9ed87bc46c8eff5feee897172b1051b284c6ea42681b0dc",
+    "size": 93537
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint08-final3.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3752d71e27b902e60ba31ce97fca46095d232812d85c5c2fdb0c88b89216984c",
+    "size": 90069
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint08.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a888a7baa5bf1578c641e346a2cb52fa1f84199861a324e29033d9d09b371867",
+    "size": 70496
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint09-final-console-run.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "9ef4f865fcaa60ffba73b0b7c721f035f3ab64eaa588d85b18c60514a900d8d7",
+    "size": 121148
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint09-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "d214cf7974c2505faec4afc68321624d44e9fd8745e7e724644a763e60341b35",
+    "size": 121150
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint10-test-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "c76c455c04060174ccbb7abdaa5437078aa10ed46b40b95743751bbcfaed6e64",
+    "size": 92200
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint10-test-final2.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "75d3d0241fe46d97d20447049cb0e2c8a3c89b5d721c2cbebd54bdbe1ed72026",
+    "size": 123902
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint10-test-final3.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "32a081c6e98589348443d814b2840687dff3e7068969895670a831baeef3a64f",
+    "size": 121868
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint10-test-final4.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "f739eb4a28a1906a5747a7d38d57527fe11849f158240b6527b2c54127dd7cf7",
+    "size": 121868
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-checkpoint10-test.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "899a59edc106e470a0814bb2e9a63f276d789cf64dbe0952cca63d48b3352e37",
+    "size": 52819
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-correction.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "f1c9d76e76e1bf71f587b481e88247e724133104f3f18cda7f31fe639f4aa613",
+    "size": 66788
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-correction2.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "4a6f4f08f5f147cf34a840b1b60a014d63684e0f94e518eadfed7ee8a9ff4d22",
+    "size": 70131
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-correction3.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ba385a96b0f89121853f60dc6168cc9d9fc308502d6298f0fe1641e769c172c9",
+    "size": 70218
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-03-C02-evidence/rf1003-c02-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "ed0c9562ad132f4b93e1ea94d2eca2d404f0b19b9b2662b33e61bbdd7b9db04b",
+    "size": 45677
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/build-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "d6ab22f2c56f8e116006bd711513f8f1bdd515c37b6836905d3758aa27a08830",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/build-current-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "37a43a982fcdcca0a1485130e7d80567832022b438a1fceb867acebc0176ab04",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/build-final-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "93052efda68f0a40333befb74da6c7ad7003e325766193582e972dacbaf02c58",
+    "size": 84
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/rf1005-c01-current.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "25f4092cfb467fa75461fd551d6b30e30525aaa93c3ddef82c753a27234e1ad9",
+    "size": 4685
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/rf1005-c01-final.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a903ee51d4926b4d04dfcad97bafb07fcc878df08d3a02db508829934aee0ebd",
+    "size": 4685
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/rf1005-c01.trx",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a5d8e4e39392dc8335be42b7c211a46a3f1f433946a4d943f5089e89164943d1",
+    "size": 4685
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/test-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3bcd7880d5e505c93103f5c9d5e8df784bafd0f56c1d5cb42a120527bb13f63c",
+    "size": 464
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/test-current-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "3d8300d093346dac300909d2eb9d491ee83e0703c9dc0ec24d12e5fdb55731b8",
+    "size": 472
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-05-C01-evidence/test-final-console.log",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "bc46021a43e49461982c0046843e584d79ab1686f401b34b3e6f6e8bd10b3c94",
+    "size": 470
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-07-C01.md.before.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "7e0737e04fb04f56e96759d5be0f6756f0733943e1040b1bf5e1f107d044fa1f",
+    "size": 90
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-01-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "abe8db47f68711d53106df1f87e824ececb98e2dd7de01341288209383e5aa8f",
+    "size": 376869
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-02-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "577747d5f8e7961742fde27cc39eea0e3628ac153fc36cf3fec15bbf19fda6b9",
+    "size": 130595
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-02-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "8c85038d7133f5d76912d4ba93e983f2f2056365ac41e41a32577ceafa95f529",
+    "size": 110
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-03-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "97be73f7fdd705228e658b45f0788c65dc9e82156f8d25181b0d2e1dc4dc619b",
+    "size": 183604
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-03-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "c140ba60110fa625ba90605f70c01d99be6ceacdc8d862e2a1dc58cc1f70eaa5",
+    "size": 110
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-04-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "87266870f955585c2f9482010afabb278284c355473c60d390f7c2a8e7a2d546",
+    "size": 225578
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-04-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "45132fbd5f7d8c3040e76750f6039576d76547d433f6e3771761600f25658c64",
+    "size": 106
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-05-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "fbe29f75bc516da7bea97c1636ae3c705a776880601b34bccfb9664c801766c2",
+    "size": 157255
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-05-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "470b2aecd10f7925e410d9bcf5f5faaf257094efa1244423b82d958ed3947842",
+    "size": 106
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-06-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "0d5089fe321f6ad9dfb19d38b18019f3499805cc42c2ef1c9ecce69dde332d15",
+    "size": 72006
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-06-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "8552a861c0666fab7ac2b531620f17bda723f9974c6e7a88928c815566e34153",
+    "size": 66
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-07-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "e4856e0be036ed566c4005e77eb48025933128ede8d82cc2a220ef51b0c64441",
+    "size": 144528
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-07-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "a0a1928e1dd551f5be747a5b54df52e0a52fcba9df1dc0106a1977017483e988",
+    "size": 66
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-08-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "33b993be3218eea47cabea829e354d1b870e32d8e3eb9e718ca16c742af44249",
+    "size": 46027
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-08-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "9e7a1632775b5220c9aebf43dfecd144e97c13dfc2310cf905a6afc3a6973b99",
+    "size": 66
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-09-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "cb31a12bca172c334be2ed7b38924619bcc7af1ae38d5c0c0bd3469b05dc8427",
+    "size": 54829
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-09-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "6c6138c58df8f1213e97708108665a5a7b10dda8e647ac178f89f7f88f6d6dee",
+    "size": 66
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-10-correction-01-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "d48c3e390303325dabcf76c484eb0220475460e102acff77eb98c50e35901b66",
+    "size": 90875
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-10-correction-01-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "66eaaeb58c7036714db1f4be220f46962572d30b5e140e31886d742910fe7317",
+    "size": 122
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-10-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "48941ee106db6374640cec0179e4e8960dbce00a97001ff23f23c3b2c3312adc",
+    "size": 70021
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-10-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "b9a513da1e1646939648b00ef4f87179cd5ad1e16cfdbfb91e246e2a3460f88a",
+    "size": 108
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-11-correction-01-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "34b08174a67237d94174f4765d4ef4ac44f2dc0951dbc737881ddb22d8011d4e",
+    "size": 254861
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-11-correction-01-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "6d0042237f69e7a4e689775d2524b311412797cd7ce098a628609f35118fc751",
+    "size": 122
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-11-handoff.zip",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "82489d1b8a2eed37492fd5cef8ad63c864fa9c31227e1762394b5fe289a6e4f3",
+    "size": 156069
+  },
+  {
+    "path": "planning/refactor/reports/RF-10-refactor-checkpoint-11-handoff.zip.sha256",
+    "label": "HISTORICAL; retained at repository path, not re-executed",
+    "sha256": "49735fa02580123032150f0c8cb3ad81fc324c4ecf110d9b31ed3f0adaa861c0",
+    "size": 108
+  }
+]

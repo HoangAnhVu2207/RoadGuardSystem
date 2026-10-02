@@ -1,14 +1,29 @@
 # RoadGuard documentation map
 
+## Current sources (RF-11, 2026-10-02)
+
+- [Product index](product/README.md) and [confirmed 32-44 decisions](product/confirmed-decisions.md): owner-confirmed requirements; wire/schema adoption is separate.
+- [Backend index](backend/README.md) and [current data inventory](backend/data/README.md): observed implementation and verification limits.
+- [Contract index](../contracts/README.md): a contract is active only with explicit status and adoption evidence.
+- [Decision index](decisions/README.md): confirmed decisions, proposed successors and historical ADR transitions.
+- [Refactor checkpoint](../planning/refactor/README.md) and [handoff baseline](../planning/refactor/11-handoff-baseline.md): current task status and branch readiness.
+- [Agent manifest](../.agents/manifest.json): the accepted repository guidance inventory.
+- [Historical refactor packages](history/refactor/README.md): archived snapshots, findings and runtime evidence; embedded guidance and packaging instructions are inactive.
+- [Retired agent guidance](history/agent-pre-rf05/), [old design](history/v1-design/), [worklogs](history/worklogs/) and [historical Superpowers material](history/superpowers/).
+
+The following sections are HISTORICAL design context. Their former source-priority hierarchy and target descriptions do not override current confirmed decisions, contract adoption status or observed implementation. Retained ADR/design files are review sources, not new retirement or implementation authorization.
+
+## Historical documentation map
+
 This folder contains both accepted architecture decisions and target product design. The target incident/segment/AI design is being synchronized with the existing backend documentation; a target statement does not mean the corresponding API, database migration, role seed, worker, or external AI deployment already exists.
 
 ## Scope, hotfix and technology notes
 
 - [Backend in-scope/out-of-scope](RoadGuard_Backend_Scope.md)
 - [Whole-project in-scope/out-of-scope](RoadGuard_Project_Scope.md)
-- [Workflow hotfix plan](hotfix/RoadGuard_Workflow_Hotfix_Plan_v1.md)
+- [Workflow hotfix plan](history/RoadGuard_Workflow_Hotfix_Plan_v1.md)
 - [C# and platform technology research](research/RoadGuard_CSharp_Technology_Research.md)
-- [Change 1 Record](Change_1_Record.md)
+- [Change 1 Record](history/Change_1_Record.md)
 
 The hotfix plan reopens only the deltas caused by the new Reporter, IncidentCase, route/segment, edge-coverage and external-AI requirements. Historical `Done` rows and their worklogs remain evidence of the behavior accepted at that time; they are not edited to claim that the hotfix is already released.
 
@@ -22,13 +37,13 @@ The hotfix plan reopens only the deltas caused by the new Reporter, IncidentCase
 
 ## Current target design
 
-- [Incident, Reporter and segment design](diagram/RoadGuard_Incident_Segment_Design_v1.md)
-- [AI, segment bands and edge coverage design](diagram/RoadGuard_AI_Segment_Edge_Design_v1.md)
-- [Use case specification](diagram/Dac_ta_UseCase_v2.md)
-- [User stories and acceptance criteria](diagram/User_Stories_Acceptance_Criteria_v2.md)
-- [Domain model](diagram/RoadGuard_Domain_Model_v1.md)
-- [Data Dictionary](diagram/RoadGuard_Data_Dictionary_v1.md)
-- [ERD](diagram/RoadGuard_ERD_v1.md)
+- [Incident, Reporter and segment design](history/v1-design/RoadGuard_Incident_Segment_Design_v1.md)
+- [AI, segment bands and edge coverage design](history/v1-design/RoadGuard_AI_Segment_Edge_Design_v1.md)
+- [Use case specification](history/v1-design/Dac_ta_UseCase_v2.md)
+- [User stories and acceptance criteria](history/v1-design/User_Stories_Acceptance_Criteria_v2.md)
+- [Domain model](history/v1-design/RoadGuard_Domain_Model_v1.md)
+- [Data Dictionary](history/v1-design/RoadGuard_Data_Dictionary_v1.md)
+- [ERD](history/v1-design/RoadGuard_ERD_v1.md)
 
 The target design adds the `REPORTER` role (citizen or investor representative) with Gmail self-registration and OTP verification, individual photo coordinates, an `IncidentReport`/`IncidentCase` workflow, versioned configurable segment sets, `SURFACE`/`LEFT_EDGE`/`RIGHT_EDGE` coverage, and an external AI adapter. PM repair input is limited to a general repair method summary; financial data, construction phases, materials, quantities, and detailed execution remain outside scope.
 

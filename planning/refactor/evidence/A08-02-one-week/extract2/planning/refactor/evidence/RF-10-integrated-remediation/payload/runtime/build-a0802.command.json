@@ -1,0 +1,5 @@
+{
+  "command": "dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-incremental --nologo",
+  "exitCode": 0,
+  "capturedAtUtc": "2026-10-02T00:02:50.4766365Z"
+}

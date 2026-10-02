@@ -1,0 +1,25 @@
+{
+  "scope": "local production source / task docs; normal rg ignore rules; no deployed environment search",
+  "command": "rg -n IOutboxWorkRepository|OutboxWorkRepository|NotificationOutboxConsumer|TryLeaseNextAsync|AddHostedService|BackgroundService|IHostedService|CompleteNextValidationRunAsync RoadGuardSystem.API RoadGuardSystem.Services RoadGuardSystem.Repositories -g *.cs -g !**/Migrations/** -g !**/bin/** -g !**/obj/**",
+  "output": [
+    "RoadGuardSystem.API\\Workers\\UploadVerificationWorker.cs:5:public sealed class UploadVerificationWorker : BackgroundService",
+    "RoadGuardSystem.API\\Program.cs:28:    builder.Services.AddHostedService<UploadVerificationWorker>();",
+    "RoadGuardSystem.Repositories\\Extensions\\RoadGuardPersistenceExtensions.cs:105:        services.AddScoped<NotificationOutboxConsumer>();",
+    "RoadGuardSystem.Repositories\\Extensions\\RoadGuardPersistenceExtensions.cs:106:        services.AddScoped<IOutboxWorkRepository, OutboxWorkRepository>();",
+    "RoadGuardSystem.API\\Extensions\\ServiceCollectionExtensions.cs:13:using RoadGuardSystem.API.BackgroundServices;",
+    "RoadGuardSystem.API\\Extensions\\ServiceCollectionExtensions.cs:87:        services.AddHostedService<ValidationRunWorker>();",
+    "RoadGuardSystem.Repositories\\Interfaces\\Messaging\\IOutboxWorkRepository.cs:3:public interface IOutboxWorkRepository",
+    "RoadGuardSystem.Repositories\\Interfaces\\Messaging\\IOutboxWorkRepository.cs:5:    Task<OutboxWorkLease?> TryLeaseNextAsync(",
+    "RoadGuardSystem.Repositories\\Implementations\\Processing\\ProcessingV2PersistenceService.cs:202:    public async Task<bool> CompleteNextValidationRunAsync(CancellationToken cancellationToken = default)",
+    "RoadGuardSystem.Repositories\\Implementations\\Messaging\\OutboxWorkRepository.cs:8:public sealed class OutboxWorkRepository : IOutboxWorkRepository",
+    "RoadGuardSystem.Repositories\\Implementations\\Messaging\\OutboxWorkRepository.cs:12:    public OutboxWorkRepository(RoadGuardDbContext context)",
+    "RoadGuardSystem.Repositories\\Implementations\\Messaging\\OutboxWorkRepository.cs:17:    public async Task<OutboxWorkLease?> TryLeaseNextAsync(",
+    "RoadGuardSystem.API\\BackgroundServices\\ValidationRunWorker.cs:3:namespace RoadGuardSystem.API.BackgroundServices;",
+    "RoadGuardSystem.API\\BackgroundServices\\ValidationRunWorker.cs:5:public sealed partial class ValidationRunWorker : BackgroundService",
+    "RoadGuardSystem.API\\BackgroundServices\\ValidationRunWorker.cs:24:                if (await repository.CompleteNextValidationRunAsync(stoppingToken))",
+    "RoadGuardSystem.Repositories\\Implementations\\Messaging\\NotificationOutboxConsumer.cs:11:public sealed class NotificationOutboxConsumer",
+    "RoadGuardSystem.Repositories\\Implementations\\Messaging\\NotificationOutboxConsumer.cs:18:    public NotificationOutboxConsumer(",
+    "RoadGuardSystem.Repositories\\Interfaces\\Processing\\IProcessingV2Repository.cs:12:    Task<bool> CompleteNextValidationRunAsync(CancellationToken cancellationToken = default);"
+  ],
+  "exitCode": 0
+}

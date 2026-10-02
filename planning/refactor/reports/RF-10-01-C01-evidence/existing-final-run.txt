@@ -1,0 +1,4 @@
+command=dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q -clp:ErrorsOnly --filter 'FullyQualifiedName~V2IdentityOnboardingFlowTests.ReporterRegistration_VerifiesOneTimeOtpAndIssuesToken|FullyQualifiedName~AuthenticationFlowTests.Login_ConfiguredSessionAndRefreshLifetimes_DrivePersistedAndReturnedExpiries' --logger 'trx;LogFileName=identity-existing-final.trx' --results-directory planning/refactor/reports/RF-10-01-C01-evidence
+start=2026-10-01T04:41:14.4619646+07:00
+end=2026-10-01T04:41:28.5816577+07:00
+exit=0

@@ -1,0 +1,5 @@
+START=2026-10-01T12:27:30.9813894+07:00
+END=2026-10-01T12:27:33.0065058+07:00
+EXIT=0
+CWD=D:\Project BE\RoadGuardSystem
+COMMAND=dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj -nologo -v q -clp:ErrorsOnly

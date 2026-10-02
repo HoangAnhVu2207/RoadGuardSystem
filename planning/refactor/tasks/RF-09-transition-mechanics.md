@@ -1,0 +1,22 @@
+# RF-09: Contract and data transition mechanics
+
+- **Status/checkpoint (2026-10-01):** PARTIAL locally on `anh` at `2efc8a5775f834c7f0fe37cc0ce703011649e1f1` plus preserved dirty tree; no change commit. Framework/templates and test-only guards are prepared; consumer verification, deployed SQL and approved package cutovers remain open. See `planning/refactor/reports/RF-09.md`, `09-consumer-registry.md`, `09-change-gates.md`, `09-transition-templates.md`, `09-cg17-package.md`. RF-10 has not started.
+- **Goal:** provide a repeatable path for versioning public contracts, additive SQL migration/backfill and restore; prepare module packages such as CG17 without executing them by default.
+- **In scope:** consumer ownership/usage register, compatibility/deprecation template, expand/backfill/verify/contract sequence, isolated restore rehearsal, operation/schema diff guards. **Out of scope:** blanket active OpenAPI replacement, shared DB migration, deletion or automatic package upgrades.
+- **Dependencies/decisions:** RF-04 operation crosswalk, RF-06 isolated SQL, RF-06A current schema baseline, RF-08 baseline. Every specific public/schema delta needs named owner approval; Q-RF02-02/03/06/08 gate relevant module packages.
+- **Read first:** `02-contract-gaps.md` CG01-17, RF-04 contract map, `docs/backend/data/README.md` and current schema inventory/dictionary/drift register, migrations + snapshot for target tables, `RoadGuardDbContext`, FE snapshot/lock/checker, Postman/`.http`, deployed-consumer information supplied by owners.
+- **Likely files:** `planning/refactor/` migration/consumer matrices, `contracts/` proposed versions, test-only migration rehearsal harness. Production migrations/model/CI are **conditional touch points** of later approved RF-10 slices, not automatic RF-09 edits.
+- **Contract/data/consumer effect:** registry names web/Android/AI/operator clients and unknown external users; per-change compatibility window and rollback trigger. Data plan includes old-row counts, additive columns, dual-read/write, idempotent bounded backfill, checksum/constraint checks, backup/restore and old-reader compatibility. Never edit/delete an applied migration.
+- **Steps:** classify proposed contract deltas -> get consumer samples/owner -> draft parallel version -> inventory data/migration chain -> rehearse expand/backfill/restore on isolated copy -> approve specific module migration gate -> hand off.
+- **Verify:** parsed operation/schema diffs, FE snapshot/lock deliberate change review, Postman/`.http` static alignment, Testcontainers SQL migration up and old/new reader tests on sample dataset, restore/checksum evidence. If owner/provider evidence absent, mark Partial with blocked slice.
+- **Done when:** every RF-10 schema/public change has a usable template and owner/consumer gate, CG17 has explicit `int` -> larger-size compatibility plan, no data loss or unapproved production write has occurred.
+- **Recovery:** revert draft contract/plan freely; for an approved additive migration, use tested forward repair or isolated backup restore plan, never remove an applied migration from history.
+
+## Two-developer delivery supplement
+
+- **Proposed owner:** A: transition mechanism/integration; B: CG17/survey/provider analysis. Split dual-owner parent tasks into single-owner slices before edits. See [ownership plan](../03-two-developer-plan.md).
+- **Pre-edit checkpoint:** record exact allowed files/symbols, read-only dependencies, shared-file reservation, baseline commit and preserved dirty changes. Record START / INTEGRATE / RELEASE gates for this slice; existing decision/data gates remain in force.
+- **Independence:** use an agreed interface/version and fixture for consumer work; label test-double evidence separately. Do not claim parent Done before required real integration.
+- **Self-review:** correctness pass plus ownership/consumer impact pass, safe in-scope autofix, focused verification and final diff review. Record unresolved findings.
+- **Cross-owner impact:** create a note from [coordination template](../templates/coordination-note.md), recommend primary fixer and wait for the two developers to assign the overlapping change. Continue independent work; do not edit the other owner's files or duplicate their business logic.
+- **Report:** [revised seven-section template](../templates/task-report.md); single-owner task may retain its existing report path, slices use `reports/<TASK-ID>-<SLICE>-<A|B>.md`. Record implementation status separately from delivery stage.

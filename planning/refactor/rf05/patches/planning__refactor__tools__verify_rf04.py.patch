@@ -1,0 +1,45 @@
+--- a/planning/refactor/tools/verify_rf04.py
++++ b/planning/refactor/tools/verify_rf04.py
+@@ -5,6 +5,8 @@
+ import hashlib
+ import html
+ import json
++import os
++from rf05_readiness import validate_readiness
+ import re
+ from pathlib import Path
+ 
+@@ -16,7 +18,7 @@
+                            CURRENT_CONTROLLER_TASK, OPERATION_CONTEXT_REASONS,
+                            OPERATION_TASK_OVERRIDES, SOURCE_TASK, TASK_OWNER)
+ 
+-ROOT = Path(__file__).resolve().parents[3]
++ROOT = Path(os.environ["ROADGUARD_ROOT"]).resolve() if os.environ.get("ROADGUARD_ROOT") else Path(__file__).resolve().parents[3]
+ PLAN = ROOT / "planning/refactor"
+ DOC_FILES = [
+     *sorted((ROOT / "docs/product").glob("*.md")),
+@@ -134,7 +136,11 @@
+         assert row["rf_task"] == SOURCE_TASK[row["id"]]
+         assert row["proposed_owner"] == TASK_OWNER[row["rf_task"]]
+         assert row["content_status"] == "MIGRATED_FULL_SECTION" and row["claims"]
+-        assert row["implementation_readiness"].startswith("BLOCKED_") and row["missing_decision"]
++        validate_readiness(row, ROOT)
++        assert row["implementation_readiness"] == row["readiness"]["state"]
++        registry = json.loads((PLAN / "04-readiness-decisions.json").read_text(encoding="utf-8"))["decisions"]
++        if row["id"] in registry:
++            assert row["readiness"] == registry[row["id"]]
+         assert (ROOT / row["source"]).read_text(encoding="utf-8").splitlines()[row["line"]-1] == row["source_heading"]
+         dest_path, anchor = row["destination"].split("#", 1)
+         destination = (ROOT / dest_path).read_text(encoding="utf-8")
+@@ -146,9 +152,9 @@
+         related = CONFIRMED_RELATED.get(row["id"])
+         assert row.get("confirmed_reference") == related
+         if related:
+-            assert row["authority"].startswith("MIXED_")
++            assert row["source_authority"].startswith("MIXED_")
+         else:
+-            assert row["authority"] == "HISTORICAL_SOURCE_ONLY"
++            assert row["source_authority"] == "HISTORICAL_SOURCE_ONLY"
+     assert {r["id"] for r in source["adr"]} == set(ADR_TRANSITION)
+     assert all(r["destination"] == ADR_TRANSITION[r["id"]] for r in source["adr"])
+     assert {r["id"] for r in source["decisions"]} == set("32A 33A 34A 35A 36A 37 38 39A 40 41A 42A 43A 44".split())

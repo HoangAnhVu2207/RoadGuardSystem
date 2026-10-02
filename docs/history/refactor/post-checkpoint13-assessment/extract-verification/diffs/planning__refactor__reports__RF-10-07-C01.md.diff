@@ -1,0 +1,16 @@
+diff --git "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\reports\\RF-10-07-C01.md" "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\reports\\RF-10-07-C01.md"
+index 85ab542..b4cd2a5 100644
+--- "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\reports\\RF-10-07-C01.md"	
++++ "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\reports\\RF-10-07-C01.md"	
+@@ -121,9 +121,9 @@ The reports do NOT claim that replay response reflects current reassignment stat
+ 
+ ## 7. Checkpoint
+ 
+-- Complete: current inspection task list endpoint authorization (RepairCrew only), role/project scope filtering, response projection, read-side immutability for success GET scenario with exact fields verified, measurement provenance schema inspection, correction-02 snapshot gaps fixed, complete source-to-binary provenance chain verified, RF-10-07-R01 read-only assessment with RETAIN recommendation and source/symbol evidence.
++- Complete within the prior bounded characterization: current inspection task list authorization, role/project filtering, asserted response fields, success-GET snapshots, measurement provenance inspection, correction-02 assertion fixes and RF-10-07-R01 RETAIN assessment. Correction-02 hashes cover test + two fixtures and assembly only; production-source fingerprint is absent and build end approximate. Correction-01 source-to-binary linkage remains NOT_VERIFIED, separately from survey checkpoint-08 missing before-snapshots.
+ - Remaining: task creation/assignment/mutation endpoints (NOT_IMPLEMENTED), PM batch/reminder, safety actions, policy evaluation/versioning, repair proposal/attempt/acceptance workflows, measurement submission HTTP endpoint characterization, cursor pagination edge cases, concurrency behavior, denied/filtered GET immutability, external consumer evidence, deployed database audit. R01 extraction assessment complete with RETAIN recommendation; F/G workflows blocked by Q-RF02-04 and Q-RF02-07 decisions.
+-- Next exact step: RF-10-07-C01 Done locally for current characterization scope with correction-02 verified; parent RF-10-07 remains Partial pending F/G work. Do not begin F/G workflows without approved Q-RF02-04 and Q-RF02-07 decisions. R01 assessment may be revisited only if PM batch review or Fast Track introduce 3+ identical query patterns.
++- Next exact step: prior bounded C01 status retained; RF-10-07 parent remains Partial. F/G requires Q-RF02-04/Q-RF02-07. Revisit RETAIN if equivalent duplication or a concrete extraction benefit is established; there is no numeric caller threshold.
+ 
+ ## 8. Summary for planner
+ 

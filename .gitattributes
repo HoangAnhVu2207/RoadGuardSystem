@@ -19,3 +19,9 @@
 *.ico binary
 *.pdf binary
 *.zip binary
+
+# Preserve captured evidence bytes and the fingerprinted schema-doc generator.
+docs/history/refactor/** -text
+planning/refactor/evidence/** -text
+planning/refactor/reports/*-evidence/** -text
+tests/Tooling/Write-Rf06aSchemaDocs.ps1 text eol=lf

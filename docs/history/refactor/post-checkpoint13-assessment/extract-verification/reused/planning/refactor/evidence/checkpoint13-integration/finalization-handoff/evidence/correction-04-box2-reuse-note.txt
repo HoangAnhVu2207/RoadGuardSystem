@@ -1,0 +1,22 @@
+BOX 2 Evidence Reuse Notice
+
+Test Suite: RF-10-09-C01 (Rf1009NotificationInboxCharacterizationTests)
+Source Status: UNCHANGED from correction-03
+
+Source Hash Verification:
+- Before-build (correction-04): f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e
+- After-build (correction-04): f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e
+- After-build (correction-03): f699530832800c4b247699e19a4fe56cdb88a0cf422966c07e5ce3bd339e986e
+
+Verification Result: HASH MATCH - Source identical across correction-03 and correction-04
+
+Evidence Reused:
+- RF-10-09-C01-correction-03-final.trx (5/5 PASS, Duration: 2s)
+
+Rationale: BOX 2 test file unchanged; no edit to consumer/MarkRead tests in correction-04.
+Correction-04 scope limited to BOX 1 (IdempotencyPerCommandCharacterizationTests):
+- Postpone receipt snapshot timing fix
+- Upload scoped effect-set count checks
+- Survey plan scoped effect-set count checks
+
+No rerun needed for BOX 2 unchanged source.

@@ -4,9 +4,9 @@
 - deliveryStatus: PARTIAL
 - contractStatus: PROPOSED_DELTA
 - implementationStatus: CURRENT_VERIFIED
-- verificationStatus: PARTIAL_SQL_ENV_BLOCKED
+- verificationStatus: PASS_FOCUSED_SQL_PARTIAL_CONTRACT
 - dependencyType: data-fixture
-- sourceCheckpoint: base HEAD 4586c8caa5aa8439c1ea9f9e385a8ee59359f0bb; handoff review HEAD 15444975988f77f585e7350a1467668781aad120; canonical OpenAPI SHA-256 ADA7F48F522C0C0DBDACE21F483224A00FC4C76264A9A61D12F3E2211ECCE665; historical dirty-worktree evidence preserved
+- sourceCheckpoint: current work base HEAD 2efc8a5775f834c7f0fe37cc0ce703011649e1f1 plus uncommitted changes; new `SurveyV2PersistenceService.Dataset.cs` SHA-256 88BCE3F290E64169127F4CD29D89A02B20387DFAA5003F959B3B114A61AEF5F9; canonical OpenAPI SHA-256 ADA7F48F522C0C0DBDACE21F483224A00FC4C76264A9A61D12F3E2211ECCE665; prior HEAD 4586c8c and 1544497 evidence retained below
 
 ## Task goal
 Provide verified persistence facts for project membership and scope, route/version/segment planning, survey assignment, upload/session files and dataset coverage/readiness. Huy must be able to implement scoped API behavior without confusing a file upload with a confirmed dataset or baseline.
@@ -45,6 +45,20 @@ Run after ANH-01 facts needed for actor scope. Stop on ERD/migration conflict, u
 Build Repositories and IntegrationTests. Run focused project membership, survey scope/concurrency, dataset, file and spatial tests selected from changed symbols; record fresh binaries and SQL version. Acceptance requires durable SQL evidence and no cross-project leakage. The HUY-02 handoff reports facts and does not gate Anh's independent work.
 
 ## Source evidence checkpoint
+
+### Current work checkpoint - 2026-09-30 12:59 +07:00
+
+| Label | Exact source / heading or ID | Invariant used |
+|---|---|---|
+| CURRENT_VERIFIED | `AGENTS.md` / V2 Source Routing, Verification Ladder; `docs/adr/006-v2-endpoint-ownership-and-persistence-coordination.md` / Decision 1-5 | ANH-02 owns repository facts and focused SQL proof; no migration/schema or cross-layer expansion in this scope. |
+| TARGET_DOCUMENTED | `docs/diagram/V2/02_Requirements/02_Business_Rules.md` / BR-01, BR-02, BR-20, BR-40, BR-41; `01_FRD_SRS.md` / FR-04..08, FR-26..30; `03_To_Be_Process.md` / PF-07 | Project scope, one primary PM, immutable route versions, file integrity, assignment history and distinct position/quality/coverage/baseline facts. Missing evidence stays UNKNOWN. |
+| TARGET_DOCUMENTED | `docs/diagram/V2/03_Data/01_Data_Dictionary.md` / 3.2, 3.3, 3.2b, 3.3a, 9.6; `02_ERD_V2.md` / Current verified persistence backbone, Target V2 modules; `04_Data_Model_Code_Map.md` / Verified current map | Current route/survey/file anchors exist; coverage and SegmentBaseline are target concepts, not current schema. |
+| TARGET_DOCUMENTED | `docs/diagram/V2/05_Technical/02_Auth_Permission_Model.md` / 5.3, 5.6; `05_Sequence_Diagrams.md` / SQ-03; `07_State_Machines_V2.md` / logical transitions; `planning/V2/V2-3_DECISION_REGISTER.md` / D14-D22 | Service policy and per-request scope, verified upload before dataset, separate status axes; Q11 threshold and geometry remain open. |
+| PROPOSED_DELTA | `docs/diagram/V2/05_Technical/openapi.yaml` / `getDatasetCoverage`, `confirmBaseline`, `CoverageResultPage`, `BaselineConfirm`; SHA-256 `ADA7F48F522C0C0DBDACE21F483224A00FC4C76264A9A61D12F3E2211ECCE665` | Coverage GET is proposed and baseline POST conditional on Q11; neither authorizes fabricated per-band rows or status. |
+| CURRENT_VERIFIED | `RoadGuardSystem.Repositories/Implementations/Projects/ProjectMembershipReadModel.cs` / `FindActiveEffectiveAsync`; `Implementations/Surveys/SurveyV2PersistenceService.cs` / `ResolveScopeAsync`, `SubmitDatasetAsync`; `Implementations/Files/UploadPersistenceService.cs` / `CompleteAsync`, `VerifyNextAsync`; `RoadGuardDbContext.cs` / relevant DbSets; `Migrations/RoadGuardDbContextModelSnapshot.cs` / route/survey/file mappings | Current source and snapshot inspected at base HEAD `2efc8a5`; no `SurveyCoverageResult` or `SegmentBaseline` DbSet. |
+| CURRENT_VERIFIED | `tests/RoadGuardSystem.IntegrationTests/{Projects,Surveys,Files}` / focused ANH-02 SQL filter | Fresh Debug/net8.0 Repositories and IntegrationTests builds PASS; focused SQL 56/56 PASS, 0 failed/skipped on local SQL Server `MSSQL$HANHNAV`. Fixture databases are isolated. |
+
+Historical source entries below refer to their recorded dirty checkout and `docs/design/**` paths; those paths and the candidate baseline migration are absent from this work base.
 
 | Source | Heading / ID | Invariant used | Label / checkpoint |
 |---|---|---|---|
@@ -113,3 +127,22 @@ Build Repositories and IntegrationTests. Run focused project membership, survey 
 - Reused/invalidated evidence: Huy's receiver tests remain recorded evidence at their checkpoint, not a passing local run. No runtime source changed after build; changed SQL environment invalidates local reuse of prior SQL results.
 - Side effects: no package, migration, schema, live data, external provider, commit or push; SQL service remains stopped.
 - Unverified/blockers: rerun focused project/survey SQL against a reachable server; approve the missing coverage/baseline physical model and method in a separately scoped task before claiming those slices or `DONE`. Candidate baseline and `docs/design/**` are absent here.
+
+### 2026-09-30 13:24 +07:00 - PARTIAL (current SQL gate and dataset scope)
+
+- Scope/result: Current `anh` checkout on base HEAD `2efc8a5` passed the previously blocked SQL gate. Two new SQL tests reproduced dataset admission accepting an unassigned segment and a verified `DOCUMENT` file as video; repository now rejects both before writing a dataset. Dataset scope must be a non-empty subset of persisted task scopes, with matching route version, segment set, segment IDs and band. Video file purpose must be `SURVEY_VIDEO`, telemetry purpose `TELEMETRY`, and each must remain verified and task/project scoped. A valid assigned scope/video succeeds and same-key replay creates no additional dataset, SurveyFile or audit row. These are persistence backstops derived from FR-26/27, BR-02/20, DD 3.3a and SQ-03; no coverage threshold or baseline policy was chosen.
+- Files: `RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs`, new `SurveyV2PersistenceService.Dataset.cs` (owner-approved split of oversized class), `tests/RoadGuardSystem.IntegrationTests/Surveys/P2V2SurveyScopeConcurrencyTests.cs`, this task, `planning/V2/Execution/README.md`, `planning/CROSS_OWNER_HANDOFFS.md`.
+- Acceptance criteria: Current project/member, route, survey planning/assignment, file and dataset persistence gates pass on local SQL. Dataset admission now enforces task scope and file purpose without cross-task/project promotion. `getDatasetCoverage`, `confirmBaseline`, branch/slab and coverage method remain target/proposed, not current persistence claims.
+- Verification: Debug/net8.0 `dotnet build RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj -nologo -v q -clp:ErrorsOnly` PASS (47 warnings, 0 errors); `dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj -nologo -v q -clp:ErrorsOnly` PASS (322 warnings, 0 errors); `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v q --filter "FullyQualifiedName~P2V2SurveyScopeConcurrencyTests|FullyQualifiedName~P211ProjectMembershipReadModelTests|FullyQualifiedName~P220ProjectMembershipSchemaTests|FullyQualifiedName~P221RoadWarrantySchemaTests|FullyQualifiedName~P222SurveyPlanningSchemaTests|FullyQualifiedName~P223SurveyAssignmentSchemaTests|FullyQualifiedName~P219DatasetContractTests|FullyQualifiedName~P230FlightSurveyFileSchemaTests|FullyQualifiedName~P230DataVersionQualityCheckSchemaTests|FullyQualifiedName~UploadPersistenceSqlTests|FullyQualifiedName~FileRepositorySqlTests"` PASS 59/59, failed 0, skipped 0. `dotnet build tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj -nologo -v q -clp:ErrorsOnly` PASS (132 warnings, 0 errors); boundary test filter `FullyQualifiedName~RepositorySourceBoundaryTests|FullyQualifiedName~ServiceSourceBoundaryTests` PASS 2/2, failed 0, skipped 0. SQL Server `MSSQL$HANHNAV` is running, version `16.0.1000.6` Express; fixtures used isolated databases.
+- Reused/invalidated evidence: Initial clean-base SQL 56/56 superseded the historical stopped-server failure. New tests failed 2/2 against the previous implementation as intended. Final builds and 59/59 SQL run were fresh after the code split; prior compiled evidence was invalidated. No endpoint/DTO/HTTP code changed, so hosted HTTP smoke is outside this persistence task.
+- Side effects: No package, migration, schema, live-data, external storage/provider, commit or push. Only disposable SQL fixture databases were created and dropped.
+- Unverified/blockers: Q11 lacks agreed coverage/position/quality thresholds and method version; current model/snapshot lacks `SurveyCoverageRequirement`, `SurveyCoverageResult` and `SegmentBaseline`. `SurveyDataVersion` file verification alone is not per-band coverage or baseline. Owner chose the separate [COV-BASELINE-Q11-CONTRACT](../Governance/COV-BASELINE-Q11-CONTRACT.md) task at 2026-09-30 13:28 +07:00; ANH-02 remains `PARTIAL` until an approved contract/schema scope and its gates pass. Huy's new handoff is a report, not an approval gate.
+
+### 2026-09-30 13:28 +07:00 - PARTIAL (owner Q11 decision)
+
+- Scope/result: Owner kept ANH-02 `PARTIAL` and selected a separate Q11/schema decision task. `planning/V2/Governance/COV-BASELINE-Q11-CONTRACT.md` records the missing method, threshold, physical model, versioning and migration-approval questions. Huy's handoff ledger now links this gate.
+- Files: this task, `planning/V2/Governance/COV-BASELINE-Q11-CONTRACT.md`, `planning/V2/Governance/README.md`, `planning/CROSS_OWNER_HANDOFFS.md`.
+- Acceptance criteria: No coverage/baseline runtime claim or migration permission was inferred from the decision to create a task. Existing 59/59 SQL and 2/2 boundary evidence remains valid because production and test source did not change.
+- Verification: `python docs/diagram/V2/ci/check_alignment.py` PASS (`ALIGNMENT_GUARDS_PASS`, 133 operations, owners 71/62); `git diff --check` PASS; both new task links resolve locally. Runtime evidence from the preceding checkpoint is reused.
+- Side effects: documentation only; no package, migration, schema, live data, external provider, commit or push.
+- Unverified/blockers: Q11 values, model compatibility, migration and API coverage/baseline behavior remain open in the linked task.

@@ -1,0 +1,13 @@
+diff --git "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\10-inspection-measurement-characterization-baseline.md" "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\10-inspection-measurement-characterization-baseline.md"
+index 918923d..9d8c5bd 100644
+--- "a/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\evidence\\post-checkpoint13-assessment\\payload\\before\\planning\\refactor\\10-inspection-measurement-characterization-baseline.md"	
++++ "b/D:\\Project BE\\RoadGuardSystem\\planning\\refactor\\10-inspection-measurement-characterization-baseline.md"	
+@@ -157,7 +157,7 @@ Runtime enforcement of SRID 4326 constraint and immutability triggers NOT verifi
+ ### Historical evidence
+ - **Checkpoint 11:** Initial inspection characterization attempt with test failures documented
+ - **Checkpoint 11 correction-01:** 5/5 passed but source-to-binary linkage NOT_VERIFIED (metadata conflict between build-metadata and test-run-metadata); has its own verification evidence separate from checkpoint 12
+-- **Checkpoint 12 correction-02:** Supersedes correction-01 for final verification; complete source-to-binary provenance chain with test + 2 fixtures hashed before/after and assembly hash recorded; correction-01 retained as historical evidence
++- **Checkpoint 12 correction-02:** Supersedes correction-01 for bounded verification; test + 2 fixtures hashed before/after and assembly hash recorded. No production-source fingerprint; build end approximate. This is not a complete production source-to-binary chain. Correction-01 linkage stays NOT_VERIFIED.
+ 
+ ## 5. Findings
+ 

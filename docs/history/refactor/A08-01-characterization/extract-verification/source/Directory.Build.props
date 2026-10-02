@@ -1,0 +1,31 @@
+<Project>
+  <!--
+    Directory.Build.props — solution-level MSBuild defaults.
+    Applied to all projects under this directory.
+    Created by: P1-00 (Developer Person 1).
+    Reviewer: Person 2.
+
+    The P1-00 baseline builds cleanly, so warnings are treated as errors solution-wide.
+    This keeps production and test projects on the same compile-time quality gate.
+  -->
+  <PropertyGroup>
+    <!-- Language features: align with .NET 8 target framework default. -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Reproducible builds. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Roslyn analysers. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Approved P1-70 baseline debt remains visible as warnings; all other Recommended diagnostics are errors. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CA1805;CA1512;CA1000;CA1861</WarningsNotAsErrors>
+    <!-- Existing xUnit naming/support code stays visible without weakening production projects. -->
+    <WarningsNotAsErrors Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('Tests'))">$(WarningsNotAsErrors);CA1305;CA1707;CA1822;CA1854;CA2219</WarningsNotAsErrors>
+
+  </PropertyGroup>
+</Project>

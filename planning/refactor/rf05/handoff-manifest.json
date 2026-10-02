@@ -1,0 +1,203 @@
+{
+  "status": "RF05_PREPARE_INACTIVE",
+  "files": [
+    {
+      "path": "planning/refactor/04-operation-crosswalk.json",
+      "sha256": "18122d05cd290d2d883d21cc3a8876d3da838175df26c79400ba26e64ec1b545",
+      "bytes": 515734
+    },
+    {
+      "path": "planning/refactor/04-source-crosswalk.json",
+      "sha256": "2aadaeb9a2ac9405453af8f7c652f86febfcd5da40d08f8f83bebe79464572cc",
+      "bytes": 521816
+    },
+    {
+      "path": "planning/refactor/reports/RF-04-correction.md",
+      "sha256": "94c00b2a4aa9fd332107cab84b2d20b76a81a589959a5e854b345948343e327a",
+      "bytes": 11877
+    },
+    {
+      "path": "planning/refactor/reports/RF-05.md",
+      "sha256": "f2ce336d2279b5342f14c04bad9607f24f4af5bcc3d64b9a0d6939529585bc84",
+      "bytes": 8425
+    },
+    {
+      "path": "planning/refactor/rf05/activation-plan.md",
+      "sha256": "cb0b43c917dbb4cc0cf9a40dac219a92a82cbcbacc830508e2b5c59796f01ab2",
+      "bytes": 4022
+    },
+    {
+      "path": "planning/refactor/rf05/checks/build_patches.py",
+      "sha256": "28af1595327ea30fcd84a6c8e3a23417a9666f43794d22e90e8d93a6c4141ae0",
+      "bytes": 5489
+    },
+    {
+      "path": "planning/refactor/rf05/checks/package_rf05.py",
+      "sha256": "fc4e72b35e8086eaddd8b46be6d6644a05bab64e0280f2b8ac8a0c1c81237150",
+      "bytes": 2334
+    },
+    {
+      "path": "planning/refactor/rf05/checks/prepare_manifest.py",
+      "sha256": "2ee79547076a32772532f38dcee07a9a86b5e922d6ccfc8e6b0f78b75fc8bf1e",
+      "bytes": 4538
+    },
+    {
+      "path": "planning/refactor/rf05/checks/stage_check.py",
+      "sha256": "4cc88ee8c38349179a76c3a40d0e6538b9f133ebf10bf10e14e73e85a7343d3c",
+      "bytes": 7787
+    },
+    {
+      "path": "planning/refactor/rf05/checks/staging-result.json",
+      "sha256": "717e46cd6d3a0279a5204f9209fca9f70c9a6af24828a7671c56dcdff2db4156",
+      "bytes": 4351
+    },
+    {
+      "path": "planning/refactor/rf05/checks/test_readiness.py",
+      "sha256": "87ac068107a434d2fe1a0b92f535cf1614cfccd813786eb3b54c8638c6c51c45",
+      "bytes": 3528
+    },
+    {
+      "path": "planning/refactor/rf05/checks/verify_guidance.py",
+      "sha256": "4fa2b737de6cc38783756c318dede6aa342df60df23a459de3aebad340ddd0d1",
+      "bytes": 6887
+    },
+    {
+      "path": "planning/refactor/rf05/checks/walkthroughs.md",
+      "sha256": "68fedbc73953acfe5cc1593f42b590860b1e02f9769afdbcae761801f97874b6",
+      "bytes": 3034
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/agents/manifest.json.draft",
+      "sha256": "bba49cb302eaf65f6ba90c701b100e576d27aed74b7d06412db33b48ed73f79e",
+      "bytes": 2468
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/agents/modules/README.md.draft",
+      "sha256": "e71cfd641f1519fee589d6d5c393a203e2fbb5107869f6db27b06b68cc4e7411",
+      "bytes": 4853
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/agents/README.md.draft",
+      "sha256": "8b8497e98075a0ce9313724f56a6adf0f8c494eb52cfa6c40f710b9802129c05",
+      "bytes": 805
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/agents/rules/delivery.md.draft",
+      "sha256": "d6e7f8df600809b8338d5d9a8e0dc759f98e36e2ad5858f641651270ec0348ec",
+      "bytes": 1867
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/agents/rules/evidence.md.draft",
+      "sha256": "a3792890c47a465bdaf0d381d21116ac8239634f5b3b3c0f98420b86abc4b526",
+      "bytes": 1614
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/agents/rules/review-and-coordination.md.draft",
+      "sha256": "018eab0afbf8c0a2175a44e77c2100287e5666701a9c1e50d58ce747cb25d489",
+      "bytes": 1544
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/agents/rules/safety.md.draft",
+      "sha256": "71f1847fcb092cb8dad443b8946124e9de06020518f7feb612dd1d7de7566bdb",
+      "bytes": 1049
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/AGENTS.md.draft",
+      "sha256": "6b7209709a862abd36fc35548c771d35d9b6367ac733a3ca66885d592a32a376",
+      "bytes": 2027
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/readiness-decisions.json.draft",
+      "sha256": "a79dbf358e3bad250a672a96426f36ea74c0a3030a1fb06dbb3f880081818b7c",
+      "bytes": 87
+    },
+    {
+      "path": "planning/refactor/rf05/drafts/rf05_readiness.py.draft",
+      "sha256": "85cf5804f9536794ee69c6a3f7ed1f8196c9daeaff09103c50064819733d61c2",
+      "bytes": 2892
+    },
+    {
+      "path": "planning/refactor/rf05/patches/.github__workflows__ci.yml.patch",
+      "sha256": "83f8d580c35a50b25c2b059f0ea7c5cbce7e916cb06f64f34eac37a73ab88cc2",
+      "bytes": 603
+    },
+    {
+      "path": "planning/refactor/rf05/patches/patch-manifest.json",
+      "sha256": "3bac49a220552fb9af18eacb5d566b355762345286c1d4a646ca7c25028438ab",
+      "bytes": 2720
+    },
+    {
+      "path": "planning/refactor/rf05/patches/planning__refactor__tools__build_rf04_sources.py.patch",
+      "sha256": "9b5354f6f59e718de307fb1b9b0e14c18f7dfda1a1ff587c2609d1e782e3aacc",
+      "bytes": 2451
+    },
+    {
+      "path": "planning/refactor/rf05/patches/planning__refactor__tools__verify_rf04.py.patch",
+      "sha256": "2d7cdf0254d2ae2d2b4be133fa275565d8989ddc5c0e563b75645f4d86c2a764",
+      "bytes": 1603
+    },
+    {
+      "path": "planning/refactor/rf05/patches/targets/.github/workflows/ci.yml.draft",
+      "sha256": "b317fcf86893d416317fb195c8789250ba2dcb7d0a689787dba65ecc7bd40880",
+      "bytes": 10239
+    },
+    {
+      "path": "planning/refactor/rf05/patches/targets/planning/refactor/tools/build_rf04_sources.py.draft",
+      "sha256": "76932a84f955abf029abdc8d0d79dbdc583ad677b404127a75188b364a9c2f78",
+      "bytes": 17709
+    },
+    {
+      "path": "planning/refactor/rf05/patches/targets/planning/refactor/tools/verify_rf04.py.draft",
+      "sha256": "f8594f91e603fda09444618c7e8caedd383094f1bc365f63c16802d6c6ebec5a",
+      "bytes": 15157
+    },
+    {
+      "path": "planning/refactor/rf05/patches/targets/tests/Documentation/Verify-P102Docs.ps1.draft",
+      "sha256": "e13805adc0488a53b8500331a968556023545de22089658fe70417cc079d5e92",
+      "bytes": 459
+    },
+    {
+      "path": "planning/refactor/rf05/patches/targets/tests/Tooling/Verify-AgentSetup.ps1.draft",
+      "sha256": "8d6178f8f23b105d43bce1ca94d0600e6bd7981aa51e97adf96d27a3eeeec580",
+      "bytes": 372
+    },
+    {
+      "path": "planning/refactor/rf05/patches/tests__Documentation__Verify-P102Docs.ps1.patch",
+      "sha256": "f85076f431c25198030764c31ea8376862d9239d4e4ba27dcc45ca5592741c1f",
+      "bytes": 5090
+    },
+    {
+      "path": "planning/refactor/rf05/patches/tests__Tooling__Verify-AgentSetup.ps1.patch",
+      "sha256": "8c917529bf8e9b0e9fcaeccea91a8929fbeb7277e52ddb233c8700fd733bf548",
+      "bytes": 8140
+    },
+    {
+      "path": "planning/refactor/rf05/target-manifest.json",
+      "sha256": "e5415f8b278fa4992f5446ef23e1d216d003a694e41e59375c68189b9d4be95a",
+      "bytes": 13129
+    },
+    {
+      "path": "planning/refactor/rf05/tooling-transition.md",
+      "sha256": "38be21b660d5cbf9837f6799dee4de0848695a1bbb3606f44a683dec17a17df0",
+      "bytes": 3734
+    },
+    {
+      "path": "planning/refactor/tasks/RF-05-agent-tooling-adoption.md",
+      "sha256": "ba41bd4b308461528612a257689162faa3d6364a018f9b1cfb6108b01e37365f",
+      "bytes": 4996
+    },
+    {
+      "path": "planning/refactor/templates/coordination-note.md",
+      "sha256": "ffce09169a5d4ccdfaa02b2c30c2b26b3d914af6c83674c3091a1461aea3c644",
+      "bytes": 1788
+    },
+    {
+      "path": "planning/refactor/templates/task-report.md",
+      "sha256": "430dfba83691bc0872e6c7bdbb9945d9414771dc12d3c6ab883e9b3b619fc33e",
+      "bytes": 3472
+    }
+  ],
+  "verification": "planning/refactor/rf05/checks/staging-result.json",
+  "active_changes": "NONE",
+  "runtime_tests": "NOT_RUN"
+}

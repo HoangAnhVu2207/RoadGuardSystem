@@ -1,0 +1,46 @@
+# BOX 2 RF-10-09-C01 allowlist - captured before any changes
+
+## Files to read (existing source/test inspection)
+RoadGuardSystem.API/Controllers/NotificationsController.cs
+RoadGuardSystem.Services/Implementations/Messaging/NotificationService.cs
+RoadGuardSystem.Services/Interfaces/Messaging/INotificationService.cs
+RoadGuardSystem.Repositories/Implementations/Messaging/NotificationPersistenceService.cs
+RoadGuardSystem.Repositories/Implementations/Messaging/NotificationOutboxConsumer.cs
+RoadGuardSystem.Repositories/Implementations/Messaging/OutboxWorkRepository.cs
+RoadGuardSystem.Repositories/Interfaces/Messaging/INotificationRepository.cs
+RoadGuardSystem.Repositories/Interfaces/Messaging/IOutboxWorkRepository.cs
+RoadGuardSystem.BusinessObjects/Messaging/Notification.cs
+RoadGuardSystem.BusinessObjects/Messaging/OutboxMessage.cs
+RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssignmentPersistenceService.cs
+RoadGuardSystem.Repositories/Implementations/Projects/PrimaryProjectManagerPersistenceService.cs
+RoadGuardSystem.Repositories/Implementations/Defects/DetectionReviewPersistenceService.cs
+tests/RoadGuardSystem.IntegrationTests/Notifications/P207NotificationPersistenceTests.cs
+tests/RoadGuardSystem.IntegrationTests/Surveys/P223SurveyAssignmentSchemaTests.cs
+tests/RoadGuardSystem.IntegrationTests/Processing/P231ProcessingPersistenceTests.cs
+
+## Files to write (BOX 2 scope only)
+tests/RoadGuardSystem.ApiTests/Notifications/Rf1009NotificationInboxCharacterizationTests.cs (new)
+planning/refactor/10-notification-outbox-characterization-baseline.md (new)
+planning/refactor/reports/RF-10-09-C01.md (new)
+planning/refactor/evidence/rf1009-c01/*.* (evidence files)
+
+## Files explicitly NOT in scope (reserved for other boxes or shared)
+planning/refactor/10-refactor-checklist.md (BOX 3 updates after verification)
+planning/refactor/10-refactor-slices.md (BOX 3 updates after verification)
+RoadGuardSystem.API/** (production code - no changes)
+RoadGuardSystem.Services/** (production code - no changes)
+RoadGuardSystem.Repositories/** (production code - no changes)
+RoadGuardSystem.BusinessObjects/** (production code - no changes)
+tests/RoadGuardSystem.IntegrationTests/** (shared fixtures - no changes)
+tests/RoadGuardSystem.ApiTests/Infrastructure/** (shared infrastructure - no changes)
+
+## Rationale
+- BOX 2 writes NEW focused tests for 10-09-C01 characterization only
+- Does not modify production code, schema, contracts, or shared fixtures
+- Does not build/test (BOX 3 responsibility after BOX 2 READY)
+- Does not update ledger/checklist (BOX 3 responsibility after verification)
+- Evidence directory rf1009-c01/ is BOX 2 exclusive workspace
+
+Captured: 2026-10-01
+Branch: anh
+HEAD: 2efc8a5775f834c7f0fe37cc0ce703011649e1f1

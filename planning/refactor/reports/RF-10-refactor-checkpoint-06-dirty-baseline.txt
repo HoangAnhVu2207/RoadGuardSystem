@@ -1,0 +1,5 @@
+Base branch: anh
+Base HEAD: 2efc8a5775f834c7f0fe37cc0ce703011649e1f1
+Working tree: dirty before and after; no unrelated path was reset or overwritten.
+Pre-edit snapshot directory: %TEMP%\roadguard-rf1002-correction-rf1003-c02-20261001
+Pre-edit snapshot SHA-256 values were captured for the corrected tests and all checklist/ledger/task/report files. Untracked files were recorded as NOT_EXISTED when applicable. The package manifest records the post-edit handoff entries.

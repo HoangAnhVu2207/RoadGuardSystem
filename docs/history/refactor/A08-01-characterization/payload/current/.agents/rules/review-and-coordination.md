@@ -1,0 +1,7 @@
+# Review, two-person work and reporting
+
+Self-review pass 1 checks the final diff against acceptance sources: contract, actor/project scope, transaction, retries, concurrency, data and external effects as applicable. Pass 2 checks file scope, shared writer, producer/consumer interface, docs/contract, rollback and behavioral conflict even when Git has no conflict. Fix in-scope defects, rerun affected checks and reread the final diff. A second agent is optional; never label self-review as peer review or fake integration as live integration.
+
+One agreed person edits each vertical slice through tests. Record allowed files/symbols and START, INTEGRATE and RELEASE dependencies. Producer and consumer can progress independently against an agreed versioned interface and fixture; integration requires real producer/consumer evidence. For a cross-owner finding, write a `planning/refactor/templates/coordination-note.md` instance with evidence, proposed primary fixer and integration order. The two developers decide assignment. Do independent work while that note is open; do not edit for the other owner or duplicate business policy.
+
+Use exactly the seven sections in `planning/refactor/templates/task-report.md`. Report implementation status separately from delivery stage, baseline and dirty preservation, change/requirement mapping, both review passes, exact commands/results, coordination and decisions, checkpoint and planner summary. Record any absent peer reviewer as NOT REQUESTED or PENDING, and any missing integration as NOT RUN.

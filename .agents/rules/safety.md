@@ -1,6 +1,6 @@
 # Side effects and boundaries
 
-Preserve pre-existing dirty files. Work in separate checkout/worktree when two people edit simultaneously; one writer at a time owns DbContext, migration/snapshot, shared DI, canonical contract, CI, fixtures and root guidance. A proposed A/B label does not assign a person or authorize another owner's file edit.
+Preserve pre-existing dirty files. Work in separate checkout/worktree when two people edit simultaneously. Anh coordinates DbContext, migration/snapshot, shared DI, canonical contract and integrated Postman. Reserve a named writer and integration order for shared files (also CI, fixtures and root guidance); never allow two simultaneous writers. Record reservations in the spec/PR discussion. Package proposals do not authorize route/schema changes or another writer's files.
 
 Do not infer permission for public contract changes, schema migration/application, shared database writes, retention deletion, remote calls, package upgrades, push/merge/reset/clean or old-doc retirement from a task map. Obtain the scoped owner decision where needed. Never edit applied migrations to clean history. For schema/data work, plan row audit, additive compatibility, backfill, isolated migration test and recovery before execution.
 

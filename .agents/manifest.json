@@ -1,8 +1,9 @@
 {
-  "version": "rf05-proposed-3-correction",
+  "version": "post-rf11-development-1",
   "status": "ACTIVE_AFTER_OWNER_ACCEPTANCE",
   "acceptance_source": "User message 2026-09-30 accepting rf05-prepare-correction-3, target manifest SHA-256 764bec3cac0450fe4219fa0e41168795efb0bc7120569c691354e587540c0448",
   "accepted_at": "2026-09-30",
+  "development_guidance_source": "Owner request 2026-10-02: post-RF-11 docs/agent guidance, four PROPOSED packages; no implementation activation",
   "guidance_paths": [
     ".agents/modules/README.md",
     ".agents/README.md",
@@ -56,7 +57,7 @@
     "planning/refactor/01-endpoint-inventory.md",
     "planning/refactor/04-operation-crosswalk.json",
     "planning/refactor/04-source-crosswalk.json",
-    "planning/refactor/templates/task-report.md",
-    "planning/refactor/templates/coordination-note.md"
+    "planning/development/README.md",
+    "planning/development/spec-template.md"
   ]
 }

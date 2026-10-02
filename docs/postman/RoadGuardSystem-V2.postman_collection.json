@@ -6208,6 +6208,368 @@
         }
       ],
       "name": "ANH-01 revision 2"
+    },
+    {
+      "name": "Anh shared integration - private Reporter evidence",
+      "item": [
+        {
+          "name": "Private evidence create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterEvidenceCommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads"
+              ]
+            },
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"private.jpg\",\n  \"mediaType\": \"image/jpeg\",\n  \"sizeBytes\": {{reporterPhotoBytes}},\n  \"checksumSha256\": \"{{reporterPhotoSha256}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Successful private upload\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "if(pm.response.code<300){const d=pm.response.json();pm.environment.set(\"reporterUploadId\",d.id);pm.environment.set(\"reporterFileId\",d.fileId);const e=pm.response.headers.get(\"ETag\");if(e)pm.environment.set(\"reporterUploadETag\",e);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Private upload read",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads/{{reporterUploadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads",
+                "{{reporterUploadId}}"
+              ]
+            },
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Successful private upload\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "if(pm.response.code<300){const d=pm.response.json();pm.environment.set(\"reporterUploadId\",d.id);pm.environment.set(\"reporterFileId\",d.fileId);const e=pm.response.headers.get(\"ETag\");if(e)pm.environment.set(\"reporterUploadETag\",e);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Private upload parts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterEvidenceCommandKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads/{{reporterUploadId}}/part-urls",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads",
+                "{{reporterUploadId}}",
+                "part-urls"
+              ]
+            },
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumbers\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Private upload complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterEvidenceCommandKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{reporterUploadETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads/{{reporterUploadId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads",
+                "{{reporterUploadId}}",
+                "complete"
+              ]
+            },
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checksumSha256\": \"{{reporterPhotoSha256}}\",\n  \"parts\": [\n    {\n      \"partNumber\": 1,\n      \"eTag\": \"{{reporterPartETag}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Successful private upload\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "if(pm.response.code<300){const d=pm.response.json();pm.environment.set(\"reporterUploadId\",d.id);pm.environment.set(\"reporterFileId\",d.fileId);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Private file metadata",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/files/{{reporterFileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "files",
+                "{{reporterFileId}}"
+              ]
+            },
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key."
+          },
+          "response": []
+        },
+        {
+          "name": "Private file content",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/files/{{reporterFileId}}/content",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "files",
+                "{{reporterFileId}}",
+                "content"
+              ]
+            },
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key."
+          },
+          "response": []
+        },
+        {
+          "name": "Recipient publication content",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/publications/{{publicationId}}/reports/{{recipientReportId}}/evidence/{{recipientEvidenceId}}/content",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "publications",
+                "{{publicationId}}",
+                "reports",
+                "{{recipientReportId}}",
+                "evidence",
+                "{{recipientEvidenceId}}",
+                "content"
+              ]
+            },
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

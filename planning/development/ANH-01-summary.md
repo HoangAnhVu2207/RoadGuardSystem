@@ -6,6 +6,137 @@ Branch: `anh-review`. Base: `1ecae797caaed1ab912b02b2372a1940d1e05375`.
 HEAD: the delivery commit containing this summary, reported in the handoff.
 Initial dirty paths: none. No unrelated tracked changes were present.
 
+## Anh shared integration for HUY-01 - Part B
+
+Status **PARTIAL**. Named shared writer: Anh (owner continuation2026-10-02),
+Huy retains domain/module business ownership. Integration base/initial HEAD
+`5d6ecb5c6c4498c4803ddec735a00b153d0967b5`; initial dirty none after separate
+Part A commit. Final integration HEAD is the delivery commit containing this
+update, reported in handoff. No unrelated path was changed.
+
+Huy source handoff `8676226cf9d1b99adf83beb0391f147dfa4b112e`; common base
+`1ecae797caaed1ab912b02b2372a1940d1e05375`. Fetched exact SHA and selectively
+restored Reports/Cases/Candidates domain directories, their two unit tests and
+HUY-01 spec. Domain/test27files were compared against that SHA unchanged.
+Auth transport/refresh and label files were excluded. Huy's external domain
+PASS at `ad52f4cae1d2f52f030ea23d59866004001c5aa6` is historical evidence;
+external review of this integration is PENDING.
+
+**Frozen/implemented producer v1:** exact signatures and record inputs/outputs
+are in `RoadGuardSystem.Services/Interfaces/Integration/IAnhHuyProducerService.cs`
+(namespace Services.Integration). HUY-01's shared reservation table records
+producer Anh / consumer Huy, authoritative SQL/service, owner/project/recipient
+scope, server checksum/bytes/version/provenance, exact failure mapping and
+fixtures. Methods: ResolvePrivateEvidenceAsync, ResolvePublicationEvidenceAsync,
+ResolveGeometryAsync, ResolveCandidateSourceAsync. They are real read facts,
+not transaction locks or Huy command adapters. Publication checks exact
+recipient/evidence projection and its persisted file version. Geometry emits
+actual ordered segment adjacency and package hash/current refs. Report source
+version covers Report/Case/head/geometry and verified immutable evidence refs.
+AI/FIELD provenance absent -> SourceNotReady; no fabricated facts/GPS/CRS.
+
+**Shared model/migration:** reviewed domain types mapped directly; new support
+rows in Repositories/Models/Huy01/HuyIntegrationRows.cs carry FK relationships,
+not competing aggregates. Migration `20261002120000_AnhHuySharedIntegration`
+is additive and ordered after Part A. Legacy project FileScopes unchanged;
+null project only for private REPORT_PHOTO/target-null. Original report fields,
+evidence/supplements, conclusions/publications/recipients/history/decisions and
+file scope are immutable. Typed evidence/source/correction composite FKs,
+Report-owner equality and evidence identity namespace checks fail closed;
+filtered single active Report link and single current disposition head.
+Down refuses received Report/Case/decision/privatefile data. Raw migration
+FK/trigger constraints are intentional SQL extensions to EF model snapshot.
+Shared/deployed migration history was not queried/applied.
+
+**DI/HTTP/Postman:** only real ReporterEvidenceService/PersistenceService and
+AnhHuyProducerService/FactsRepository registered. Seven private producer HTTP
+routes adopted in existing contracts/http/anh01.local-contract.md and new
+Postman folder; all previous folders/identifiers unchanged (JSON equality
+checked). Active SQL Reporter before private commands/replay; other-owner404,
+pending/failed/version-drift content409 source_not_ready, stale complete412.
+Triage keeps scope private; selected publication recipients alone download.
+No new Huy business route/DI, event, label reader/exporter or FE lock activation.
+
+**Huy next implementation order:** exact shared shadow fields/support rows and
+signatures are recorded in HUY-01 "Shared mapping and consumer handoff v1".
+Consume real producers -> implement owned module seams -> compose one SQL
+transaction -> register actual module DI -> execute HTTP/SQL atomicity tests
+-> adopt implemented Huy routes/agreed events. Re-resolve/lock facts and
+current authorization before receipt replay/commit. Populate typed decision
+shadows and update current head with RowVersion; increment Report/Case Revision
+for every child mutation. Sync snapshot collections and FK refs atomically;
+close/create active links with history once by Id. LinkHistory requires query
+FromCaseId OR ToCaseId and an explicit Huy materialization hook if a reloaded
+command needs the history; reviewed domain was not modified to add it.
+Validate classification segment belongs to resolved route/project; independent
+FKs alone do not prove that relation. Compose CasePublicationRecipientFacts
+per Reporter, persist immutable recipient evidence refs, never case-wide rights.
+
+**Two self-review passes:** pass1 checked source import/ownership, nullable
+private scope vs existing project upload, owned EF hydration/FKs, version and
+replay authority, migration ordering and recovery. Runtime tests found EF
+Concat client-record translation failure; fixed separate SQL queries, plus
+tracked geometry stale reads; fixed explicit AsNoTracking read route/set query.
+Pass2 checked privacy/version drift, binary immutability, correction/link
+identity and unsafe Down. Fixed wrong-project check before incomplete facts,
+publication snapshot-version/owner/private-scope check, current SQL Reporter
+MustChangePassword denial, Report case/trailing-space immutability,
+closed-link rewrite/reopen guard, same-source/project correction FK and
+SourceDecisions Down guard. Focused tests rerun after affected fixes.
+Delegate source reviews are internal; no external PASS claimed.
+
+### Part B verification - CURRENT_VERIFIED
+
+Final affected unit: **76 passed/0 failed/0 skipped**, including16 unchanged
+Huy domain tests. SQL: **19 distinct passed/0 failed/0 skipped** (18 combined
+focused +1 new empty integration Down/Up). New schema has4cases, all included
+in19. Fresh/baseline upgrade, hydration, typed/owner/identity FKs, singlelink/
+head, two-context stale versions, immutable binary source/history and SQL
+rollback/recovery verified. Downgrade testing reproduced SQL5074 index/FK
+nullability dependency; migration now drops/recreates those dependencies and
+removes the fabricated Guid-empty default. Combined18 rerun passed; additional
+empty Down->Up1 passed, preserving actual prior schema. Earlier failing
+query/cache/fixture/down runs are superseded, not counted as PASS.
+
+Affected API: **18 passed/0 failed/1 skipped** (unconfigured live MinIO smoke).
+Eight producer cases are included in18, not additional tests. Report/Case/
+publication relation setup is explicit fixture SQL, not Huy commands. Actual
+HTTP+SQL BE verified; object storage verification/download is mock verified.
+Postman7requests added +10 empty/public environment placeholders; previous
+folders/items preserved by JSON equality. Actual Postman runner NOT RUN.
+
+```powershell
+dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter 'FullyQualifiedName~Huy01|FullyQualifiedName~Projects|FullyQualifiedName~Surveys|FullyQualifiedName~Files|FullyQualifiedName~Anh01' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh-huy-focused-unit.trx'
+dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter 'FullyQualifiedName~Huy01SharedSchemaTests|FullyQualifiedName~Anh01ScopeAdoptionCorrectionTests|FullyQualifiedName~Anh01FileMigrationTests|FullyQualifiedName~UploadPersistenceSqlTests|FullyQualifiedName~Anh01StorageRecoveryTests|FullyQualifiedName~FileSchemaContractTests' --nologo -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh-huy-focused-sql.trx'
+dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~Huy01SharedSchemaTests.Empty_integration_down --nologo -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh-huy-empty-recovery.trx'
+dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter 'FullyQualifiedName~Anh01|FullyQualifiedName~ReporterEvidence|FullyQualifiedName~AnhHuy|FullyQualifiedName~UploadApiTests' -v minimal -clp:ErrorsOnly --logger 'trx;LogFileName=anh-huy-affected-api.trx'
+dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~Huy01SharedSchemaTests -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh-huy-final-schema.trx'
+dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore -v quiet -clp:ErrorsOnly
+./.tools/dotnet-ef.exe migrations has-pending-model-changes --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build
+python -m json.tool docs/postman/RoadGuardSystem-V2.postman_collection.json > $null
+python -m json.tool docs/postman/RoadGuard.local.postman_environment.json > $null
+git diff --check
+```
+
+EF generation/check use a temporary dummy design-only connection, restored
+afterward; no shared/deployed DB access. Applied migration files stay unchanged.
+Final build: **0 errors/70 warnings** (recompiled metadata); no warning-clean
+claim. Final EF check: **no pending model changes**. EF8 generation omitted
+owned FK DeleteBehavior in designer/snapshot although the migration SQL and
+runtime mapping already used Restrict. The two metadata declarations are
+explicitly restored with comments; preserve them on future regeneration.
+No SQL body/policy was changed for this metadata correction. New schema4cases
+were rerun after metadata alignment (included in19, not added to total).
+
+**NOT RUN / remaining gates:** producer -> actual Huy Report/Case/Candidate
+command integration and audit/receipt/outbox atomicity, AI/FIELD authoritative
+provenance, label persistence/read/export and event consumers; live MinIO,
+real8GiB transfer, real local demo, Android/FE/external/deployment, CRS dependency
+approval/WGS84/GPX. No shared DB update. Schema snapshot/ref equality and
+parent child version bump require Huy's repository orchestration. AI-only
+Down recovery fixture is not run (guard covers SourceDecisions; existing Report/
+Case data recovery is tested). Both packages remain Partial.
+
 ## External Review Correction — 2026-10-02
 
 ### Final Root Scope Correction — Part A

@@ -186,13 +186,13 @@ public sealed class UploadService : IUploadService
         await _repository.VerifyNextAsync(cancellationToken);
     }
 
-    private async Task<bool> CanAccessAssetAsync(Guid actorUserId, UserRoleCode role, Guid projectId, string? purpose, Guid? targetId, bool mutation, CancellationToken cancellationToken, bool requireActiveTask = true)
+    private async Task<bool> CanAccessAssetAsync(Guid actorUserId, UserRoleCode role, Guid? projectId, string? purpose, Guid? targetId, bool mutation, CancellationToken cancellationToken, bool requireActiveTask = true)
     {
-        if (!IsSupportedRole(role) || !await InProjectScopeAsync(actorUserId, role, projectId, cancellationToken)) return false;
+        if (projectId is not { } scopedProjectId || !IsSupportedRole(role) || !await InProjectScopeAsync(actorUserId, role, scopedProjectId, cancellationToken)) return false;
         if (!IsSurveyPurpose(purpose)) return true;
         if (!mutation && role is UserRoleCode.Supervisor or UserRoleCode.ProjectManager) return true;
         return role == UserRoleCode.DroneOperator && targetId is { } taskId &&
-            await _repository.IsCurrentSurveyOperatorAsync(actorUserId, projectId, taskId, mutation && requireActiveTask, cancellationToken);
+            await _repository.IsCurrentSurveyOperatorAsync(actorUserId, scopedProjectId, taskId, mutation && requireActiveTask, cancellationToken);
     }
 
     private static bool IsSurveyPurpose(string? purpose) => purpose?.Trim().ToUpperInvariant() is "SURVEY_VIDEO" or "TELEMETRY";

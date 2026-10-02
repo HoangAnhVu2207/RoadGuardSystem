@@ -43,6 +43,11 @@ public class RoadGuardDbContext : DbContext
         _sessionMetadataOptions = sessionMetadataOptions?.Value ?? SessionDeviceMetadataValidator.DefaultOptions;
     }
 
+    public DbSet<RoadGuardSystem.BusinessObjects.Reports.Report> Reports => Set<RoadGuardSystem.BusinessObjects.Reports.Report>();
+    public DbSet<RoadGuardSystem.BusinessObjects.Reports.ReportSupplement> ReportSupplements => Set<RoadGuardSystem.BusinessObjects.Reports.ReportSupplement>();
+    public DbSet<RoadGuardSystem.BusinessObjects.Cases.IncidentCase> IncidentCases => Set<RoadGuardSystem.BusinessObjects.Cases.IncidentCase>();
+    public DbSet<RoadGuardSystem.BusinessObjects.Candidates.CandidateDecision> SourceDecisions => Set<RoadGuardSystem.BusinessObjects.Candidates.CandidateDecision>();
+
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();

@@ -4,7 +4,7 @@ namespace RoadGuardSystem.Repositories.Files;
 
 public sealed record UploadCompletePersistenceRequest(
     Guid ActorUserId,
-    Guid ProjectId,
+    Guid? ProjectId,
     Guid UploadId,
     string ExpectedVersion,
     IReadOnlyList<CompletedStoragePart> Parts,

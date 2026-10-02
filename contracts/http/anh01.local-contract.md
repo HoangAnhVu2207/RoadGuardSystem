@@ -47,3 +47,29 @@ need a task-scoped consumer contract/integration. Device provisioning and
 initial handover attachment have no newly approved producer contract.
 SQL migrations are candidates tested on isolated databases only. External
 AI/Android/client and deployed compatibility are not verified.
+
+## Owner-assigned Anh/Huy producer adoption - 2026-10-02
+
+ACTIVE_LOCAL_DEVELOPMENT/PARTIAL: owner continuation assigns Anh shared
+integration for HUY-01 D2 and sections9.3-9.4. Producer v1 exact signatures,
+SQL authority, privacy and stale mapping are frozen in HUY-01's shared
+integration reservation and IAnhHuyProducerService. Huy transactions PENDING.
+
+ReporterEvidenceController adds seven routes below /api/v1/reporter-evidence:
+POST uploads (201), GET uploads/{id}, POST uploads/{id}/part-urls (200),
+POST uploads/{id}/complete (202), GET files/{id}, GET files/{id}/content,
+GET publications/{publicationId}/reports/{reportId}/evidence/{evidenceId}/content.
+Create accepts only fileName/mediaType/sizeBytes/checksumSha256; JSON scope/
+owner extras fail400. Principal owner, null project/target, REPORT_PHOTO,
+JPEG/PNG <=20MiB. Idempotency-Key required for commands; If-Match required
+for complete. Current SQL Reporter/owner checked before replay. Other private
+owner or publication recipient/projection missing404; pending/failed or
+snapshot-version drift content409 source_not_ready; complete stale412
+concurrency_conflict. Metadata never exposes storage URIs/object keys.
+Triage does not change private scope. Publication content uses exact immutable
+recipient/evidence relation and current Reporter, not case-wide IDs.
+Existing project/Operator upload and Postman identifiers are preserved.
+
+No Huy Report/Case/Candidate/label route or event activated. Event adoption
+and actual Huy consumer runtime remain PENDING. Domain-only external review
+PASS is HISTORICAL, not additive SQL/HTTP integration acceptance.

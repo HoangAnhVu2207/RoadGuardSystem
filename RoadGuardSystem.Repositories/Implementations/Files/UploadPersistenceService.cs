@@ -80,14 +80,11 @@ public sealed class UploadPersistenceService : IUploadRepository
                         request.PartSizeBytes,
                         request.ExpiresAt);
                     _context.Files.Add(file);
-                    _context.FileScopes.Add(FileScope.Create(
-                        Guid.NewGuid(),
-                        fileId,
-                        request.ProjectId,
-                        request.TargetId,
-                        request.ActorUserId,
-                        request.Purpose,
-                        now));
+                    _context.FileScopes.Add(request.ProjectId is { } projectId
+                        ? FileScope.Create(Guid.NewGuid(), fileId, projectId, request.TargetId, request.ActorUserId, request.Purpose, now)
+                        : request.Purpose == "REPORT_PHOTO" && request.TargetId is null
+                            ? FileScope.CreatePrivate(Guid.NewGuid(), fileId, request.ActorUserId, now)
+                            : throw new ArgumentException("Invalid private scope."));
                     _context.UploadSessions.Add(session);
                     _context.AuditLogs.Add(AuditLog.Create(
                         Guid.NewGuid(),
@@ -135,7 +132,7 @@ public sealed class UploadPersistenceService : IUploadRepository
 
     public async Task<UploadPartUrlsPersistenceResult> GetPartUrlsAsync(
         Guid actorUserId,
-        Guid projectId,
+        Guid? projectId,
         Guid uploadId,
         IReadOnlyList<int> partNumbers,
         string idempotencyKey,
@@ -170,7 +167,7 @@ public sealed class UploadPersistenceService : IUploadRepository
     }
 
     private async Task<UploadPartUrlsPersistenceResult> GetPartUrlsCoreAsync(
-        Guid actorUserId, Guid projectId, Guid uploadId, IReadOnlyList<int> partNumbers,
+        Guid actorUserId, Guid? projectId, Guid uploadId, IReadOnlyList<int> partNumbers,
         string idempotencyKey, string requestFingerprint, DateTimeOffset now,
         DateTimeOffset urlExpiresAt, CancellationToken cancellationToken)
     {
@@ -443,7 +440,7 @@ public sealed class UploadPersistenceService : IUploadRepository
         }
     }
 
-    private static UploadSessionPersistenceView ToView(UploadSession session, Guid projectId, Guid? targetId = null)
+    private static UploadSessionPersistenceView ToView(UploadSession session, Guid? projectId, Guid? targetId = null)
         => new(
             session.Id,
             session.FileId,

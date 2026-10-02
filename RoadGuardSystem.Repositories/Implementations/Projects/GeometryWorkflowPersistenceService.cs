@@ -119,14 +119,16 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             var confirmed=await RouteView(c.ProjectId,section.Id,version,ct);
             return new(201,Value:confirmed,Version:Hash(confirmed));
         }
-        var route = await db.RoadSectionVersions.SingleOrDefaultAsync(x => x.Id == c.RouteVersionId && (c.RoadSectionId == null || x.RoadSectionId == c.RoadSectionId),ct);
+        var readGeometry = c.Action is "package" or "set-get" or "geometry-get";
+        var routeQuery = readGeometry ? db.RoadSectionVersions.AsNoTracking() : db.RoadSectionVersions;
+        var route = await routeQuery.SingleOrDefaultAsync(x => x.Id == c.RouteVersionId && (c.RoadSectionId == null || x.RoadSectionId == c.RoadSectionId),ct);
         if (route is null) Reject(404,"road_section_version_not_found");
         if (section is null) section = await db.RoadSections.SingleOrDefaultAsync(x => x.Id == route!.RoadSectionId && x.ProjectId == c.ProjectId,ct);
         if (section is null) Reject(404,"road_section_version_not_found");
         var view = await RouteView(c.ProjectId,section!.Id,route!,ct);
         if (c.Action == "geometry-get") return new(200,Value:view,Version:Hash(view));
         RoadSegmentSet? set = null;
-        if (c.SetId is Guid setId) { set = await db.RoadSegmentSets.SingleOrDefaultAsync(x => x.Id == setId && x.RoadSectionVersionId == route!.Id,ct); if (set is null) Reject(404,"segment_set_not_found"); }
+        if (c.SetId is Guid setId) { var setQuery = readGeometry ? db.RoadSegmentSets.AsNoTracking() : db.RoadSegmentSets; set = await setQuery.SingleOrDefaultAsync(x => x.Id == setId && x.RoadSectionVersionId == route!.Id,ct); if (set is null) Reject(404,"segment_set_not_found"); }
         if (c.Action is "set-get" or "package") {
             var setView = await SetView(set!,ct);
             if (c.Action == "package")

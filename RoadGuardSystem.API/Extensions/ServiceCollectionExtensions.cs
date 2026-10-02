@@ -25,6 +25,7 @@ using RoadGuardSystem.Services.Implementations.Processing;
 using RoadGuardSystem.Services.Files;
 using RoadGuardSystem.Services.Implementations.Files;
 using RoadGuardSystem.Services.Messaging;
+using RoadGuardSystem.Services.Integration;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace RoadGuardSystem.API.Extensions;
@@ -85,6 +86,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISurveyAssessmentService, SurveyAssessmentService>();
         services.AddScoped<IProcessingV2Service, ProcessingV2Service>();
         services.AddScoped<IUploadService, UploadService>();
+        services.AddScoped<IReporterEvidenceService, ReporterEvidenceService>();
+        services.AddScoped<IAnhHuyProducerService, AnhHuyProducerService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddHostedService<ValidationRunWorker>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();

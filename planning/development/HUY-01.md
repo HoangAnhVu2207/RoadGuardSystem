@@ -36,6 +36,12 @@ Ngày: 2026-10-02. Writer: Huy / Codex local. Nhánh: `huy-review`.
 - Verification: red `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --filter FullyQualifiedName~P110AuthenticationPersistenceTests.RefreshRotation_ReplacementOutlivesSession_ClampsPersistedExpiry --nologo -v q` executed 1, passed 0, failed 1. Green build `dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --nologo -v q -clp:ErrorsOnly` passed with 47 analyzer warnings; green SQL test executed 1, passed 1, failed 0, skipped 0 using the disposable `IdentitySqlServerFixture`.
 - Reused/invalidated evidence: prior authentication and label tests remain valid; HTTP/Postman/migration/producer-consumer/deployment gates remain `NOT_RUN`.
 
+### 2026-10-02 - PARTIAL
+
+- Scope/result: External review P2 fixed in `TrainingLabelRevision.Review`: every fallible review input is normalized before terminal state/proof mutation, so a rejected reason leaves the revision pending for a later valid review.
+- Files: `RoadGuardSystem.BusinessObjects/Labels/TrainingLabelRevision.cs`; `tests/RoadGuardSystem.UnitTests/Labels/Huy01TrainingLabelRevisionTests.cs`.
+- Verification: red focused test executed 2, passed 0, failed 2; fresh unit build passed with 5 analyzer warnings; green focused label tests executed 4, passed 4, failed 0, skipped 0. HTTP/SQL/schema gates are unchanged and `NOT_RUN` for this entity-local fix.
+
 ## 1. Assignment, baseline và giới hạn
 
 - **ASSIGNED có checkpoint** theo yêu cầu Huy trong cuộc trao đổi này: triển khai trọn HUY-01, tận dụng source; phần đủ căn cứ ở §3 làm ngay. Các lựa chọn nghiệp vụ/public compatibility ở §11 vẫn **PROPOSED**, không được coi im lặng là chấp thuận.

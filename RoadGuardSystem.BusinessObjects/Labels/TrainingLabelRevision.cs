@@ -102,10 +102,11 @@ public sealed class TrainingLabelRevision
             throw new ArgumentOutOfRangeException(nameof(status));
         }
 
+        var normalizedReason = NormalizeRequired(reason, nameof(reason), 1_000);
         Status = status;
         ReviewedByUserId = reviewedByUserId;
         ReviewedAt = reviewedAt.ToUniversalTime();
-        ReviewReason = NormalizeRequired(reason, nameof(reason), 1_000);
+        ReviewReason = normalizedReason;
     }
 
     private static void ValidateNormalizedBbox(decimal x, decimal y, decimal width, decimal height)

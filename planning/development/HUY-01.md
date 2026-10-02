@@ -2,6 +2,123 @@
 
 Ngày: 2026-10-02. Writer: Huy / Codex local. Nhánh: `huy-review`.
 
+## Anh shared integration reservation — owner continuation 2026-10-02
+
+TARGET_CONFIRMED: Anh is named writer for shared model/configuration,
+DbContext, migrations/snapshot, DI, canonical adoption/Postman and Anh file/
+geometry/source producers. This integration runs on `anh-review`; Huy keeps
+Report/Case/Candidate module command service/repository/controller ownership.
+Source handoff is fixed `8676226cf9d1b99adf83beb0391f147dfa4b112e`, with
+domain-core external review at `ad52f4cae1d2f52f030ea23d59866004001c5aa6`.
+Common base is `1ecae797caaed1ab912b02b2372a1940d1e05375`. Integration starts
+after the independent ANH root-scope correction commit `5d6ecb5c6c4498c4803ddec735a00b153d0967b5`.
+Selective `git restore --source=<handoff> --worktree` imports unchanged
+Reports/Cases/Candidates domain directories, their two domain test files and
+this spec only. No branch merge, auth transport/refresh or label import.
+Domain PASS is historical evidence, not SQL/HTTP/adapter acceptance.
+
+The concrete producer signatures are version 1 in
+`Services/Interfaces/Integration/IAnhHuyProducerService.cs`; Anh produces,
+Huy consumes. Implemented/adopted status and test evidence are recorded in
+the existing ANH-01 summary. Private intake wire uses separate
+`/api/v1/reporter-evidence/uploads` create/read/part-urls/complete and
+`/reporter-evidence/files/{fileId}` metadata/content. Create accepts only
+fileName/mediaType/sizeBytes/checksumSha256; principal owner and REPORT_PHOTO
+purpose are server-resolved, project/target remain null, JPEG/PNG <=20 MiB.
+Current active Reporter/owner is required before every new command/replay;
+other owner and unauthorized publication projection return 404. File content
+and evidence resolution return 409 source_not_ready until VERIFIED.
+Complete uses If-Match (stale 412); command replay precedes fresh version
+check after current authorization. Existing project upload contracts stay
+project-scoped and do not acquire Reporter authority.
+
+| Producer v1 | Authoritative source/scope/provenance | Exact failures and fixture |
+|---|---|---|
+| ResolvePrivateEvidenceAsync(actor,role,file,evidence,expectedFileVersion?,ct) | Files + immutable FileScopes + UploadSessions; active Reporter/owner, private project=null scope. Reference version is terminal upload rowversion; checksum/long bytes/MIME/uploadedAt are server facts. Capture metadata remains null, never inferred from upload GPS. | hidden ownership/missing 404; pending/failed 409 source_not_ready; expected file-version drift 412 concurrency_conflict. Owner/other/pending/failed/verified fixtures. |
+| ResolvePublicationEvidenceAsync(actor,role,publication,report,evidence,ct) | Huy-owned immutable publication-recipient-evidence relation + recipient Report owner, actual original/supplement evidence, Files/UploadSessions. Anh checks exact projection/file readiness; Huy validates relation for every recipient when composing publication. | missing/other recipient/projection 404; pending/failed 409 source_not_ready. Two Reporters on one case with different selected recipient evidence; never a case-wide permission set. |
+| ResolveGeometryAsync(actor,role,project,route,set,expectedVersion?,requireCurrent,ct) | Production geometry package, actual project/current membership, immutable route/set/segment refs and ordered adjacency. Package hash/version includes route current flag/set rowversion; no guessed CRS/offsets. | role/membership 403; scoped wrong project/ref 404; incomplete 409 source_not_ready; old route/set or expected-version drift 409 candidate_stale. Historical read permitted only with requireCurrent=false. |
+| ResolveCandidateSourceAsync(actor,role,project,kind,id,expectedSource?,expectedGeometry?,expectedDisposition?,ct) | PM membership; REPORT via actual Report, active case link, assigned case project and server-persisted case geometry refs; report/case/head versions and verified files compose opaque source version. Active disposition comes from SQL head/decision, never client metadata. | untriaged/missing geometry/provenance and unavailable AI/FIELD producer 409 source_not_ready; wrong project 404; source/geometry drift 409 candidate_stale; expected active disposition drift 412 concurrency_conflict. Real SQL Report source + positive/negative/version fixtures. |
+
+Huy must re-resolve facts and hold/check authoritative rows within its atomic
+repository transaction. Preflight producer reads do not establish command
+atomicity. Candidate AI/FIELD facts, ApprovedTrainingLabel reader/exporter,
+event schema/consumer agreement and Huy business DI/HTTP remain PENDING until
+their real implementations exist. No fake-success adapter, label mapping,
+new event emission or Report/Case/Candidate command is activated by this section.
+
+## Shared mapping and consumer handoff v1
+
+Anh integration migration: `20261002120000_AnhHuySharedIntegration`, after ANH
+file/geometry and forward scope corrections. Only fixture-owned SQL is applied.
+No existing domain type is altered. EF8 generated owned relationship metadata
+omits its Restrict DeleteBehavior; the shared designer/snapshot preserve it
+explicitly. Preserve the two documented declarations when regenerating. Reports own original evidence; supplements
+own separate evidence; neither rewrites source. Composite Report/owner FKs,
+typed source/evidence FKs, correction identity FK, one active report-case link
+(filtered index) and one source head (composite PK/FK) prevent ambiguous refs.
+Append-only history/evidence/conclusions/publications/recipient rows reject
+UPDATE/DELETE; Report source fields reject binary/datalength changes. Active
+links can only be closed, not rewritten/reopened. Down rejects received data.
+FileScopes keeps nullable project only for private REPORT_PHOTO/target-null,
+with unchanged legacy project data; scope mutation/deletion is rejected.
+
+Huy implementation order and exact persistence responsibilities:
+
+1. Consume `Services/Interfaces/Integration/IAnhHuyProducerService.cs` v1
+   (actual namespace `RoadGuardSystem.Services.Integration`). Evidence resolution
+   gives VerifiedEvidenceReference + server checksum/bytes/version. Geometry
+   gives real package and segment adjacency; CandidateFacts gives source,
+   project, geometry and current disposition versions. Resolve every current
+   authorization/fact before receipt replay, then re-resolve/lock/check them
+   within the command transaction. Public 409/412 mappings are frozen above.
+2. Build real Report/Case/Candidate module service/repository/controller seams
+   on Huy-owned paths; add business DI only after real implementations exist.
+   Shared read producers are already registered. No no-op command repository.
+3. Use actual imported domain via DbContext Reports/ReportSupplements/
+   IncidentCases/SourceDecisions, with support rows in
+   `Repositories/Models/Huy01/HuyIntegrationRows.cs`. Populate CandidateDecision
+   shadows SourceKind/SourceId/ReportSourceId or AIDetectionSourceId consistently
+   with Source_Kind/Source_Id. Atomically insert decision/correction and update
+   HuyCandidateSourceHead.DecisionId, checking head RowVersion/current disposition.
+   FIELD schema/facts remain not-ready; AI facts remain not-ready without the
+   required provenance producer. Classification must verify segment belongs
+   to selected geometry route/project (independent catalog/route/segment FKs
+   alone do not prove that relation).
+4. Increment Report shadow `Revision` on each supplement/evidence append, and
+   Case `Revision` on each child/link/state/geometry mutation (both cases for
+   link/split). EF rowversion alone does not change when only children change.
+   Save the parent bump with all child/history writes in one transaction.
+   Populate Case geometry shadows GeometryRouteVersionId/GeometrySegmentSetId
+   from the resolved geometry. Pair/composite FK enforces route-set pairing.
+5. Atomically synchronize `_activeReportIds` snapshot with CaseReportLinks
+   close/create. Persist CaseReportLinkHistory once by Id and its
+   HuyLinkHistoryReport FK refs; query history FromCaseId OR ToCaseId. The shared
+   object occurs in both domain collections, so EF LinkHistory is ignored.
+   If a reloaded aggregate needs historical navigation for a command, Huy must
+   add an explicit materialization hook/signature; this package does not mutate
+   the reviewed domain to add one silently.
+6. Persist conclusion CaseId and HuyConclusionDefect/HuyConclusionEvidence
+   refs, publications plus HuyPublicationRecipient/HuyPublicationDefect and
+   HuyPublicationEvidence per recipient. Domain JSON snapshots and relational
+   refs require atomic sync; SQL FKs alone do not prove snapshot equality.
+   `CasePublicationRecipientFacts.Create(reportId,visibleDefectIds,
+   visibleEvidenceIds)` must be composed individually from that Reporter's real
+   visibility. Never replace it with a common case evidence set. Recipient
+   content producer checks exact projection + immutable evidence FileVersion.
+7. Prove Report/supplement, triage/link/split, conclude/publication and candidate
+   decision/correction atomic commit/rollback including audit/receipt/outbox
+   using real Huy repositories. Then adopt the implemented Huy HTTP routes and
+   agreed events and run producer-to-real-consumer HTTP/SQL. Until then business
+   DI/HTTP/event/label reader-exporter remain PENDING; no new Huy event emitted.
+
+Schema tests are fixture persistence/constraints/recovery evidence, not Huy
+business orchestration PASS. Runtime counts and known limitations are in the
+existing ANH-01-summary; external review of this integration is PENDING.
+
+The checkpoint entries below are HISTORICAL at the fixed Huy handoff. Their
+shared-pending statements are superseded only by the implemented Anh shared
+reservation above; Huy business/consumer gates remain pending.
+
 ## Implementation checkpoint - 2026-10-02 11:09 +07:00
 
 - `deliveryStatus`: `PARTIAL`; branch `huy-review`; base `1ecae797caaed1ab912b02b2372a1940d1e05375`; initial worktree status clean. The caller's original checkout on `huy` had the untracked source path `planning/development/HUY-01-spec-and-codex-prompt.md`; it was preserved and copied here rather than modified.

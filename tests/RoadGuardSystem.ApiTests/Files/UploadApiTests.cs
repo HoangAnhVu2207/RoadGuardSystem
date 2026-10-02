@@ -27,7 +27,7 @@ public sealed class UploadApiTests
     }
 
     [Fact]
-    public async Task UploadCreate_CurrentIntBoundaryOverflowsValidationWithoutWriting()
+    public async Task UploadCreate_DocumentRetainsIntLimitWithoutWriting()
     {
         var supervisor = await _sql.CreateUserAsync($"upload-limit-supervisor-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         var manager = await _sql.CreateUserAsync($"upload-limit-manager-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
@@ -52,20 +52,20 @@ public sealed class UploadApiTests
             {
                 Content = JsonContent.Create(new
                 {
-                    purpose = "SURVEY_VIDEO",
+                    purpose = "DOCUMENT",
                     projectId,
                     targetId = (Guid?)null,
-                    fileName = "boundary.mp4",
-                    mediaType = "video/mp4",
+                    fileName = "boundary.pdf",
+                    mediaType = "application/pdf",
                     sizeBytes,
                     checksumSha256 = new string('a', 64)
                 })
             };
             request.Headers.Add("Idempotency-Key", $"upload-limit-{Guid.NewGuid():N}");
             var response = await client.SendAsync(request);
-            response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+            response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
             (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString()
-                .Should().Be("internal_error");
+                .Should().Be("upload_validation_failed");
             response.Headers.Contains("X-Correlation-ID").Should().BeTrue();
         }
 
@@ -133,6 +133,8 @@ public sealed class UploadApiTests
 
         var stale = await CompleteAsync(client, uploadId, checksum, "//////////8=", $"upload-stale-{Guid.NewGuid():N}");
         stale.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        var malformed = await CompleteAsync(client, uploadId, checksum, "not-base64", $"upload-malformed-{Guid.NewGuid():N}");
+        malformed.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
         await using (var verification = _sql.CreateDbContext())
         {
             (await verification.UploadSessions.AsNoTracking().SingleAsync(item => item.Id == uploadId))

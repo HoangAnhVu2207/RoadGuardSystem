@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories.Options;
+using RoadGuardSystem.Repositories.Integration;
 using RoadGuardSystem.Repositories.Seeding;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Identity;
@@ -110,12 +111,14 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IProjectUpdateRepository, ProjectUpdatePersistenceService>();
         services.AddScoped<IPrimaryProjectManagerRepository, PrimaryProjectManagerPersistenceService>();
         services.AddScoped<IRoadSectionVersionRepository, RoadSectionVersionPersistenceService>();
+        services.AddScoped<IGeometryWorkflowRepository, GeometryWorkflowPersistenceService>();
         services.AddScoped<IWarrantyRepository, WarrantyPersistenceService>();
         services.AddScoped<ISurveyAssignmentRepository, SurveyAssignmentPersistenceService>();
         services.AddScoped<ISurveyDataValidationAdmissionRepository, SurveyDataValidationAdmissionPersistenceService>();
         services.AddScoped<ISurveyPlanningRepository, SurveyPlanningPersistenceService>();
         services.AddScoped<IInspectionTaskReadRepository, InspectionTaskReadRepository>();
         services.AddScoped<ISurveyV2Repository, SurveyV2PersistenceService>();
+        services.AddScoped<ISurveyAssessmentRepository, SurveyAssessmentRepository>();
         services.AddScoped<IProcessingV2Repository, ProcessingV2PersistenceService>();
         services.AddScoped<INotificationRepository, NotificationPersistenceService>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
@@ -126,6 +129,8 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IFileRepository, FileRepository>();
         services.AddSingleton<IUploadObjectStorage, MinioUploadObjectStorage>();
         services.AddScoped<IUploadRepository, UploadPersistenceService>();
+        services.AddScoped<IReporterEvidenceRepository, ReporterEvidencePersistenceService>();
+        services.AddScoped<IAnhHuyFactsRepository, AnhHuyFactsRepository>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IUserStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationUser>, RoadGuardUserStore>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IRoleStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationRole>, RoadGuardRoleStore>();
 

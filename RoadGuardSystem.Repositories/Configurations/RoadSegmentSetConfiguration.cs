@@ -13,6 +13,10 @@ public sealed class RoadSegmentSetConfiguration : IEntityTypeConfiguration<RoadS
         builder.Property(set => set.Id).HasColumnType("uniqueidentifier").ValueGeneratedNever();
         builder.Property(set => set.RoadSectionVersionId).HasColumnType("uniqueidentifier").IsRequired();
         builder.Property(set => set.Status).HasMaxLength(16).IsUnicode(false).IsRequired();
+        builder.Property(set => set.RowVersion).IsRowVersion();
+        builder.Property(set => set.GeometryHash).HasMaxLength(64);
+        builder.HasAlternateKey(set => new { set.Id, set.RoadSectionVersionId });
+        builder.HasIndex(set => set.RoadSectionVersionId).IsUnique().HasFilter("[Status] = 'PUBLISHED'").HasDatabaseName("UX_RoadSegmentSets_CurrentPublished");
         builder.HasIndex(set => new { set.RoadSectionVersionId, set.Status }).HasDatabaseName("IX_RoadSegmentSets_RouteVersion_Status");
         builder.HasOne<RoadSectionVersion>().WithMany().HasForeignKey(set => set.RoadSectionVersionId).OnDelete(DeleteBehavior.Restrict);
     }

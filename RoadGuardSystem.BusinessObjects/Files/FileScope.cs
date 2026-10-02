@@ -8,11 +8,19 @@ public sealed class FileScope
 
     public Guid Id { get; private set; }
     public Guid FileId { get; private set; }
-    public Guid ProjectId { get; private set; }
+    public Guid? ProjectId { get; private set; }
     public Guid? TargetId { get; private set; }
     public Guid OwnerUserId { get; private set; }
     public string Purpose { get; private set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; private set; }
+
+    public static FileScope CreatePrivate(Guid id, Guid fileId, Guid ownerUserId, DateTimeOffset createdAt)
+    {
+        if (id == Guid.Empty || fileId == Guid.Empty || ownerUserId == Guid.Empty)
+            throw new ArgumentException("Private file scope identifiers must not be empty.");
+        return new FileScope { Id = id, FileId = fileId, OwnerUserId = ownerUserId,
+            Purpose = "REPORT_PHOTO", ProjectId = null, TargetId = null, CreatedAt = createdAt.ToUniversalTime() };
+    }
 
     public static FileScope Create(
         Guid id,

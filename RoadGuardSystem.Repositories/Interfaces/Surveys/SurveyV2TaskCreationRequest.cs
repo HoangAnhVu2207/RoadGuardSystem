@@ -13,4 +13,5 @@ public sealed record SurveyV2TaskCreationRequest(
     string IdempotencyKey,
     string RequestFingerprint,
     Guid? CorrelationId,
-    IReadOnlyList<SurveyV2ScopeRequest>? Scope = null);
+    IReadOnlyList<SurveyV2ScopeRequest>? Scope = null,
+    Guid? PlanId = null);

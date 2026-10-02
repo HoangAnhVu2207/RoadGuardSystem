@@ -29,6 +29,8 @@ public sealed partial class SurveyV2PersistenceService
             .Select(task => (Guid?)task.ProjectId)
             .SingleOrDefaultAsync(cancellationToken);
         if (projectId is null) return new(SurveyDatasetPersistenceStatus.NotFound);
+        if (!await _context.SurveyRequests.AsNoTracking().AnyAsync(t => t.Id == request.TaskId && t.ScopeFormatVersion == "BAND_V1", cancellationToken))
+            return new(SurveyDatasetPersistenceStatus.ScopeIncompatible);
 
         try
         {
@@ -47,11 +49,16 @@ public sealed partial class SurveyV2PersistenceService
                         .OrderByDescending(value => value.AssignedAt)
                         .FirstOrDefaultAsync(token)
                         ?? throw new ScopeNotFoundException();
+                    if (task.ScopeFormatVersion != "BAND_V1") return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.ScopeIncompatible, null)));
+                    if (await _context.SurveyRequests.AsNoTracking().AnyAsync(childTask => childTask.ParentTaskId == task.Id, token))
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Conflict, null)));
                     if (assignment.OperatorUserId != request.ActorUserId ||
-                        task.Status is SurveyRequestStatus.Cancelled or SurveyRequestStatus.Completed or SurveyRequestStatus.Rejected)
+                        task.Status is not (SurveyRequestStatus.Accepted or SurveyRequestStatus.InProgress) || !await HasMembershipAsync(request.ActorUserId, task.ProjectId, token))
                     {
                         return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Conflict, null)));
                     }
+                    if (!await _context.DroneDevices.AsNoTracking().AnyAsync(d => d.Id == request.DeviceId && d.Status == DroneDeviceStatus.Active, token))
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
 
                     if (!TryDecodeVersion(request.ExpectedTaskVersion, out var expectedVersion) || !task.RowVersion.SequenceEqual(expectedVersion))
                     {
@@ -61,10 +68,17 @@ public sealed partial class SurveyV2PersistenceService
 
                     if (!await IsDatasetScopeWithinTaskAsync(task.Id, request.ScopeJson, token))
                     {
-                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Conflict, null)));
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
                     }
 
                     var allFileIds = request.VideoFileIds.Concat(request.TelemetryFileIds).Distinct().ToArray();
+                    DatasetPair[] pairs;
+                    try { pairs = JsonSerializer.Deserialize<DatasetPair[]>(request.PairsJson ?? "[]", DatasetScopeJsonOptions) ?? []; }
+                    catch (JsonException) { return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null))); }
+                    if (pairs.Length > 0 && (pairs.Length != request.VideoFileIds.Count || pairs.Select(p => p.VideoFileId).Distinct().Count() != pairs.Length ||
+                        pairs.Any(p => !request.VideoFileIds.Contains(p.VideoFileId) || p.TelemetryFileId is { } t && !request.TelemetryFileIds.Contains(t)) ||
+                        pairs.Where(p => p.TelemetryFileId.HasValue).Select(p => p.TelemetryFileId).Distinct().Count() != pairs.Count(p => p.TelemetryFileId.HasValue)))
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
                     if (allFileIds.Length != request.VideoFileIds.Count + request.TelemetryFileIds.Count)
                     {
                         return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
@@ -75,7 +89,7 @@ public sealed partial class SurveyV2PersistenceService
                         join fileScope in _context.FileScopes.AsNoTracking() on file.Id equals fileScope.FileId
                         join upload in _context.UploadSessions.AsNoTracking() on file.Id equals upload.FileId
                         where allFileIds.Contains(file.Id)
-                        select new { file.Id, file.Checksum, fileScope.ProjectId, fileScope.TargetId, fileScope.Purpose, UploadPurpose = upload.Purpose, upload.Status })
+                        select new { file.Id, file.Checksum, file.SizeBytes, MediaType = file.MimeType, fileScope.ProjectId, fileScope.TargetId, fileScope.Purpose, UploadPurpose = upload.Purpose, upload.Status })
                         .ToListAsync(token);
                     var videoFileIds = request.VideoFileIds.ToHashSet();
                     if (fileRows.Count != allFileIds.Length || fileRows.Any(value =>
@@ -83,7 +97,15 @@ public sealed partial class SurveyV2PersistenceService
                             value.UploadPurpose != value.Purpose ||
                             value.Purpose != (videoFileIds.Contains(value.Id) ? "SURVEY_VIDEO" : "TELEMETRY")))
                     {
-                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.Conflict, null)));
+                        return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
+                    }
+
+                    var totalBytes = 0L;
+                    foreach (var file in fileRows)
+                    {
+                        if (file.SizeBytes <= 0 || file.SizeBytes > 34_359_738_368L - totalBytes)
+                            return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
+                        totalBytes += file.SizeBytes;
                     }
 
                     var survey = await _context.Surveys.SingleOrDefaultAsync(value => value.SurveyRequestId == task.Id, token);
@@ -102,8 +124,9 @@ public sealed partial class SurveyV2PersistenceService
                         .Where(value => value.SurveyId == survey.Id)
                         .Select(value => (int?)value.VersionNo)
                         .MaxAsync(token) ?? 0) + 1;
-                    var sourceManifest = JsonSerializer.Serialize(fileRows.OrderBy(value => value.Id).Select(value => new { fileId = value.Id, checksumSha256 = value.Checksum }));
+                    var sourceManifest = JsonSerializer.Serialize(fileRows.OrderBy(value => value.Id).Select(value => new { fileId = value.Id, checksumSha256 = value.Checksum, sizeBytes = value.SizeBytes, mediaType = value.MediaType, purpose = value.Purpose }));
                     var dataVersion = SurveyDataVersion.CreateSubmitted(Guid.NewGuid(), survey.Id, versionNo, request.RecordedAt, DateTimeOffset.UtcNow, request.DeviceId, sourceManifest, request.ScopeJson);
+                    dataVersion.SetSubmissionProvenance(request.ActorUserId, request.PairsJson ?? "[]");
                     _context.SurveyDataVersions.Add(dataVersion);
                     _context.SurveyFiles.AddRange(fileRows.Select(value => SurveyFile.Create(
                         Guid.NewGuid(), survey.Id, null, value.Id,
@@ -148,6 +171,14 @@ public sealed partial class SurveyV2PersistenceService
             : new SurveyDatasetAccessView(row.dataset.Id, row.task.Id, row.task.ProjectId, row.OperatorUserId, row.dataset.ScopeManifest ?? "[]", Version(row.dataset));
     }
 
+    public async Task<DatasetDetailRecord?> ReadDatasetAsync(Guid id, CancellationToken token = default)
+    {
+        var row = await (from d in _context.SurveyDataVersions.AsNoTracking() join s in _context.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+            where d.Id == id select new { d, s.ProjectId, s.SurveyRequestId }).SingleOrDefaultAsync(token);
+        return row is null || row.SurveyRequestId is null ? null : new(row.d.Id, row.SurveyRequestId.Value, row.ProjectId, row.d.SubmittedBy, row.d.ConfirmedAt,
+            row.d.RecordedAt, row.d.DeviceId, row.d.ScopeManifest ?? "[]", row.d.SourceManifest, row.d.PairsManifest ?? "[]", Version(row.d), row.d.IntegrityStatus.ToString().ToUpperInvariant());
+    }
+
     private async Task<bool> IsDatasetScopeWithinTaskAsync(Guid taskId, string scopeJson, CancellationToken cancellationToken)
     {
         DatasetScopeItem[]? requested;
@@ -190,4 +221,5 @@ public sealed partial class SurveyV2PersistenceService
 
     private sealed record StoredDatasetOutcome(SurveyDatasetPersistenceStatus Status, SurveyDatasetPersistenceView? Dataset);
     private sealed record DatasetScopeItem(Guid RouteVersionId, Guid SegmentSetId, Guid[] SegmentIds, string TargetBand);
+    private sealed record DatasetPair(Guid VideoFileId, Guid? TelemetryFileId, long TimeOffsetMilliseconds);
 }

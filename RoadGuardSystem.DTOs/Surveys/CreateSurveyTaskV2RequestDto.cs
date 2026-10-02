@@ -7,4 +7,5 @@ public sealed record CreateSurveyTaskV2RequestDto(
     [Required] string SurveyType,
     Guid OperatorId,
     DateTimeOffset? DueAt,
-    PositionDto? AccessPoint);
+    PositionDto? AccessPoint,
+    Guid? PlanId = null);

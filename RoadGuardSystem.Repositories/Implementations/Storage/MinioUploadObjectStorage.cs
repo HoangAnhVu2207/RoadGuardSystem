@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -12,14 +14,19 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage
     private const int PrefixLength = 512;
     private const int BufferSize = 81920;
     private readonly MinioStorageOptions _options;
+    private readonly Func<IAmazonS3>? _clientFactory;
 
     public MinioUploadObjectStorage(IOptions<MinioStorageOptions> options)
     {
         _options = options.Value;
     }
 
-    private AmazonS3Client CreateClient()
+    public MinioUploadObjectStorage(IOptions<MinioStorageOptions> options, Func<IAmazonS3> clientFactory)
+        : this(options) => _clientFactory = clientFactory;
+
+    private IAmazonS3 CreateClient()
     {
+        if (_clientFactory is not null) return _clientFactory();
         ValidateOptions(_options);
         return new AmazonS3Client(
             new BasicAWSCredentials(_options.AccessKey, _options.SecretKey),
@@ -90,6 +97,20 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage
         string uploadId,
         IReadOnlyList<CompletedStoragePart> parts,
         CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await CompleteAndReadAsync(objectKey, uploadId, parts, cancellationToken);
+        }
+        catch (Exception exception) when (exception is AmazonS3Exception or HttpRequestException or IOException)
+        {
+            throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Object storage is unavailable.", exception);
+        }
+    }
+
+    private async Task<UploadObjectVerification> CompleteAndReadAsync(
+        string objectKey, string uploadId, IReadOnlyList<CompletedStoragePart> parts,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -188,6 +209,9 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage
         if (prefix.StartsWith(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })) return "image/png";
         if (prefix.Length >= 3 && prefix[0] == 0xFF && prefix[1] == 0xD8 && prefix[2] == 0xFF) return "image/jpeg";
         if (prefix.Length >= 8 && prefix.Slice(4, 4).SequenceEqual("ftyp"u8)) return "video/mp4";
+        var text = Encoding.UTF8.GetString(prefix).TrimStart('\uFEFF');
+        if (Regex.IsMatch(text, @"\A\s*\d+\r?\n\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}(?:\r?\n)", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
+            return "application/x-subrip";
         return "application/octet-stream";
     }
 }

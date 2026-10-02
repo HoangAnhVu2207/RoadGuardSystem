@@ -8,5 +8,6 @@ public enum SurveyDatasetPersistenceStatus
     NotFound = 4,
     Conflict = 5,
     IdempotentConflict = 6,
-    ConcurrencyConflict = 7
+    ConcurrencyConflict = 7,
+    ScopeIncompatible = 8
 }

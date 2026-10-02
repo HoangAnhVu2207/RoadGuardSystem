@@ -18,6 +18,16 @@ public sealed class SurveyRequest
     public Guid? RoadSectionVersionId { get; private set; }
 
     public Guid? SurveyPlanId { get; private set; }
+    public string? ScopeFormatVersion { get; private set; }
+    public Guid? ParentTaskId { get; private set; }
+    public Guid? SupplementRequestId { get; private set; }
+
+    public void SetBandScope(Guid? parentTaskId = null, Guid? supplementRequestId = null)
+    {
+        ScopeFormatVersion = "BAND_V1";
+        ParentTaskId = parentTaskId;
+        SupplementRequestId = supplementRequestId;
+    }
 
     public Guid RequestedByUserId { get; private set; }
 

@@ -30,11 +30,11 @@ public sealed class LocalFileContentStore : IFileContentStore, IFileContentClean
                 "File storage root must be an absolute configured path.");
         }
 
-        if (options.MaximumSizeBytes <= 0 || options.MaximumSizeBytes > int.MaxValue)
+        if (options.MaximumSizeBytes <= 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options),
-                $"Maximum file size must be between 1 and {int.MaxValue} bytes.");
+                "Maximum file size must be positive.");
         }
 
         _rootPath = Path.GetFullPath(options.RootPath);
@@ -144,7 +144,7 @@ public sealed class LocalFileContentStore : IFileContentStore, IFileContentClean
 
             EnsureStorageDirectoriesSafe();
             File.Move(temporaryFile, finalFile, overwrite: false);
-            return new StoredContent(objectKey, originalName, observedMimeType, checked((int)totalBytes), checksum);
+            return new StoredContent(objectKey, originalName, observedMimeType, totalBytes, checksum);
         }
         catch (OperationCanceledException)
         {

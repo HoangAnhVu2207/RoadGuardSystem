@@ -16,6 +16,13 @@ public sealed class SurveyPlan
     public Guid RoadSectionId { get; private set; }
 
     public Guid? RoadSectionVersionId { get; private set; }
+    public string? ScopeFormatVersion { get; private set; }
+    public void SetBandScope() => ScopeFormatVersion = "BAND_V1";
+    public void MarkTaskCreated()
+    {
+        if (Status != SurveyPlanStatus.Planned) throw new InvalidOperationException("Only planned survey plans can create a task.");
+        Status = SurveyPlanStatus.InProgress;
+    }
 
     public DateTimeOffset PlannedStartAt { get; private set; }
 

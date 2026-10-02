@@ -21,6 +21,7 @@ public sealed class SurveyPlanConfiguration : IEntityTypeConfiguration<SurveyPla
         });
 
         builder.HasKey(plan => plan.Id);
+        builder.Property(plan => plan.ScopeFormatVersion).HasMaxLength(20);
         builder.Property(plan => plan.Id)
             .HasColumnType("uniqueidentifier")
             .ValueGeneratedNever();

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "anh01.demo.v1",
+  "label": "DEMO - FICTIONAL",
+  "code": "DEMO-ANH01-20261002",
+  "name": "DEMO - Tuyến đường mô phỏng ANH-01",
+  "roadCode": "DEMO-R01",
+  "handoverDocumentNo": "PROJECT-DEMO-ANH01-20261002",
+  "handoverDate": "2026-09-01",
+  "warrantyStartDate": "2026-09-01",
+  "warrantyEndDate": "2027-09-01",
+  "engineeringSrid": 32648,
+  "coordinates": [{"x": 500000, "y": 1200000}, {"x": 500200, "y": 1200000}],
+  "stationOriginMeters": 1000,
+  "lengthMeters": 200,
+  "widthProfile": [{"fromOffsetMeters": 0, "toOffsetMeters": 200, "widthMeters": 7}],
+  "surveyWidthMeters": 9,
+  "boundariesMeters": [0, 100, 200],
+  "segments": [
+    {"sequence": 1, "fromOffsetMeters": 0, "toOffsetMeters": 100, "startStationMeters": 1000, "endStationMeters": 1100},
+    {"sequence": 2, "fromOffsetMeters": 100, "toOffsetMeters": 200, "startStationMeters": 1100, "endStationMeters": 1200}
+  ],
+  "plannedAt": "2026-10-05T08:00:00+07:00",
+  "dueAt": "2026-10-05T17:00:00+07:00",
+  "assessmentScenarios": [
+    {"segmentSequence": 1, "targetBand": "SURFACE", "positionStatus": "PASS", "qualityStatus": "PASS", "coverageStatus": "PASS", "fromMilliseconds": 0, "toMilliseconds": 2000, "reason": "DEMO: synthetic coordinate overlay and clear full-width segment 1 frames; fictional pilot review only."},
+    {"segmentSequence": 1, "targetBand": "RIGHT_EDGE", "positionStatus": "UNKNOWN", "qualityStatus": "UNKNOWN", "coverageStatus": "UNKNOWN", "reason": "DEMO: no right-edge evidence captured; supplement required."},
+    {"segmentSequence": 2, "targetBand": "SURFACE", "positionStatus": "PASS", "qualityStatus": "FAIL", "coverageStatus": "FAIL", "fromMilliseconds": 2000, "toMilliseconds": 4000, "reason": "DEMO: synthetic coordinate overlay identifies segment 2 but obstruction prevents inspecting surface and full scope."}
+  ],
+  "provenance": {
+    "accessedAt": "2026-10-02",
+    "sources": [
+      {"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=202585", "purpose": "Official publication identity for Decree 06/2021/ND-CP; not a current-law opinion."},
+      {"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2021/01/nd06.signed.pdf", "purpose": "Visually inspected printed pages 34-36: Articles 26-29; document grouping, handover and warranty responsibilities terminology only."}
+    ]
+  }
+}

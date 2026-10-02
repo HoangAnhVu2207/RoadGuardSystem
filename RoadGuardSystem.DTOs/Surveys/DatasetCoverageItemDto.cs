@@ -5,4 +5,7 @@ public sealed record DatasetCoverageItemDto(
     string PositionCoverage,
     string QualityCoverage,
     string OverallCoverage,
-    IReadOnlyList<string> Reasons);
+    IReadOnlyList<string> Reasons)
+{
+    public string? CoverageStatus { get; init; }
+}

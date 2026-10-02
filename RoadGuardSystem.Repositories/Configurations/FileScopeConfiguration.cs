@@ -10,7 +10,7 @@ public sealed class FileScopeConfiguration : IEntityTypeConfiguration<FileScope>
 {
     public void Configure(EntityTypeBuilder<FileScope> builder)
     {
-        builder.ToTable("FileScopes");
+        builder.ToTable("FileScopes", table => table.UseSqlOutputClause(false).HasCheckConstraint("CK_FileScopes_PrivateShape", "[ProjectId] IS NOT NULL OR ([Purpose] = 'REPORT_PHOTO' AND [TargetId] IS NULL)"));
         builder.HasKey(scope => scope.Id);
         builder.Property(scope => scope.Id).HasColumnType("uniqueidentifier").ValueGeneratedNever();
         builder.Property(scope => scope.Purpose).HasMaxLength(40).IsUnicode(false).IsRequired();

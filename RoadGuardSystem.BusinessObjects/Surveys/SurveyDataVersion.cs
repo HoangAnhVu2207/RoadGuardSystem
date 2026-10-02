@@ -20,6 +20,15 @@ public sealed class SurveyDataVersion
     public DateTimeOffset? RecordedAt { get; private set; }
     public Guid? DeviceId { get; private set; }
     public string? ScopeManifest { get; private set; }
+    public Guid? SubmittedBy { get; private set; }
+    public string? PairsManifest { get; private set; }
+    public void SetSubmissionProvenance(Guid actor, string pairs)
+    {
+        if (actor == Guid.Empty) throw new ArgumentException("Submitter is required.");
+        ValidateManifest(pairs);
+        SubmittedBy = actor;
+        PairsManifest = pairs;
+    }
     public byte[] RowVersion { get; private set; } = [];
 
     public static SurveyDataVersion Create(

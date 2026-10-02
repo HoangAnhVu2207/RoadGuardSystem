@@ -37,6 +37,7 @@ public sealed class P2SurveyV2ApiTests
         var segmentId = Guid.NewGuid();
         await using (var context = _sql.CreateDbContext())
         {
+            await context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO ProjectMembers (Id,ProjectId,UserId,RoleCode,IsPrimary,ValidFrom,Status) VALUES ({Guid.NewGuid()},{projectId},{operatorUser.Id},{"DRONE_OPERATOR"},{false},{new DateOnly(2026,1,1)},{(byte)ProjectMemberStatus.Active})");
             context.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId, routeVersionId));
             context.RoadSegments.Add(RoadSegment.Create(segmentId, segmentSetId, routeVersionId, 1));
             await context.SaveChangesAsync();

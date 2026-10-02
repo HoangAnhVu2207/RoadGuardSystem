@@ -13,6 +13,6 @@ public sealed record FileStoreResult(
     Guid? FileId = null,
     string? StorageUri = null,
     string? MimeType = null,
-    int? SizeBytes = null,
+    long? SizeBytes = null,
     string? Checksum = null,
     string? ErrorCode = null);

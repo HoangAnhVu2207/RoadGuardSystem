@@ -11,8 +11,8 @@ Initial dirty paths: none. No unrelated tracked changes were present.
 Status **PARTIAL**. Named shared writer: Anh (owner continuation2026-10-02),
 Huy retains domain/module business ownership. Integration base/initial HEAD
 `5d6ecb5c6c4498c4803ddec735a00b153d0967b5`; initial dirty none after separate
-Part A commit. Final integration HEAD is the delivery commit containing this
-update, reported in handoff. No unrelated path was changed.
+Part A commit. Final integration HEAD is `959d0080de26911795055f46538819a819a24c9c`;
+this summary is included in that delivery commit. No unrelated path was changed.
 
 Huy source handoff `8676226cf9d1b99adf83beb0391f147dfa4b112e`; common base
 `1ecae797caaed1ab912b02b2372a1940d1e05375`. Fetched exact SHA and selectively

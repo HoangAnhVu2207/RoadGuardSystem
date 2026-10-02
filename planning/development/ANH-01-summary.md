@@ -8,6 +8,35 @@ Initial dirty paths: none. No unrelated tracked changes were present.
 
 ## External Review Correction — 2026-10-02
 
+### Final Root Scope Correction — Part A
+
+Owner continuation accepted external closure of the other four fixes. Actual
+correction base/initial HEAD: `7e73e872634942cd8590b2685258fb204de733c6` on
+`anh-review`; dirty paths none. The final correction HEAD is the separate
+Part A commit reported in the handoff (before shared Huy integration).
+Migration `090000` remained unchanged; its applied state is explicitly tested.
+New `20261002100000_Anh01RequestScopeRootCorrection` inspects the raw Request
+root object and requires exactly one binary exact `scope` key of array type.
+It revokes unsafe BAND_V1 adoption, preserving JSON, relational references,
+receipts and wrapper fields. Guarded Down returns 51027.
+
+Runtime reproduction: SQL migration 090000 adopts first-valid/last-empty and
+duplicate-identical scopes, while JsonElement selects the last property.
+Reverse order, root array/object scope, wrong key case, legitimate accessPoint
+wrapper and leading JSON whitespace are covered. Red: 1 passed/1 failed;
+final green: 2 passed/0 failed/0 skipped on fixture-owned SQL Server.
+
+```powershell
+dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter FullyQualifiedName~Anh01ScopeAdoptionCorrectionTests -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh01-root-scope.trx'
+dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore -v quiet -clp:ErrorsOnly
+git diff --check
+```
+
+Self-review 1 fixed valid leading JSON whitespace handling and added a test.
+Self-review 2 checked exact key/type, forward-only history, source preservation,
+recovery and scope. This is BE SQL evidence, not external review PASS or shared
+DB rollout. ANH-01 remains Partial; CRS/Huy/MinIO/8GiB/demo gates unchanged.
+
 External ChatGPT source review received via the owner's five findings. Review
 base: `1ecae797caaed1ab912b02b2372a1940d1e05375`; reviewed HEAD and correction
 base: `663ff691b83b868cc7be9421e54f675af64ea8a8`. Resume observed that exact

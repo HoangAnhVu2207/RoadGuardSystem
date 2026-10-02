@@ -71,11 +71,24 @@ public sealed class Anh01ScopeAdoptionCorrectionTests
             // Requests retain duplicate properties verbatim below rather than reparsing through JsonNode.
             cases.Add(("duplicate-property",duplicateProperty,normalIds,false));
             cases.Add(("legacy", "{\"formats\":[\"video\"]}",normalIds,false));
+            if(kind=="Request")
+            {
+                // Raw strings retain duplicate root keys; JsonNode would erase the ambiguity.
+                var valid=Correct().ToJsonString();
+                cases.Add(("root-duplicate-first-valid","{\"scope\":"+valid+",\"scope\":[]}",normalIds,false));
+                cases.Add(("root-duplicate-last-valid","{\"scope\":[],\"scope\":"+valid+"}",normalIds,false));
+                cases.Add(("root-duplicate-identical","{\"scope\":"+valid+",\"scope\":"+valid+"}",normalIds,false));
+                cases.Add(("root-wrapper-valid","{\"accessPoint\":{\"note\":\"fixture\"},\"scope\":"+valid+"}",normalIds,true));
+                cases.Add(("root-whitespace-valid","\r\n\t {\"scope\":"+valid+"}",normalIds,true));
+                cases.Add(("root-wrong-case","{\"Scope\":"+valid+"}",normalIds,false));
+                cases.Add(("root-object-scope","{\"scope\":{\"items\":"+valid+"}}",normalIds,false));
+                cases.Add(("root-array","[{\"scope\":"+valid+"}]",normalIds,false));
+            }
             var rows=new List<(Guid Id,string Name,string Output,bool Valid)>();
             foreach(var item in cases)
             {
                 var id=Guid.NewGuid();
-                var output=kind=="Plan"?item.Snapshot:"{\"scope\":"+item.Snapshot+"}";
+                var output=kind=="Plan" || item.Name.StartsWith("root-",StringComparison.Ordinal)?item.Snapshot:"{\"scope\":"+item.Snapshot+"}";
                 if(kind=="Plan")
                     await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO SurveyPlans (Id,ProjectId,RoadSectionId,RoadSectionVersionId,PlannedStartAt,PlannedEndAt,SurveyType,Status,OutputRequirements) VALUES ({id},{project},{section},{route},{DateTimeOffset.UtcNow},{DateTimeOffset.UtcNow.AddHours(1)},1,4,{output})");
                 else
@@ -96,6 +109,16 @@ public sealed class Anh01ScopeAdoptionCorrectionTests
             adopted[rows.Single(x=>x.Name=="duplicate-tuples").Id].Should().Be("BAND_V1","reproduce the already-applied old migration before forward correction");
             var beforeScopeIds=kind=="Plan"?await db.SurveyPlanScopes.AsNoTracking().Select(x=>x.Id).ToArrayAsync()
                 :await db.SurveyRequestScopes.AsNoTracking().Select(x=>x.Id).ToArrayAsync();
+            await migrator.MigrateAsync("20261002090000_Anh01ScopeAdoptionCorrection");
+            if(kind=="Request")
+            {
+                var oldAdoption=await db.SurveyRequests.AsNoTracking().ToDictionaryAsync(x=>x.Id,x=>x.ScopeFormatVersion);
+                oldAdoption[rows.Single(x=>x.Name=="root-duplicate-first-valid").Id].Should().Be("BAND_V1","the applied correction reads the first scope key");
+                oldAdoption[rows.Single(x=>x.Name=="root-duplicate-identical").Id].Should().Be("BAND_V1","duplicates are ambiguous even with identical values");
+                oldAdoption[rows.Single(x=>x.Name=="root-duplicate-last-valid").Id].Should().BeNull("the first empty scope is not adopted, despite the runtime reading the valid last scope");
+                using var document=System.Text.Json.JsonDocument.Parse(rows.Single(x=>x.Name=="root-duplicate-first-valid").Output);
+                document.RootElement.GetProperty("scope").GetArrayLength().Should().Be(0,"the runtime reader selects the last duplicate key");
+            }
             await migrator.MigrateAsync();
             var corrected=kind=="Plan"?await db.SurveyPlans.AsNoTracking().ToDictionaryAsync(x=>x.Id,x=>new{x.ScopeFormatVersion,x.OutputRequirements})
                 :await db.SurveyRequests.AsNoTracking().ToDictionaryAsync(x=>x.Id,x=>new{x.ScopeFormatVersion,x.OutputRequirements});
@@ -109,8 +132,9 @@ public sealed class Anh01ScopeAdoptionCorrectionTests
             afterScopeIds.Should().BeEquivalentTo(beforeScopeIds);
             (await db.IdempotencyRecords.CountAsync()).Should().Be(0);
             var down=()=>migrator.MigrateAsync("20261002031518_Anh01GeometrySurveyReview");
-            (await down.Should().ThrowAsync<SqlException>()).Which.Number.Should().Be(51026);
+            (await down.Should().ThrowAsync<SqlException>()).Which.Number.Should().Be(51027);
             (await db.Database.GetAppliedMigrationsAsync()).Should().Contain("20261002090000_Anh01ScopeAdoptionCorrection");
+            (await db.Database.GetAppliedMigrationsAsync()).Should().Contain("20261002100000_Anh01RequestScopeRootCorrection");
         }
         finally { await fixture.DisposeAsync(); }
     }

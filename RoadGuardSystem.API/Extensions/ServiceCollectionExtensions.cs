@@ -87,6 +87,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProcessingV2Service, ProcessingV2Service>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<IReporterEvidenceService, ReporterEvidenceService>();
+        services.AddHuy01ReporterServices();
         services.AddScoped<IAnhHuyProducerService, AnhHuyProducerService>();
         services.AddSingleton(TimeProvider.System);
         services.Configure<RoadGuardSystem.Services.Processing.Anh02.Anh02AiOptions>(configuration.GetSection("Anh02"));

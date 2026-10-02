@@ -130,6 +130,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddSingleton<IUploadObjectStorage, MinioUploadObjectStorage>();
         services.AddScoped<IUploadRepository, UploadPersistenceService>();
         services.AddScoped<IReporterEvidenceRepository, ReporterEvidencePersistenceService>();
+        services.AddHuy01ReporterPersistence();
         services.AddScoped<IAnhHuyFactsRepository, AnhHuyFactsRepository>();
         services.AddScoped<IAnh02AiRepository, Anh02AiRepository>();
         services.AddScoped<RoadGuardSystem.Repositories.Reporting.IReportingRepository, RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository>();

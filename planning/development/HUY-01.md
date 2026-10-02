@@ -595,3 +595,21 @@ Self-review 1: <findings/fixes>; Self-review 2: <findings/fixes>
 Checks: <commands; executed/pass/fail/skip/not-run counts; SQL fixture>
 Evidence: BE verified <...>; mock verified <...>; external/deployment not verified <...>
 ```
+
+
+## Anh Reporter integration reservation — 2026-10-03
+
+Owner assignment fixes Huy source to `0e41913b225d4f72d4d1ead1ae322ad56bba5328`;
+Anh base `6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e`, initial dirty none.
+Anh alone writes shared composition root, local contract/Postman and summaries.
+Huy retains Report/Case/Candidate/Label policies and command implementations.
+Import only Reporter intake controller/DTO/normalizer/service/repository/interfaces,
+module DI and their focused tests, preserving current shared receipt seam and
+ANH-02 guards. No whole-branch merge or auth/candidate/label/schema import.
+Checkpoint A: production AddHuy01ReporterPersistence/Services; HTTP/SQL receipt
+acceptance, local contract/Postman, two reviews, selective normal commit/push.
+Checkpoint B follows immediately: Anh reporting/retention/export reads from
+available intake facts, actual producer-consumer tests and environment checks;
+missing Huy approved-label/matching/complete inventory remain explicit gates.
+Exact evidence/counts and owner-Huy findings are in existing ANH-01-summary.
+This note does not accept external review or close Reporter P1/HUY-01.

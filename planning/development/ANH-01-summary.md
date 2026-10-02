@@ -473,3 +473,103 @@ P1 can close. No Reporter composition-root activation or `report.received.v1`
 emission is authorized by this handoff. Full solution tests, live MinIO/8GiB/CRS/
 demo/deployment, shared/deployed migration and external ChatGPT review were NOT RUN
 here; all prior Partial gates and D1–D5 remain unchanged.
+
+
+## Checkpoint A — production Reporter intake integration, 2026-10-03
+
+**Partial; Reporter P1 and external ChatGPT review PENDING.** Owner-assigned two-part
+continuation. Initial/local/remote Anh base `6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e`,
+branch anh-review, initial `git status --short` empty. Fixed Huy source
+`0e41913b225d4f72d4d1ead1ae322ad56bba5328`; shared receipt seam f626ea5 retained,
+including latest ANH-02 correction. No reset/stash/discard/whole Huy merge/auth
+import/model change/shared DB write/amend/force push/main/develop/Huy branch edit.
+Anh sole shared writer; Huy retains business module policy. During work remote Huy
+advanced to `7e8261648e08adf5b5bdf0cea85fca5e55463b73`; read-only fixed-object fetch/
+path inspection shows lifecycle/case/candidate additions, no approved-label/
+matching snapshot/dossier/complete-inventory reader. None imported from that tip.
+
+Imported from exact0e41913 (9 production files byte-identical):
+- API/Controllers/ReportsController.cs; DTOs/Reports/ReporterReportDtos.cs.
+- Repositories/Extensions/Huy01ReporterPersistenceExtensions.cs;
+  Implementations/Reports/ReporterReportRepository.cs;
+  Interfaces/Reports/IReporterReportRepository.cs.
+- Services/Extensions/Huy01ReporterServiceExtensions.cs;
+  Implementations/Reports/ReporterReportService.cs;
+  Interfaces/Reports/IReporterReportService.cs; ReporterIntakeRequestNormalizer.cs.
+- Tests: ApiTests/Reports/Huy01ReporterReportsApiTests.cs,
+  Huy01ReporterReceiptAccessSqlTests.cs; UnitTests/Reports/ReporterIntakeRequestNormalizerTests.cs.
+
+Anh adaptations: call AddHuy01ReporterServices/Persistence once in production
+composition roots; remove module registrations from imported HTTP tests; test-only
+partial class adds descriptor/type/scoped-lifetime proof and12 post-preflight
+HTTP races. Strengthen SQL concurrency with actual2601/2627 probe and revoke at
+loser receipt recovery. Existing shared service/tests, schema/migrations/snapshot,
+identity/processing and ANH-02 guards unchanged. Only POST /api/v1/reports activated;
+real private upload/evidence producer retained. One Report + UNASSIGNED Case +
+active link + sanitized audit + receipt atomic. No report.received.v1/outbox event,
+case/candidate/label route activation or phantom project/label policy.
+
+Canonical adoption stays contracts/http/anh01.local-contract.md (append-only).
+Postman preserves all prior items and adds13 ordered/negative requests with actual
+signed PUT bytes, stable distinct upload/parts/complete/report keys, file version,
+exact replay body/Location/ETag and error assertions. Complete preserves original
+If-Match. Worker must finish VERIFIED; pending/failed negatives require explicit
+fixtures. Live PUT/local storage distinct from automated named mock storage.
+No draft OpenAPI promotion, FE lock change, credentials or Postman-runner PASS.
+
+Actual self-review1: authorization/privacy/transaction/recovery/source locks,
+producer consistency and real production binding; found HTTP test DI override
+hiding absent production bindings, removed it and observed7/7 failures (500)
+then wired production DI. Added12 real HTTP races and explicit unique violation/
+guard probes for concurrent success and revoked loser. All source permissions
+before replay/conflict, same scoped context and service-owned transaction, no
+handler on found receipt; shared cancellation/original-exception evidence rerun.
+Owner-Huy finding: imported Reporter guard locks/checks Users but never locks/
+reads Roles.IsActive; current Anh private-evidence preflight also checks user
+role code rather than role-row activity. Global role deactivation after preflight
+has no guard. Source evidence ReporterReportRepository.EnsureCurrentReceiptAccessAsync
+and AnhHuyFactsRepository.IsCurrentActorAsync. Not changed in Huy-owned module;
+Huy must supply additive exact correction and role-deactivation HTTP/SQL acceptance.
+This is not closed by user/password/role-code tests or bearer preflight.
+Actual self-review2: fixed MIME mismatch in new Postman signed-PUT/create flow;
+checked DTO/errors/key normalization, lifetimes/one registration, all dependency
+closure, unchanged imported production bytes and existing contract/Postman items,
+no schema delta/retired skills/unrelated files. Reviews are Codex self-review,
+not external ChatGPT acceptance.
+
+Fresh commands/results (owned disposable SQL with production migrations):
+- `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --no-incremental --disable-build-servers -v quiet -clp:ErrorsOnly`:0 errors/98 warnings.
+- `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~ReporterIntakeRequestNormalizerTests|FullyQualifiedName~Anh02' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=reporter-anh02-unit.trx'`:92 executed/pass,0 failed/skip.
+- `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --disable-build-servers --filter '(FullyQualifiedName~Huy01Reporter|FullyQualifiedName~Anh02|FullyQualifiedName~ReporterEvidenceApiTests|FullyQualifiedName~UploadApiTests|FullyQualifiedName~IdempotencyPerCommandCharacterizationTests)&FullyQualifiedName!~CompleteMultipartUploadAgainstConfiguredMinio' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=reporter-checkpoint-a-api.trx'`:68 executed/pass,0 failed/skip.
+- Same ApiTests command with filter `FullyQualifiedName~Composition_root_registers_one_scoped_real_reporter`, TRX reporter-di-binding.trx:1 executed/pass,0 failed/skip;69 distinct API-assembly cases total (includes actual SQL caller recovery fixtures).
+- `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Anh02|FullyQualifiedName~ReceiptAccessGuardSqlTests|FullyQualifiedName~P202ServiceContractTests|FullyQualifiedName~P202TransactionAndIdempotencyTests|FullyQualifiedName~Huy01SharedSchemaTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=reporter-checkpoint-a-sql.trx'`:97 executed/pass,0 failed/skip.
+- `./.tools/dotnet-ef.exe migrations has-pending-model-changes --context RoadGuardDbContext --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build`:exit0,no pending model; process-only unreachable design connection restored, no shared DB.
+- JSON/old-item/production-byte checks and git diff --check:exit0.258 distinct passing cases, overlapping focused runs excluded.
+
+Recovery evidence: ordinary replay/conflict and actor/evidence changes; strategy
+probe injected once, lookup>=2, guard1/create0; concurrent same-key enters both
+handlers, exact1 SQL unique violation/guard and durable graph1; revoked loser
+returns forbidden/no receipt; acknowledgement probe1/create1, durable graph1,
+including revoke denial; precommit failure3/handler3, all five effect counts0;
+callback failure/cancellation produces no protected receipt/second create.
+HTTP fixtures use actual auth middleware, production DI, SQL and BE upload/
+verification/intake; storage is explicitly MOCK_VERIFIED. No test-only Reporter
+service/repository binding. Published Location has no implemented GET yet.
+
+Failure history: production-DI red7 failed then24 initial green; subsequent19
+HTTP and18 SQL/probe green overlap final69. Added probe first compilation selected
+zero cases due nullable assertion, fixed fixture then18 pass. Python default
+cp1252 contract write failed on existing Unicode; restored original contract
+bytes and appended UTF-8, preservation check passed. One Postman name search
+assertion failed before any mutation, corrected source folder. No unresolved
+failure/hidden skip. NOT RUN: role-row revoke acceptance (Huy gap), external review,
+case/candidate/label lifecycle routes/readers, live MinIO/S3/deployed PDF font,
+Postman HTTP runner, shared/deployed migration/history/backup restore, demo8GiB/
+CRS/external consumers/performance/full suite. Docker pull of disposable
+minio/minio:RELEASE.2025-04-22T22-12-26Z failed with pull access denied; no MinIO
+container/bucket/shared resource created. ANH-01 prior gates unchanged.
+
+Checkpoint A is committed/pushed separately; exact SHA/compare in continuation
+handoff and ANH-02 continuation summary. Huy can take the activated Reporter
+slice/contract/DI and address role-row guard gap without waiting for ANH-02.
+HUY-01 whole-package/Reporter P1 remain Partial/PENDING; B proceeds immediately.

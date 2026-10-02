@@ -21,6 +21,7 @@ public sealed class ReporterReportService(IAnhHuyProducerService producer, IRepo
 
         var preflight = await ResolveEvidenceAsync(actorUserId, role, normalized!.Evidence, cancellationToken);
         if (preflight.Status != ReporterReportCommandStatus.Created) return new(preflight.Status);
+        var receiptEvidence = preflight.Evidence!.Select(item => item.Reference).ToArray();
         try
         {
             var execution = await idempotency.ExecuteAsync(actorUserId, null, "huy01.report.create.v1", normalized!.IdempotencyKey,
@@ -32,7 +33,8 @@ public sealed class ReporterReportService(IAnhHuyProducerService producer, IRepo
                         resolved.Evidence!.Select(item => item.Reference).ToArray(), correlationId, token);
                     var response = ToDto(write);
                     return (write.Report.Id, JsonSerializer.Serialize(response));
-                }, cancellationToken);
+                }, cancellationToken, receiptAccessGuard: token =>
+                    repository.EnsureCurrentReceiptAccessAsync(actorUserId, receiptEvidence, token));
 
             if (execution.Status == IdempotencyOperationStatus.Conflict) return new(ReporterReportCommandStatus.IdempotencyConflict);
             var stored = JsonSerializer.Deserialize<ReporterReportResponseDto>(execution.OutcomeJson)!;

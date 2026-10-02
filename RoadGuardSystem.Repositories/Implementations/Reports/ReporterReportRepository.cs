@@ -15,7 +15,7 @@ public sealed class ReporterReportRepository(RoadGuardDbContext context) : IRepo
     public async Task<ReporterReportWriteResult> CreateAndSaveAsync(Guid reporterUserId, string description,
         IReadOnlyList<VerifiedEvidenceReference> evidence, Guid? correlationId, CancellationToken cancellationToken = default)
     {
-        await LockAndValidateAsync(reporterUserId, evidence, cancellationToken);
+        await EnsureCurrentReceiptAccessAsync(reporterUserId, evidence, cancellationToken);
         var now = DateTimeOffset.UtcNow;
         var report = Report.Create(Guid.NewGuid(), reporterUserId, description, now,
             evidence);
@@ -38,10 +38,11 @@ public sealed class ReporterReportRepository(RoadGuardDbContext context) : IRepo
         return new ReporterReportWriteResult(report, version);
     }
 
-    private async Task LockAndValidateAsync(Guid actorId, IReadOnlyList<VerifiedEvidenceReference> evidence, CancellationToken cancellationToken)
+    public async Task EnsureCurrentReceiptAccessAsync(Guid reporterUserId, IReadOnlyList<VerifiedEvidenceReference> evidence,
+        CancellationToken cancellationToken = default)
     {
-        await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {0}", actorId, cancellationToken);
-        var actor = await context.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Id == actorId, cancellationToken);
+        await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {0}", reporterUserId, cancellationToken);
+        var actor = await context.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Id == reporterUserId, cancellationToken);
         if (actor is null) throw new ReporterIntakeFactsException(ReporterIntakeFactsStatus.NotFound);
         if (actor.Status != RoadGuardSystem.aBusinessObjects.Commons.UserStatus.Active || actor.RoleCode != RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Reporter || actor.MustChangePassword)
             throw new ReporterIntakeFactsException(ReporterIntakeFactsStatus.Forbidden);
@@ -55,7 +56,7 @@ public sealed class ReporterReportRepository(RoadGuardDbContext context) : IRepo
                                join upload in context.UploadSessions.AsNoTracking() on file.Id equals upload.FileId
                                where file.Id == item.FileId
                                select new { scope, upload }).SingleOrDefaultAsync(cancellationToken);
-            if (facts is null || facts.scope.OwnerUserId != actorId || facts.scope.ProjectId is not null || facts.scope.TargetId is not null || facts.scope.Purpose != "REPORT_PHOTO" || item.OwnerUserId != actorId)
+            if (facts is null || facts.scope.OwnerUserId != reporterUserId || facts.scope.ProjectId is not null || facts.scope.TargetId is not null || facts.scope.Purpose != "REPORT_PHOTO" || item.OwnerUserId != reporterUserId)
                 throw new ReporterIntakeFactsException(ReporterIntakeFactsStatus.NotFound);
             if (facts.upload.Status != UploadSessionStatus.Verified) throw new ReporterIntakeFactsException(ReporterIntakeFactsStatus.SourceNotReady);
             if (!string.Equals(Convert.ToBase64String(facts.upload.RowVersion), item.FileVersion, StringComparison.Ordinal))

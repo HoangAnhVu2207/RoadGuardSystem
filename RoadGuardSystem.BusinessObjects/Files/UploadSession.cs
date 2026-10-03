@@ -21,6 +21,10 @@ public sealed class UploadSession
     public UploadSessionStatus Status { get; private set; }
     public string? StorageUploadId { get; private set; }
     public string? FailureCode { get; private set; }
+    public Guid? MultipartFence { get; private set; }
+    public string? MultipartPhase { get; private set; }
+    public DateTimeOffset? MultipartDeadline { get; private set; }
+    public DateTimeOffset? MultipartNextCheckAt { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
 
     public static UploadSession Create(
@@ -74,6 +78,48 @@ public sealed class UploadSession
         ValidateText(storageUploadId, nameof(storageUploadId), 1024);
         StorageUploadId = storageUploadId.Trim();
         Status = UploadSessionStatus.Uploading;
+        FailureCode = null;
+    }
+
+    public void ClaimMultipartInitiation(string claim, DateTimeOffset now)
+    {
+        if (Status != UploadSessionStatus.Pending || StorageUploadId is not null ||
+            FailureCode is not null || now.ToUniversalTime() >= ExpiresAt)
+            throw new InvalidOperationException("Multipart initiation is already claimed or unavailable.");
+        ValidateText(claim, nameof(claim), 80);
+        FailureCode = claim;
+    }
+
+    public void BeginMultipart(Guid fence, DateTimeOffset deadline, DateTimeOffset nextCheck)
+    {
+        if (Status != UploadSessionStatus.Pending || StorageUploadId is not null || MultipartPhase is not null)
+            throw new InvalidOperationException("Multipart already started.");
+        MultipartFence = fence;
+        MultipartPhase = "CLAIMED";
+        MultipartDeadline = deadline;
+        MultipartNextCheckAt = nextCheck;
+        FailureCode = null;
+    }
+
+    public void SetMultipartPhase(Guid fence, string phase, DateTimeOffset nextCheck)
+    {
+        if (fence == Guid.Empty || phase is not ("CALLING" or "RECONCILING" or "DURABLE"))
+            throw new ArgumentException("Invalid multipart phase/fence.");
+        MultipartFence = fence;
+        MultipartPhase = phase;
+        MultipartNextCheckAt = nextCheck;
+    }
+
+    public void StopMultipart(DateTimeOffset nextCheck)
+    {
+        if (Status is UploadSessionStatus.Pending or UploadSessionStatus.Uploading)
+        {
+            Status = UploadSessionStatus.Failed;
+            FailureCode = "multipart_restart_required";
+        }
+        MultipartPhase = "TERMINAL";
+        MultipartFence = Guid.NewGuid();
+        MultipartNextCheckAt = nextCheck;
     }
 
     public void StartVerification(string expectedVersion, DateTimeOffset now)

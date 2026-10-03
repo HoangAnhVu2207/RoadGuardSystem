@@ -28,6 +28,11 @@ if (builder.Environment.IsDevelopment() &&
     builder.Services.AddHostedService<UploadVerificationWorker>();
 }
 
+if (builder.Configuration.GetValue($"{UploadSessionOptions.SectionName}:RecoveryEnabled", false))
+{
+    builder.Services.AddHostedService<MultipartRecoveryWorker>();
+}
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment() &&

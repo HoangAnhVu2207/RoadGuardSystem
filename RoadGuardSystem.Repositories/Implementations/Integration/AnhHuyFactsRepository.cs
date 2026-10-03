@@ -9,8 +9,12 @@ namespace RoadGuardSystem.Repositories.Integration;
 
 public sealed class AnhHuyFactsRepository(RoadGuardDbContext db) : IAnhHuyFactsRepository
 {
-    public Task<bool> IsCurrentActorAsync(Guid actorId, UserRoleCode role, CancellationToken ct)
-        => db.Users.AsNoTracking().AnyAsync(u=>u.Id==actorId && u.Status==UserStatus.Active && u.RoleCode==role && !u.MustChangePassword,ct);
+    public async Task<bool> IsCurrentActorAsync(Guid actorId, UserRoleCode role, CancellationToken ct)
+    {
+        return await db.Users.AsNoTracking().AnyAsync(u =>
+                   u.Id == actorId && u.Status == UserStatus.Active && u.RoleCode == role && !u.MustChangePassword, ct)
+               && await db.Roles.AsNoTracking().AnyAsync(r => r.Code == role && r.IsActive, ct);
+    }
 
     public async Task<ReporterFileFacts?> GetFileAsync(Guid fileId, CancellationToken ct)
     {

@@ -59,7 +59,9 @@ public sealed partial class IdentityRepository
                         IssuedAt = session.IssuedAt,
                         DeviceMetadataJson = session.DeviceMetadataJson,
                         ExpiresAt = session.ExpiresAt,
-                        RevokedAt = session.RevokedAt
+                        RevokedAt = session.RevokedAt,
+                        Transport = session.Transport,
+                        LastActivityAt = session.LastActivityAt
                     };
                     var attemptRefreshToken = new RefreshToken
                     {

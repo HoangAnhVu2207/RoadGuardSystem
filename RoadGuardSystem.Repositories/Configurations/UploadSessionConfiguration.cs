@@ -24,6 +24,8 @@ public sealed class UploadSessionConfiguration : IEntityTypeConfiguration<Upload
         builder.Property(session => session.ExpectedChecksumSha256).HasColumnType("char(64)").IsRequired();
         builder.Property(session => session.StorageUploadId).HasMaxLength(1024).IsUnicode(false);
         builder.Property(session => session.FailureCode).HasMaxLength(80).IsUnicode(false);
+        builder.Property(session => session.MultipartPhase).HasMaxLength(20).IsUnicode(false);
+        builder.HasIndex(session => session.MultipartNextCheckAt).HasDatabaseName("IX_UploadSessions_MultipartNextCheckAt");
         builder.Property(session => session.ExpiresAt).HasColumnType("datetimeoffset(7)").IsRequired();
         builder.HasIndex(session => new { session.Status, session.ExpiresAt }).HasDatabaseName("IX_UploadSessions_Status_ExpiresAt");
         builder.HasOne<StoredFile>().WithMany().HasForeignKey(session => session.FileId).OnDelete(DeleteBehavior.Restrict);

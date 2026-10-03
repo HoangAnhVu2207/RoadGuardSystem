@@ -1,5 +1,93 @@
 # HUY-01 — Identity transport → Reporter/case → PM candidate/label
 
+## 2026-10-03 closure-first integration and acceptance checkpoint - PARTIAL
+
+`CURRENT_VERIFIED` preflight for this checkpoint: branch `huy-review`; local,
+tracking and live `origin/huy-review` were all
+`f5d032ea95af95f5c01805fff02b83571beecbef`; worktree had no dirty or
+untracked paths before this turn. No reset, merge, amend, force-push, or
+develop/main/Anh tip checkout was used. The common ancestor with the inspected
+Anh refs (`5089c3267dcdf60645ab34f61b58a79e3cbb0cf6` and
+`7f8f7715853aa745c705c12a7c28e897ededae60`) was confirmed as
+`efc0ca10b53264bb24c807b7352ddba0cbe36b6d`.
+
+The current writer scope permits Huy to complete HUY-01 shared integration.
+Earlier paragraphs that describe “wait for Anh to write shared integration” are
+historical and are superseded by this checkpoint. Remaining blockers below are
+specific missing authoritative facts, frozen consumer contracts, external
+storage/network evidence, or external review; they are not an ownership
+blocker.
+
+### Closure ledger
+
+| Gate | Implementation/evidence in this checkpoint | Remaining boundary | State |
+|---|---|---|---|
+| Session transport/schema and OTP | Additive `Sessions.Transport` (`tinyint`, default legacy `0`, `CK_Sessions_Transport`) and nullable `LastActivityAt`; issuance preserves both fields. Fresh schema, issuance, and concurrent OTP SQL tests are green. | Web cookie/CSRF and Android wire adoption are not activated because no new public auth contract was supplied; legacy bearer behavior remains unchanged. | `CLOSED - VERIFIED` for persisted HUY-01 session fields and OTP |
+| Multipart recovery | Imported the exact recovery implementation from `7f8f771...`; added the additive `20261003170000_Anh01MultipartRecovery` schema, guarded downgrade, feature flag/options and HUY-owned receipt authority seam. Fresh SQL/adapter/fault-injection suite is 33/33 and HTTP recovery probes are 2/2. | HTTP uses the disposable remote-storage adapter; real MinIO/deployment/network recovery is not run. Worker remains disabled unless `UploadSession:RecoveryEnabled=true`. | `SOURCE/INTEGRATION COMPLETE - ACCEPTANCE BLOCKED BY EXACT ENVIRONMENT` |
+| CaseDefectRead | Canonical status/hash/ordering, persisted Case/Report versions, conclusions and explicit missing reasons are source- and unit-tested. | Current schema still cannot prove Defect source/version/geometry, evidence checksum or recipient authority; no frozen production reader/consumer route exists. | `SOURCE COMPLETE - ACCEPTANCE BLOCKED BY EXACT FACTS/CONTRACT` |
+| Label lifecycle/readers | Domain revision/head/materialization policy rejects missing FileVersion and preserves immutable history. | TrainingLabel persistence, approved-reader and source-access contracts need authoritative source/file/provenance facts and the real consumer graph; no fixture-only adapter is registered. | `BLOCKED - EXACT BUSINESS/EXTERNAL INPUT` |
+| Candidate/AI/geometry | Candidate domain validation/matcher and REPORT producer remain available with fail-closed not-ready semantics. | AI/FIELD producer facts, target Defect rowversion/source links, geometry metric package and disposition head are absent from the current production schema/contract. | `OUT OF HUY-01 SCOPE - SPEC-DEFINED DEFERRED/UNAVAILABLE` for HUY-02/FIELD; `ACCEPTANCE BLOCKED` for unprovided AI facts |
+| Retention | Huy contributor reads real Report/Case/Candidate obligations and has disposable SQL coverage inside the HUY-01 API suite. | Global composite completeness cannot be claimed while Label/Defect source and repair-reference facts are unavailable; no deletion is implied. | `SOURCE COMPLETE - ACCEPTANCE BLOCKED BY MISSING CONTRIBUTORS` |
+| Reporter receipt/intake | Prior external review PASS remains valid for the reviewed Reporter scope; no intake policy was weakened. | This checkpoint's shared recovery/identity changes require a new external review. | `HISTORICAL PASS - NEW DIFF REVIEW PENDING` |
+| Events, canonical HTTP and Postman | No event was emitted; existing Postman collection/environment parse successfully. | No canonical event envelope/consumer/retry agreement or newly activated Case/Label/Candidate routes was supplied; network runner was not executed. | `NOT ACTIVATED / ACCEPTANCE NOT RUN` |
+
+### Integration source and allowlist
+
+The recovery source was inspected at Anh implementation SHA
+`7f8f7715853aa745c705c12a7c28e897ededae60` with base
+`f7a32dcfaa842e1ab6557ec19b0acb0c0c053a74`; Anh final metadata was inspected at
+`5089c3267dcdf60645ab34f61b58a79e3cbb0cf6`. Only HUY-01 dependencies were
+adopted: `UploadPersistenceService.cs`, `UploadPersistenceService.Recovery.cs`,
+`MinioUploadObjectStorage.cs`, `MultipartRecoveryWorker.cs`, the four SQL/adapter
+recovery test files and the HTTP recovery test. The only intentional source
+adaptation is replacing the ANH-02-only `Anh02ReceiptAuthority` reference with
+the HUY-owned `MultipartReceiptAuthority`; recovery tests additionally carry
+the `Package=HUY-01` trait. No ANH-02 consumer, branch merge or unrelated
+feature was imported, and no source conflict occurred.
+
+Shared/model changes made for HUY-01 are additive: `UserSessionConfiguration`,
+`20261003082408_Huy01SessionTransport`, the session issuance copy fix,
+`UploadSession` multipart fence/phase/deadline fields, and
+`20261003170000_Anh01MultipartRecovery` with `UploadMultipartSweeps`, indexes,
+and a populated-state downgrade guard. The model snapshot retains the explicit
+owned-evidence `DeleteBehavior.Restrict` metadata. `RecoveryEnabled` defaults
+to `false`; the worker is only registered when the configuration flag is true.
+
+### Fresh verification - CURRENT_VERIFIED
+
+| Command/artifact | Result |
+|---|---|
+| `dotnet build RoadGuardSystem.BusinessObjects/RoadGuardSystem.aBusinessObjects.csproj --no-restore --nologo -v q -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet build RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --no-restore --nologo -v q -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet build RoadGuardSystem.Services/RoadGuardSystem.dServices.csproj --no-restore --nologo -v q -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --nologo -v q -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --filter "Package=HUY-01" --logger "trx;LogFileName=huy01-unit-final.trx" --nologo -v q -clp:ErrorsOnly` | exit 0; executed 55, passed 55, failed 0, skipped 0; artifact `tests/RoadGuardSystem.UnitTests/TestResults/huy01-unit-final.trx` |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --filter "Package=HUY-01" --logger "trx;LogFileName=huy01-integration-final.trx" --nologo -v q -clp:ErrorsOnly` | exit 0; executed 42, passed 42, failed 0, skipped 0 on disposable SQL; artifact `tests/RoadGuardSystem.IntegrationTests/TestResults/huy01-integration-final.trx` |
+| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --filter "Package=HUY-01" --logger "trx;LogFileName=huy01-api-final.trx" --nologo -v q -clp:ErrorsOnly` | exit 0; executed 65, passed 65, failed 0, skipped 0 on disposable SQL/API host; artifact `tests/RoadGuardSystem.ApiTests/TestResults/huy01-api-final.trx` |
+| Session schema/issuance filter | exit 0; 2/2 passed; artifact `huy01-session-final.trx` |
+| Concurrent OTP filter | exit 0; 1/1 passed after additive Session migration; artifact `huy01-otp-final.trx` |
+| Multipart migration/model filter | exit 0; 1/1 passed including no pending model changes and populated downgrade guard; artifact `huy01-migration-final.trx` |
+| Earlier multipart recovery focus | exit 0; 33/33 passed (SQL/adapter/fault injection); artifact `huy01-multipart-focused-rerun2.trx` |
+| Earlier multipart HTTP focus | exit 0; 2/2 passed with disposable SQL and storage adapter; artifact `huy01-multipart-http.trx` |
+| `ConvertFrom-Json` over Postman collection/environment | exit 0; both files parse successfully; network runner `NOT RUN` |
+| `git diff --check` | exit 0; no whitespace errors |
+
+The first session issuance regression was intentionally red (1 failed: input
+`Web` persisted as `LegacyBearer`); after copying `Transport` and
+`LastActivityAt` into the transaction-local session, the focused regression was
+green. The earlier multipart schema/migration red observations and bounded
+snapshot/downgrade corrections are retained in their TRX artifacts; no assertion
+or fixture was weakened to obtain the green runs.
+
+Self-review pass 1 checked authorization/privacy, ordered locks, transaction
+boundaries, recovery fences, rollback and source/file provenance. Pass 2 checked
+migration chain/snapshot compatibility, feature-flag activation, imported blob
+provenance, contract/reader boundaries, Postman scope and HUY-02 exclusion.
+The new combined diff has not received external ChatGPT review yet (`PENDING`);
+historical Reporter P1 PASS is not reused as review of this diff.
+
+`deliveryStatus=PARTIAL`; this checkpoint is not `HUY-01 DONE`.
+
 ## 2026-10-03 closure-first CaseDefect/Label checkpoint - PARTIAL
 
 `CURRENT_VERIFIED` preflight: branch `huy-review`; local/tracking/live

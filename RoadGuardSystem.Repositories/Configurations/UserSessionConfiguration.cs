@@ -19,6 +19,9 @@ public sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSess
             table.HasCheckConstraint(
                 "CK_Sessions_RevokedAt",
                 "[RevokedAt] IS NULL OR [RevokedAt] >= [IssuedAt]");
+            table.HasCheckConstraint(
+                "CK_Sessions_Transport",
+                "[Transport] IN (0, 1, 2)");
         });
 
         builder.HasKey(session => session.Id);
@@ -43,6 +46,15 @@ public sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSess
             .IsRequired();
 
         builder.Property(session => session.RevokedAt)
+            .HasColumnType("datetimeoffset(7)");
+
+        builder.Property(session => session.Transport)
+            .HasConversion<byte>()
+            .HasColumnType("tinyint")
+            .HasDefaultValue(SessionTransport.LegacyBearer)
+            .IsRequired();
+
+        builder.Property(session => session.LastActivityAt)
             .HasColumnType("datetimeoffset(7)");
 
         builder.HasIndex(session => session.UserId)

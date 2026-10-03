@@ -165,10 +165,34 @@ Folder `ANH-02 assigned - AI reporting export retention` thêm 23 requests; gi�
 Keys tách từng command và giữ ổn định khi replay. Chọn `anh02DossierFormat=ZIP` hoặc `PDF`; PDF cần cấu hình licensed Unicode font. Sau admission, poll worker tới terminal rồi mới lấy result/content. Matching trả409 source_not_ready và training trả503 producer_unavailable khi Huy reader chưa có; không xem chúng là integration đã hoàn tất. Basis request dự kiến409 khi reference inventory chưa đủ; đừng thay inventory version bằng giá trị đoán. Hold không gia hạn download expiry30 ngày. Không có request xóa thật.
 
 Runner gửi HTTP chưa chạy; JSON, scripts và compatibility được kiểm riêng, kết quả thực nằm trong `planning/development/ANH-02-summary.md`. Những nhận định về DB/API local ở phần đầu README là lịch sử, không phải trạng thái môi trường ANH-02 hiện tại.
-Private REPORT_PHOTO multipart correction: keep the part-issuance key stable for
-replay. SQL retry after acknowledged storage success reuses the same multipart ID.
-A durable unresolved initialization claim returns503 storage-unavailable even with
-a fresh key; do not loop new keys or reset DB metadata to bypass it. Storage/process
-acknowledgement loss requires authorized reconciliation (no automatic abort/list
-adapter exists). Fault-injection/recovery/concurrent-key coverage runs in owned SQL
-fixtures, not by modifying the shared/deployed database or deleting storage objects.
+Multipart recovery (2026-10-03): giữ key/body part issuance khi retry. Trong
+CALLING/RECONCILING, 503 upload_storage_unavailable có thể tạm thời xảy ra cho
+cả key cũ/mới; retry sau RecoveryRetrySeconds, không spam key hoặc sửa claim SQL.
+Một candidate chưa có parts được adopt và ID phải durable trước URL/receipt.
+Ambiguity, legacy claim thiếu metadata, hoặc không có candidate sau deadline:
+GET session trả FAILED; part-urls trả409. Tạo session mới bằng request create với
+key mới; create key cũ vẫn replay identity cũ, không restart session terminal.
+Refresh GET/ETag trước complete; bytes/ETag của từng PUT vẫn bắt buộc.
+
+Worker chạy bằng UploadSession:RecoveryEnabled=true (Development có MinIO tự
+bật), tick5s, mỗi nhóm tối đa RecoveryBatchSize=20, retry mặc định30s, deadline120s;
+clamp tương ứng1..100,1..300,1..3600. Production cần rollout additive migration
+20261003170000_Anh01MultipartRecovery riêng trước bật worker. Không có maintenance
+HTTP endpoint. Tombstone tiếp tục exact-key sweeps để abort orphan tới muộn;
+ID authoritative của DURABLE/VERIFYING/VERIFIED bị loại khỏi abort; không xóa object
+đã complete. Scheduling table riêng giữ ETag evidence không drift. Expired
+UPLOADING chuyển FAILED/terminal, còn VERIFYING được phép hoàn tất như admission.
+
+Live acceptance: build API và `dotnet build tools/RoadGuardSystem.MultipartHarness`,
+đặt local RGM_MINIO_CONFIG trỏ tới ignored JSON minioUser/minioPassword, rồi chạy
+`python tools/Test/multipart_live_acceptance.py`. Không copy secret vào collection,
+env hoặc report. Helper kiểm exact local endpoint, task-owned MinIO label, SQL
+hostname/database và bucket duy nhất trước mutation. Nó kill/restart đúng API
+subprocess tự tạo, giữ evidence JSON không token/presigned URL. Đây là injected
+fault acceptance; không phải deployment verified. Failed harness runs có CLI
+`dotnet <MultipartHarness.dll> cleanup-owned-run <artifacts/multipart-recovery/live-RUN.json>`
+mặc định dry-run; chỉ thêm `--execute` sau đối chiếu exact run/bucket và đảm bảo
+API subprocess run đó đã dừng. RGM_RUN, RGM_STORAGE, RGM_ACCESS, RGM_SECRET nằm
+trong local environment; CLI chỉ chấp nhận failed run evidence và GUID keys ở
+bucket duy nhất của run. Nó abort multipart, không xóa objects/bucket. CLI không
+thay request retry/worker recovery cho lỗi upload thông thường.

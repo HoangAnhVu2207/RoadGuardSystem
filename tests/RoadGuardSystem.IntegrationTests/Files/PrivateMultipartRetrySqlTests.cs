@@ -32,8 +32,8 @@ public sealed class PrivateMultipartRetrySqlTests(IdentitySqlServerFixture fixtu
         var competing = IssueAsync(other, storage, actor, upload, key);
         storage.Release.TrySetResult();
         var results = await Task.WhenAll(first, competing);
-        results.Count(x => x.Status == UploadPersistenceStatus.Replayed).Should().Be(acknowledgement ? 2 : 1);
-        results.Count(x => x.Status == UploadPersistenceStatus.Success).Should().Be(acknowledgement ? 0 : 1);
+        results.Should().Contain(x => x.Status == UploadPersistenceStatus.Success);
+        results.Should().OnlyContain(x => x.Status == UploadPersistenceStatus.Success || x.Status == UploadPersistenceStatus.Replayed || x.Status == UploadPersistenceStatus.StorageUnavailable);
         fault.Fired.Should().BeTrue();
         storage.Calls.Should().Be(1);
         await using var fresh = fixture.CreateRetryingDbContext();
@@ -48,7 +48,7 @@ public sealed class PrivateMultipartRetrySqlTests(IdentitySqlServerFixture fixtu
     }
 
     [Fact]
-    public async Task LostStorageAcknowledgement_FreshContextFailsClosedWithoutAnotherInitiation_AndRechecksAuthority()
+    public async Task LostStorageAcknowledgement_FreshContextRecoversWithoutAnotherInitiation_AndRechecksAuthority()
     {
         await using var db = fixture.CreateRetryingDbContext();
         var storage = new MultipartStorage(() => { }, loseAcknowledgement: true);
@@ -56,11 +56,12 @@ public sealed class PrivateMultipartRetrySqlTests(IdentitySqlServerFixture fixtu
         var key = Guid.NewGuid().ToString();
         (await IssueAsync(db, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.StorageUnavailable);
         await using var fresh = fixture.CreateRetryingDbContext();
-        (await IssueAsync(fresh, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.StorageUnavailable);
-        (await IssueAsync(fresh, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.StorageUnavailable);
-        (await fresh.UploadSessions.AsNoTracking().SingleAsync(x => x.Id == upload)).FailureCode.Should().StartWith("multipart_initiating:");
+        await MakeDueAsync(fresh, upload);
+        (await IssueAsync(fresh, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.Success);
+        (await IssueAsync(fresh, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.Success);
+        (await fresh.UploadSessions.AsNoTracking().SingleAsync(x => x.Id == upload)).MultipartPhase.Should().Be("DURABLE");
         storage.Calls.Should().Be(1);
-        (await fresh.IdempotencyRecords.CountAsync(x => x.ActorUserId == actor && x.Operation == "UploadPartUrlsIssued")).Should().Be(0);
+        (await fresh.IdempotencyRecords.CountAsync(x => x.ActorUserId == actor && x.Operation == "UploadPartUrlsIssued")).Should().BeGreaterThan(0);
         var user = await fresh.Users.SingleAsync(x => x.Id == actor); user.Status = UserStatus.Suspended; await fresh.SaveChangesAsync();
         (await IssueAsync(fresh, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.NotFound);
         storage.Calls.Should().Be(1);
@@ -77,10 +78,11 @@ public sealed class PrivateMultipartRetrySqlTests(IdentitySqlServerFixture fixtu
         await Assert.ThrowsAsync<Microsoft.EntityFrameworkCore.Storage.RetryLimitExceededException>(() => IssueAsync(db, storage, actor, upload, key));
         storage.Calls.Should().Be(1);
         await using var fresh = fixture.CreateRetryingDbContext();
-        (await IssueAsync(fresh, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.StorageUnavailable);
+        await MakeDueAsync(fresh, upload);
+        (await IssueAsync(fresh, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.Success);
         storage.Calls.Should().Be(1);
-        (await fresh.UploadParts.CountAsync(x => x.UploadSessionId == upload)).Should().Be(0);
-        (await fresh.IdempotencyRecords.CountAsync(x => x.ActorUserId == actor && x.Operation == "UploadPartUrlsIssued")).Should().Be(0);
+        (await fresh.UploadParts.CountAsync(x => x.UploadSessionId == upload)).Should().Be(1);
+        (await fresh.IdempotencyRecords.CountAsync(x => x.ActorUserId == actor && x.Operation == "UploadPartUrlsIssued")).Should().BeGreaterThan(0);
     }
 
     [Fact]
@@ -94,6 +96,26 @@ public sealed class PrivateMultipartRetrySqlTests(IdentitySqlServerFixture fixtu
         (await IssueAsync(db, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.Success);
         fault.Fired.Should().BeTrue(); storage.Calls.Should().Be(1);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReceiptRollbackOrLostAck_AfterDurableId_ReplaysWithoutAnotherHandlerSideEffect(bool acknowledgement)
+    {
+        var fault = new MultipartCommitFault(acknowledgement, receiptOnly: true);
+        await using var db = fixture.CreateRetryingDbContext(fault);
+        var storage = new MultipartStorage(() => fault.Armed = true);
+        var (actor, upload) = await SeedAsync(db, storage); var key = Guid.NewGuid().ToString();
+        (await IssueAsync(db, storage, actor, upload, key)).Status.Should().Be(acknowledgement ? UploadPersistenceStatus.Replayed : UploadPersistenceStatus.Success);
+        await using var fresh = fixture.CreateRetryingDbContext();
+        (await IssueAsync(fresh, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.Replayed);
+        fault.Fired.Should().BeTrue(); storage.Calls.Should().Be(1);
+        (await fresh.IdempotencyRecords.CountAsync(r => r.ActorUserId == actor && r.Operation == "UploadPartUrlsIssued")).Should().Be(1);
+        (await fresh.AuditLogs.CountAsync(a => a.ActorUserId == actor && a.EventType == "upload_session_created")).Should().Be(1);
+    }
+
+    private static Task<int> MakeDueAsync(RoadGuardDbContext db, Guid upload)
+        => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET MultipartNextCheckAt={DateTimeOffset.UtcNow.AddMinutes(-1)} WHERE Id={upload}");
 
     private async Task<(Guid Actor, Guid Upload)> SeedAsync(RoadGuardDbContext db, IUploadObjectStorage storage)
     {
@@ -113,20 +135,28 @@ public sealed class PrivateMultipartRetrySqlTests(IdentitySqlServerFixture fixtu
         => new UploadPersistenceService(db, new IdempotencyOperationService(db), storage).GetPartUrlsAsync(actor, null, upload, [1], key,
             new string('c', 64), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(15));
 
-    private sealed class MultipartCommitFault(bool acknowledgement, int failures = 1) : DbTransactionInterceptor
+    private sealed class MultipartCommitFault(bool acknowledgement, int failures = 1, bool receiptOnly = false) : DbTransactionInterceptor
     {
         public bool Armed { get; set; }
         public bool Fired { get; private set; }
         private int _remaining = failures;
-        private void Fault() { if (Armed && _remaining-- > 0) { Fired = true; throw new TestTransientException("Synthetic multipart SQL commit fault"); } }
+        private void Fault(DbContext? context)
+        {
+            if (receiptOnly && (context is not RoadGuardDbContext db || !db.IdempotencyRecords.Local.Any(r => r.Operation == "UploadPartUrlsIssued"))) return;
+            if (Armed && _remaining-- > 0) { Fired = true; throw new TestTransientException("Synthetic multipart SQL commit fault"); }
+        }
         public override ValueTask<InterceptionResult> TransactionCommittingAsync(DbTransaction transaction, TransactionEventData eventData,
             InterceptionResult result, CancellationToken cancellationToken = default)
-        { if (!acknowledgement) Fault(); return ValueTask.FromResult(result); }
+        { if (!acknowledgement) Fault(eventData.Context); return ValueTask.FromResult(result); }
         public override Task TransactionCommittedAsync(DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken = default)
-        { if (acknowledgement) Fault(); return Task.CompletedTask; }
+        { if (acknowledgement) Fault(eventData.Context); return Task.CompletedTask; }
     }
-    private sealed class MultipartStorage(Action initiated, bool loseAcknowledgement = false) : IUploadObjectStorage
+    private sealed class MultipartStorage(Action initiated, bool loseAcknowledgement = false) : IUploadObjectStorage, IMultipartRecoveryStorage
     {
+        public Task<IReadOnlyList<string>> ListMultipartIdsAsync(string exactObjectKey, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>(Calls == 0 ? [] : ["multipart-1"]);
+        public Task<bool> HasPartsAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task AbortMultipartAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public int Calls { get; private set; }
         public bool Pause { get; init; }
         public TaskCompletionSource Initiated { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);

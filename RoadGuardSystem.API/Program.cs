@@ -31,6 +31,10 @@ if (builder.Environment.IsDevelopment() &&
     builder.Services.AddHostedService<UploadVerificationWorker>();
 }
 
+if (builder.Configuration.GetValue("UploadSession:RecoveryEnabled", false) ||
+    builder.Environment.IsDevelopment() && !string.IsNullOrWhiteSpace(builder.Configuration["MinioStorage:Endpoint"]))
+    builder.Services.AddHostedService<MultipartRecoveryWorker>();
+
 // Explicit opt-in avoids polling un-migrated deployments; no migration is applied here.
 if (builder.Configuration.GetValue("Anh02:WorkersEnabled", false))
 {

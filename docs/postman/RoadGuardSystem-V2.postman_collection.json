@@ -4170,7 +4170,7 @@
         {
           "name": "POST /uploads/{uploadId}/part-urls - success",
           "request": {
-            "description": "Purpose: issue a signed MinIO PUT URL for an issued part. Role: upload owner or authorized project actor. Setup: create the session first. Expected: 200 with one short-lived URL; use that URL outside the collection to PUT the exact part bytes and save its returned ETag. Signed URLs are intentionally not stored as variables or examples.",
+            "description": "Purpose: issue a signed MinIO PUT URL for an issued part. Role: upload owner or authorized project actor. Setup: create the session first. Expected: 200 with one short-lived URL; use that URL outside the collection to PUT the exact part bytes and save its returned ETag. Signed URLs are intentionally not stored as variables or examples. Recovery: retry the same key/body after transient 503; unique empty multipart may be adopted. FAILED/409 requires a new create key/session, never resetting SQL claim. Refresh GET/ETag before complete; see README for worker and isolated live fault harness.",
             "method": "POST",
             "header": [
               {
@@ -6493,7 +6493,7 @@
                 "part-urls"
               ]
             },
-            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key.",
+            "description": "Private Reporter producer only. Use a distinct stable command key per create/parts/complete; reuse the same key and payload for replay. Pending/failed content returns 409 source_not_ready; other owner/recipient projection returns 404. Publication rows require actual Huy composition; no business command request is activated here. Set reporterPhotoBytes and reporterPhotoSha256 from the actual selected JPEG/PNG, and upload its bytes to the signed PUT URL. Complete replay must retain its original If-Match as well as body/key. Multipart recovery: same/new part key can temporarily return 503; retry stable key/body. Legacy or ambiguous outcome is FAILED/409; use a fresh create key for a new session. No resurrection or guessed upload ID.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"partNumbers\": [\n    1\n  ]\n}",

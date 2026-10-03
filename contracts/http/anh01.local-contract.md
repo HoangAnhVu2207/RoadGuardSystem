@@ -228,3 +228,37 @@ no migration or invented storage ID. There is no automatic reconciliation/abort
 capability in IUploadObjectStorage. An unresolved session requires separately
 authorized storage reconciliation; retrying keys is not a recovery mechanism.
 No bucket/object deletion or orphan-cleanup policy is introduced.
+
+
+### Multipart recovery adoption — 2026-10-03
+
+Supersedes the unreconciled-claim availability limitation above. Both project and
+private upload issuance use a durable single-initiation attempt identified by
+session ID + immutable object key and a generation fence. States CLAIMED,
+CALLING, RECONCILING, DURABLE, TERMINAL distinguish pre-call/unknown/adopted/terminal.
+An acknowledged ID not yet persisted is only local knowledge; after crash SQL
+CALLING remains uncertain and is reconciled against real storage. All external
+I/O is outside SQL retry transactions and locks. No exactly-once external promise.
+
+Same-key replay/conflict checks current SQL authority first; existing receipt never
+invokes initiation. Protected URLs are withheld if authority/expiry/terminal state
+changes during presigning. Unique zero-part candidate may be adopted; multiple or
+nonempty candidates, legacy marker without attempt metadata, or zero candidates
+past deadline require controlled FAILED/multipart_restart_required. Pending
+recovery returns503 upload_storage_unavailable; FAILED issuance returns409 through
+existing mapping, GET reveals actual FAILED. Restart uses existing create with a
+new key and logical session/file. Old create/part receipts remain immutable and do
+not resurrect terminal work. Cancellation propagates; independent retry/worker
+uses durable state. Normal admission/complete/verify/download shapes unchanged.
+
+Background worker is explicitly enabled outside configured Development, bounded
+batch/retry/deadline, and independently sweeps terminal tombstones for late orphans.
+DURABLE binding never changes; separate UploadMultipartSweeps schedule exact-key
+cleanup of non-authoritative IDs without changing file/session ETag. Expired
+UPLOADING becomes terminal and its outstanding multipart is aborted; already
+VERIFYING/VERIFIED is preserved. List pagination uses both key/upload-ID markers;
+NoSuchUpload abort is successful, other storage failures remain retryable503.
+Cleanup never deletes complete objects or prefix-neighbor uploads. Existing upload
+adapters retain source compatibility; recovery is an additive optional capability,
+implemented by production MinioUploadObjectStorage. Huy/identity/processing seams
+and public route/DTO identifiers are unchanged.

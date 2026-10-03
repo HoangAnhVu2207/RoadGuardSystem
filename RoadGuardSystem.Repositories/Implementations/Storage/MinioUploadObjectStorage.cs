@@ -9,7 +9,7 @@ using RoadGuardSystem.Repositories.Options;
 
 namespace RoadGuardSystem.Repositories.Storage;
 
-public sealed class MinioUploadObjectStorage : IUploadObjectStorage
+public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IMultipartRecoveryStorage
 {
     private const int PrefixLength = 512;
     private const int BufferSize = 81920;
@@ -24,7 +24,7 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage
     public MinioUploadObjectStorage(IOptions<MinioStorageOptions> options, Func<IAmazonS3> clientFactory)
         : this(options) => _clientFactory = clientFactory;
 
-    private IAmazonS3 CreateClient()
+    private IAmazonS3 CreateClient(bool initiation = false)
     {
         if (_clientFactory is not null) return _clientFactory();
         ValidateOptions(_options);
@@ -34,7 +34,8 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage
             {
                 ServiceURL = NormalizeEndpoint(_options.Endpoint, _options.UseSsl),
                 ForcePathStyle = true,
-                AuthenticationRegion = "us-east-1"
+                AuthenticationRegion = "us-east-1",
+                MaxErrorRetry = initiation ? 0 : 2
             });
     }
 
@@ -42,7 +43,7 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage
     {
         try
         {
-            using var client = CreateClient();
+            using var client = CreateClient(initiation: true);
             var response = await client.InitiateMultipartUploadAsync(new InitiateMultipartUploadRequest
             {
                 BucketName = _options.BucketName,
@@ -51,10 +52,71 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage
             }, cancellationToken);
             return response.UploadId;
         }
-        catch (AmazonS3Exception exception)
+        catch (Exception exception) when (exception is AmazonS3Exception or HttpRequestException or IOException)
         {
             throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Object storage is unavailable.", exception);
         }
+    }
+
+    public async Task<IReadOnlyList<string>> ListMultipartIdsAsync(string exactObjectKey, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var client = CreateClient();
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            string? keyMarker = null, idMarker = null;
+            do
+            {
+                var page = await client.ListMultipartUploadsAsync(new ListMultipartUploadsRequest
+                {
+                    BucketName = _options.BucketName, Prefix = exactObjectKey, MaxUploads = 1000,
+                    KeyMarker = keyMarker, UploadIdMarker = idMarker
+                }, cancellationToken);
+                foreach (var upload in page.MultipartUploads ?? [])
+                    if (string.Equals(upload.Key, exactObjectKey, StringComparison.Ordinal)) ids.Add(upload.UploadId);
+                if (page.IsTruncated != true) break;
+                if (page.NextKeyMarker == keyMarker && page.NextUploadIdMarker == idMarker)
+                    throw new IOException("Multipart pagination did not advance.");
+                keyMarker = page.NextKeyMarker; idMarker = page.NextUploadIdMarker;
+            } while (true);
+            return ids.OrderBy(x => x, StringComparer.Ordinal).ToArray();
+        }
+        catch (Exception e) when (e is AmazonS3Exception or HttpRequestException or IOException)
+        { throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Multipart inventory unavailable.", e); }
+    }
+
+    public async Task<bool> HasPartsAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var client = CreateClient();
+            string? marker = null;
+            do
+            {
+                var page = await client.ListPartsAsync(new ListPartsRequest
+                { BucketName = _options.BucketName, Key = objectKey, UploadId = uploadId, PartNumberMarker = marker, MaxParts = 1000 }, cancellationToken);
+                if (page.Parts?.Count > 0) return true;
+                if (page.IsTruncated != true) return false;
+                var next = page.NextPartNumberMarker?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (next is null || next == marker) throw new IOException("Part pagination did not advance.");
+                marker = next;
+            } while (true);
+        }
+        catch (Exception e) when (e is AmazonS3Exception or HttpRequestException or IOException)
+        { throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Multipart parts unavailable.", e); }
+    }
+
+    public async Task AbortMultipartAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var client = CreateClient();
+            await client.AbortMultipartUploadAsync(new AbortMultipartUploadRequest
+            { BucketName = _options.BucketName, Key = objectKey, UploadId = uploadId }, cancellationToken);
+        }
+        catch (AmazonS3Exception e) when (e.ErrorCode == "NoSuchUpload") { }
+        catch (Exception e) when (e is AmazonS3Exception or HttpRequestException or IOException)
+        { throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Multipart abort unavailable.", e); }
     }
 
     public async Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(

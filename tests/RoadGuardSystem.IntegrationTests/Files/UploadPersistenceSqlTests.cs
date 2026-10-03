@@ -131,8 +131,16 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
         var project = await AddProjectAsync(context);
         var storage = new DeterministicUploadStorage(new(8589934592L, new string('a', 64), "video/mp4"));
         var repository = new UploadPersistenceService(context, new IdempotencyOperationService(context), storage);
+        var road = RoadSection.Create(Guid.NewGuid(), project.Id, "SYNTHETIC-METADATA");
+        var task = RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest.Create(Guid.NewGuid(), project.Id, road.Id, null, user.Id,
+            SurveyType.Original, SurveyRequestStatus.Accepted, DateTimeOffset.UtcNow);
+        context.RoadSections.Add(road); context.SurveyRequests.Add(task);
+        context.SurveyAssignments.Add(RoadGuardSystem.BusinessObjects.Surveys.SurveyAssignment.Create(Guid.NewGuid(), task.Id, user.Id, user.Id,
+            DateTimeOffset.UtcNow, null, null, null, null, null));
+        await context.SaveChangesAsync();
         var request = new UploadCreatePersistenceRequest(user.Id, project.Id, null, "SURVEY_VIDEO", "large.mp4", "video/mp4",
             8589934592L, new string('a', 64), 8388608, DateTimeOffset.UtcNow.AddHours(24), Guid.NewGuid().ToString(), new string('b', 64), null);
+        request = request with { TargetId = task.Id };
         var created = await repository.CreateAsync(request);
         created.Status.Should().Be(UploadPersistenceStatus.Success);
         var file = await context.Files.AsNoTracking().SingleAsync(f => f.Id == created.Session!.FileId);
@@ -145,7 +153,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
             repository.GetPartUrlsAsync(user.Id, project.Id, created.Session!.Id, [1, 1024], key, new string('c', 64), now, now.AddMinutes(15)),
             contenderRepository.GetPartUrlsAsync(user.Id, project.Id, created.Session.Id, [1, 1024], key, new string('c', 64), now, now.AddMinutes(15)));
         initialized.Count(result => result.Status == UploadPersistenceStatus.Success).Should().Be(1);
-        initialized.Count(result => result.Status == UploadPersistenceStatus.Replayed).Should().Be(1);
+        initialized.Should().OnlyContain(result => result.Status == UploadPersistenceStatus.Success || result.Status == UploadPersistenceStatus.Replayed || result.Status == UploadPersistenceStatus.StorageUnavailable);
         var first = initialized.Single(result => result.Status == UploadPersistenceStatus.Success);
         first.Status.Should().Be(UploadPersistenceStatus.Success);
         await using var resumed = _fixture.CreateDbContext();
@@ -192,6 +200,9 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
             CreatedAt = DateTimeOffset.UtcNow
         };
         context.Projects.Add(project);
+        var user = await context.Users.OrderByDescending(u => u.CreatedAt).FirstAsync();
+        context.ProjectMembers.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = user.Id,
+            RoleCode = user.RoleCode, Status = ProjectMemberStatus.Active, ValidFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) });
         await context.SaveChangesAsync();
         return project;
     }

@@ -2,6 +2,7 @@ namespace RoadGuardSystem.Repositories.Files;
 
 public interface IUploadRepository
 {
+    Task RecoverMultipartsAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     Task<bool> IsCurrentSurveyOperatorAsync(Guid actorUserId, Guid projectId, Guid taskId, bool forUpload, CancellationToken cancellationToken = default);
     Task<UploadMutationPersistenceResult> CreateAsync(UploadCreatePersistenceRequest request, CancellationToken cancellationToken = default);
     Task<UploadSessionPersistenceView?> GetSessionAsync(Guid uploadId, CancellationToken cancellationToken = default);

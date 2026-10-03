@@ -24,6 +24,34 @@ blob at that SHA (`b8c89225f8c3d25304875e7cdf1b3f506a1d7a60`).
 | Retention contribution | §§8-10 | PARTIAL: Report/Case/Candidate inventory contributor is tested | Label/Defect reference completion and actual consumer registration | Label and Defect effects | Fail-closed incomplete references and current/historical obligation SQL | Huy |
 | Events/canonical routes/Postman | §§8-10 | OPEN for newly activated flows; no event emitted | Adopt only agreed envelope/consumer; align actual HTTP/contract/Postman | Event agreement is external; route wiring is Huy-owned | Network smoke and durable outbox only for agreed events | Huy/owner |
 
+### 2026-10-03 Candidate/Defect dependency checkpoint
+
+`CURRENT_VERIFIED` at local/tracking/live base
+`b6be2dc8d29bfe0b3720a1793bf515072ecc75c4`: the current writer
+activated the existing Reporter/Case/Candidate services in the production
+composition root, imported the Defect rowversion dependency semantics from
+Anh final `5089c3267dcdf60645ab34f61b58a79e3cbb0cf6`, and added an
+additive `DefectSourceLinks` relation. The migration preserves legacy Defect
+rows and refuses a populated source-link downgrade. REPORT `KEEP_NEW` creates
+one Open Defect and typed source link; `LINK_EXISTING` adds only a typed link
+to a current same-project Defect. Both persist decision/head/audit/receipt in
+the command transaction, with no inspection task or fake geometry. Accepted
+correction remains fail-closed until downstream-use policy exists. AI/FIELD
+accepted effects and matching/Defect HTTP are still OPEN, not inferred from
+this REPORT acceptance.
+
+Fresh affected acceptance: `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter "FullyQualifiedName~Huy01ReporterReportsApiTests" --logger "trx;LogFileName=huy01-reporter-lifecycle-candidate-current.trx" --nologo -v q -clp:ErrorsOnly`
+exited 0, 14 executed/14 passed/0 failed/0 skipped on disposable SQL/HTTP.
+The candidate probe covers same-key concurrency/replay, changed-head
+correction, KEEP_NEW and LINK_EXISTING effects, stale target, accepted
+correction denial, precommit rollback and postcommit receipt recovery.
+`dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter "FullyQualifiedName~Huy01DefectConcurrencySchemaTests" --logger "trx;LogFileName=huy01-defect-schema-current.trx" --nologo -v q -clp:ErrorsOnly`
+exited 0, 2/2/0/0 for fresh and populated-baseline migrations and stale
+rowversion update. `dotnet ef migrations has-pending-model-changes` exited 0
+with no pending changes using design-time configuration, not a deployed DB.
+These counts do not close AI, matching, Label, CaseDefect consumer, or
+external review gates.
+
 FIELD/DRONE inspection-task creation, HUY-02 downstream, automatic merge/route,
 external AI provider and deployment are not substitutes for these HUY-01
 gates. Unknown metrics and absent authoritative references remain unavailable,

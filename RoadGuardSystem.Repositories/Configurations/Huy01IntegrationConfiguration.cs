@@ -234,6 +234,31 @@ public sealed class HuySourceHeadConfiguration : IEntityTypeConfiguration<HuyCan
     }
 }
 
+public sealed class HuyDefectSourceLinkConfiguration : IEntityTypeConfiguration<HuyDefectSourceLink>
+{
+    public void Configure(EntityTypeBuilder<HuyDefectSourceLink> builder)
+    {
+        builder.ToTable("DefectSourceLinks", table => table.HasCheckConstraint("CK_DefectSourceLinks_TypedSource",
+            "([SourceKind]=1 AND [ReportSourceId]=[SourceId] AND [AIDetectionSourceId] IS NULL) OR " +
+            "([SourceKind]=2 AND [AIDetectionSourceId]=[SourceId] AND [ReportSourceId] IS NULL)"));
+        builder.HasKey(link => link.Id);
+        builder.Property(link => link.Id).ValueGeneratedNever();
+        builder.Property(link => link.RowVersion).IsRowVersion();
+        builder.HasIndex(link => new { link.SourceKind, link.SourceId })
+            .IsUnique().HasFilter("[EndedAt] IS NULL");
+        builder.HasIndex(link => link.DecisionId).IsUnique();
+        builder.HasIndex(link => link.DefectId);
+        builder.HasOne<Report>().WithMany().HasForeignKey(link => link.ReportSourceId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<AIDetection>().WithMany().HasForeignKey(link => link.AIDetectionSourceId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Defect>().WithMany().HasForeignKey(link => link.DefectId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Project>().WithMany().HasForeignKey(link => link.ProjectId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<CandidateDecision>().WithMany()
+            .HasForeignKey(link => new { link.DecisionId, link.SourceKind, link.SourceId, link.ProjectId })
+            .HasPrincipalKey("Id", "SourceKind", "SourceId", nameof(CandidateDecision.ProjectId))
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public sealed class HuyConclusionDefectConfiguration : IEntityTypeConfiguration<HuyConclusionDefect>
 {
     public void Configure(EntityTypeBuilder<HuyConclusionDefect> builder)

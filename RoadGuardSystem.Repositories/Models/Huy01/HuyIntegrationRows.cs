@@ -39,6 +39,21 @@ public sealed class HuyCandidateSourceHead
     public byte[] RowVersion { get; set; } = [];
 }
 
+public sealed class HuyDefectSourceLink
+{
+    public Guid Id { get; set; }
+    public CandidateSourceKind SourceKind { get; set; }
+    public Guid SourceId { get; set; }
+    public Guid? ReportSourceId { get; set; }
+    public Guid? AIDetectionSourceId { get; set; }
+    public Guid ProjectId { get; set; }
+    public Guid DefectId { get; set; }
+    public Guid DecisionId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? EndedAt { get; set; }
+    public byte[] RowVersion { get; set; } = [];
+}
+
 public sealed class HuyConclusionDefect
 {
     public Guid ConclusionId { get; set; }

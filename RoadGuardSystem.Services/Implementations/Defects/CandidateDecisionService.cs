@@ -42,6 +42,7 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
             if (decision == CandidateDecisionKind.Reject && (request.TargetDefectId is not null || request.TargetVersion is not null || request.Classification is not null) ||
                 decision == CandidateDecisionKind.LinkExisting && (request.TargetDefectId is null || !hasVersion || request.Classification is not null) ||
                 decision == CandidateDecisionKind.KeepNew && (request.TargetDefectId is not null || request.TargetVersion is not null || request.Classification is null)) return Invalid("decision");
+            if (decision == CandidateDecisionKind.LinkExisting && !RowVersion(request.TargetVersion!)) return Invalid("targetVersion");
             if ((request.SupersedesDecisionId is null) != (request.PreviousDecisionVersion is null)) return Invalid("previousDecisionVersion");
             if (request.PreviousDecisionVersion is not null && !RowVersion(request.PreviousDecisionVersion)) return Invalid("previousDecisionVersion");
             if (request.Classification is { } classification && (classification.RoadSectionVersionId == Guid.Empty || classification.SegmentId == Guid.Empty ||
@@ -49,7 +50,8 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
             request = request with { Reason = request.Reason.Trim(), SourceVersion = request.SourceVersion.Trim(), GeometryVersion = request.GeometryVersion.Trim() };
             var initial = await producer.ResolveCandidateSourceAsync(actor, role, projectId, kind, request.SourceId, cancellationToken: ct);
             if (initial.Status != AnhHuyProducerStatus.Ready) return Failure(initial.Status);
-            if (decision != CandidateDecisionKind.Reject) return new(409, "source_not_ready"); // target concurrency/source effects await Anh schema delta
+            if (decision != CandidateDecisionKind.Reject && kind != CandidateSourceKind.Report)
+                return new(409, "source_not_ready");
             var fingerprint = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { projectId, request }))).ToLowerInvariant();
             var normalized = request;
             async Task<ResolvedCandidateSourceFacts> Guard(CancellationToken token)
@@ -69,7 +71,35 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
                         normalized.SourceVersion, normalized.GeometryVersion, normalized.PreviousDecisionVersion, token);
                     if (fresh.Status != AnhHuyProducerStatus.Ready) Throw(fresh.Status);
                     var correction = normalized.SupersedesDecisionId is Guid supersedes ? CandidateCorrection.Create(supersedes, normalized.PreviousDecisionVersion!) : null;
-                    var write = await repository.SaveRejectAsync(actor, fresh.Facts!.DomainFacts, correction, normalized.Reason!, correlation, token);
+                    CandidateDecisionResponseDto write;
+                    if (decision == CandidateDecisionKind.Reject)
+                        write = await repository.SaveRejectAsync(actor, fresh.Facts!.DomainFacts,
+                            correction, normalized.Reason!, correlation, token);
+                    else
+                    {
+                        var source = fresh.Facts!;
+                        CandidateClassification? classification = null;
+                        if (decision == CandidateDecisionKind.KeepNew)
+                        {
+                            var input = normalized.Classification!;
+                            if (input.RoadSectionVersionId != source.Geometry.RouteVersionId ||
+                                input.SegmentId is { } segment && !source.Geometry.Segments.Any(item => item.Id == segment))
+                                throw new CaseWorkflowException(409, "candidate_stale");
+                            classification = CandidateClassification.Create(input.RoadSectionVersionId,
+                                input.DefectTypeCode!, input.CauseCategoryCode,
+                                input.Severity switch
+                                {
+                                    "LOW" => DefectSeverity.Low,
+                                    "MEDIUM" => DefectSeverity.Medium,
+                                    "HIGH" => DefectSeverity.High,
+                                    "CRITICAL" => DefectSeverity.Critical,
+                                    _ => DefectSeverity.Unknown
+                                }, input.SegmentId);
+                        }
+                        write = await repository.SaveAcceptedAsync(actor, source.DomainFacts, decision,
+                            classification, normalized.TargetDefectId, normalized.TargetVersion,
+                            correction, normalized.Reason!, correlation, token);
+                    }
                     return (write.Id, JsonSerializer.Serialize(write));
                 }, exception => exception is CaseWorkflowException { Code: "candidate_stale" or "concurrency_conflict" });
             return execution.Status == IdempotencyOperationStatus.Conflict ? new(409, "idempotency_key_reused")

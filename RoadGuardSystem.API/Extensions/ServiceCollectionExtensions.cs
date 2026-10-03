@@ -105,7 +105,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProcessingV2Service, ProcessingV2Service>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<IReporterEvidenceService, ReporterEvidenceService>();
-        services.AddHuy01ReporterIntakeServices();
+        services.AddHuy01ReporterServices();
         services.AddScoped<IAnhHuyProducerService, AnhHuyProducerService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddHostedService<ValidationRunWorker>();

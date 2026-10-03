@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Candidates;
+using RoadGuardSystem.BusinessObjects.Defects;
 using RoadGuardSystem.BusinessObjects.Reports;
 using RoadGuardSystem.DTOs.Defects;
 using RoadGuardSystem.Repositories.Cases;
@@ -54,6 +55,78 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         return Project(decision, db.Entry(decision).Property<byte[]>("RowVersion").CurrentValue!);
     }
 
+    public async Task<CandidateDecisionResponseDto> SaveAcceptedAsync(Guid actor, CandidateSourceFacts facts,
+        CandidateDecisionKind kind, CandidateClassification? classification, Guid? targetDefectId,
+        string? targetVersion, CandidateCorrection? correction, string reason, Guid? correlation, CancellationToken ct)
+    {
+        if (facts.Source.Kind != CandidateSourceKind.Report || kind is not (CandidateDecisionKind.KeepNew or CandidateDecisionKind.LinkExisting))
+            throw new CaseWorkflowException(409, "source_not_ready");
+        var head = await db.Set<HuyCandidateSourceHead>().SingleOrDefaultAsync(
+            item => item.SourceKind == facts.Source.Kind && item.SourceId == facts.Source.Id, ct);
+        if (head is not null && (facts.ActiveDisposition is null || head.DecisionId != facts.ActiveDisposition.DecisionId))
+            throw new CaseWorkflowException(412, "concurrency_conflict");
+        if (head is not null && await db.SourceDecisions.AnyAsync(
+                item => item.Id == head.DecisionId && item.Decision != CandidateDecisionKind.Reject, ct))
+            throw new CaseWorkflowException(409, "invalid_state_transition");
+
+        var now = DateTimeOffset.UtcNow;
+        Guid defectId;
+        Defect? created = null;
+        if (kind == CandidateDecisionKind.KeepNew)
+        {
+            if (classification is null ||
+                !await db.DefectTypes.AnyAsync(item => item.Code == classification.DefectTypeCode && item.IsActive, ct) ||
+                classification.CauseCategoryCode is { } cause &&
+                !await db.CauseCategories.AnyAsync(item => item.Code == cause && item.IsActive, ct))
+                throw new CaseWorkflowException(400, "validation_error");
+            defectId = Guid.NewGuid();
+            created = Defect.CreateFromReport(defectId, facts, classification, null, now);
+        }
+        else
+        {
+            if (targetDefectId is not Guid target || target == Guid.Empty || string.IsNullOrWhiteSpace(targetVersion))
+                throw new CaseWorkflowException(400, "validation_error");
+            var persisted = await db.Defects.FromSqlInterpolated(
+                    $"SELECT * FROM [Defects] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={target}")
+                .AsNoTracking()
+                .Select(item => new { item.Id, item.ProjectId, Version = EF.Property<byte[]>(item, "RowVersion") })
+                .SingleOrDefaultAsync(ct);
+            if (persisted is null || persisted.ProjectId != facts.ProjectId)
+                throw new CaseWorkflowException(404, "not_found");
+            if (Convert.ToBase64String(persisted.Version) != targetVersion)
+                throw new CaseWorkflowException(412, "concurrency_conflict");
+            defectId = target;
+        }
+
+        CandidateDecision decision;
+        try
+        {
+            decision = CandidateDecision.Create(Guid.NewGuid(), facts, kind, classification,
+                targetDefectId ?? Guid.Empty, targetVersion, correction, actor, reason, now);
+        }
+        catch (InvalidOperationException) { throw new CaseWorkflowException(412, "concurrency_conflict"); }
+        db.SourceDecisions.Add(decision);
+        db.Entry(decision).Property<CandidateSourceKind>("SourceKind").CurrentValue = facts.Source.Kind;
+        db.Entry(decision).Property<Guid>("SourceId").CurrentValue = facts.Source.Id;
+        db.Entry(decision).Property<Guid?>("ReportSourceId").CurrentValue = facts.Source.Id;
+        if (created is not null) db.Defects.Add(created);
+        db.Set<HuyDefectSourceLink>().Add(new()
+        {
+            Id = Guid.NewGuid(), SourceKind = facts.Source.Kind, SourceId = facts.Source.Id,
+            ReportSourceId = facts.Source.Id, ProjectId = facts.ProjectId, DefectId = defectId,
+            DecisionId = decision.Id, CreatedAt = now
+        });
+        if (head is null)
+            db.Set<HuyCandidateSourceHead>().Add(new() { SourceKind = facts.Source.Kind,
+                SourceId = facts.Source.Id, ProjectId = facts.ProjectId, DecisionId = decision.Id });
+        else head.DecisionId = decision.Id;
+        db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, now, "candidate_decided", "CandidateDecision", decision.Id,
+            null, JsonSerializer.Serialize(new { decisionId = decision.Id, sourceId = facts.Source.Id }), reason,
+            "huy01.candidate", correlation, ["decisionId", "sourceId"]));
+        await db.SaveChangesAsync(ct);
+        return Project(decision, db.Entry(decision).Property<byte[]>("RowVersion").CurrentValue!, defectId);
+    }
+
     public Task<CandidateDecisionResponseDto?> ReadAsync(Guid projectId, Guid decisionId, Func<CancellationToken, Task> guard, CancellationToken ct)
         => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -61,11 +134,14 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
             await guard(ct);
             var row = await db.SourceDecisions.AsNoTracking().Where(d => d.Id == decisionId && d.ProjectId == projectId)
                 .Select(d => new { Decision = d, Version = EF.Property<byte[]>(d, "RowVersion") }).SingleOrDefaultAsync(ct);
+            var linkedDefect = row is null ? null : await db.Set<HuyDefectSourceLink>().AsNoTracking()
+                .Where(link => link.DecisionId == row.Decision.Id).Select(link => (Guid?)link.DefectId)
+                .SingleOrDefaultAsync(ct);
             await tx.CommitAsync(ct);
-            return row is null ? null : Project(row.Decision, row.Version);
+            return row is null ? null : Project(row.Decision, row.Version, linkedDefect);
         });
-    private static CandidateDecisionResponseDto Project(CandidateDecision d, byte[] version)
+    private static CandidateDecisionResponseDto Project(CandidateDecision d, byte[] version, Guid? defectId = null)
         => new(d.Id, d.Source.Kind == CandidateSourceKind.Report ? "REPORT" : "AI_DETECTION", d.Source.Id,
             d.Decision == CandidateDecisionKind.Reject ? "REJECT" : d.Decision == CandidateDecisionKind.KeepNew ? "KEEP_NEW" : "LINK_EXISTING",
-            d.TargetDefectId, Convert.ToBase64String(version), d.SupersedesDecisionId);
+            defectId ?? d.TargetDefectId, Convert.ToBase64String(version), d.SupersedesDecisionId);
 }

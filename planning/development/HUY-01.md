@@ -1,5 +1,85 @@
 # HUY-01 — Identity transport → Reporter/case → PM candidate/label
 
+## 2026-10-03 mandatory Label / Session / CaseDefectRead checkpoint - PARTIAL
+
+`CURRENT_VERIFIED` preflight: `huy-review` started at local/tracking/live
+`67fb0699d269878be36a0433911f3a3fc017a7e0`; worktree was clean and no
+continuation was displaced. The exact Anh source handoff was inspected by
+fetching `origin/anh-review` at `f7a32dc...`; final handoff docs were inspected
+at `47c9a539549e5fbf839ea4bec7da047baaeaecb2`. No Anh branch was merged and no
+shared migration, DbContext, DI, Postman or ANH-02 consumer source was imported.
+The only handoff boundary brought into this Huy checkpoint is the additive
+`Anh02Contracts.cs` / reporting DTO shape required by `CaseDefectRead`; its
+runtime binding remains disabled.
+
+### Mandatory slice
+
+- **Training Label:** `TrainingLabel` now exposes explicit current revision
+  number/id and a row-version carrier; `TrainingLabelRevision` persists the
+  immutable file-version alongside source/version, and `Materialize` sorts and
+  validates a contiguous revision history before establishing the current head.
+  Existing PM-only review, terminal decision and new-PENDING eligibility rules
+  are preserved. This is source/domain verified only; no TrainingLabels schema
+  or approved-label SQL reader exists.
+- **Session:** `UserSession` now has typed `SessionTransport` values
+  `LegacyBearer`, `Web`, `Android`, nullable `LastActivityAt`, Web idle expiry
+  (30 minutes, `now >= deadline`) and a non-reviving `Touch` operation. Absolute
+  `ExpiresAt` is never extended. Existing legacy sessions default to
+  `LegacyBearer`. Because convention mapping sees both new members, this is
+  `SOURCE READY / SCHEMA PENDING`; no startup or SQL acceptance was run.
+- **CaseDefectRead:** `CaseDefectReadReader` uses the caller-scoped DbContext,
+  rechecks current actor/role/project membership, reads active case/report links,
+  current case status/conclusion/publication references and project Defects,
+  and computes a stable snapshot hash. Missing source/version/geometry/evidence
+  authority is returned explicitly in `MissingReasons`; it is not converted to
+  an empty or complete dossier. The reader is not production-registered.
+
+### Changed files and ownership
+
+Huy-owned source/tests: `RoadGuardSystem.BusinessObjects/Labels/*`,
+`RoadGuardSystem.BusinessObjects/Identity/SessionTransport.cs`,
+`UserSession.cs`, `RoadGuardSystem.Services/Implementations/Integration/CaseDefectReadReader.cs`,
+and focused unit tests. The exact additive boundary files are
+`RoadGuardSystem.Services/Interfaces/Integration/Anh02Contracts.cs` and
+`RoadGuardSystem.DTOs/Reporting/{ReportingDtos,CaseDefectReadDtos}.cs`.
+No DbContext/configuration/migration/snapshot/shared DI/canonical HTTP consumer
+was edited. `docs/superpowers/plans/2026-10-03-huy01-label-session-casedefect.md`
+is the local implementation plan.
+
+### EF/model impact and Anh integration delta
+
+`TrainingLabel` remains unmapped in the current model, so its new members are
+source-only. `UserSession.Transport` and `LastActivityAt` are public mapped
+members discovered by EF convention: add `Sessions.Transport` with an explicit
+legacy backfill, nullable `Sessions.LastActivityAt`, transport check constraint,
+and compatible row-version/update semantics in an additive migration. Anh owns
+that migration, model snapshot and shared mapping. Before binding the reader,
+Anh must provide persisted Defect source identity/version, rowversion, geometry
+route/segment/version facts, current source/disposition links, evidence checksum/
+media/version and recipient-scoped publication facts, plus the scoped transaction
+and DI registration order. No reader SQL/HTTP acceptance is valid until those
+facts and schema are integrated.
+
+### Verification - CURRENT_VERIFIED
+
+| Command | Executed | Result | Level |
+|---|---:|---|---|
+| `dotnet build RoadGuardSystem.Services/RoadGuardSystem.dServices.csproj --no-restore -v minimal -clp:ErrorsOnly` | yes | exit 0; 75 existing warnings, 0 errors | build |
+| `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore -v minimal -clp:ErrorsOnly` | yes | exit 0; 0 errors | build |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter 'TestCategory=HUY-01|Package=HUY-01|FullyQualifiedName~Huy01' -v minimal -clp:ErrorsOnly` | yes | 48 passed, 0 failed, 0 skipped, exit 0 | unit/module |
+| focused Label/Session filter | yes | 19 passed, 0 failed, 0 skipped, exit 0 | domain/materialization |
+| `git diff --check` | yes | exit 0 | patch |
+| `.tools/dotnet-ef.exe migrations has-pending-model-changes ...` | no | NOT RUN: local `.tools/dotnet-ef.exe` is absent; Session model drift is independently known from convention-mapped public members | EF/model |
+
+SQL persistence, concurrency, HTTP, exporter, approved-label reader,
+CaseDefect consumer and deployment acceptance remain `BLOCKED/PENDING` on the
+schema/producer/DI handoff above. Historical Anh/Huy counts in earlier sections
+are not fresh evidence for this checkpoint. Self-review pass 1 checked current
+authority/privacy, immutable label history, session expiry/touch and incomplete
+snapshot semantics; pass 2 checked ownership/import closure, EF drift, contract
+compatibility and final diff. New external review is `PENDING`; HUY-01 remains
+`PARTIAL` and this checkpoint stops before the next capability.
+
 Ngày: 2026-10-02. Writer: Huy / Codex local. Nhánh: `huy-review`.
 
 ## 2026-10-03 independent-scope checkpoint - PARTIAL

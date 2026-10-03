@@ -8,6 +8,39 @@ namespace RoadGuardSystem.UnitTests.Identity;
 [Trait("TaskId", "P2-10")]
 public sealed class UserStatusAndDerivedStateTests
 {
+    [Fact]
+    public void WebSession_UsesIdleTimeoutWithoutExtendingAbsoluteExpiry()
+    {
+        var issued = new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero);
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IssuedAt = issued,
+            ExpiresAt = issued.AddHours(12), Transport = SessionTransport.Web,
+            LastActivityAt = issued
+        };
+
+        session.IsActiveAt(issued.AddMinutes(29)).Should().BeTrue();
+        session.IsActiveAt(issued.AddMinutes(30)).Should().BeFalse();
+        session.Touch(issued.AddMinutes(10));
+        session.LastActivityAt.Should().Be(issued.AddMinutes(10));
+        session.ExpiresAt.Should().Be(issued.AddHours(12));
+    }
+
+    [Fact]
+    public void Touch_DoesNotReviveRevokedOrExpiredSession()
+    {
+        var issued = DateTimeOffset.UtcNow.AddHours(-1);
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IssuedAt = issued,
+            ExpiresAt = issued.AddMinutes(30), Transport = SessionTransport.Web,
+            RevokedAt = issued.AddMinutes(5)
+        };
+
+        var touch = () => session.Touch(DateTimeOffset.UtcNow);
+        touch.Should().Throw<InvalidOperationException>();
+        session.LastActivityAt.Should().BeNull();
+    }
     [Fact(DisplayName = "P2-10 UserStatus has stable byte values")]
     public void UserStatus_HasStableByteValues()
     {

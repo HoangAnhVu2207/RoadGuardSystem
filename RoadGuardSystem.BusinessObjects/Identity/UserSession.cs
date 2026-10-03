@@ -17,14 +17,35 @@ public class UserSession
 
     public DateTimeOffset? RevokedAt { get; set; }
 
+    public SessionTransport Transport { get; set; } = SessionTransport.LegacyBearer;
+
+    public DateTimeOffset? LastActivityAt { get; set; }
+
     public byte[] RowVersion { get; set; } = [];
 
     // Derived states - not stored in database
-    public bool IsActiveAt(DateTimeOffset now) => RevokedAt == null && ExpiresAt > now.ToUniversalTime();
+    public bool IsActiveAt(DateTimeOffset now)
+    {
+        var utcNow = now.ToUniversalTime();
+        if (RevokedAt != null || ExpiresAt <= utcNow) return false;
+        return Transport != SessionTransport.Web || (LastActivityAt ?? IssuedAt).AddMinutes(30) > utcNow;
+    }
 
     public bool IsRevoked => RevokedAt != null;
 
-    public bool IsExpiredAt(DateTimeOffset now) => RevokedAt == null && ExpiresAt <= now.ToUniversalTime();
+    public bool IsExpiredAt(DateTimeOffset now)
+    {
+        var utcNow = now.ToUniversalTime();
+        return RevokedAt == null && (ExpiresAt <= utcNow ||
+            (Transport == SessionTransport.Web && (LastActivityAt ?? IssuedAt).AddMinutes(30) <= utcNow));
+    }
+
+    public void Touch(DateTimeOffset now)
+    {
+        var utcNow = now.ToUniversalTime();
+        if (!IsActiveAt(utcNow)) throw new InvalidOperationException("An inactive session cannot be touched.");
+        if (Transport == SessionTransport.Web) LastActivityAt = utcNow;
+    }
 
     // Navigations
     public virtual ApplicationUser User { get; set; } = null!;

@@ -16,6 +16,8 @@ public sealed class TrainingLabelRevision
 
     public string SourceVersion { get; private set; } = string.Empty;
 
+    public string FileVersion { get; private set; } = string.Empty;
+
     public Guid FileId { get; private set; }
 
     public decimal X { get; private set; }
@@ -50,7 +52,8 @@ public sealed class TrainingLabelRevision
         decimal width,
         decimal height,
         string defectTypeCode,
-        string reason)
+        string reason,
+        string? fileVersion = null)
     {
         if (id == Guid.Empty || labelId == Guid.Empty || sourceId == Guid.Empty || fileId == Guid.Empty)
         {
@@ -70,6 +73,7 @@ public sealed class TrainingLabelRevision
             Revision = revision,
             SourceId = sourceId,
             SourceVersion = NormalizeRequired(sourceVersion, nameof(sourceVersion), 200),
+            FileVersion = NormalizeOptional(fileVersion, nameof(fileVersion), 200),
             FileId = fileId,
             X = x,
             Y = y,
@@ -126,6 +130,15 @@ public sealed class TrainingLabelRevision
             throw new ArgumentException($"Value exceeds maximum length {maximumLength}.", parameterName);
         }
 
+        return normalized;
+    }
+
+    private static string NormalizeOptional(string? value, string parameterName, int maximumLength)
+    {
+        if (value is null) return string.Empty;
+        var normalized = value.Trim();
+        if (normalized.Length == 0 || normalized.Length > maximumLength)
+            throw new ArgumentException($"Value exceeds maximum length {maximumLength}.", parameterName);
         return normalized;
     }
 }

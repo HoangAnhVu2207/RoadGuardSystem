@@ -18,6 +18,24 @@ public sealed class Huy01TrainingLabelRevisionTests
     }
 
     [Fact]
+    public void Materialize_SortsByRevisionAndKeepsCurrentHeadFacts()
+    {
+        var labelId = Guid.NewGuid();
+        var sourceId = Guid.NewGuid();
+        var first = TrainingLabelRevision.Create(Guid.NewGuid(), labelId, 1, sourceId, "source-v1", Guid.NewGuid(),
+            0.1m, 0.2m, 0.3m, 0.4m, "CRACK", "first", "file-v1");
+        var second = TrainingLabelRevision.Create(Guid.NewGuid(), labelId, 2, sourceId, "source-v2", Guid.NewGuid(),
+            0.2m, 0.3m, 0.2m, 0.2m, "CRACK", "second", "file-v2");
+
+        var label = TrainingLabel.Materialize(labelId, Guid.NewGuid(), sourceId, "REPORT", [second, first], []);
+
+        label.CurrentRevisionNumber.Should().Be(2);
+        label.CurrentRevisionId.Should().Be(second.Id);
+        label.CurrentFileVersion.Should().Be("file-v2");
+        label.Revisions.Select(r => r.Revision).Should().Equal(1, 2);
+    }
+
+    [Fact]
     public void Review_ApprovedRevision_PreservesApprovalProofAndRejectsSecondDecision()
     {
         var label = TrainingLabelRevision.Create(

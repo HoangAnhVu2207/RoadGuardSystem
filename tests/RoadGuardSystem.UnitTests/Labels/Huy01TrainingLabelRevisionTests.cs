@@ -36,6 +36,18 @@ public sealed class Huy01TrainingLabelRevisionTests
     }
 
     [Fact]
+    public void Materialize_RejectsPersistedRevisionWithoutFileVersion()
+    {
+        var labelId = Guid.NewGuid();
+        var revision = TrainingLabelRevision.Create(Guid.NewGuid(), labelId, 1, Guid.NewGuid(), "source-v1", Guid.NewGuid(),
+            0.1m, 0.2m, 0.3m, 0.4m, "CRACK", "missing file version");
+
+        var materialize = () => TrainingLabel.Materialize(labelId, Guid.NewGuid(), revision.SourceId, "REPORT", [revision], []);
+
+        materialize.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
     public void Review_ApprovedRevision_PreservesApprovalProofAndRejectsSecondDecision()
     {
         var label = TrainingLabelRevision.Create(

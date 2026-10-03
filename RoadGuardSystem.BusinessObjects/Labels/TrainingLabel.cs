@@ -57,7 +57,8 @@ public sealed class TrainingLabel
         ArgumentNullException.ThrowIfNull(revisions);
         var ordered = revisions.OrderBy(r => r.Revision).ThenBy(r => r.Id).ToList();
         if (ordered.Count == 0 || ordered.Select(r => r.Revision).SequenceEqual(Enumerable.Range(1, ordered.Count)) == false ||
-            ordered.Any(r => r.LabelId != id || r.SourceId != source || ordered.Count(x => x.Revision == r.Revision) != 1))
+            ordered.Any(r => r.LabelId != id || r.SourceId != source || string.IsNullOrWhiteSpace(r.FileVersion) ||
+                ordered.Count(x => x.Revision == r.Revision) != 1))
             throw new ArgumentException("Materialized revisions must form one contiguous immutable head history.", nameof(revisions));
         var label = new TrainingLabel { Id = id, ProjectId = project, SourceId = source, SourceKind = kind, RowVersion = rowVersion.ToArray() };
         label._revisions.AddRange(ordered);

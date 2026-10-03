@@ -1,5 +1,50 @@
 # HUY-01 — Identity transport → Reporter/case → PM candidate/label
 
+## 2026-10-03 bounded CaseDefectRead / Label finding fix - PARTIAL
+
+`CURRENT_VERIFIED` preflight: branch `huy-review`; initial local, tracking and
+live `origin/huy-review` were `c1513a14b7b3b0150624aef6aad87a99a2367510`;
+worktree was clean. The exact Anh consumer source inspected for compatibility
+was `CaseDefectCaptureConsumer.cs` at `f7a32dcfaa842e1ab6557ec19b0acb0c0c053a74`;
+its documentation handoff was `47c9a539549e5fbf839ea4bec7da047baaeaecb2`.
+Neither branch was merged and no shared consumer, DbContext, mapping, migration,
+DI or route was activated.
+
+### Finding ledger
+
+| Finding | Status | Source fix / evidence |
+|---|---|---|
+| Reader schema/hash differed from the Anh consumer | `SOURCE VERIFIED` | `CaseDefectReadReader` now emits `anh-huy.case-defect.v1` and hashes UTF-8 `JsonSerializerDefaults.Web` bytes with `Hash` blanked; compatibility regression passes in `Huy01CaseDefectConsumerCompatibilityTests`. This is not producer-consumer SQL acceptance. |
+| Reader emitted invalid Defect identity/provenance/version placeholders | `SOURCE VERIFIED / INCOMPLETE` | Defects lacking authoritative source/version/geometry are omitted from the snapshot and represented by `defect_source_version_and_geometry_unavailable`; no `UNKNOWN`/empty identity is emitted. The existing consumer can accept this as incomplete, but no real producer-consumer SQL run was achieved. |
+| User role row and current project authority were incomplete | `SOURCE VERIFIED` | Reader now requires active user, matching active `Roles` row, role-scoped active membership and current date validity in the caller-scoped context. No fresh-SQL authorization claim is made. |
+| Persisted Case/Report rowversion read through no-tracking `Entry` | `SOURCE VERIFIED / SCHEMA PENDING` | Versions are projected with `EF.Property<byte[]>(..., "RowVersion")`; Case conclusions are explicitly included and publication/conclusion refs use the persisted Case version. SQL schema/model acceptance remains Anh-owned and pending. |
+| Conclusions could be lost through an unloaded navigation | `SOURCE VERIFIED` | Reader uses `Include(c => c.Conclusions)` and deterministic ordering. No SQL fixture proved the query against a disposable database in this turn. |
+| Label materialization accepted a revision without required file version | `SOURCE VERIFIED` | `TrainingLabel.Materialize` rejects blank revision `FileVersion`; valid ordered history regression remains green. No Label mapping/migration/SQL writer was added. |
+
+### Verification - CURRENT_VERIFIED
+
+| Command | Result |
+|---|---|
+| `dotnet build RoadGuardSystem.BusinessObjects/RoadGuardSystem.aBusinessObjects.csproj --no-restore -v minimal -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet build RoadGuardSystem.Services/RoadGuardSystem.dServices.csproj --no-restore -v minimal -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore -v minimal -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter 'Package=HUY-01|FullyQualifiedName~Huy01' -v minimal -clp:ErrorsOnly` | 50 passed, 0 failed, 0 skipped; exit 0 |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter 'Package=HUY-01|FullyQualifiedName~Huy01' -v minimal` | executed on integration fixture; `Huy01IdentityBoundaryTests.Otp_ConcurrentCorrectVerification_CommitsOneSessionAndOneConsumption` failed with `Assert.Single()` on an empty collection; SQL acceptance for this checkpoint remains `BLOCKED`, not PASS |
+| `git diff --check` | exit 0 |
+
+Self-review pass 1 checked active-role/privacy boundary, persisted facts,
+consumer rejection of fake Defect facts, deterministic collection/hash behavior,
+and immutable Label history. Pass 2 checked exact Anh provenance, Huy-only file
+scope, no production binding or shared schema changes, and final diff/ownership.
+External review for this new diff is `PENDING`; Reporter P1 remains `CLOSED`
+for the earlier reviewed scope only. `deliveryStatus=PARTIAL`.
+
+Anh still owns persisted Defect source/version/geometry/disposition facts,
+evidence checksum and recipient authority, shared schema/migrations, DI and
+real producer-consumer SQL/HTTP fixtures. Huy can only activate this reader
+after those exact facts and bindings are handed off; no new capability is
+started in this checkpoint.
+
 ## 2026-10-03 mandatory Label / Session / CaseDefectRead checkpoint - PARTIAL
 
 `CURRENT_VERIFIED` preflight: `huy-review` started at local/tracking/live

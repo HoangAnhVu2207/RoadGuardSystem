@@ -2,6 +2,158 @@
 
 Ngày: 2026-10-02. Writer: Huy / Codex local. Nhánh: `huy-review`.
 
+## 2026-10-03 independent-scope checkpoint - PARTIAL
+
+`CURRENT_VERIFIED` preflight: branch `huy-review`; initial local HEAD, tracking ref
+and live `origin/huy-review` all
+`afab3ecc8b33d8172e9b0c564808716ca067f39e`; no dirty or untracked paths.
+The reviewed checkpoint is equal to HEAD, so no intervening Huy commit or
+unrelated work was displaced. Historical A/B sources remain
+`715ade2c20f652b77c8c7e995c76bb5d47ead966` and
+`a46b97b271b4af1b9e89dc182b5e3fc7a10e8fff`; no newer Anh tip was
+accepted as a handoff. This checkpoint changes planning/evidence only.
+
+`TARGET_CONFIRMED` from the owner-supplied external ChatGPT review: the exact
+`7e8261648e08adf5b5bdf0cea85fca5e55463b73` to `afab3ecc8b33d8172e9b0c564808716ca067f39e`
+diff is `PASS`, with no actionable P0/P1/P2. Reporter P1 is `CLOSED` **only**
+for intake and receipt guard. This review did not execute tests or close Anh's
+private-file producer role gate, readers, consumers or deployment. Older C1-C3
+and Reporter P1 `PENDING`/proposed-closure sentences below are historical at
+their recorded SHAs, superseded by this scoped verdict. Any future code diff
+needs its own external review. `deliveryStatus=PARTIAL`.
+
+### Capability inventory at `afab3ecc`
+
+| Capability | Current implementation | Contract/spec source SHA | Acceptance evidence | Independent Huy work remaining | Anh dependency | Next step |
+|---|---|---|---|---|---|---|
+| Reporter intake/receipt guard | Production intake-only binding; current Users/role/file locks, receipt replay and recovery | HUY-01 §6/§8 at `afab3ecc`; shared receipt `f626ea5`; A `715ade2` | Real disposable SQL/API 65/65 in the overlapping HUY/Reporter filter; external diff `PASS` for this scope | None identified; preserve reviewed code | Anh private-file producer role-row gate and canonical role sentence remain separate | Anh corrects producer/contract; rerun affected producer-consumer gates after exact handoff |
+| Reporter lifecycle and Case workflows | Module service/repository/controller for own list/detail/supplement, scoped triage/link/split/conclusion/publication; production routes other than intake fail closed | HUY-01 §6/§9.4 at `afab3ecc`; A file/geometry facts `715ade2` | Domain 47/47 and overlapping API/SQL 65/65 include scoped workflows; not production activation | No independently implementable missing behavior identified | Production DI/canonical route adoption; FIELD/DRONE proof, verified Defect links and warranty facts | Receive reserved facts/binding SHA, then run real HTTP/SQL publication and scope fixtures |
+| Candidate/matcher/Defect domain | REPORT REJECT/correction SQL/HTTP; pure matcher and Defect rules; KEEP_NEW/LINK_EXISTING fail closed | HUY-01 §7/§9.4 at `afab3ecc`; B matching/AI interface `a46b97b` | HUY unit 47/47 and API/SQL 65/65 cover existing REPORT scope, not target effects | None independent of target/current-head facts | Defect rowversion, typed source links/created-Defect relation, route/segment/metric geometry and AI/FIELD provenance | After exact schema/producer handoff, implement target effects and snapshot consumer; test drift/concurrency |
+| Label lifecycle | Unbound `TrainingLabel` head/revision and PM policy; current-approved eligibility resets on new PENDING revision | HUY-01 §7.2 at `afab3ecc`; B approved/source access interfaces `a46b97b` | Domain-only tests in 47/47; no SQL reader/HTTP/export PASS | None without authoritative source/approval storage | Label head/revision/review schema, rowversion/current-head uniqueness, PM approval and file/source/checksum provenance | Persist and bind only after exact schema/producer handoff; test SQL approval/revision races |
+| Approved-label reader | No local B interface import or Huy implementation; obsolete §7.2 cursor proposal is superseded | `Anh02Contracts.cs` at `a46b97b`: `CaptureApprovedAsync` | NOT RUN; domain eligibility is not reader acceptance | Acceptance matrix below is ready; no fake reader | Current approved SQL heads, immutable revision/proof, same scoped SERIALIZABLE export transaction or durable immutable snapshot | Import reserved B interface when consumer graph is handed off; implement SQL capture and exporter fixture |
+| Training source-access reader | No implementation; private reference does not grant public access | B `ITrainingSourceAccessReader.CanReadAsync` at `a46b97b` | NOT RUN | None without current resource permission producer | Current file ACL/owner/project/publication source permission and caller transaction | Check live source access even for historical export; test revoked/private file |
+| Matching snapshot reader | Pure matcher exists; no target snapshot reader | B `IMatchingCandidateSnapshotReader.CaptureAsync` at `a46b97b` | Domain-only matcher tests; real reader NOT RUN | None without persisted target/scope facts | Defect version/segment/route, authoritative source geometry/disposition, metric CRS and transaction locks | Capture current scoped snapshot; test project/route/geometry drift and no-GPS availability |
+| AI candidate consumption | REPORT producer only; AI branch returns not-ready | B `IAiCandidateFactsReader.ResolveAsync`/`AiCandidateFactsV1` at `a46b97b` | AI external/provider NOT RUN; mock does not prove this chain | None without actual detection producer | Processing detection/job/attempt/result/model/dataset, video/frame versions and disposition facts | Bind real producer after exact handoff; verify BE chain, preserve generated frame provenance |
+| Retention contributor/full inventory | Huy SQL contributor reads direct/report/case/history obligations with deterministic hashes, unbound and always incomplete | B retention boundary `a46b97b`; HUY C3 `afab3ecc` | Real disposable SQL included in 65/65; composite consumer NOT RUN | No missing pure version/reference logic established by current schema | Label/review refs, typed Defect source links, repair-reference facts if present, and Anh composite DI | Add only queryable obligations after schema handoff; rerun closed-link/version/privacy and composite acceptance |
+| Case/Defect reporting/dossier read | Case source exists; no frozen typed reporting capture | HUY §9.4 proposal at `afab3ecc`; B `a46b97b` has no interface | NOT RUN | Contract/acceptance proposal below; no parallel shared API | Anh confirms consumer signature, scoped transaction and Defect/source/geometry facts | Implement Huy read after exact consumer contract handoff; test Report flow vs Case stock |
+| Auth/session transport and event gates | Legacy auth retained; no new transport binding or report event | HUY §5/§8/§9.4 at `afab3ecc` | Legacy auth HTTP 37/37; Web/Android new transport and outbox NOT RUN | None without shared transport/event adoption | Anh Sessions.Transport/LastActivityAt/backfill, auth options/middleware, canonical event envelope/consumer | Integrate only reserved transport/event checkpoint; test clocks/CSRF/rotation/outbox separately |
+
+The evidence columns describe overlapping historical runs, not one combined
+distinct test total. Domain PASS does not make any unbound SQL reader ready.
+Intake-only production DI is active; full lifecycle/Case/Candidate/Label
+production DI is not. No HUY-02 or retention deletion is part of this inventory.
+
+| Acceptance capability | Status at `afab3ecc` | Evidence type and limit |
+|---|---|---|
+| Reporter intake/receipt guard | PASS in scoped BE SQL/HTTP; external review PASS | Real disposable SQL/API and reviewed diff; not Anh's private-file producer or deployment |
+| Reporter lifecycle/Case and REPORT REJECT | PASS in module/test-host BE SQL/HTTP; production activation BLOCKED | Domain plus real SQL/API; non-intake production services not composed |
+| Matcher, Defect and Label policy | PASS for independent domain only | Unit tests; no matching reader, target effect or Label SQL implied |
+| Approved-label/source-access/matching readers and AI consumer | BLOCKED; integration NOT RUN | B signatures inspected at `a46b97b`; source/schema/producer and consumer graph missing |
+| Huy retention bounded contributor | PASS for existing SQL references; full inventory BLOCKED | Real SQL fixture; contributor deliberately incomplete/unregistered |
+| Case/Defect reporting and dossier consumer | BLOCKED; integration NOT RUN | Huy §9.4 proposal only; no frozen B reader/consumer contract |
+| Legacy auth regression | PASS for existing HTTP; new transport BLOCKED/NOT RUN | 37 historical HTTP tests; no Web/Android transport claim |
+| Events, external AI/Web/Android, Postman network and deployment | NOT RUN | No agreed event/consumer or live external/deployment evidence |
+
+### Reader, retention and reporting acceptance boundary
+
+- **Approved labels, BLOCKED:** `CaptureApprovedAsync(actorId, role, projectId,
+  filters, ct)` must select only current APPROVED heads in one scoped SQL
+  snapshot. PENDING/REJECTED and an older approval behind a new PENDING head
+  are ineligible; require unique current heads, non-null normalized annotation,
+  actual PM/project approval proof, typed source/file version, checksum/size/
+  media and AI provenance when applicable. Wrong project/current authority is
+  denial, not an empty success. The returned snapshot ID/hash must remain
+  consistent with the exporter's same SERIALIZABLE transaction or a durable
+  immutable producer snapshot. Existing pure `CurrentApprovedRevision` tests
+  prove only in-memory eligibility, not SQL integrity or exporter behavior.
+- **Historical download, BLOCKED:** `CanReadAsync(actorId, role, projectId,
+  fileIds, ct)` checks current resource permission for every requested file,
+  including private Reporter files, even when an export references an old
+  immutable approved revision. Historical export identity does not require
+  the label to remain latest, but cannot waive current source access. Test
+  revocation and cross-project/other-owner access with the real file producer.
+- **Matching, BLOCKED:** `CaptureAsync` must return same-project target Defect
+  IDs/versions, route and segment-set versions, source/disposition and geometry
+  snapshot identity/hash under the caller's transaction. Stale route/set/source/
+  target or wrong scope fails explicitly. No-GPS/incomplete metric geometry is
+  represented as unavailable with no fabricated distance/CRS; matcher GET
+  remains read-only and cannot auto-merge or create target effects.
+- **AI candidate, BLOCKED:** `ResolveAsync` must establish detection/project,
+  job/attempt/result, model/dataset, source video and generated frame IDs and
+  versions, geometry/position and active disposition. Missing/stale/wrong-scope
+  facts have distinct failures. An AI-generated frame is not a Reporter-private
+  UploadSession. `MODE=MOCK` supports BE mock evidence only, not external AI.
+- **Retention, BLOCKED:** add label/revision/review and typed Defect/source
+  obligations to `ReadAsync` and project-file discovery only when persisted
+  links exist; identify repair references via the responsible producer rather
+  than treating no rows as no obligation. Keep historical closed links,
+  deterministic inventory version drift and `Complete=false` until every
+  contributor is real. Anh's composite consumer and registration remain
+  unverified; no deletion or hold bypass follows from this inventory.
+- **Case/Defect dossier, BLOCKED:** proposed scoped capture needs actor/current
+  role/project, Case/Report IDs and revisions, status, recipient-authorized
+  conclusion/publication/evidence, and explicit unavailable Defect/source/
+  geometry facts. Report flow filters `ReceivedAt [from,to)`; current Case stock
+  is not a received-in-window count. B has no frozen reader signature, so Huy
+  has not created a parallel interface or claimed ANH-02 reporting acceptance.
+
+### Evidence provenance and verification
+
+The historical command/output evidence below was recovered from the actual
+Codex session log at
+`C:/Users/dell/.codex/sessions/2026/10/02/rollout-2026-10-02T10-56-31-01a0fac1-aa0d-7652-9838-3abbfe68743a.jsonl`.
+That local log is not committed and contains broader session data; only the
+commands and sanitized counts are recorded here. No HUY TRX artifact was found
+in this checkout. Results are historical at source `afab3ecc`, not fresh tests
+for this documentation-only checkpoint; overlapping reruns are not summed.
+
+| Source | Exact recovered command | Executed / passed / failed / skipped | Exit/artifact | Evidence scope |
+|---|---|---|---|---|
+| `afab3ecc` | `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --disable-build-servers --nologo -v q -clp:ErrorsOnly` | build succeeded, 0 warnings/errors; test counts N/A | exit 0 in session; session log above | Affected API compile only |
+| `afab3ecc` | `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter 'Package=HUY-01' --logger 'console;verbosity=minimal' -v q -clp:ErrorsOnly` | 47 / 47 / 0 / 0 | exit 0 in session; same log | Huy domain/policy units |
+| `afab3ecc` | `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter 'Package=HUY-01\|FullyQualifiedName~Huy01Reporter' --logger 'console;verbosity=minimal' -v q -clp:ErrorsOnly` | 65 / 65 / 0 / 0 | exit 0 in session; same log | Overlapping Huy API/disposable SQL, not full consumer activation |
+| `afab3ecc` | `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter 'FullyQualifiedName~Huy01IdentityBoundaryTests\|FullyQualifiedName~ReceiptAccessGuardSqlTests\|FullyQualifiedName~P202ServiceContractTests\|FullyQualifiedName~P202TransactionAndIdempotencyTests' --logger 'console;verbosity=minimal' -v q -clp:ErrorsOnly` | 57 / 57 / 0 / 0 | exit 0 in session; same log | Shared guard/P202 plus Huy identity SQL; not Reporter reader/exporter |
+| `afab3ecc` | `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter 'FullyQualifiedName~AuthenticationFlowTests\|FullyQualifiedName~V2AuthenticationFlowTests\|FullyQualifiedName~V2IdentityOnboardingFlowTests' --logger 'console;verbosity=minimal' -v q -clp:ErrorsOnly` | 37 / 37 / 0 / 0 | exit 0 in session; same log | Legacy auth HTTP regression, not new transport |
+
+This turn changes documentation only; no runtime test result is promoted or
+replaced. Fresh checks: `git ls-remote origin refs/heads/huy-review` returned
+`afab3ecc`; `git rev-list --no-walk` resolved all four recorded A/B/shared/Huy
+SHAs (exit 0); the new inventory, acceptance, command and dependency Markdown
+tables have consistent 7/3/5/5 columns respectively; no new links were added.
+`git diff --check` exited 0 before commit. No build, test, SQL fixture, Postman
+runner or external consumer was run in this docs-only turn. Self-review pass 1
+checked auth/privacy, transaction and current-source claims against the scoped
+BE evidence, preserving the externally reviewed code. Pass 2 checked exact
+command provenance, historical versus current statuses, B interface signatures,
+shared writer scope and the final one-file diff; the separate acceptance matrix
+and explicit `NOT HANDED OFF` column were added during this pass.
+
+### Exact dependency handoff matrix
+
+No new coherent Anh checkpoint or import allowlist was handed off after A/B.
+Every entry below has checkpoint `NOT HANDED OFF`; the named shared writer is
+Anh. Existing source evidence is HUY §9.4 at `afab3ecc`, B contracts at
+`a46b97b`, and the current source paths in the capability inventory.
+
+| Capability | Missing facts/guarantee owned by Anh | Checkpoint | Huy action after exact handoff | Unblocking acceptance |
+|---|---|---|---|---|
+| Label/approved export/source access | TrainingLabel head/revision/review tables, unique current head + terminal review, rowversion/restrict FKs; authoritative file checksum/version/media, source job/model/dataset and current file ACL; B reader graph reserved for import | NOT HANDED OFF | Implement SQL label commands and B `IApprovedTrainingLabelReader`/`ITrainingSourceAccessReader` using one scoped transaction | Pending/rejected excluded, new revision invalidates current eligibility, old export immutable but access current, PM/project/race/rollback SQL and real exporter consumer |
+| Candidate matching/KEEP/LINK/AI | Defect ID/rowversion/route/segment, typed Report/AI source-link and created-Defect relation, one active disposition, metric geometry/scope and current source versions; actual AI job/attempt/result/frame provenance | NOT HANDED OFF | Implement B matching snapshot and AI consumer, target effects without duplicate Defect/task | Two-project/no-GPS/stale target/source/route, correction downstream-use, concurrent decisions and durable atomic effects |
+| Retention/composite | Queryable label and Defect/source links, responsible repair-reference producer (or explicit absence proof), composite DI/transaction contract | NOT HANDED OFF | Extend Huy contributor obligations; keep incomplete until all sources covered | Closed/historical links, version drift, privacy, complete composite evaluation and denial on missing contributor |
+| Case/reporting/remaining Case producers | B reporting consumer signature not frozen; recipient-scoped Defect/source evidence, FIELD completion, DRONE dataset/file, warranty facts | NOT HANDED OFF | Add typed Case/Defect capture only against frozen interface; finish evidence branches | Report-flow vs Case-stock query, current scope and recipient privacy with real producer/consumer |
+| Auth/session/events and full module binding | Sessions.Transport/LastActivityAt/backfill, cookie/CSRF/idle options/middleware, canonical event envelope/consumer and reserved production DI/HTTP/Postman adoption | NOT HANDED OFF | Integrate Huy transport/services after reserved shared SHA; emit only agreed event/outbox | Legacy + Web/Android clock/CSRF/rotation SQL/HTTP, full module routes, outbox retry and consumer fixtures |
+| Anh private-file role/canonical correction | `AnhHuyFactsRepository.IsCurrentActorAsync` role-row `Roles.IsActive` recheck and stale A canonical role statement | NOT HANDED OFF | Re-run affected Reporter producer/consumer tests; retain reviewed Huy receipt guard | Inactive-role private-file preflight and current receipt denial; canonical contract agrees with behavior |
+
+Integration order per capability: Anh supplies exact SHA, reserved paths and
+parent/dependency closure; Huy verifies against current HEAD and imports only
+the allowlist; Anh migrates only a fresh disposable SQL database and binds
+shared composition/contract; Huy implements the now-supported module reader or
+command; both run producer -> Huy reader/service -> actual consumer SQL/HTTP
+fixtures. The earlier §9.4 `ReadCurrentApprovedAsync(project,watermark,ct)`
+proposal is superseded by B's `CaptureApprovedAsync`, not an alternative API.
+No new shared DI, EF configuration, mapping, migration, canonical contract,
+Postman or fixture was edited in this documentation checkpoint.
+
 ## 2026-10-03 continuation C1-C3 - PARTIAL
 
 `CURRENT_VERIFIED` preflight: `huy-review` local and `origin/huy-review` were both

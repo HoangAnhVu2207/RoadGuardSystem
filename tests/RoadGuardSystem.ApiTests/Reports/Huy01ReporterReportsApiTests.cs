@@ -426,14 +426,40 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         item.GetProperty("distanceMeters").ValueKind.Should().Be(JsonValueKind.Null);
         item.GetProperty("reasonCodes").EnumerateArray().Select(code => code.GetString()).Should().Contain("GPS_MISSING");
         var defectPath = $"/api/v1/projects/{project}/defects/{createdDefectId}";
+        using var web = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = true });
+        var webCsrf = await LoginWebAsync(web, pm.UserName!);
+        var activityAnchor = DateTimeOffset.UtcNow.AddMinutes(-2);
+        await using (var db = sql.CreateDbContext())
+        {
+            var session = await db.Sessions.SingleAsync(value => value.UserId == pm.Id &&
+                value.Transport == RoadGuardSystem.BusinessObjects.Identity.SessionTransport.Web);
+            session.LastActivityAt = activityAnchor;
+            await db.SaveChangesAsync();
+        }
+        (await web.GetAsync($"/api/v1/projects/{project}/defects")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var cookieRead = await web.GetAsync(defectPath);
+        cookieRead.StatusCode.Should().Be(HttpStatusCode.OK);
+        await using (var db = sql.CreateDbContext())
+            (await db.Sessions.AsNoTracking().SingleAsync(value => value.UserId == pm.Id &&
+                value.Transport == RoadGuardSystem.BusinessObjects.Identity.SessionTransport.Web)).LastActivityAt
+                .Should().BeAfter(activityAnchor);
+        await AssertDefectCookieDenialsAsync(web, factory, pm.Id, supervisor.UserName!, project,
+            createdDefectId, defectTypeCode, source.Facts.EvidenceIds, webCsrf, cookieRead.Headers.ETag!.ToString());
         var defectRead = await client.GetAsync(defectPath);
         defectRead.StatusCode.Should().Be(HttpStatusCode.OK);
-        var assessment = await SendAsync(client, HttpMethod.Post, defectPath + "/assessments", new
+        var beforeCookieAssessment = await DefectCookieEffectsAsync(pm.Id, createdDefectId);
+        var assessment = await SendAsync(web, HttpMethod.Post, defectPath + "/assessments", new
         {
             defectTypeCode, severity = "MEDIUM", reason = "PM assessment",
             evidenceIds = source.Facts.EvidenceIds
         }, Guid.NewGuid().ToString(), defectRead.Headers.ETag!.ToString());
         assessment.StatusCode.Should().Be(HttpStatusCode.OK);
+        var afterCookieAssessment = await DefectCookieEffectsAsync(pm.Id, createdDefectId);
+        afterCookieAssessment.Activity.Should().BeAfter(beforeCookieAssessment.Activity!.Value);
+        afterCookieAssessment.Version.Should().NotBe(beforeCookieAssessment.Version);
+        afterCookieAssessment.Logs.Should().Be(beforeCookieAssessment.Logs + 1);
+        afterCookieAssessment.Audits.Should().Be(beforeCookieAssessment.Audits + 1);
+        afterCookieAssessment.Receipts.Should().Be(beforeCookieAssessment.Receipts + 1);
         await using (var db = sql.CreateDbContext())
         {
             var log = await db.DefectVerificationLogs.AsNoTracking()
@@ -442,13 +468,19 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             snapshot.RootElement.GetProperty("evidenceIds").EnumerateArray()
                 .Select(value => value.GetGuid()).Should().BeEquivalentTo(source.Facts.EvidenceIds);
         }
-        var verification = await SendAsync(client, HttpMethod.Post, defectPath + "/verification-decisions", new
+        var verification = await SendAsync(web, HttpMethod.Post, defectPath + "/verification-decisions", new
         {
             decision = "CONFIRM", verificationMethod = "EXISTING_EVIDENCE",
             evidenceIds = source.Facts.EvidenceIds, reason = "Verified report image"
         }, Guid.NewGuid().ToString(), assessment.Headers.ETag!.ToString());
         verification.StatusCode.Should().Be(HttpStatusCode.OK);
+        var afterCookieVerification = await DefectCookieEffectsAsync(pm.Id, createdDefectId);
+        afterCookieVerification.Activity.Should().BeAfter(afterCookieAssessment.Activity!.Value);
+        afterCookieVerification.Logs.Should().Be(afterCookieAssessment.Logs + 1);
+        afterCookieVerification.Audits.Should().Be(afterCookieAssessment.Audits + 1);
+        afterCookieVerification.Receipts.Should().Be(afterCookieAssessment.Receipts + 1);
         (await verification.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString().Should().Be("VERIFIED");
+        await AssertDefectCookieInactiveSessionsAsync(web, pm.Id, createdDefectId, defectPath);
         var verifiedList = await client.GetAsync($"/api/v1/projects/{project}/defects?status=VERIFIED&type={defectTypeCode}&pageSize=1");
         verifiedList.StatusCode.Should().Be(HttpStatusCode.OK);
         var verifiedItems = (await verifiedList.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items");
@@ -545,6 +577,7 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await LoginAsync(client, reporter.UserName!);
         var file = await UploadVerifiedAsync(client, factory);
+        var unrelatedPrivateFile = await UploadVerifiedAsync(client, factory);
         var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new
         {
             description = "Training source",
@@ -682,6 +715,7 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             new RoadGuardSystem.Services.Integration.TrainingLabelFilterV1([], [], null, null)));
         (await sourceAccess.CanReadAsync(reporter.Id, UserRoleCode.Reporter, project, [file.FileId])).Should().BeFalse();
         (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, Guid.NewGuid(), [file.FileId])).Should().BeFalse();
+        (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, project, [unrelatedPrivateFile.FileId])).Should().BeFalse();
         var filteredLabels = await approvedReader.CaptureApprovedAsync(pm.Id, UserRoleCode.ProjectManager,
             project, new RoadGuardSystem.Services.Integration.TrainingLabelFilterV1([Guid.NewGuid()], [], null, null));
         filteredLabels.Should().NotBeNull();
@@ -713,6 +747,9 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var pendingExport = await SendAsync(client, HttpMethod.Post, exportPath, exportRequest, Guid.NewGuid().ToString());
         pendingExport.StatusCode.Should().Be(HttpStatusCode.Accepted);
         var pendingExportId = (await pendingExport.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var revokedExport = await SendAsync(client, HttpMethod.Post, exportPath, exportRequest, Guid.NewGuid().ToString());
+        revokedExport.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var revokedExportId = (await revokedExport.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         string historicalRevisionVersion;
         await using (var db = sql.CreateDbContext())
         {
@@ -733,7 +770,8 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             new RoadGuardSystem.Services.Integration.TrainingLabelFilterV1([], [], null, null));
         afterRevision.Should().NotBeNull();
         afterRevision!.Labels.Should().BeEmpty();
-        (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, project, [file.FileId])).Should().BeFalse();
+        (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, project, [file.FileId])).Should().BeTrue();
+        (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, project, [Guid.NewGuid()])).Should().BeFalse();
         (await SendAsync(client, HttpMethod.Post, exportPath, exportRequest, Guid.NewGuid().ToString()))
             .StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         var unchangedManifest = await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{exportId}/manifest");
@@ -741,12 +779,32 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         using (var workerScope = factory.Services.CreateScope())
             (await workerScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>()
                 .ProcessNextAsync(default)).Should().BeTrue();
-        var failedExport = await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{pendingExportId}");
-        failedExport.GetProperty("status").GetString().Should().Be("FAILED");
-        failedExport.GetProperty("errorCode").GetString().Should().Be("export_source_access_revoked");
-        (await client.GetAsync($"{exportPath}/{exportId}/content")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var completedQueuedExport = await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{pendingExportId}");
+        completedQueuedExport.GetProperty("status").GetString().Should().Be("SUCCEEDED");
+        var historicalContent = await client.GetAsync($"{exportPath}/{exportId}/content");
+        historicalContent.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await historicalContent.Content.ReadAsByteArrayAsync()).Should().Equal(await zip.Content.ReadAsByteArrayAsync());
+        (await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{exportId}/manifest")).GetRawText()
+            .Should().Be(historicalManifest.GetRawText());
+        (await SendAsync(client, HttpMethod.Post, $"/api/v1/labels/{labelId}/review",
+            new { decision = "APPROVE", reason = "Stale review" }, Guid.NewGuid().ToString(), firstVersion))
+            .StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        // Real current project authority revocation; immutable file/history rows remain intact.
+        await using (var db = sql.CreateDbContext())
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [ProjectMembers] SET [Status]=2 WHERE [ProjectId]={project} AND [UserId]={pm.Id}");
+        (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, project, [file.FileId])).Should().BeFalse();
+        var deniedContent = await client.GetAsync($"{exportPath}/{exportId}/content");
+        deniedContent.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        deniedContent.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+        using (var workerScope = factory.Services.CreateScope())
+            (await workerScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>()
+                .ProcessNextAsync(default)).Should().BeTrue();
         await using (var db = sql.CreateDbContext())
         {
+            var failedExport = await db.Set<RoadGuardSystem.BusinessObjects.Exports.ExportJob>().SingleAsync(job => job.Id == revokedExportId);
+            failedExport.Status.Should().Be("FAILED");
+            failedExport.ErrorCode.Should().Be("export_authority_revoked");
+            failedExport.ArtifactId.Should().BeNull();
             (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyTrainingLabelRevision>()
                 .CountAsync(row => row.LabelId == labelId)).Should().Be(2);
             (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyTrainingLabelReview>()
@@ -768,8 +826,13 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             (await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync(
                 $"UPDATE [TrainingLabels] SET [CurrentRevision]=[CurrentRevision]+2 WHERE [Id]={labelId}")))
                 .Number.Should().Be(51001);
-            (await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>()
-                .MigrateAsync("20261003180000_Huy01DefectSourceLinks"))).Number.Should().Be(51000);
+            // Exercise this migration's actual guard without downgrading unrelated
+            // later migrations in the shared disposable fixture.
+            var assembly = db.GetService<IMigrationsAssembly>();
+            var migration = assembly.CreateMigration(assembly.Migrations["20261003190000_Huy01TrainingLabels"], db.Database.ProviderName!);
+            var guard = Assert.IsType<Microsoft.EntityFrameworkCore.Migrations.Operations.SqlOperation>(migration.DownOperations[0]);
+            (await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlRawAsync(guard.Sql)))
+                .Number.Should().Be(51000);
         }
         using (var retentionScope = factory.Services.CreateScope())
         {
@@ -781,9 +844,6 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             composite.References.Count(reference => reference.Kind == "TRAINING_LABEL_REVISION").Should().Be(2);
             composite.References.Count(reference => reference.Kind == "TRAINING_LABEL_REVIEW").Should().Be(1);
         }
-        (await SendAsync(client, HttpMethod.Post, $"/api/v1/labels/{labelId}/review",
-            new { decision = "APPROVE", reason = "Stale review" }, Guid.NewGuid().ToString(), firstVersion))
-            .StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
         await using (var db = sql.CreateDbContext())
             await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [ProjectMembers] SET [Status]=2 WHERE [ProjectId]={project} AND [UserId]={pm.Id}");
         (await SendAsync(client, HttpMethod.Post, path, createPayload, createKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -792,6 +852,112 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
     private RoadGuardDbContext ModuleFaultContext(CommandCommitFailure failure)
         => new(new DbContextOptionsBuilder<RoadGuardDbContext>().UseSqlServer(sql.ConnectionString, options => options.UseNetTopologySuite())
             .ReplaceService<IExecutionStrategyFactory, CommitFailureExecutionStrategyFactory>().AddInterceptors(failure).Options);
+
+    private static async Task<string> LoginWebAsync(HttpClient client, string username)
+    {
+        var anonymous = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/web/csrf");
+        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", anonymous.GetProperty("requestToken").GetString());
+        (await client.PostAsJsonAsync("/api/v1/auth/web/login", new
+        {
+            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+        })).StatusCode.Should().Be(HttpStatusCode.OK);
+        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        var authorized = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/web/csrf");
+        var token = authorized.GetProperty("requestToken").GetString()!;
+        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token);
+        return token;
+    }
+
+    private async Task<(DateTimeOffset? Activity, string Version, int Logs, int Audits, int Receipts)>
+        DefectCookieEffectsAsync(Guid actor, Guid defect)
+    {
+        await using var db = sql.CreateDbContext();
+        var activity = await db.Sessions.AsNoTracking().Where(session => session.UserId == actor &&
+            session.Transport == RoadGuardSystem.BusinessObjects.Identity.SessionTransport.Web)
+            .Select(session => session.LastActivityAt).SingleAsync();
+        var version = await db.Defects.Where(value => value.Id == defect)
+            .Select(value => EF.Property<byte[]>(value, "RowVersion")).SingleAsync();
+        return (activity, Convert.ToBase64String(version),
+            await db.DefectVerificationLogs.CountAsync(log => log.DefectId == defect),
+            await db.AuditLogs.CountAsync(log => log.ActorUserId == actor),
+            await db.IdempotencyRecords.CountAsync(receipt => receipt.ActorUserId == actor));
+    }
+
+    private async Task AssertDefectCookieDenialsAsync(HttpClient web, AuthenticationWebApplicationFactory factory,
+        Guid actor, string otherUsername, Guid project, Guid defect, string type, IReadOnlyCollection<Guid> evidence,
+        string csrf, string version)
+    {
+        var path = $"/api/v1/projects/{project}/defects/{defect}";
+        async Task Denied(Func<Task<HttpResponseMessage>> request, HttpStatusCode expected, string? code = null)
+        {
+            var before = await DefectCookieEffectsAsync(actor, defect);
+            using var result = await request();
+            result.StatusCode.Should().Be(expected);
+            if (code is not null)
+                (await result.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString().Should().Be(code);
+            (await DefectCookieEffectsAsync(actor, defect)).Should().Be(before);
+        }
+        object payload = new { defectTypeCode = type, severity = "MEDIUM", reason = "Cookie CSRF probe", evidenceIds = evidence };
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        await Denied(() => SendAsync(web, HttpMethod.Post, path + "/assessments", payload,
+            Guid.NewGuid().ToString(), version), HttpStatusCode.Forbidden, "csrf_failed");
+        web.DefaultRequestHeaders.Add("X-CSRF-TOKEN", "invalid");
+        await Denied(() => SendAsync(web, HttpMethod.Post, path + "/assessments", payload,
+            Guid.NewGuid().ToString(), version), HttpStatusCode.Forbidden, "csrf_failed");
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        web.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf);
+        var foreignProject = Guid.NewGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            db.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(foreignProject,
+                $"COOKIE-{foreignProject:N}", "Unauthorized project", null, null, null, null, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+        await Denied(() => web.GetAsync($"/api/v1/projects/{foreignProject}/defects/{defect}"), HttpStatusCode.Forbidden);
+        web.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "invalid");
+        await Denied(() => web.GetAsync(path), HttpStatusCode.Unauthorized);
+        using (var other = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") }))
+        {
+            await LoginAsync(other, otherUsername);
+            web.DefaultRequestHeaders.Authorization = other.DefaultRequestHeaders.Authorization;
+            await Denied(() => web.GetAsync(path), HttpStatusCode.BadRequest, "validation_error");
+        }
+        web.DefaultRequestHeaders.Authorization = null;
+        await Denied(() => web.GetAsync($"/api/v1/projects/{project}/ai-mock-runs/{Guid.NewGuid()}"), HttpStatusCode.Unauthorized);
+        await using (var db = sql.CreateDbContext())
+        {
+            var role = await db.Roles.SingleAsync(value => value.Code == UserRoleCode.ProjectManager);
+            role.IsActive = false;
+            await db.SaveChangesAsync();
+        }
+        try { await Denied(() => web.GetAsync(path), HttpStatusCode.Unauthorized); }
+        finally
+        {
+            await using var db = sql.CreateDbContext();
+            var role = await db.Roles.SingleAsync(value => value.Code == UserRoleCode.ProjectManager);
+            role.IsActive = true;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task AssertDefectCookieInactiveSessionsAsync(HttpClient web, Guid actor, Guid defect, string path)
+    {
+        foreach (var state in new[] { "IDLE", "ABSOLUTE", "REVOKED" })
+        {
+            await using (var db = sql.CreateDbContext())
+            {
+                var session = await db.Sessions.SingleAsync(value => value.UserId == actor &&
+                    value.Transport == RoadGuardSystem.BusinessObjects.Identity.SessionTransport.Web);
+                session.LastActivityAt = state == "IDLE" ? DateTimeOffset.UtcNow.AddMinutes(-31) : DateTimeOffset.UtcNow.AddMinutes(-2);
+                session.ExpiresAt = state == "ABSOLUTE" ? session.IssuedAt.AddMilliseconds(1) : DateTimeOffset.UtcNow.AddHours(1);
+                session.RevokedAt = state == "REVOKED" ? DateTimeOffset.UtcNow : null;
+                await db.SaveChangesAsync();
+            }
+            var before = await DefectCookieEffectsAsync(actor, defect);
+            (await web.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+            (await DefectCookieEffectsAsync(actor, defect)).Should().Be(before);
+        }
+    }
 
     private static CandidateDecisionService CandidateService(RoadGuardDbContext db)
     {

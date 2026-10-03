@@ -1,6 +1,117 @@
 # HUY-01 — Identity transport → Reporter/case → PM candidate/label
 
-## 2026-10-03 mandatory closure ledger - active combined worktree
+## 2026-10-04 targeted corrections — active checkpoint
+
+Initial local/tracking/live remote and correction base:
+`21cf8f7de6fea1bf419dadbfac39476d11474a07`, branch `huy-review`, clean worktree.
+Fetched `origin/huy-review`; no continuation drift. External source review of
+this checkpoint is **REQUEST CHANGES**, exactly RC-1/RC-2/RC-3 below.
+Huy owns the shared/source corrections for this run; historical writer
+restrictions do not block these assigned changes. D1-D4 remain A.
+
+| RC | Current behavior | Contract requirement | Correction remaining | Affected acceptance | Status |
+|---|---|---|---|---|---|
+| RC-1 | Historical requested-file relations are resolved independently of current approval; authoritative current actor/project/source/file facts still govern access | Current resource authority, independent of latest label eligibility | NONE | REPORT and synthetic AI: pending revision excludes new admission but preserves historical bytes/manifest and queued success; real SQL membership revoke denies content and worker without artifact | CLOSED/VERIFIED |
+| RC-2 | Explicit sourceId/sourceVersion properties bind canonical hash; source and target ordering is normalized | Hash binds source identity/version, scope and targets deterministically | NONE | 2 independent canonical unit cases; actual reader/producer SQL admission and completion; legacy queued hash and target drift fail candidate_stale without result/history rewrite | CLOSED/VERIFIED |
+| RC-3 | Explicit project Defect list/read/assessment/verification paths select Web cookie, using existing middleware and services | Existing CSRF/precedence/current authority and non-reviving activity policy | NONE | Cookie-only list/read/writes; missing/invalid CSRF, wrong project, inactive role, invalid bearer, mixed actors and idle/absolute/revoked session denials preserve effects/activity; bearer compatibility retained | CLOSED/VERIFIED |
+
+| Leader-confirmed boundary | Fixed status |
+|---|---|
+| Assigned/neighbor authoritative facts | UNAVAILABLE |
+| Event agreement | UNAVAILABLE |
+| Real MinIO/network/deployment environment | UNAVAILABLE |
+| HUY-02 FIELD/inspection/repair | OUT OF SCOPE |
+
+These fixed boundaries are not remaining Huy-owned code gates, create no
+future Codex work, and must not be reopened without a new project decision.
+Conflicting historical OPEN/PARTIAL/dependency/future-action wording below
+is superseded for these items. Prior PASS evidence in unrelated scopes is
+retained; historical assertions treating a new label revision as source-access
+revocation are superseded by RC-1 and are not valid contract evidence.
+Correction checkpoint external review: PENDING.
+
+### Fresh correction evidence and compatibility
+
+All fresh checks below ran on the correction worktree based on
+`21cf8f7de6fea1bf419dadbfac39476d11474a07`, containing only the eight
+correction paths delivered in this checkpoint. Disposable owned SQL databases
+use production migrations/mappings; no EnsureCreated, SQLite, fake identity
+handler or fake application service replaces production authorization.
+Artifact/video storage adapters remain test doubles, not real MinIO evidence.
+
+| Command | Exit/result | Artifact |
+|---|---|---|
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter 'FullyQualifiedName~MatchingSnapshotCanonicalTests' --logger 'trx;LogFileName=huy01-rc2-canonical.trx' --nologo -v q -clp:ErrorsOnly` | exit 0; executed 2 / passed 2 / failed 0 / skipped 0 | `tests/RoadGuardSystem.UnitTests/TestResults/huy01-rc2-canonical.trx` |
+| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter 'FullyQualifiedName~ManualReportLabel_ApprovalAndRevision\|FullyQualifiedName~Anh02AiHttpTests\|FullyQualifiedName~Candidate_ReportRejectCorrectionKeepNewAndLinkExisting\|FullyQualifiedName~CookieWrite_RequiresCsrf\|FullyQualifiedName~WebCookie_OptsIntoMe\|FullyQualifiedName~BearerAndCookieForDifferentActors' --logger 'trx;LogFileName=huy01-rc123-green.trx' --nologo -v q -clp:ErrorsOnly` | exit 0; executed 6 / passed 6 / failed 0 / skipped 0 | `tests/RoadGuardSystem.ApiTests/TestResults/huy01-rc123-green.trx` |
+| `dotnet build RoadGuardSystem.slnx --no-restore --nologo -v q -clp:ErrorsOnly` | exit 0; 381 warnings / 0 errors | console output |
+| `dotnet ef migrations has-pending-model-changes --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build` with design-time-only `ROADGUARD_MIGRATION_CONNECTION_STRING` | exit 0; no pending model changes; no database connection/migration applied | console output |
+| `git diff --check` and `git diff --cached --check` | exit 0 on the final correction diff at commit | console output |
+
+The table escapes filter separators for Markdown rendering; the executable
+filter contains ordinary `|` characters. Results are not summed with
+overlapping/red/intermediate runs. The initial REPORT regression reproduced
+the invalid current-head dependency (`huy01-rc1-red.trx`); the separately run
+AI regression reproduced historical content denial (`huy01-rc1-ai-red.trx`).
+Cookie-only Defect reproduced 401 (`huy01-rc3-red.trx`). Intermediate failing
+attempts are superseded by `huy01-rc123-green.trx`, not acceptance PASS.
+
+RC-1 does not alter immutable label revisions/reviews or export snapshot/file
+facts. `CaptureApprovedAsync` still admits only current APPROVED revisions;
+`CanReadAsync` queries only the requested files and validates current resource
+relations even for a historical revision. Wrong project, current role and an
+unrelated verified private file remain denied. Real membership revocation is
+the denial oracle, replacing the incorrect "revision revokes resource access"
+assertions. Both completed bytes and a previously admitted queued export stay
+valid across PENDING revision when resource authority is unchanged.
+
+RC-2 changes hash bytes for source-bearing captures. Persisted completed
+manifests/results are untouched. Legacy queued/in-flight snapshots are not
+silently accepted: existing strict recheck yields `candidate_stale` and no
+result; a new operation can recapture under the unchanged command contract.
+The integration probe delegates to the actual production reader, counts
+admission/preparation/completion (3 captures), and changes a mutable Defect
+target version after preparation; completion rejects the stale hash. No AI
+provenance/manifest was mutated by SQL. A literal independent canonical vector
+proves source ID/version representation and deterministic source ordering.
+
+RC-3 changes only cookie eligibility for the implemented GUID-scoped Defect
+surface. Existing CSRF, credential precedence, user/role/project/session
+validation and activity update policy are reused. Successful cookie assessment
+and verification each persist one scoped log/audit/receipt and touch activity;
+denials preserve Defect version, scoped logs/audits/receipts and activity.
+No options/environment, auth routes, staff/onboarding/AI cookie binding,
+framework/package or wire DTO changes were made.
+
+Direct acceptance dependency fixed in the module test: its previous global
+`IMigrator.MigrateAsync` downgrade could remove later empty AI tables before
+the populated Label guard rejected the downgrade. The regression now executes
+the exact Label migration's first Down guard without downgrading unrelated
+schema. Shared fixture, production mappings, migrations/snapshot and test order
+were not changed; no new migration acceptance is required for this code-only
+correction. JSON/Postman check is not rerun because those artifacts did not change.
+
+Self-review pass 1 checked current authority/privacy, historical file relation,
+scoped transactions, CSRF/credential precedence and non-reviving activity.
+Pass 2 checked explicit canonical source fields, independent oracle, strict
+legacy hash compatibility, immutable snapshot/history, production test binding
+and the final eight-path diff. Actionable setup issues (expiry constraint,
+revocation ordering, non-destructive migration guard and storage adapter for
+the matching observation host) were fixed and the affected six-case run passed.
+
+Inherited PASS gates are retained within their original evidence scope:
+Reporter P1/intake/privacy, multipart recovery, CaseDefect consumer, Web/Android
+core, OTP/session schema/issuance, Case workflow/publication, candidate effects,
+Label persistence/current eligibility, reporting/retention contribution,
+migrations/model and static Postman. They were not broadly rerun or counted
+again. Only historical-access and matching-hash assertions superseded above
+must use this new evidence. Remaining Huy-owned code gates: **NONE**;
+independent corrections remaining: **NONE**; Huy-owned correction completion:
+**100%**; additional independent Huy Codex runs needed: **0**.
+`deliveryStatus=PARTIAL` pending external review of this correction checkpoint;
+the frozen UNAVAILABLE/OUT OF SCOPE boundaries are not remaining code work and
+are not represented as PASS or executed acceptance. STOP after commit/push.
+
+## 2026-10-03 mandatory closure ledger - HISTORICAL, superseded above
 
 `CURRENT_VERIFIED` preflight for this continuation: `huy-review` local,
 tracking and live remote all started at

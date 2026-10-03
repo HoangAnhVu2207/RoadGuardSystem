@@ -30,9 +30,25 @@ internal static class WebCookieConfiguration
             || path.Equals("/api/v1/auth/change-password", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/v1/reports", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/v1/cases", StringComparison.OrdinalIgnoreCase)
+            || IsProjectDefectPath(path)
             || path.Contains("/candidate-decisions", StringComparison.OrdinalIgnoreCase)
             || path.Contains("/candidates", StringComparison.OrdinalIgnoreCase)
             || path.Contains("/labels", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsProjectDefectPath(string path)
+    {
+        var parts = path.TrimEnd('/').Split('/');
+        if (parts.Length is < 6 or > 8 || parts[0] != "" ||
+            !parts[1].Equals("api", StringComparison.OrdinalIgnoreCase) ||
+            !parts[2].Equals("v1", StringComparison.OrdinalIgnoreCase) ||
+            !parts[3].Equals("projects", StringComparison.OrdinalIgnoreCase) ||
+            !Guid.TryParse(parts[4], out _) ||
+            !parts[5].Equals("defects", StringComparison.OrdinalIgnoreCase)) return false;
+        if (parts.Length == 6) return true;
+        if (!Guid.TryParse(parts[6], out _)) return false;
+        return parts.Length == 7 || parts[7].Equals("assessments", StringComparison.OrdinalIgnoreCase) ||
+            parts[7].Equals("verification-decisions", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static void Configure(CookieAuthenticationOptions options)

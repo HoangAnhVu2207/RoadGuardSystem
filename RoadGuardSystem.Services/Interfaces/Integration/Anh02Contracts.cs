@@ -26,11 +26,16 @@ public sealed record ApprovedTrainingLabelV1(Guid LabelId, int Revision, Guid Re
     Guid? ModelVersionId, Guid? DatasetVersionId, string Mode, Guid? SegmentId);
 public sealed record ApprovedLabelSnapshotV1(string SchemaVersion, Guid SnapshotId, string Hash,
     DateTimeOffset CapturedAt, IReadOnlyList<ApprovedTrainingLabelV1> Labels);
+// Capture under the exporter's scoped SQL transaction or return a durable
+// immutable producer snapshot. Only current APPROVED revisions are eligible.
 public interface IApprovedTrainingLabelReader
 {
     Task<ApprovedLabelSnapshotV1?> CaptureApprovedAsync(Guid actorId, UserRoleCode role, Guid projectId,
         TrainingLabelFilterV1 filters, CancellationToken cancellationToken = default);
 }
+// Recheck current actor/role/project/source/file permission even for historical
+// exports. The snapshot's label need not remain the latest approved head.
+// Historical approval/export inclusion never grants current resource access.
 public interface ITrainingSourceAccessReader
 {
     Task<bool> CanReadAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid[] fileIds,

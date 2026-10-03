@@ -73,15 +73,25 @@ public sealed class MatchingCandidateSnapshotReader(RoadGuardDbContext db,
                 .OrderBy(target => target.DefectId)
                 .Select(target => new MatchingCandidateItemV1(target.DefectId, target.Version,
                     target.SegmentId, routeVersionId)).ToArray();
-            var canonical = JsonSerializer.SerializeToUtf8Bytes(new
-            {
-                requestedSnapshotId, projectId, routeVersionId, segmentSetId, geometryVersion,
-                sources, items
-            });
+            var canonical = SerializeCanonical(requestedSnapshotId, projectId, routeVersionId,
+                segmentSetId, geometryVersion, sources, items);
             var hash = Convert.ToHexString(SHA256.HashData(canonical)).ToLowerInvariant();
             return new(requestedSnapshotId, hash, projectId, routeVersionId, segmentSetId,
                 geometryVersion, clock.GetUtcNow(), items);
         }
         catch (CaseWorkflowException) { return null; }
     }
+
+    // Tuple fields are not serializable properties under the default JSON options.
+    // Project them explicitly so the hash binds each detection and its version.
+    public static byte[] SerializeCanonical(Guid requestedSnapshotId, Guid projectId,
+        Guid routeVersionId, Guid segmentSetId, string geometryVersion,
+        IEnumerable<(Guid Id, string Version)> sources, IEnumerable<MatchingCandidateItemV1> items)
+        => JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            requestedSnapshotId, projectId, routeVersionId, segmentSetId, geometryVersion,
+            sources = sources.OrderBy(source => source.Id)
+                .Select(source => new { sourceId = source.Id, sourceVersion = source.Version }),
+            items = items.OrderBy(item => item.DefectId)
+        });
 }

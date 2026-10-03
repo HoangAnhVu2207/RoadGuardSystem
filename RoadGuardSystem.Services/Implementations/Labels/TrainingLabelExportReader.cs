@@ -120,11 +120,63 @@ public sealed class TrainingLabelExportReader(RoadGuardDbContext db, ICaseWorkfl
         if (fileIds is null || fileIds.Any(id => id == Guid.Empty)) return false;
         try
         {
-            var snapshot = await CaptureApprovedAsync(actorId, role, projectId,
-                new TrainingLabelFilterV1([], [], null, null), cancellationToken);
-            return snapshot is not null && fileIds.All(id => snapshot.Labels.Any(label => label.FileId == id));
+            return await Consistent(async ct =>
+            {
+                await AuthorizeAsync(actorId, role, projectId, ct);
+                // A historical relation locates the resource; neither its approval nor
+                // the current label head grants resource access. Check only requested files.
+                var rows = await (from head in db.Set<HuyTrainingLabelHead>().AsNoTracking()
+                    join revision in db.Set<HuyTrainingLabelRevision>().AsNoTracking() on head.Id equals revision.LabelId
+                    join file in db.Files.AsNoTracking() on revision.FileId equals file.Id
+                    where head.ProjectId == projectId && fileIds.Contains(revision.FileId)
+                    select new { head.SourceKind, head.SourceId, revision.SourceVersion,
+                        revision.FileId, revision.FileVersion, file.Checksum, file.SizeBytes, file.MimeType })
+                    .ToArrayAsync(ct);
+                foreach (var fileId in fileIds.Distinct().Order())
+                {
+                    var permitted = false;
+                    foreach (var row in rows.Where(row => row.FileId == fileId)
+                        .OrderBy(row => row.SourceKind).ThenBy(row => row.SourceId))
+                    {
+                        if (row.SourceKind == "REPORT")
+                        {
+                            var source = await producer.ResolveCandidateSourceAsync(actorId, role, projectId,
+                                CandidateSourceKind.Report, row.SourceId, cancellationToken: ct);
+                            if (source.Status != AnhHuyProducerStatus.Ready) continue;
+                            await cases.GuardAsync(actorId, role, [source.Facts!.CaseId], projectId,
+                                async (project, token) => await scope.AuthorizeAsync(actorId, role, project, token) is not null, ct);
+                            await candidates.LockSourceAsync(row.SourceId, source.Facts.CaseId, ct);
+                            source = await producer.ResolveCandidateSourceAsync(actorId, role, projectId,
+                                CandidateSourceKind.Report, row.SourceId, cancellationToken: ct);
+                            if (source.Status != AnhHuyProducerStatus.Ready) continue;
+                            permitted = source.Facts!.Evidence.Any(evidence =>
+                                evidence.Reference.FileId == fileId && evidence.Reference.FileVersion == row.FileVersion &&
+                                evidence.ChecksumSha256 == row.Checksum && evidence.SizeBytes == row.SizeBytes &&
+                                evidence.MediaType == row.MimeType && evidence.MediaType is "image/jpeg" or "image/png");
+                        }
+                        else if (row.SourceKind == "AI_DETECTION")
+                        {
+                            var ai = aiReaders.SingleOrDefault();
+                            if (ai is null) continue;
+                            await candidates.LockAiSourceAsync(row.SourceId, ct);
+                            var source = await ai.ResolveAsync(actorId, role, projectId, row.SourceId,
+                                cancellationToken: ct);
+                            if (source.Status != AnhHuyProducerStatus.Ready) continue;
+                            var proof = source.Facts!;
+                            permitted = proof.Mode == "MOCK/SYNTHETIC" && proof.SourceVersion == row.SourceVersion &&
+                                proof.FrameFileId == fileId && proof.FrameFileVersion == row.FileVersion &&
+                                proof.FrameSha256 == row.Checksum && proof.FrameSizeBytes == row.SizeBytes &&
+                                proof.FrameMediaType == row.MimeType;
+                        }
+                        if (permitted) break;
+                    }
+                    if (!permitted) return false;
+                }
+                return true;
+            }, cancellationToken);
         }
         catch (UnauthorizedAccessException) { return false; }
+        catch (CaseWorkflowException) { return false; }
     }
 
     private Task<T> Consistent<T>(Func<CancellationToken, Task<T>> read, CancellationToken token)

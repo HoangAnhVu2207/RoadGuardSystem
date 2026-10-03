@@ -221,8 +221,29 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
             Assert.Equal(AnhHuyProducerStatus.StaleDisposition,(await reader.ResolveAsync(manager.Id,UserRoleCode.ProjectManager,project,detectionId,expectedDispositionVersion:"stale")).Status);
         }
         var matching=input with{Stage="DUPLICATE_MATCHING",AnalysisRunId=run,CandidateSnapshotId=Guid.NewGuid()};
+        var independentCanonical = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            requestedSnapshotId = matching.CandidateSnapshotId!.Value, projectId = project,
+            routeVersionId = route, segmentSetId = set, geometryVersion,
+            sources = new[] { new { sourceId = detectionId, sourceVersion = proof.GetProperty("sourceVersion").GetString() } },
+            items = Array.Empty<MatchingCandidateItemV1>()
+        });
+        var independentHash = Convert.ToHexString(SHA256.HashData(independentCanonical)).ToLowerInvariant();
+        using (var capture = factory.Services.CreateScope())
+        {
+            var actual = await capture.ServiceProvider.GetRequiredService<IMatchingCandidateSnapshotReader>()
+                .CaptureAsync(manager.Id, UserRoleCode.ProjectManager, project, route, set, geometryVersion,
+                    [detectionId], matching.CandidateSnapshotId.Value);
+            Assert.NotNull(actual);
+            Assert.Equal(independentHash, actual.Hash);
+        }
         var noTargets=await Command(client,path,matching); Assert.Equal(HttpStatusCode.Accepted,noTargets.StatusCode);
         var noTargetsId=(await Body(noTargets)).GetProperty("id").GetGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            using var manifest = JsonDocument.Parse((await db.Set<AiMockRun>().SingleAsync(value => value.Id == noTargetsId)).CanonicalManifest);
+            Assert.Equal(independentHash, manifest.RootElement.GetProperty("candidateSnapshotHash").GetString());
+        }
         using(var worker=factory.Services.CreateScope()) Assert.True(await worker.ServiceProvider.GetRequiredService<IAnh02AiService>().ProcessOneAsync(default));
         var noTargetsResultResponse = await client.GetAsync(path+$"/{noTargetsId}/result");
         Assert.True(noTargetsResultResponse.StatusCode == HttpStatusCode.OK,
@@ -357,6 +378,15 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         Assert.True(trainingContent.StatusCode == HttpStatusCode.OK,
             $"Content={trainingContent.StatusCode}; job={await (await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}")).Content.ReadAsStringAsync()}");
         Assert.Equal("PK", System.Text.Encoding.ASCII.GetString((await trainingContent.Content.ReadAsByteArrayAsync())[..2]));
+        var originalManifest = await (await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/manifest")).Content.ReadAsStringAsync();
+        var queuedTraining = await Command(client, $"/api/v1/projects/{project}/exports",
+            new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true });
+        Assert.Equal(HttpStatusCode.Accepted, queuedTraining.StatusCode);
+        var queuedTrainingId = (await Body(queuedTraining)).GetProperty("id").GetGuid();
+        var revokedTraining = await Command(client, $"/api/v1/projects/{project}/exports",
+            new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true });
+        Assert.Equal(HttpStatusCode.Accepted, revokedTraining.StatusCode);
+        var revokedTrainingId = (await Body(revokedTraining)).GetProperty("id").GetGuid();
         var realMatching = input with { Stage = "DUPLICATE_MATCHING", AnalysisRunId = run,
             CandidateSnapshotId = Guid.NewGuid() };
         var matchAdmission = await Command(client, path, realMatching);
@@ -367,6 +397,62 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         var actualMatches = await Body(await client.GetAsync(path + $"/{matchRunId}/result"));
         Assert.Contains(actualMatches.GetProperty("matches").EnumerateArray(),
             item => item.GetProperty("candidateDefectId").GetGuid() == aiDefectId);
+        // Instrument the real reader, not a substitute producer. A legacy queued
+        // hash is rejected; mutable target drift after preparation is caught at completion.
+        var matchingProbe = new MatchingProbe();
+        await using (var observedFactory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IHostedService>();
+            services.Configure<Anh02AiOptions>(options => options.MockEnabled = true);
+            services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(sourceStorage);
+            services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(artifacts);
+            services.RemoveAll<IMatchingCandidateSnapshotReader>();
+            services.AddScoped<IMatchingCandidateSnapshotReader>(provider => new ObservedMatchingReader(
+                ActivatorUtilities.CreateInstance<RoadGuardSystem.Services.Implementations.Defects.MatchingCandidateSnapshotReader>(provider), matchingProbe));
+        }))
+        {
+            using var observed = observedFactory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+            await Login(observed, manager.UserName!);
+            matchingProbe.LegacyAdmission = true;
+            var legacyAdmission = await Command(observed, path, matching with { CandidateSnapshotId = Guid.NewGuid() });
+            Assert.Equal(HttpStatusCode.Accepted, legacyAdmission.StatusCode);
+            var legacyRun = (await Body(legacyAdmission)).GetProperty("id").GetGuid();
+            string legacyManifest;
+            await using (var db = sql.CreateDbContext())
+                legacyManifest = (await db.Set<AiMockRun>().SingleAsync(value => value.Id == legacyRun)).CanonicalManifest;
+            matchingProbe.LegacyAdmission = false;
+            using (var worker = observedFactory.Services.CreateScope())
+                Assert.True(await worker.ServiceProvider.GetRequiredService<IAnh02AiService>().ProcessOneAsync(default));
+            Assert.Equal(2, matchingProbe.Calls);
+            await using (var db = sql.CreateDbContext())
+            {
+                var stale = await db.Set<AiMockRun>().SingleAsync(value => value.Id == legacyRun);
+                Assert.Equal("FAILED", stale.Status);
+                Assert.Equal("candidate_stale", stale.ErrorCode);
+                Assert.Equal(legacyManifest, stale.CanonicalManifest);
+                Assert.False(await db.Set<AiResultProvenance>().AnyAsync(value => value.RunId == legacyRun));
+            }
+            matchingProbe.Calls = 0;
+            matchingProbe.Hashes.Clear();
+            matchingProbe.AfterSecondCapture = async () =>
+            {
+                await using var db = sql.CreateDbContext();
+                await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Defects SET Severity=2 WHERE Id={aiDefectId}");
+            };
+            var driftAdmission = await Command(observed, path, matching with { CandidateSnapshotId = Guid.NewGuid() });
+            Assert.Equal(HttpStatusCode.Accepted, driftAdmission.StatusCode);
+            var driftRun = (await Body(driftAdmission)).GetProperty("id").GetGuid();
+            using (var worker = observedFactory.Services.CreateScope())
+                Assert.True(await worker.ServiceProvider.GetRequiredService<IAnh02AiService>().ProcessOneAsync(default));
+            Assert.Equal(3, matchingProbe.Calls); // admission, preparation, transactional completion recheck
+            Assert.Equal(matchingProbe.Hashes[0], matchingProbe.Hashes[1]);
+            Assert.NotEqual(matchingProbe.Hashes[1], matchingProbe.Hashes[2]);
+            await using var driftDb = sql.CreateDbContext();
+            var drifted = await driftDb.Set<AiMockRun>().SingleAsync(value => value.Id == driftRun);
+            Assert.Equal("FAILED", drifted.Status);
+            Assert.Equal("candidate_stale", drifted.ErrorCode);
+            Assert.False(await driftDb.Set<AiResultProvenance>().AnyAsync(value => value.RunId == driftRun));
+        }
         var revised = await Command(client, $"/api/v1/projects/{project}/labels/{labelId}/revisions",
             new { fileId = detection.GetProperty("frameFileId").GetGuid(),
                 annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = .375m,
@@ -386,8 +472,15 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         var historicalExport = await Body(await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/manifest"));
         Assert.Contains(historicalExport.GetProperty("labels").EnumerateArray(),
             item => item.GetProperty("labelId").GetGuid() == labelId && item.GetProperty("revision").GetInt32() == 1);
-        Assert.Equal(HttpStatusCode.Forbidden,
-            (await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/content")).StatusCode);
+        Assert.Equal(originalManifest, await (await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/manifest")).Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Command(client, $"/api/v1/projects/{project}/exports",
+            new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true })).StatusCode);
+        var historicalContent = await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/content");
+        Assert.Equal(HttpStatusCode.OK, historicalContent.StatusCode);
+        Assert.Equal(await trainingContent.Content.ReadAsByteArrayAsync(), await historicalContent.Content.ReadAsByteArrayAsync());
+        using (var worker = factory.Services.CreateScope())
+            Assert.True(await worker.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>().ProcessNextAsync(default));
+        Assert.Equal("SUCCEEDED", (await Body(await client.GetAsync($"/api/v1/projects/{project}/exports/{queuedTrainingId}"))).GetProperty("status").GetString());
         var empty=await Command(client,path,input with{FixtureVersion="synthetic-empty-v1"}); Assert.Equal(HttpStatusCode.Accepted,empty.StatusCode);
         var emptyRun=(await Body(empty)).GetProperty("id").GetGuid();
         using(var worker=factory.Services.CreateScope()) Assert.True(await worker.ServiceProvider.GetRequiredService<IAnh02AiService>().ProcessOneAsync(default));
@@ -466,6 +559,18 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         await using(var db=sql.CreateDbContext()) { var member=await db.ProjectMembers.SingleAsync(m=>m.ProjectId==project&&m.UserId==manager.Id);member.Status=ProjectMemberStatus.Ended;await db.SaveChangesAsync(); }
         Assert.Equal(HttpStatusCode.Forbidden,(await Command(client,path,input,key:key)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden,(await client.GetAsync(path+$"/{run}/result")).StatusCode);
+        var deniedTraining = await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/content");
+        Assert.Equal(HttpStatusCode.Forbidden, deniedTraining.StatusCode);
+        Assert.Equal("application/problem+json", deniedTraining.Content.Headers.ContentType!.MediaType);
+        using (var worker = factory.Services.CreateScope())
+            Assert.True(await worker.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>().ProcessNextAsync(default));
+        await using (var db = sql.CreateDbContext())
+        {
+            var deniedJob = await db.Set<RoadGuardSystem.BusinessObjects.Exports.ExportJob>().SingleAsync(job => job.Id == revokedTrainingId);
+            Assert.Equal("FAILED", deniedJob.Status);
+            Assert.Equal("export_authority_revoked", deniedJob.ErrorCode);
+            Assert.Null(deniedJob.ArtifactId);
+        }
     }
     private sealed class MatchingFixtureReader:IMatchingCandidateSnapshotReader
     {
@@ -475,6 +580,38 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
             Assert.Equal(Snapshot.ProjectId,projectId);Assert.Equal(Snapshot.RouteVersionId,routeVersionId);Assert.Equal(Snapshot.SegmentSetId,segmentSetId);
             Assert.Equal(Snapshot.GeometryVersion,geometryVersion);Assert.Equal(Snapshot.SnapshotId,requestedSnapshotId);Assert.Single(detectionIds);
             Calls++;return Task.FromResult<MatchingCandidateSnapshotV1?>(StaleAtCompletion&&Calls>=3 ? Snapshot with{Hash=new string('d',64)} : Snapshot);
+        }
+    }
+    private sealed class MatchingProbe
+    {
+        public int Calls;
+        public bool LegacyAdmission;
+        public List<string> Hashes { get; } = [];
+        public Func<Task>? AfterSecondCapture;
+    }
+    private sealed class ObservedMatchingReader(
+        RoadGuardSystem.Services.Implementations.Defects.MatchingCandidateSnapshotReader actual,
+        MatchingProbe probe) : IMatchingCandidateSnapshotReader
+    {
+        public async Task<MatchingCandidateSnapshotV1?> CaptureAsync(Guid actorId, UserRoleCode role, Guid projectId,
+            Guid routeVersionId, Guid segmentSetId, string geometryVersion, Guid[] detectionIds,
+            Guid requestedSnapshotId, CancellationToken cancellationToken = default)
+        {
+            var snapshot = await actual.CaptureAsync(actorId, role, projectId, routeVersionId, segmentSetId,
+                geometryVersion, detectionIds, requestedSnapshotId, cancellationToken);
+            Assert.NotNull(snapshot);
+            probe.Calls++;
+            probe.Hashes.Add(snapshot.Hash);
+            if (probe.Calls == 2 && probe.AfterSecondCapture is not null) await probe.AfterSecondCapture();
+            if (!probe.LegacyAdmission) return snapshot;
+            // Reproduce the historical algorithm at admission without rewriting its persisted manifest.
+            var sources = detectionIds.Order().Select(id => (Id: id, Version: "omitted-tuple-field")).ToList();
+            var canonical = JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                requestedSnapshotId, projectId, routeVersionId, segmentSetId, geometryVersion,
+                sources, items = snapshot.Items
+            });
+            return snapshot with { Hash = Convert.ToHexString(SHA256.HashData(canonical)).ToLowerInvariant() };
         }
     }
     private sealed class AttemptCloseFailure : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor

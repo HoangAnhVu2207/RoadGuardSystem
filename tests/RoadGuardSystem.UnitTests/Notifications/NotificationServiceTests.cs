@@ -35,5 +35,8 @@ public sealed class NotificationServiceTests
 
         public Task<NotificationMarkReadPersistenceResult> MarkReadAsync(Guid recipientUserId, Guid notificationId, string idempotencyKey, string requestFingerprint, string expectedVersion, CancellationToken cancellationToken = default)
             => Task.FromResult(new NotificationMarkReadPersistenceResult(NotificationMarkReadPersistenceStatus.NotFound));
+
+        public Task<NotificationMarkReadPersistenceResult> MarkReadAsync(Guid recipientUserId, Guid notificationId, string idempotencyKey, string requestFingerprint, string expectedVersion, RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode? authenticatedRole, CancellationToken cancellationToken = default)
+            => MarkReadAsync(recipientUserId, notificationId, idempotencyKey, requestFingerprint, expectedVersion, cancellationToken);
     }
 }

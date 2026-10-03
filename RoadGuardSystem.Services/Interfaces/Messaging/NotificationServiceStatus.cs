@@ -7,5 +7,6 @@ public enum NotificationServiceStatus
     InvalidInput = 3,
     NotFound = 4,
     StaleConcurrency = 5,
-    IdempotentConflict = 6
+    IdempotentConflict = 6,
+    Unauthorized = 7
 }

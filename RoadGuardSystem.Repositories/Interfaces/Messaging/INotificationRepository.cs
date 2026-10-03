@@ -1,3 +1,5 @@
+using RoadGuardSystem.aBusinessObjects.Commons;
+
 namespace RoadGuardSystem.Repositories.Messaging;
 
 public interface INotificationRepository
@@ -20,5 +22,10 @@ public interface INotificationRepository
         string idempotencyKey,
         string requestFingerprint,
         string expectedVersion,
+        CancellationToken cancellationToken = default);
+
+    Task<NotificationMarkReadPersistenceResult> MarkReadAsync(
+        Guid recipientUserId, Guid notificationId, string idempotencyKey,
+        string requestFingerprint, string expectedVersion, UserRoleCode? authenticatedRole,
         CancellationToken cancellationToken = default);
 }

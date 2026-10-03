@@ -7,6 +7,7 @@ using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.DTOs.Messaging;
 using RoadGuardSystem.Services.Messaging;
+using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.API.Controllers;
 
@@ -99,11 +100,16 @@ public sealed class NotificationsController : ControllerBase
                 "Required precondition headers are missing");
         }
 
+        var role = UserRoleCodeExtensions.FromDbCode(User.FindFirstValue("role") ?? string.Empty);
+        if (role == UserRoleCode.Unknown)
+            return ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
+
         var result = await _service.MarkReadAsync(
             actorUserId,
             notificationId,
             idempotencyKey,
             ifMatch,
+            role,
             cancellationToken);
 
         if (result.Notification is not null)
@@ -115,6 +121,8 @@ public sealed class NotificationsController : ControllerBase
         {
             NotificationServiceStatus.Success or NotificationServiceStatus.Replayed
                 when result.Notification is not null => Ok(result.Notification),
+            NotificationServiceStatus.Unauthorized => ProblemResponse(
+                StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized"),
             NotificationServiceStatus.NotFound => ProblemResponse(
                 StatusCodes.Status404NotFound,
                 ApiErrorCodes.NotificationNotFound,

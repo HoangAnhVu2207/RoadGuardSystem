@@ -138,7 +138,8 @@ public sealed class P207NotificationPersistenceTests : IClassFixture<IdentitySql
         await using var context = _fixture.CreateDbContext();
         var repository = new NotificationPersistenceService(context, new IdempotencyOperationService(context));
         var version = Convert.ToBase64String(originalVersion);
-        var outsider = await repository.MarkReadAsync(Guid.NewGuid(), notificationId, Guid.NewGuid().ToString(), Fingerprint("outsider"), version);
+        var outsiderId = (await CreateRecipientAsync(context)).Id;
+        var outsider = await repository.MarkReadAsync(outsiderId, notificationId, Guid.NewGuid().ToString(), Fingerprint("outsider"), version);
         outsider.Status.Should().Be(NotificationMarkReadPersistenceStatus.NotFound);
         var stale = await repository.MarkReadAsync(recipientId, notificationId, Guid.NewGuid().ToString(), Fingerprint("stale"), Convert.ToBase64String(Guid.NewGuid().ToByteArray()));
         stale.Status.Should().Be(NotificationMarkReadPersistenceStatus.StaleConcurrency);

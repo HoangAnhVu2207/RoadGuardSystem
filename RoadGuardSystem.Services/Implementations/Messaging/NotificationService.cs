@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using RoadGuardSystem.DTOs.Messaging;
 using RoadGuardSystem.Repositories.Messaging;
+using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Services.Messaging;
 
@@ -71,11 +72,17 @@ public sealed class NotificationService : INotificationService
                 result.AsOf));
     }
 
+    public Task<NotificationReadServiceResult> MarkReadAsync(
+        Guid actorUserId, Guid notificationId, string idempotencyKey,
+        string expectedVersion, CancellationToken cancellationToken = default)
+        => MarkReadAsync(actorUserId, notificationId, idempotencyKey, expectedVersion, null, cancellationToken);
+
     public async Task<NotificationReadServiceResult> MarkReadAsync(
         Guid actorUserId,
         Guid notificationId,
         string idempotencyKey,
         string expectedVersion,
+        UserRoleCode? authenticatedRole,
         CancellationToken cancellationToken = default)
     {
         if (actorUserId == Guid.Empty || notificationId == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey))
@@ -97,6 +104,7 @@ public sealed class NotificationService : INotificationService
             idempotencyKey.Trim(),
             fingerprint,
             normalizedVersion,
+            authenticatedRole,
             cancellationToken);
 
         return result.Status switch
@@ -108,6 +116,7 @@ public sealed class NotificationService : INotificationService
             NotificationMarkReadPersistenceStatus.NotFound => new(NotificationServiceStatus.NotFound),
             NotificationMarkReadPersistenceStatus.StaleConcurrency => new(NotificationServiceStatus.StaleConcurrency),
             NotificationMarkReadPersistenceStatus.IdempotentConflict => new(NotificationServiceStatus.IdempotentConflict),
+            NotificationMarkReadPersistenceStatus.Unauthorized => new(NotificationServiceStatus.Unauthorized),
             _ => new(NotificationServiceStatus.InvalidInput)
         };
     }

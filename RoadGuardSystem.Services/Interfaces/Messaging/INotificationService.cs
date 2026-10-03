@@ -1,4 +1,5 @@
 using RoadGuardSystem.DTOs.Messaging;
+using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Services.Messaging;
 
@@ -20,5 +21,10 @@ public interface INotificationService
         Guid notificationId,
         string idempotencyKey,
         string expectedVersion,
+        CancellationToken cancellationToken = default);
+
+    Task<NotificationReadServiceResult> MarkReadAsync(
+        Guid actorUserId, Guid notificationId, string idempotencyKey,
+        string expectedVersion, UserRoleCode? authenticatedRole,
         CancellationToken cancellationToken = default);
 }

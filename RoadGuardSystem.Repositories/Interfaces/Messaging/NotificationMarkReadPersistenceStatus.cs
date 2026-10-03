@@ -6,5 +6,6 @@ public enum NotificationMarkReadPersistenceStatus
     Replayed = 2,
     NotFound = 3,
     StaleConcurrency = 4,
-    IdempotentConflict = 5
+    IdempotentConflict = 5,
+    Unauthorized = 6
 }

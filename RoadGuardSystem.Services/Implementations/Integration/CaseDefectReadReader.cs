@@ -6,6 +6,7 @@ using RoadGuardSystem.BusinessObjects.Cases;
 using RoadGuardSystem.BusinessObjects.Defects;
 using RoadGuardSystem.Repositories.Models.Huy01;
 using RoadGuardSystem.Repositories;
+using RoadGuardSystem.Repositories.Implementations.Cases;
 using RoadGuardSystem.Services.Integration;
 
 namespace RoadGuardSystem.Services.Implementations.Integration;
@@ -15,6 +16,14 @@ namespace RoadGuardSystem.Services.Implementations.Integration;
 public sealed class CaseDefectReadReader(RoadGuardDbContext db) : ICaseDefectReadReader
 {
     private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
+    public static string WireStatus(IncidentCaseStatus status) => CaseWorkflowRepository.WireStatus(status);
+
+    public static byte[] SerializeCanonical(RoadGuardSystem.DTOs.Reporting.CaseDefectSnapshotV1 snapshot)
+        => JsonSerializer.SerializeToUtf8Bytes(snapshot, WebJson);
+
+    public static string ComputeHash(RoadGuardSystem.DTOs.Reporting.CaseDefectSnapshotV1 snapshot)
+        => Convert.ToHexString(SHA256.HashData(SerializeCanonical(snapshot with { Hash = "" }))).ToLowerInvariant();
 
     public async Task<RoadGuardSystem.DTOs.Reporting.CaseDefectSnapshotV1?> CaptureAsync(
         Guid actorId, UserRoleCode role, Guid projectId,
@@ -75,7 +84,7 @@ public sealed class CaseDefectReadReader(RoadGuardDbContext db) : ICaseDefectRea
                 p.Id, caseVersion, recipients.Where(r => r.PublicationId == p.Id).Select(r => r.ReportId).OrderBy(x => x).ToArray(),
                 publicationEvidence.Where(e => e.PublicationId == p.Id).Select(e => e.EvidenceId).OrderBy(x => x).ToArray()))
                 .OrderBy(x => x.PublicationId).ToArray();
-            return new RoadGuardSystem.DTOs.Reporting.CaseReadFactV1(c.Id, c.ProjectId!.Value, caseVersion, c.Status.ToString().ToUpperInvariant(), currentReports, conclusions, casePublications);
+            return new RoadGuardSystem.DTOs.Reporting.CaseReadFactV1(c.Id, c.ProjectId!.Value, caseVersion, WireStatus(c.Status), currentReports, conclusions, casePublications);
         }).ToArray();
 
         var defects = await db.Defects.AsNoTracking().Where(d => d.ProjectId == projectId).ToListAsync(cancellationToken);
@@ -85,8 +94,7 @@ public sealed class CaseDefectReadReader(RoadGuardDbContext db) : ICaseDefectRea
 
         var snapshot = new RoadGuardSystem.DTOs.Reporting.CaseDefectSnapshotV1("anh-huy.case-defect.v1", Guid.NewGuid(), projectId,
             DateTimeOffset.UtcNow, "", caseFacts, defectFacts, [], missing.OrderBy(x => x, StringComparer.Ordinal).ToArray());
-        var canonical = JsonSerializer.SerializeToUtf8Bytes(snapshot with { Hash = "" }, WebJson);
-        return snapshot with { Hash = Convert.ToHexString(SHA256.HashData(canonical)).ToLowerInvariant() };
+        return snapshot with { Hash = ComputeHash(snapshot) };
     }
 
     private static string ToVersion(byte[]? value)

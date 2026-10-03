@@ -1,5 +1,64 @@
 # HUY-01 — Identity transport → Reporter/case → PM candidate/label
 
+## 2026-10-03 closure-first CaseDefect/Label checkpoint - PARTIAL
+
+`CURRENT_VERIFIED` preflight: branch `huy-review`; local/tracking/live
+`origin/huy-review` were `04c155f620367c8c620ba827ea4a38d3018b8172` and the
+worktree was clean. No continuation, Anh branch, develop or main path was
+merged or rewritten. This checkpoint keeps the prior reader/Label fixes and
+changes only the Huy-owned reader helper, focused regression and this ledger.
+
+### Closure ledger
+
+| Item | Closure state | Evidence and boundary |
+|---|---|---|
+| Case status representation | `CLOSED - HUY VERIFIED` | `CaseDefectReadReader.WireStatus` delegates to `CaseWorkflowRepository.WireStatus`; the regression covers all five statuses and proves `AWAITING_EVIDENCE`. |
+| Production snapshot/schema/hash compatibility | `SOURCE COMPLETE - WAITING ANH INTEGRATION/ACCEPTANCE` | Reader now uses the production `SerializeCanonical`/`ComputeHash` helper with `anh-huy.case-defect.v1` and Web JSON. Non-empty case/report/conclusion/publication data and legacy serializer divergence are covered by 6 passing unit cases. Exact Anh consumer compatibility is source-evidenced at `f7a32dc...`; producer-consumer SQL is not run. |
+| Valid incomplete facts and deterministic ordering | `SOURCE COMPLETE - WAITING ANH INTEGRATION/ACCEPTANCE` | Reader orders cases/reports/conclusions/publications and emits explicit missing reasons while omitting unverifiable Defect facts. SQL materialization and consumer acceptance remain pending. |
+| Active role/current authority | `SOURCE COMPLETE - WAITING ANH INTEGRATION/ACCEPTANCE` | Production query requires active user, matching active role row, active current membership and valid dates. Fresh SQL/privacy acceptance is not claimed. |
+| Persisted Case/Report versions | `SOURCE COMPLETE - WAITING ANH INTEGRATION/ACCEPTANCE` | Versions use projected EF rowversion bytes, not detached `Entry` state. Current model/schema migration compatibility is still Anh-owned. |
+| Non-empty conclusions/history-version semantics | `SOURCE COMPLETE - WAITING ANH INTEGRATION/ACCEPTANCE` | Conclusions are eager-loaded and non-empty snapshot history is regression-covered; Case aggregate version remains explicitly documented as current aggregate semantics, not immutable history proof. |
+| Label materialization/FileVersion | `CLOSED - HUY VERIFIED` | `TrainingLabel.Materialize` rejects blank persisted `FileVersion`; valid ordered history regression remains green. No Label persistence/mapping was opened. |
+| OTP failure triage | `BLOCKED - EXACT EXTERNAL DEPENDENCY` | Disposable SQL run at `tests/RoadGuardSystem.IntegrationTests/TestResults/otp-closure.trx`: exact filter executed 1/passed 0/failed 1/skipped 0, failure at `Huy01IdentityBoundaryTests.cs:64` with empty Success set. Repository converts `DbUpdateException` to Conflict, so TRX has no inner SQL message. `UserSession` model/configuration contains `Transport` and `LastActivityAt`, while inspected migrations contain neither column; this confirms model/schema drift. Anh owns additive migration/model snapshot/integration and must rerun OTP after that handoff. |
+| Regression/evidence/documentation | `CLOSED - HUY VERIFIED` | Affected builds and 55 HUY-01 unit tests pass; this section separates source, binding and persistence evidence. External review of this diff is still pending. |
+| Source/binding/SQL/HTTP acceptance | `SOURCE COMPLETE - WAITING ANH INTEGRATION/ACCEPTANCE` | Source is ready for reserved integration; production binding remains disabled, SQL acceptance is blocked by schema/producer facts, and HTTP acceptance is not run for the unbound reader. |
+
+### Verification - CURRENT_VERIFIED
+
+| Command | Result |
+|---|---|
+| `dotnet build RoadGuardSystem.Services/RoadGuardSystem.dServices.csproj --no-restore --nologo -v q -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --nologo -v q -clp:ErrorsOnly` | exit 0; 0 warnings, 0 errors |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter "Package=HUY-01" --logger "trx;LogFileName=huy01-closure-unit.trx" --nologo -v q -clp:ErrorsOnly` | executed 55, passed 55, failed 0, skipped 0; exit 0 |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter "FullyQualifiedName~Huy01CaseDefectConsumerCompatibilityTests" --nologo -v q -clp:ErrorsOnly` | executed 6, passed 6, failed 0, skipped 0; exit 0 |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter "FullyQualifiedName~Huy01IdentityBoundaryTests.Otp_ConcurrentCorrectVerification_CommitsOneSessionAndOneConsumption" --logger "trx;LogFileName=otp-closure.trx" --nologo -v n` | executed 1, passed 0, failed 1, skipped 0; exit 1; SQL fixture started successfully, acceptance blocked by confirmed Session schema drift |
+| `git diff --check` | exit 0; no whitespace errors |
+
+Self-review pass 1 checked status vocabulary, current authority/privacy,
+persisted versions, incomplete snapshot semantics and Label invariants. Pass 2
+checked exact Anh consumer provenance, production-vs-test hash usage, ownership,
+schema drift evidence and that no shared file or binding was changed. External
+ChatGPT review for this new diff is `PENDING`; Reporter P1 remains `CLOSED` only
+within the earlier reviewed intake/receipt scope. `deliveryStatus=PARTIAL`.
+
+### Handoff boundary
+
+Anh dependencies are exact: additive `Sessions.Transport` and
+`Sessions.LastActivityAt` migration/model snapshot and rerun of the OTP SQL
+fixture; persisted Defect source/version/geometry/disposition facts; evidence
+checksum and recipient authority; shared DI and real producer-consumer SQL/HTTP
+fixtures. Huy has no remaining independent source/test/docs work in this
+closure scope after this checkpoint. Any future reader activation, SQL/HTTP
+acceptance or history-version contract decision requires that handoff; no fake
+binding or producer is introduced here.
+
+`CURRENT_VERIFIED` source status: Huy reader/Label fixes and regressions are in
+this branch. `NOT RUN/BLOCKED` binding status: reader is not production-registered.
+`BLOCKED` SQL status: Session schema drift plus missing producer facts. `NOT RUN`
+HTTP status: no canonical reader route is activated.
+
+`deliveryStatus=PARTIAL`; this is not `HUY-01 DONE`.
+
 ## 2026-10-03 bounded CaseDefectRead / Label finding fix - PARTIAL
 
 `CURRENT_VERIFIED` preflight: branch `huy-review`; initial local, tracking and

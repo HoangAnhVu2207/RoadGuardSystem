@@ -109,15 +109,18 @@ public sealed class Defect
             Status = DefectStatus.Open, Geometry = geometry, ReportedAt = reportedAt.ToUniversalTime() };
     }
 
-    public DefectVerificationLog Assess(string type, string? cause, DefectSeverity severity, Guid actor, string reason)
+    public DefectVerificationLog Assess(string type, string? cause, DefectSeverity severity, Guid actor, string reason,
+        IReadOnlyCollection<Guid>? evidenceIds = null)
     {
         if (Status is not (DefectStatus.Open or DefectStatus.Verified)) throw new InvalidOperationException("Only an Open or Verified defect can be assessed.");
         if (severity == DefectSeverity.Unknown || !Enum.IsDefined(severity)) throw new ArgumentOutOfRangeException(nameof(severity));
+        if (evidenceIds is not null && (evidenceIds.Any(id => id == Guid.Empty) || evidenceIds.Distinct().Count() != evidenceIds.Count))
+            throw new ArgumentException("Assessment evidence ids must be non-empty and unique.", nameof(evidenceIds));
         var nextType = ValidateCode(type, nameof(type));
         var nextCause = string.IsNullOrWhiteSpace(cause) ? null : ValidateCode(cause, nameof(cause));
         var log = DefectVerificationLog.Create(Guid.NewGuid(), Id, null, DefectVerificationAction.Adjust,
             JsonSerializer.Serialize(new { DefectTypeCode, CauseCategoryCode, Severity, Status }),
-            JsonSerializer.Serialize(new { DefectTypeCode = nextType, CauseCategoryCode = nextCause, Severity = severity, Status }), null, null, actor, reason);
+            JsonSerializer.Serialize(new { DefectTypeCode = nextType, CauseCategoryCode = nextCause, Severity = severity, Status, evidenceIds }), null, null, actor, reason);
         DefectTypeCode = nextType; CauseCategoryCode = nextCause; Severity = severity;
         return log;
     }

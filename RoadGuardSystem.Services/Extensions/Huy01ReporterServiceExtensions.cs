@@ -25,6 +25,12 @@ public static class Huy01ReporterServiceExtensions
     {
         services.AddHuy01ReporterCaseServices();
         services.TryAddScoped<RoadGuardSystem.Services.Defects.ICandidateDecisionService, RoadGuardSystem.Services.Implementations.Defects.CandidateDecisionService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Candidates.ICandidateMatchingService, RoadGuardSystem.Services.Implementations.Defects.CandidateMatchingService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Defects.IDefectWorkflowService, RoadGuardSystem.Services.Implementations.Defects.DefectWorkflowService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Labels.ITrainingLabelService, RoadGuardSystem.Services.Implementations.Labels.TrainingLabelService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Implementations.Labels.TrainingLabelExportReader>();
+        services.TryAddScoped<RoadGuardSystem.Services.Integration.IApprovedTrainingLabelReader>(provider => provider.GetRequiredService<RoadGuardSystem.Services.Implementations.Labels.TrainingLabelExportReader>());
+        services.TryAddScoped<RoadGuardSystem.Services.Integration.ITrainingSourceAccessReader>(provider => provider.GetRequiredService<RoadGuardSystem.Services.Implementations.Labels.TrainingLabelExportReader>());
         return services;
     }
 }

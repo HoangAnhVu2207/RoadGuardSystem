@@ -15,6 +15,23 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class CandidatesController : ControllerBase
 {
     private ICandidateDecisionService? Service => HttpContext.RequestServices.GetService(typeof(ICandidateDecisionService)) as ICandidateDecisionService;
+    private RoadGuardSystem.Services.Candidates.ICandidateMatchingService? Matching =>
+        HttpContext.RequestServices.GetService(typeof(RoadGuardSystem.Services.Candidates.ICandidateMatchingService))
+        as RoadGuardSystem.Services.Candidates.ICandidateMatchingService;
+
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId:guid}/candidates")]
+    public async Task<IActionResult> Match(Guid projectId, [FromQuery] string? sourceKind,
+        [FromQuery] Guid sourceId, [FromQuery] bool expand = false,
+        [FromQuery] int pageSize = 50, [FromQuery] string? cursor = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Actor(out var actor, out var role)) return Error(401, "auth_unauthorized");
+        var matching = Matching;
+        if (matching is null) return Error(503, "dependency_unavailable");
+        var result = await matching.MatchAsync(actor, role, projectId, sourceKind, sourceId,
+            expand, pageSize, cursor, cancellationToken);
+        return result.Page is null ? Error(result.Status, result.Code!) : Ok(result.Page);
+    }
 
     [HttpPost]
     public async Task<IActionResult> Decide(Guid projectId, CandidateDecisionRequestDto request, CancellationToken cancellationToken)

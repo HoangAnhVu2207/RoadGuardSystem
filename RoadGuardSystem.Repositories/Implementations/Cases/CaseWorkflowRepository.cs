@@ -228,8 +228,11 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
     }
 
     private Task<Guid[]> RelatedDefectsAsync(Guid report, CancellationToken ct)
-        => (from head in db.Set<HuyCandidateSourceHead>() join decision in db.SourceDecisions on head.DecisionId equals decision.Id
-            where head.SourceKind == CandidateSourceKind.Report && head.SourceId == report && decision.TargetDefectId != null select decision.TargetDefectId!.Value).ToArrayAsync(ct);
+        => (from head in db.Set<HuyCandidateSourceHead>()
+            join link in db.Set<HuyDefectSourceLink>() on head.DecisionId equals link.DecisionId
+            where head.SourceKind == CandidateSourceKind.Report && head.SourceId == report &&
+                link.SourceKind == CandidateSourceKind.Report && link.SourceId == report && link.EndedAt == null
+            select link.DefectId).ToArrayAsync(ct);
 
     private void PersistHistory(IncidentCase incident)
     {

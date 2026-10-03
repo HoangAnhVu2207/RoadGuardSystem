@@ -1,5 +1,7 @@
+using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Candidates;
 using RoadGuardSystem.BusinessObjects.Defects;
@@ -13,6 +15,48 @@ namespace RoadGuardSystem.Repositories.Implementations.Defects;
 
 public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandidateDecisionRepository
 {
+    public Task<T> ReadConsistentlyAsync<T>(Func<CancellationToken, Task<T>> read, CancellationToken ct)
+    {
+        if (db.Database.CurrentTransaction is { } current)
+        {
+            if (current.GetDbTransaction().IsolationLevel is not (IsolationLevel.Serializable or IsolationLevel.Snapshot))
+                throw new InvalidOperationException("Candidate capture requires SERIALIZABLE or SNAPSHOT isolation.");
+            return read(ct);
+        }
+        return db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var result = await read(ct);
+            await transaction.CommitAsync(ct);
+            return result;
+        });
+    }
+
+    public async Task<IReadOnlyList<CandidateTargetMatchFact>> MatchTargetsAsync(Guid projectId, CancellationToken ct)
+    {
+        var targets = await db.Defects.AsNoTracking().Where(defect => defect.ProjectId == projectId)
+            .Select(defect => new { defect.Id, defect.ProjectId, defect.RoadSectionVersionId,
+                Version = EF.Property<byte[]>(defect, "RowVersion") }).ToArrayAsync(ct);
+        var ids = targets.Select(target => target.Id).ToArray();
+        var links = await db.Set<HuyDefectSourceLink>().AsNoTracking()
+            .Where(link => ids.Contains(link.DefectId) && link.ProjectId == projectId && link.EndedAt == null)
+            .ToArrayAsync(ct);
+        var decisionIds = links.Select(link => link.DecisionId).ToArray();
+        var decisions = await db.SourceDecisions.AsNoTracking()
+            .Where(decision => decisionIds.Contains(decision.Id)).ToDictionaryAsync(decision => decision.Id, ct);
+        return targets.Select(target =>
+        {
+            var related = links.Where(link => link.DefectId == target.Id).OrderBy(link => link.CreatedAt)
+                .ThenBy(link => link.Id).ToArray();
+            var segment = related.Select(link => decisions.GetValueOrDefault(link.DecisionId)?.Classification?.SegmentId)
+                .FirstOrDefault(value => value is not null);
+            return new CandidateTargetMatchFact(target.Id, target.ProjectId!.Value,
+                target.RoadSectionVersionId, segment, Convert.ToBase64String(target.Version),
+                related.Where(link => link.ReportSourceId is not null)
+                    .Select(link => link.ReportSourceId!.Value).Distinct().Order().ToArray());
+        }).ToArray();
+    }
+
     public async Task LockSourceAsync(Guid reportId, Guid expectedCase, CancellationToken ct)
     {
         await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Reports] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={reportId}").SingleAsync(ct);

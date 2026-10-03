@@ -16,13 +16,49 @@ blob at that SHA (`b8c89225f8c3d25304875e7cdf1b3f506a1d7a60`).
 |---|---|---|---|---|---|---|
 | Reporter intake/receipt/privacy | §§4, 6, 8, 10 B | CLOSED within externally reviewed Reporter P1 scope; current auth-selector regression 41/41 | None identified | Default auth selector now includes `/reports`, so affected Reporter HTTP/SQL was rerun | Prior real Reporter acceptance, external PASS and fresh affected regression | Huy |
 | Multipart recovery | §10 E and Anh handoff | Source/SQL CLOSED; real MinIO external-only | Controlled real-storage/network acceptance | Allowed test bucket/MinIO endpoint | Prior disposable SQL/adapter; real-storage gate separately labelled | Huy/environment |
-| CaseDefect compatibility/read | §§8, 10 E; `anh-huy.case-defect.v1` | PARTIAL: actual consumer oracle and real SQL reader probe pass | Bind reader to actual reporting consumer, complete producer-consumer acceptance and recipient privacy | Anh reporting service graph and authoritative remaining facts | Deterministic hash/status; real SQL materialization, incomplete/wrong-project/current-role negatives | Huy |
+| CaseDefect compatibility/read | §§8, 10 E; `anh-huy.case-defect.v1` | PARTIAL: actual consumer oracle and SQL reader now include REPORT Defect links and VERIFIED evidence | Bind reader to actual reporting consumer; test producer-consumer transaction and wrong-project/current-role negatives | Exact Anh reporting service graph at `5089c326` also depends on ANH-02 baseline/dataset entities and migration | Deterministic hash/status; real SQL materialization, incomplete/wrong-project/current-role negatives | Huy |
 | Web/Android auth transport | §§5.1-5.2, 10 A | PARTIAL: six Web and four Android HTTP/SQL probes pass on this worktree | Boundary/race/logout/password-change acceptance and final contract/config verification | Same-site local fixture; production origin is deployment input | Exact wire, CSRF, idle/absolute boundaries, rotation/revocation races, legacy regression | Huy |
-| Case workflow/publication | §§6-8, 10 B | PARTIAL: domain and existing persisted workflow slices | Remaining recipient/transaction HTTP/SQL flow and canonical binding | Current case facts and publication authority | Scope/privacy, stale multi-case rollback, conclusion/publication effects | Huy |
-| Candidate/matching/Defect | §§7-8, 10 C-D | PARTIAL: domain, REPORT decision service/repository and matcher exist | Actual geometry/source/AI facts, Defect rowversion and source-link effects, required SQL/HTTP acceptance | Exact Anh AI producer and concurrency migration | Current disposition/version, no fake distance/task, atomic decisions | Huy |
-| Label lifecycle/export | §§7-8, 10 C-E | OPEN beyond domain policy | Mapping/migration, SQL writer/API, approved/source-access readers, actual consumer | Verified source/file facts and producer graph | Current-head concurrency, approval-only export, historical snapshot access | Huy |
-| Retention contribution | §§8-10 | PARTIAL: Report/Case/Candidate inventory contributor is tested | Label/Defect reference completion and actual consumer registration | Label and Defect effects | Fail-closed incomplete references and current/historical obligation SQL | Huy |
-| Events/canonical routes/Postman | §§8-10 | OPEN for newly activated flows; no event emitted | Adopt only agreed envelope/consumer; align actual HTTP/contract/Postman | Event agreement is external; route wiring is Huy-owned | Network smoke and durable outbox only for agreed events | Huy/owner |
+| Case workflow/publication | §§6-8, 10 B | PARTIAL: real SQL/HTTP CONFIRMED publication, two-Reporter recipient privacy and link/split pass | Cross-project/stale multi-case rollback and remaining contract/network acceptance | Current case facts and publication authority | Scope/privacy, stale multi-case rollback, conclusion/publication effects | Huy |
+| Candidate/matching/Defect | §§7-8, 10 C-D | PARTIAL: REPORT KEEP_NEW/LINK_EXISTING, source links, rowversion, no-GPS project match and Defect assessment/verification pass SQL/HTTP | AI provenance bridge, assigned/neighbor matching and further concurrency/rollback acceptance | Exact Anh AI provenance graph at `5089c326`; no invented metric distance | Current disposition/version, no fake distance/task, atomic decisions | Huy |
+| Label lifecycle/export | §§7-8, 10 C-E | PARTIAL: manual REPORT SQL/API, current-head migration, approved/source-access readers pass on disposable SQL | Actual exporter consumer, AI provenance and historical export/file access acceptance | Exact Anh ExportService graph at `5089c326` depends on ANH-02 export persistence/renderer | Current-head concurrency, approval-only export, historical snapshot access | Huy |
+| Retention contribution | §§8-10 | PARTIAL: Report/Case/Candidate/Defect-link/Label revisions and reviews are SQL-read; repair remains explicit incomplete | Actual composite consumer integration and historical obligation acceptance | Exact Anh RetentionInventoryRepository graph at `5089c326` depends on ANH-02 dataset/assessment/baseline entities | Fail-closed incomplete references and current/historical obligation SQL | Huy |
+| Events/canonical routes/Postman | §§8-10 | PARTIAL: Huy Case/Candidate/Defect/Label routes and DI active; no event emitted | Adopt only agreed envelope/consumer and align canonical Postman/network acceptance | Event agreement is external; route/Postman work is Huy-owned | Network smoke and durable outbox only for agreed events | Huy/owner |
+
+### 2026-10-03 REPORT Defect, Label and recipient checkpoint - PARTIAL
+
+This continuation began after the pushed `b3d291a` Candidate/Defect dependency
+checkpoint. The current uncommitted slice adds the manual REPORT Label head,
+revision and review schema with append-only SQL triggers, production Label
+service/routes, current-approved/source-access readers, Candidate matching and
+Defect assessment/verification routes. The CaseDefect reader now carries
+persisted REPORT Defect links and verified evidence. Case conclusion was fixed
+to resolve KEEP_NEW through the current typed source link, not only the
+`LINK_EXISTING` target field. Assessment logs retain the selected evidence ids.
+Retention revision fingerprints no longer include mutable label-head fields.
+
+Focused disposable SQL/HTTP command (after the shared-fixture downgrade probe
+was removed) executed 3, passed 3, failed 0, skipped 0:
+
+`dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter "FullyQualifiedName~Candidate_ReportRejectCorrectionKeepNewAndLinkExisting|FullyQualifiedName~ManualReportLabel_ApprovalAndRevision|FullyQualifiedName~Case_LinkSplitAndPublication" --logger "trx;LogFileName=huy01-current-candidate-label-case-rerun.trx" --nologo -v q -clp:ErrorsOnly`
+
+Artifact: `tests/RoadGuardSystem.ApiTests/TestResults/huy01-current-candidate-label-case-rerun.trx`.
+Affected `Package=HUY-01` unit tests executed 58, passed 58, failed 0,
+skipped 0 (`huy01-current-domain-units.trx`). Focused schema,
+CaseDefect reader and production-binding SQL/HTTP tests executed 5, passed 5,
+failed 0, skipped 0 (`huy01-current-schema-reader-binding.trx`). These are
+distinct filters; prior isolated probe runs are not added to the totals.
+The first combined run failed because a Candidate test's downgrade attempt
+removed the empty Label migration on the shared disposable fixture before the
+Defect downgrade guard threw; that test action was removed, not hidden by
+fixture reset or test ordering. Label's populated-table downgrade guard remains
+SQL-tested. `dotnet build RoadGuardSystem.slnx --no-restore --nologo -v q
+-clp:ErrorsOnly` exited 0 (0 errors, 649 warnings). EF
+`migrations has-pending-model-changes` exited 0 with a design-time-only local
+connection string; no shared/deployed database migration was applied.
+`git diff --check` exited 0. These results do not prove actual Anh exporter,
+reporting or retention consumer integration, AI producer, network Postman,
+real MinIO, or external review. `deliveryStatus=PARTIAL`; external review of
+this combined diff is `PENDING`.
 
 ### 2026-10-03 Candidate/Defect dependency checkpoint
 

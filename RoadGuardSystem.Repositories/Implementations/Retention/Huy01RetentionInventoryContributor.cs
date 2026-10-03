@@ -75,6 +75,40 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
             Version(new { row.SourceId, row.SourceVersion, row.Decision, row.SupersedesDecisionId,
                 RowVersion = Convert.ToBase64String(row.RowVersion) }))));
 
+        var sourceLinks = await (from link in db.Set<HuyDefectSourceLink>().AsNoTracking()
+            join evidence in db.Reports.AsNoTracking().SelectMany(report => report.OriginalEvidence)
+                on link.ReportSourceId equals evidence.ReportId
+            where evidence.FileId == fileId
+            select new { link.Id, link.ProjectId, link.SourceKind, link.SourceId, link.DefectId,
+                link.DecisionId, link.CreatedAt, link.EndedAt }).Distinct().ToArrayAsync(token);
+        references.AddRange(sourceLinks.Select(row => new RetentionReferenceView("DEFECT_SOURCE_LINK", row.Id,
+            row.ProjectId, Version(row))));
+        var supplementalSourceLinks = await (from link in db.Set<HuyDefectSourceLink>().AsNoTracking()
+            join evidence in db.Set<ReportSupplement>().AsNoTracking().SelectMany(s => s.Evidence)
+                on link.ReportSourceId equals evidence.ReportId
+            where evidence.FileId == fileId
+            select new { link.Id, link.ProjectId, link.SourceKind, link.SourceId, link.DefectId,
+                link.DecisionId, link.CreatedAt, link.EndedAt }).Distinct().ToArrayAsync(token);
+        references.AddRange(supplementalSourceLinks.Where(row => sourceLinks.All(existing => existing.Id != row.Id))
+            .Select(row => new RetentionReferenceView("DEFECT_SOURCE_LINK", row.Id, row.ProjectId, Version(row))));
+
+        var revisions = await (from revision in db.Set<HuyTrainingLabelRevision>().AsNoTracking()
+            join head in db.Set<HuyTrainingLabelHead>().AsNoTracking() on revision.LabelId equals head.Id
+            where revision.FileId == fileId
+            select new { revision.Id, revision.LabelId, revision.Revision, revision.SourceVersion,
+                revision.FileVersion, revision.DefectTypeCode, revision.CreatedAt,
+                head.ProjectId, head.SourceKind, head.SourceId }).ToArrayAsync(token);
+        references.AddRange(revisions.Select(row => new RetentionReferenceView("TRAINING_LABEL_REVISION",
+            row.Id, row.ProjectId, Version(new { row.LabelId, row.Revision, row.SourceVersion,
+                row.FileVersion, row.DefectTypeCode, row.CreatedAt, row.SourceKind, row.SourceId }))));
+        var revisionIds = revisions.Select(row => row.Id).ToArray();
+        var reviews = await db.Set<HuyTrainingLabelReview>().AsNoTracking()
+            .Where(row => revisionIds.Contains(row.RevisionId))
+            .Select(row => new { row.Id, row.RevisionId, row.Decision, row.ReviewedAt, row.ActorUserId })
+            .ToArrayAsync(token);
+        references.AddRange(reviews.Select(row => new RetentionReferenceView("TRAINING_LABEL_REVIEW", row.Id,
+            revisions.Single(revision => revision.Id == row.RevisionId).ProjectId, Version(row))));
+
         var histories = await (from relation in db.Set<HuyLinkHistoryReport>().AsNoTracking()
             join history in db.Set<CaseReportLinkHistory>().AsNoTracking() on relation.HistoryId equals history.Id
             where reportIds.Contains(relation.ReportId)
@@ -84,8 +118,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
 
         var ordered = references.OrderBy(r => r.Kind, StringComparer.Ordinal).ThenBy(r => r.Id)
             .ThenBy(r => r.ProjectId).ThenBy(r => r.SourceVersion, StringComparer.Ordinal).ToArray();
-        return new(Name, false, ordered, ["HUY_LABEL_INVENTORY_UNAVAILABLE", "HUY_DEFECT_SOURCE_LINK_UNAVAILABLE",
-            "HUY_REPAIR_REFERENCE_UNAVAILABLE"]);
+        return new(Name, false, ordered, ["HUY_REPAIR_REFERENCE_UNAVAILABLE"]);
     }
 
     public async Task<IReadOnlyList<Guid>> KnownProjectFilesAsync(Guid projectId, CancellationToken token)
@@ -95,7 +128,10 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
         var original = await reports.SelectMany(report => report.OriginalEvidence).Select(e => e.FileId).ToArrayAsync(token);
         var supplemental = await reports.SelectMany(report => report.Supplements).SelectMany(s => s.Evidence)
             .Select(e => e.FileId).ToArrayAsync(token);
-        return original.Concat(supplemental).Distinct().Order().ToArray();
+        var labels = await db.Set<HuyTrainingLabelRevision>().AsNoTracking()
+            .Where(revision => db.Set<HuyTrainingLabelHead>().Any(head => head.Id == revision.LabelId && head.ProjectId == projectId))
+            .Select(revision => revision.FileId).ToArrayAsync(token);
+        return original.Concat(supplemental).Concat(labels).Distinct().Order().ToArray();
     }
 
     private static string Version(object value)

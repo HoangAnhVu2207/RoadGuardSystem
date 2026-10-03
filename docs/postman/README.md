@@ -165,3 +165,10 @@ Folder `ANH-02 assigned - AI reporting export retention` thêm 23 requests; gi�
 Keys tách từng command và giữ ổn định khi replay. Chọn `anh02DossierFormat=ZIP` hoặc `PDF`; PDF cần cấu hình licensed Unicode font. Sau admission, poll worker tới terminal rồi mới lấy result/content. Matching trả409 source_not_ready và training trả503 producer_unavailable khi Huy reader chưa có; không xem chúng là integration đã hoàn tất. Basis request dự kiến409 khi reference inventory chưa đủ; đừng thay inventory version bằng giá trị đoán. Hold không gia hạn download expiry30 ngày. Không có request xóa thật.
 
 Runner gửi HTTP chưa chạy; JSON, scripts và compatibility được kiểm riêng, kết quả thực nằm trong `planning/development/ANH-02-summary.md`. Những nhận định về DB/API local ở phần đầu README là lịch sử, không phải trạng thái môi trường ANH-02 hiện tại.
+Private REPORT_PHOTO multipart correction: keep the part-issuance key stable for
+replay. SQL retry after acknowledged storage success reuses the same multipart ID.
+A durable unresolved initialization claim returns503 storage-unavailable even with
+a fresh key; do not loop new keys or reset DB metadata to bypass it. Storage/process
+acknowledgement loss requires authorized reconciliation (no automatic abort/list
+adapter exists). Fault-injection/recovery/concurrent-key coverage runs in owned SQL
+fixtures, not by modifying the shared/deployed database or deleting storage objects.

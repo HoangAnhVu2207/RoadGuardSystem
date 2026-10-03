@@ -45,7 +45,8 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
             switch (change)
             {
                 case "role": role.IsActive = false; break;
-                case "mismatch": user.RoleCode = UserRoleCode.DroneOperator; break;
+                // Isolated SQL authority fault, not a production identity mutation.
+                case "mismatch": await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Users] SET [RoleCode]={UserRoleCode.DroneOperator.ToDbCode()} WHERE [Id]={owner.Id}"); break;
                 case "inactive": user.Status = UserStatus.Suspended; break;
                 case "password": user.MustChangePassword = true; break;
             }
@@ -67,7 +68,8 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
         }
         finally
         {
-            role.IsActive = true; user.RoleCode = UserRoleCode.Reporter; user.Status = UserStatus.Active; user.MustChangePassword = false;
+            if (change == "mismatch") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Users] SET [RoleCode]={UserRoleCode.Reporter.ToDbCode()} WHERE [Id]={owner.Id}");
+            role.IsActive = true; user.Status = UserStatus.Active; user.MustChangePassword = false;
             await db.SaveChangesAsync();
         }
     }
@@ -92,12 +94,17 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
             role.IsActive = false; await db.SaveChangesAsync();
             foreach (var request in new[] { input, input with { RequestFingerprint = new string('a', 64) }, input with { IdempotencyKey = Guid.NewGuid().ToString() } })
                 (await repo.CreateAsync(request)).Status.Should().Be(RoadGuardSystem.Repositories.Files.UploadPersistenceStatus.NotFound);
-            (await repo.GetPartUrlsAsync(owner.Id, null, first.Session!.Id, [1], Guid.NewGuid().ToString(), "parts",
+            (await repo.GetPartUrlsAsync(owner.Id, null, first.Session!.Id, [1], Guid.NewGuid().ToString(), new string('c', 64),
                 DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(15))).Status.Should().Be(RoadGuardSystem.Repositories.Files.UploadPersistenceStatus.NotFound);
+            (await repo.CompleteAsync(new(owner.Id, null, first.Session.Id, first.Session.Version,
+                [new CompletedStoragePart(1, "synthetic-etag")], PhotoStorage.Hash, Guid.NewGuid().ToString(), new string('d', 64), null)))
+                .Status.Should().Be(RoadGuardSystem.Repositories.Files.UploadPersistenceStatus.NotFound);
             (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == owner.Id)).Should().Be(before);
             (await db.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == first.Session.Id)).StorageUploadId.Should().BeNull();
         }
-        finally { role.IsActive = true; await db.SaveChangesAsync(); }
+        // The receipt primitive clears tracking on retry; restore through a fresh
+        // scoped context, not a potentially detached Role instance.
+        finally { await using var restore = sql.CreateDbContext(); await restore.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Roles] SET [IsActive]={true} WHERE [Code]={UserRoleCode.Reporter.ToDbCode()}"); }
     }
     [Theory]
     [InlineData(false)]

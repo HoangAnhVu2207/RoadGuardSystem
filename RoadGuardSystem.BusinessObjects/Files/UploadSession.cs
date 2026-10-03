@@ -74,6 +74,18 @@ public sealed class UploadSession
         ValidateText(storageUploadId, nameof(storageUploadId), 1024);
         StorageUploadId = storageUploadId.Trim();
         Status = UploadSessionStatus.Uploading;
+        FailureCode = null;
+    }
+
+    // Durable fence for a non-idempotent external initiation. An unresolved claim
+    // is deliberately not reset: storage success with a lost acknowledgement is ambiguous.
+    public void ClaimMultipartInitiation(string claim, DateTimeOffset now)
+    {
+        if (Status != UploadSessionStatus.Pending || StorageUploadId is not null ||
+            FailureCode is not null || now.ToUniversalTime() >= ExpiresAt)
+            throw new InvalidOperationException("Multipart initiation is already claimed or unavailable.");
+        ValidateText(claim, nameof(claim), 80);
+        FailureCode = claim;
     }
 
     public void StartVerification(string expectedVersion, DateTimeOffset now)

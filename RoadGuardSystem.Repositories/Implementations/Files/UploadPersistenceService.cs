@@ -55,6 +55,7 @@ public sealed class UploadPersistenceService : IUploadRepository
                 request.RequestFingerprint,
                 async token =>
                 {
+                    if (request.ProjectId is null) await GuardPrivateAsync(request.ActorUserId, null, token);
                     var now = DateTimeOffset.UtcNow;
                     var fileId = Guid.NewGuid();
                     var objectKey = $"uploads/{fileId:N}";
@@ -214,6 +215,42 @@ public sealed class UploadPersistenceService : IUploadRepository
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+            // The durable private claim commits BEFORE external I/O. Never put
+            // initiation in a SQL execution-strategy/receipt delegate. If the process
+            // loses the storage acknowledgement, later requests fail closed on the
+            // claim; they cannot create an unbounded succession of orphan multiparts.
+            string? privateStorageId = null;
+            if (projectId is null)
+            {
+                var claim = $"multipart_initiating:{Guid.NewGuid():N}";
+                var strategy = _context.Database.CreateExecutionStrategy();
+                var canInitiate = await strategy.ExecuteAsync(async () =>
+                {
+                    _context.ChangeTracker.Clear();
+                    await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                    await GuardPrivateAsync(actorUserId, session.FileId, cancellationToken);
+                    var receipt = await _context.IdempotencyRecords.AsNoTracking().AnyAsync(r =>
+                        r.ActorUserId == actorUserId && r.ProjectId == null && r.Operation == "UploadPartUrlsIssued"
+                        && r.IdempotencyKey == idempotencyKey, cancellationToken);
+                    var current = await _context.UploadSessions.SingleAsync(s => s.Id == uploadId, cancellationToken);
+                    if (receipt || !string.IsNullOrWhiteSpace(current.StorageUploadId))
+                    {
+                        await transaction.CommitAsync(cancellationToken);
+                        return false;
+                    }
+                    if (current.FailureCode is not null && current.FailureCode != claim)
+                        throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Multipart initiation outcome requires reconciliation.");
+                    if (current.FailureCode is null)
+                    {
+                        current.ClaimMultipartInitiation(claim, now);
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
+                    await transaction.CommitAsync(cancellationToken);
+                    return true;
+                });
+                if (canInitiate)
+                    privateStorageId = await _storage.InitiateAsync(session.ObjectKey, session.MediaType, cancellationToken);
+            }
             var outcome = await _idempotency.ExecuteAsync(
                 actorUserId,
                 projectId,
@@ -240,8 +277,10 @@ public sealed class UploadPersistenceService : IUploadRepository
                         ?? throw new UploadNotFoundException();
                     if (projectId is null && string.IsNullOrWhiteSpace(current.StorageUploadId))
                     {
-                        var storageId = await _storage.InitiateAsync(current.ObjectKey, current.MediaType, token);
-                        current.StartUploading(storageId, now);
+                        if (privateStorageId is null)
+                            throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Multipart initiation outcome requires reconciliation.");
+                        // This acknowledged ID survives all SQL retries in this call.
+                        current.StartUploading(privateStorageId, now);
                     }
                     foreach (var partNumber in partNumbers)
                     {
@@ -309,6 +348,7 @@ public sealed class UploadPersistenceService : IUploadRepository
                     var session = await _context.UploadSessions.SingleOrDefaultAsync(candidate => candidate.Id == request.UploadId, token)
                         ?? throw new UploadNotFoundException();
                     var scope = await _context.FileScopes.AsNoTracking().SingleAsync(candidate => candidate.FileId == session.FileId, token);
+                    if (request.ProjectId is null) await GuardPrivateAsync(request.ActorUserId, session.FileId, token);
                     if (!string.Equals(session.ExpectedChecksumSha256, request.ChecksumSha256, StringComparison.Ordinal))
                     {
                         throw new ArgumentException("Upload checksum does not match session expectation.");

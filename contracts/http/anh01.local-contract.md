@@ -210,3 +210,21 @@ producer_invalid. Complete reports use ReceivedAt [from,to); Case/Defect status
 is current stock. No reader implementation is registered. Snapshot metadata
 and source revisions are frozen in export admission; private evidence IDs do
 not enter generic file/ZIP-byte admission or grant Reporter recipient access.
+### Private multipart SQL retry correction (2026-10-03)
+
+Private REPORT_PHOTO part issuance commits an authorization-guarded initialization
+claim before storage initiation, outside the SQL retry/receipt transaction. An
+acknowledged multipart ID is reused by every receipt SQL retry. Concurrent same-key
+requests serialize and recover the one durable receipt; acknowledgement loss after
+SQL commit maps to replay with the original outcome. Current SQL actor/role/private
+scope authority is rechecked before issuance, replay and recovery; new create and
+complete handlers also hold that authority through their write transaction.
+
+If storage acknowledgement or the process is lost before the ID/receipt becomes
+durable, the existing session fails closed with storage-unavailable (503), including
+new keys. It never resets its durable claim or automatically initiates another
+multipart. The claim uses existing nullable UploadSession.FailureCode metadata;
+no migration or invented storage ID. There is no automatic reconciliation/abort
+capability in IUploadObjectStorage. An unresolved session requires separately
+authorized storage reconciliation; retrying keys is not a recovery mechanism.
+No bucket/object deletion or orphan-cleanup policy is introduced.

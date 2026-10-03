@@ -11,6 +11,10 @@ Anh refs (`5089c3267dcdf60645ab34f61b58a79e3cbb0cf6` and
 `7f8f7715853aa745c705c12a7c28e897ededae60`) was confirmed as
 `efc0ca10b53264bb24c807b7352ddba0cbe36b6d`.
 
+The coherent implementation commit is `33fa2a4f6f15b4a2e756bce7a7db66a96059de5c`,
+now pushed and verified at local/tracking/live `origin/huy-review`. Compare:
+`https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/f5d032ea95af95f5c01805fff02b83571beecbef...33fa2a4f6f15b4a2e756bce7a7db66a96059de5c`.
+
 The current writer scope permits Huy to complete HUY-01 shared integration.
 Earlier paragraphs that describe “wait for Anh to write shared integration” are
 historical and are superseded by this checkpoint. Remaining blockers below are

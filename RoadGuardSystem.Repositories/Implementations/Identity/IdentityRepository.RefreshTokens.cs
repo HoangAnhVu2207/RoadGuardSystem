@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Identity;
+using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Repositories.Identity;
 
@@ -28,9 +29,37 @@ public sealed partial class IdentityRepository
                 async attemptCancellationToken =>
                 {
                     _context.ChangeTracker.Clear();
+                    var tokenOwner = await _context.RefreshTokens.AsNoTracking()
+                        .Where(token => token.Id == oldTokenId)
+                        .Select(token => new { token.Session.UserId, token.SessionId })
+                        .SingleOrDefaultAsync(attemptCancellationToken);
+                    if (tokenOwner is null)
+                        return new RotateRefreshTokenResult(RotateRefreshTokenStatus.NotFound, null, "Token not found.");
+
+                    var user = await _context.Users.FromSqlInterpolated(
+                            $"SELECT * FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={tokenOwner.UserId}")
+                        .SingleOrDefaultAsync(attemptCancellationToken);
+                    if (user is null || user.Status != UserStatus.Active || user.MustChangePassword)
+                        return new RotateRefreshTokenResult(RotateRefreshTokenStatus.SessionRevoked, null,
+                            "User is no longer authorized.");
+                    var roleCode = user.RoleCode.ToDbCode();
+                    var role = await _context.Roles.FromSqlInterpolated(
+                            $"SELECT * FROM [Roles] WITH (UPDLOCK,HOLDLOCK) WHERE [Code]={roleCode}")
+                        .AsNoTracking().SingleOrDefaultAsync(attemptCancellationToken);
+                    if (role is null || !role.IsActive)
+                        return new RotateRefreshTokenResult(RotateRefreshTokenStatus.SessionRevoked, null,
+                            "Role is no longer active.");
+                    var session = await _context.Sessions.FromSqlInterpolated(
+                            $"SELECT * FROM [Sessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={tokenOwner.SessionId}")
+                        .SingleOrDefaultAsync(attemptCancellationToken);
+                    if (session is null || session.UserId != user.Id || session.RevokedAt is not null ||
+                        session.ExpiresAt <= DateTimeOffset.UtcNow)
+                        return new RotateRefreshTokenResult(RotateRefreshTokenStatus.SessionRevoked, null,
+                            "Parent session is revoked or expired.");
+
                     var oldToken = await _context.RefreshTokens
-                        .Include(token => token.Session)
-                        .SingleOrDefaultAsync(token => token.Id == oldTokenId, attemptCancellationToken);
+                        .FromSqlInterpolated($"SELECT * FROM [RefreshTokens] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={oldTokenId}")
+                        .SingleOrDefaultAsync(attemptCancellationToken);
                     if (oldToken is null)
                     {
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.NotFound, null, "Token not found.");
@@ -52,16 +81,16 @@ public sealed partial class IdentityRepository
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.Expired, null, "Token is expired.");
                     }
 
-                    if (oldToken.Session.RevokedAt != null || oldToken.Session.ExpiresAt <= now)
+                    if (oldToken.SessionId != session.Id || session.RevokedAt != null || session.ExpiresAt <= now)
                     {
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.SessionRevoked, null, "Parent session is revoked or expired.");
                     }
 
                     oldToken.RevokedAt = now;
                     newToken.SessionId = oldToken.SessionId;
-                    newToken.ExpiresAt = newToken.ExpiresAt <= oldToken.Session.ExpiresAt
+                    newToken.ExpiresAt = newToken.ExpiresAt <= session.ExpiresAt
                         ? newToken.ExpiresAt
-                        : oldToken.Session.ExpiresAt;
+                        : session.ExpiresAt;
                     var attemptReplacement = new RefreshToken
                     {
                         Id = newToken.Id,

@@ -64,7 +64,12 @@ public sealed record SessionSecurityState(
     DateTimeOffset ExpiresAt,
     DateTimeOffset? RevokedAt,
     bool IsActive,
-    byte[] RowVersion);
+    byte[] RowVersion,
+    SessionTransport Transport = SessionTransport.LegacyBearer,
+    DateTimeOffset? LastActivityAt = null);
+
+public sealed record WebSessionState(UserSecurityState User, Guid SessionId,
+    DateTimeOffset IssuedAt, DateTimeOffset AbsoluteExpiresAt, DateTimeOffset IdleExpiresAt);
 
 public sealed record RefreshTokenSecurityState(
     Guid Id,
@@ -181,6 +186,9 @@ public interface IIdentityRepository
     Task<bool> IsRoleActiveAsync(UserRoleCode roleCode, CancellationToken cancellationToken = default);
 
     Task<SessionSecurityState?> GetSessionSecurityStateAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
+    Task<WebSessionState?> TouchWebSessionAsync(Guid userId, Guid sessionId, UserRoleCode role,
+        DateTimeOffset now, bool allowMustChangePassword = false, CancellationToken cancellationToken = default);
 
     Task<RefreshTokenSecurityState?> FindRefreshTokenByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
 

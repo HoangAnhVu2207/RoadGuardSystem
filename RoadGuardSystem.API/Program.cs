@@ -1,5 +1,6 @@
 using Asp.Versioning.ApiExplorer;
 using RoadGuardSystem.API.Extensions;
+using RoadGuardSystem.API.Authentication;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.Repositories.Extensions;
 using RoadGuardSystem.Repositories.Options;
@@ -16,7 +17,7 @@ if (builder.Environment.IsDevelopment())
 }
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.AddService<WebCookieActivityFilter>());
 builder.Services.AddApiPlatformServices(builder.Configuration, builder.Environment.IsProduction());
 builder.Services.AddRoadGuardSeeding(
     includeDevelopmentUsers: builder.Environment.IsDevelopment() &&
@@ -74,6 +75,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<WebCookieRequestMiddleware>();
 
 // 4. Process liveness health check (unversioned)
 app.MapHealthChecks("/health");

@@ -9,6 +9,7 @@ using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.DTOs.Authentication;
 using RoadGuardSystem.Services.Authentication;
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.BusinessObjects.Identity;
 
 namespace RoadGuardSystem.API.Controllers;
 
@@ -39,6 +40,18 @@ public sealed class AuthController : ControllerBase
             cancellationToken);
         return MapResult(result);
     }
+
+    [AllowAnonymous]
+    [HttpPost("android/login")]
+    public async Task<IActionResult> AndroidLogin(LoginRequestDto request, CancellationToken cancellationToken)
+        => MapResult(await _authService.LoginAsync(
+            new LoginCommand(request.Email!, request.Password!, SessionTransport.Android), cancellationToken));
+
+    [AllowAnonymous]
+    [HttpPost("android/refresh")]
+    public async Task<IActionResult> AndroidRefresh(RefreshRequestDto request, CancellationToken cancellationToken)
+        => MapResult(await _authService.RefreshAsync(
+            new RefreshCommand(request.RefreshToken!, CorrelationId(), SessionTransport.Android), cancellationToken));
 
     [AllowAnonymous]
     [HttpPost("refresh")]
@@ -150,7 +163,11 @@ public sealed class AuthController : ControllerBase
         return MapResult(result, noContentOnSuccess: true);
     }
 
-    private IActionResult MapResult(AuthResult result, bool noContentOnSuccess = false) => result.Status switch
+    private IActionResult MapResult(AuthResult result, bool noContentOnSuccess = false)
+    {
+        if (result.Status == AuthStatus.Success && !noContentOnSuccess)
+            Response.Headers.CacheControl = "no-store";
+        return result.Status switch
     {
         AuthStatus.Success when noContentOnSuccess => NoContent(),
         AuthStatus.Success => Ok(new AuthTokenResponseDto(
@@ -175,7 +192,8 @@ public sealed class AuthController : ControllerBase
         AuthStatus.IdempotentConflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.IdempotencyKeyReused, "Idempotency key reused"),
         AuthStatus.Conflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict, "Conflict"),
         _ => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized")
-    };
+        };
+    }
 
     private ObjectResult AuthProblem(int status, string code, string title)
     {

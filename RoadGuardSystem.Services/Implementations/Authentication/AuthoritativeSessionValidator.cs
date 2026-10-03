@@ -1,5 +1,6 @@
 using RoadGuardSystem.Repositories.Identity;
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.BusinessObjects.Identity;
 
 namespace RoadGuardSystem.Services.Authentication;
 
@@ -25,6 +26,7 @@ public sealed class AuthoritativeSessionValidator
         Guid sessionId,
         UserRoleCode roleSnapshot,
         DateTimeOffset now,
+        SessionTransport? requiredTransport = null,
         CancellationToken cancellationToken = default)
     {
         if (userId == Guid.Empty || sessionId == Guid.Empty || roleSnapshot == UserRoleCode.Unknown)
@@ -38,7 +40,10 @@ public sealed class AuthoritativeSessionValidator
             if (session is null ||
                 session.UserId != userId ||
                 session.RevokedAt is not null ||
-                session.ExpiresAt <= now)
+                session.ExpiresAt <= now ||
+                requiredTransport is { } transport && session.Transport != transport ||
+                session.Transport == SessionTransport.Web &&
+                (session.LastActivityAt ?? session.IssuedAt).AddMinutes(30) <= now)
             {
                 return AuthoritativeSessionValidation.SessionRevoked;
             }
@@ -53,6 +58,11 @@ public sealed class AuthoritativeSessionValidator
             {
                 await _identityRepository.RevokeSessionAndFamilyAsync(sessionId, cancellationToken);
                 return AuthoritativeSessionValidation.SessionRevoked;
+            }
+
+            if (!await _identityRepository.IsRoleActiveAsync(user.RoleCode, cancellationToken))
+            {
+                return AuthoritativeSessionValidation.Unauthorized;
             }
 
             if (user.MustChangePassword)

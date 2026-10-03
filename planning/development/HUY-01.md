@@ -1,5 +1,65 @@
 # HUY-01 — Identity transport → Reporter/case → PM candidate/label
 
+## 2026-10-03 mandatory closure ledger - active combined worktree
+
+`CURRENT_VERIFIED` preflight for this continuation: `huy-review` local,
+tracking and live remote all started at
+`0d3425f46a429437df0f0bf185105de33701254f`, with a clean worktree.
+This section supersedes older statements that Web/Android wire semantics or
+shared writer authority are missing. D1-D4 are A; Huy is the current writer
+for HUY-01 shared integration. The exact Anh final source is
+`5089c3267dcdf60645ab34f61b58a79e3cbb0cf6`; no Anh tip was merged.
+The CaseDefect consumer imported into this worktree is byte-identical to its
+blob at that SHA (`b8c89225f8c3d25304875e7cdf1b3f506a1d7a60`).
+
+| Gate | Spec/contract | Current state | Remaining mandatory work | Dependency | Required acceptance | Owner |
+|---|---|---|---|---|---|---|
+| Reporter intake/receipt/privacy | §§4, 6, 8, 10 B | CLOSED within externally reviewed Reporter P1 scope; current auth-selector regression 41/41 | None identified | Default auth selector now includes `/reports`, so affected Reporter HTTP/SQL was rerun | Prior real Reporter acceptance, external PASS and fresh affected regression | Huy |
+| Multipart recovery | §10 E and Anh handoff | Source/SQL CLOSED; real MinIO external-only | Controlled real-storage/network acceptance | Allowed test bucket/MinIO endpoint | Prior disposable SQL/adapter; real-storage gate separately labelled | Huy/environment |
+| CaseDefect compatibility/read | §§8, 10 E; `anh-huy.case-defect.v1` | PARTIAL: actual consumer oracle and real SQL reader probe pass | Bind reader to actual reporting consumer, complete producer-consumer acceptance and recipient privacy | Anh reporting service graph and authoritative remaining facts | Deterministic hash/status; real SQL materialization, incomplete/wrong-project/current-role negatives | Huy |
+| Web/Android auth transport | §§5.1-5.2, 10 A | PARTIAL: six Web and four Android HTTP/SQL probes pass on this worktree | Boundary/race/logout/password-change acceptance and final contract/config verification | Same-site local fixture; production origin is deployment input | Exact wire, CSRF, idle/absolute boundaries, rotation/revocation races, legacy regression | Huy |
+| Case workflow/publication | §§6-8, 10 B | PARTIAL: domain and existing persisted workflow slices | Remaining recipient/transaction HTTP/SQL flow and canonical binding | Current case facts and publication authority | Scope/privacy, stale multi-case rollback, conclusion/publication effects | Huy |
+| Candidate/matching/Defect | §§7-8, 10 C-D | PARTIAL: domain, REPORT decision service/repository and matcher exist | Actual geometry/source/AI facts, Defect rowversion and source-link effects, required SQL/HTTP acceptance | Exact Anh AI producer and concurrency migration | Current disposition/version, no fake distance/task, atomic decisions | Huy |
+| Label lifecycle/export | §§7-8, 10 C-E | OPEN beyond domain policy | Mapping/migration, SQL writer/API, approved/source-access readers, actual consumer | Verified source/file facts and producer graph | Current-head concurrency, approval-only export, historical snapshot access | Huy |
+| Retention contribution | §§8-10 | PARTIAL: Report/Case/Candidate inventory contributor is tested | Label/Defect reference completion and actual consumer registration | Label and Defect effects | Fail-closed incomplete references and current/historical obligation SQL | Huy |
+| Events/canonical routes/Postman | §§8-10 | OPEN for newly activated flows; no event emitted | Adopt only agreed envelope/consumer; align actual HTTP/contract/Postman | Event agreement is external; route wiring is Huy-owned | Network smoke and durable outbox only for agreed events | Huy/owner |
+
+FIELD/DRONE inspection-task creation, HUY-02 downstream, automatic merge/route,
+external AI provider and deployment are not substitutes for these HUY-01
+gates. Unknown metrics and absent authoritative references remain unavailable,
+not zero or complete. External ChatGPT review of this combined diff is
+`PENDING`; `deliveryStatus=PARTIAL`.
+
+Fresh worktree evidence for the newly affected slice, not a claim about every
+gate: actual CaseDefect consumer compatibility unit 8/8, disposable SQL
+reader/consumer 1/1, Web HTTP/SQL 7/7, Android HTTP/SQL 4/4, affected identity,
+Web boundary and CaseDefect units 42/42, legacy auth/session/onboarding HTTP
+37/37, and concurrent OTP SQL 1/1. The executed commands were:
+
+| Command | Exit / executed-pass-fail-skip | Artifact |
+|---|---|---|
+| `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --nologo -v q -clp:ErrorsOnly` | 0; 0 warnings/0 errors | build output |
+| `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter "FullyQualifiedName~Huy01CaseDefectConsumerCompatibilityTests\|FullyQualifiedName~Huy01SessionBoundaryTests\|FullyQualifiedName~AuthServiceTests\|FullyQualifiedName~AuthoritativeSessionValidatorTests" --logger "trx;LogFileName=huy01-closure-current-unit.trx" --nologo -v q -clp:ErrorsOnly` | 0; 42/42/0/0 | `tests/RoadGuardSystem.UnitTests/TestResults/huy01-closure-current-unit.trx` |
+| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter "FullyQualifiedName~Huy01WebTransportTests\|FullyQualifiedName~Huy01AndroidTransportTests\|FullyQualifiedName~Huy01CaseDefectReadSqlTests" --logger "trx;LogFileName=huy01-closure-current-api-sql.trx" --nologo -v q -clp:ErrorsOnly` | 0; 12/12/0/0 | `tests/RoadGuardSystem.ApiTests/TestResults/huy01-closure-current-api-sql.trx` |
+| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter "FullyQualifiedName~AuthenticationFlowTests\|FullyQualifiedName~AuthenticationSessionFlowTests\|FullyQualifiedName~V2AuthenticationFlowTests\|FullyQualifiedName~V2IdentityOnboardingFlowTests" --logger "trx;LogFileName=huy01-closure-current-legacy.trx" --nologo -v q -clp:ErrorsOnly` | 0; 37/37/0/0 | `tests/RoadGuardSystem.ApiTests/TestResults/huy01-closure-current-legacy.trx` |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --filter "FullyQualifiedName~Huy01IdentityBoundaryTests.Otp_ConcurrentCorrectVerification_CommitsOneSessionAndOneConsumption" --logger "trx;LogFileName=huy01-transport-otp-regression.trx" --nologo -v q -clp:ErrorsOnly` | 0; 1/1/0/0 | `tests/RoadGuardSystem.IntegrationTests/TestResults/huy01-transport-otp-regression.trx` |
+| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter "FullyQualifiedName~Huy01ReporterReportsApiTests\|FullyQualifiedName~Huy01ReporterReceiptAccessSqlTests" --logger "trx;LogFileName=huy01-closure-reporter-auth-regression.trx" --nologo -v q -clp:ErrorsOnly` | 0; 41/41/0/0 | `tests/RoadGuardSystem.ApiTests/TestResults/huy01-closure-reporter-auth-regression.trx` |
+
+The current source has not been committed yet. These are fresh worktree checks,
+not evidence for older/reused suites or the remaining HUY-01 gates. Real MinIO,
+external AI and deployment were not rerun because this diff does not touch
+their behavior.
+
+Self-review pass 1 checked cookie/bearer precedence, CSRF before actions,
+current user/role/session checks under ordered SQL locks, touch before response
+serialization, no touch for denial, revoked logout replay, refresh rotation
+clamp and CaseDefect wrong-project privacy. It found and fixed logout's
+post-revocation touch, wrong ProblemDetails media type, and the initially
+blocked must-change-password Web route. Pass 2 checked exact Anh consumer blob,
+SQL fixture ownership, DI/filter activation and affected regression selection;
+it identified the `/reports` auth-selector dependency and triggered the fresh
+41-case Reporter regression above. No shared/deployed database was migrated.
+
 ## 2026-10-03 closure-first integration and acceptance checkpoint - PARTIAL
 
 `CURRENT_VERIFIED` preflight for this checkpoint: branch `huy-review`; local,

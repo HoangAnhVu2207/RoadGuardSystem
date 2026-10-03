@@ -70,7 +70,9 @@ public sealed partial class IdentityRepository
                 session.ExpiresAt,
                 session.RevokedAt,
                 session.RevokedAt == null && session.ExpiresAt > DateTimeOffset.UtcNow,
-                session.RowVersion))
+                session.RowVersion,
+                session.Transport,
+                session.LastActivityAt))
             .SingleOrDefaultAsync(cancellationToken);
     }
 

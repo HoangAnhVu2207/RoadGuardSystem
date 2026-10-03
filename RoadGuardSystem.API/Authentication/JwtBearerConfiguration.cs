@@ -68,7 +68,7 @@ internal static class JwtBearerConfiguration
             sessionId,
             roleCode,
             DateTimeOffset.UtcNow,
-            context.HttpContext.RequestAborted);
+            cancellationToken: context.HttpContext.RequestAborted);
         if (validation != AuthoritativeSessionValidation.Success)
         {
             if (validation == AuthoritativeSessionValidation.MustChangePassword &&

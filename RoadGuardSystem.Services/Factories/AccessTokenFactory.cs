@@ -25,7 +25,8 @@ public sealed class AccessTokenFactory
         _activeKey = JwtOptionsValidator.DecodeKey(options.SigningKeys[options.ActiveKeyId]);
     }
 
-    public string Create(Guid userId, Guid sessionId, UserRoleCode roleCode, DateTimeOffset issuedAt)
+    public string Create(Guid userId, Guid sessionId, UserRoleCode roleCode, DateTimeOffset issuedAt,
+        int? lifetimeMinutes = null)
     {
         if (userId == Guid.Empty)
         {
@@ -57,7 +58,7 @@ public sealed class AccessTokenFactory
             Subject = identity,
             IssuedAt = issuedAt.UtcDateTime,
             NotBefore = issuedAt.UtcDateTime,
-            Expires = issuedAt.AddMinutes(_options.AccessTokenLifetimeMinutes).UtcDateTime,
+            Expires = issuedAt.AddMinutes(lifetimeMinutes ?? _options.AccessTokenLifetimeMinutes).UtcDateTime,
             SigningCredentials = credentials
         };
 

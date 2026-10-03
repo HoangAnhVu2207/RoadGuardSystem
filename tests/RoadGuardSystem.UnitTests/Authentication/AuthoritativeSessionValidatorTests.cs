@@ -198,6 +198,7 @@ public sealed class AuthoritativeSessionValidatorTests
         public UserSecurityState? User { get; init; }
         public SessionSecurityState? Session { get; init; }
         public bool ThrowOnRead { get; init; }
+        public bool RoleActive { get; init; } = true;
         public Guid? RevokedSessionId { get; private set; }
 
         public Task<UserProfileState?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default) =>
@@ -229,10 +230,14 @@ public sealed class AuthoritativeSessionValidatorTests
             ThrowOnRead ? throw new InvalidOperationException("store unavailable") : Task.FromResult(User);
 
         public Task<bool> IsRoleActiveAsync(UserRoleCode roleCode, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+            Task.FromResult(RoleActive);
 
         public Task<SessionSecurityState?> GetSessionSecurityStateAsync(Guid sessionId, CancellationToken cancellationToken = default) =>
             ThrowOnRead ? throw new InvalidOperationException("store unavailable") : Task.FromResult(Session);
+
+        public Task<WebSessionState?> TouchWebSessionAsync(Guid userId, Guid sessionId, UserRoleCode role,
+            DateTimeOffset now, bool allowMustChangePassword = false, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task RevokeSessionAndFamilyAsync(Guid sessionId, CancellationToken cancellationToken = default)
         {

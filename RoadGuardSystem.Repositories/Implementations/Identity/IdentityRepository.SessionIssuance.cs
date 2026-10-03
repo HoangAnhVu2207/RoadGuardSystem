@@ -46,10 +46,18 @@ public sealed partial class IdentityRepository
                         return new IssueSessionResult(IssueSessionStatus.UserNotFound);
                     }
 
-                    if (!user.RowVersion.SequenceEqual(expectedUserRowVersion))
+                    if (!user.RowVersion.SequenceEqual(expectedUserRowVersion) ||
+                        user.Status != UserStatus.Active)
                     {
                         return new IssueSessionResult(IssueSessionStatus.StaleConcurrency);
                     }
+
+                    var roleCode = user.RoleCode.ToDbCode();
+                    var role = await _context.Roles.FromSqlInterpolated(
+                            $"SELECT * FROM [Roles] WITH (UPDLOCK,HOLDLOCK) WHERE [Code]={roleCode}")
+                        .AsNoTracking().SingleOrDefaultAsync(attemptCancellationToken);
+                    if (role is null || !role.IsActive)
+                        return new IssueSessionResult(IssueSessionStatus.StaleConcurrency);
 
                     user.LastLoginAt = successfulLoginAt.ToUniversalTime();
                     var attemptSession = new UserSession

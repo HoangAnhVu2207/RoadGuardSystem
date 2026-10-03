@@ -1,4 +1,5 @@
 using RoadGuardSystem.Repositories.Identity;
+using RoadGuardSystem.BusinessObjects.Identity;
 
 namespace RoadGuardSystem.Services.Authentication;
 
@@ -24,13 +25,17 @@ public sealed record AuthTokens(
     DateTimeOffset AccessTokenExpiresAt,
     DateTimeOffset RefreshTokenExpiresAt,
     int ExpiresIn,
-    UserSecurityState User);
+    UserSecurityState User,
+    Guid SessionId = default,
+    DateTimeOffset SessionExpiresAt = default,
+    DateTimeOffset SessionIssuedAt = default);
 
 public sealed record AuthResult(AuthStatus Status, AuthTokens? Tokens = null, string? ErrorMessage = null);
 
-public sealed record LoginCommand(string Email, string Password);
+public sealed record LoginCommand(string Email, string Password, SessionTransport Transport = SessionTransport.LegacyBearer);
 
-public sealed record RefreshCommand(string RefreshToken, Guid? CorrelationId = null);
+public sealed record RefreshCommand(string RefreshToken, Guid? CorrelationId = null,
+    SessionTransport? RequiredTransport = null);
 
 public sealed record ForcedPasswordChangeCommand(
     string Username,

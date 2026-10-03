@@ -384,6 +384,10 @@ public sealed partial class AuthServiceTests
         public Task<SessionSecurityState?> GetSessionSecurityStateAsync(Guid sessionId, CancellationToken cancellationToken = default) =>
             Task.FromResult(Session);
 
+        public Task<WebSessionState?> TouchWebSessionAsync(Guid userId, Guid sessionId, UserRoleCode role,
+            DateTimeOffset now, bool allowMustChangePassword = false, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<RefreshTokenSecurityState?> FindRefreshTokenByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
             Task.FromResult(RefreshState);
 

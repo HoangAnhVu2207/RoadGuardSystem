@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
@@ -54,9 +55,26 @@ public static class ServiceCollectionExtensions
                 jwtValidation.Failures!);
         }
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = WebCookieConfiguration.UserScheme;
+                options.DefaultChallengeScheme = WebCookieConfiguration.UserScheme;
+            })
+            .AddPolicyScheme(WebCookieConfiguration.UserScheme, null,
+                options => options.ForwardDefaultSelector = WebCookieConfiguration.SelectScheme)
             .AddJwtBearer(options => JwtBearerConfiguration.Configure(options, jwtOptions))
-            .AddJwtBearer(AiServiceJwtBearerConfiguration.Scheme, options => AiServiceJwtBearerConfiguration.Configure(options, jwtOptions));
+            .AddJwtBearer(AiServiceJwtBearerConfiguration.Scheme, options => AiServiceJwtBearerConfiguration.Configure(options, jwtOptions))
+            .AddCookie(WebCookieConfiguration.Scheme, WebCookieConfiguration.Configure);
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = "X-CSRF-TOKEN";
+            options.Cookie.Name = "__Host-RoadGuardCsrf";
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.Path = "/";
+            options.Cookie.HttpOnly = true;
+        });
+        services.AddScoped<WebCookieActivityFilter>();
         services.AddAuthorization(options =>
         {
             options.AddPolicy(ProjectAuthorizationPolicies.WorkPackageRead, policy =>

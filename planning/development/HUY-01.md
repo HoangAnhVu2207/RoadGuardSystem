@@ -16,13 +16,67 @@ blob at that SHA (`b8c89225f8c3d25304875e7cdf1b3f506a1d7a60`).
 |---|---|---|---|---|---|---|
 | Reporter intake/receipt/privacy | §§4, 6, 8, 10 B | CLOSED within externally reviewed Reporter P1 scope; current auth-selector regression 41/41 | None identified | Default auth selector now includes `/reports`, so affected Reporter HTTP/SQL was rerun | Prior real Reporter acceptance, external PASS and fresh affected regression | Huy |
 | Multipart recovery | §10 E and Anh handoff | Source/SQL CLOSED; real MinIO external-only | Controlled real-storage/network acceptance | Allowed test bucket/MinIO endpoint | Prior disposable SQL/adapter; real-storage gate separately labelled | Huy/environment |
-| CaseDefect compatibility/read | §§8, 10 E; `anh-huy.case-defect.v1` | PARTIAL: actual consumer oracle and SQL reader now include REPORT Defect links and VERIFIED evidence | Bind reader to actual reporting consumer; test producer-consumer transaction and wrong-project/current-role negatives | Exact Anh reporting service graph at `5089c326` also depends on ANH-02 baseline/dataset entities and migration | Deterministic hash/status; real SQL materialization, incomplete/wrong-project/current-role negatives | Huy |
+| CaseDefect compatibility/read | §§8, 10 E; `anh-huy.case-defect.v1` | CLOSED for REPORT: actual ReportingService/Repository consumes scoped SQL reader, verified Defect/evidence and real HTTP summary; current-role/wrong-project negatives pass | None for REPORT; AI unavailable facts remain explicit `MissingReasons` | Seven exact reporting source files from `5089c326` imported without overwriting Huy reader | Deterministic hash/status; SQL materialization and consumer/privacy | Huy |
 | Web/Android auth transport | §§5.1-5.2, 10 A | PARTIAL: six Web and four Android HTTP/SQL probes pass on this worktree | Boundary/race/logout/password-change acceptance and final contract/config verification | Same-site local fixture; production origin is deployment input | Exact wire, CSRF, idle/absolute boundaries, rotation/revocation races, legacy regression | Huy |
-| Case workflow/publication | §§6-8, 10 B | PARTIAL: real SQL/HTTP CONFIRMED publication, two-Reporter recipient privacy and link/split pass | Cross-project/stale multi-case rollback and remaining contract/network acceptance | Current case facts and publication authority | Scope/privacy, stale multi-case rollback, conclusion/publication effects | Huy |
+| Case workflow/publication | §§6-8, 10 B | CLOSED for implemented EXISTING_EVIDENCE flow: CONFIRMED/NO_DEFECT, two-Reporter privacy, link/split, cross-project/stale rollback pass SQL/HTTP | FIELD/DRONE completion provenance remains fail-closed per §7; canonical network collection is tracked separately | Current Case, Report, Defect and verified-file relations | Scope/privacy, stale multi-case rollback, conclusion/publication effects | Huy |
 | Candidate/matching/Defect | §§7-8, 10 C-D | PARTIAL: REPORT KEEP_NEW/LINK_EXISTING, source links, rowversion, no-GPS project match and Defect assessment/verification pass SQL/HTTP | AI provenance bridge, assigned/neighbor matching and further concurrency/rollback acceptance | Exact Anh AI provenance graph at `5089c326`; no invented metric distance | Current disposition/version, no fake distance/task, atomic decisions | Huy |
-| Label lifecycle/export | §§7-8, 10 C-E | PARTIAL: manual REPORT SQL/API, current-head migration, approved/source-access readers pass on disposable SQL | Actual exporter consumer, AI provenance and historical export/file access acceptance | Exact Anh ExportService graph at `5089c326` depends on ANH-02 export persistence/renderer | Current-head concurrency, approval-only export, historical snapshot access | Huy |
-| Retention contribution | §§8-10 | PARTIAL: Report/Case/Candidate/Defect-link/Label revisions and reviews are SQL-read; repair remains explicit incomplete | Actual composite consumer integration and historical obligation acceptance | Exact Anh RetentionInventoryRepository graph at `5089c326` depends on ANH-02 dataset/assessment/baseline entities | Fail-closed incomplete references and current/historical obligation SQL | Huy |
+| Label lifecycle/export | §§7-8, 10 C-E | PARTIAL: manual REPORT SQL/API, current-head migration, actual ExportService/Repository/renderer positive ZIP via test artifact store, immutable manifest and revoked current-byte access pass | AI source provenance branch and real MinIO/network acceptance | Exact Anh export source files from `5089c326`; export migration `20261003200000` is additive | Current-head concurrency, approval-only export, historical snapshot/current access | Huy |
+| Retention contribution | §§8-10 | CLOSED for Huy references: actual Anh composite consumes Report/Case/Candidate/Defect/Label SQL references and remains incomplete/fail-closed for HUY-02 repair | Global retention completion/deletion is outside HUY-01; no empty-reference success | Exact `RetentionInventoryRepository` from `5089c326`, scoped Huy contributor | Fail-closed incomplete references and stable historical Label revision version | Huy |
 | Events/canonical routes/Postman | §§8-10 | PARTIAL: Huy Case/Candidate/Defect/Label routes and DI active; no event emitted | Adopt only agreed envelope/consumer and align canonical Postman/network acceptance | Event agreement is external; route/Postman work is Huy-owned | Network smoke and durable outbox only for agreed events | Huy/owner |
+
+### 2026-10-03 actual reporting/export/retention consumer integration - PARTIAL
+
+The exact Anh final source is `5089c3267dcdf60645ab34f61b58a79e3cbb0cf6`.
+Seven previously absent reporting files, `RetentionInventoryRepository`, and
+the exact export service/repository/renderer/controller/storage contracts were
+imported as new files; Huy's newer reader was not overwritten. Existing
+baseline/dataset entities and schema satisfied the reporting repository.
+The reporting reader, Huy retention contributor and approved-label reader are
+bound to their actual consumers in scoped DI. Export-only additive migration
+`20261003200000_Huy01ExportConsumer` follows Label migration 1900 and creates
+four tables with restrict FKs, rowversion, immutable snapshot/file/artifact
+triggers and a populated-graph downgrade guard. `PDFsharp 6.2.3` matches Anh's
+exact renderer dependency; no existing package was upgraded. ExportWorker is
+opt-in under the original `Anh02:WorkersEnabled` flag, and export options bind
+`Anh02:Export`. No shared/deployed database migration was applied.
+
+Real disposable SQL/HTTP acceptance on the combined source:
+
+- `huy01-export-reporting-combined-sql.trx`: executed 5, passed 5, failed 0,
+  skipped 0 (REPORT decision/Defect/consumer, manual Label/export, two-Reporter
+  Case privacy and Defect fresh/baseline schema).
+- `huy01-reporting-revoke-current.trx`: executed 1, passed 1, failed 0,
+  skipped 0; actual ReportingService and CaseDefect reader deny after PM
+  membership revoke, and wrong-project capture is denied.
+- `huy01-export-render-current.trx`: executed 1, passed 1, failed 0,
+  skipped 0; actual exporter admits/replays approved Label, renders ZIP with
+  real renderer and SQL rows using a test artifact store, preserves historical
+  manifest, denies old private bytes after revision, and fails a queued export
+  on current source-access recheck. This is **mock artifact storage**, not real
+  MinIO/network/deployment acceptance. Worker opt-in in production is source
+  integration, not evidence that an external worker has run.
+- `huy01-case-cross-project-stale.trx`: executed 1, passed 1, failed 0,
+  skipped 0; cross-project and stale source link attempts preserve active
+  links/history before the valid link/split flow.
+- `huy01-current-consumer-final.trx`: executed 5, passed 5, failed 0,
+  skipped 0 after the final test edits; this supersedes the overlapping
+  combined and single-probe runs above, rather than adding to their count.
+- `dotnet build RoadGuardSystem.slnx --no-restore --nologo -v q
+  -clp:ErrorsOnly`: exit 0, 0 warnings/errors on the current worktree.
+  `dotnet ef migrations has-pending-model-changes --project
+  RoadGuardSystem.Repositories --startup-project RoadGuardSystem.API
+  --no-build` with a design-time-only connection string: exit 0, no model
+  drift; it did not connect to or migrate a deployed database.
+
+The first export admission probe correctly failed `422 producer_invalid`:
+manual REPORT labels supplied mode `MANUAL`, while the actual consumer accepts
+trusted-source modes `REAL|MOCK|SYNTHETIC`. The producer now emits `REAL`
+for verified REPORT photos; source kind remains `REPORT` and review remains
+manual. The corrected probe passed. These overlapping focused runs are not
+summed as distinct tests. External ChatGPT review of this new combined diff
+remains `PENDING`; `deliveryStatus=PARTIAL` while Candidate AI/matching,
+canonical Postman/event decision, and real external storage/network gates
+remain open or external-only.
 
 ### 2026-10-03 REPORT Defect, Label and recipient checkpoint - PARTIAL
 

@@ -394,6 +394,29 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             inventory.References.Should().Contain(reference => reference.Kind == "DEFECT_SOURCE_LINK" &&
                 reference.ProjectId == project);
         }
+        using (var reportingScope = factory.Services.CreateScope())
+        {
+            var reporting = reportingScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Reporting.IReportingService>();
+            var captured = await reporting.CaptureAsync(pm.Id, project,
+                new RoadGuardSystem.DTOs.Reporting.ReportingFiltersDto(), default);
+            captured.Code.Should().Be("success");
+            captured.Value!.CaseDefectFacts.Should().NotBeNull();
+            captured.Value.CaseDefectFacts!.Defects.Should().Contain(fact => fact.DefectId == createdDefectId);
+            captured.Value.CaseDefectFacts.AuthorizedEvidence.Should().Contain(fact => fact.SourceReportId == report);
+            (await reporting.CaptureAsync(pm.Id, Guid.NewGuid(),
+                new RoadGuardSystem.DTOs.Reporting.ReportingFiltersDto(), default)).Code
+                .Should().Be("access_forbidden");
+            var retention = reportingScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Retention.IRetentionInventoryRepository>();
+            var composite = await retention.ReadAsync(file.FileId, default);
+            composite.Should().NotBeNull();
+            composite!.Complete.Should().BeFalse();
+            composite.References.Should().Contain(reference => reference.Kind == "DEFECT_SOURCE_LINK" &&
+                reference.ProjectId == project);
+            composite.ReasonCodes.Should().Contain("HUY_INVENTORY_INCOMPLETE");
+        }
+        var reportingSummary = await client.GetAsync($"/api/v1/projects/{project}/reports/summary");
+        reportingSummary.StatusCode.Should().Be(HttpStatusCode.OK);
+        reportingSummary.Headers.ETag.Should().NotBeNull();
         var matches = await client.GetAsync($"/api/v1/projects/{project}/candidates?sourceKind=REPORT&sourceId={secondReport}&expand=true");
         matches.StatusCode.Should().Be(HttpStatusCode.OK);
         var matchBody = await matches.Content.ReadFromJsonAsync<JsonElement>();
@@ -484,6 +507,15 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
                 .CountAsync(link => link.DefectId == createdDefectId)).Should().Be(2);
         await using (var db = sql.CreateDbContext()) { await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [ProjectMembers] SET [Status]=2 WHERE [ProjectId]={project} AND [UserId]={pm.Id}"); }
         (await SendAsync(client, HttpMethod.Post, path, payload, key)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        using (var deniedScope = factory.Services.CreateScope())
+        {
+            var reporting = deniedScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Reporting.IReportingService>();
+            (await reporting.CaptureAsync(pm.Id, project,
+                new RoadGuardSystem.DTOs.Reporting.ReportingFiltersDto(), default)).Code.Should().Be("access_forbidden");
+            var reader = deniedScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Integration.ICaseDefectReadReader>();
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => reader.CaptureAsync(pm.Id,
+                UserRoleCode.ProjectManager, project, new RoadGuardSystem.DTOs.Reporting.ReportingFiltersDto()));
+        }
     }
 
     [Fact]
@@ -504,9 +536,11 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(type, "Label fixture type"));
             await db.SaveChangesAsync();
         }
+        var artifacts = new ExportArtifactStorage();
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
         {
             services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+            services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(artifacts);
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await LoginAsync(client, reporter.UserName!);
@@ -650,6 +684,33 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, Guid.NewGuid(), [file.FileId])).Should().BeFalse();
         (await approvedReader.CaptureApprovedAsync(pm.Id, UserRoleCode.ProjectManager, project,
             new RoadGuardSystem.Services.Integration.TrainingLabelFilterV1([Guid.NewGuid()], [], null, null))).Should().BeNull();
+        var exportPath = $"/api/v1/projects/{project}/exports";
+        var exportRequest = new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true };
+        var exportKey = Guid.NewGuid().ToString();
+        var export = await SendAsync(client, HttpMethod.Post, exportPath, exportRequest, exportKey);
+        export.StatusCode.Should().Be(HttpStatusCode.Accepted, await export.Content.ReadAsStringAsync());
+        var exportReplay = await SendAsync(client, HttpMethod.Post, exportPath, exportRequest, exportKey);
+        exportReplay.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        (await exportReplay.Content.ReadAsStringAsync()).Should().Be(await export.Content.ReadAsStringAsync());
+        exportReplay.Headers.Location.Should().Be(export.Headers.Location);
+        exportReplay.Headers.ETag.Should().Be(export.Headers.ETag);
+        var exportId = (await export.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var historicalManifest = await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{exportId}/manifest");
+        historicalManifest.GetProperty("labels").GetArrayLength().Should().Be(1);
+        historicalManifest.GetProperty("labels")[0].GetProperty("labelId").GetGuid().Should().Be(labelId);
+        historicalManifest.GetProperty("files")[0].GetProperty("included").GetBoolean().Should().BeTrue();
+        using (var workerScope = factory.Services.CreateScope())
+            (await workerScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>()
+                .ProcessNextAsync(default)).Should().BeTrue();
+        var completedExport = await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{exportId}");
+        completedExport.GetProperty("status").GetString().Should().Be("SUCCEEDED");
+        var zip = await client.GetAsync($"{exportPath}/{exportId}/content");
+        zip.StatusCode.Should().Be(HttpStatusCode.OK);
+        zip.Content.Headers.ContentType!.MediaType.Should().Be("application/zip");
+        (await zip.Content.ReadAsByteArrayAsync()).Take(2).Should().Equal((byte)'P', (byte)'K');
+        var pendingExport = await SendAsync(client, HttpMethod.Post, exportPath, exportRequest, Guid.NewGuid().ToString());
+        pendingExport.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var pendingExportId = (await pendingExport.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         string historicalRevisionVersion;
         await using (var db = sql.CreateDbContext())
         {
@@ -671,6 +732,17 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         afterRevision.Should().NotBeNull();
         afterRevision!.Labels.Should().BeEmpty();
         (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, project, [file.FileId])).Should().BeFalse();
+        (await SendAsync(client, HttpMethod.Post, exportPath, exportRequest, Guid.NewGuid().ToString()))
+            .StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        var unchangedManifest = await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{exportId}/manifest");
+        unchangedManifest.GetRawText().Should().Be(historicalManifest.GetRawText());
+        using (var workerScope = factory.Services.CreateScope())
+            (await workerScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>()
+                .ProcessNextAsync(default)).Should().BeTrue();
+        var failedExport = await client.GetFromJsonAsync<JsonElement>($"{exportPath}/{pendingExportId}");
+        failedExport.GetProperty("status").GetString().Should().Be("FAILED");
+        failedExport.GetProperty("errorCode").GetString().Should().Be("export_source_access_revoked");
+        (await client.GetAsync($"{exportPath}/{exportId}/content")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         await using (var db = sql.CreateDbContext())
         {
             (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyTrainingLabelRevision>()
@@ -696,6 +768,16 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
                 .Number.Should().Be(51001);
             (await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>()
                 .MigrateAsync("20261003180000_Huy01DefectSourceLinks"))).Number.Should().Be(51000);
+        }
+        using (var retentionScope = factory.Services.CreateScope())
+        {
+            var composite = await retentionScope.ServiceProvider
+                .GetRequiredService<RoadGuardSystem.Repositories.Retention.IRetentionInventoryRepository>()
+                .ReadAsync(file.FileId, default);
+            composite.Should().NotBeNull();
+            composite!.Complete.Should().BeFalse();
+            composite.References.Count(reference => reference.Kind == "TRAINING_LABEL_REVISION").Should().Be(2);
+            composite.References.Count(reference => reference.Kind == "TRAINING_LABEL_REVIEW").Should().Be(1);
         }
         (await SendAsync(client, HttpMethod.Post, $"/api/v1/labels/{labelId}/review",
             new { decision = "APPROVE", reason = "Stale review" }, Guid.NewGuid().ToString(), firstVersion))
@@ -882,18 +964,49 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         }
         var a = await CreateAsync(reporterA.UserName!);
         var b = await CreateAsync(reporterB.UserName!);
+        var foreign = await CreateAsync(reporterA.UserName!);
+        var otherProject = Guid.NewGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            db.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(otherProject, $"CP-{Guid.NewGuid():N}",
+                "Other recipient project", null, 32648, new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), DateTimeOffset.UtcNow));
+            db.ProjectMembers.Add(RoadGuardSystem.BusinessObjects.Projects.ProjectMember.CreatePrimaryProjectManager(
+                Guid.NewGuid(), otherProject, pm.Id, new DateOnly(2026, 1, 1)));
+            await db.SaveChangesAsync();
+        }
         await LoginAsync(client, supervisor.UserName!);
-        foreach (var incident in new[] { a.Case, b.Case })
+        foreach (var (incident, assignedProject) in new[] { (a.Case, project), (b.Case, project), (foreign.Case, otherProject) })
         {
             var current = await client.GetAsync($"/api/v1/cases/{incident}");
             (await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/triage", new
             {
-                projectId = project, verificationMethod = "EXISTING_EVIDENCE", reason = "Assigned project"
+                projectId = assignedProject, verificationMethod = "EXISTING_EVIDENCE", reason = "Assigned project"
             }, Guid.NewGuid().ToString(), current.Headers.ETag!.ToString())).StatusCode.Should().Be(HttpStatusCode.OK);
         }
         await LoginAsync(client, pm.UserName!);
         var source = await client.GetAsync($"/api/v1/cases/{b.Case}");
         var target = await client.GetAsync($"/api/v1/cases/{a.Case}");
+        var foreignSource = await client.GetAsync($"/api/v1/cases/{foreign.Case}");
+        var crossProject = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-links", new
+        {
+            reportIds = new[] { foreign.Report }, reason = "Must not cross projects",
+            sourceCaseVersions = new Dictionary<Guid, string> { [foreign.Case] = foreignSource.Headers.ETag!.Tag!.Trim('"') }
+        }, Guid.NewGuid().ToString(), target.Headers.ETag!.ToString());
+        crossProject.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var staleSource = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-links", new
+        {
+            reportIds = new[] { b.Report }, reason = "Stale source must roll back",
+            sourceCaseVersions = new Dictionary<Guid, string> { [b.Case] = Convert.ToBase64String(new byte[8]) }
+        }, Guid.NewGuid().ToString(), target.Headers.ETag!.ToString());
+        staleSource.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        await using (var db = sql.CreateDbContext())
+        {
+            (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>()
+                .CountAsync(link => new[] { a.Report, b.Report, foreign.Report }.Contains(link.ReportId) && link.EndedAt == null))
+                .Should().Be(3);
+            (await db.Set<RoadGuardSystem.BusinessObjects.Cases.CaseReportLinkHistory>()
+                .CountAsync(history => history.ToCaseId == a.Case)).Should().Be(0);
+        }
         var linked = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-links", new
         {
             reportIds = new[] { b.Report }, reason = "Same incident",
@@ -1295,6 +1408,30 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         };
         request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         return client.SendAsync(request);
+    }
+
+    private sealed class ExportArtifactStorage : IAnh02ArtifactStore
+    {
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (byte[] Bytes, Anh02ArtifactMetadata Metadata)> _objects = new();
+
+        public async Task<Anh02ArtifactMetadata> WriteAsync(string key, Stream content, long? sizeBytes,
+            string mediaType, CancellationToken cancellationToken = default)
+        {
+            using var buffer = new MemoryStream();
+            await content.CopyToAsync(buffer, cancellationToken);
+            var bytes = buffer.ToArray();
+            if (sizeBytes is not null && sizeBytes != bytes.LongLength) throw new IOException("Artifact size mismatch.");
+            var metadata = new Anh02ArtifactMetadata(key, bytes.LongLength,
+                Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), mediaType);
+            _objects.TryAdd(key, (bytes, metadata));
+            return _objects[key].Metadata;
+        }
+
+        public Task<Anh02ArtifactRead> OpenReadAsync(string key, CancellationToken cancellationToken = default)
+        {
+            if (!_objects.TryGetValue(key, out var value)) throw new FileNotFoundException(key);
+            return Task.FromResult(new Anh02ArtifactRead(new MemoryStream(value.Bytes, writable: false), value.Metadata));
+        }
     }
 
     private sealed class VerifiedPhotoStorage : IUploadObjectStorage

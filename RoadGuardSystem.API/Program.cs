@@ -34,6 +34,11 @@ if (builder.Configuration.GetValue($"{UploadSessionOptions.SectionName}:Recovery
     builder.Services.AddHostedService<MultipartRecoveryWorker>();
 }
 
+if (builder.Configuration.GetValue("Anh02:WorkersEnabled", false))
+{
+    builder.Services.AddHostedService<ExportWorker>();
+}
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment() &&

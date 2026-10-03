@@ -106,6 +106,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<IReporterEvidenceService, ReporterEvidenceService>();
         services.AddHuy01ReporterServices();
+        services.Configure<RoadGuardSystem.Services.Exports.ExportOptions>(configuration.GetSection("Anh02:Export"));
         services.AddScoped<IAnhHuyProducerService, AnhHuyProducerService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddHostedService<ValidationRunWorker>();

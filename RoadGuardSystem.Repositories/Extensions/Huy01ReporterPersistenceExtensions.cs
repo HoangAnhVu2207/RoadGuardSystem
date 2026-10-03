@@ -27,6 +27,15 @@ public static class Huy01ReporterPersistenceExtensions
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.ICandidateDecisionRepository, RoadGuardSystem.Repositories.Implementations.Defects.CandidateDecisionRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.IDefectWorkflowRepository, RoadGuardSystem.Repositories.Implementations.Defects.DefectWorkflowRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Labels.ITrainingLabelRepository, RoadGuardSystem.Repositories.Implementations.Labels.TrainingLabelRepository>();
+        services.TryAddScoped<RoadGuardSystem.Repositories.Reporting.IReportingRepository, RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository>();
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
+            RoadGuardSystem.Repositories.Implementations.Retention.Huy01RetentionInventoryContributor>());
+        services.TryAddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryRepository,
+            RoadGuardSystem.Repositories.Retention.RetentionInventoryRepository>();
+        services.TryAddScoped<RoadGuardSystem.Repositories.Exports.IExportRepository,
+            RoadGuardSystem.Repositories.Exports.ExportRepository>();
+        services.TryAddSingleton<RoadGuardSystem.Repositories.Storage.IAnh02ArtifactStore,
+            RoadGuardSystem.Repositories.Storage.MinioAnh02ArtifactStore>();
         return services;
     }
 }

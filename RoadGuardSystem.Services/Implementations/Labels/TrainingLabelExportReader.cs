@@ -74,7 +74,7 @@ public sealed class TrainingLabelExportReader(RoadGuardDbContext db, ICaseWorkfl
                     row.revision.FileId, row.revision.FileVersion, evidence.ChecksumSha256,
                     evidence.SizeBytes, evidence.MediaType, "REPORT", row.head.SourceId,
                     row.revision.SourceVersion, row.review.Id, row.review.ActorUserId,
-                    row.review.ReviewedAt, null, null, null, "MANUAL", null));
+                    row.review.ReviewedAt, null, null, null, "REAL", null));
             }
             var snapshot = new ApprovedLabelSnapshotV1("anh-huy.approved-label.v1", Guid.NewGuid(), "",
                 DateTimeOffset.UtcNow, labels);

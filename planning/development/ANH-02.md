@@ -1,5 +1,7 @@
 # ANH-02 — BE–AI contract/mock → reporting/export → retention basis/hold
 
+Runtime acceptance assignment (owner 2026-10-03): live MinIO storage → PDF/ZIP → resumable CLI demo → actual 8 GiB, on `anh-review`. Initial local/remote base `d2414844af1a3fd9a39547fc131f85bda451fad2`, initial dirty paths none. Anh is sole writer for affected storage/export/demo/config and this spec/summary. Reuse production contracts and migrations only in task-owned disposable environments; no Huy Reporter role/readers/mapping edits or tip imports, no new provider/business policy, no shared DB/bucket writes. Official distribution investigation and fixed-revision source build are authorized. Linux/font execution is separate from deployed/hosted-CI acceptance. Actual checks and two self-reviews belong in the existing summary; A/B/follow-up external review remains PENDING, CRS/Huy gates stay separate.
+
 Revision spec: **1 — ASSIGNED theo phản hồi owner tại §10**, ngày 2026-10-02. Writer triển khai: **Anh / Codex local**, nhánh **anh-review**. ChatGPT đọc source, viết spec và review diff; Codex local triển khai toàn luồng, tự review/fix, kiểm thử, commit/push.
 
 **Nguồn yêu cầu:** Anh yêu cầu chuẩn bị ANH-02 theo khuôn ANH-01. Yêu cầu này giao soạn spec; chưa tự động phê duyệt các public contract, công thức KPI hoặc quyền hold mới. Những nội dung TARGET_CONFIRMED không hỏi lại. Các lựa chọn mới được gom thành **ANH02-D1…D4 tại §10**; sau khi Anh chốt, cập nhật nguyên văn quyết định vào chính file này rồi giao triển khai một gói. Không tạo plan/coordination/report RF riêng.

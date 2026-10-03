@@ -5,13 +5,13 @@
 CURRENT_VERIFIED: the existing backend HTTP/SQL fixtures exercise synthetic
 video upload/dataset/AI mock, private Reporter intake, supported reporting,
 frozen dossier export and fail-closed retention. This CLI continuation is
-prepared and its bounded transport/replay helper tests run locally; the full
-CLI against a live API/object store is **NOT RUN**. No Huy approval, conclusion,
+executed against a task-owned Linux API, SQL database and real MinIO; full
+prepare/survey/anh02 and same-state reruns are **CURRENT_VERIFIED** locally. No Huy approval, conclusion,
 matching result or complete inventory is seeded. Reporter intake stays
 UNASSIGNED/private; project reporting does not count it as project-attributed.
 
 Use the same local demo state and existing `prepare`/`survey` phases below.
-`anh02` creates a separate survey task/dataset using the exact ANH-02 synthetic
+`anh02` creates a separate PERIODIC survey task/dataset using the exact ANH-02 synthetic
 video (the ANH-01 video is deliberately not accepted as that AI fixture), calls
 VIDEO_ANALYSIS, uploads the synthetic PNG privately as Reporter, creates/replays
 intake, captures project reporting, downloads PDF/ZIP and admits a project hold
@@ -35,12 +35,15 @@ python -m unittest discover -s tools/demo/anh01 -p test_setup_demo.py -v
 The optional `storage.compose.yml` starts only disposable loopback MinIO, with
 credentials supplied through `ANH02_MINIO_USER`/`ANH02_MINIO_PASSWORD` and an
 explicit separate Compose project, e.g. `roadguard-anh02-disposable`.
-`ANH02_MINIO_IMAGE` can identify an owner-available image. Create a fresh private
+`ANH02_MINIO_IMAGE` is required and must identify a verified official or
+fixed-revision source-built MinIO image; there is no removed-tag default. Create a fresh private
 bucket using that disposable instance's console/API and point `MinioStorage__*`
 only to it. Do not reuse a shared bucket. Inspect configuration without logging
 interpolated credentials (`docker compose ... config --quiet`). Clean up only
 that project/resources you created; root SQL Compose configuration is separate.
-No storage was started here: pinned MinIO pull returned `pull access denied`.
+Current task built and ran the official source at commit
+`7aac2a2c5b7c882e68c1ce017d8256be2feea27f` after registry investigation.
+See runtime acceptance below and the existing ANH-02 summary for provenance.
 
 Large-byte acceptance is a separate command requiring an **actual valid MP4
 of exactly 8,589,934,592 bytes**, existing accepted task/current Operator and a
@@ -55,8 +58,11 @@ spools. Partial local downloads are retained for inspection on failure.
 python tools/demo/anh01/setup_demo.py --base-url http://localhost:5000 --isolated-local --phase large --project-id <demo-project-GUID> --task-id <accepted-task-GUID> --video-file <actual-8GiB.mp4> --download-file <new-local-download.mp4> --state <separate-large-state.json>
 ```
 
-This 8 GiB command is **NOT RUN**: no live disposable object store or actual
-8 GiB source was available. Helper tests/small fixtures do not satisfy A07.
+This 8 GiB command is **CURRENT_VERIFIED** locally with actual MP4 bytes,
+real multipart PUT/verification and protected download. Both files are
+8,589,934,592 bytes and SHA-256
+`08ba3133e6dc0659a55862e692167b84e593aaa46f3725633dd41502909ea7e5`.
+The measured run does not define an accepted performance threshold.
 
 PDF runtime uses existing PDFsharp 6.2.3; no font/package is bundled or upgraded.
 Mount a readable Unicode TTF font with verified embedding/distribution rights
@@ -65,15 +71,17 @@ An absent/unreadable/different cached font fails `export_font_unavailable`;
 restart the process when changing font bytes (PDFsharp has a global cache).
 The font is bounded to 16 MiB. Tests require `ANH02_TEST_FONT_PATH` explicitly;
 no personal-machine fallback is committed. CI config supplies DejaVu Sans via
-the runner's `fonts-dejavu-core` package; hosted Linux/container execution and
-deployed font licensing/packaging remain **NOT RUN**. Local configured Arial
-rendering is not deployment/license verification.
+the runner's `fonts-dejavu-core` package. Local Linux/container rendering with
+official DejaVu 2.37, its license and fsType=0 is CURRENT_VERIFIED; missing and
+non-root unreadable fonts fail even with a warm cache. Hosted CI and the
+actual deployment target remain **NOT RUN**.
 
 Postman retains existing requests/variables. Dossier admission stores
 `anh02AdmittedSnapshotHash`; poll/manifest assert immutable identity, explicit
 Reporter missing section, strong ETag and 30-day expiry after success. Use a new
 `anh02DossierKey` when changing PDF/ZIP/filter; poll until SUCCEEDED before
-protected download. Postman HTTP runner/live storage remains NOT RUN.
+protected download. Postman HTTP runner remains NOT RUN. Live storage is
+CURRENT_VERIFIED at the runtime checkpoint below.
 
 All facts and media are fictional. The five-page `dossier-demo.pdf` carries
 `DỮ LIỆU DEMO — KHÔNG CÓ GIÁ TRỊ PHÁP LÝ` on every page. No real identities,
@@ -166,6 +174,66 @@ in state and signed-URL error redaction, no database writes/reset scripts,
 resume/key semantics and handover dependency. Fixed object-store error
 diagnostics to omit signed URLs.
 
-Production API/SQL/MinIO demo workflow: NOT RUN in this artifact task. No BE,
+Historical artifact-task checkpoint: production API/SQL/MinIO demo workflow
+was NOT RUN at that checkpoint. No BE,
 live external, deployed compatibility or actual field-quality claim follows
 from artifact validation. External review: NOT REQUESTED.
+
+## Runtime acceptance checkpoint — 2026-10-03
+
+Local live storage, PDF/ZIP, CLI and actual 8 GiB gates passed; full packages
+remain Partial for Huy/CRS/external review. There was a preflight incident: a
+published personal local config overrode environment and startup applied
+migrations to RoadGuardPostmanTest. Exact observed impact and owner recovery
+checkpoint are recorded in ANH-02-summary. Do not treat this run as compliance
+with the initial DB-isolation boundary. Subsequent acceptance used only two
+explicit task-owned databases and a private disposable bucket.
+
+Development now reapplies environment/command-line precedence after local
+JSON, and publish excludes appsettings.Development.local.json. Verify the
+actual resolved DB/bucket before opting into InitializeOnStartup. Publish
+into a new task directory; never copy personal local config into it. Reuse
+IdentityRoleSeedStep, DroneDeviceSeedStep and PostmanUserSeedStep for minimal
+synthetic identities; provision only task-owned current membership, the
+synthetic RELEASED model and active CRACK entry. The broader legacy
+PostmanScenarioSeedStep collided during preflight and was not used in the
+isolated acceptance environments. No Huy approval/triage/conclusion is seeded.
+
+The official [MinIO source README](https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/README.md)
+records source-only distribution. Docker Hub repository/tag returned404;
+Quay anonymous bearer negotiation returned401. Docker desktop-linux was
+x86_64, no daemon proxy, empty registry-auth entries; official MCR pull and
+GitHub/Go downloads worked. No credentials/daemon/TLS settings changed.
+Build the unmodified source at that exact revision with a local Go toolchain
+(`GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o <context>/minio .`).
+The upstream Dockerfile depends on the unavailable minio/minio base, so this
+local-only static build used a scratch Dockerfile copying the binary and
+upstream LICENSE, with ENTRYPOINT ["/minio"]. Retain the AGPL license and
+source provenance; this is a local acceptance build, not deployment adoption.
+Set ANH02_MINIO_IMAGE to that verified local image before Compose config/up.
+
+Command journal persists role/method/path/body and original If-Match before
+transport. Same-state reruns preserve them; changed payload/scope under the
+same key is rejected locally. Old states lacking a command journal cannot
+recover a lost original version automatically; retain the original request
+or use a fresh disposable fixture. The original complete journal is retained
+for every upload. Large verification polling permits up to30minutes; it does
+not mark a pending file verified or introduce a backend time threshold.
+
+Live fault acceptance uses the existing export HTTP test with an explicit
+MinIO gate: set ROADGUARD_MINIO_SMOKE=1, task-owned MinioStorage__* and
+ANH02_TEST_FONT_PATH, then run:
+
+```powershell
+dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter 'FullyQualifiedName~Live_MinIO_export|FullyQualifiedName~UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio'
+```
+
+The export wrapper injects temporary unavailability and acknowledgement loss
+after actual PUT/durable readback. Retry verifies/reuses that same real object,
+with one GeneratedArtifact, snapshot, admission/completion audit and receipt.
+These are injected failures, not naturally occurring network incidents.
+
+Current runtime details, exact commands/counts, source/video/font hashes,
+observed memory and NOT RUN gates belong in the existing ANH-02-summary.
+Runtime credentials, tokens, media, downloads and scratch probes remain ignored
+under artifacts/anh02-live; no font/video binary or new dependency is committed.

@@ -93,6 +93,17 @@ class DemoApi:
         token = os.environ.get("ANH01_" + role.upper() + "_TOKEN")
         if not token:
             raise ValueError("Missing environment variable ANH01_" + role.upper() + "_TOKEN")
+        if key:
+            commands = self.state.setdefault("commands", {})
+            identity = {"role": role, "method": method, "path": path, "body": body}
+            original = commands.get(key)
+            if original:
+                if original["identity"] != identity:
+                    raise ValueError("Command key already belongs to different payload/scope; use a separate demo state")
+                version = original["version"]
+            else:
+                commands[key] = {"identity": identity, "version": version}
+                self.save()  # Persist before transport; even an acknowledgement loss must resume exactly.
         headers = {"Authorization": "Bearer " + token, "Accept": "application/json"}
         if key:
             headers["Idempotency-Key"] = operation(key)
@@ -179,7 +190,9 @@ class DemoApi:
             self.save()
             self.call(role, "POST", prefix + "uploads/" + known["id"] + "/complete",
                 known["completeRequest"], label + ":complete", known["completeVersion"])
-        for _ in range(60):
+        # A full 8 GiB verifier read can legitimately outlast the tiny-fixture polling window.
+        deadline = time.monotonic() + (1800 if exact_size == 8589934592 else 60)
+        while time.monotonic() < deadline:
             file = self.call(role, "GET", prefix + "files/" + known["fileId"])
             if file["status"] == "VERIFIED":
                 if file["sizeBytes"] != size or file.get("checksumSha256", file.get("checksum")) != checksum:
@@ -226,8 +239,8 @@ class DemoApi:
         pid = self.state["projectId"]
         route, segment_set = self.state["route"], self.state["segmentSet"]
         scope = {"routeVersionId": route["routeVersionId"], "segmentSetId": segment_set["id"], "segmentIds": [segment_set["segments"][0]["id"]], "targetBand": "SURFACE"}
-        plan = self.call("pm", "POST", f"projects/{pid}/survey-plans", {"scope": [scope], "plannedAt": FACTS["plannedAt"], "surveyType": "BASELINE"}, "ai-demo-plan")
-        task = self.call("pm", "POST", f"projects/{pid}/survey-tasks", {"planId": plan["id"], "scope": [scope], "surveyType": "BASELINE", "operatorId": operator_id, "dueAt": FACTS["dueAt"], "accessPoint": None}, "ai-demo-task")
+        plan = self.call("pm", "POST", f"projects/{pid}/survey-plans", {"scope": [scope], "plannedAt": FACTS["plannedAt"], "surveyType": "PERIODIC"}, "ai-demo-plan")
+        task = self.call("pm", "POST", f"projects/{pid}/survey-tasks", {"planId": plan["id"], "scope": [scope], "surveyType": "PERIODIC", "operatorId": operator_id, "dueAt": FACTS["dueAt"], "accessPoint": None}, "ai-demo-task")
         accepted = self.call("operator", "POST", f"survey-tasks/{task['id']}/accept", key="ai-demo-accept", version=task["version"])
         video = self.upload_path("operator", ROOT / "contracts/ai/fixtures/anh02/synthetic-road-v1.mp4", "SURVEY_VIDEO", pid, task["id"])
         dataset = self.call("operator", "POST", f"survey-tasks/{task['id']}/datasets", {"videoFileIds": [video], "telemetryFileIds": [], "recordedAt": FACTS["plannedAt"], "deviceId": device_id, "scope": [scope], "pairs": [{"videoFileId": video, "telemetryFileId": None, "timeOffsetMilliseconds": 0}]}, "ai-demo-dataset", accepted["version"])

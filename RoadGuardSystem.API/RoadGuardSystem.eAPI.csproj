@@ -8,6 +8,7 @@
 
 
   <ItemGroup>
+    <Content Update="appsettings.Development.local.json" CopyToPublishDirectory="Never" />
     <Content Include="EmailAssets\hoanghai-logo.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\contracts\ai\fixtures\anh02\*.json;..\contracts\ai\fixtures\anh02\*.mp4;..\contracts\ai\fixtures\anh02\*.png"
              Link="Anh02Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

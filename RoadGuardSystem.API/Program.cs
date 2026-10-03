@@ -13,6 +13,9 @@ if (builder.Environment.IsDevelopment())
         "appsettings.Development.local.json",
         optional: true,
         reloadOnChange: true);
+    // Deployment/demo overrides must retain their normal precedence over personal local settings.
+    builder.Configuration.AddEnvironmentVariables();
+    builder.Configuration.AddCommandLine(args);
 }
 
 // Add services to the container.

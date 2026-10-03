@@ -392,3 +392,222 @@ storage.compose.yml and test_setup_demo.py; this existing ANH-02-summary.
 ANH-01-summary, all Huy production files/reader contracts, persistence/schema/
 model/migrations, identity/processing and shared DI unchanged. Local/remote HEAD
 will be checked again after normal push; exact final SHA is emitted in handoff.
+
+
+## Runtime acceptance — live storage → PDF/ZIP → demo → actual 8 GiB (2026-10-03)
+
+Initial base/local/remote HEAD: `d2414844af1a3fd9a39547fc131f85bda451fad2`,
+branch anh-review, initial dirty paths none. Current HEAD was used; no reset,
+Huy tip import, branch switch, amend/force-push or merge. Owner assignment is
+recorded in ANH-02.md. Final exact HEAD/compare is supplied in handoff; compare
+base is this initial SHA. This section supersedes preceding NOT RUN labels
+only for the specific local live gates actually executed below.
+
+**Delivery remains Partial: local runtime gates passed, but a preflight DB
+isolation incident occurred and needs owner recovery decision.** A/B and all
+follow-up external ChatGPT review remain PENDING; Huy/CRS gates are unchanged.
+
+Preflight incident — CURRENT_VERIFIED, not hidden as a harmless failed test:
+initial Windows publish copied the workspace's personal
+appsettings.Development.local.json. Program loaded it after environment,
+overriding the task-owned connection/seed settings. Two startup attempts reached
+`.\HANHNAV / RoadGuardPostmanTest` and ran MigrateAsync/seed before stopping on
+legacy PostmanScenarioSeedStep survey ownership collision. Read-only SQL later
+observed44 applied migrations and38 tables created at2026-10-03 07:13:46–47
+Asia/Bangkok, during the first startup. Users.modify_date was07:13:47. There was
+no before-image of that DB, so the full migration/backfill/seed row impact and
+prior migration count are UNKNOWN. This violated the task's no-shared-migration
+boundary. The accidental DB is excluded from all acceptance claims. No rollback,
+reset, data restore or additional mutation of it was attempted. Owner must decide
+whether to retain its current state or recover from an appropriate backup after
+reviewing impact; do not run Down migrations blindly against live data.
+
+Observed new table groups in that incident: RoadGeometryDrafts/Metadata;
+DatasetAssessments/Items, BaselineSelections/Items/CurrentPointers;
+Anh02AiMockRuns/ManifestFiles/DetectionProvenance/ResultProvenance;
+Anh02ExportSnapshots/SnapshotFiles/Jobs/GeneratedArtifacts;
+RetentionBasisHeads/Revisions, RetentionEvaluations/Items/Holds/HoldHistories;
+Reports/OriginalEvidence/Supplements/SupplementEvidence, IncidentCases,
+CaseReportLinks/LinkHistory/LinkHistoryReports, SourceDecisions,
+CandidateSourceHeads, CaseConclusions/ConclusionEvidence/ConclusionDefects,
+CasePublications/PublicationEvidence/PublicationDefects/PublicationRecipients.
+These38 names are observed schema evidence, not an assertion of zero data impact.
+
+Root fix: Development reapplies environment and command-line precedence after
+local JSON; publish excludes appsettings.Development.local.json. Fresh publish
+proved it absent. A task-owned unreachable decoy local file with conflicting
+DB/storage/InitializeOnStartup/seed settings was subsequently tested on Linux:
+production Kestrel still served the correct task DB's protected stored PDF200
+using environment settings. Original personal config was not edited. The decoy
+was renamed inside the task runtime only. This is actual composition-root
+regression evidence; not just a configuration-source inspection.
+
+Storage blocker investigation — CURRENT_VERIFIED:
+- Docker context desktop-linux, daemon29.6.1/linux/x86_64. Initially only SQL
+  2019-CU18 and ryuk images, no running containers or local MinIO. No daemon
+  proxy; Docker credential store configured, registry auth entry list empty.
+- Official Docker Hub repository and requested tag REST endpoints both404;
+  Quay manifest401 and anonymous bearer negotiation401. No token printed or
+  persisted, no credential/daemon/TLS changes. Official GitHub/Go HTTPS downloads
+  and official MCR image pull succeeded, so not general network unavailability.
+- Official MinIO README at source commit
+  `7aac2a2c5b7c882e68c1ce017d8256be2feea27f` records source-only distribution;
+  GitHub API reports archived. Upstream Dockerfile depends on unavailable
+  minio/minio:latest. Built unmodified official source with local official Go
+  1.27.1 (Windows archive SHA256
+  a3911b5e0e1b1053f25ed0675f4c1c6aad1e2bfcf253df2b9be4caabd2edd95d),
+  GOOS=linux GOARCH=amd64 CGO_ENABLED=0, `go build -trimpath -o .../minio-linux .`.
+  Binary SHA256554ff0775fc94780c4423a1bf6b3f7a3bcbf4c930481d393b25fd41a7754557f.
+  Local-only scratch image copies binary and upstream AGPL LICENSE; no third-party
+  storage provider/emulator. Image roadguard-local/minio:source-7aac2a2, inspected
+  IDsha256:8dd86058d6f71764dd5df0492c804b3fdb38675c8f82eae8d0b68d02850e7ac1;
+  platform manifestsha256:b1f22619840e0c16e16cdc64227cdd2ec47f0ef713b2adb7cbc78787af37b643.
+  Server version DEVELOPMENT.GOGET, go1.27.1 linux/amd64. This is local
+  compatibility acceptance, not vendor-supported/deployment adoption.
+- storage.compose.yml now requires ANH02_MINIO_IMAGE explicitly instead of a
+  removed-tag default. Existing Compose structure retained; no orchestration
+  framework added. Official source/download URLs and reproduction notes are
+  in the existing demo README.
+
+Subsequent isolated acceptance environment — CURRENT_VERIFIED:
+- Named containers labelled roadguard.task=anh02-runtime-d2414844:
+  roadguard-anh02-live-sql/minio/api/linux-tools. Loopback SQL14633, MinIO19000/
+  console19001, API15000 were checked free before startup. SQL image remains
+  existing2019-CU18. No root/shared Compose resources reused or pruned.
+- Task-created databases RoadGuard_Anh02_Runtime_d2414844 (Windows) and
+  RoadGuard_Anh02_Linux_d2414844 (Linux):44 production migrations each, explicitly
+  owned targets. Private bucket roadguard-anh02-live-d2414844; anonymous403.
+  MinIO data binds only artifacts/anh02-live/objects. SQL/MinIO/JWT secrets,
+  tokens and scratch probes are ignored, never committed/logged. Acceptance
+  scripts assert exact task DB; state is isolated from previous demo states.
+- Production Program/Kestrel on Debian12/.NET8.0.31, SDK8.0.425; official image
+  mcr.microsoft.com/dotnet/sdk@sha256:78235e09001f52b6592c458ac010775ebac6725422e80cd0c1650590f67b2743.
+  API shares the owned MinIO namespace so127.0.0.1:19000 signed URLs work from
+  both API and host client. Environment workers/mock explicitly enabled only
+  Development. Minimal existing role/device/user seed classes reused; task-only
+  membership/model/CRACK fixture matches existing HTTP tests. No Huy approval,
+  triage/conclusion, matching output or complete inventory fabricated.
+
+Gate results:
+- LIVE STORAGE: production HTTP create/part URL/actual PUT/complete/worker
+  VERIFIED/protected exact download, document+MP4/SRT+private PNG. Additional
+ 23 HTTP assertions passed: other-owner404, scope extras400, changed create/
+  intake409, pending/failed content/intake409, stale complete412, original
+  complete version replay202, same report identity. Scoped SQL checks below
+  establish one receipt/graph; global counts not used for acceptance.
+  Reporter role-row IsActive/P1 remains OPEN at unchanged Huy source; positive
+  storage checks do not close it.
+- LIVE EXPORT: reporting→atomic snapshot→real MinIO PDF/ZIP→protected download.
+  Actual HTTP task cancel after admission changes current summary ACCEPTED→
+  CANCELLED. Both stored snapshot/hash and SQL payload fingerprints unchanged;
+  rendered frozen PDF retains ACCEPTED, omits CANCELLED. ZIP entries exactly
+  manifest.json/evidence-index.json/dossier.pdf and matching snapshot identity.
+  PDF download35131bytes SHA2561c2c789b2a9827e333d283a6848e643ba5b0c4bb43768fbfcf6f47ec3a59a70c;
+  ZIP34419bytes SHA25618b7a9e7072f6fb5befa4d812a7642478d01010ddb387130b9d3241201dd4de9.
+  Existing HTTP test now has explicit live-MinIO variant: injected unavailable
+  GET leaves QUEUED/export_storage_unavailable, zero artifact/write; injected
+  ACK loss after actual PUT+durable readback leaves QUEUED, restarted scope
+  verifies/reuses the real object. One write/GeneratedArtifact/snapshot/receipt/
+  admission+completion audit. Protected bytes match SQL size/hash; other PM403,
+  revoked membership replay403, expired410, changed key payload409. These are
+  injected faults, not a naturally occurring network incident.
+- LINUX FONT/PDF: official DejaVu2.37 archive SHA256
+  7576310b219e04159d35ff61dd4a4ec4cdba4f35c00e002a136f00e96a908b0a;
+  DejaVuSans.ttf SHA2567da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954.
+  Release LICENSE read (Bitstream/Arev notices retained beside external font);
+  OS/2.fsType=0. Actual Linux configured path, Unicode/glyph text, embedded fonts,
+  word bounds, Poppler rendering and visual review of all5 synthetic pages and
+ 4 live demo pages: no clipping/overlap/broken Vietnamese. Empty sample1page.
+  Warm-cache production renderer probe as UID65534 denies nonexistent and
+  root-owned chmod000 font with export_font_unavailable. Actual Linux HTTP
+  admission/worker with missing font ends FAILED/export_font_unavailable, no
+  success artifact. Restore configured font afterward. No font/dependency binary
+  committed. Hosted CI/actual deployment acceptance NOT RUN.
+- FULL CLI: prepare→survey→anh02 ran on Windows, then independently Linux.
+  Fixed duplicate active BASELINE plan by using existing PERIODIC for separate
+  AI task. Real fixture video→dataset→VIDEO_ANALYSIS result MODE=MOCK; private
+  PNG→intake/replay; reporting→PDF/ZIP; hold/evaluation COMPLETE with all items
+  BLOCKED_HOLD and INVENTORY_INCOMPLETE/HUY_REFERENCE_INVENTORY_UNAVAILABLE.
+  No ELIGIBLE promotion/delete. New command journal persists original body/
+  role/path/method/version before transport. Repeated complete Linux phases
+  preserve scoped counts2plans/3tasks/2datasets/4exports/54receipts. Journal
+  test drops ACK on real loopback HTTP transport and proves original version
+  after fresh client state reload; changed payload rejected. Old states without
+  command journals cannot reconstruct a lost original version automatically.
+- ACTUAL 8 GiB: generated synthetic H.264 CBR128M via FFmpeg5.1.9 Debian tool;
+ 536.84s/320x180/25fps/13421frames. Encoded MP48586432090bytes followed by a real
+ 3502502byte ISO-BMFF free box to reach exactly8589934592 (no sparse/truncate).
+  ffprobe confirms MP4/H.264/size/duration; complete FFmpeg decode exits0.
+  Source hash streaming,1024 actual8MiB parts, PUT batches64, real complete/
+  verifier, protected new-file download all pass. Source/download SHA256
+  08ba3133e6dc0659a55862e692167b84e593aaa46f3725633dd41502909ea7e5;
+  both8589934592bytes. SQL bigint/owner/scope/VERIFIED/receipt assertions pass.
+  Explicit application ACK-loss injection discards a real complete HTTP response;
+  fresh CLI client resumes original payload/key/version, same VERIFIED file,
+  no second write/receipt. Long verification polling allows1800s (tiny remains60s).
+  Command elapsed292.46s. Windows GetProcessMemoryInfo sampled every~2s:
+  client PeakWorkingSet31330304bytes (29.88MiB);133 API /proc/1/status samples,
+  max VmHWM1056388KiB (1031.63MiB), verifier shares same process. Includes earlier
+  worker activity; peaks are run observations, not a process-wide proof for all
+  concurrency, CPU/throughput SLA or approved performance threshold. MinIO
+  point observation293MiB, not a sampled peak.
+
+Fresh verification commands/results (distinct automatic tests30, all pass):
+- `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --no-incremental --disable-build-servers -v quiet '-clp:ErrorsOnly;Summary'`:0 errors/98warnings, exit0,16.26s.
+- `dotnet publish RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --disable-build-servers -o artifacts/anh02-live/api-final -v quiet -clp:ErrorsOnly`:exit0; personal local config absent.
+- With explicit task-owned MinIO environment and DejaVu font:
+  `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Live_MinIO_export|FullyQualifiedName~UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh02-live-storage.trx'`:2 executed/pass,0fail/skip. Export case overlaps final3 below; smoke contributes1 distinct.
+- Final same environment API filter `FullyQualifiedName~Anh02ExportHttpTests`, TRX anh02-live-export-final.trx:3executed/pass,0fail/skip. Includes current unavailable fault and scoped SQL audit/receipt/hash assertions.
+- Linux SDK container, copied existing unit test output, explicit /runtime DejaVu path:
+  `dotnet vstest /unit-tests/RoadGuardSystem.UnitTests.dll '/TestCaseFilter:FullyQualifiedName~Anh02ExportUnitTests|FullyQualifiedName~Anh02ExportArtifactStoreTests' '/Logger:trx;LogFileName=anh02-linux-font.trx' /ResultsDirectory:/runtime/linux-test-results`:21executed/pass,0fail/skip.
+- `python -m unittest discover -s tools/demo/anh01 -p test_setup_demo.py -v`:5executed/pass,0fail/skip. Total21+3+1+5=30 distinct; overlapping reruns excluded.
+- `python tools/demo/anh01/setup_demo.py --validate-only`, `pwsh -File tests/CI/Verify-CiWorkflow.ps1`:exit0.
+- `.tools/dotnet-ef.exe migrations has-pending-model-changes --context RoadGuardDbContext --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build`:exit0/no model changes, temporary process-only unreachable migration connection; no DB write.
+- Runtime scratch wrappers execute the unchanged CLI arguments documented in README: `python artifacts/anh02-live/run_demo.py prepare|survey|anh02`, `run_large.py`, `verify_demo_resume.py`; all final exit0. Wrappers/secrets/state/media are ignored scratch, not a committed framework.
+- `python artifacts/anh02-live/live_http_checks.py`:23 live HTTP assertions,0failure final; `live_sql_checks.py`:12 scoped SQL assertions,0failure final; `freeze_exports.py admit|verify`:2 real export formats plus source change/hash/receipt/audit proof, exit0 final.
+- `docker exec roadguard-anh02-linux-tools ffprobe ...`, complete `ffmpeg -v error -i /runtime/synthetic-eight-gib.mp4 -f null /dev/null`:exit0. Synthetic source command uses lavfi testsrc2, -fs8582000000, libx264 ultrafast/yuv420p,128M CBR,nal-hrd=cbr/force-cfr,g25,600s upper limit; free box fills the exact remaining3502502 bytes via64KiB writes.
+- pypdf/pdfplumber/stdlib TTF table checks, embedded font/text/word bounds, exact ZIP entries/CRC/snapshot IDs/hashes and Poppler visual review pass. The first QA assertions incorrectly expected '1/2' text and index.json; actual contract renders separate numerator/denominator and evidence-index.json; corrected QA, no backend change.
+- Compose config --quiet, git diff --check, exact selected-file/scope and secret review are final delivery checks recorded below. Postman routes/DTOs unchanged; existing collection retained, Postman HTTP runner NOT RUN.
+
+Failure history retained: initial publish/DB isolation breach above; legacy seed
+collision (not patched outside ownership); duplicate BASELINE plan409; old
+supplement resume409 and red journal test1failure/4pass → fixed →5pass. First
+synthetic MP4 mux overshot size8591552207; regenerated and completed exact valid
+container. Scratch seed path/CA2201 compile failures selected0; fixed before
+isolated seed. Export test added local name collision CS0136 selected0; renamed,
+final3pass. Read-only impact probe initially wrong cwd, corrected before any
+connection. First freeze verification called during API restart and received
+RemoteDisconnected; health established and rerun passes. Missing fontTools in
+QA was replaced by stdlib reading actual OS/2 table; no new package installed.
+Build-cache cleanup was rejected by automatic approval review ('blocked by
+policy'); cache retained, no alternate deletion attempted. No unresolved
+functional test failure; shared DB recovery decision remains unresolved.
+
+Self-review1 actually checked auth/privacy/current authority before receipt,
+real byte paths, SQL fixture predicates, one durable artifact/write, ACK loss/
+unavailable states, snapshot/current source drift, streaming/memory and long
+polling. Fixed original-version journal, active-plan collision and polling;
+retained Huy role-row gate. Self-review2 checked config precedence/publish
+secrets, actual connection targets, ownership/cleanup, full same-state resume,
+Linux permission/font/embedding/glyph/layout, compatibility/model/CI and final
+diff. Reproduced/fixed the config root cause; recorded the shared DB incident
+rather than claiming an isolated-only run. These are self-reviews, not ChatGPT
+or peer review.
+
+NOT RUN/PENDING: actual deployment target/font packaging, hosted GitHub CI,
+Postman HTTP runner, real AI/provider/Android/Web, CRS transform/GPX/WGS84,
+Huy role-row correction/approved-label/access/matching/case-defect readers/full
+retention inventory and exact handoff, A08/A09/HUY02 exclusions, performance
+threshold/backup restore, accidental DB before-image/complete row-impact audit
+and owner recovery decision. No new Huy import/edit or rollback. ANH-01 and
+ANH-02 remain Partial despite successful local runtime gates.
+
+Final delivery checks: Compose config --quiet and git diff --check passed;
+the ten changed tracked files match the Anh runtime scope. Selected diff was
+checked against generated runtime credentials, bearer tokens and signed URL
+signatures; none present. No Postman wire change or Huy/model/migration edit.
+Stopped only the four containers whose roadguard.task label matched
+anh02-runtime-d2414844; their containers, owned databases, objects and evidence
+are retained. Go cache cleanup remains blocked by automatic approval review.
+Delivery base is d2414844af1a3fd9a39547fc131f85bda451fad2; the normal commit's
+HEAD and compare URL are reported in the handoff, with no amend/force-push.

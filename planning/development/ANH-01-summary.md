@@ -579,3 +579,21 @@ Checkpoint A CURRENT_VERIFIED: `715ade2c20f652b77c8c7e995c76bb5d47ead966`,
 normal push confirmed remote/local exact and clean; [exact A compare](https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e...715ade2c20f652b77c8c7e995c76bb5d47ead966).
 B continuation evidence is appended to existing ANH-02-summary; A is not amended.
 The Huy-owned role-row receipt guard finding and external review remain PENDING.
+
+
+## ANH runtime acceptance delta — 2026-10-03
+
+CURRENT_VERIFIED at correction base d2414844af1a3fd9a39547fc131f85bda451fad2:
+actual local MinIO multipart upload/verification/protected download passed
+for an MP4 of exactly8,589,934,592bytes; source/download SHA256
+08ba3133e6dc0659a55862e692167b84e593aaa46f3725633dd41502909ea7e5.
+SQL bigint/VERIFIED/scoped owner/one complete receipt and original-version
+complete replay checked. Synthetic H.264 MP4 was fully probed/decoded; no
+small-file or metadata-only substitution. Full prepare/survey demo ran on
+a task-owned Linux API/SQL/MinIO and same-state replay kept durable counts.
+CRS/WGS84/GPX, real Huy consumers and external/deployment gates remain OPEN;
+ANH-01 stays Partial. Exact commands/evidence are in existing ANH-02-summary.
+That summary also records a preflight isolation breach: copied local config
+caused startup migrations against RoadGuardPostmanTest before the config
+fix. The accidental DB is excluded from acceptance and needs owner recovery
+decision; no rollback attempted. External ChatGPT review remains PENDING.

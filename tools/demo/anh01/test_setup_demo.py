@@ -10,6 +10,42 @@ import setup_demo as demo
 
 
 class DemoTransportTests(unittest.TestCase):
+    def test_command_resume_replays_original_version_after_ack_loss(self):
+        observed = []
+
+        class Command(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                observed.append((self.headers["If-Match"], self.rfile.read(int(self.headers["Content-Length"]))))
+                if len(observed) == 1:
+                    self.connection.close()  # Server received the command; acknowledgement is lost.
+                    return
+                self.send_response(200)
+                self.send_header("Content-Length", "2")
+                self.end_headers()
+                self.wfile.write(b"{}")
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Command)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as directory, patch.dict(demo.os.environ, {"ANH01_PM_TOKEN": "fixture-only"}):
+                state = Path(directory) / "state.json"
+                base = f"http://127.0.0.1:{server.server_port}"
+                with self.assertRaises((OSError, demo.http.client.HTTPException)):
+                    demo.DemoApi(base, state).call("pm", "POST", "task/supplements", {"reason": "original"}, "supplement", "v1")
+                resumed = demo.DemoApi(base, state)
+                resumed.call("pm", "POST", "task/supplements", {"reason": "original"}, "supplement", "v2")
+                self.assertEqual(observed[0], observed[1])
+                with self.assertRaises(ValueError):
+                    resumed.call("pm", "POST", "task/supplements", {"reason": "changed"}, "supplement", "v2")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
     def test_put_streams_exact_slice_in_bounded_buffers(self):
         observed = {}
 

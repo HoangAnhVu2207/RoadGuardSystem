@@ -2,7 +2,8 @@
 # No shared bucket/database, fixed container name, or repository credentials.
 services:
   minio:
-    image: ${ANH02_MINIO_IMAGE:-minio/minio:RELEASE.2025-04-22T22-12-26Z}
+    # Community distribution is source-only; do not silently select a removed registry tag.
+    image: ${ANH02_MINIO_IMAGE:?Verified official or fixed-revision source-built MinIO image required}
     command: server /data --console-address :9001
     ports:
       - "127.0.0.1:${ANH02_MINIO_PORT:-9000}:9000"

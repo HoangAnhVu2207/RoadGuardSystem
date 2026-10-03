@@ -37,7 +37,121 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
 {
     [Fact]
     [Trait("Package", "HUY-01")]
-    public async Task ModuleRoutes_WithoutProductionComposition_ReturnDependencyUnavailable()
+    public async Task ProductionRoot_BindsReporterIntakeOnceWithoutActivatingOtherModuleRoutes()
+    {
+        var reporter = await sql.CreateUserAsync($"binding-r-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        Microsoft.Extensions.DependencyInjection.ServiceDescriptor[] descriptors = [];
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            descriptors = services.ToArray();
+            services.RemoveAll<IUploadObjectStorage>();
+            services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+        });
+        using (var scope = factory.Services.CreateScope())
+        {
+            Assert.IsType<ReporterReportService>(scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Reports.IReporterReportService>());
+            Assert.IsType<ReporterReportRepository>(scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Reports.IReporterReportRepository>());
+        }
+        Assert.Equal(ServiceLifetime.Scoped, Assert.Single(descriptors.Where(d => d.ServiceType == typeof(RoadGuardSystem.Services.Reports.IReporterReportService))).Lifetime);
+        Assert.Equal(ServiceLifetime.Scoped, Assert.Single(descriptors.Where(d => d.ServiceType == typeof(RoadGuardSystem.Repositories.Reports.IReporterReportRepository))).Lifetime);
+        Assert.DoesNotContain(descriptors, d => d.ServiceType == typeof(RoadGuardSystem.Services.Cases.ICaseWorkflowService));
+        Assert.DoesNotContain(descriptors, d => d.ServiceType == typeof(RoadGuardSystem.Services.Defects.ICandidateDecisionService));
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+        var evidence = await UploadVerifiedAsync(client, factory);
+        var key = Guid.NewGuid().ToString("N");
+        var payload = new { description = "Production intake", evidence = new[] { new { fileId = evidence.FileId, fileVersion = evidence.Version, locationSource = "UNKNOWN" } } };
+        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports",
+            payload, key);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var body = await created.Content.ReadAsStringAsync();
+        var reportId = JsonDocument.Parse(body).RootElement.GetProperty("id").GetGuid();
+        Assert.Equal($"/api/v1/reports/{reportId}", created.Headers.Location?.OriginalString);
+        Assert.NotNull(created.Headers.ETag);
+        var counts = await CountIntakeRowsAsync(sql, reporter.Id, reportId, key);
+        Assert.Equal(new ReporterIntakeRowCounts(1, 1, 1, 1, 1, 1, 1, 1, 1, 1), counts);
+        var replay = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", payload, key);
+        Assert.Equal(HttpStatusCode.Created, replay.StatusCode);
+        Assert.Equal(body, await replay.Content.ReadAsStringAsync());
+        Assert.Equal(created.Headers.Location, replay.Headers.Location);
+        Assert.Equal(created.Headers.ETag, replay.Headers.ETag);
+        Assert.Equal(counts, await CountIntakeRowsAsync(sql, reporter.Id, reportId, key));
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.GetAsync("/api/v1/reports")).StatusCode);
+    }
+
+    [Theory]
+    [Trait("Package", "HUY-01")]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProductionIntake_InactiveRoleAfterPreflight_DeniesReceiptBeforeReplayOrConflict(bool changedPayload)
+    {
+        var reporter = await sql.CreateUserAsync($"role-r-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var barrier = new ReporterReceiptRoleBarrier(async token =>
+        {
+            await using var db = sql.CreateDbContext();
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Roles] SET [IsActive]={false} WHERE [Code]={UserRoleCode.Reporter.ToDbCode()}", token);
+        });
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>();
+            services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+            services.RemoveAll<RoadGuardDbContext>();
+            services.AddScoped(sp => new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>(
+                sp.GetRequiredService<DbContextOptions<RoadGuardDbContext>>()).AddInterceptors(barrier).Options));
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(client, reporter.UserName!);
+        var evidence = await UploadVerifiedAsync(client, factory);
+        var key = Guid.NewGuid().ToString("N");
+        object Payload(bool changed) => new
+        {
+            description = changed ? "Changed after role revoke" : "Role revoke report",
+            evidence = new[] { new { fileId = evidence.FileId, fileVersion = evidence.Version, locationSource = "UNKNOWN" } }
+        };
+        var first = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", Payload(false), key);
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        var reportId = (await first.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var before = await CountIntakeRowsAsync(sql, reporter.Id, reportId, key);
+        HttpResponseMessage denied;
+        try
+        {
+            barrier.Armed = true;
+            denied = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", Payload(changedPayload), key);
+        }
+        finally
+        {
+            await using var db = sql.CreateDbContext();
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Roles] SET [IsActive]={true} WHERE [Code]={UserRoleCode.Reporter.ToDbCode()}");
+        }
+        Assert.Equal(1, barrier.Calls);
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.Equal("access_forbidden", (await denied.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Null(denied.Headers.ETag);
+        Assert.Null(denied.Headers.Location);
+        Assert.Equal(before, await CountIntakeRowsAsync(sql, reporter.Id, reportId, key));
+    }
+
+    private sealed class ReporterReceiptRoleBarrier(Func<CancellationToken, Task> deactivate) : DbCommandInterceptor
+    {
+        public bool Armed { get; set; }
+        public int Calls { get; private set; }
+
+        public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            if (Armed && command.CommandText.Contains("FROM [IdempotencyRecords]", StringComparison.Ordinal))
+            {
+                Armed = false;
+                Calls++;
+                await deactivate(cancellationToken);
+            }
+            return result;
+        }
+    }
+
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task NonIntakeModuleRoutes_WithoutProductionComposition_ReturnDependencyUnavailable()
     {
         var reporter = await sql.CreateUserAsync($"unbound-r-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
         var pm = await sql.CreateUserAsync($"unbound-p-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
@@ -47,8 +161,6 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var reports = await client.GetAsync("/api/v1/reports");
         reports.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
         (await reports.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString().Should().Be("dependency_unavailable");
-        var intake = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Unbound", evidence = Array.Empty<object>() }, Guid.NewGuid().ToString());
-        intake.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
         await LoginAsync(client, pm.UserName!);
         (await client.GetAsync("/api/v1/cases")).StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
         (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/candidate-decisions/{Guid.NewGuid()}")).StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);

@@ -19,7 +19,12 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
     {
         if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)) Fail(403, "access_forbidden");
         await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={0}", actor, ct);
-        if (!await db.Users.AsNoTracking().AnyAsync(u => u.Id == actor && u.RoleCode == role && u.Status == UserStatus.Active && !u.MustChangePassword, ct)) Fail(403, "access_forbidden");
+        var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == actor, ct);
+        if (user is null || user.RoleCode != role || user.Status != UserStatus.Active || user.MustChangePassword) Fail(403, "access_forbidden");
+        var roleCode = user!.RoleCode.ToDbCode();
+        var currentRole = await db.Roles.FromSqlInterpolated($"SELECT * FROM [Roles] WITH (UPDLOCK,HOLDLOCK) WHERE [Code]={roleCode}")
+            .AsNoTracking().SingleOrDefaultAsync(ct);
+        if (currentRole is not { IsActive: true } || currentRole.Code != role) Fail(403, "access_forbidden");
         var projects = new HashSet<Guid>();
         if (requestedProject is Guid project) projects.Add(project);
         var rows = await db.IncidentCases.AsNoTracking().Where(c => caseIds.Contains(c.Id)).Select(c => new { c.Id, c.ProjectId }).ToArrayAsync(ct);

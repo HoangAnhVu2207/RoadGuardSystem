@@ -73,3 +73,44 @@ Existing project/Operator upload and Postman identifiers are preserved.
 No Huy Report/Case/Candidate/label route or event activated. Event adoption
 and actual Huy consumer runtime remain PENDING. Domain-only external review
 PASS is HISTORICAL, not additive SQL/HTTP integration acceptance.
+
+
+## Reporter intake activation — fixed Huy checkpoint 0e41913, 2026-10-03
+
+Owner-assigned additive adoption on anh-review; external ChatGPT review PENDING.
+Only POST `/api/v1/reports` is activated through production Reporter module DI.
+Location identifies the Report; GET/list/supplement/case/candidate/label routes
+are not activated. No report.received.v1/outbox emission.
+Request: `{description,evidence:[{fileId,fileVersion,locationSource,capturedAt?,location?:{latitude,longitude,accuracyMeters?}}]}`.
+Description trims to 1..1000 characters; nonempty evidence, unique file IDs;
+fileVersion trims to 1..200. Unknown JSON fields/null evidence:400.
+locationSource exactly UNKNOWN/CAPTURE/EXIF/MANUAL; UNKNOWN requires absent
+location, others require both latitude/longitude (explicit zero valid), ranges
+[-90,90]/[-180,180], nonnegative accuracy. Capture facts come from the request,
+never inferred from upload GPS.
+
+Current Reporter/active user/no mandatory password change; owned private
+REPORT_PHOTO file, null project/target, VERIFIED upload and terminal upload
+rowversion. Repeat checks under actor then FileId-sorted file/scope/upload SQL
+locks before replay or changed-payload conflict, same scoped DbContext and
+transaction as shared receipt. Other owner/missing/nonprivate:404 not_found;
+pending/failed:409 source_not_ready; version drift:412 concurrency_conflict;
+forbidden:403 access_forbidden. Global role-row deactivation after preflight is
+not checked by imported Huy adapter: known Huy-owned gap, authority gate open.
+
+Idempotency-Key absent:428 precondition_required. Reject control/non-ASCII;
+trim outer ASCII spaces only, preserve internal printable ASCII, normalized
+length1..200. Invalid request/key:400 validation_error with errors dictionary.
+Fingerprint includes normalized description, ordered evidence/capture facts.
+Authorization/evidence precede protected replay/conflict. Denied outcomes have
+no Location/ETag. Same key/request:201 exact body/Location `/api/v1/reports/{id}`/
+quoted report rowversion ETag. Changed payload:409 idempotency_key_reused.
+Response `{id,description,createdAt,version,evidenceIds}`. Problem responses:
+application/problem+json with status/title/detail/instance/code/correlationId.
+Atomic immutable Report + UNASSIGNED Case + active link + sanitized audit +
+receipt; no project assignment/approved label/publication authority invented.
+
+Private upload/content retain producer contract: owned JPEG/PNG<=20MiB;
+metadata ETag supplies fileVersion; content only VERIFIED; other-owner404,
+not-ready409/storage503. HTTP/SQL tests use real BE and mock object storage;
+live storage/deployment and external review remain separate gates.

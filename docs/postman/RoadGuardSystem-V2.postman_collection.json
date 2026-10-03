@@ -6570,6 +6570,788 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "HUY-01 integrated Reporter intake - ordered",
+      "description": "Fixed Huy SHA0e41913. Real storage steps require local configured bucket, actual JPEG/PNG and running verification worker; wait for VERIFIED before create. Negative requests require separately prepared pending/failed/other-Reporter fixtures. No secrets. Clear reporterIntake* keys to start a new run. Status Partial/external review pending.",
+      "item": [
+        {
+          "name": "Private evidence create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterIntakeUploadKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads"
+              ]
+            },
+            "description": "Reporter intake flow. Production BE; real signed PUT requires local/live storage and actual JPEG/PNG bytes. HTTP/SQL automated tests use named mock storage. No publication/case/label route activation.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"private.jpg\",\n  \"mediaType\": \"{{reporterPhotoMediaType}}\",\n  \"sizeBytes\": {{reporterPhotoBytes}},\n  \"checksumSha256\": \"{{reporterPhotoSha256}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Successful private upload\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "if(pm.response.code<300){const d=pm.response.json();pm.environment.set(\"reporterUploadId\",d.id);pm.environment.set(\"reporterFileId\",d.fileId);const e=pm.response.headers.get(\"ETag\");if(e)pm.environment.set(\"reporterUploadETag\",e);}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterIntakeUploadKey\"))pm.environment.set(\"reporterIntakeUploadKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Private upload parts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterIntakePartsKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads/{{reporterUploadId}}/part-urls",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads",
+                "{{reporterUploadId}}",
+                "part-urls"
+              ]
+            },
+            "description": "Reporter intake flow. Production BE; real signed PUT requires local/live storage and actual JPEG/PNG bytes. HTTP/SQL automated tests use named mock storage. No publication/case/label route activation.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumbers\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Part URL issued\",()=>pm.response.to.have.status(200));",
+                  "pm.environment.set(\"reporterSignedPartUrl\",pm.response.json().parts[0].url);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterIntakePartsKey\"))pm.environment.set(\"reporterIntakePartsKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT actual JPEG/PNG bytes to signed part URL",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{reporterPhotoMediaType}}"
+              }
+            ],
+            "url": "{{reporterSignedPartUrl}}",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "description": "Select the exact local JPEG/PNG whose SHA256/length match create. Requires live local storage; this external PUT is not performed by mock-storage tests."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Storage PUT accepted\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "pm.environment.set(\"reporterPartETag\",pm.response.headers.get(\"ETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Private upload read",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads/{{reporterUploadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads",
+                "{{reporterUploadId}}"
+              ]
+            },
+            "description": "Reporter intake flow. Production BE; real signed PUT requires local/live storage and actual JPEG/PNG bytes. HTTP/SQL automated tests use named mock storage. No publication/case/label route activation."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Successful private upload\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "if(pm.response.code<300){const d=pm.response.json();pm.environment.set(\"reporterUploadId\",d.id);pm.environment.set(\"reporterFileId\",d.fileId);const e=pm.response.headers.get(\"ETag\");if(e)pm.environment.set(\"reporterUploadETag\",e);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Private upload complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterIntakeCompleteKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{reporterIntakeCompleteETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/uploads/{{reporterUploadId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "uploads",
+                "{{reporterUploadId}}",
+                "complete"
+              ]
+            },
+            "description": "Reporter intake flow. Production BE; real signed PUT requires local/live storage and actual JPEG/PNG bytes. HTTP/SQL automated tests use named mock storage. No publication/case/label route activation.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checksumSha256\": \"{{reporterPhotoSha256}}\",\n  \"parts\": [\n    {\n      \"partNumber\": 1,\n      \"eTag\": \"{{reporterPartETag}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Successful private upload\",()=>pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                  "if(pm.response.code<300){const d=pm.response.json();pm.environment.set(\"reporterUploadId\",d.id);pm.environment.set(\"reporterFileId\",d.fileId);}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterIntakeCompleteKey\"))pm.environment.set(\"reporterIntakeCompleteKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterIntakeCompleteETag\"))pm.environment.set(\"reporterIntakeCompleteETag\",pm.environment.get(\"reporterUploadETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wait for worker then read VERIFIED private evidence",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reporter-evidence/files/{{reporterFileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reporter-evidence",
+                "files",
+                "{{reporterFileId}}"
+              ]
+            },
+            "description": "Reporter intake flow. Production BE; real signed PUT requires local/live storage and actual JPEG/PNG bytes. HTTP/SQL automated tests use named mock storage. No publication/case/label route activation."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Verified evidence ready\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json().status).to.eql(\"VERIFIED\");});",
+                  "if(pm.response.code===200 && pm.response.json().status===\"VERIFIED\")pm.environment.set(\"reporterFileVersion\",pm.response.json().version);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create received Report and UNASSIGNED case",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterIntakeKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Reporter intake evidence\",\n  \"evidence\": [\n    {\n      \"fileId\": \"{{reporterFileId}}\",\n      \"fileVersion\": \"{{reporterFileVersion}}\",\n      \"locationSource\": \"UNKNOWN\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterIntakeKey\"))pm.environment.set(\"reporterIntakeKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected status\",()=>pm.response.to.have.status(201));",
+                  "pm.environment.set(\"reporterReportBody\",pm.response.text());pm.environment.set(\"reporterReportLocation\",pm.response.headers.get(\"Location\"));pm.environment.set(\"reporterReportETag\",pm.response.headers.get(\"ETag\"));pm.environment.set(\"reporterReportId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replay same key and normalized request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterIntakeKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Reporter intake evidence\",\n  \"evidence\": [\n    {\n      \"fileId\": \"{{reporterFileId}}\",\n      \"fileVersion\": \"{{reporterFileVersion}}\",\n      \"locationSource\": \"UNKNOWN\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterIntakeKey\"))pm.environment.set(\"reporterIntakeKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected status\",()=>pm.response.to.have.status(201));",
+                  "pm.test(\"Exact replay\",()=>{pm.expect(pm.response.text()).to.eql(pm.environment.get(\"reporterReportBody\"));pm.expect(pm.response.headers.get(\"Location\")).to.eql(pm.environment.get(\"reporterReportLocation\"));pm.expect(pm.response.headers.get(\"ETag\")).to.eql(pm.environment.get(\"reporterReportETag\"));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conflict valid changed payload",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterIntakeKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Changed payload\",\n  \"evidence\": [\n    {\n      \"fileId\": \"{{reporterFileId}}\",\n      \"fileVersion\": \"{{reporterFileVersion}}\",\n      \"locationSource\": \"UNKNOWN\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterIntakeKey\"))pm.environment.set(\"reporterIntakeKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected status\",()=>pm.response.to.have.status(409));",
+                  "pm.test(\"Problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"idempotency_key_reused\"));",
+                  "pm.test(\"No protected headers\",()=>{pm.expect(pm.response.headers.has(\"ETag\")).to.be.false;pm.expect(pm.response.headers.has(\"Location\")).to.be.false;});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong owner hides evidence",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherReporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterWrongOwnerKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Other Reporter\",\n  \"evidence\": [\n    {\n      \"fileId\": \"{{reporterFileId}}\",\n      \"fileVersion\": \"{{reporterFileVersion}}\",\n      \"locationSource\": \"UNKNOWN\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterWrongOwnerKey\"))pm.environment.set(\"reporterWrongOwnerKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected status\",()=>pm.response.to.have.status(404));",
+                  "pm.test(\"Problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"not_found\"));",
+                  "pm.test(\"No protected headers\",()=>{pm.expect(pm.response.headers.has(\"ETag\")).to.be.false;pm.expect(pm.response.headers.has(\"Location\")).to.be.false;});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pending evidence not admitted",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterPendingKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Pending evidence\",\n  \"evidence\": [\n    {\n      \"fileId\": \"{{reporterPendingFileId}}\",\n      \"fileVersion\": \"{{reporterPendingFileVersion}}\",\n      \"locationSource\": \"UNKNOWN\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterPendingKey\"))pm.environment.set(\"reporterPendingKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected status\",()=>pm.response.to.have.status(409));",
+                  "pm.test(\"Problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"source_not_ready\"));",
+                  "pm.test(\"No protected headers\",()=>{pm.expect(pm.response.headers.has(\"ETag\")).to.be.false;pm.expect(pm.response.headers.has(\"Location\")).to.be.false;});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Failed evidence not admitted",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterFailedKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Failed evidence\",\n  \"evidence\": [\n    {\n      \"fileId\": \"{{reporterFailedFileId}}\",\n      \"fileVersion\": \"{{reporterFailedFileVersion}}\",\n      \"locationSource\": \"UNKNOWN\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterFailedKey\"))pm.environment.set(\"reporterFailedKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected status\",()=>pm.response.to.have.status(409));",
+                  "pm.test(\"Problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"source_not_ready\"));",
+                  "pm.test(\"No protected headers\",()=>{pm.expect(pm.response.headers.has(\"ETag\")).to.be.false;pm.expect(pm.response.headers.has(\"Location\")).to.be.false;});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stale evidence version",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{reporterStaleKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Stale version\",\n  \"evidence\": [\n    {\n      \"fileId\": \"{{reporterFileId}}\",\n      \"fileVersion\": \"{{reporterStaleFileVersion}}\",\n      \"locationSource\": \"UNKNOWN\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"reporterStaleKey\"))pm.environment.set(\"reporterStaleKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected status\",()=>pm.response.to.have.status(412));",
+                  "pm.test(\"Problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"concurrency_conflict\"));",
+                  "pm.test(\"No protected headers\",()=>{pm.expect(pm.response.headers.has(\"ETag\")).to.be.false;pm.expect(pm.response.headers.has(\"Location\")).to.be.false;});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

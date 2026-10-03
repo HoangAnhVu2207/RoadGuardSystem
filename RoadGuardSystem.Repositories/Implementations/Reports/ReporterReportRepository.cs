@@ -46,6 +46,11 @@ public sealed class ReporterReportRepository(RoadGuardDbContext context) : IRepo
         if (actor is null) throw new ReporterIntakeFactsException(ReporterIntakeFactsStatus.NotFound);
         if (actor.Status != RoadGuardSystem.aBusinessObjects.Commons.UserStatus.Active || actor.RoleCode != RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Reporter || actor.MustChangePassword)
             throw new ReporterIntakeFactsException(ReporterIntakeFactsStatus.Forbidden);
+        var roleCode = actor.RoleCode.ToDbCode();
+        var role = await context.Roles.FromSqlInterpolated($"SELECT * FROM [Roles] WITH (UPDLOCK,HOLDLOCK) WHERE [Code]={roleCode}")
+            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (role is not { IsActive: true } || role.Code != RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Reporter)
+            throw new ReporterIntakeFactsException(ReporterIntakeFactsStatus.Forbidden);
         foreach (var item in evidence.OrderBy(reference => reference.FileId))
         {
             await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Files] WITH (UPDLOCK,HOLDLOCK) WHERE [Id] = {0}", item.FileId, cancellationToken);

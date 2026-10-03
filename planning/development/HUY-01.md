@@ -2,6 +2,154 @@
 
 Ngày: 2026-10-02. Writer: Huy / Codex local. Nhánh: `huy-review`.
 
+## 2026-10-03 continuation C1-C3 - PARTIAL
+
+`CURRENT_VERIFIED` preflight: `huy-review` local and `origin/huy-review` were both
+`7e8261648e08adf5b5bdf0cea85fca5e55463b73`, clean, before this continuation.
+`715ade2c20f652b77c8c7e995c76bb5d47ead966` (A) and Huy diverge at
+`efc0ca10b53264bb24c807b7352ddba0cbe36b6d`; A's parent is
+`6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e`. B is
+`a46b97b271b4af1b9e89dc182b5e3fc7a10e8fff`. Neither A nor B was
+cherry-picked/merged as a commit, and no newer Anh tip was substituted.
+
+### C1 production intake and exact-source imports
+
+- A's shared composition-root delta is one Reporter registration call in each
+  `ServiceCollectionExtensions.cs` and `RoadGuardPersistenceExtensions.cs`.
+  Its exact `AddHuy01ReporterServices/Persistence()` calls were not independent
+  on Huy HEAD: those module extensions now also register lifecycle, Case and
+  Candidate, whose routes A explicitly did not canonical-adopt. Conflict
+  resolution: Huy's extensions expose intake-only registration; the two
+  production roots call only that subset. Test-host full-module extensions
+  remain available. Production POST `/api/v1/reports` is bound exactly once
+  with scoped real service/repository; GET/list/supplement/Case/Candidate stay
+  unbound and return `dependency_unavailable`. This is an adapted A hunk, not a
+  claim that either whole shared file matches A's blob. Anh remains named writer
+  for any further shared DI activation/contract adoption.
+- Imported A's additive 41-line `contracts/http/anh01.local-contract.md` and
+  90-line Postman environment patch from A parent; appended only its 13-item
+  `HUY-01 integrated Reporter intake - ordered` JSON folder (782 lines) to
+  Huy's collection. Parsed folder content equals A, existing folders/IDs stay
+  intact; ANH-02 folder and implementation were not imported. The A contract's
+  sentence that role-row deactivation is unchecked is **HISTORICAL** after the
+  C2 fix below. This Huy integration does not edit Anh's canonical text beyond
+  the exact A patch; Anh must append the role-row correction before the next
+  canonical adoption/review. Until then the contract contains a known stale
+  statement and must be read with this superseding SHA-scoped checkpoint.
+- Shared receipt service and SQL test blobs remain exactly `8fa41dc4914ba7f2f475d4802727a2f8f1ef9f88`
+  and `7d4fb79ba442f2359f3e26368196c24fdbf67aec` from
+  `f626ea595420c3f28a35f2b3f4c6f196d313a7be`. No shared service/test,
+  fixture, DbContext, mapping, migration/snapshot or ANH-02 implementation
+  changed. Production binding acceptance uses real Reporter SQL/producer and
+  named mock object storage; no live storage claim.
+
+### C2 fresh role authority
+
+- `ReporterReportRepository.EnsureCurrentReceiptAccessAsync` now locks Users,
+  reads the actual user role, then locks/reads that `Roles.Code` row and requires
+  `IsActive=true` before ordered Files/FileScopes/UploadSessions locks. The same
+  method is used by create, receipt guard and Reporter lifecycle. It runs in
+  the shared receipt transaction for replay/conflict/retry/duplicate-key/
+  postcommit recovery; it opens no transaction and writes no receipt/business
+  row itself. `CaseWorkflowRepository.GuardAsync` follows Users -> actual Roles
+  -> Projects/ProjectMembers -> Cases; Candidate REPORT guard reuses it.
+- Disposable SQL regressions mutate role after a successful real preflight and
+  before ordinary receipt lookup, retry discovery, observed duplicate-key
+  recovery after loser disposal and postcommit durable lookup. They distinguish
+  failed create attempts from durable winner effects, restore fixture role in
+  `finally`, and assert no protected receipt. Production-root HTTP proves
+  replay and changed-payload conflict return 403 without Location/ETag after
+  role deactivation. New create while role inactive leaves no graph. Existing
+  cancellation, guard exception, same-key, rollback and exact outcome probes
+  remain in the full HUY filter. Reporter P1 closure is **proposed** on these
+  fresh gates; external ChatGPT review of this diff is PENDING.
+- `PROPOSED`, named writer Anh: `AnhHuyFactsRepository.IsCurrentActorAsync`
+  still checks user `RoleCode` without `Roles.IsActive`. The Huy transactional
+  guard prevents unauthorized intake receipt/write after this gap, but Anh
+  should add the role-row read to that producer for consistent preflight and
+  private-file behavior. Do not infer other Anh producer/consumer routes are
+  protected by this Huy guard.
+
+### C3 reader boundaries and remaining gates
+
+- Imported B's exact `RetentionContracts.cs` and `RetentionDtos.cs` blobs
+  `fae16ded105c8c3f3ebdac43090b6e1b9a6996a1` and
+  `7d960aeb1195ae15bf4bb8aba8eedcaada47499d` as the minimal compile
+  boundary for a Huy-owned `IRetentionInventoryContributor`. The unbound
+  `HUY` contributor uses the caller's scoped DbContext/transaction and real
+  original/supplement Report evidence, active/closed Case links, conclusion/
+  publication evidence, REPORT decisions and link-history tables; versions are
+  deterministic hashes of typed persisted facts. Its project-file query retains
+  closed links. `Complete=false` with explicit missing label,
+  Defect source-link and repair reference reasons even on an empty result;
+  it cannot yet unblock Anh's composite retention evaluator. B's
+  `REPORTER_INTAKE` contributor remains a distinct Anh producer and was not
+  renamed, copied or registered here. Disposable SQL tests cover persisted
+  plain active intake, conclusion evidence, deterministic reread, link-version
+  change on close, closed-link project obligation and incomplete result. Anh
+  must import/register the exact Huy contributor
+  after its B composite/DI is integrated and after the remaining Huy obligations
+  become queryable; no retention deletion is implied.
+- B's `Anh02Contracts.cs` is the exact local additive consumer boundary, not
+  yet imported because no approved-label/matching/AI Huy reader can satisfy
+  its required current-source snapshot with present schema. This supersedes
+  §9.4's older `ReadCurrentApprovedAsync(project,watermark,ct)` proposal:
+  implement **`IApprovedTrainingLabelReader.CaptureApprovedAsync(actorId,role,projectId,TrainingLabelFilterV1,ct)`**
+  and `ITrainingSourceAccessReader.CanReadAsync(...)` from B unchanged, in the
+  exporter's same scoped SERIALIZABLE transaction (or a durable immutable
+  producer snapshot). Do not create a parallel cursor/watermark API. Exact B
+  `IMatchingCandidateSnapshotReader.CaptureAsync(...)` and
+  `IAiCandidateFactsReader.ResolveAsync(...)` likewise remain the consumer
+  targets; no fixture-only success adapter is registered in production.
+- Named writer Anh must reserve/import B's consumer graph, then adopt Huy
+  readers. Label SQL first needs TrainingLabel head current revision/rowversion,
+  immutable revisions and terminal reviews, source/file version/checksum and
+  REPORT/AI provenance with typed restrict FKs, unique(label,revision), one
+  terminal review/revision, current-head concurrency and approved-only SQL
+  capture. Adding `IEntityTypeConfiguration` prematurely would change the
+  runtime model via assembly discovery; no mapping/EnsureCreated/test-only
+  migration was added. AI frame provenance is not a private UploadSession.
+  Matching still needs actual scoped Defect ID/rowversion/segment/route and
+  current geometry/source-disposition snapshot. KEEP_NEW/LINK_EXISTING need
+  Defect rowversion and typed source-link/created-Defect relation plus
+  downstream-use correction semantics. Missing facts mean unavailable, never
+  empty-success or fake candidate/label effects.
+- `PROPOSED` CaseDefectRead handoff for Anh reporting/dossier: a typed capture
+  under the caller's scoped transaction with actor/current role/project,
+  Case/Report IDs and revisions, status, conclusion/publication/recipient refs,
+  authorized evidence IDs, and explicit availability/missing reasons for
+  Defect/source/geometry facts. `ReceivedAt [from,to)` applies to Report flow;
+  Case stock is current state. No frozen caller interface exists at B, so no
+  parallel shared API or integrated claim was created. Anh should confirm the
+  signature/failure semantics and bind real Huy query before consuming it.
+- Web/Android transport still needs Anh Sessions Transport/LastActivityAt,
+  backfill and shared auth middleware/options; Huy has not changed legacy
+  bearer lifetime. No report event/outbox was emitted: canonical envelope,
+  consumer and retry ownership remain an Anh/owner gate. No HUY-02, AI provider,
+  shared/deployed migration, Retention delete or new Defect target effect.
+
+Fresh continuation verification before final commit: API build 0 warnings/0
+errors; unit `Package=HUY-01` 47/47; API/SQL
+`Package=HUY-01|FullyQualifiedName~Huy01Reporter` 65/65 on disposable SQL;
+shared receipt/P202 plus Huy identity SQL 57/57; legacy auth HTTP 37/37.
+Focused red observations:
+role inactive originally returned Created/Replayed/IdempotencyConflict (3
+failures), missing production DI failed one, retention stub failed one,
+contributor name mismatch failed one, and the plain-intake retention regression
+failed before direct refs were added; each was corrected and rerun.
+These overlapping red/green runs are not added to the final distinct counts.
+`git diff --check` and JSON parse/folder comparison passed before final staging.
+Self-review 1 checked user/actual role/source locking, post-preflight receipt
+paths, protected HTTP headers, scoped durable graph, private evidence and
+retention history; corrected missing direct retention references. Self-review
+2 checked fixed A/B source, contract/DI activation breadth, mapping discovery,
+shared ownership and no unsupported reader success. An internal read-only code
+review found the direct-reference omission (fixed) and stale A contract text;
+the latter is an exact cross-owner correction for Anh, not silently edited by
+Huy. Internal review is not external ChatGPT review, which remains PENDING.
+External/deployment, real ANH-02 exporter/retention consumer, label/matching
+reader and Postman network runner are NOT RUN. `deliveryStatus=PARTIAL`.
+
 ## Anh shared integration reservation — owner continuation 2026-10-02
 
 TARGET_CONFIRMED: Anh is named writer for shared model/configuration,

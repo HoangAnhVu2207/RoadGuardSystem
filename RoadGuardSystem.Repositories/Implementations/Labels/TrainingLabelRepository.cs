@@ -60,7 +60,9 @@ public sealed class TrainingLabelRepository(RoadGuardDbContext db) : ITrainingLa
         var head = new HuyTrainingLabelHead
         {
             Id = label.Id, ProjectId = label.ProjectId, SourceKind = label.SourceKind,
-            SourceId = label.SourceId, ReportSourceId = label.SourceId,
+            SourceId = label.SourceId,
+            ReportSourceId = label.SourceKind == "REPORT" ? label.SourceId : null,
+            AIDetectionSourceId = label.SourceKind == "AI_DETECTION" ? label.SourceId : null,
             CurrentRevision = 1, UpdatedAt = now
         };
         db.Set<HuyTrainingLabelHead>().Add(head);

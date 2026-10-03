@@ -11,6 +11,7 @@ public interface ICandidateDecisionRepository
     Task<T> ReadConsistentlyAsync<T>(Func<CancellationToken, Task<T>> read, CancellationToken ct);
     Task<IReadOnlyList<CandidateTargetMatchFact>> MatchTargetsAsync(Guid projectId, CancellationToken ct);
     Task LockSourceAsync(Guid reportId, Guid expectedCase, CancellationToken ct);
+    Task LockAiSourceAsync(Guid detectionId, CancellationToken ct);
     Task<CandidateDecisionResponseDto> SaveRejectAsync(Guid actor, CandidateSourceFacts facts, CandidateCorrection? correction,
         string reason, Guid? correlation, CancellationToken ct);
     Task<CandidateDecisionResponseDto> SaveAcceptedAsync(Guid actor, CandidateSourceFacts facts,

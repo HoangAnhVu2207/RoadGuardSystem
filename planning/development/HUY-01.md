@@ -17,12 +17,64 @@ blob at that SHA (`b8c89225f8c3d25304875e7cdf1b3f506a1d7a60`).
 | Reporter intake/receipt/privacy | §§4, 6, 8, 10 B | CLOSED within externally reviewed Reporter P1 scope; current auth-selector regression 41/41 | None identified | Default auth selector now includes `/reports`, so affected Reporter HTTP/SQL was rerun | Prior real Reporter acceptance, external PASS and fresh affected regression | Huy |
 | Multipart recovery | §10 E and Anh handoff | Source/SQL CLOSED; real MinIO external-only | Controlled real-storage/network acceptance | Allowed test bucket/MinIO endpoint | Prior disposable SQL/adapter; real-storage gate separately labelled | Huy/environment |
 | CaseDefect compatibility/read | §§8, 10 E; `anh-huy.case-defect.v1` | CLOSED for REPORT: actual ReportingService/Repository consumes scoped SQL reader, verified Defect/evidence and real HTTP summary; current-role/wrong-project negatives pass | None for REPORT; AI unavailable facts remain explicit `MissingReasons` | Seven exact reporting source files from `5089c326` imported without overwriting Huy reader | Deterministic hash/status; SQL materialization and consumer/privacy | Huy |
-| Web/Android auth transport | §§5.1-5.2, 10 A | PARTIAL: six Web and four Android HTTP/SQL probes pass on this worktree | Boundary/race/logout/password-change acceptance and final contract/config verification | Same-site local fixture; production origin is deployment input | Exact wire, CSRF, idle/absolute boundaries, rotation/revocation races, legacy regression | Huy |
+| Web/Android auth transport | §§5.1-5.2, 10 A | CLOSED for BE/source: 7 Web + 4 Android HTTP/SQL probes pass after current DI integration, including CSRF, idle/absolute boundaries, rotation/revocation races, logout and must-change-password gate | Production same-site origin/cookie/network verification is external-only | Deployment origin and browser/device environment | Current wire/SQL and affected legacy regression; no production-browser claim | Huy/environment |
 | Case workflow/publication | §§6-8, 10 B | CLOSED for implemented EXISTING_EVIDENCE flow: CONFIRMED/NO_DEFECT, two-Reporter privacy, link/split, cross-project/stale rollback pass SQL/HTTP | FIELD/DRONE completion provenance remains fail-closed per §7; canonical network collection is tracked separately | Current Case, Report, Defect and verified-file relations | Scope/privacy, stale multi-case rollback, conclusion/publication effects | Huy |
-| Candidate/matching/Defect | §§7-8, 10 C-D | PARTIAL: REPORT KEEP_NEW/LINK_EXISTING, source links, rowversion, no-GPS project match and Defect assessment/verification pass SQL/HTTP | AI provenance bridge, assigned/neighbor matching and further concurrency/rollback acceptance | Exact Anh AI provenance graph at `5089c326`; no invented metric distance | Current disposition/version, no fake distance/task, atomic decisions | Huy |
-| Label lifecycle/export | §§7-8, 10 C-E | PARTIAL: manual REPORT SQL/API, current-head migration, actual ExportService/Repository/renderer positive ZIP via test artifact store, immutable manifest and revoked current-byte access pass | AI source provenance branch and real MinIO/network acceptance | Exact Anh export source files from `5089c326`; export migration `20261003200000` is additive | Current-head concurrency, approval-only export, historical snapshot/current access | Huy |
+| Candidate/matching/Defect | §§7-8, 10 C-D | CLOSED for REPORT and synthetic AI BE: real producer/consumer SQL/HTTP covers KEEP_NEW, LINK_EXISTING, REJECT, typed source links, version, same-project no-GPS expansion and duplicate matching | Assigned/neighbor/distance ranking needs authoritative assigned segment/metric position; unavailable source facts remain fail-closed, not fabricated | REPORT has route/set hint only; synthetic AI returns `PositionStatus=UNKNOWN`, `SegmentId=null`; no approved metric threshold | Current disposition/version, no fake distance/task, atomic decisions; external AI remains separate | Huy/owner |
+| Label lifecycle/export | §§7-8, 10 C-E | CLOSED for REPORT and synthetic AI BE: source provenance, revision/review, approved-only SQL reader and actual exporter ZIP pass; immutable manifest and revoked current-byte access pass | Real MinIO/network acceptance external-only | Exact Anh export source files from `5089c326`; export migration `20261003200000` is additive | Current-head concurrency, approval-only export, historical snapshot/current access | Huy/environment |
 | Retention contribution | §§8-10 | CLOSED for Huy references: actual Anh composite consumes Report/Case/Candidate/Defect/Label SQL references and remains incomplete/fail-closed for HUY-02 repair | Global retention completion/deletion is outside HUY-01; no empty-reference success | Exact `RetentionInventoryRepository` from `5089c326`, scoped Huy contributor | Fail-closed incomplete references and stable historical Label revision version | Huy |
-| Events/canonical routes/Postman | §§8-10 | PARTIAL: Huy Case/Candidate/Defect/Label routes and DI active; no event emitted | Adopt only agreed envelope/consumer and align canonical Postman/network acceptance | Event agreement is external; route/Postman work is Huy-owned | Network smoke and durable outbox only for agreed events | Huy/owner |
+| Events/canonical routes/Postman | §§8-10 | CLOSED for route/source and static collection: Huy Case/Candidate/Defect/Label and AI/reporting/export requests parse with all HUY-01 variables; no event emitted | Network smoke external-only; event envelope/consumer/outbox remains BLOCKED by owner agreement | Event agreement and disposable network/storage environment | Network smoke and durable outbox only for agreed events | Huy/owner |
+
+### 2026-10-04 AI producer/consumer and final gate checkpoint - PARTIAL
+
+The continuation started from clean local/remote `0d3425f46a429437df0f0bf185105de33701254f`.
+Reporting/export/retention integration was separately committed and pushed at
+`854f8a7b34302a7b59d69f8ea365a00be186f684`. This current slice imports
+only the exact Anh AI producer source/fixture from `5089c3267dcdf60645ab34f61b58a79e3cbb0cf6`,
+then adds Huy-owned candidate, matching, label and export consumers. The
+additive AI producer and attempt-closure migrations are for disposable SQL;
+no shared/deployed database was migrated. AI workers remain Development/Test
+and `MockEnabled` opt-in. No HUY-02 hold/evaluation/retention deletion or
+external provider implementation was imported.
+
+The real disposable SQL/API AI probe (`huy01-ai-decisions-final.trx`) executed
+1, passed 1, failed 0, skipped 0. Within that probe, actual survey video,
+dataset, mock producer/worker and provenance feed AI KEEP_NEW, LINK_EXISTING
+and REJECT, typed Defect/source relations, duplicate matching, manual AI
+label approval/revision and training export ZIP through the actual renderer.
+The test artifact store is in-memory; this is **not** real MinIO. The probe
+also covers revoked PM access and producer fail/rollback paths. Affected
+REPORT/Case SQL/API regression (`huy01-ai-affected-report-green.trx`) passed
+3/3; focused `Package=HUY-01` domain unit regression
+(`huy01-ai-affected-domain-final.trx`) passed 58/58; affected Web/Android transport SQL/API regression
+(`huy01-ai-affected-auth-transport.trx`) passed 11/11. These focused results
+are not additive counts for broader historical suites.
+
+`dotnet build RoadGuardSystem.slnx --no-restore --nologo -v q
+-clp:ErrorsOnly` exited 0 (571 existing analyzer warnings, 0 errors).
+`dotnet ef migrations has-pending-model-changes --project
+RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj
+--startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build`
+with `ROADGUARD_MIGRATION_CONNECTION_STRING` set to a design-time-only localdb
+value exited 0: no pending model changes. It did not connect to or migrate
+any database. Both Postman JSON files parse; four new HUY-01 opt-in folders
+contain 16 AI/reporting/export, 7 Case, 4 authority and 9 Candidate/Label
+requests, and all referenced environment variables exist. Postman network
+runner was NOT RUN; live credentials, production origin and real MinIO are
+external-only. `git diff --check` exited 0 before this documentation edit;
+it must be rerun after the final edit.
+
+Self-review pass 1 checked fresh PM/source/provenance reads under SQL locks,
+same-transaction decision/link/audit/receipt effects, approved-only current
+head and current byte access. Pass 2 checked imported Anh AI source boundaries,
+additive migration/model parity, no HUY-02/event activation, opt-in Postman
+selection and external evidence labels. No invented segment, distance,
+completion proof or event envelope was added. Assigned/neighbor ranking
+requires a source-owned assigned segment/metric location and an owner-approved
+metric policy; the available REPORT hint and synthetic AI UNKNOWN position
+cannot establish those facts. A real provider, real MinIO, network/deployment
+and an event envelope/consumer remain exact external/owner blockers.
+`deliveryStatus=PARTIAL`; external ChatGPT review of this combined diff is
+PENDING, and this is not a claim that all HUY-01 gates are DONE.
 
 ### 2026-10-03 actual reporting/export/retention consumer integration - PARTIAL
 

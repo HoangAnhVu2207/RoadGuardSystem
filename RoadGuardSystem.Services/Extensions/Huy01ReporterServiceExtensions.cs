@@ -35,6 +35,12 @@ public static class Huy01ReporterServiceExtensions
         services.TryAddScoped<RoadGuardSystem.Services.Reporting.IReportingService, RoadGuardSystem.Services.Reporting.ReportingService>();
         services.TryAddScoped<RoadGuardSystem.Services.Exports.IExportRenderer, RoadGuardSystem.Services.Exports.ExportRenderer>();
         services.TryAddScoped<RoadGuardSystem.Services.Exports.IExportService, RoadGuardSystem.Services.Exports.ExportService>();
+        services.TryAddSingleton<RoadGuardSystem.Services.Processing.Anh02.SyntheticAiFixture>();
+        services.TryAddScoped<RoadGuardSystem.Services.Processing.Anh02.Anh02AiService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Processing.Anh02.IAnh02AiService>(provider => provider.GetRequiredService<RoadGuardSystem.Services.Processing.Anh02.Anh02AiService>());
+        services.TryAddScoped<RoadGuardSystem.Services.Integration.IAiCandidateFactsReader>(provider => provider.GetRequiredService<RoadGuardSystem.Services.Processing.Anh02.Anh02AiService>());
+        services.TryAddScoped<RoadGuardSystem.Services.Integration.IMatchingCandidateSnapshotReader,
+            RoadGuardSystem.Services.Implementations.Defects.MatchingCandidateSnapshotReader>();
         return services;
     }
 }

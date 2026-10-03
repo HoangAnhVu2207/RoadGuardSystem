@@ -12,7 +12,8 @@ using RoadGuardSystem.Services.Integration;
 namespace RoadGuardSystem.Services.Implementations.Defects;
 
 public sealed class CandidateMatchingService(ICandidateDecisionRepository repository,
-    ICaseWorkflowRepository cases, IAnhHuyProducerService producer, IProjectScopeGuard scope)
+    ICaseWorkflowRepository cases, IAnhHuyProducerService producer, IAiCandidateFactsReader ai,
+    IProjectScopeGuard scope)
     : ICandidateMatchingService
 {
     private sealed record Cursor(Guid ProjectId, Guid SourceId, string SourceVersion,
@@ -26,21 +27,41 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
         if (project == Guid.Empty || sourceId == Guid.Empty || pageSize is < 1 or > 200 ||
             sourceKind is not ("REPORT" or "AI_DETECTION" or "FIELD_OBSERVATION"))
             return new(400, "validation_error");
-        if (sourceKind != "REPORT") return new(409, "source_not_ready");
+        if (sourceKind == "FIELD_OBSERVATION") return new(409, "source_not_ready");
         try
         {
             return await repository.ReadConsistentlyAsync(async ct =>
             {
-                var initial = await producer.ResolveCandidateSourceAsync(actor, role, project,
-                    CandidateSourceKind.Report, sourceId, cancellationToken: ct);
-                if (initial.Status != AnhHuyProducerStatus.Ready) return Failure(initial.Status);
-                await cases.GuardAsync(actor, role, [initial.Facts!.CaseId], project,
+                var initialReport = sourceKind == "REPORT" ? await producer.ResolveCandidateSourceAsync(actor, role, project,
+                    CandidateSourceKind.Report, sourceId, cancellationToken: ct) : null;
+                var initialAi = sourceKind == "AI_DETECTION" ? await ai.ResolveAsync(actor, role, project, sourceId,
+                    cancellationToken: ct) : null;
+                var initialStatus = initialReport?.Status ?? initialAi!.Status;
+                if (initialStatus != AnhHuyProducerStatus.Ready) return Failure(initialStatus);
+                await cases.GuardAsync(actor, role, initialReport is null ? [] : [initialReport.Facts!.CaseId], project,
                     async (p, inner) => await scope.AuthorizeAsync(actor, role, p, inner) is not null, ct);
-                await repository.LockSourceAsync(sourceId, initial.Facts.CaseId, ct);
-                var current = await producer.ResolveCandidateSourceAsync(actor, role, project,
+                if (initialReport is not null) await repository.LockSourceAsync(sourceId, initialReport.Facts!.CaseId, ct);
+                else await repository.LockAiSourceAsync(sourceId, ct);
+                var currentReport = initialReport is null ? null : await producer.ResolveCandidateSourceAsync(actor, role, project,
                     CandidateSourceKind.Report, sourceId, cancellationToken: ct);
-                if (current.Status != AnhHuyProducerStatus.Ready) return Failure(current.Status);
-                var source = current.Facts!;
+                var currentAi = initialAi is null ? null : await ai.ResolveAsync(actor, role, project, sourceId,
+                    cancellationToken: ct);
+                var currentStatus = currentReport?.Status ?? currentAi!.Status;
+                if (currentStatus != AnhHuyProducerStatus.Ready) return Failure(currentStatus);
+                var sourceVersion = currentReport?.Facts!.DomainFacts.Source.SourceVersion ?? currentAi!.Facts!.SourceVersion;
+                var geometryVersion = currentReport?.Facts!.DomainFacts.GeometryVersion ?? currentAi!.Facts!.GeometryVersion;
+                var geometry = currentReport?.Facts!.Geometry;
+                if (currentAi is not null)
+                {
+                    var resolved = await producer.ResolveGeometryAsync(actor, role, project, currentAi.Facts!.RouteVersionId,
+                        currentAi.Facts.SegmentSetId, currentAi.Facts.GeometryVersion, true, ct);
+                    if (resolved.Status != AnhHuyProducerStatus.Ready) return Failure(resolved.Status);
+                    geometry = resolved.Facts;
+                }
+                var assigned = currentAi?.Facts?.SegmentId is Guid segment ? new[] { segment } : [];
+                var neighbors = geometry!.Segments.Where(item => assigned.Contains(item.Id))
+                    .SelectMany(item => new[] { item.PreviousId, item.NextId }).Where(id => id.HasValue)
+                    .Select(id => id!.Value).ToArray();
                 var targets = await repository.MatchTargetsAsync(project, ct);
                 var targetHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(
                     targets.OrderBy(target => target.DefectId).Select(target => new
@@ -56,12 +77,12 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                     catch (Exception error) when (error is FormatException or JsonException) { return new(400, "validation_error"); }
                     if (decoded is null || decoded.ProjectId != project || decoded.SourceId != sourceId ||
                         decoded.Expand != expand || decoded.Offset < 0) return new(400, "validation_error");
-                    if (decoded.SourceVersion != source.DomainFacts.Source.SourceVersion ||
-                        decoded.GeometryVersion != source.DomainFacts.GeometryVersion ||
+                    if (decoded.SourceVersion != sourceVersion ||
+                        decoded.GeometryVersion != geometryVersion ||
                         decoded.TargetHash != targetHash) return new(409, "candidate_stale");
                     offset = decoded.Offset;
                 }
-                var matched = CandidateMatcher.Match(project, [], [], targets.Select(target => new CandidateMatchFact(
+                var matched = CandidateMatcher.Match(project, assigned, neighbors, targets.Select(target => new CandidateMatchFact(
                     target.DefectId, target.ProjectId, target.Version, target.SegmentId, null,
                     target.LinkedReportIds.Contains(sourceId))).ToArray(), expand, metricGpsAvailable: false);
                 if (offset > matched.Count) return new(400, "validation_error");
@@ -70,15 +91,15 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                     var target = targets.Single(target => target.DefectId == item.DefectId);
                     return new CandidateMatchItemDto(item.DefectId, item.Version, item.SegmentId,
                         item.PriorityGroup, item.DistanceMeters, null, item.ReasonCodes,
-                        target.LinkedReportIds.Contains(sourceId) ? source.EvidenceIds : [],
+                        target.LinkedReportIds.Contains(sourceId) && currentReport is not null ? currentReport.Facts!.EvidenceIds : [],
                         new(target.LinkedReportIds.Count));
                 }).ToArray();
                 var next = offset + page.Length < matched.Count
                     ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new Cursor(project, sourceId,
-                        source.DomainFacts.Source.SourceVersion, source.DomainFacts.GeometryVersion,
+                        sourceVersion, geometryVersion,
                         expand, targetHash, offset + page.Length))) : null;
-                return new CandidateMatchResult(200, Page: new(new("REPORT", sourceId,
-                    source.DomainFacts.Source.SourceVersion), source.DomainFacts.GeometryVersion,
+                return new CandidateMatchResult(200, Page: new(new(sourceKind, sourceId,
+                    sourceVersion), geometryVersion,
                     "huy01-1", page, next));
             }, token);
         }

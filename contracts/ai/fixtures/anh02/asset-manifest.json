@@ -1,0 +1,33 @@
+{
+  "fixtureVersion": "synthetic-road-v1",
+  "mode": "MOCK",
+  "source": "SYNTHETIC",
+  "generator": "OpenCV 5.0.0 mp4v",
+  "decoder": "OpenCV 5.0.0",
+  "fps": 2.0,
+  "decodedFrameCount": 4,
+  "durationMilliseconds": 2000,
+  "frameIndex": 1,
+  "timestampMilliseconds": 500,
+  "positionStatus": "UNKNOWN",
+  "video": {
+    "name": "synthetic-road-v1.mp4",
+    "sha256": "152c804d61a49960bb3307501c68da4baccb68b264416d657b2533df0476da15",
+    "sizeBytes": 1510
+  },
+  "frame": {
+    "name": "synthetic-road-v1-frame-1.png",
+    "sha256": "755358d3fc71b2543e4a3ce50b2887e4b64ecdf18db7dce500a5250fc379e82e",
+    "sizeBytes": 1021
+  },
+  "detection": {
+    "typeCode": "CRACK",
+    "confidence": 0.8,
+    "bbox": [
+      0.375,
+      0.3333333333333333,
+      0.25,
+      0.3333333333333333
+    ]
+  }
+}

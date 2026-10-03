@@ -17,7 +17,8 @@ namespace RoadGuardSystem.Services.Implementations.Labels;
 
 public sealed class TrainingLabelExportReader(RoadGuardDbContext db, ICaseWorkflowRepository cases,
     ICandidateDecisionRepository candidates, IProjectScopeGuard scope,
-    IAnhHuyProducerService producer) : IApprovedTrainingLabelReader, ITrainingSourceAccessReader
+    IAnhHuyProducerService producer, IEnumerable<IAiCandidateFactsReader> aiReaders)
+    : IApprovedTrainingLabelReader, ITrainingSourceAccessReader
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -30,14 +31,11 @@ public sealed class TrainingLabelExportReader(RoadGuardDbContext db, ICaseWorkfl
                 filters.SegmentIds.Any(id => id == Guid.Empty) || filters.DefectIds.Any(id => id == Guid.Empty) ||
                 filters.From is { } from && filters.To is { } to && from >= to)
                 return null;
-            // REPORT labels have no authoritative per-segment assignment yet.
-            if (filters.SegmentIds.Length != 0) return null;
-
             var query = from head in db.Set<HuyTrainingLabelHead>().AsNoTracking()
                 join revision in db.Set<HuyTrainingLabelRevision>().AsNoTracking() on head.Id equals revision.LabelId
                 join review in db.Set<HuyTrainingLabelReview>().AsNoTracking() on revision.Id equals review.RevisionId
                 join file in db.Files.AsNoTracking() on revision.FileId equals file.Id
-                where head.ProjectId == projectId && head.SourceKind == "REPORT" &&
+                where head.ProjectId == projectId &&
                     head.CurrentRevision == revision.Revision && review.Decision == "APPROVED"
                 select new { head, revision, review, file };
             if (filters.From is { } start) query = query.Where(row => row.review.ReviewedAt >= start);
@@ -47,12 +45,45 @@ public sealed class TrainingLabelExportReader(RoadGuardDbContext db, ICaseWorkfl
             {
                 var activeSources = await db.Set<HuyDefectSourceLink>().AsNoTracking()
                     .Where(link => filters.DefectIds.Contains(link.DefectId) && link.ProjectId == projectId && link.EndedAt == null)
-                    .Select(link => link.SourceId).Distinct().ToArrayAsync(ct);
-                rows = rows.Where(row => activeSources.Contains(row.head.SourceId)).ToArray();
+                    .Select(link => new { link.SourceKind, link.SourceId }).Distinct().ToArrayAsync(ct);
+                rows = rows.Where(row => activeSources.Any(link => link.SourceId == row.head.SourceId &&
+                    (link.SourceKind == CandidateSourceKind.Report ? "REPORT" : "AI_DETECTION") == row.head.SourceKind)).ToArray();
             }
             var labels = new List<ApprovedTrainingLabelV1>(rows.Length);
             foreach (var row in rows)
             {
+                if (row.head.SourceKind == "AI_DETECTION")
+                {
+                    var ai = aiReaders.SingleOrDefault();
+                    if (ai is null) return null;
+                    var aiResult = await ai.ResolveAsync(actorId, role, projectId, row.head.SourceId,
+                        cancellationToken: ct);
+                    if (aiResult.Status != AnhHuyProducerStatus.Ready) return null;
+                    await cases.GuardAsync(actorId, role, [], projectId,
+                        async (project, token) => await scope.AuthorizeAsync(actorId, role, project, token) is not null, ct);
+                    await candidates.LockAiSourceAsync(row.head.SourceId, ct);
+                    aiResult = await ai.ResolveAsync(actorId, role, projectId, row.head.SourceId,
+                        cancellationToken: ct);
+                    if (aiResult.Status != AnhHuyProducerStatus.Ready) return null;
+                    var proof = aiResult.Facts!;
+                    if (proof.Mode != "MOCK/SYNTHETIC" || row.revision.SourceVersion != proof.SourceVersion ||
+                        row.revision.FileId != proof.FrameFileId || row.revision.FileVersion != proof.FrameFileVersion ||
+                        row.file.Checksum != proof.FrameSha256 || row.file.SizeBytes != proof.FrameSizeBytes ||
+                        row.file.MimeType != proof.FrameMediaType) return null;
+                    if (filters.SegmentIds.Length > 0 && (proof.SegmentId is not Guid segment || !filters.SegmentIds.Contains(segment)))
+                        continue;
+                    labels.Add(new(row.head.Id, row.revision.Revision, row.revision.Id, projectId,
+                        row.revision.DefectTypeCode,
+                        new(row.revision.X, row.revision.Y, row.revision.Width, row.revision.Height),
+                        proof.FrameFileId, proof.FrameFileVersion, proof.FrameSha256, proof.FrameSizeBytes,
+                        proof.FrameMediaType, "AI_DETECTION", row.head.SourceId, proof.SourceVersion,
+                        row.review.Id, row.review.ActorUserId, row.review.ReviewedAt, proof.JobId,
+                        proof.ModelVersionId, proof.DatasetVersionId, "MOCK", proof.SegmentId));
+                    continue;
+                }
+                if (row.head.SourceKind != "REPORT") return null;
+                // REPORT labels have no authoritative per-segment assignment yet.
+                if (filters.SegmentIds.Length > 0) continue;
                 var result = await producer.ResolveCandidateSourceAsync(actorId, role, projectId,
                     CandidateSourceKind.Report, row.head.SourceId, cancellationToken: ct);
                 if (result.Status != AnhHuyProducerStatus.Ready) return null;

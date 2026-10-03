@@ -1,5 +1,27 @@
 # Chạy thử RoadGuard API bằng Postman
 
+## HUY-01 current opt-in workflows (2026-10-04)
+
+Collection now includes `HUY-01 AI, reporting and export - opted-in`,
+`HUY-01 Case lifecycle - opted-in`, `HUY-01 current authority - opted-in`,
+and `HUY-01 candidate and label - opted-in`. The first three preserve the
+scoped Anh handoff requests; the last follows current Huy AI candidate and
+manual label DTOs. They are disabled by default with `anh02Enabled`,
+`huyLifecycleAndCaseEnabled`, and `huyCandidateEnabled`. Set these only on a
+disposable local project with verified survey/video/model and the appropriate
+role tokens. The AI folder captures detection ID; the trusted metadata
+request captures source version and frame file ID for Candidate/Label.
+
+State-changing requests use idempotency keys. Keep the same key only for an
+exact replay, clear `huyCandidateKey` before a distinct mutation, and keep
+the stored `If-Match` for label review. A full collection run does not prove
+these opt-in workflows. JSON parsing was checked; live Postman/network,
+real MinIO, and external AI provider acceptance remain separate gates.
+
+This section supersedes the historical route-count and verification snapshot
+below; those counts describe the earlier collection, not the current HUY-01
+folders. HUY-02 retention/hold/evaluation requests were not imported.
+
 ## Vì sao đăng nhập không được
 
 API tại `http://localhost:5112` đang chạy: `GET /health` trả `200 Healthy`, và OpenAPI v1 trả được danh sách endpoint. Nhưng login seed Supervisor hiện trả `401 auth_invalid_credentials`.

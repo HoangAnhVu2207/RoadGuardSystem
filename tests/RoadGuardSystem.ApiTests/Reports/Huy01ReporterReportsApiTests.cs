@@ -576,7 +576,7 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             sourceKind = "AI_DETECTION", sourceId = Guid.NewGuid(), sourceVersion = "unavailable",
             fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
             defectTypeCode = type, reason = "AI provenance not ready"
-        }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await SendAsync(client, HttpMethod.Post, path, new
         {
             sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
@@ -682,8 +682,10 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             new RoadGuardSystem.Services.Integration.TrainingLabelFilterV1([], [], null, null)));
         (await sourceAccess.CanReadAsync(reporter.Id, UserRoleCode.Reporter, project, [file.FileId])).Should().BeFalse();
         (await sourceAccess.CanReadAsync(pm.Id, UserRoleCode.ProjectManager, Guid.NewGuid(), [file.FileId])).Should().BeFalse();
-        (await approvedReader.CaptureApprovedAsync(pm.Id, UserRoleCode.ProjectManager, project,
-            new RoadGuardSystem.Services.Integration.TrainingLabelFilterV1([Guid.NewGuid()], [], null, null))).Should().BeNull();
+        var filteredLabels = await approvedReader.CaptureApprovedAsync(pm.Id, UserRoleCode.ProjectManager,
+            project, new RoadGuardSystem.Services.Integration.TrainingLabelFilterV1([Guid.NewGuid()], [], null, null));
+        filteredLabels.Should().NotBeNull();
+        filteredLabels!.Labels.Should().BeEmpty();
         var exportPath = $"/api/v1/projects/{project}/exports";
         var exportRequest = new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true };
         var exportKey = Guid.NewGuid().ToString();
@@ -796,7 +798,8 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var receipt = new IdempotencyOperationService(db);
         var guard = new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System);
         var producer = new AnhHuyProducerService(new AnhHuyFactsRepository(db), new GeometryWorkflowPersistenceService(db, receipt), guard);
-        return new(new CandidateDecisionRepository(db), new CaseWorkflowRepository(db), producer, guard, receipt);
+        return new(new CandidateDecisionRepository(db), new CaseWorkflowRepository(db), producer,
+            Array.Empty<RoadGuardSystem.Services.Integration.IAiCandidateFactsReader>(), guard, receipt);
     }
 
     private static RoadGuardSystem.Services.Implementations.Labels.TrainingLabelService LabelService(RoadGuardDbContext db)
@@ -806,7 +809,8 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var producer = new AnhHuyProducerService(new AnhHuyFactsRepository(db),
             new GeometryWorkflowPersistenceService(db, receipt), guard);
         return new(new RoadGuardSystem.Repositories.Implementations.Labels.TrainingLabelRepository(db),
-            new CandidateDecisionRepository(db), new CaseWorkflowRepository(db), producer, guard, receipt);
+            new CandidateDecisionRepository(db), new CaseWorkflowRepository(db), producer, guard, receipt,
+            Array.Empty<RoadGuardSystem.Services.Integration.IAiCandidateFactsReader>());
     }
 
     private static ReporterLifecycleService LifecycleService(RoadGuardDbContext db)

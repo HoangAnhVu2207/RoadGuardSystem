@@ -17,7 +17,7 @@ namespace RoadGuardSystem.Services.Implementations.Labels;
 
 public sealed class TrainingLabelService(ITrainingLabelRepository labels, ICandidateDecisionRepository candidates,
     ICaseWorkflowRepository cases, IAnhHuyProducerService producer, IProjectScopeGuard scope,
-    IdempotencyOperationService idempotency) : ITrainingLabelService
+    IdempotencyOperationService idempotency, IEnumerable<IAiCandidateFactsReader> aiReaders) : ITrainingLabelService
 {
     public Task<TrainingLabelResult> CreateAsync(Guid actor, UserRoleCode role, Guid project,
         CreateTrainingLabelDto request, string key, Guid? correlation, CancellationToken token)
@@ -29,7 +29,8 @@ public sealed class TrainingLabelService(ITrainingLabelRepository labels, ICandi
                 request.SourceVersion.Length > 200) return Invalid("sourceId");
             var invalid = ValidateCommon(key, request.Annotation, request.DefectTypeCode, request.Reason);
             if (invalid is not null) return invalid;
-            if (request.SourceKind == "AI_DETECTION") return Failure(409, "source_not_ready");
+            if (request.SourceKind == "AI_DETECTION")
+                return await CreateAiAsync(actor, role, project, request, key, correlation, token);
             var initial = await ResolveAsync(actor, role, project, request.SourceId, token);
             FileVersion(initial, request.FileId);
             var normalizedKey = key.Trim(' ');
@@ -73,8 +74,12 @@ public sealed class TrainingLabelService(ITrainingLabelRepository labels, ICandi
             if (version is null) return Failure(ifMatch is null ? 428 : 400,
                 ifMatch is null ? "precondition_required" : "validation_error");
             var identity = await labels.IdentifyAsync(label, token);
-            if (identity is null || identity.ProjectId != project || identity.SourceKind != "REPORT")
+            if (identity is null || identity.ProjectId != project)
                 return Failure(404, "not_found");
+            if (identity.SourceKind == "AI_DETECTION")
+                return await ReviseAiAsync(actor, role, project, label, identity.SourceId, request, key,
+                    version, correlation, token);
+            if (identity.SourceKind != "REPORT") return Failure(404, "not_found");
             var initial = await ResolveAsync(actor, role, project, identity.SourceId, token);
             FileVersion(initial, request.FileId);
             var reason = request.Reason!.Trim();
@@ -112,7 +117,11 @@ public sealed class TrainingLabelService(ITrainingLabelRepository labels, ICandi
             if (version is null) return Failure(ifMatch is null ? 428 : 400,
                 ifMatch is null ? "precondition_required" : "validation_error");
             var identity = await labels.IdentifyAsync(label, token);
-            if (identity is null || identity.SourceKind != "REPORT") return Failure(404, "not_found");
+            if (identity is null) return Failure(404, "not_found");
+            if (identity.SourceKind == "AI_DETECTION")
+                return await ReviewAiAsync(actor, role, identity, label, request, key, version,
+                    correlation, token);
+            if (identity.SourceKind != "REPORT") return Failure(404, "not_found");
             var initial = await ResolveAsync(actor, role, identity.ProjectId, identity.SourceId, token);
             var reason = request.Reason.Trim();
             var fingerprint = Fingerprint(new { label, identity.ProjectId, version, decision = request.Decision, reason });
@@ -180,6 +189,114 @@ public sealed class TrainingLabelService(ITrainingLabelRepository labels, ICandi
         await cases.GuardAsync(actor, role, [caseId], project,
             async (p, ct) => await scope.AuthorizeAsync(actor, role, p, ct) is not null, token);
         await candidates.LockSourceAsync(reportId, caseId, token);
+    }
+
+    private async Task<AiCandidateFactsV1> ResolveAiAsync(Guid actor, UserRoleCode role,
+        Guid project, Guid detection, Guid file, CancellationToken token)
+    {
+        var reader = aiReaders.SingleOrDefault();
+        if (reader is null) throw new CaseWorkflowException(409, "source_not_ready");
+        var result = await reader.ResolveAsync(actor, role, project, detection, cancellationToken: token);
+        if (result.Status != AnhHuyProducerStatus.Ready)
+        {
+            var failure = result.Status switch
+            {
+                AnhHuyProducerStatus.Forbidden => Failure(403, "access_forbidden"),
+                AnhHuyProducerStatus.NotFound => Failure(404, "not_found"),
+                AnhHuyProducerStatus.StaleDisposition or AnhHuyProducerStatus.StaleFile => Failure(412, "concurrency_conflict"),
+                AnhHuyProducerStatus.StaleSource or AnhHuyProducerStatus.StaleGeometry => Failure(409, "candidate_stale"),
+                _ => Failure(409, "source_not_ready")
+            };
+            throw new CaseWorkflowException(failure.Status, failure.Code!);
+        }
+        if (result.Facts!.FrameFileId != file || result.Facts.FrameFileVersion != result.Facts.FrameSha256 ||
+            result.Facts.FrameSizeBytes <= 0 || result.Facts.FrameMediaType is not ("image/jpeg" or "image/png"))
+            throw new CaseWorkflowException(409, "source_not_ready");
+        return result.Facts;
+    }
+
+    private async Task<AiCandidateFactsV1> GuardAiAsync(Guid actor, UserRoleCode role,
+        Guid project, Guid detection, Guid file, CancellationToken token)
+    {
+        await cases.GuardAsync(actor, role, [], project,
+            async (id, ct) => await scope.AuthorizeAsync(actor, role, id, ct) is not null, token);
+        await candidates.LockAiSourceAsync(detection, token);
+        return await ResolveAiAsync(actor, role, project, detection, file, token);
+    }
+
+    private async Task<TrainingLabelResult> CreateAiAsync(Guid actor, UserRoleCode role, Guid project,
+        CreateTrainingLabelDto request, string key, Guid? correlation, CancellationToken token)
+    {
+        var initial = await ResolveAiAsync(actor, role, project, request.SourceId, request.FileId, token);
+        var reason = request.Reason!.Trim();
+        var fingerprint = Fingerprint(new { project, request = request with { Reason = reason, SourceVersion = request.SourceVersion!.Trim() } });
+        var execution = await Huy01CommandExecution.ExecuteAsync(handler => idempotency.ExecuteAsync(actor, project,
+            "huy01.label.create.v1", key.Trim(' '), fingerprint, handler, token,
+            receiptAccessGuard: async ct => { await GuardAiAsync(actor, role, project, request.SourceId, request.FileId, ct); }), async ct =>
+        {
+            var fresh = await GuardAiAsync(actor, role, project, request.SourceId, request.FileId, ct);
+            if (fresh.SourceVersion != request.SourceVersion!.Trim()) throw new CaseWorkflowException(409, "candidate_stale");
+            var annotation = request.Annotation!;
+            var domain = TrainingLabel.Create(Guid.NewGuid(), project, request.SourceId, "AI_DETECTION",
+                fresh.SourceVersion, fresh.FrameFileId, fresh.FrameFileVersion, annotation.X, annotation.Y,
+                annotation.Width, annotation.Height, request.DefectTypeCode!, reason);
+            var view = await labels.CreateAsync(actor, domain, reason, correlation, ct);
+            return (view.Id, JsonSerializer.Serialize(view));
+        }, exception => exception is CaseWorkflowException { Code: "candidate_stale" or "concurrency_conflict" });
+        return execution.Status == IdempotencyOperationStatus.Conflict ? Failure(409, "idempotency_key_reused")
+            : new(201, Label: JsonSerializer.Deserialize<TrainingLabelViewDto>(execution.OutcomeJson));
+    }
+
+    private async Task<TrainingLabelResult> ReviseAiAsync(Guid actor, UserRoleCode role, Guid project,
+        Guid label, Guid detection, ReviseTrainingLabelDto request, string key, string version,
+        Guid? correlation, CancellationToken token)
+    {
+        await ResolveAiAsync(actor, role, project, detection, request.FileId, token);
+        var reason = request.Reason!.Trim();
+        var fingerprint = Fingerprint(new { project, label, version, request = request with { Reason = reason } });
+        var execution = await Huy01CommandExecution.ExecuteAsync(handler => idempotency.ExecuteAsync(actor, project,
+            "huy01.label.revise.v1", key.Trim(' '), fingerprint, handler, token,
+            receiptAccessGuard: async ct => { await GuardAiAsync(actor, role, project, detection, request.FileId, ct); }), async ct =>
+        {
+            var fresh = await GuardAiAsync(actor, role, project, detection, request.FileId, ct);
+            var view = await labels.ReviseAsync(actor, project, label, version, fresh.SourceVersion,
+                fresh.FrameFileId, fresh.FrameFileVersion, request.Annotation!, request.DefectTypeCode!,
+                reason, correlation, ct);
+            return (Guid.NewGuid(), JsonSerializer.Serialize(view));
+        }, exception => exception is CaseWorkflowException { Code: "concurrency_conflict" });
+        return execution.Status == IdempotencyOperationStatus.Conflict ? Failure(409, "idempotency_key_reused")
+            : new(201, Label: JsonSerializer.Deserialize<TrainingLabelViewDto>(execution.OutcomeJson));
+    }
+
+    private async Task<TrainingLabelResult> ReviewAiAsync(Guid actor, UserRoleCode role,
+        TrainingLabelIdentity identity, Guid label, ReviewTrainingLabelDto request, string key,
+        string version, Guid? correlation, CancellationToken token)
+    {
+        var current = await labels.CurrentAsync(identity.ProjectId, label, token)
+            ?? throw new CaseWorkflowException(404, "not_found");
+        await ResolveAiAsync(actor, role, identity.ProjectId, identity.SourceId, current.FileId, token);
+        var reason = request.Reason!.Trim();
+        var fingerprint = Fingerprint(new { label, identity.ProjectId, version, decision = request.Decision, reason });
+        async Task Guard(CancellationToken ct)
+        {
+            var fresh = await GuardAiAsync(actor, role, identity.ProjectId, identity.SourceId, current.FileId, ct);
+            var head = await labels.CurrentAsync(identity.ProjectId, label, ct)
+                ?? throw new CaseWorkflowException(404, "not_found");
+            if (head.FileId != fresh.FrameFileId || head.FileVersion != fresh.FrameFileVersion)
+                throw new CaseWorkflowException(412, "concurrency_conflict");
+        }
+        var execution = await Huy01CommandExecution.ExecuteAsync(handler => idempotency.ExecuteAsync(actor,
+            identity.ProjectId, "huy01.label.review.v1", key.Trim(' '), fingerprint, handler, token,
+            receiptAccessGuard: Guard), async ct =>
+        {
+            await Guard(ct);
+            var view = await labels.ReviewAsync(actor, identity.ProjectId, label, version,
+                request.Decision == "APPROVE" ? TrainingLabelReviewStatus.Approved : TrainingLabelReviewStatus.Rejected,
+                reason, correlation, ct);
+            return (Guid.NewGuid(), JsonSerializer.Serialize(view));
+        }, exception => exception is CaseWorkflowException { Code: "concurrency_conflict" });
+        return execution.Status == IdempotencyOperationStatus.Conflict ? Failure(409, "idempotency_key_reused")
+            : new(200, Label: JsonSerializer.Deserialize<TrainingLabelViewDto>(execution.OutcomeJson));
     }
 
     private async Task<ResolvedCandidateSourceFacts> ResolveAsync(Guid actor, UserRoleCode role,

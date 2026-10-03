@@ -7352,6 +7352,1952 @@
           ]
         }
       ]
+    },
+    {
+      "name": "HUY-01 AI, reporting and export - opted-in",
+      "description": "Manual isolated Development/Test workflow. Set anh02Enabled=true after project/dataset/source setup. AI needs exact checked-in synthetic MP4 and released model, actual geometryVersion from trusted producer; no Huy fake reader. Training unavailable503, matching unavailable409 until real producers. Set selected resourceIDs, inventory/warranty/version from read. Stable distinct keys per command; reuse same body/key/version on replay. Workers are explicitly enabled/configured separately; poll terminal states manually. Never run against shared DB. See ANH-02 summary and contracts/ai/anh02-ai-v1.md.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"anh02Enabled\")!==\"true\" && pm.collectionVariables.get(\"anh02Enabled\")!==\"true\"){console.log(\"ANH-02 manual isolated workflow disabled\");pm.execution.skipRequest();}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "AI analysis admission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02AiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datasetId\": \"{{datasetId}}\",\n  \"scope\": {\n    \"routeVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentSetId\": \"{{segmentSetId}}\",\n    \"segmentIds\": [\n      \"{{segmentId}}\"\n    ],\n    \"targetBand\": \"SURFACE\"\n  },\n  \"modelVersionId\": \"{{modelVersionId}}\",\n  \"preprocessingVersion\": \"fixture-preprocess.v1\",\n  \"configVersion\": \"fixture-config.v1\",\n  \"fixtureVersion\": \"synthetic-road-v1\",\n  \"stage\": \"VIDEO_ANALYSIS\",\n  \"expectedGeometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02RunId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI same key replay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02AiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datasetId\": \"{{datasetId}}\",\n  \"scope\": {\n    \"routeVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentSetId\": \"{{segmentSetId}}\",\n    \"segmentIds\": [\n      \"{{segmentId}}\"\n    ],\n    \"targetBand\": \"SURFACE\"\n  },\n  \"modelVersionId\": \"{{modelVersionId}}\",\n  \"preprocessingVersion\": \"fixture-preprocess.v1\",\n  \"configVersion\": \"fixture-config.v1\",\n  \"fixtureVersion\": \"synthetic-road-v1\",\n  \"stage\": \"VIDEO_ANALYSIS\",\n  \"expectedGeometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI changed key payload conflict",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02AiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datasetId\": \"{{datasetId}}\",\n  \"scope\": {\n    \"routeVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentSetId\": \"{{segmentSetId}}\",\n    \"segmentIds\": [\n      \"{{segmentId}}\"\n    ],\n    \"targetBand\": \"SURFACE\"\n  },\n  \"modelVersionId\": \"{{modelVersionId}}\",\n  \"preprocessingVersion\": \"fixture-preprocess.v1\",\n  \"configVersion\": \"fixture-config.v1\",\n  \"fixtureVersion\": \"synthetic-empty-v1\",\n  \"stage\": \"VIDEO_ANALYSIS\",\n  \"expectedGeometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 409\",()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test(\"Explicit unavailable/problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"duplicate_request\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI run poll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs/{{anh02RunId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs",
+                "{{anh02RunId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI succeeded result",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-mock-runs/{{anh02RunId}}/result",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-mock-runs",
+                "{{anh02RunId}}",
+                "result"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.environment.set(\"anh02DetectionId\",pm.response.json().detections[0].detectionId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI candidate trusted metadata",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-candidates/{{anh02DetectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-candidates",
+                "{{anh02DetectionId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){const proof=pm.response.json();pm.environment.set(\"huySourceVersion\",proof.sourceVersion);pm.environment.set(\"huyFrameFileId\",proof.frameFileId);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporting summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "summary"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporting drilldown",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/items?metric={{anh02ReportingMetric}}&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "{{anh02ReportingMetric}}"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Redacted timeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/timeline?aggregateType={{anh02TimelineAggregateType}}&aggregateId={{anh02TimelineAggregateId}}&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "timeline"
+              ],
+              "query": [
+                {
+                  "key": "aggregateType",
+                  "value": "{{anh02TimelineAggregateType}}"
+                },
+                {
+                  "key": "aggregateId",
+                  "value": "{{anh02TimelineAggregateId}}"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dossier admission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02DossierKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"DOSSIER\",\n  \"format\": \"{{anh02DossierFormat}}\",\n  \"includeOriginalFiles\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02ExportId\",pm.response.json().id);",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02AdmittedSnapshotHash\",pm.response.json().snapshotHash);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dossier replay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02DossierKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"DOSSIER\",\n  \"format\": \"{{anh02DossierFormat}}\",\n  \"includeOriginalFiles\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export poll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports/{{anh02ExportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports",
+                "{{anh02ExportId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){const b=pm.response.json();pm.test(\"Snapshot identity remains admitted\",()=>pm.expect(b.snapshotHash).to.eql(pm.environment.get(\"anh02AdmittedSnapshotHash\")));pm.test(\"Declared worker state\",()=>pm.expect([\"QUEUED\",\"RUNNING\",\"SUCCEEDED\",\"FAILED\"]).to.include(b.status));if(b.status===\"SUCCEEDED\")pm.test(\"Download expiry 30 days after completion\",()=>pm.expect(Date.parse(b.expiresAt)-Date.parse(b.completedAt)).to.eql(30*24*60*60*1000));}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Snapshot manifest",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports/{{anh02ExportId}}/manifest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports",
+                "{{anh02ExportId}}",
+                "manifest"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){const b=pm.response.json();pm.test(\"Immutable snapshot hash and strong ETag\",()=>{pm.expect(b.snapshotHash).to.eql(pm.environment.get(\"anh02AdmittedSnapshotHash\"));pm.expect(pm.response.headers.get(\"ETag\")).to.eql(String.fromCharCode(34)+b.snapshotHash+String.fromCharCode(34));});pm.test(\"Missing Reporter access stays explicit\",()=>pm.expect(b.sections.some(s=>s.name===\"reporterEvidence\"&&s.availability===\"UNAVAILABLE\")).to.eql(true));pm.test(\"No storage transport or credentials\",()=>{pm.expect(pm.response.text()).not.to.include(\"storageUri\");pm.expect(pm.response.text()).not.to.include(\"X-Amz-Signature\");});}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Protected content after success",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/pdf, application/zip"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/exports/{{anh02ExportId}}/content",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "exports",
+                "{{anh02ExportId}}",
+                "content"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.test(\"Binary artifact type\",()=>pm.expect([\"application/pdf\",\"application/zip\"]).to.include(pm.response.headers.get(\"Content-Type\").split(\";\")[0]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Integrated intake drilldown - reportsReceived",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/items?metric=reportsReceived&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "reportsReceived"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Real SQL current intake facts only; PARTIAL while Huy lifecycle reader not integrated. Unassigned Reports never attributed to a project. No Reporter PII/evidence content. Geometry filters retain UNAVAILABLE until scoped reader exists."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Current intake drilldown\",()=>{pm.response.to.have.status(200);const d=pm.response.json();pm.expect(d.metric).to.eql(\"reportsReceived\");pm.expect(d.availability.availability).to.eql(\"PARTIAL\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Integrated intake drilldown - casesByStatus",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/reports/items?metric=casesByStatus&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "reports",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "casesByStatus"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Real SQL current intake facts only; PARTIAL while Huy lifecycle reader not integrated. Unassigned Reports never attributed to a project. No Reporter PII/evidence content. Geometry filters retain UNAVAILABLE until scoped reader exists."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Current intake drilldown\",()=>{pm.response.to.have.status(200);const d=pm.response.json();pm.expect(d.metric).to.eql(\"casesByStatus\");pm.expect(d.availability.availability).to.eql(\"PARTIAL\");});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HUY-01 Case lifecycle - opted-in",
+      "description": "Exact afab3ecc module routes, opt-in shared production DI. No label/matching/KEEP_NEW activation. Seed/demo facts are synthetic. Set current route/set/geometry and Report IDs first. Do not guess sourceVersion; use trusted producer capture.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"huyLifecycleAndCaseEnabled\")!==\"true\"){pm.execution.skipRequest();}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Reporter own Report - lifecycle",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports/{{reporterReportId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Strong version\",()=>pm.expect(pm.response.headers.get(\"ETag\")).to.match(/^\".+\"$/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong actor cannot read Reporter Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports/{{reporterReportId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\",()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supervisor locate actual intake Case",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases?status=UNASSIGNED&pageSize=200",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const row=pm.response.json().items.find(c=>c.reportIds.includes(pm.environment.get(\"reporterReportId\")));",
+                  "pm.test(\"Actual intake Case present\",()=>pm.expect(row).to.exist);",
+                  "if(row){pm.environment.set(\"huyCaseId\",row.id);pm.environment.set(\"huyCaseOriginalETag\",'\"'+row.version+'\"');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supervisor triage actual Case",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}/triage",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyTriageKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyCaseOriginalETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"verificationMethod\": \"EXISTING_EVIDENCE\",\n  \"reason\": \"SYNTHETIC Postman triage\",\n  \"routeVersionId\": \"{{roadSectionVersionId}}\",\n  \"segmentSetId\": \"{{segmentSetId}}\",\n  \"geometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"huyTriageKey\"))pm.environment.set(\"huyTriageKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.environment.set(\"huyTriageBody\",pm.response.text());pm.environment.set(\"huyCaseETag\",pm.response.headers.get(\"ETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Triage original version same-key replay",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}/triage",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyTriageKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyCaseOriginalETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"verificationMethod\": \"EXISTING_EVIDENCE\",\n  \"reason\": \"SYNTHETIC Postman triage\",\n  \"routeVersionId\": \"{{roadSectionVersionId}}\",\n  \"segmentSetId\": \"{{segmentSetId}}\",\n  \"geometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Exact durable replay\",()=>pm.expect(pm.response.text()).to.eql(pm.environment.get(\"huyTriageBody\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM read assigned Case",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Scope\",()=>pm.expect(pm.response.json().projectId).to.eql(pm.environment.get(\"projectId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporter cannot read internal Case",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\",()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HUY-01 current authority - opted-in",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get('huyLifecycleAndCaseEnabled')!=='true') pm.execution.skipRequest();"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Login synthetic Reporter",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{reporterEmail}}\", \"password\": \"{{reporterPassword}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200) pm.environment.set('reporterAccessToken',pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporter current own list",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM cannot list Reporter private reports",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 403',()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporter cannot list internal Cases",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 403',()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HUY-01 candidate and label - opted-in",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"huyCandidateEnabled\")!==\"true\"){console.log(\"HUY-01 candidate/label manual workflow disabled\");pm.execution.skipRequest();}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "AI candidate current facts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/ai-candidates/{{anh02DetectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "ai-candidates",
+                "{{anh02DetectionId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI candidate match suggestions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/candidates?sourceKind=AI_DETECTION&sourceId={{anh02DetectionId}}&expand=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "candidates?sourceKind=AI_DETECTION&sourceId={{anh02DetectionId}}&expand=true"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "KEEP_NEW AI detection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyCandidateKey}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/candidate-decisions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "candidate-decisions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceKind\": \"AI_DETECTION\",\n  \"sourceId\": \"{{anh02DetectionId}}\",\n  \"sourceVersion\": \"{{huySourceVersion}}\",\n  \"geometryVersion\": \"{{anh02GeometryVersion}}\",\n  \"decision\": \"KEEP_NEW\",\n  \"reason\": \"PM reviewed synthetic detection\",\n  \"classification\": {\n    \"roadSectionVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentId\": null,\n    \"defectTypeCode\": \"CRACK\",\n    \"severity\": \"LOW\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"huyCandidateKey\"))pm.environment.set(\"huyCandidateKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 201\",()=>pm.expect(pm.response.code).to.eql(201));",
+                  "if(pm.response.code===201){const value=pm.response.json();pm.environment.set(\"huyDecisionId\",value.id);pm.environment.set(\"huyDefectId\",value.defectId);pm.environment.unset(\"huyCandidateKey\");}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read candidate decision",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/candidate-decisions/{{huyDecisionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "candidate-decisions",
+                "{{huyDecisionId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read created defect",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/defects/{{huyDefectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "defects",
+                "{{huyDefectId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create AI training label",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyCandidateKey}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/labels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "labels"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceKind\": \"AI_DETECTION\",\n  \"sourceId\": \"{{anh02DetectionId}}\",\n  \"sourceVersion\": \"{{huySourceVersion}}\",\n  \"fileId\": \"{{huyFrameFileId}}\",\n  \"annotation\": {\n    \"kind\": \"BBOX\",\n    \"coordinateSpace\": \"NORMALIZED\",\n    \"x\": 0.375,\n    \"y\": 0.333333333,\n    \"width\": 0.25,\n    \"height\": 0.333333333\n  },\n  \"defectTypeCode\": \"CRACK\",\n  \"reason\": \"PM reviewed synthetic frame\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"huyCandidateKey\"))pm.environment.set(\"huyCandidateKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 201\",()=>pm.expect(pm.response.code).to.eql(201));",
+                  "if(pm.response.code===201){pm.environment.set(\"huyLabelId\",pm.response.json().id);pm.environment.set(\"huyLabelETag\",pm.response.headers.get(\"ETag\"));pm.environment.unset(\"huyCandidateKey\");}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Review AI training label",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyCandidateKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyLabelETag}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/labels/{{huyLabelId}}/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "labels",
+                "{{huyLabelId}}",
+                "review"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"APPROVE\",\n  \"reason\": \"Verified source provenance\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"huyCandidateKey\"))pm.environment.set(\"huyCandidateKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){pm.environment.set(\"huyLabelETag\",pm.response.headers.get(\"ETag\"));pm.environment.unset(\"huyCandidateKey\");}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read current label",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/labels/{{huyLabelId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "labels",
+                "{{huyLabelId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List project labels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/labels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "labels"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

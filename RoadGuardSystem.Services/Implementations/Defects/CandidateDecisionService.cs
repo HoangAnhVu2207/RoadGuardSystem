@@ -14,8 +14,10 @@ using RoadGuardSystem.Services.Reports;
 namespace RoadGuardSystem.Services.Implementations.Defects;
 
 public sealed class CandidateDecisionService(ICandidateDecisionRepository repository, ICaseWorkflowRepository cases,
-    IAnhHuyProducerService producer, IProjectScopeGuard scope, IdempotencyOperationService idempotency) : ICandidateDecisionService
+    IAnhHuyProducerService producer, IEnumerable<IAiCandidateFactsReader> aiReaders, IProjectScopeGuard scope,
+    IdempotencyOperationService idempotency) : ICandidateDecisionService
 {
+    private sealed record DecisionSource(CandidateSourceFacts DomainFacts, ProjectGeometryContext Geometry, Guid? CaseId);
     public Task<CandidateDecisionResult> ReadAsync(Guid actor, UserRoleCode role, Guid projectId, Guid decisionId, CancellationToken ct)
         => Run(async () =>
         {
@@ -48,18 +50,19 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
             if (request.Classification is { } classification && (classification.RoadSectionVersionId == Guid.Empty || classification.SegmentId == Guid.Empty ||
                 string.IsNullOrWhiteSpace(classification.DefectTypeCode) || classification.DefectTypeCode.Trim().Length > 80 || classification.Severity is not ("LOW" or "MEDIUM" or "HIGH" or "CRITICAL"))) return Invalid("classification");
             request = request with { Reason = request.Reason.Trim(), SourceVersion = request.SourceVersion.Trim(), GeometryVersion = request.GeometryVersion.Trim() };
-            var initial = await producer.ResolveCandidateSourceAsync(actor, role, projectId, kind, request.SourceId, cancellationToken: ct);
+            if (kind == CandidateSourceKind.FieldObservation) return new(409, "source_not_ready");
+            var initial = await ResolveAsync(actor, role, projectId, kind, request.SourceId, null, null, null, ct);
             if (initial.Status != AnhHuyProducerStatus.Ready) return Failure(initial.Status);
-            if (decision != CandidateDecisionKind.Reject && kind != CandidateSourceKind.Report)
-                return new(409, "source_not_ready");
             var fingerprint = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { projectId, request }))).ToLowerInvariant();
             var normalized = request;
-            async Task<ResolvedCandidateSourceFacts> Guard(CancellationToken token)
+            async Task<DecisionSource> Guard(CancellationToken token)
             {
-                await cases.GuardAsync(actor, role, [initial.Facts!.CaseId], projectId,
+                await cases.GuardAsync(actor, role, initial.Facts!.CaseId is Guid caseId ? [caseId] : [], projectId,
                     async (project, inner) => await scope.AuthorizeAsync(actor, role, project, inner) is not null, token);
-                await repository.LockSourceAsync(normalized.SourceId, initial.Facts.CaseId, token);
-                var current = await producer.ResolveCandidateSourceAsync(actor, role, projectId, kind, normalized.SourceId, cancellationToken: token);
+                if (initial.Facts.CaseId is Guid reportCase)
+                    await repository.LockSourceAsync(normalized.SourceId, reportCase, token);
+                else await repository.LockAiSourceAsync(normalized.SourceId, token);
+                var current = await ResolveAsync(actor, role, projectId, kind, normalized.SourceId, null, null, null, token);
                 if (current.Status != AnhHuyProducerStatus.Ready) Throw(current.Status);
                 return current.Facts!;
             }
@@ -67,7 +70,7 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
                 handler, ct, receiptAccessGuard: async token => { await Guard(token); }), async token =>
                 {
                     await Guard(token);
-                    var fresh = await producer.ResolveCandidateSourceAsync(actor, role, projectId, kind, normalized.SourceId,
+                    var fresh = await ResolveAsync(actor, role, projectId, kind, normalized.SourceId,
                         normalized.SourceVersion, normalized.GeometryVersion, normalized.PreviousDecisionVersion, token);
                     if (fresh.Status != AnhHuyProducerStatus.Ready) Throw(fresh.Status);
                     var correction = normalized.SupersedesDecisionId is Guid supersedes ? CandidateCorrection.Create(supersedes, normalized.PreviousDecisionVersion!) : null;
@@ -107,6 +110,31 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
         });
 
     private static bool RowVersion(string input) { try { return Convert.FromBase64String(input).Length == 8; } catch (FormatException) { return false; } }
+    private async Task<AnhHuyProducerResult<DecisionSource>> ResolveAsync(Guid actor, UserRoleCode role,
+        Guid project, CandidateSourceKind kind, Guid sourceId, string? sourceVersion,
+        string? geometryVersion, string? dispositionVersion, CancellationToken ct)
+    {
+        if (kind == CandidateSourceKind.Report)
+        {
+            var report = await producer.ResolveCandidateSourceAsync(actor, role, project, kind, sourceId,
+                sourceVersion, geometryVersion, dispositionVersion, ct);
+            return report.Status == AnhHuyProducerStatus.Ready
+                ? new(report.Status, new(report.Facts!.DomainFacts, report.Facts.Geometry, report.Facts.CaseId))
+                : new(report.Status);
+        }
+        var ai = aiReaders.SingleOrDefault();
+        if (ai is null) return new(AnhHuyProducerStatus.SourceNotReady);
+        var result = await ai.ResolveAsync(actor, role, project, sourceId, sourceVersion,
+            geometryVersion, dispositionVersion, ct);
+        if (result.Status != AnhHuyProducerStatus.Ready) return new(result.Status);
+        var facts = result.Facts!;
+        var geometry = await producer.ResolveGeometryAsync(actor, role, project, facts.RouteVersionId,
+            facts.SegmentSetId, facts.GeometryVersion, true, ct);
+        if (geometry.Status != AnhHuyProducerStatus.Ready) return new(geometry.Status);
+        var domain = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(kind, sourceId,
+            facts.SourceVersion), project, facts.GeometryVersion, facts.Disposition);
+        return new(AnhHuyProducerStatus.Ready, new(domain, geometry.Facts!, null));
+    }
     private static CandidateDecisionResult Failure(AnhHuyProducerStatus status) => status switch
     {
         AnhHuyProducerStatus.Forbidden => new(403, "access_forbidden"), AnhHuyProducerStatus.NotFound => new(404, "not_found"),

@@ -201,6 +201,20 @@ public sealed class ExportService : IExportService
                     if (currentRole is null || !await CanReadFilesAsync(claim.RequestedBy, currentRole.Value, claim.ProjectId, manifest, token)) throw new ExportRenderException("export_source_access_revoked");
                     var source = await _repo.GetSourceFileAsync(f.FileId, token);
                     if (source is null || source.SizeBytes != f.SizeBytes || source.Checksum != f.Sha256 || source.MimeType != f.MediaType) throw new ExportRenderException("export_source_unavailable");
+                    if (manifest.Kind == "TRAINING" && manifest.Labels?.Any(label => label.FileId == f.FileId && label.SourceKind == "AI_DETECTION") == true)
+                    {
+                        try
+                        {
+                            var frame = await _artifacts.OpenReadAsync(source.StorageUri, token);
+                            if (frame.Metadata.SizeBytes != f.SizeBytes || frame.Metadata.Sha256 != f.Sha256 || frame.Metadata.MediaType != f.MediaType)
+                            {
+                                await frame.DisposeAsync();
+                                throw new ExportRenderException("export_source_unavailable");
+                            }
+                            return frame.Content;
+                        }
+                        catch (FileNotFoundException) { throw new ExportRenderException("export_source_unavailable"); }
+                    }
                     try { return await _sourceStorage.OpenReadAsync(source.StorageUri, token); }
                     catch (FileStorageException ex) when (ex.InnerException is Amazon.S3.AmazonS3Exception s3 && s3.StatusCode == System.Net.HttpStatusCode.NotFound) { throw new ExportRenderException("export_source_unavailable"); }
                 }, async token => { if (!await _repo.RenewAsync(claim.Id, claim.Token, token)) throw new ExportRenderException("export_lease_lost"); }, ct);

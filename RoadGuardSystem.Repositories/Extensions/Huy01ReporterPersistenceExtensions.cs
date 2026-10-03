@@ -34,6 +34,8 @@ public static class Huy01ReporterPersistenceExtensions
             RoadGuardSystem.Repositories.Retention.RetentionInventoryRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Exports.IExportRepository,
             RoadGuardSystem.Repositories.Exports.ExportRepository>();
+        services.TryAddScoped<RoadGuardSystem.Repositories.Processing.IAnh02AiRepository,
+            RoadGuardSystem.Repositories.Processing.Anh02AiRepository>();
         services.TryAddSingleton<RoadGuardSystem.Repositories.Storage.IAnh02ArtifactStore,
             RoadGuardSystem.Repositories.Storage.MinioAnh02ArtifactStore>();
         return services;

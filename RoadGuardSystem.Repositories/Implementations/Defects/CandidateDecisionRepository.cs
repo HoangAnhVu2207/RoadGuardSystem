@@ -77,6 +77,21 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [CandidateSourceHeads] WITH (UPDLOCK,HOLDLOCK) WHERE [SourceKind]={(int)CandidateSourceKind.Report} AND [SourceId]={reportId}").SingleAsync(ct);
     }
 
+    public async Task LockAiSourceAsync(Guid detectionId, CancellationToken ct)
+    {
+        await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [AIDetections] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={detectionId}").SingleAsync(ct);
+        var proof = await db.Set<RoadGuardSystem.BusinessObjects.Processing.AiDetectionProvenance>().AsNoTracking()
+            .Where(item => item.DetectionId == detectionId)
+            .Select(item => new { item.RunId, item.ResultId, item.SourceVideoFileId, item.FrameFileId })
+            .SingleOrDefaultAsync(ct);
+        if (proof is null) throw new CaseWorkflowException(409, "source_not_ready");
+        await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Anh02AiMockRuns] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={proof.RunId}").SingleAsync(ct);
+        await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Anh02AiResultProvenance] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={proof.ResultId}").SingleAsync(ct);
+        foreach (var file in new[] { proof.SourceVideoFileId, proof.FrameFileId }.Distinct().Order())
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Files] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={file}").SingleAsync(ct);
+        await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [CandidateSourceHeads] WITH (UPDLOCK,HOLDLOCK) WHERE [SourceKind]={(int)CandidateSourceKind.AiDetection} AND [SourceId]={detectionId}").SingleAsync(ct);
+    }
+
     public async Task<CandidateDecisionResponseDto> SaveRejectAsync(Guid actor, CandidateSourceFacts facts, CandidateCorrection? correction,
         string reason, Guid? correlation, CancellationToken ct)
     {
@@ -90,7 +105,8 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         db.SourceDecisions.Add(decision);
         db.Entry(decision).Property<CandidateSourceKind>("SourceKind").CurrentValue = facts.Source.Kind;
         db.Entry(decision).Property<Guid>("SourceId").CurrentValue = facts.Source.Id;
-        db.Entry(decision).Property<Guid?>("ReportSourceId").CurrentValue = facts.Source.Id;
+        db.Entry(decision).Property<Guid?>("ReportSourceId").CurrentValue = facts.Source.Kind == CandidateSourceKind.Report ? facts.Source.Id : null;
+        db.Entry(decision).Property<Guid?>("AIDetectionSourceId").CurrentValue = facts.Source.Kind == CandidateSourceKind.AiDetection ? facts.Source.Id : null;
         if (head is null) db.Set<HuyCandidateSourceHead>().Add(new() { SourceKind = facts.Source.Kind, SourceId = facts.Source.Id, ProjectId = facts.ProjectId, DecisionId = decision.Id });
         else head.DecisionId = decision.Id;
         db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, decision.DecidedAt, "candidate_decided", "CandidateDecision", decision.Id,
@@ -103,7 +119,8 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         CandidateDecisionKind kind, CandidateClassification? classification, Guid? targetDefectId,
         string? targetVersion, CandidateCorrection? correction, string reason, Guid? correlation, CancellationToken ct)
     {
-        if (facts.Source.Kind != CandidateSourceKind.Report || kind is not (CandidateDecisionKind.KeepNew or CandidateDecisionKind.LinkExisting))
+        if (facts.Source.Kind is not (CandidateSourceKind.Report or CandidateSourceKind.AiDetection) ||
+            kind is not (CandidateDecisionKind.KeepNew or CandidateDecisionKind.LinkExisting))
             throw new CaseWorkflowException(409, "source_not_ready");
         var head = await db.Set<HuyCandidateSourceHead>().SingleOrDefaultAsync(
             item => item.SourceKind == facts.Source.Kind && item.SourceId == facts.Source.Id, ct);
@@ -124,7 +141,9 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
                 !await db.CauseCategories.AnyAsync(item => item.Code == cause && item.IsActive, ct))
                 throw new CaseWorkflowException(400, "validation_error");
             defectId = Guid.NewGuid();
-            created = Defect.CreateFromReport(defectId, facts, classification, null, now);
+            created = facts.Source.Kind == CandidateSourceKind.Report
+                ? Defect.CreateFromReport(defectId, facts, classification, null, now)
+                : Defect.CreateFromAi(defectId, facts, classification, null, now);
         }
         else
         {
@@ -152,12 +171,15 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         db.SourceDecisions.Add(decision);
         db.Entry(decision).Property<CandidateSourceKind>("SourceKind").CurrentValue = facts.Source.Kind;
         db.Entry(decision).Property<Guid>("SourceId").CurrentValue = facts.Source.Id;
-        db.Entry(decision).Property<Guid?>("ReportSourceId").CurrentValue = facts.Source.Id;
+        db.Entry(decision).Property<Guid?>("ReportSourceId").CurrentValue = facts.Source.Kind == CandidateSourceKind.Report ? facts.Source.Id : null;
+        db.Entry(decision).Property<Guid?>("AIDetectionSourceId").CurrentValue = facts.Source.Kind == CandidateSourceKind.AiDetection ? facts.Source.Id : null;
         if (created is not null) db.Defects.Add(created);
         db.Set<HuyDefectSourceLink>().Add(new()
         {
             Id = Guid.NewGuid(), SourceKind = facts.Source.Kind, SourceId = facts.Source.Id,
-            ReportSourceId = facts.Source.Id, ProjectId = facts.ProjectId, DefectId = defectId,
+            ReportSourceId = facts.Source.Kind == CandidateSourceKind.Report ? facts.Source.Id : null,
+            AIDetectionSourceId = facts.Source.Kind == CandidateSourceKind.AiDetection ? facts.Source.Id : null,
+            ProjectId = facts.ProjectId, DefectId = defectId,
             DecisionId = decision.Id, CreatedAt = now
         });
         if (head is null)

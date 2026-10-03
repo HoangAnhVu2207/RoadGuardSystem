@@ -720,3 +720,78 @@ upload path, not a fresh private-path regression pass; 8GiB deliberately not
 rerun. No new external AI, deployment, CI, Android/Web, CRS or Huy reader/label/
 matching/schema approval. ANH-01/ANH-02/HUY-01 remain Partial. Source checkpoint
 is reviewable, not blanket runtime acceptance or deployment approval.
+
+
+### Post-checkpoint G11 independent verification
+
+Shared source checkpoint **2d45315f09e137ad688d0377eb07c8af439c6704** was
+normally pushed to origin/anh-review, then this task continued immediately.
+Compare: https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/03f5c62d23788ac3c8f3c99e559c3b9bd9d05fea...2d45315f09e137ad688d0377eb07c8af439c6704
+39/40 imported committed Git blobs are exactly equal to fixed afab3ecc; the sole
+other blob is the documented partial-class compile adaptation. No message was
+sent to another thread without owner authorization. Huy can consume this
+checkpoint's typed dependencies while runtime/external gates remain open.
+
+API republished from that checkpoint (dotnet publish API project --no-restore
+--disable-build-servers -o artifacts/anh02-postman/api -v quiet -clp:ErrorsOnly,
+exit0), restarted only the saved-PID task-owned launcher/API after checking
+command lines. Guard again verified live SQL target; localhost15112 remains the
+local Postman endpoint, startup migrate/seed=false. No Docker/global restart.
+
+- Final Newman6.2.2 selected canonical leaves: health, all five role logins,
+  Supervisor POST projects201, actual PM work-package200, reporting summary200,
+  training unavailable503, Reporter own-list200 and role denials403. Command:
+  node tools/postman/run_smoke.cjs PRIVATE_ENV.json with folders 00 - Preflight,
+  01 - Supervisor flow (create project -> invite -> administer),
+  02 - Project Manager flow (work package -> survey planning),
+  HUY-01 current authority preflight - opted-in,
+  ANH-02 assigned - AI reporting export retention; --request selects the thirteen
+  leaves recorded in ignored newman-final-result.json. **13 requests /18
+  assertions /0 failures, exit0**. These replace overlapping earlier smoke counts.
+- Storage-independent PROJECT hold folder uses existing real production
+  contracts, not synthetic File/VERIFIED rows. Command:
+  node tools/postman/run_smoke.cjs PRIVATE_ENV.json '00 - Preflight'
+  'ANH-02 project hold - storage independent'
+  --export-environment=artifacts/anh02-postman/private-hold-resume.json.
+  **14 requests /21 assertions /0 failures, exit0**; same-state rerun using the
+  exported environment also14/21/0. Do not sum overlapping retries. Create201
+  and same-key replay, PM read200/Crew403, release200 and same-key original-ETag
+  replay; evaluator admission202 and real worker COMPLETE/read200 with zero
+  actual files. Not a complete Huy inventory or eligible-file claim.
+- Native read-only before/after resume: 45 migrations, 5 users, 2 projects
+  (one legitimate new Postman smoke project), 0 files; Defect version8bytes;
+  0 export jobs/snapshots/admitted audits/export receipts; 1 RELEASED project
+  hold, 2 hold histories, 1 COMPLETE evaluation, 0 evaluation items, 3 retention
+  receipts. Replays/denial add no second scoped hold/history/evaluation effect.
+  Login/session effects are intentional and not asserted absent.
+- Additional failure history: first independent hold run29 HTTP requests,
+  35 passing assertions, one script failure/exit1 because polling8seconds was
+  shorter than real worker15seconds. Increased bounded poll to22seconds;
+  recovered the three actual durable receipts privately before retry, with no
+  new SQL write/hold reset or mocked terminal state. Scratch receipt-resume
+  CS8600/CA1305 builds selected0 and were fixed before SQL execution. Final
+  same-state network runs and durable counts pass. Newman Node deprecation
+  warning is recorded; no package upgrade.
+
+G11 now has verified auth/project/read/privacy/training-unavailable and
+storage-independent hold/replay/evaluation paths. Remaining real-byte upload,
+Reporter intake/case mutations, mock AI and PDF/ZIP current-source pipeline,
+file basis/full retention inventory and SQL fixtures remain Docker/MinIO
+BLOCKED. No 8GiB rerun or gate inflation. API source has no post-checkpoint
+change; final follow-up commits contain Postman/tooling/docs only. Final HEAD,
+remote equality and dirty status are reported in the handoff. ANH packages
+remain Partial; external review/deployment/CRS/Huy gates remain PENDING.
+
+
+Final Postman follow-up self-review checked actual receipt/original ETag reuse,
+empty-inventory evidence versus reusable nonempty inventory contracts, worker
+interval and bounded retry, and private environment export. Removed the test's
+hard-coded empty-item invariant (the observed DB still has zero files); final
+same-state run is **14 requests /22 assertions /0 failures, exit0**, with actual
+COMPLETE status and array shape checked. Earlier21-assertion runs are history,
+not additional unique successes. Export rejects credentials in URL, tracked
+paths and any destination outside ignored artifacts JSON. Node syntax, JSON
+parse and diff --check pass. This tooling-only follow-up does not invalidate
+checkpoint BE tests or require rerunning8GiB. Final native scoped counts remain
+one released hold/two history/one complete evaluation/three receipts and zero
+export effects; newman-hold-repeat-result.json is the final local network record.

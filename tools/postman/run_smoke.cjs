@@ -11,13 +11,22 @@ const values = Object.fromEntries(environment.values.filter(v => v.enabled !== f
 if (values.expectedSqlInstance !== '.\\HANHNAV' || values.expectedDatabase !== 'RoadGuardPostmanTest')
   throw new Error('Disposable environment target mismatch');
 const url = new URL(values.baseUrl);
-if (!['localhost', '127.0.0.1'].includes(url.hostname)) throw new Error('This smoke runner is local only');
+if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password
+    || !['localhost', '127.0.0.1'].includes(url.hostname)) throw new Error('This smoke runner is local only, without URL credentials');
 const guard = spawnSync('dotnet', [path.join(root, 'tools/RoadGuardSystem.Seeder/bin/Debug/net8.0/RoadGuardSystem.Seeder.dll'),
   '--postman-disposable', '--verify-only'], { env: process.env, encoding: 'utf8' });
 if (guard.status !== 0) throw new Error('Live SQL target verification failed; no HTTP sent');
 const collection = JSON.parse(fs.readFileSync(path.join(root, 'docs/postman/RoadGuardSystem-V2.postman_collection.json'), 'utf8').replace(/^\uFEFF/, ''));
 const requested = args.slice(1).filter(a => a.startsWith('--request=')).map(a => a.slice(10));
-const folders = args.slice(1).filter(a => !a.startsWith('--request='));
+const exportArgument = args.slice(1).find(a => a.startsWith('--export-environment='));
+const exportPath = exportArgument && path.resolve(exportArgument.slice(21));
+if (exportPath && (path.relative(path.join(root, 'artifacts'), exportPath).startsWith('..')
+    || path.isAbsolute(path.relative(path.join(root, 'artifacts'), exportPath))))
+  throw new Error('Environment export must stay in ignored artifacts, never canonical docs');
+if (exportPath && (path.extname(exportPath) !== '.json'
+    || spawnSync('git', ['check-ignore', '--quiet', '--', exportPath], { cwd: root }).status !== 0))
+  throw new Error('Environment export must be an ignored private JSON file');
+const folders = args.slice(1).filter(a => !a.startsWith('--request=') && !a.startsWith('--export-environment='));
 if (folders.length === 0) folders.push('00 - Preflight');
 for (const folder of folders) if (!collection.item.some(item => item.name === folder)) throw new Error('Unknown collection folder: ' + folder);
 collection.item = collection.item.filter(item => folders.includes(item.name));
@@ -41,5 +50,6 @@ newman.run({ collection, environment, reporters: [], timeoutRequest: 30000 }, (e
     failures: result.run.failures.map(f => ({ name: f.source?.name, assertion: f.error?.test || f.error?.name })),
     statuses: result.run.executions.map(e => ({ name: e.item.name, status: e.response?.code })) };
   console.log(JSON.stringify(report, null, 2));
+  if (exportPath) fs.writeFileSync(exportPath, JSON.stringify(result.environment.toJSON(), null, 2));
   if (report.requests.total === 0 || report.failures.length) process.exitCode = 1;
 });

@@ -9565,6 +9565,554 @@
           ]
         }
       ]
+    },
+    {
+      "name": "ANH-02 project hold - storage independent",
+      "description": "Existing PROJECT hold and evaluator contracts on synthetic project. Empty inventory is not complete Huy evidence acceptance. Run after fixture logins; keep original keys/ETag for retries.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"anh02Enabled\")!==\"true\" && pm.collectionVariables.get(\"anh02Enabled\")!==\"true\"){console.log(\"ANH-02 manual isolated workflow disabled\");pm.execution.skipRequest();}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Project hold create - Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{independentHoldKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"scopeType\": \"PROJECT\", \"scopeId\": \"{{projectId}}\", \"reason\": \"SYNTHETIC storage-independent Postman hold\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"independentHoldKey\"))pm.environment.set(\"independentHoldKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 201\",()=>pm.expect(pm.response.code).to.eql(201));",
+                  "if(pm.response.code===201)pm.environment.set(\"independentHoldId\",pm.response.json().id);",
+                  "if(pm.response.code===201)pm.environment.set(\"independentHoldETag\",pm.response.headers.get(\"ETag\"));",
+                  "if(pm.response.code===201) pm.environment.set('independentHoldCreateBody',pm.response.text());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Project hold create replay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{independentHoldKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"scopeType\": \"PROJECT\", \"scopeId\": \"{{projectId}}\", \"reason\": \"SYNTHETIC storage-independent Postman hold\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"independentHoldKey\"))pm.environment.set(\"independentHoldKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Same hold receipt',()=>pm.expect(pm.response.text()).to.eql(pm.environment.get('independentHoldCreateBody')));",
+                  "pm.test('Expected HTTP 201',()=>pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM reads project hold",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{independentHoldId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{independentHoldId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crew cannot read project hold",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{repairCrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{independentHoldId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{independentHoldId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Crew denied',()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Project hold release - Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{independentReleaseKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{independentHoldETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{independentHoldId}}/release",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{independentHoldId}}",
+                "release"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Review hold released\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"independentReleaseKey\"))pm.environment.set(\"independentReleaseKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200) pm.environment.set('independentHoldReleaseBody',pm.response.text());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Project hold release replay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{independentReleaseKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{independentHoldETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{independentHoldId}}/release",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{independentHoldId}}",
+                "release"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Review hold released\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"independentReleaseKey\"))pm.environment.set(\"independentReleaseKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Same release receipt',()=>pm.expect(pm.response.text()).to.eql(pm.environment.get('independentHoldReleaseBody')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Project evaluation admission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{independentEvaluationKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/evaluations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "evaluations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"fileIds\":null}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"independentEvaluationKey\"))pm.environment.set(\"independentEvaluationKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
+                  "if(pm.response.code===202)pm.environment.set(\"independentEvaluationId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Project evaluation snapshot read",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/evaluations/{{independentEvaluationId}}?pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "evaluations",
+                "{{independentEvaluationId}}"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){const b=pm.response.json();if(b.status!=='COMPLETE'){const n=Number(pm.variables.get('independentPoll')||0)+1;pm.variables.set('independentPoll',n);if(n>45)throw new Error('Evaluation did not reach COMPLETE');pm.execution.setNextRequest('Project evaluation snapshot read');setTimeout(()=>{},500);}else{pm.test('Terminal evaluation completed',()=>pm.expect(b.status).to.eql('COMPLETE'));pm.test('Actual inventory items',()=>pm.expect(b.items).to.be.an('array'));}}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

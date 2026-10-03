@@ -162,3 +162,19 @@ values:
     value: ""
   - key: huyKeepNewKey
     value: ""
+  - key: independentHoldKey
+    value: ""
+  - key: independentHoldId
+    value: ""
+  - key: independentHoldETag
+    value: ""
+  - key: independentReleaseKey
+    value: ""
+  - key: independentEvaluationKey
+    value: ""
+  - key: independentEvaluationId
+    value: ""
+  - key: independentHoldCreateBody
+    value: ""
+  - key: independentHoldReleaseBody
+    value: ""

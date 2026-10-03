@@ -36,6 +36,7 @@ Có thể chạy Newman hiện có qua runner không log response/token/signed U
 # NODE_PATH trỏ tới Newman đã cài nếu Node chưa resolve được package.
 node tools/postman/run_smoke.cjs <private-environment.json> "00 - Preflight" "HUY-01 current authority preflight - opted-in"
 node tools/postman/run_smoke.cjs <private-environment.json> "00 - Preflight" "ANH-02 assigned - AI reporting export retention" "--request=Login seeded Project Manager" "--request=Reporting summary" "--request=Training missing Huy approved reader"
+node tools/postman/run_smoke.cjs <private-environment.json> "00 - Preflight" "ANH-02 project hold - storage independent" "--export-environment=artifacts/anh02-postman/private-resume.json"
 ```
 
 Runner kiểm SQL target trước HTTP, chỉ nhận loopback URL và reuse requests,
@@ -45,6 +46,14 @@ hold/evaluation phải dùng bytes/object test thật cùng state của demo hi�
 không dùng dummy GUID hoặc bypass verify. Kết quả network/counts và NOT RUN
 được ghi trong `planning/development/ANH-02-summary.md`; JSON parse không thay
 network evidence. Docker/MinIO hiện blocked, không coi full flow đã pass.
+
+Folder PROJECT hold độc lập đã chạy create/replay, PM read, Crew403,
+release/replay và evaluator COMPLETE với inventory thực rỗng. Đây không phải
+acceptance cho inventory chứa Huy evidence. Giữ keys/original ETag khi retry;
+CLI có thể export environment chứa tokens **chỉ vào JSON ignored dưới artifacts**
+và dùng file đó cho lần chạy lại. Không commit/export vào environment mẫu.
+Poll tối đa khoảng 22 giây, dài hơn worker interval15 giây; không sửa worker
+hoặc giả trạng thái COMPLETE để làm smoke pass.
 
 ## HISTORICAL — vì sao đăng nhập trước đây không được
 

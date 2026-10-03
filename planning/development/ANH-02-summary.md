@@ -827,3 +827,196 @@ Fresh executed commands (logs/TRX are ignored under artifacts/anh02-postman/corr
 | git diff --check; shared source/test blob checks | exit0; unchanged shared receipt hashes above. Only seven intended Anh source/test/contract/docs paths selected; no initial dirty paths existed. |
 
 NOT RUN on this correction: full suites, external AI/Web/Android/deployment/CRS, real approved-label/matching/CaseDefect reader adoption, live storage fault injection, full network Postman export/demo flow and actual8GiB. No project-upload behavior/config change requires an8GiB rerun; old live-storage/demo/8GiB evidence remains HISTORICAL at its recorded revision. Prior incident/recovery decision and Go cache refusal retained. ANH-01/ANH-02/HUY-01 remain Partial; external ChatGPT review PENDING.
+
+## Multipart recovery continuation — 2026-10-03
+
+CURRENT_VERIFIED: initial local and origin/anh-review base
+**f7a32dcfaa842e1ab6557ec19b0acb0c0c053a74**, initial dirty paths: none.
+Implementation **7f8f7715853aa745c705c12a7c28e897ededae60** (27 files);
+[implementation diff](https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/f7a32dcfaa842e1ab6557ec19b0acb0c0c053a74...7f8f7715853aa745c705c12a7c28e897ededae60).
+Final follow-up changes only these two existing summaries; final HEAD/remote
+equality is delivered in the handoff. No reset/amend/force-push/branch merge.
+The previous paragraph's indefinite unresolved-claim behavior is HISTORICAL,
+superseded by this separately owner-assigned recovery implementation.
+
+Source reproduction first: `red.trx` selected one fresh-context recovery case,
+0 PASS/1 FAIL; the previous claim returned503 indefinitely. Read the actual
+private/project callers, receipt guard, storage adapter and expiry paths before
+designing the continuation in ANH-01.md. No shared receipt primitive change.
+
+### Recovery behavior and compatibility
+
+- One logical initiation attempt per immutable `uploads/{FileId:N}` object key;
+  session/key is durable identity, a GUID generation fences ownership. Nullable
+  operational metadata distinguishes CLAIMED, CALLING, RECONCILING, DURABLE and
+  TERMINAL. Known ID is persisted separately before any URL/part receipt.
+- Commit claim/CALLING in short execution-strategy transactions, release SQL
+  locks, then initiate storage outside SQL retry. Bind the returned ID under a
+  fresh guarded transaction with fence/terminal checks. Unknown results are
+  reconciled by exact-key, fully paginated ListMultipartUploads/ListParts.
+  Exactly one candidate with zero parts can be adopted; never choose newest.
+  Multiple/nonempty candidates, legacy claims without attempt metadata, or no
+  candidate after deadline become FAILED/`multipart_restart_required`. Create
+  with a new key gives a new file/session/key; old create receipt remains intact.
+- Never re-initiate the uncertain identity. Late workers cannot replace a
+  durable ID or issue stale URLs. Terminal tombstones remain sweepable: timeout
+  and empty inventory do not prove a former worker stopped. Abort only proven
+  exact-key orphan IDs; exclude authoritative IDs, retain completed objects.
+  Expired UPLOADING is fenced/cleaned; VERIFYING/VERIFIED is preserved.
+- Both private and project issuance use this coordinator so project concurrency
+  does not regress when the former network-held SQL lock is removed. Current
+  actor/role/owner/project membership and survey assignment guards run before
+  replay/conflict, mutation/bind and after presigning before protected delivery.
+  Business/audit/receipt atomicity stays in the existing primitive; no receipt
+  rewrite, synthetic stored success, or false success after cancellation.
+- Optional `IMultipartRecoveryStorage` keeps `IUploadObjectStorage` source
+  compatibility. Concrete MinIO supports exact-key listing, both pagination
+  markers, parts pagination and idempotent NoSuchUpload abort. Initiation client
+  uses zero SDK retries; external exactly-once is not promised. Extra candidates
+  have a controlled cleanup path rather than a second authoritative attempt.
+- Additive migration **20261003170000_Anh01MultipartRecovery** follows actual
+  baseline160000. Adds four nullable session fields/index plus scheduling-only
+  UploadMultipartSweeps table/FK/index; worker polling does not drift evidence
+  ETag. Populated Down refuses to discard operational recovery state. Old
+  applied migrations and existing Huy/Reports FK semantics are unchanged.
+  Fresh SQL and baseline upgrade tested; legacy FileId/URI preserved, unresolved
+  legacy claim terminal/restart instead of guessing an upload ID.
+- Worker is an actual production DI caller, tick5s, enabled automatically for
+  configured Development MinIO or explicitly with
+  `UploadSession:RecoveryEnabled=true`. Defaults: deadline120s, retry30s,
+  batch20 per pending/tombstone and durable group; clamps1..3600,1..300,1..100.
+  Other environments require migration rollout and explicit opt-in. Request
+  retries also recover; worker cleans without a returning client. Separate
+  worker token continues durable work after caller cancellation.
+
+### Two self-review passes and fixes
+
+Pass1 reviewed state/fence/late ACK, network/SQL boundaries, replay and terminal
+authorization. Fixed project concurrency integration, repeated current guard
+after presigning, expiry cleanup for UPLOADING, and separated sweep scheduling
+from session rowversion so verified evidence ETag stays stable. Added fresh
+context, competing reconciler/key, late worker, cancellation, revoked actor,
+wrong project and provider-outage assertions; reran affected checks below.
+
+Pass2 reviewed migration/legacy/source compatibility, actual worker caller,
+isolation/secrets, Postman and final diff. Preserved two baseline Restrict
+annotations omitted by scaffolding; moved new migration ID after actual final
+baseline before applying isolated tests. Fixed invalid legacy test setup to
+create legitimate current task/assignment/membership. Reviewed exact-label/
+key ownership and killed-process isolation; corrected live runner failures,
+then reran full live acceptance. Collection changed only two descriptions:
+IDs/routes/variables/scripts match baseline after description stripping.
+Shared receipt source blob remains **8fa41dc4914ba7f2f475d4802727a2f8f1ef9f88**;
+shared guard test remains **7d4fb79ba442f2359f3e26368196c24fdbf67aec**.
+External ChatGPT review is separate and PENDING.
+
+### Fresh executed checks (distinct counts, not accumulated reruns)
+
+```powershell
+dotnet test tests/RoadGuardSystem.IntegrationTests --filter 'FullyQualifiedName~MultipartRecovery|FullyQualifiedName~PrivateMultipartRetrySqlTests|FullyQualifiedName~UploadPersistenceSqlTests|FullyQualifiedName~Anh01StorageRecoveryTests|FullyQualifiedName~ReceiptAccessGuardSqlTests' --logger 'trx;LogFileName=sql-final7.trx' --results-directory artifacts/multipart-recovery -v quiet
+dotnet test tests/RoadGuardSystem.ApiTests --filter 'FullyQualifiedName~MultipartRecoveryHttpTests|FullyQualifiedName~ReporterEvidenceApiTests|FullyQualifiedName~UploadApiTests&FullyQualifiedName!~CompleteMultipartUploadAgainstConfiguredMinio' --logger 'trx;LogFileName=http-current.trx' --results-directory artifacts/multipart-recovery -v quiet
+dotnet build RoadGuardSystem.API --no-restore -v minimal
+dotnet build tools/RoadGuardSystem.MultipartHarness --no-restore -v minimal
+$env:ROADGUARD_MIGRATION_CONNECTION_STRING='Server=localhost,1;Database=RoadGuardMultipartDesignOnly;Integrated Security=True;TrustServerCertificate=True'
+& 'C:/Users/HoangAnhVu/.dotnet/tools/dotnet-ef.exe' migrations has-pending-model-changes --project RoadGuardSystem.Repositories
+$env:RGM_MINIO_CONFIG=(Resolve-Path artifacts/anh02-live/private-runtime.json).Path
+python tools/Test/multipart_live_acceptance.py
+git diff --cached --check
+git diff --check
+```
+
+SQL/adapter/migration **69 PASS/0 FAIL/0 SKIP**, HTTP→SQL **16 PASS/0 FAIL/0 SKIP**:
+**85 distinct automated cases**. SQL breakdown: recovery state20, private retry7,
+existing upload3, adapter4, migration1, existing storage recovery2, unchanged
+receipt guards32. HTTP: new recovery2, Reporter12, existing upload2. HTTP SQL
+fixtures use synthetic storage and do not prove actual network bytes. Both
+builds exit0, incremental0 warnings/0 errors; test analyzer warnings retained.
+EF model check exit0, no pending changes; design-only connection was not opened
+or migrated. Python syntax, collection JSON/description-only parity and both
+diff checks pass. Logs/TRX stay ignored under artifacts/multipart-recovery.
+
+| Acceptance | Current evidence |
+|---|---|
+| a–d,g,h: normal/replay/concurrent keys/claim ACK/SQL retry/exhaustion/after-bind interruption | PrivateMultipartRetrySqlTests7, fresh-context restart theories and existing UploadPersistenceSqlTests3; durable ID/receipt counts asserted. |
+| e,f: storage ACK loss/crash before bind | Durable CALLING/fresh-context SQL cases plus live injected503 and actual owned API kill/restart below. |
+| i,j: competing reconcilers/late worker | Recovery state concurrent reconciliation and LateWorkerAfterFenceTransfer; no stale URL/second authority. |
+| k: current authorization | InterruptedRecovery revoked/deactivated, RevokeDuringPresign, ended project membership/wrong project, HTTP wrong-owner/revoked and Reporter12. |
+| l: cancellation | Claim committed before I/O, actual token cancelled after remote creation, cancelled listing; independent later recovery or bounded terminal/restart. |
+| m: terminal/expiry/complete | Expired pending/uploading cleanup; verifying/verified preserved and ETag stable; HTTP complete/replay and SQL concurrent guards. No public abort route invented. |
+| n: outage | Provider unavailable then restored, fresh context recovers durable work. |
+| o: ambiguity/pagination | Multiple/nonempty candidates terminal; adapter both upload markers/parts pages and exact-key neighbor exclusion. |
+| p: abort ACK/NoSuchUpload | SQL abort-lost-ACK fixture, adapter NoSuchUpload, positive actual MinIO extra-ID/late-orphan cleanup. |
+| q: legacy | Isolated old-schema upgrade preserves FileId/URI; legacy unresolved claim terminal and cleaned, no adoption guess. |
+| r: unaffected callers | Legitimate project survey task/membership fixture, metadata8GiB SQL, normal Upload HTTP/Reporter regressions. |
+
+### Actual local MinIO / process restart
+
+CURRENT_VERIFIED run **9093accef53e433da8a99bc7c565d19d**, **3 scenarios PASS/0 FAIL**;
+proof `artifacts/multipart-recovery/live-9093accef53e433da8a99bc7c565d19d.json`,
+log `live-current.log`. API assembly and six source SHA256s in proof matched
+current source after run. Production API executable/HTTP routes, real isolated
+SQL, real MinIO PUT/complete/verification/protected download; not service-only.
+Synthetic valid PNG **9,004,013 bytes**, two parts8MiB/remainder, downloaded SHA256
+**04340e4724629c1603ef84499fb382c3139a108b3f4fe610fb4fc8b0a76b0b24**.
+
+1. Proxy injects gateway503 only after upstream initiation200/ID captured.
+   SQL CALLING/null ID/one remote candidate recovers; concurrent same/new keys200,
+   changed fingerprint409, wrong owner404. Real upload finishes VERIFIED/hash.
+2. Proxy withholds success; kills exactly task-created API PID4948, launches
+   independent PID16416. Durable SQL/remote inventory recovery, same concurrency
+   checks and real VERIFIED/hash. No reliance on prior process memory.
+3. Multiple actual candidates cause FAILED409, no fabricated part receipt;
+   worker cleans without client. Injected later orphan is also cleaned. New
+   create key/session proceeds to VERIFIED/hash. Extra ID cleanup also keeps
+   authoritative ID/evidence ETag unchanged; complete objects are retained.
+
+Endpoint **http://127.0.0.1:19000**, existing MinIO exact task label
+`roadguard.task=anh02-runtime-d2414844`. Own bucket
+`roadguard-multipart-9093accef53e433da8a99bc7c565d19d`; fresh Docker SQL DB
+`RoadGuard_Multipart_9093accef53e433da8a99bc7c565d19d`. Harness checked exact Docker
+SQL hostname/database and bucket before mutation. Removed only its own labeled
+SQL container/stopped owned API processes; no completed-object/bucket deletion.
+Credentials stay in ignored local JSON/process environment; no tokens, passwords
+or presigned query strings committed. This is injected fault/local acceptance,
+not a natural provider incident or deployment verification.
+
+Recovery operation: retry same key/body after503; observe GET session and refresh
+ETag before complete. FAILED/409 requires existing create with a new key; never
+clear claim SQL manually. Worker is the normal orphan path. Failed isolated-run
+CLI `dotnet <MultipartHarness.dll> cleanup-owned-run <ignored live-RUN.json>` is
+dry-run by default, `--execute` after exact run/bucket/process checks; accepts
+only its failed owned-run evidence/GUID keys. Two stopped failed-run inventories
+were checked dry-run/execute/repeat:0 multipart/0 objects deleted. CLI invocation
+and idempotence verified, no positive CLI abort count claimed; actual positive
+background aborts are covered above. See docs/postman/README.md for config/use.
+
+### Failure history / remaining gates
+
+Preserved initial red failure and intermediate logs. First HTTP run13 PASS/1
+FAIL was an incorrect403 expectation for canonical other-owner404; fixed test,
+not authorization. Initial EF pending-model failure was baseline Restrict
+metadata omission; migration order and repeated read-only model finalization
+test setup also fixed before final fresh/upgrade run. Previous8GiB metadata
+fixture lacked valid survey assignment; corrected legitimate seed, not policy.
+Live runner first failed before mutation (`http` module shadowed), a closed-
+socket experiment returned200 and was NOT accepted as lost-ACK proof, then a
+`concurrent` module shadowing failure stopped the next run after first scenario.
+Fixed tooling and reran all three current cases. No conclusion that the200
+experiment proved duplicate transport initiation. Earlier live3PASS run is
+superseded by the current run above. All final failures0; no Docker/SQL fixture
+initialization failure or global daemon/config restart in this continuation.
+
+TARGET_CONFIRMED owner accepts .\\HANHNAV/RoadGuardPostmanTest as disposable,
+no old-data recovery required. This continuation did not migrate/seed/recreate
+that native DB; all SQL mutations were isolated owned fixtures. Prior config
+precedence/publish exclusion and incident history retained; Go cache untouched.
+Immediate Huy exact missing label/session members and reader contracts above
+remain unchanged at fixed afab3ecc; no new Huy reader/adoption/approval implied.
+
+NOT RUN: full suites; previous G5/G6/G8 AI/reporting/retention/binding suites on
+this new source (previous163PASS is HISTORICAL, not reused as current proof);
+full network Postman reporting/PDF/ZIP/demo pipeline; real8GiB, external AI,
+Web/Android, CRS, external ChatGPT review, staging/deployment, shared/deployed
+migration. No streaming/buffering/limits/part-sizing/complete-assembly change
+requiring real8GiB rerun. Current local multipart recovery gate closes only
+for the coverage above; ANH-01/ANH-02/HUY-01 overall **Partial**.

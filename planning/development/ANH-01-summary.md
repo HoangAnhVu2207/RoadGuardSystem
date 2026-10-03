@@ -597,3 +597,34 @@ That summary also records a preflight isolation breach: copied local config
 caused startup migrations against RoadGuardPostmanTest before the config
 fix. The accidental DB is excluded from acceptance and needs owner recovery
 decision; no rollback attempted. External ChatGPT review remains PENDING.
+
+## Multipart recovery continuation — 2026-10-03
+
+CURRENT_VERIFIED base **f7a32dcfaa842e1ab6557ec19b0acb0c0c053a74**, anh-review,
+initial dirty none; implementation **7f8f7715853aa745c705c12a7c28e897ededae60**.
+The earlier unresolved initialization limitation is now superseded: durable
+phase/generation fencing, exact-key provider reconciliation, one empty candidate
+adoption, controlled FAILED/restart for ambiguity/legacy/deadline, and background
+late-orphan cleanup. No storage I/O inside SQL retry; current private/project
+authority before receipt and protected URL delivery. No shared receipt rewrite,
+Huy business change, completed-object deletion or external exactly-once claim.
+One additive migration20261003170000; fresh/upgrade and EF no-pending-model check
+pass. Existing applied migrations are unchanged.
+
+Two self-review passes/fixes and exact commands/mapping/failure history are in
+the existing ANH-02-summary multipart recovery section. Fresh85 distinct cases
+(69 SQL/adapter/migration +16 HTTP→SQL),0 fail/skip. Actual local MinIO3PASS:
+injected lost ACK, owned API kill/restart, ambiguity/late-orphan cleanup/new-session
+restart; each real bytes upload→VERIFIED→protected download/hash. Current run
+9093accef53e433da8a99bc7c565d19d uses valid9,004,013byte PNG/two parts, not8GiB.
+API/harness builds and diff checks pass; Postman identifiers/scripts unchanged.
+
+TARGET_CONFIRMED owner subsequently accepted exact .\\HANHNAV/RoadGuardPostmanTest
+as disposable, no recovery required; this updates the earlier pending recovery
+decision without erasing the incident. This continuation did not mutate that DB;
+only isolated owned SQL fixtures. Config precedence/publish exclusion retained.
+No real8GiB rerun: streaming/limits/part sizing/assembly unaffected. Historical
+8GiB evidence stays at its recorded source. Full unrelated suites/Postman
+reporting/demo, Huy reader/label/session authority, CRS, external review and
+deployment NOT RUN/PENDING; both Anh packages remain **Partial**. Final HEAD and
+compare URL are provided in handoff; implementation diff is linked in ANH-02.

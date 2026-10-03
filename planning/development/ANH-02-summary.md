@@ -611,3 +611,112 @@ anh02-runtime-d2414844; their containers, owned databases, objects and evidence
 are retained. Go cache cleanup remains blocked by automatic approval review.
 Delivery base is d2414844af1a3fd9a39547fc131f85bda451fad2; the normal commit's
 HEAD and compare URL are reported in the handoff, with no amend/force-push.
+
+
+## Owner dependency/Postman continuation — 2026-10-03 (Partial checkpoint)
+
+Authority: latest owner continuation assigns G1–G10 first and G11 next, D1–D4=A;
+no retired RoadGuard skill, new RF report, HUY-02 workflow or business decision.
+Initial local/remote anh-review base: **03f5c62d23788ac3c8f3c99e559c3b9bd9d05fea**.
+Fixed Huy import source: **afab3ecc8b33d8172e9b0c564808716ca067f39e**, Huy base
+7e8261648e08adf5b5bdf0cea85fca5e55463b73. Its external PASS is handoff provenance,
+not external review of this new Anh integration. Normal checkpoint HEAD is in the
+Git handoff; no amend/force/merge/develop/main/Huy-branch mutation.
+
+Initial dirty paths retained and continued: PostmanScenarioSeedStep.cs,
+SeederTests.cs, Seeder Program.cs, new PostmanDisposableBootstrap.cs and
+new tools/postman/start_local.py. Anh is the sole shared-root/schema/docs writer.
+40 selected Huy module/domain/DTO/repository/service/test files are imported
+from the fixed SHA; no blanket cherry-pick/merge or latest-tip selection. Exact
+import comparison has one compile-only adaptation: Huy01ReporterReportsApiTests
+class is partial because three pre-existing Anh partial files extend it. All
+other imports match normalized source bytes; no behavioral Huy rewrite. Shared
+receipt service/test blobs remain exactly 8fa41dc4914ba7f2f475d4802727a2f8f1ef9f88 /
+7d4fb79ba442f2359f3e26368196c24fdbf67aec. Import allowlist and private execution
+artifacts are retained locally under ignored artifacts/anh02-postman.
+
+| Gate | Current result / evidence / remaining owner boundary |
+|---|---|
+| G1 Reporter authority | Anh producer now reads actual Users + active Roles in scoped context; private create/part/complete receipt paths lock and recheck before replay/conflict/recovery. Huy terminal role guard imported unchanged. New negative HTTP/SQL tests compile; fresh corrected race rerun BLOCKED by Docker. Not a full runtime P1 closure. |
+| G2 schema/model | Existing typed Report/Case/SourceDecision mappings reused. Additive Defects shadow RowVersion migration only; nullable legacy project/route remain unchanged, populated downgrade fails closed. Native disposable target has 45 migrations and 8-byte version; EF no pending model. Earlier Huy fresh/baseline constraints/hydration tests passed in this run, but two new Defect tests require corrected rerun. Label hydration/schema remains PENDING, no guessed JSON aggregate/backfill. |
+| G3 approved label/access | Existing IApprovedTrainingLabelReader and ITrainingSourceAccessReader reused, no fake binding. Huy TrainingLabel lacks durable current-head/revision ordering/concurrency and persistent file-version facts; revision lacks file version/SHA/int64/media/provenance/terminal review proof identity. REPORT policy exists; AI/FIELD adapters absent. Huy supplies actual domain/SQL readers, then Anh maps typed persisted members. |
+| G4 matching/Defect | Existing candidate heads/decision constraints reused; Defect concurrency seam added. IMatchingCandidateSnapshotReader absent. Created-Defect source/provenance relation and segment/geometry/current-version facts plus Huy writer are absent. REPORT REJECT/correction exact module imported, opt-in bound. KEEP_NEW/LINK_EXISTING remain unavailable with zero effects; matcher unit fixtures do not establish producer acceptance. |
+| G5 AI projection | ReadCandidateAsync now joins actual ProcessingJob/Attempt/Block and checks project, MOCK, completed job/attempt, model/dataset and exact manifest. Existing generated-frame provenance retained without fabricated UploadSession. Persisted-job drift HTTP test added; fresh pipeline rerun BLOCKED. No second job system or production provider claim. |
+| G6 retention | Exact real named HUY contributor retained Complete=false, with closed-link/publication/conclusion/decision/history refs. Registered only with explicit Huy opt-in, never renamed REPORTER_INTAKE. One actual Huy SQL contributor test passed before Docker outage. Composite/evaluator storage acceptance remains BLOCKED; label/Defect-source/repair inventories explicitly missing, no deletion or ELIGIBLE promotion. |
+| G7 Case/Defect reporting/dossier | Minimal internal typed anh-huy.case-defect.v1 / ICaseDefectReadReader boundary and real ReportingService/ExportService consumers implemented. Nine unit tests verify half-open report period, status stock, incomplete-not-zero, scope/hash/nested shape and no private-byte permission. Huy reader unbound; typed metadata/source refs freeze in admission without ZIP private-file authorization. Actual Huy producer→consumer PENDING. |
+| G8 roots/routes | Default intake-only preserved. Explicit Huy01:EnableLifecycleAndCase=true adds six scoped lifecycle/Case/Candidate service/repository bindings once and HUY contributor. Fresh production-root HTTP test compiles, isolated mutation acceptance BLOCKED. Actual local API opted-in own Report list=200, PM private list=403, Reporter internal Case list=403. Canonical/Postman describe this distinction. |
+| G9 session transports | Fixed Huy source still has no UserSession.Transport or LastActivityAt or Web/Android handlers. No shadow member/platform guess, cookie activation or legacy expiry change. Huy must supply typed LEGACY_BEARER/WEB/ANDROID members and touch/absolute state; shared mapping/policy adoption waits at that boundary. Full clocks/CSRF/rotation acceptance NOT RUN. |
+| G10 events | Existing OutboxWorkRepository/NotificationOutboxConsumer/ConsumerEffectService and draft contracts/events inspected. Imported workflows persist audits, not an approved new event registry/consumer agreement. Five proposed report/case/candidate/label event names remain PENDING envelope/routing/consumer/effect-key/retry agreement; no unsupported/no-op event emitted. |
+| G11 DB/seed/Postman | Exact authorized DB recreated once, production migrations applied, seed twice exits0, five fixture authorities/passwords validated. Newman actual network below; full real storage/upload/intake/AI/PDF/ZIP/hold/evaluator rerun BLOCKED by Docker/MinIO. Missing Huy facts remain PENDING, not fake seed. |
+
+TARGET_CONFIRMED: owner now accepts RoadGuardPostmanTest on .\HANHNAV as
+fully disposable, no recovery of old data required. This supersedes only the
+previous unresolved recovery decision; the prior config/startup incident above
+remains HISTORICAL and is not rewritten as never happening. The disposable DB
+was recreated once, now coherent; no further reset needed. Current reset code
+uses plain DROP and fails on another active session rather than terminating it.
+Guard validates configured exact instance/catalog and live SERVERPROPERTY / DB_NAME
+before reset/migrate/seed/launcher start. Other DBs/storage are not covered.
+Config precedence and local-config publish exclusion are retained. Go cache
+remains untouched after the automatic approval-review rejection.
+
+Seed is synthetic: existing users/roles/memberships/project/road/segments,
+device/catalog reused; synthetic Reporter and released mock model added without
+Huy approval or fake verified files. Legacy migrated SurveyRequest linkage is
+accepted only for its exact expected request/project/route; foreign linkage still
+fails. Repeated runs do not add fixture copies. Live read-only SQL confirmed
+HANHNAV/RoadGuardPostmanTest, 45 migrations, 5 users, 1 project, 0 files,
+Defects.RowVersion length8. No source reference points to absent VERIFIED bytes.
+Private JWT/storage/connection settings and tokens remain ignored/local only.
+
+Fresh commands/results (reruns are not added into unique-test totals):
+
+| Command/check | Executed/pass/fail/skip, exit / evidence |
+|---|---|
+| dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --disable-build-servers -v quiet -clp:ErrorsOnly | exit0, 0 errors, 94 warnings at final shared-source build; earlier imported build required partial-class adaptation. |
+| dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Huy01\|FullyQualifiedName~Anh02\|FullyQualifiedName~CaseDefectCaptureConsumerTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=anh-huy-unit-checkpoint.trx' | 122/122/0/0, exit0; official DejaVu font supplied via process-only ANH02_TEST_FONT_PATH. Unit/mock evidence only. |
+| dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~PostmanDisposableGuardTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=postman-disposable-target-guards.trx' | 5/5/0/0, exit0; no SQL connection for wrong/missing target or invalid flags. |
+| .tools/dotnet-ef.exe migrations has-pending-model-changes --context RoadGuardDbContext --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build | exit0, no pending model; temporary unreachable DesignOnly process setting restored, no DB I/O. |
+| dotnet tools/RoadGuardSystem.Seeder/bin/Debug/net8.0/RoadGuardSystem.Seeder.dll --postman-disposable (twice); --verify-only | each exit0, exact target checked, no duplicate fixture seed; native probe evidence above. |
+| node tools/postman/run_smoke.cjs PRIVATE_ENV.json '00 - Preflight' 'HUY-01 current authority preflight - opted-in' | Newman6.2.2; 10 requests /14 assertions /0 failures, exit0; ignored newman-preflight-result.json. Actual loopback15112 current published API, launcher-verified SQL target. |
+| same runner with folders '00 - Preflight', 'ANH-02 assigned - AI reporting export retention' and --request=Login seeded Project Manager / Reporting summary / Training missing Huy approved reader | 3 requests /5 assertions /0 failures, exit0. Login200, reporting200, missing-label-reader503 producer_unavailable; ignored newman-reporting-result.json. The PM login overlaps the first run; no sum presented as unique tests. |
+
+Failure history for this continuation is preserved: seed adoption RED reproduced
+old validation; wrong collision fixture initially violated active-request unique
+then cancellation check (changed to Completed, rerun pending). Initial API run
+102=59pass/43fail: private multipart manual transaction outside retry strategy,
+preflight update locks blocking duplicate-handler barriers and a non-SHA fixture
+fingerprint were found/fixed. Initial SQL mix56=53pass/3fail: two new Defect
+fixture statuses were invalid and seed collision metadata was invalid, corrected.
+Initial unit113=108pass/5fail lacked font environment, final122 pass. First imported
+build CS0260 required partial adaptation; nested-consumer edit CS1525 selected0
+was fixed. EF model check initially failed because generated snapshot removed
+existing ownership Restrict overrides; restored those in current snapshot only,
+no applied migration edited, final model check passes. Fresh API102 rerun then
+failed all102 during Docker fixture initialization (HTTP500), before test bodies;
+it is infrastructure failure, not a source acceptance pass. Last bounded Docker
+version timed out12s and MinIO health timed out3s. Owner was asked to restore
+Docker Desktop; no daemon/TLS/global configuration restart or bypass was done.
+
+Self-review1: inspected current actor/role and private source guards on every
+receipt path, terminal lock ordering, post-rollback/recovery, multipart admission,
+source job/attempt/proof joins, publication recipient versus case metadata,
+closed-link retention, half-open metrics and frozen exports. Fixed preflight lock
+ordering/private transaction handling and nested snapshot shape checks; retained
+historical publication references without requiring current membership.
+Self-review2: checked exact imports/one adaptation/protected blobs, defaults and
+opt-in descriptor closure, migration history/nullability/downgrade/no applied
+edits, snapshot drift, config target/publish isolation, fixture idempotence,
+Postman dynamic GUID scripts and secret-free environments. Fixed snapshot
+Restrict loss, added target guard tests and reusable safe Newman launcher/runner.
+These are Codex self-reviews; new external ChatGPT review is PENDING.
+
+NOT RUN/PENDING: corrected SQL races/private receipt HTTP suite/new production
+root mutations/Defect fresh+baseline tests and final full composite retention;
+real bytes Postman upload→intake→mock AI→PDF/ZIP→hold/evaluation after this
+integration, because Docker Engine/MinIO unavailable. Existing previous local
+MinIO/Linux PDF/demo/8GiB evidence is HISTORICAL reuse for unaffected project
+upload path, not a fresh private-path regression pass; 8GiB deliberately not
+rerun. No new external AI, deployment, CI, Android/Web, CRS or Huy reader/label/
+matching/schema approval. ANH-01/ANH-02/HUY-01 remain Partial. Source checkpoint
+is reviewable, not blanket runtime acceptance or deployment approval.

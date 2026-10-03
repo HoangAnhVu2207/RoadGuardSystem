@@ -95,8 +95,12 @@ rowversion. Repeat checks under actor then FileId-sorted file/scope/upload SQL
 locks before replay or changed-payload conflict, same scoped DbContext and
 transaction as shared receipt. Other owner/missing/nonprivate:404 not_found;
 pending/failed:409 source_not_ready; version drift:412 concurrency_conflict;
-forbidden:403 access_forbidden. Global role-row deactivation after preflight is
-not checked by imported Huy adapter: known Huy-owned gap, authority gate open.
+forbidden:403 access_forbidden. Historical role-row gap is superseded by the
+owner-authorized afab3ecc handoff: terminal Huy receipt guards check actual Users
+and active Roles. Anh producer preflight now also checks the actual role row;
+private upload create/part/complete receipt paths recheck locked current
+authority. Fresh post-correction SQL race acceptance remains blocked by Docker
+Engine; source adoption alone is not a claim that every race passed.
 
 Idempotency-Key absent:428 precondition_required. Reject control/non-ASCII;
 trim outer ASCII spaces only, preserve internal printable ASCII, normalized
@@ -183,5 +187,26 @@ IApprovedTrainingLabelReader/ITrainingSourceAccessReader and
 IMatchingCandidateSnapshotReader in Anh02Contracts.cs, plus a permission-aware
 CaseDefectRead/dossier/timeline projection and complete named HUY retention
 contributor using the caller's scoped transaction. No current implementation or
-wire equivalence is inferred from a newer Huy tip. Reporter role-row correction
-and external ChatGPT A/B review are separate pending Huy/external gates.
+wire equivalence is inferred from a newer Huy tip. The afab3ecc Reporter role-row
+correction is imported; new Anh integration external review remains PENDING.
+
+## Owner continuation 2026-10-03: controlled Huy activation
+
+Fixed source: Huy afab3ecc8b33d8172e9b0c564808716ca067f39e. Default roots
+remain intake-only. Explicit `Huy01:EnableLifecycleAndCase=true` binds scoped
+Reporter lifecycle, Case workflow and Candidate decision services/repositories
+once, plus the real named HUY retention contributor. Local HTTP own-list and
+role denial have run; isolated SQL mutation/race reruns are blocked by Docker.
+KEEP_NEW/LINK_EXISTING lack real matching/created-Defect producer dependencies
+and retain unavailable/zero-effects behavior. Labels/matching readers remain
+unbound. HUY inventory is incomplete, including historical links; it never
+claims complete retention authority or physical deletion.
+
+Internal `anh-huy.case-defect.v1` DTOs and `ICaseDefectReadReader.CaptureAsync`
+freeze the minimal reporting/dossier seam. The caller's scoped consistent-read
+transaction and current actor/role/project authority apply. Null or explicit
+missing reasons retain partial metrics; invalid scoped facts return
+producer_invalid. Complete reports use ReceivedAt [from,to); Case/Defect status
+is current stock. No reader implementation is registered. Snapshot metadata
+and source revisions are frozen in export admission; private evidence IDs do
+not enter generic file/ZIP-byte admission or grant Reporter recipient access.

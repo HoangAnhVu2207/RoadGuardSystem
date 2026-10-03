@@ -6769,7 +6769,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -6843,7 +6843,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -6916,7 +6916,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02AiKey\"))pm.environment.set(\"anh02AiKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -7136,7 +7136,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02MatchingKey\"))pm.environment.set(\"anh02MatchingKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02MatchingKey\"))pm.environment.set(\"anh02MatchingKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -7378,7 +7378,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -7453,7 +7453,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02DossierKey\"))pm.environment.set(\"anh02DossierKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -7675,7 +7675,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02TrainingKey\"))pm.environment.set(\"anh02TrainingKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02TrainingKey\"))pm.environment.set(\"anh02TrainingKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -7807,7 +7807,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02BasisKey\"))pm.environment.set(\"anh02BasisKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02BasisKey\"))pm.environment.set(\"anh02BasisKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -7880,7 +7880,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02HoldKey\"))pm.environment.set(\"anh02HoldKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02HoldKey\"))pm.environment.set(\"anh02HoldKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -8007,7 +8007,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02ReleaseKey\"))pm.environment.set(\"anh02ReleaseKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02ReleaseKey\"))pm.environment.set(\"anh02ReleaseKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -8081,7 +8081,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(!pm.environment.get(\"anh02EvaluationKey\"))pm.environment.set(\"anh02EvaluationKey\",pm.variables.replaceIn(\"{$guid}\"));"
+                  "if(!pm.environment.get(\"anh02EvaluationKey\"))pm.environment.set(\"anh02EvaluationKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
                 ]
               }
             },
@@ -9047,6 +9047,518 @@
                   "pm.test(\"Expected status\",()=>pm.response.to.have.status(412));",
                   "pm.test(\"Problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"concurrency_conflict\"));",
                   "pm.test(\"No protected headers\",()=>{pm.expect(pm.response.headers.has(\"ETag\")).to.be.false;pm.expect(pm.response.headers.has(\"Location\")).to.be.false;});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HUY-01 shared lifecycle and Case - opted-in",
+      "description": "Exact afab3ecc module routes, opt-in shared production DI. No label/matching/KEEP_NEW activation. Seed/demo facts are synthetic. Set current route/set/geometry and Report IDs first. Do not guess sourceVersion; use trusted producer capture.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"huyLifecycleAndCaseEnabled\")!==\"true\"){pm.execution.skipRequest();}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Reporter own Report - lifecycle",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports/{{reporterReportId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Strong version\",()=>pm.expect(pm.response.headers.get(\"ETag\")).to.match(/^\".+\"$/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong actor cannot read Reporter Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports/{{reporterReportId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\",()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supervisor locate actual intake Case",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases?status=UNASSIGNED&pageSize=200",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "const row=pm.response.json().items.find(c=>c.reportIds.includes(pm.environment.get(\"reporterReportId\")));",
+                  "pm.test(\"Actual intake Case present\",()=>pm.expect(row).to.exist);",
+                  "if(row){pm.environment.set(\"huyCaseId\",row.id);pm.environment.set(\"huyCaseOriginalETag\",'\"'+row.version+'\"');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supervisor triage actual Case",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}/triage",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyTriageKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyCaseOriginalETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"verificationMethod\": \"EXISTING_EVIDENCE\",\n  \"reason\": \"SYNTHETIC Postman triage\",\n  \"routeVersionId\": \"{{roadSectionVersionId}}\",\n  \"segmentSetId\": \"{{segmentSetId}}\",\n  \"geometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"huyTriageKey\"))pm.environment.set(\"huyTriageKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.environment.set(\"huyTriageBody\",pm.response.text());pm.environment.set(\"huyCaseETag\",pm.response.headers.get(\"ETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Triage original version same-key replay",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}/triage",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyTriageKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyCaseOriginalETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"verificationMethod\": \"EXISTING_EVIDENCE\",\n  \"reason\": \"SYNTHETIC Postman triage\",\n  \"routeVersionId\": \"{{roadSectionVersionId}}\",\n  \"segmentSetId\": \"{{segmentSetId}}\",\n  \"geometryVersion\": \"{{anh02GeometryVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Exact durable replay\",()=>pm.expect(pm.response.text()).to.eql(pm.environment.get(\"huyTriageBody\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM read assigned Case",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.response.to.have.status(200));",
+                  "pm.test(\"Scope\",()=>pm.expect(pm.response.json().projectId).to.eql(pm.environment.get(\"projectId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporter cannot read internal Case",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases/{{huyCaseId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\",()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "KEEP_NEW remains zero-effect unavailable",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/candidate-decisions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huyKeepNewKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceKind\": \"REPORT\",\n  \"sourceId\": \"{{reporterReportId}}\",\n  \"sourceVersion\": \"{{huySourceVersion}}\",\n  \"geometryVersion\": \"{{anh02GeometryVersion}}\",\n  \"decision\": \"KEEP_NEW\",\n  \"classification\": {\n    \"defectTypeCode\": \"CRACK\",\n    \"causeCategoryCode\": null,\n    \"severity\": \"MEDIUM\",\n    \"roadSectionVersionId\": \"{{roadSectionVersionId}}\",\n    \"segmentId\": \"{{segmentId}}\"\n  },\n  \"reason\": \"SYNTHETIC unavailable probe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"huySourceVersion\")){pm.execution.skipRequest();}",
+                  "if(!pm.environment.get(\"huyKeepNewKey\"))pm.environment.set(\"huyKeepNewKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 503\",()=>pm.response.to.have.status(503));",
+                  "pm.test(\"Unavailable boundary\",()=>pm.expect(pm.response.json().code).to.eql(\"producer_unavailable\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HUY-01 current authority preflight - opted-in",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get('huyLifecycleAndCaseEnabled')!=='true') pm.execution.skipRequest();"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Login synthetic Reporter",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{reporterEmail}}\", \"password\": \"{{reporterPassword}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200) pm.environment.set('reporterAccessToken',pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporter current own list",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM cannot list Reporter private reports",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/reports",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 403',()=>pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporter cannot list internal Cases",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cases",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{reporterAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected HTTP 403',()=>pm.response.to.have.status(403));"
                 ]
               }
             }

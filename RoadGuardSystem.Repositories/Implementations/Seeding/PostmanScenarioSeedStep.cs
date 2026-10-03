@@ -438,7 +438,7 @@ public sealed class PostmanScenarioSeedStep : ISeedStep
         var survey = await context.Surveys.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == SurveyId, cancellationToken);
         EnsureOwnership(survey is null ||
-                        survey.SurveyRequestId is null && survey.ProjectId == ProjectId &&
+                        (survey.SurveyRequestId is null || survey.SurveyRequestId == SurveyRequestId) && survey.ProjectId == ProjectId &&
                         survey.RoadSectionVersionId == RoadSectionVersionId,
             SurveyId, "survey");
 

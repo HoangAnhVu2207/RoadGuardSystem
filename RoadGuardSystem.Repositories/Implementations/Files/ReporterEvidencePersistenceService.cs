@@ -5,5 +5,6 @@ namespace RoadGuardSystem.Repositories.Implementations.Files;
 public sealed class ReporterEvidencePersistenceService(RoadGuardDbContext context) : IReporterEvidenceRepository
 {
     public Task<bool> IsActiveReporterAsync(Guid actorUserId, CancellationToken cancellationToken = default)
-        => context.Users.AsNoTracking().AnyAsync(u => u.Id == actorUserId && u.RoleCode == UserRoleCode.Reporter && u.Status == UserStatus.Active && !u.MustChangePassword, cancellationToken);
+        => new RoadGuardSystem.Repositories.Integration.AnhHuyFactsRepository(context)
+            .IsCurrentActorAsync(actorUserId, UserRoleCode.Reporter, cancellationToken);
 }

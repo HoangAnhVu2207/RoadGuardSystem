@@ -140,3 +140,25 @@ values:
     value: 6a4dbd16-a646-46da-9e5c-200000000005
   - key: surveyPlanId
     value: 6a4dbd16-a646-46da-9e5c-200000000009
+  - key: expectedSqlInstance
+    value: ".\\HANHNAV"
+  - key: expectedDatabase
+    value: "RoadGuardPostmanTest"
+  - key: runtimeFixtureMode
+    value: "SYNTHETIC"
+  - key: huyLifecycleAndCaseEnabled
+    value: "false"
+  - key: huyCaseId
+    value: ""
+  - key: huyCaseOriginalETag
+    value: ""
+  - key: huyCaseETag
+    value: ""
+  - key: huyTriageKey
+    value: ""
+  - key: huyTriageBody
+    value: ""
+  - key: huySourceVersion
+    value: ""
+  - key: huyKeepNewKey
+    value: ""

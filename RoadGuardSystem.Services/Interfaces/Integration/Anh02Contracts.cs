@@ -3,6 +3,18 @@ using RoadGuardSystem.BusinessObjects.Candidates;
 
 namespace RoadGuardSystem.Services.Integration;
 
+// Named Huy implementation remains unbound until its exact SQL reader is handed
+// off. Capture in the caller's scoped SERIALIZABLE/SNAPSHOT transaction; never
+// open another context or best-effort page. Null means unavailable, not empty.
+// Throw UnauthorizedAccessException for current actor/role/project denial.
+// ReceivedAt filtering is [from,to); Case/Defect status is current stock.
+// Missing spatial/source/lifecycle facts must be explicit MissingReasons.
+public interface ICaseDefectReadReader
+{
+    Task<RoadGuardSystem.DTOs.Reporting.CaseDefectSnapshotV1?> CaptureAsync(Guid actorId, UserRoleCode role,
+        Guid projectId, RoadGuardSystem.DTOs.Reporting.ReportingFiltersDto filters, CancellationToken cancellationToken = default);
+}
+
 // Local ANH-02 additive producer boundary. Huy implementation/adoption at an
 // exact commit is still pending. A missing reader is not an empty success.
 public sealed record TrainingLabelFilterV1(Guid[] SegmentIds, Guid[] DefectIds, DateTimeOffset? From, DateTimeOffset? To);

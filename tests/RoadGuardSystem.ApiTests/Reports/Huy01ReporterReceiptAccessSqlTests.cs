@@ -46,6 +46,50 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
         Assert.Equal(beforeReplay, await CountEffectsAsync(setup.Reporter.Id, setup.Key, setup.ReportId));
     }
 
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task InactiveReporterRole_DeniesNewIntakeWithoutDurableEffects()
+    {
+        var reporter = await SeedReporterAsync();
+        var evidence = await SeedVerifiedEvidenceAsync(reporter.Id);
+        var key = Guid.NewGuid().ToString("N");
+        await SetReporterRoleActiveAsync(false);
+        try
+        {
+            await using var db = fixture.CreateDbContext();
+            var result = await CreateService(db, CreateProducer(db)).CreateAsync(
+                reporter.Id, UserRoleCode.Reporter, CreateRequest(evidence), key, null);
+            Assert.Equal(ReporterReportCommandStatus.Forbidden, result.Status);
+            Assert.Null(result.Report);
+            Assert.Equal(new ReporterEffectCounts(0, 0, 0, 0, 0),
+                await CountEffectsAsync(reporter.Id, key, null));
+        }
+        finally { await SetReporterRoleActiveAsync(true); }
+    }
+
+    [Theory]
+    [Trait("Package", "HUY-01")]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InactiveReporterRoleAfterPreflight_DeniesReceiptAndConflict(bool changedPayload)
+    {
+        var setup = await CreateReceiptAsync();
+        var before = await CountEffectsAsync(setup.Reporter.Id, setup.Key, setup.ReportId);
+        await using var db = fixture.CreateDbContext();
+        try
+        {
+            var result = await CreateService(db, new MutateAfterPreflightProducer(
+                CreateProducer(db), () => SetReporterRoleActiveAsync(false))).CreateAsync(
+                setup.Reporter.Id, UserRoleCode.Reporter,
+                changedPayload ? setup.Request with { Description = "Changed while role inactive" } : setup.Request,
+                setup.Key, null);
+            Assert.Equal(ReporterReportCommandStatus.Forbidden, result.Status);
+            Assert.Null(result.Report);
+            Assert.Equal(before, await CountEffectsAsync(setup.Reporter.Id, setup.Key, setup.ReportId));
+        }
+        finally { await SetReporterRoleActiveAsync(true); }
+    }
+
     [Theory]
     [Trait("Package", "HUY-01")]
     [InlineData(ActorMutation.Suspended)]
@@ -187,8 +231,58 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
 
     [Theory]
     [Trait("Package", "HUY-01")]
-    [InlineData(false)] [InlineData(true)]
-    public async Task DuplicateKeyRecovery_UsesTwoReporterHandlerAttemptsButPersistsOneIntakeGraph(bool revoke)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ExecutionStrategyRetry_AfterRolledBackCreateAttempt_GuardsCompetingDurableReceipt(bool revoke, bool inactiveRole)
+    {
+        var reporter = await SeedReporterAsync();
+        var evidence = await SeedVerifiedEvidenceAsync(reporter.Id);
+        var key = Guid.NewGuid().ToString("N");
+        var request = CreateRequest(evidence);
+        var retryProbe = new RetryAfterRollbackProbe();
+        await using var retryDb = CreateInterceptedDbContext(enableRetry: true,
+            retryProbe.CommitInterceptor, retryProbe.LookupInterceptor);
+        var retryRepository = new CountingRepository(new ReporterReportRepository(retryDb), captureDb: retryDb);
+        var retryTask = CreateService(retryDb, CreateProducer(retryDb), retryRepository).CreateAsync(
+            reporter.Id, UserRoleCode.Reporter, request, key, null);
+
+        ReporterReportCommandResult winner;
+        try
+        {
+            await retryProbe.WaitForFirstRollbackAsync();
+            await using var winnerDb = fixture.CreateDbContext();
+            var winnerRepository = new CountingRepository(new ReporterReportRepository(winnerDb));
+            winner = await CreateService(winnerDb, CreateProducer(winnerDb), winnerRepository).CreateAsync(
+                reporter.Id, UserRoleCode.Reporter, request, key, null);
+            if (revoke)
+            {
+                if (inactiveRole) await SetReporterRoleActiveAsync(false);
+                else await MutateActorAsync(reporter.Id, ActorMutation.Suspended);
+            }
+        }
+        finally { retryProbe.AllowRetryLookup(); }
+        ReporterReportCommandResult retry;
+        try { retry = await retryTask; }
+        finally { if (inactiveRole) await SetReporterRoleActiveAsync(true); }
+
+        Assert.Equal(ReporterReportCommandStatus.Created, winner.Status);
+        Assert.Equal(revoke ? ReporterReportCommandStatus.Forbidden : ReporterReportCommandStatus.Replayed, retry.Status);
+        if (revoke) Assert.Null(retry.Report);
+        else Assert.Equal(winner.Report!.Id, retry.Report!.Id);
+        Assert.Equal(1, retryProbe.FailureCount);
+        Assert.Equal(4, retryProbe.LookupCount);
+        Assert.Equal(1, retryRepository.CreateCalls);
+        Assert.Equal(1, retryRepository.GuardCalls);
+        Assert.Single(retryRepository.CreatedReportIds);
+        await AssertNoResidualReporterGraphAsync(retryRepository.CreatedReportIds.Single(), retryRepository.CreatedCaseIds[retryRepository.CreatedReportIds.Single()]);
+        Assert.Equal(new ReporterEffectCounts(1, 1, 1, 1, 1),
+            await CountEffectsAsync(reporter.Id, key, winner.Report!.Id));
+    }
+
+    [Fact]
+    [Trait("Package", "HUY-01")]
+    public async Task DuplicateKeyRecovery_UsesTwoReporterHandlerAttemptsButPersistsOneIntakeGraph()
     {
         var reporter = await SeedReporterAsync();
         var evidence = await SeedVerifiedEvidenceAsync(reporter.Id);
@@ -196,12 +290,10 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
         var request = CreateRequest(evidence);
         var preflightGate = new TwoParticipantGate();
         var handlerGate = new TwoParticipantGate();
-        var uniqueProbe = new UniqueViolationProbe();
-        await using var leftDb = CreateInterceptedDbContext(uniqueProbe, enableRetry: false);
-        await using var rightDb = CreateInterceptedDbContext(uniqueProbe, enableRetry: false);
-        Func<Task>? beforeGuard = revoke ? () => MutateActorAsync(reporter.Id, ActorMutation.Suspended) : null;
-        var leftRepository = new CountingRepository(new ReporterReportRepository(leftDb), beforeGuard);
-        var rightRepository = new CountingRepository(new ReporterReportRepository(rightDb), beforeGuard);
+        await using var leftDb = fixture.CreateDbContext();
+        await using var rightDb = fixture.CreateDbContext();
+        var leftRepository = new CountingRepository(new ReporterReportRepository(leftDb));
+        var rightRepository = new CountingRepository(new ReporterReportRepository(rightDb));
         var left = CreateService(leftDb, new TwoPhaseProducer(CreateProducer(leftDb), preflightGate, handlerGate), leftRepository)
             .CreateAsync(reporter.Id, UserRoleCode.Reporter, request, key, null);
         var right = CreateService(rightDb, new TwoPhaseProducer(CreateProducer(rightDb), preflightGate, handlerGate), rightRepository)
@@ -209,11 +301,52 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
 
         var results = await Task.WhenAll(left, right);
         var created = Assert.Single(results.Where(result => result.Status == ReporterReportCommandStatus.Created));
-        var recovered = Assert.Single(results.Where(result => result.Status == (revoke ? ReporterReportCommandStatus.Forbidden : ReporterReportCommandStatus.Replayed)));
-        if (revoke) Assert.Null(recovered.Report); else Assert.Equal(created.Report!.Id, recovered.Report!.Id);
-        Assert.Equal(1, uniqueProbe.Count);
-        Assert.Equal(1, leftRepository.GuardCalls + rightRepository.GuardCalls);
+        var replayed = Assert.Single(results.Where(result => result.Status == ReporterReportCommandStatus.Replayed));
+        Assert.Equal(created.Report!.Id, replayed.Report!.Id);
         Assert.Equal(2, leftRepository.CreateCalls + rightRepository.CreateCalls);
+        Assert.Equal(new ReporterEffectCounts(1, 1, 1, 1, 1),
+            await CountEffectsAsync(reporter.Id, key, created.Report.Id));
+    }
+
+    [Theory]
+    [Trait("Package", "HUY-01")]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task DuplicateKeyRecovery_GuardsAndDeniesWhenAuthorityIsRevokedAfterLosingRollback(bool revoke, bool inactiveRole)
+    {
+        var reporter = await SeedReporterAsync();
+        var evidence = await SeedVerifiedEvidenceAsync(reporter.Id);
+        var key = Guid.NewGuid().ToString("N");
+        var request = CreateRequest(evidence);
+        var preflightGate = new TwoParticipantGate();
+        var handlerGate = new TwoParticipantGate();
+        var recoveryProbe = new RevokeBeforeDuplicateRecoveryLookupInterceptor(
+            () => !revoke ? Task.CompletedTask : inactiveRole ? SetReporterRoleActiveAsync(false) : MutateActorAsync(reporter.Id, ActorMutation.Suspended));
+        await using var leftDb = CreateInterceptedDbContext(recoveryProbe, enableRetry: false);
+        await using var rightDb = CreateInterceptedDbContext(recoveryProbe, enableRetry: false);
+        var leftRepository = new CountingRepository(new ReporterReportRepository(leftDb), recoveryProbe, leftDb);
+        var rightRepository = new CountingRepository(new ReporterReportRepository(rightDb), recoveryProbe, rightDb);
+        var left = CreateService(leftDb, new TwoPhaseProducer(CreateProducer(leftDb), preflightGate, handlerGate), leftRepository)
+            .CreateAsync(reporter.Id, UserRoleCode.Reporter, request, key, null);
+        var right = CreateService(rightDb, new TwoPhaseProducer(CreateProducer(rightDb), preflightGate, handlerGate), rightRepository)
+            .CreateAsync(reporter.Id, UserRoleCode.Reporter, request, key, null);
+
+        ReporterReportCommandResult[] results;
+        try { results = await Task.WhenAll(left, right); }
+        finally { if (inactiveRole) await SetReporterRoleActiveAsync(true); }
+
+        var created = Assert.Single(results.Where(result => result.Status == ReporterReportCommandStatus.Created));
+        var recovered = Assert.Single(results.Where(result => result.Status != ReporterReportCommandStatus.Created));
+        Assert.Equal(revoke ? ReporterReportCommandStatus.Forbidden : ReporterReportCommandStatus.Replayed, recovered.Status);
+        if (revoke) Assert.Null(recovered.Report);
+        else Assert.Equal(created.Report!.Id, recovered.Report!.Id);
+        Assert.True(recoveryProbe.UniqueViolationCount >= 1);
+        Assert.Equal(1, recoveryProbe.RevocationCount);
+        Assert.True(leftRepository.GuardCallsAfterDuplicateRecovery + rightRepository.GuardCallsAfterDuplicateRecovery >= 1);
+        Assert.Equal(2, leftRepository.CreateCalls + rightRepository.CreateCalls);
+        foreach (var pair in leftRepository.CreatedCaseIds.Concat(rightRepository.CreatedCaseIds).Where(pair => pair.Key != created.Report!.Id))
+            await AssertNoResidualReporterGraphAsync(pair.Key, pair.Value);
         Assert.Equal(new ReporterEffectCounts(1, 1, 1, 1, 1),
             await CountEffectsAsync(reporter.Id, key, created.Report!.Id));
     }
@@ -261,6 +394,31 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
 
     [Fact]
     [Trait("Package", "HUY-01")]
+    public async Task PostCommitAcknowledgementRecovery_InactiveRoleBeforeDurableLookup_DeniesReceipt()
+    {
+        var reporter = await SeedReporterAsync();
+        var evidence = await SeedVerifiedEvidenceAsync(reporter.Id);
+        var key = Guid.NewGuid().ToString("N");
+        var interceptor = new RevokeAfterFirstCommitInterceptor(() => SetReporterRoleActiveAsync(false));
+        await using var db = CreateInterceptedDbContext(interceptor, enableRetry: false);
+        var repository = new CountingRepository(new ReporterReportRepository(db));
+        ReporterReportCommandResult result;
+        try
+        {
+            result = await CreateService(db, CreateProducer(db), repository).CreateAsync(
+                reporter.Id, UserRoleCode.Reporter, CreateRequest(evidence), key, null);
+        }
+        finally { await SetReporterRoleActiveAsync(true); }
+        Assert.Equal(ReporterReportCommandStatus.Forbidden, result.Status);
+        Assert.Null(result.Report);
+        Assert.Equal(1, interceptor.FailureCount);
+        Assert.Equal(1, repository.CreateCalls);
+        Assert.Equal(new ReporterEffectCounts(1, 1, 1, 1, 1),
+            await CountEffectsAsync(reporter.Id, key, null));
+    }
+
+    [Fact]
+    [Trait("Package", "HUY-01")]
     public async Task PreCommitFailure_RollsBackEveryReporterGraphAttempt()
     {
         var reporter = await SeedReporterAsync();
@@ -268,7 +426,7 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
         var key = Guid.NewGuid().ToString("N");
         var interceptor = new AlwaysFailBeforeCommitInterceptor();
         await using var db = CreateInterceptedDbContext(interceptor, enableRetry: true);
-        var repository = new CountingRepository(new ReporterReportRepository(db));
+        var repository = new CountingRepository(new ReporterReportRepository(db), captureDb: db);
         var service = CreateService(db, CreateProducer(db), repository);
 
         await Assert.ThrowsAsync<RetryLimitExceededException>(() => service.CreateAsync(
@@ -276,6 +434,8 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
 
         Assert.Equal(3, interceptor.FailureCount);
         Assert.Equal(3, repository.CreateCalls);
+        Assert.Equal(3, repository.CreatedReportIds.Count);
+        foreach (var id in repository.CreatedReportIds) await AssertNoResidualReporterGraphAsync(id, repository.CreatedCaseIds[id]);
         Assert.Equal(new ReporterEffectCounts(0, 0, 0, 0, 0),
             await CountEffectsAsync(reporter.Id, key, null));
     }
@@ -382,6 +542,13 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
         await db.SaveChangesAsync();
     }
 
+    private async Task SetReporterRoleActiveAsync(bool active)
+    {
+        await using var db = fixture.CreateDbContext();
+        var count = await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Roles] SET [IsActive]={active} WHERE [Code]={UserRoleCode.Reporter.ToDbCode()}");
+        Assert.Equal(1, count);
+    }
+
     private async Task MutateEvidenceAsync(EvidenceFixture evidence, EvidenceMutation mutation)
     {
         await using var db = fixture.CreateDbContext();
@@ -402,10 +569,13 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
     }
 
     private RoadGuardDbContext CreateInterceptedDbContext(IInterceptor interceptor, bool enableRetry)
+        => CreateInterceptedDbContext(enableRetry, interceptor);
+
+    private RoadGuardDbContext CreateInterceptedDbContext(bool enableRetry, params IInterceptor[] interceptors)
     {
         var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
             .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite())
-            .AddInterceptors(interceptor);
+            .AddInterceptors(interceptors);
         if (enableRetry)
         {
             options.ReplaceService<IExecutionStrategyFactory, CommitFailureExecutionStrategyFactory>();
@@ -431,6 +601,23 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
             await activeLinks.CountAsync(),
             await db.AuditLogs.CountAsync(audit => audit.ActorUserId == reporterId && audit.EventType == "report_received" && audit.Source == "huy01.reporter-intake"),
             await receipts.CountAsync());
+    }
+
+    private async Task AssertNoResidualReporterGraphAsync(Guid reportId, Guid caseId)
+    {
+        await using var db = fixture.CreateDbContext();
+        Assert.Equal(0, await db.Reports.CountAsync(report => report.Id == reportId));
+        Assert.Equal(0, await db.IncidentCases.CountAsync(incident => incident.Id == caseId));
+        Assert.Equal(0, await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>()
+            .CountAsync(link => link.ReportId == reportId));
+        Assert.Equal(0, await db.AuditLogs.CountAsync(audit => audit.EntityId == reportId));
+        Assert.Equal(0, await db.IdempotencyRecords.CountAsync(receipt => receipt.OperationId == reportId && receipt.Operation == "huy01.report.create.v1"));
+        var reportIdText = reportId.ToString("D");
+        Assert.Equal(0, await db.Database.SqlQuery<int>($"""
+            SELECT CAST(COUNT(*) AS int) AS [Value]
+            FROM [IncidentCases]
+            WHERE [ActiveReportIdsJson] LIKE {"%" + reportIdText + "%"}
+            """).SingleAsync());
     }
 
     private sealed record EvidenceFixture(Guid FileId, Guid UploadId, string Version);
@@ -473,24 +660,35 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
                 expectedGeometryVersion, expectedDispositionVersion, cancellationToken);
     }
 
-    private sealed class CountingRepository(IReporterReportRepository inner, Func<Task>? beforeGuard = null) : IReporterReportRepository
+    private sealed class CountingRepository(IReporterReportRepository inner,
+        RevokeBeforeDuplicateRecoveryLookupInterceptor? duplicateRecovery = null, RoadGuardDbContext? captureDb = null) : IReporterReportRepository
     {
         public int GuardCalls { get; private set; }
+        public int GuardCallsAfterDuplicateRecovery { get; private set; }
         public int CreateCalls { get; private set; }
+        public List<Guid> CreatedReportIds { get; } = [];
+        public Dictionary<Guid, Guid> CreatedCaseIds { get; } = [];
 
-        public async Task EnsureCurrentReceiptAccessAsync(Guid reporterUserId, IReadOnlyList<VerifiedEvidenceReference> evidence,
+        public Task EnsureCurrentReceiptAccessAsync(Guid reporterUserId, IReadOnlyList<VerifiedEvidenceReference> evidence,
             CancellationToken cancellationToken = default)
         {
             GuardCalls++;
-            if (beforeGuard is not null) await beforeGuard();
-            await inner.EnsureCurrentReceiptAccessAsync(reporterUserId, evidence, cancellationToken);
+            if (duplicateRecovery?.RecoveryLookupStarted == true)
+            {
+                GuardCallsAfterDuplicateRecovery++;
+            }
+            return inner.EnsureCurrentReceiptAccessAsync(reporterUserId, evidence, cancellationToken);
         }
 
         public async Task<ReporterReportWriteResult> CreateAndSaveAsync(Guid reporterUserId, string description,
             IReadOnlyList<VerifiedEvidenceReference> evidence, Guid? correlationId, CancellationToken cancellationToken = default)
         {
             CreateCalls++;
-            return await inner.CreateAndSaveAsync(reporterUserId, description, evidence, correlationId, cancellationToken);
+            var result = await inner.CreateAndSaveAsync(reporterUserId, description, evidence, correlationId, cancellationToken);
+            CreatedReportIds.Add(result.Report.Id);
+            if (captureDb is not null) CreatedCaseIds.Add(result.Report.Id,
+                captureDb.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().Local.Single(link => link.ReportId == result.Report.Id && link.EndedAt == null).CaseId);
+            return result;
         }
     }
 
@@ -525,6 +723,7 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
             CancellationToken cancellationToken = default)
         {
             GuardCalls++;
+            Assert.Equal(cancellation.Token, cancellationToken);
             await inner.EnsureCurrentReceiptAccessAsync(reporterUserId, evidence, cancellationToken);
             cancellation.Cancel();
             cancellationToken.ThrowIfCancellationRequested();
@@ -584,19 +783,7 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
             {
                 _released.TrySetResult();
             }
-            return _released.Task.WaitAsync(cancellationToken);
-        }
-    }
-
-    private sealed class UniqueViolationProbe : DbCommandInterceptor
-    {
-        private int _count;
-        public int Count => _count;
-        public override Task CommandFailedAsync(DbCommand command, CommandErrorEventData eventData, CancellationToken cancellationToken = default)
-        {
-            if (eventData.Exception is Microsoft.Data.SqlClient.SqlException exception && exception.Errors.Cast<Microsoft.Data.SqlClient.SqlError>().Any(error => error.Number is 2601 or 2627))
-                Interlocked.Increment(ref _count);
-            return Task.CompletedTask;
+            return _released.Task.WaitAsync(TimeSpan.FromSeconds(15), cancellationToken);
         }
     }
 
@@ -620,6 +807,129 @@ public sealed class Huy01ReporterReceiptAccessSqlTests(AuthenticationSqlServerFi
                 throw new CommitFailureTransientException("Injected retry before Reporter receipt lookup.");
             }
             return ValueTask.FromResult(result);
+        }
+    }
+
+    private sealed class RetryAfterRollbackProbe
+    {
+        private readonly TaskCompletionSource _firstCommitFailure = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _allowRetryLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _remainingCommitFailure = 1;
+        private int _idempotencyLookupCount;
+        public int LookupCount => Volatile.Read(ref _idempotencyLookupCount);
+        public int FailureCount => Volatile.Read(ref _commitCallbackCount) > 0 ? 1 : 0;
+
+        public RetryAfterRollbackProbe()
+        {
+            CommitInterceptor = new CommitProbe(this);
+            LookupInterceptor = new LookupProbe(this);
+        }
+
+        public IInterceptor CommitInterceptor { get; }
+        public IInterceptor LookupInterceptor { get; }
+
+        public async Task WaitForFirstRollbackAsync()
+        {
+            try
+            {
+                await _firstCommitFailure.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (TimeoutException exception)
+            {
+                throw new TimeoutException(
+                    $"Commit callback count={Volatile.Read(ref _commitCallbackCount)}, idempotency lookup count={Volatile.Read(ref _idempotencyLookupCount)}.",
+                    exception);
+            }
+        }
+
+        public void AllowRetryLookup() => _allowRetryLookup.TrySetResult();
+
+        private sealed class CommitProbe(RetryAfterRollbackProbe owner) : DbTransactionInterceptor
+        {
+            public override ValueTask<InterceptionResult> TransactionCommittingAsync(DbTransaction transaction,
+                TransactionEventData eventData, InterceptionResult result, CancellationToken cancellationToken = default)
+            {
+                Interlocked.Increment(ref owner._commitCallbackCount);
+                if (Interlocked.Exchange(ref owner._remainingCommitFailure, 0) == 1)
+                {
+                    throw new CommitFailureTransientException("Injected failure after a real Reporter create attempt and before commit.");
+                }
+
+                return ValueTask.FromResult(result);
+            }
+        }
+
+        private int _commitCallbackCount;
+
+        private sealed class LookupProbe(RetryAfterRollbackProbe owner) : DbCommandInterceptor
+        {
+            public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+                CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+            {
+                if (command.CommandText.Contains("FROM [IdempotencyRecords]", StringComparison.Ordinal) &&
+                    Interlocked.Increment(ref owner._idempotencyLookupCount) == 4)
+                {
+                    owner._firstCommitFailure.TrySetResult();
+                    await owner._allowRetryLookup.Task.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+                }
+
+                return result;
+            }
+        }
+    }
+
+    private sealed class RevokeBeforeDuplicateRecoveryLookupInterceptor(Func<Task> revoke) : DbCommandInterceptor
+    {
+        private int _uniqueViolationCount;
+        private int _revocationCount;
+        private int _recoveryLookupStarted;
+
+        public int UniqueViolationCount => Volatile.Read(ref _uniqueViolationCount);
+        public int RevocationCount => Volatile.Read(ref _revocationCount);
+        public bool RecoveryLookupStarted => Volatile.Read(ref _recoveryLookupStarted) == 1;
+
+        public override void CommandFailed(DbCommand command, CommandErrorEventData eventData)
+        {
+            RecordUniqueViolation(command, eventData.Exception);
+        }
+
+        public override Task CommandFailedAsync(DbCommand command, CommandErrorEventData eventData,
+            CancellationToken cancellationToken = default)
+        {
+            RecordUniqueViolation(command, eventData.Exception);
+            return Task.CompletedTask;
+        }
+
+        public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            if (Volatile.Read(ref _uniqueViolationCount) > 0 &&
+                command.CommandText.Contains("FROM [IdempotencyRecords]", StringComparison.Ordinal) &&
+                Interlocked.CompareExchange(ref _recoveryLookupStarted, 1, 0) == 0)
+            {
+                Assert.Null(eventData.Context!.Database.CurrentTransaction);
+                await revoke();
+                Interlocked.Increment(ref _revocationCount);
+            }
+
+            return result;
+        }
+
+        private void RecordUniqueViolation(DbCommand command, Exception exception)
+        {
+            if (!command.CommandText.Contains("[IdempotencyRecords]", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            for (Exception? current = exception; current is not null; current = current.InnerException)
+            {
+                if (current is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
+                {
+                    Interlocked.CompareExchange(ref _uniqueViolationCount, 1, 0);
+                    return;
+                }
+            }
         }
     }
 

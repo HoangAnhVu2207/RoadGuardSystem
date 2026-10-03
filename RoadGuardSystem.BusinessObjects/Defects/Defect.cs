@@ -1,5 +1,7 @@
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.BusinessObjects.Candidates;
+using System.Text.Json;
 
 namespace RoadGuardSystem.BusinessObjects.Defects;
 
@@ -94,6 +96,47 @@ public sealed class Defect
             Geometry = geometry,
             ReportedAt = reportedAt.ToUniversalTime()
         };
+    }
+
+    public static Defect CreateFromReport(Guid id, CandidateSourceFacts source, CandidateClassification classification,
+        Geometry? geometry, DateTimeOffset reportedAt)
+    {
+        ArgumentNullException.ThrowIfNull(source); ArgumentNullException.ThrowIfNull(classification);
+        if (id == Guid.Empty || source.Source.Kind != CandidateSourceKind.Report) throw new ArgumentException("A Report source and defect identity are required.");
+        if (geometry is not null && geometry.SRID is not (32648 or 32649)) throw new ArgumentException("Resolved metric geometry is required when present.", nameof(geometry));
+        return new Defect { Id = id, ProjectId = source.ProjectId, RoadSectionVersionId = classification.RoadSectionVersionId,
+            DefectTypeCode = classification.DefectTypeCode, CauseCategoryCode = classification.CauseCategoryCode, Severity = classification.Severity,
+            Status = DefectStatus.Open, Geometry = geometry, ReportedAt = reportedAt.ToUniversalTime() };
+    }
+
+    public DefectVerificationLog Assess(string type, string? cause, DefectSeverity severity, Guid actor, string reason)
+    {
+        if (Status is not (DefectStatus.Open or DefectStatus.Verified)) throw new InvalidOperationException("Only an Open or Verified defect can be assessed.");
+        if (severity == DefectSeverity.Unknown || !Enum.IsDefined(severity)) throw new ArgumentOutOfRangeException(nameof(severity));
+        var nextType = ValidateCode(type, nameof(type));
+        var nextCause = string.IsNullOrWhiteSpace(cause) ? null : ValidateCode(cause, nameof(cause));
+        var log = DefectVerificationLog.Create(Guid.NewGuid(), Id, null, DefectVerificationAction.Adjust,
+            JsonSerializer.Serialize(new { DefectTypeCode, CauseCategoryCode, Severity, Status }),
+            JsonSerializer.Serialize(new { DefectTypeCode = nextType, CauseCategoryCode = nextCause, Severity = severity, Status }), null, null, actor, reason);
+        DefectTypeCode = nextType; CauseCategoryCode = nextCause; Severity = severity;
+        return log;
+    }
+
+    // The caller must resolve/lock actual source relations and VERIFIED files.
+    // These domain facts do not prove authorization or SQL persistence.
+    public DefectVerificationLog DecideFromExistingEvidence(DefectVerificationAction action, IReadOnlyCollection<Guid> evidenceIds,
+        IReadOnlyCollection<Guid> verifiedRelatedEvidenceIds, Guid actor, string reason)
+    {
+        if (Status != DefectStatus.Open) throw new InvalidOperationException("Only an Open defect can be verified or rejected.");
+        if (action is not (DefectVerificationAction.Confirm or DefectVerificationAction.Reject)) throw new ArgumentOutOfRangeException(nameof(action));
+        ArgumentNullException.ThrowIfNull(evidenceIds); ArgumentNullException.ThrowIfNull(verifiedRelatedEvidenceIds);
+        if (evidenceIds.Count == 0 || evidenceIds.Any(id => id == Guid.Empty || !verifiedRelatedEvidenceIds.Contains(id)) || evidenceIds.Distinct().Count() != evidenceIds.Count)
+            throw new InvalidOperationException("Every selected evidence item must be verified and related to this defect.");
+        var nextStatus = action == DefectVerificationAction.Confirm ? DefectStatus.Verified : DefectStatus.Rejected;
+        var log = DefectVerificationLog.Create(Guid.NewGuid(), Id, null, action, JsonSerializer.Serialize(new { Status }),
+            JsonSerializer.Serialize(new { Status = nextStatus, method = "EXISTING_EVIDENCE", evidenceIds }), null, null, actor, reason);
+        Status = nextStatus;
+        return log;
     }
 
     private static string ValidateCode(string value, string parameterName)

@@ -18,6 +18,7 @@ public sealed class DefectConfiguration : IEntityTypeConfiguration<Defect>
             table.HasCheckConstraint("CK_Defects_Status", "[Status] IS NULL OR [Status] IN (0, 1, 2, 3, 4)");
         });
         builder.HasKey(defect => defect.Id);
+        builder.Property<byte[]>("RowVersion").IsRowVersion();
         builder.Property(defect => defect.Id)
             .HasColumnType("uniqueidentifier")
             .ValueGeneratedNever();

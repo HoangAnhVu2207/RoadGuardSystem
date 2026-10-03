@@ -19,6 +19,9 @@ public static class Program
 
         Console.WriteLine("=== RoadGuard Database Seeder ===");
 
+        if (args.Length > 0 && args[0] == "--postman-disposable")
+            return await PostmanDisposableBootstrap.RunAsync(args, envLookup, cancellationToken);
+
         // Validate command-line arguments: only --help / -h are supported
         foreach (var arg in args)
         {
@@ -98,6 +101,9 @@ Usage:
 
 Options:
   -h, --help                       Show this help message.
+  --postman-disposable [--recreate] Guarded HANHNAV/RoadGuardPostmanTest migration and synthetic seed.
+  --postman-disposable --verify-only Verify the live API target without migration/seed.
+  --postman-disposable --demo-project <guid> Seed and add Operator to the owned synthetic demo project.
 
 Environment Variables:
   {ConnectionStringEnvVarName}      SQL Server database connection string (required).

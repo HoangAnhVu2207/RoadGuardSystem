@@ -22,4 +22,5 @@ public sealed record ReportingTimelinePageDto(string SchemaVersion, DateTimeOffs
     string? NextCursor, ReportingAvailabilityDto Availability);
 // Materialized admission facts, also consumed by the export snapshot. No transport result or query is retained.
 public sealed record ReportingCaptureDto(ProjectSummaryV1 Summary, ReportingItemDto[] Items, ReportingFileDto[] Files,
-    ReportingTimelineItemDto[] Timeline, ReportingAvailabilityDto TimelineAvailability);
+    ReportingTimelineItemDto[] Timeline, ReportingAvailabilityDto TimelineAvailability,
+    CaseDefectSnapshotV1? CaseDefectFacts = null);

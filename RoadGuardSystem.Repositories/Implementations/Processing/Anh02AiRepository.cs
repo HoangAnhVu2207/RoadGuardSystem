@@ -221,11 +221,18 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
         var row = await (from proof in db.Set<AiDetectionProvenance>().AsNoTracking()
             join run in db.Set<AiMockRun>().AsNoTracking() on proof.RunId equals run.Id
             join result in db.Set<AiResultProvenance>().AsNoTracking() on proof.ResultId equals result.Id
+            join job in db.ProcessingJobs.AsNoTracking() on run.ProcessingJobId equals job.Id
+            join attempt in db.ProcessingAttempts.AsNoTracking() on run.AttemptId equals attempt.Id
+            join block in db.ProcessingBlocks.AsNoTracking() on job.ProcessingBlockId equals block.Id
             join detection in db.AIDetections.AsNoTracking() on proof.DetectionId equals detection.Id
             join frame in db.Files.AsNoTracking() on proof.FrameFileId equals frame.Id
             join source in db.Files.AsNoTracking() on proof.SourceVideoFileId equals source.Id
             join upload in db.UploadSessions.AsNoTracking() on source.Id equals upload.FileId
             where proof.DetectionId == detectionId && run.ProjectId == projectId && run.Status == "SUCCEEDED" && upload.Status == UploadSessionStatus.Verified
+                && job.ProjectId == projectId && job.ModelVersionId == run.ModelVersionId && job.Mode == "MOCK"
+                && job.ManifestHash == run.ManifestHash && job.ManifestJson == run.CanonicalManifest && job.Status == ProcessingJobStatus.Completed
+                && block.SurveyDataVersionId == run.DatasetVersionId && attempt.ProcessingJobId == job.Id
+                && attempt.EndedAt != null && attempt.ErrorType == ProcessingAttemptErrorType.None
             select new { proof, run, result, detection, frame.Checksum, frame.SizeBytes, frame.MimeType, SourceVersion = upload.RowVersion, SourceHash = source.Checksum, SourceBytes = source.SizeBytes }).SingleOrDefaultAsync(ct);
         if (row is null) return null;
         var disposition = await (from head in db.Set<HuyCandidateSourceHead>().AsNoTracking()

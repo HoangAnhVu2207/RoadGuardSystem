@@ -23,6 +23,83 @@ namespace RoadGuardSystem.ApiTests.Files;
 public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
 {
     [Theory]
+    [InlineData("role")]
+    [InlineData("mismatch")]
+    [InlineData("inactive")]
+    [InlineData("password")]
+    public async Task PrivateProducer_CurrentSqlAuthority_DeniesMetadataAndCreatesNoEffects(string change)
+    {
+        var owner = await sql.CreateUserAsync($"authority-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new PhotoStorage()); });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, owner.UserName!);
+        var file = await UploadVerified(client, factory);
+        await using var db = sql.CreateDbContext();
+        var user = await db.Users.SingleAsync(u => u.Id == owner.Id);
+        var role = await db.Roles.SingleAsync(r => r.Code == UserRoleCode.Reporter);
+        var before = await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == owner.Id);
+        var files = await db.Files.CountAsync(f => f.UploadedByUserId == owner.Id);
+        try
+        {
+            switch (change)
+            {
+                case "role": role.IsActive = false; break;
+                case "mismatch": user.RoleCode = UserRoleCode.DroneOperator; break;
+                case "inactive": user.Status = UserStatus.Suspended; break;
+                case "password": user.MustChangePassword = true; break;
+            }
+            await db.SaveChangesAsync();
+            using var scope = factory.Services.CreateScope();
+            var producer = scope.ServiceProvider.GetRequiredService<IAnhHuyProducerService>();
+            (await producer.ResolvePrivateEvidenceAsync(owner.Id, UserRoleCode.Reporter, file.File, Guid.NewGuid())).Status
+                .Should().Be(AnhHuyProducerStatus.Forbidden);
+            foreach (var suffix in new[] { "", "/content" })
+            {
+                var response = await client.GetAsync($"/api/v1/reporter-evidence/files/{file.File}{suffix}");
+                response.StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden, HttpStatusCode.NotFound);
+                response.Headers.ETag.Should().BeNull();
+            }
+            (await Create(client, Guid.NewGuid().ToString())).StatusCode.Should()
+                .BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
+            (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == owner.Id)).Should().Be(before);
+            (await db.Files.CountAsync(f => f.UploadedByUserId == owner.Id)).Should().Be(files);
+        }
+        finally
+        {
+            role.IsActive = true; user.RoleCode = UserRoleCode.Reporter; user.Status = UserStatus.Active; user.MustChangePassword = false;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task PrivateReceipt_RoleChangedAfterRealPreflight_DeniesReplayConflictAndNewCreate()
+    {
+        var owner = await sql.CreateUserAsync($"receipt-authority-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var db = sql.CreateDbContext();
+        var repo = new RoadGuardSystem.Repositories.Implementations.Files.UploadPersistenceService(db,
+            new RoadGuardSystem.Repositories.Idempotency.IdempotencyOperationService(db), new PhotoStorage());
+        var input = new RoadGuardSystem.Repositories.Files.UploadCreatePersistenceRequest(owner.Id, null, null, "REPORT_PHOTO",
+            "photo.jpg", "image/jpeg", 4, PhotoStorage.Hash, 8388608, DateTimeOffset.UtcNow.AddHours(24), Guid.NewGuid().ToString(), PhotoStorage.Hash, null);
+        var first = await repo.CreateAsync(input);
+        first.Status.Should().Be(RoadGuardSystem.Repositories.Files.UploadPersistenceStatus.Success);
+        var facts = new RoadGuardSystem.Repositories.Integration.AnhHuyFactsRepository(db);
+        (await facts.IsCurrentActorAsync(owner.Id, UserRoleCode.Reporter, default)).Should().BeTrue();
+        var role = await db.Roles.SingleAsync(r => r.Code == UserRoleCode.Reporter);
+        var before = await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == owner.Id);
+        try
+        {
+            role.IsActive = false; await db.SaveChangesAsync();
+            foreach (var request in new[] { input, input with { RequestFingerprint = new string('a', 64) }, input with { IdempotencyKey = Guid.NewGuid().ToString() } })
+                (await repo.CreateAsync(request)).Status.Should().Be(RoadGuardSystem.Repositories.Files.UploadPersistenceStatus.NotFound);
+            (await repo.GetPartUrlsAsync(owner.Id, null, first.Session!.Id, [1], Guid.NewGuid().ToString(), "parts",
+                DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(15))).Status.Should().Be(RoadGuardSystem.Repositories.Files.UploadPersistenceStatus.NotFound);
+            (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == owner.Id)).Should().Be(before);
+            (await db.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == first.Session.Id)).StorageUploadId.Should().BeNull();
+        }
+        finally { role.IsActive = true; await db.SaveChangesAsync(); }
+    }
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task PrivateIntake_OwnerOnly_Replay_CurrentAuthority_AndVerification(bool failVerification)

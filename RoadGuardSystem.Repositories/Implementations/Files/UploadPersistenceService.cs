@@ -102,7 +102,9 @@ public sealed class UploadPersistenceService : IUploadRepository
                     await _context.SaveChangesAsync(token);
                     return (session.Id, JsonSerializer.Serialize(ToView(session, request.ProjectId, request.TargetId)));
                 },
-                cancellationToken);
+                cancellationToken,
+                receiptAccessGuard: request.ProjectId is null
+                    ? token => GuardPrivateAsync(request.ActorUserId, null, token) : null);
 
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
             {
@@ -112,6 +114,10 @@ public sealed class UploadPersistenceService : IUploadRepository
             var view = JsonSerializer.Deserialize<UploadSessionPersistenceView>(outcome.OutcomeJson)
                 ?? throw new InvalidOperationException("Upload session replay payload is invalid.");
             return new(outcome.Status == IdempotencyOperationStatus.Replayed ? UploadPersistenceStatus.Replayed : UploadPersistenceStatus.Success, view);
+        }
+        catch (UploadNotFoundException)
+        {
+            return new(UploadPersistenceStatus.NotFound, null);
         }
         catch (ArgumentException)
         {
@@ -199,9 +205,9 @@ public sealed class UploadPersistenceService : IUploadRepository
             var existingReceipt = await _context.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
                 receipt => receipt.ActorUserId == actorUserId && receipt.ProjectId == projectId &&
                     receipt.Operation == "UploadPartUrlsIssued" && receipt.IdempotencyKey == idempotencyKey, cancellationToken);
-            if (existingReceipt is not null && existingReceipt.RequestFingerprint != requestFingerprint)
+            if (projectId is not null && existingReceipt is not null && existingReceipt.RequestFingerprint != requestFingerprint)
                 return new(UploadPersistenceStatus.Conflict, []);
-            if (string.IsNullOrWhiteSpace(session.StorageUploadId))
+            if (projectId is not null && string.IsNullOrWhiteSpace(session.StorageUploadId))
             {
                 var uploadStorageId = await _storage.InitiateAsync(session.ObjectKey, session.MediaType, cancellationToken);
                 session.StartUploading(uploadStorageId, now);
@@ -216,8 +222,27 @@ public sealed class UploadPersistenceService : IUploadRepository
                 requestFingerprint,
                 async token =>
                 {
+                    if (projectId is null)
+                    {
+                        await GuardPrivateAsync(actorUserId, session.FileId, token);
+                        // A competing operation may have won while the authority lock
+                        // was acquired. Do not initiate another multipart before recovery.
+                        var won = await _context.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(r =>
+                            r.ActorUserId == actorUserId && r.ProjectId == null && r.Operation == "UploadPartUrlsIssued"
+                            && r.IdempotencyKey == idempotencyKey, token);
+                        if (won is not null)
+                        {
+                            if (won.RequestFingerprint != requestFingerprint) throw new UploadPartConflictException();
+                            return (won.OperationId, won.OutcomeJson);
+                        }
+                    }
                     var current = await _context.UploadSessions.SingleOrDefaultAsync(candidate => candidate.Id == uploadId, token)
                         ?? throw new UploadNotFoundException();
+                    if (projectId is null && string.IsNullOrWhiteSpace(current.StorageUploadId))
+                    {
+                        var storageId = await _storage.InitiateAsync(current.ObjectKey, current.MediaType, token);
+                        current.StartUploading(storageId, now);
+                    }
                     foreach (var partNumber in partNumbers)
                     {
                         var row = await _context.UploadParts.SingleOrDefaultAsync(
@@ -239,7 +264,8 @@ public sealed class UploadPersistenceService : IUploadRepository
                         partNumbers.OrderBy(number => number).ToArray(),
                         urlExpiresAt)));
                 },
-                cancellationToken);
+                cancellationToken,
+                receiptAccessGuard: projectId is null ? token => GuardPrivateAsync(actorUserId, session.FileId, token) : null);
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
             {
                 return new(UploadPersistenceStatus.Conflict, []);
@@ -255,6 +281,14 @@ public sealed class UploadPersistenceService : IUploadRepository
         catch (FileStorageException)
         {
             return new(UploadPersistenceStatus.StorageUnavailable, []);
+        }
+        catch (UploadNotFoundException)
+        {
+            return new(UploadPersistenceStatus.NotFound, []);
+        }
+        catch (UploadPartConflictException)
+        {
+            return new(UploadPersistenceStatus.Conflict, []);
         }
     }
 
@@ -308,7 +342,15 @@ public sealed class UploadPersistenceService : IUploadRepository
                     await _context.SaveChangesAsync(token);
                     return (Guid.NewGuid(), JsonSerializer.Serialize(ToView(session, scope.ProjectId)));
                 },
-                cancellationToken);
+                cancellationToken,
+                receiptAccessGuard: request.ProjectId is null
+                    ? async token =>
+                    {
+                        var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == request.UploadId)
+                            .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token);
+                        if (fileId is null) throw new UploadNotFoundException();
+                        await GuardPrivateAsync(request.ActorUserId, fileId, token);
+                    } : null);
 
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
             {
@@ -367,6 +409,22 @@ public sealed class UploadPersistenceService : IUploadRepository
                 row.File.MimeType,
                 row.File.SizeBytes,
                 Convert.ToBase64String(row.Session.RowVersion), row.Scope.Purpose, row.Scope.TargetId);
+    }
+
+    private async Task GuardPrivateAsync(Guid actor, Guid? fileId, CancellationToken token)
+    {
+        if (_context.Database.CurrentTransaction is null) throw new InvalidOperationException("Private receipt requires its scoped transaction.");
+        await Anh02ReceiptAuthority.LockAsync(_context, actor, null, token);
+        if (!await new RoadGuardSystem.Repositories.Integration.AnhHuyFactsRepository(_context)
+            .IsCurrentActorAsync(actor, UserRoleCode.Reporter, token)) throw new UploadNotFoundException();
+        if (fileId is not { } id) return;
+        await _context.Files.FromSqlInterpolated($"SELECT * FROM [Files] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={id}").AsNoTracking().ToListAsync(token);
+        var scope = await _context.FileScopes.FromSqlInterpolated($"SELECT * FROM [FileScopes] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={id}")
+            .AsNoTracking().SingleOrDefaultAsync(token);
+        var session = await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={id}")
+            .AsNoTracking().SingleOrDefaultAsync(token);
+        if (scope is null || session is null || scope.OwnerUserId != actor || session.OwnerUserId != actor
+            || scope.ProjectId is not null || scope.TargetId is not null || scope.Purpose != "REPORT_PHOTO") throw new UploadNotFoundException();
     }
 
     public Task<Stream> OpenFileAsync(string objectKey, CancellationToken cancellationToken = default)
@@ -455,6 +513,7 @@ public sealed class UploadPersistenceService : IUploadRepository
     private sealed class UploadNotFoundException : Exception;
 
     private sealed class UploadConcurrencyException : Exception;
+    private sealed class UploadPartConflictException : Exception;
 
     private sealed record UploadPartUrlReceipt(
         string ObjectKey,

@@ -199,6 +199,20 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         }
         var candidate=await client.GetAsync($"/api/v1/projects/{project}/ai-candidates/{detectionId}"); Assert.Equal(HttpStatusCode.OK,candidate.StatusCode);
         var proof=await Body(candidate); Assert.Equal("MOCK/SYNTHETIC",proof.GetProperty("mode").GetString());
+        // Actual persisted job provenance must agree with the run/result, not
+        // merely with the detection's FK. Only this disposable fixture is mutated.
+        await using (var drift = sql.CreateDbContext())
+        {
+            var jobId = result.GetProperty("jobId").GetGuid();
+            await drift.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProcessingJobs SET Mode='LIVE' WHERE Id={jobId}");
+            try
+            {
+                var denied = await client.GetAsync($"/api/v1/projects/{project}/ai-candidates/{detectionId}");
+                Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
+                Assert.Equal("source_not_ready", (await Body(denied)).GetProperty("code").GetString());
+            }
+            finally { await drift.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProcessingJobs SET Mode='MOCK' WHERE Id={jobId}"); }
+        }
         using(var capture=factory.Services.CreateScope())
         {
             var reader=capture.ServiceProvider.GetRequiredService<IAiCandidateFactsReader>();

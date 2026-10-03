@@ -87,7 +87,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProcessingV2Service, ProcessingV2Service>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<IReporterEvidenceService, ReporterEvidenceService>();
-        services.AddHuy01ReporterServices();
+        services.AddHuy01ReporterIntakeServices();
+        if (configuration.GetValue("Huy01:EnableLifecycleAndCase", false))
+        {
+            services.AddScoped<RoadGuardSystem.Services.Reports.IReporterLifecycleService, RoadGuardSystem.Services.Implementations.Reports.ReporterLifecycleService>();
+            services.AddScoped<RoadGuardSystem.Services.Cases.ICaseWorkflowService, RoadGuardSystem.Services.Implementations.Cases.CaseWorkflowService>();
+            services.AddScoped<RoadGuardSystem.Services.Defects.ICandidateDecisionService, RoadGuardSystem.Services.Implementations.Defects.CandidateDecisionService>();
+        }
         services.AddScoped<IAnhHuyProducerService, AnhHuyProducerService>();
         services.AddSingleton(TimeProvider.System);
         services.Configure<RoadGuardSystem.Services.Processing.Anh02.Anh02AiOptions>(configuration.GetSection("Anh02"));

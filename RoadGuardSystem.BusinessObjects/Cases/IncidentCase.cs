@@ -78,6 +78,26 @@ public sealed class IncidentCase
         Status = IncidentCaseStatus.AwaitingEvidence;
     }
 
+    public void SelectVerificationMethod(CaseVerificationMethod method, string reason, DateTimeOffset changedAt)
+    {
+        if (ProjectId is null || Status is not (IncidentCaseStatus.Open or IncidentCaseStatus.AwaitingEvidence))
+            throw new InvalidOperationException("Only an assigned active case can select its verification method.");
+        if (method == CaseVerificationMethod.Unknown || !Enum.IsDefined(method)) throw new ArgumentOutOfRangeException(nameof(method));
+        var normalizedReason = CaseConclusion.NormalizeReason(reason);
+        VerificationMethod = method;
+        TriageReason = normalizedReason;
+        TriagedAt = changedAt.ToUniversalTime();
+    }
+
+    // Persistence supplies the full append-only history from both endpoints.
+    public void MaterializeLinkHistory(IReadOnlyCollection<CaseReportLinkHistory> history)
+    {
+        ArgumentNullException.ThrowIfNull(history);
+        if (history.Any(h => h is null || h.FromCaseId != Id && h.ToCaseId != Id) || history.Select(h => h.Id).Distinct().Count() != history.Count)
+            throw new ArgumentException("History must be unique and belong to this case.", nameof(history));
+        _linkHistory = history.OrderBy(h => h.OccurredAt).ThenBy(h => h.Id).ToList();
+    }
+
     public void RegisterSupplement(Guid reportId, DateTimeOffset receivedAt)
     {
         if (reportId == Guid.Empty || !_activeReportIds.Contains(reportId))

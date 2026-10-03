@@ -7,7 +7,8 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Services.Reporting;
 
-public sealed class ReportingService(IReportingRepository repository, IIdentityRepository identity, IProjectScopeGuard guard, TimeProvider clock) : IReportingService
+public sealed class ReportingService(IReportingRepository repository, IIdentityRepository identity, IProjectScopeGuard guard, TimeProvider clock,
+    IEnumerable<RoadGuardSystem.Services.Integration.ICaseDefectReadReader>? caseDefectReaders = null) : IReportingService
 {
     public async Task<ReportingResult<ReportingCaptureDto>> CaptureAsync(Guid actor, Guid project, ReportingFiltersDto filters, CancellationToken token)
     {
@@ -17,7 +18,25 @@ public sealed class ReportingService(IReportingRepository repository, IIdentityR
             if (!await Authorized(actor, project, ct)) return new ReportingResult<ReportingCaptureDto>("access_forbidden");
             var readAt = clock.GetUtcNow();
             var facts = await repository.CaptureAsync(project, normalized, ct);
-            return facts.Facts is null ? new(facts.Code) : new("success", ReportingDefinitions.Create(project, readAt, normalized, facts.Facts));
+            if (facts.Facts is null) return new(facts.Code);
+            var capture = ReportingDefinitions.Create(project, readAt, normalized, facts.Facts);
+            var reader = caseDefectReaders?.SingleOrDefault();
+            if (reader is not null)
+            {
+                var actorState = await identity.GetUserSecurityStateAsync(actor, ct);
+                if (actorState is null) return new("access_forbidden");
+                try
+                {
+                    var snapshot = await reader.CaptureAsync(actor, actorState.RoleCode, project, normalized, ct);
+                    if (snapshot is not null)
+                    {
+                        try { capture = CaseDefectCaptureConsumer.Apply(capture, snapshot); }
+                        catch (InvalidOperationException) { return new("producer_invalid"); }
+                    }
+                }
+                catch (UnauthorizedAccessException) { return new("access_forbidden"); }
+            }
+            return new("success", capture);
         }, token);
     }
     public async Task<ReportingResult<ProjectSummaryV1>> SummaryAsync(Guid actor, Guid project, ReportingFiltersDto filters, CancellationToken token)

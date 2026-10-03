@@ -1,7 +1,9 @@
 using FluentAssertions;
+using RoadGuardSystem.aBusinessObjects.Commons;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Implementations.Surveys;
@@ -266,8 +268,14 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
             await seeder.SeedAsync(context);
 
             var survey = await context.Surveys.SingleAsync(item => item.Id == PostmanScenarioSeedStep.SurveyId);
+            var otherRequestId = Guid.NewGuid();
+            context.SurveyRequests.Add(SurveyRequest.Create(otherRequestId,
+                PostmanScenarioSeedStep.ProjectId, PostmanScenarioSeedStep.RoadSectionId,
+                PostmanScenarioSeedStep.SurveyPlanId, PostmanUserSeedStep.ProjectManagerUserId,
+                SurveyType.Periodic, SurveyRequestStatus.Completed, DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddDays(1), "{}", PostmanScenarioSeedStep.RoadSectionVersionId));
             context.Entry(survey).Property(nameof(survey.SurveyRequestId)).CurrentValue =
-                PostmanScenarioSeedStep.SurveyRequestId;
+                otherRequestId;
             await context.SaveChangesAsync();
             context.ChangeTracker.Clear();
 
@@ -279,6 +287,26 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         {
             await isolated.DisposeAsync();
         }
+    }
+
+    [Fact]
+    public async Task PostmanScenarioSeed_AcceptsProductionMigrationRequestAdoption_WithoutDuplicates()
+    {
+        var isolated = await CreateIsolatedDatabaseAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(CreateOptions(isolated.ConnectionString));
+            await new IdentityRoleSeedStep().SeedAsync(context);
+            await new PostmanUserSeedStep().SeedAsync(context);
+            await new PostmanScenarioSeedStep().SeedAsync(context);
+            var survey = await context.Surveys.SingleAsync(x => x.Id == PostmanScenarioSeedStep.SurveyId);
+            context.Entry(survey).Property(nameof(survey.SurveyRequestId)).CurrentValue = PostmanScenarioSeedStep.SurveyRequestId;
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+            await new PostmanScenarioSeedStep().SeedAsync(context);
+            (await context.Surveys.CountAsync(x => x.Id == PostmanScenarioSeedStep.SurveyId)).Should().Be(1);
+        }
+        finally { await isolated.DisposeAsync(); }
     }
 
     [Fact(DisplayName = "RV-17/19: scenario seed preserves mutable data and concurrent runs converge to one graph")]

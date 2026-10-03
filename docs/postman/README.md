@@ -1,6 +1,52 @@
 # Chạy thử RoadGuard API bằng Postman
 
-## Vì sao đăng nhập không được
+## Current local disposable target — owner decision 2026-10-03
+
+Owner cho phép tạo lại hoàn toàn **chỉ `.\HANHNAV / RoadGuardPostmanTest`**,
+không cần recovery dữ liệu cũ. DB đã recreate một lần, apply production
+migrations tới `20261003160000_AnhHuyDependencyDefectConcurrency` (45 migrations),
+seed lại hai lần thành công. Incident cũ bên dưới là HISTORICAL, không bị xóa.
+Không dùng quyền này cho instance/DB/storage khác. Reset hiện tại dùng DROP
+thông thường: nếu có session khác đang dùng DB thì dừng, không kill session.
+
+1. Build API và `tools/RoadGuardSystem.Seeder` bằng SDK hiện có. Đặt
+   `ROADGUARD_CONNECTION_STRING` trong process environment từ cấu hình private;
+   không đưa connection/password/token vào command line, Git hoặc báo cáo.
+2. Chạy `dotnet run --project tools/RoadGuardSystem.Seeder -- --postman-disposable`.
+   Chỉ thêm `--recreate` khi cần reset; seed lại không nhân fixture. `--verify-only`
+   kiểm exact configured/live instance và catalog mà không migrate/seed.
+3. Cấu hình JWT/MinIO/font/worker trong process environment riêng rồi chạy
+   `python tools/postman/start_local.py`. Launcher kiểm live target trước khi
+   chạy API, buộc startup migration/seed=false. Không dùng launch profile khác
+   để suy đoán API đã trỏ đúng DB. Trên Windows, signing-key dictionary suffix
+   phải khớp chính xác ActiveKeyId sau khi environment key được viết hoa.
+4. Import canonical JSON collection và environment JSON hiện có. Password
+   placeholders vẫn rỗng; điền fixture credentials riêng. Reporter synthetic
+   là `reporter.runtime@example.test`; model synthetic-road-v1 là mock fixture,
+   không phải provider thật. Không seed file VERIFIED thiếu object bytes.
+5. Mặc định Huy vẫn intake-only. Chỉ với API đã bật
+   `Huy01__EnableLifecycleAndCase=true`, đặt environment
+   `huyLifecycleAndCaseEnabled=true` để chạy hai folder opted-in mới.
+   KEEP_NEW/LINK_EXISTING, approved labels/matching/CaseDefect readers vẫn có
+   dependency gates; không tạo approval/reader giả để chạy collection.
+
+Có thể chạy Newman hiện có qua runner không log response/token/signed URL:
+
+```powershell
+# NODE_PATH trỏ tới Newman đã cài nếu Node chưa resolve được package.
+node tools/postman/run_smoke.cjs <private-environment.json> "00 - Preflight" "HUY-01 current authority preflight - opted-in"
+node tools/postman/run_smoke.cjs <private-environment.json> "00 - Preflight" "ANH-02 assigned - AI reporting export retention" "--request=Login seeded Project Manager" "--request=Reporting summary" "--request=Training missing Huy approved reader"
+```
+
+Runner kiểm SQL target trước HTTP, chỉ nhận loopback URL và reuse requests,
+IDs/scripts canonical; không tự cài package. Dùng `--request=<exact leaf name>`
+để chạy phần độc lập và giữ folder guards. Full storage/upload→AI→PDF/ZIP và
+hold/evaluation phải dùng bytes/object test thật cùng state của demo hiện có;
+không dùng dummy GUID hoặc bypass verify. Kết quả network/counts và NOT RUN
+được ghi trong `planning/development/ANH-02-summary.md`; JSON parse không thay
+network evidence. Docker/MinIO hiện blocked, không coi full flow đã pass.
+
+## HISTORICAL — vì sao đăng nhập trước đây không được
 
 API tại `http://localhost:5112` đang chạy: `GET /health` trả `200 Healthy`, và OpenAPI v1 trả được danh sách endpoint. Nhưng login seed Supervisor hiện trả `401 auth_invalid_credentials`.
 

@@ -75,6 +75,12 @@ public sealed class ExportService : IExportService
             }).OrderBy(x => x.Name, StringComparer.Ordinal).ToArray();
             revisions = dossier.Items.Select(x => new ExportSourceRevisionDto(x.Type, x.Id, x.Version))
                 .Concat(dossier.Summary.Metrics.SelectMany(m => m.SourceRefs).Select(r => new ExportSourceRevisionDto(r.Type, r.Id, r.Version)))
+                .Concat(dossier.CaseDefectFacts?.Cases.SelectMany(c => c.Conclusions)
+                    .Select(r => new ExportSourceRevisionDto(r.Type, r.Id, r.Version)) ?? [])
+                .Concat(dossier.CaseDefectFacts?.Cases.SelectMany(c => c.Publications)
+                    .Select(p => new ExportSourceRevisionDto("CasePublication", p.PublicationId, p.Version)) ?? [])
+                .Concat(dossier.CaseDefectFacts?.AuthorizedEvidence
+                    .Select(e => new ExportSourceRevisionDto("StoredFile", e.FileId, e.FileVersion)) ?? [])
                 .Distinct().OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.Id).ToArray();
             definitions = [dossier.Summary.DefinitionVersion];
         }

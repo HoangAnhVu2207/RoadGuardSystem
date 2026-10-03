@@ -130,7 +130,13 @@ public static class RoadGuardPersistenceExtensions
         services.AddSingleton<IUploadObjectStorage, MinioUploadObjectStorage>();
         services.AddScoped<IUploadRepository, UploadPersistenceService>();
         services.AddScoped<IReporterEvidenceRepository, ReporterEvidencePersistenceService>();
-        services.AddHuy01ReporterPersistence();
+        services.AddHuy01ReporterIntakePersistence();
+        if (configuration.GetValue("Huy01:EnableLifecycleAndCase", false))
+        {
+            services.AddScoped<RoadGuardSystem.Repositories.Reports.IReporterLifecycleRepository, RoadGuardSystem.Repositories.Implementations.Reports.ReporterLifecycleRepository>();
+            services.AddScoped<RoadGuardSystem.Repositories.Cases.ICaseWorkflowRepository, RoadGuardSystem.Repositories.Implementations.Cases.CaseWorkflowRepository>();
+            services.AddScoped<RoadGuardSystem.Repositories.Defects.ICandidateDecisionRepository, RoadGuardSystem.Repositories.Implementations.Defects.CandidateDecisionRepository>();
+        }
         services.AddScoped<IAnhHuyFactsRepository, AnhHuyFactsRepository>();
         services.AddScoped<IAnh02AiRepository, Anh02AiRepository>();
         services.AddScoped<RoadGuardSystem.Repositories.Reporting.IReportingRepository, RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository>();
@@ -141,6 +147,8 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor, RoadGuardSystem.Repositories.Retention.ExportRetentionInventoryContributor>();
         services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor, RoadGuardSystem.Repositories.Retention.AiRetentionInventoryContributor>();
         services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor, RoadGuardSystem.Repositories.Retention.ReporterIntakeRetentionInventoryContributor>();
+        if (configuration.GetValue("Huy01:EnableLifecycleAndCase", false))
+            services.AddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor, RoadGuardSystem.Repositories.Implementations.Retention.Huy01RetentionInventoryContributor>();
         services.Configure<RoadGuardSystem.Repositories.Exports.ExportRepositoryOptions>(options => configuration.GetSection("Anh02:Export").Bind(options));
         services.AddScoped<Microsoft.AspNetCore.Identity.IUserStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationUser>, RoadGuardUserStore>();
         services.AddScoped<Microsoft.AspNetCore.Identity.IRoleStore<RoadGuardSystem.BusinessObjects.Identity.ApplicationRole>, RoadGuardRoleStore>();

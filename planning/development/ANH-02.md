@@ -1,5 +1,19 @@
 # ANH-02 — BE–AI contract/mock → reporting/export → retention basis/hold
 
+Owner continuation 2026-10-03: prioritize shared G1–G10 dependencies using exact
+Huy handoff afab3ecc8b33d8172e9b0c564808716ca067f39e, then G11 Postman.
+Initial local/remote base 03f5c62d23788ac3c8f3c99e559c3b9bd9d05fea. Existing dirty
+work preserved: PostmanScenarioSeedStep, SeederTests, Seeder Program and new
+PostmanDisposableBootstrap/start_local tooling. Anh is sole writer for shared
+model/migrations/DI/contracts/Postman and own producers/consumers; Huy module
+imports must be byte-identical to the fixed handoff, except explicitly recorded
+compile-boundary adaptations. No receipt-service/test edits, HUY-02, whole
+branch merge or newer Huy tip. Target .\HANHNAV / RoadGuardPostmanTest is now
+owner-authorized disposable (migrate/seed/reset); no old-data recovery required.
+Verify effective target before mutation/startup. Preserve historical incident.
+No other database/bucket permission is implied. Gate/evidence table belongs in
+the existing summary; external review of this continuation remains PENDING.
+
 Runtime acceptance assignment (owner 2026-10-03): live MinIO storage → PDF/ZIP → resumable CLI demo → actual 8 GiB, on `anh-review`. Initial local/remote base `d2414844af1a3fd9a39547fc131f85bda451fad2`, initial dirty paths none. Anh is sole writer for affected storage/export/demo/config and this spec/summary. Reuse production contracts and migrations only in task-owned disposable environments; no Huy Reporter role/readers/mapping edits or tip imports, no new provider/business policy, no shared DB/bucket writes. Official distribution investigation and fixed-revision source build are authorized. Linux/font execution is separate from deployed/hosted-CI acceptance. Actual checks and two self-reviews belong in the existing summary; A/B/follow-up external review remains PENDING, CRS/Huy gates stay separate.
 
 Revision spec: **1 — ASSIGNED theo phản hồi owner tại §10**, ngày 2026-10-02. Writer triển khai: **Anh / Codex local**, nhánh **anh-review**. ChatGPT đọc source, viết spec và review diff; Codex local triển khai toàn luồng, tự review/fix, kiểm thử, commit/push.

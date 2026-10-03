@@ -9,8 +9,15 @@ namespace RoadGuardSystem.Repositories.Integration;
 
 public sealed class AnhHuyFactsRepository(RoadGuardDbContext db) : IAnhHuyFactsRepository
 {
-    public Task<bool> IsCurrentActorAsync(Guid actorId, UserRoleCode role, CancellationToken ct)
-        => db.Users.AsNoTracking().AnyAsync(u=>u.Id==actorId && u.Status==UserStatus.Active && u.RoleCode==role && !u.MustChangePassword,ct);
+    public async Task<bool> IsCurrentActorAsync(Guid actorId, UserRoleCode role, CancellationToken ct)
+    {
+        // A preflight read participates in the caller's context/transaction but must
+        // not acquire update locks ahead of the module's terminal authority guard.
+        var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == actorId, ct);
+        if (user is null) return false;
+        var active = await db.Roles.AsNoTracking().AnyAsync(r => r.Code == user.RoleCode && r.IsActive, ct);
+        return active && user.Status == UserStatus.Active && user.RoleCode == role && !user.MustChangePassword;
+    }
 
     public async Task<ReporterFileFacts?> GetFileAsync(Guid fileId, CancellationToken ct)
     {

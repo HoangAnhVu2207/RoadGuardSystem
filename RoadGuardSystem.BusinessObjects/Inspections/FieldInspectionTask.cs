@@ -19,6 +19,9 @@ public sealed class FieldInspectionTask
 
     public Guid DefectId { get; private set; }
 
+    // Only the separate H4 producer sets this immutable native source pin. Existing task factories remain measure-only.
+    public Guid? RepairItemId { get; private set; }
+
     public Guid? SurveyId { get; private set; }
 
     public int LifecycleVersion { get; private set; } = 1;
@@ -169,6 +172,32 @@ public sealed class FieldInspectionTask
         };
         if (LifecycleVersion != 2 || !allowed) throw new InvalidOperationException("Invalid FIELD task transition.");
         Status = next;
+    }
+
+    public static FieldInspectionTask CreateRepair(Guid id, string code,
+        RoadGuardSystem.BusinessObjects.Repairs.RepairItem item, Guid? surveyId, string sourceKind,
+        Guid routeVersionId, Guid? segmentSetId, Guid? layoutRevisionId, string? slabId,
+        FieldInspectionPurpose purpose, byte requiredType, string scope, string? instructions,
+        DateTimeOffset dueAt, Guid assigner, Guid? mapPublication = null, Guid? profile = null)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (item.State != RoadGuardSystem.BusinessObjects.Repairs.RepairItemState.Assigned ||
+            item.AssignedBy != assigner || item.CrewId is null || item.AssignedAt is null ||
+            string.IsNullOrWhiteSpace(item.ProposalPlanHash) || string.IsNullOrWhiteSpace(item.ChecklistVersion) ||
+            (item.Mode == RoadGuardSystem.BusinessObjects.Repairs.RepairMode.Normal &&
+                item.ApprovedPlanHash != item.ProposalPlanHash))
+            throw new InvalidOperationException("A repair task requires the actual assigned, planned item and its assignment actor.");
+        var task = CreateOperational(id, code, item.ProjectId, item.DefectId, surveyId, sourceKind,
+            routeVersionId, segmentSetId, layoutRevisionId, slabId, purpose, requiredType, scope,
+            instructions, dueAt, assigner, mapPublication, profile);
+        task.RepairItemId = item.Id;
+        task.TaskMode = item.Mode switch
+        {
+            RoadGuardSystem.BusinessObjects.Repairs.RepairMode.Normal => "NORMAL",
+            RoadGuardSystem.BusinessObjects.Repairs.RepairMode.FastTrack => "CONDITIONAL_FT",
+            _ => throw new InvalidOperationException("Repair mode must be explicit.")
+        };
+        return task;
     }
 
     public void Reassign()

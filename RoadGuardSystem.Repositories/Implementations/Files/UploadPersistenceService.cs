@@ -39,6 +39,13 @@ public sealed partial class UploadPersistenceService : IUploadRepository
     public async Task<UploadMutationPersistenceResult> CreateAsync(
         UploadCreatePersistenceRequest request,
         CancellationToken cancellationToken = default)
+        => await CreateCoreAsync(request, null, cancellationToken);
+
+    public Task<UploadMutationPersistenceResult> CreateOfflineAsync(RoadGuardSystem.Repositories.Offline.OfflineUploadCaptureRequest request,
+        CancellationToken cancellationToken = default) => CreateCoreAsync(request.Upload, request, cancellationToken);
+
+    private async Task<UploadMutationPersistenceResult> CreateCoreAsync(UploadCreatePersistenceRequest request,
+        RoadGuardSystem.Repositories.Offline.OfflineUploadCaptureRequest? offline, CancellationToken cancellationToken)
     {
         if (request.SizeBytes <= 0 || UploadAdmissionPolicy.MaximumBytes(request.Purpose, request.MediaType) is not { } maximum || request.SizeBytes > maximum)
         {
@@ -50,13 +57,14 @@ public sealed partial class UploadPersistenceService : IUploadRepository
             var outcome = await _idempotency.ExecuteAsync(
                 request.ActorUserId,
                 request.ProjectId,
-                CreateOperation,
+                offline is null ? CreateOperation : "OfflineUploadSessionCreated",
                 request.IdempotencyKey,
                 request.RequestFingerprint,
                 async token =>
                 {
+                    var capture = offline is null ? null : await OfflineUploads.GuardNewUploadAsync(offline, token);
                     if (request.ProjectId is null) await GuardPrivateAsync(request.ActorUserId, null, token);
-                    else if(FieldPurpose(request.Purpose))await GuardFieldScopeAsync(request.ActorUserId,request.ProjectId.Value,request.TargetId,request.Purpose,true,token);
+                    else if(offline is null && FieldPurpose(request.Purpose))await GuardFieldScopeAsync(request.ActorUserId,request.ProjectId.Value,request.TargetId,request.Purpose,true,token);
                     var now = _fieldClock.GetUtcNow();
                     var fileId = Guid.NewGuid();
                     var objectKey = $"uploads/{fileId:N}";
@@ -102,10 +110,15 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                         request.CorrelationId,
                         ["id", "fileId", "projectId", "purpose"]));
                     await _context.SaveChangesAsync(token);
+                    if (capture is not null)
+                    {
+                        await OfflineUploads.BindCreatedFileAsync(capture, fileId, session.Id, now, token);
+                        await _context.SaveChangesAsync(token);
+                    }
                     return (session.Id, JsonSerializer.Serialize(ToView(session, request.ProjectId, request.TargetId)));
                 },
                 cancellationToken,
-                receiptAccessGuard: request.ProjectId is null
+                receiptAccessGuard: offline is not null ? token => GuardOfflineUploadReceiptAsync(offline, token) : request.ProjectId is null
                     ? token => GuardPrivateAsync(request.ActorUserId, null, token) : FieldPurpose(request.Purpose)
                         ? token=>GuardFieldScopeAsync(request.ActorUserId,request.ProjectId.Value,request.TargetId,request.Purpose,false,token):null);
 
@@ -121,6 +134,10 @@ public sealed partial class UploadPersistenceService : IUploadRepository
         catch (UploadNotFoundException)
         {
             return new(UploadPersistenceStatus.NotFound, null);
+        }
+        catch (RoadGuardSystem.Repositories.Offline.OfflineAdmissionRejectedException)
+        {
+            _context.ChangeTracker.Clear(); return new(UploadPersistenceStatus.NotFound, null);
         }
         catch (ArgumentException)
         {

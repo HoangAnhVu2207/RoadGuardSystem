@@ -45,6 +45,16 @@ public sealed class DeadlineClock
             OriginEventId = originEventId, OriginAt = origin, OriginalDueAt = origin.AddHours(hours), CurrentDueAt = origin.AddHours(hours) };
     }
     public bool IsOverdueAt(DateTimeOffset now) => CompletedAt is null && now.ToUniversalTime() >= CurrentDueAt;
+    public static DeadlineClock CreateFirstSafetyCheck(Guid id, Guid projectId, Guid measureId, Guid installationEventId,
+        DateTimeOffset installedAt, DateTimeOffset scheduledDueAt)
+    {
+        var clock = Create(id, projectId, DeadlineClockKind.FirstSafetyCheck, measureId, installationEventId, installedAt);
+        var due = scheduledDueAt.ToUniversalTime();
+        if (due < clock.OriginAt || due > clock.OriginalDueAt)
+            throw new ArgumentException("The first safety check must be scheduled within 24 elapsed hours.", nameof(scheduledDueAt));
+        clock.OriginalDueAt = due; clock.CurrentDueAt = due;
+        return clock;
+    }
     public bool ObserveBreach(Guid id, DateTimeOffset now)
     {
         RequireId(id);

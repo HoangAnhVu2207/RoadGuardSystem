@@ -18,10 +18,14 @@ internal static class WebCookieConfiguration
     {
         if (context.Request.Headers.ContainsKey("Authorization"))
             return Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-        return IsCookieEligibleRequest(context.Request.Method, context.Request.Path) && context.Request.Cookies.ContainsKey(CookieName)
+        return IsCookieEligibleRequest(context) && context.Request.Cookies.ContainsKey(CookieName)
             ? Scheme
             : Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
     }
+
+    internal static bool IsCookieEligibleRequest(HttpContext context) =>
+        context.GetEndpoint()?.Metadata.GetMetadata<WebCookieEligibleAttribute>() is not null ||
+        IsCookieEligibleRequest(context.Request.Method, context.Request.Path);
 
     internal static bool IsCookieEligibleRequest(string method, PathString requestPath)
     {

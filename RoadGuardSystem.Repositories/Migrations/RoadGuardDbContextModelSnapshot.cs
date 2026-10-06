@@ -536,7 +536,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_DeadlineClocks_Kind", "[Kind] BETWEEN 1 AND 10");
 
-                            t.HasCheckConstraint("CK_DeadlineClocks_Times", "[OriginalDueAt]>[OriginAt] AND [CurrentDueAt]>=[OriginalDueAt] AND ([CompletedAt] IS NULL OR [CompletedAt]>=[OriginAt])");
+                            t.HasCheckConstraint("CK_DeadlineClocks_Times", "([OriginalDueAt]>[OriginAt] OR ([Kind]=10 AND [OriginalDueAt]=[OriginAt])) AND [CurrentDueAt]>=[OriginalDueAt] AND ([CompletedAt] IS NULL OR [CompletedAt]>=[OriginAt])");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -2062,7 +2062,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasTrigger("TR_FieldInspectionOperationOrigins_Scope");
 
-                            t.HasCheckConstraint("CK_FieldInspectionOperationOrigins_Kind", "[Kind] IN ('FIELD_START','FIELD_SUBMISSION') AND [SchemaVersion]=1");
+                            t.HasCheckConstraint("CK_FieldInspectionOperationOrigins_Kind", "[Kind] IN ('FIELD_START','FIELD_SUBMISSION','FIELD_ACCEPT','REPAIR_ASSESSMENT','REPAIR_EXECUTION_START','REPAIR_EXECUTION_FINISH') AND [SchemaVersion]=1");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -2347,6 +2347,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasColumnType("tinyint")
                         .HasDefaultValue((byte)1);
 
+                    b.Property<Guid?>("RepairItemId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte>("RequiredMeasurementType")
                         .HasColumnType("tinyint");
 
@@ -2418,6 +2421,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasIndex("ProjectId")
                         .HasDatabaseName("IX_FieldInspectionTasks_ProjectId");
 
+                    b.HasIndex("RepairItemId");
+
                     b.HasIndex("ReviewedByUserId");
 
                     b.HasIndex("RoadSectionVersionId");
@@ -2435,6 +2440,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
                             t.HasTrigger("TR_FieldInspectionTasks_H3Scope");
 
                             t.HasCheckConstraint("CK_FieldInspectionTasks_MeasurementScope_Json", "ISJSON([MeasurementScope]) = 1 AND LEFT(LTRIM([MeasurementScope]), 1) = '{'");
+
+                            t.HasCheckConstraint("CK_FieldInspectionTasks_RepairMode", "([TaskMode]='MEASURE_ONLY' AND [RepairItemId] IS NULL) OR ([LifecycleVersion]=2 AND [TaskMode] IN('NORMAL','CONDITIONAL_FT') AND [RepairItemId] IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_FieldInspectionTasks_ReviewDecision", "([ReviewDecision] IS NULL AND [ReviewedByUserId] IS NULL AND [ReviewedAt] IS NULL) OR ([ReviewDecision] IS NOT NULL AND [ReviewedByUserId] IS NOT NULL AND [ReviewedAt] IS NOT NULL AND [Status] = 7)");
 
@@ -2781,6 +2788,416 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.ToTable("ConsumerEffectReceipts", (string)null);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationAuditRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Classification")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("DedupKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid?>("NotificationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("OutboxMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PreviousAuditId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ResolverVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceKind")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DedupKey")
+                        .IsUnique();
+
+                    b.HasIndex("NotificationId");
+
+                    b.HasIndex("OutboxMessageId");
+
+                    b.HasIndex("PreviousAuditId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("H6NotificationAudits", null, t =>
+                        {
+                            t.HasTrigger("TR_H6NotificationAudits_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationCalendarRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ClockId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ObservedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("OutboxMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("PlannedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("ScheduledAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SchedulerRunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OutboxMessageId");
+
+                    b.HasIndex("ClockId", "ScheduledAtUtc")
+                        .IsUnique();
+
+                    b.ToTable("H6NotificationCalendar", null, t =>
+                        {
+                            t.HasTrigger("TR_H6NotificationCalendar_Identity");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DeliveryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ObservedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliveryId");
+
+                    b.ToTable("H6NotificationDeliveryAttempts", null, t =>
+                        {
+                            t.HasTrigger("TR_H6NotificationDeliveryAttempts_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeliveredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("NextAttemptAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("NotificationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OccurrenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("RecipientKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid?>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationId")
+                        .IsUnique()
+                        .HasFilter("[NotificationId] IS NOT NULL");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.HasIndex("OccurrenceId", "RecipientKey")
+                        .IsUnique();
+
+                    b.ToTable("H6NotificationDeliveries", null, t =>
+                        {
+                            t.HasTrigger("TR_H6NotificationDeliveries_Identity");
+
+                            t.HasTrigger("TR_H6NotificationDeliveries_Scope");
+
+                            t.HasCheckConstraint("CK_H6NotificationDeliveries_State", "[Status] IN ('PENDING','UNRESOLVED','DELIVERED') AND (([Status]='DELIVERED' AND [RecipientUserId] IS NOT NULL AND [NotificationId] IS NOT NULL AND [DeliveredAtUtc] IS NOT NULL AND [ReasonCode] IS NULL) OR ([Status]<>'DELIVERED' AND [NotificationId] IS NULL AND [DeliveredAtUtc] IS NULL))");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationEventReceipt", b =>
+                {
+                    b.Property<Guid>("OutboxMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompletionFence")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MessageType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<Guid?>("OccurrenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(24)");
+
+                    b.HasKey("OutboxMessageId");
+
+                    b.HasIndex("OccurrenceId");
+
+                    b.ToTable("H6NotificationEventReceipts", null, t =>
+                        {
+                            t.HasTrigger("TR_H6NotificationEventReceipts_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("OccurrenceKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("OriginEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ScheduledAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SourceEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceKind")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurrenceKey")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SourceEventId");
+
+                    b.ToTable("H6NotificationOccurrences", null, t =>
+                        {
+                            t.HasTrigger("TR_H6NotificationOccurrences_Immutable");
+
+                            t.HasTrigger("TR_H6NotificationOccurrences_Scope");
+
+                            t.HasCheckConstraint("CK_H6NotificationOccurrences_Hashes", "LEN([OccurrenceKey])=64 AND LEN([ContentFingerprint])=64");
+
+                            t.HasCheckConstraint("CK_H6NotificationOccurrences_Json", "ISJSON([PayloadJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationScopeRow", b =>
+                {
+                    b.Property<Guid>("NotificationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Classification")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<Guid>("CurrentAuditId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<Guid?>("OccurrenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ResolverVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceKind")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.HasKey("NotificationId");
+
+                    b.HasIndex("CurrentAuditId");
+
+                    b.HasIndex("OccurrenceId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("H6NotificationScopes", null, t =>
+                        {
+                            t.HasTrigger("TR_H6NotificationScopes_Source");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2912,6 +3329,1149 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_OutboxMessages_PayloadJson_Json", "ISJSON([PayloadJson]) = 1");
                         });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineAdmittedFileReference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActualFileOwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ActualUploadedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AdmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CaptureFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("CaptureOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentChecksum")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("CurrentImporterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("ReferencedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("ActualFileOwnerId");
+
+                    b.HasIndex("ActualUploadedById");
+
+                    b.HasIndex("CurrentImporterId");
+
+                    b.HasIndex("FileId");
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("AdmissionId", "CaptureOriginId")
+                        .IsUnique();
+
+                    b.HasIndex("AdmissionId", "ProjectId");
+
+                    b.HasIndex("BindingId", "ProjectId");
+
+                    b.ToTable("OfflineAdmittedFileReferences", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineAdmittedFileReferences_Immutable");
+
+                            t.HasTrigger("TR_OfflineAdmittedFileReferences_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineAdmittedFileReferences_CaptureFactsJson", "ISJSON([CaptureFactsJson])=1");
+
+                            t.HasCheckConstraint("CK_OfflineAdmittedFileReferences_ContentChecksum", "LEN([ContentChecksum])=64 AND [ContentChecksum] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EncryptionPublicKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("KeyFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("RoleSnapshot")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("SigningPublicKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("ProjectId", "KeyFingerprint");
+
+                    b.HasIndex("ProjectId", "ActorId", "DeviceId", "Revision")
+                        .IsUnique();
+
+                    b.ToTable("OfflineDeviceRegistrations", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineDeviceRegistrations_Immutable");
+
+                            t.HasTrigger("TR_OfflineDeviceRegistrations_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineDeviceRegistrations_KeyFingerprint", "LEN([KeyFingerprint])=64 AND [KeyFingerprint] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineDeviceRegistrations_Revision", "[Revision]>0");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRevocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("RevokedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("RevokedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("DeviceRegistrationId")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RevokedBy");
+
+                    b.HasIndex("DeviceRegistrationId", "ProjectId");
+
+                    b.ToTable("OfflineDeviceRevocations", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineDeviceRevocations_Immutable");
+
+                            t.HasTrigger("TR_OfflineDeviceRevocations_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedCaptureArtifact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaptureOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ChunkIndex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChunkLength")
+                        .HasColumnType("int");
+
+                    b.Property<long>("ChunkOffset")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CipherEnvelopeJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EnvelopeFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("ManifestSignature")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ParentPackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PlaintextChecksum")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("RegisteredBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SignedManifestJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SourceDeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RegisteredBy");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("ParentPackageId", "ProjectId");
+
+                    b.HasIndex("SourceDeviceRegistrationId", "ProjectId");
+
+                    b.HasIndex("ParentPackageId", "CaptureOriginId", "ManifestHash", "ChunkIndex")
+                        .IsUnique();
+
+                    b.ToTable("OfflineEncryptedCaptureArtifacts", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineEncryptedCaptureArtifacts_Immutable");
+
+                            t.HasTrigger("TR_OfflineEncryptedCaptureArtifacts_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedCaptureArtifacts_Chunk", "[ChunkIndex]>=0 AND [ChunkIndex]<32 AND [ChunkOffset]>=0 AND [ChunkLength]>0 AND [ChunkLength]<=16777216");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedCaptureArtifacts_CipherEnvelopeJson", "ISJSON([CipherEnvelopeJson])=1");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedCaptureArtifacts_EnvelopeFingerprint", "LEN([EnvelopeFingerprint])=64 AND [EnvelopeFingerprint] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedCaptureArtifacts_ManifestHash", "LEN([ManifestHash])=64 AND [ManifestHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedCaptureArtifacts_PlaintextChecksum", "LEN([PlaintextChecksum])=64 AND [PlaintextChecksum] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedCaptureArtifacts_SignedManifestJson", "ISJSON([SignedManifestJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedPackageRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CipherPackageJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PackageFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("RegisteredBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RegistrationMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("SignedManifestJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SourceBatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceDeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceSignature")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("RegisteredBy");
+
+                    b.HasIndex("SourceDeviceRegistrationId", "ProjectId");
+
+                    b.HasIndex("ProjectId", "SourceDeviceRegistrationId", "SourceBatchId");
+
+                    b.ToTable("OfflineEncryptedPackages", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineEncryptedPackages_Immutable");
+
+                            t.HasTrigger("TR_OfflineEncryptedPackages_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedPackages_CipherPackageJson", "ISJSON([CipherPackageJson])=1");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedPackages_ManifestHash", "LEN([ManifestHash])=64 AND [ManifestHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedPackages_PackageFingerprint", "LEN([PackageFingerprint])=64 AND [PackageFingerprint] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedPackages_PayloadHash", "LEN([PayloadHash])=64 AND [PayloadHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineEncryptedPackages_SignedManifestJson", "ISJSON([SignedManifestJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineEvidenceCaptureReference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActualUploaderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AdmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AdmittedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CaptureFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("CaptureOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Checksum")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTimeOffset?>("DeclaredCapturedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GrantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UploadSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("ActualUploaderId");
+
+                    b.HasIndex("FileId")
+                        .IsUnique();
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("UploadSessionId")
+                        .IsUnique();
+
+                    b.HasIndex("AdmissionId", "CaptureOriginId")
+                        .IsUnique();
+
+                    b.HasIndex("AdmissionId", "ProjectId");
+
+                    b.HasIndex("BindingId", "ProjectId");
+
+                    b.HasIndex("GrantId", "ProjectId");
+
+                    b.ToTable("OfflineEvidenceCaptureReferences", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineEvidenceCaptureReferences_Immutable");
+
+                            t.HasTrigger("TR_OfflineEvidenceCaptureReferences_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineEvidenceCaptureReferences_CaptureFactsJson", "ISJSON([CaptureFactsJson])=1");
+
+                            t.HasCheckConstraint("CK_OfflineEvidenceCaptureReferences_Checksum", "LEN([Checksum])=64 AND [Checksum] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("IssuedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("RecipientActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RecipientDeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("RecipientRole")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("ScopeJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SourceActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceDeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IssuedBy");
+
+                    b.HasIndex("RecipientActorId");
+
+                    b.HasIndex("SourceActorId");
+
+                    b.HasIndex("PackageId", "ProjectId");
+
+                    b.HasIndex("RecipientDeviceRegistrationId", "ProjectId");
+
+                    b.HasIndex("SourceDeviceRegistrationId", "ProjectId");
+
+                    b.HasIndex("ProjectId", "PackageId", "RecipientActorId", "ExpiresAt");
+
+                    b.ToTable("OfflineHandoverGrants", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineHandoverGrants_Immutable");
+
+                            t.HasTrigger("TR_OfflineHandoverGrants_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineHandoverGrants_Expiry", "[ExpiresAt]=DATEADD(hour,24,[IssuedAt])");
+
+                            t.HasCheckConstraint("CK_OfflineHandoverGrants_ManifestHash", "LEN([ManifestHash])=64 AND [ManifestHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineHandoverGrants_ScopeJson", "ISJSON([ScopeJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrantRevocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GrantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("RevokedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("RevokedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("GrantId")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RevokedBy");
+
+                    b.HasIndex("GrantId", "ProjectId");
+
+                    b.ToTable("OfflineHandoverGrantRevocations", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineHandoverGrantRevocations_Immutable");
+
+                            t.HasTrigger("TR_OfflineHandoverGrantRevocations_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationAdmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AdmissionMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("AdmittedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CurrentImporterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GrantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("ImporterRole")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ScopeFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentImporterId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("BatchId", "BindingId")
+                        .IsUnique();
+
+                    b.HasIndex("BatchId", "ProjectId");
+
+                    b.HasIndex("BindingId", "ProjectId");
+
+                    b.HasIndex("GrantId", "ProjectId");
+
+                    b.ToTable("OfflineOperationAdmissions", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineOperationAdmissions_Immutable");
+
+                            t.HasTrigger("TR_OfflineOperationAdmissions_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineOperationAdmissions_Mode", "([AdmissionMode]='DIRECT_SYNC' AND [GrantId] IS NULL) OR ([AdmissionMode]='HANDOVER' AND [GrantId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_OfflineOperationAdmissions_ScopeFactsJson", "ISJSON([ScopeFactsJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationBinding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CorePayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("EffectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EnvelopeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("EnvelopeJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("FirstServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("OriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RepairResourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceDeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("EffectId")
+                        .IsUnique();
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("RepairResourceId");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("ProjectId", "OriginId")
+                        .IsUnique();
+
+                    b.HasIndex("SnapshotId", "ProjectId");
+
+                    b.HasIndex("SourceDeviceRegistrationId", "ProjectId");
+
+                    b.ToTable("OfflineOperationBindings", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineOperationBindings_Immutable");
+
+                            t.HasTrigger("TR_OfflineOperationBindings_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineOperationBindings_CorePayloadHash", "LEN([CorePayloadHash])=64 AND [CorePayloadHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineOperationBindings_EnvelopeHash", "LEN([EnvelopeHash])=64 AND [EnvelopeHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineOperationBindings_EnvelopeJson", "ISJSON([EnvelopeJson])=1");
+
+                            t.HasCheckConstraint("CK_OfflineOperationBindings_RepairScope", "([Kind] IN ('FIELD_ACCEPT','FIELD_START','FIELD_SUBMISSION') AND [RepairResourceId] IS NULL) OR ([Kind] IN ('REPAIR_ASSESSMENT','REPAIR_EXECUTION_START','REPAIR_EXECUTION_FINISH') AND [RepairResourceId] IS NOT NULL)");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AdmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ClaimedFinishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("DurableAck")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("EffectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OutcomeJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ResourceVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("SyncLateness")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.Property<string>("TimeProvenance")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset?>("VerifiedFinishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("AdmissionId", "ProjectId");
+
+                    b.HasIndex("BatchId", "ProjectId");
+
+                    b.HasIndex("ProjectId", "OriginId", "RecordedAt");
+
+                    b.ToTable("OfflineOperationResults", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineOperationResults_Immutable");
+
+                            t.HasTrigger("TR_OfflineOperationResults_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineOperationResults_Acknowledgment", "([State] IN ('COMMITTED','REPLAYED') AND [DurableAck]=1 AND [EffectId] IS NOT NULL) OR ([State] IN ('CONFLICT','PENDING_DEPENDENCY','REJECTED','STALE_SNAPSHOT') AND [DurableAck]=0)");
+
+                            t.HasCheckConstraint("CK_OfflineOperationResults_OutcomeJson", "ISJSON([OutcomeJson])=1");
+
+                            t.HasCheckConstraint("CK_OfflineOperationResults_Time", "[TimeProvenance] IN ('UNCERTAIN','VERIFIED_ORIGINAL') AND ([VerifiedFinishedAt] IS NOT NULL OR [SyncLateness]='UNKNOWN')");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOriginTimeVerification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CanonicalOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OriginalOccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProofSourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProofSourceKind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("TypedEffectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VerifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("CanonicalOriginId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("VerifiedBy");
+
+                    b.HasIndex("BindingId", "ProjectId");
+
+                    b.HasIndex("BindingId", "ProofSourceKind", "ProofSourceId")
+                        .IsUnique();
+
+                    b.ToTable("OfflineOriginTimeVerifications", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineOriginTimeVerifications_Immutable");
+
+                            t.HasTrigger("TR_OfflineOriginTimeVerifications_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineOriginTimeVerifications_Source", "[ProofSourceKind] IN ('FIELD_START_SERVER_ORIGIN','REPAIR_FINISH_SERVER_ORIGIN') AND [OriginalOccurredAtUtc]<=[RecordedAtUtc]");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflinePackageFileReference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CaptureFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContentChecksum")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "ProjectId");
+
+                    b.HasIndex("FileId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("PackageId", "FileId")
+                        .IsUnique();
+
+                    b.HasIndex("PackageId", "ProjectId");
+
+                    b.ToTable("OfflinePackageFileReferences", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflinePackageFileReferences_Immutable");
+
+                            t.HasTrigger("TR_OfflinePackageFileReferences_Scope");
+
+                            t.HasCheckConstraint("CK_OfflinePackageFileReferences_CaptureFactsJson", "ISJSON([CaptureFactsJson])=1");
+
+                            t.HasCheckConstraint("CK_OfflinePackageFileReferences_ContentChecksum", "LEN([ContentChecksum])=64 AND [ContentChecksum] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineSyncBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AttachedPayloadHash")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("AttachedPayloadJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("CurrentImporterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GrantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("RecipientDeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RecipientSignature")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("SignedDescriptorJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SourceBatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceDeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceSignature")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentImporterId");
+
+                    b.HasIndex("GrantId", "ProjectId");
+
+                    b.HasIndex("PackageId", "ProjectId");
+
+                    b.HasIndex("RecipientDeviceRegistrationId", "ProjectId");
+
+                    b.HasIndex("SourceDeviceRegistrationId", "ProjectId");
+
+                    b.HasIndex("ProjectId", "SourceDeviceRegistrationId", "SourceBatchId", "CurrentImporterId", "ContentHash")
+                        .IsUnique();
+
+                    b.ToTable("OfflineSyncBatches", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineSyncBatches_Immutable");
+
+                            t.HasTrigger("TR_OfflineSyncBatches_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineSyncBatches_AttachedPayload", "([AttachedPayloadJson] IS NULL AND [AttachedPayloadHash] IS NULL) OR ([AttachedPayloadJson] IS NOT NULL AND [AttachedPayloadHash] IS NOT NULL AND ISJSON([AttachedPayloadJson])=1 AND LEN([AttachedPayloadHash])=64 AND [AttachedPayloadHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%' AND DATALENGTH(CONVERT(varchar(max),[AttachedPayloadJson] COLLATE Latin1_General_100_BIN2_UTF8))<=16777216)");
+
+                            t.HasCheckConstraint("CK_OfflineSyncBatches_ContentHash", "LEN([ContentHash])=64 AND [ContentHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineSyncBatches_Recipient", "([PackageId] IS NULL AND [GrantId] IS NULL AND [RecipientDeviceRegistrationId] IS NULL AND [RecipientSignature] IS NULL) OR ([PackageId] IS NOT NULL AND [GrantId] IS NOT NULL AND [RecipientDeviceRegistrationId] IS NOT NULL AND [RecipientSignature] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_OfflineSyncBatches_SignedDescriptorJson", "ISJSON([SignedDescriptorJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineTaskSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AssignmentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<Guid>("DeviceRegistrationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("DownloadedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TaskVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("DeviceRegistrationId", "ProjectId");
+
+                    b.HasIndex("ProjectId", "TaskId", "AssignmentId", "DeviceRegistrationId");
+
+                    b.ToTable("OfflineTaskSnapshots", null, t =>
+                        {
+                            t.HasTrigger("TR_OfflineTaskSnapshots_Immutable");
+
+                            t.HasTrigger("TR_OfflineTaskSnapshots_Scope");
+
+                            t.HasCheckConstraint("CK_OfflineTaskSnapshots_AssignmentHash", "LEN([AssignmentHash])=64 AND [AssignmentHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineTaskSnapshots_ContentHash", "LEN([ContentHash])=64 AND [ContentHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");
+
+                            t.HasCheckConstraint("CK_OfflineTaskSnapshots_SnapshotJson", "ISJSON([SnapshotJson])=1");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Processing.AIDetection", b =>
@@ -4167,6 +5727,96 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.ProjectLifecycleHistoryRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthoritySourceReference")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("BasisReference")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("GrantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Kind")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("LinkedDefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("OperationalClosureId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("ReceiverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RecordedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SourceDisposition")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("LinkedDefectId");
+
+                    b.HasIndex("ObligationId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReceiverId");
+
+                    b.HasIndex("OperationalClosureId", "ProjectId");
+
+                    b.ToTable("ProjectLifecycleHistory", null, t =>
+                        {
+                            t.HasTrigger("TR_ProjectLifecycleHistory_Immutable");
+
+                            t.HasTrigger("TR_ProjectLifecycleHistory_Scope");
+
+                            t.HasCheckConstraint("CK_ProjectLifecycleHistory_Facts", "ISJSON([FactsJson])=1");
+
+                            t.HasCheckConstraint("CK_ProjectLifecycleHistory_Source", "[Kind] IN (1,2,3,4,5,6,7,8) AND [SourceDisposition] IN ('CANDIDATE','TARGET_CONFIRMED') AND ([SourceDisposition]='CANDIDATE' OR LEN([AuthoritySourceReference])>0)");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.ProjectMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4525,6 +6175,1829 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         {
                             t.HasCheckConstraint("CK_RoadSegmentSets_Status", "[Status] IN ('DRAFT','PUBLISHED','SUPERSEDED')");
                         });
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AuthorizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CrewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LocationVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("ObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("Performed")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("PolicyRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("TimeProvenance")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("UnperformedReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("CrewId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("ObligationId");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("ProjectId", "OriginId")
+                        .IsUnique();
+
+                    b.ToTable("RepairAttempts", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairAttempts_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AssessmentFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChecklistVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("EvidenceSufficient")
+                        .HasColumnType("bit");
+
+                    b.Property<byte>("ExecutionAuthority")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("IntakeLinkId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PlanHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<byte>("Role")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("SubmissionContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("IntakeLinkId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("RepairAttemptReviews", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairAttemptReviews_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptSubmissionLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ExecutionFinishId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("FormalRootServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("FormalRootSubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OriginalReviewDueAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("PreviousLinkId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReviewClockId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubmissionContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("ExecutionFinishId");
+
+                    b.HasIndex("FormalRootSubmissionId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("PreviousLinkId")
+                        .IsUnique()
+                        .HasFilter("[PreviousLinkId] IS NOT NULL");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReviewClockId");
+
+                    b.HasIndex("SubmissionId")
+                        .IsUnique();
+
+                    b.ToTable("RepairAttemptSubmissionLinks", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairAttemptSubmissionLinks_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairDangerAcknowledgement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AfterOriginalDue")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("MonitoringId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("WarningId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("MonitoringId");
+
+                    b.HasIndex("WarningId")
+                        .IsUnique();
+
+                    b.ToTable("RepairDangerAcknowledgements", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairDangerAcknowledgements_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairDangerWarning", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MonitoringId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OriginalAcknowledgementDueAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("ResponsibleActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponsibleActorId");
+
+                    b.HasIndex("MonitoringId", "SourceId")
+                        .IsUnique();
+
+                    b.ToTable("RepairDangerWarnings", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairDangerWarnings_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("ObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PreviousObligationHeadDecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<byte>("Result")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("Role")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("SupersedesDecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("ObligationId");
+
+                    b.HasIndex("PreviousObligationHeadDecisionId");
+
+                    b.HasIndex("SupersedesDecisionId")
+                        .IsUnique()
+                        .HasFilter("[SupersedesDecisionId] IS NOT NULL");
+
+                    b.ToTable("RepairDecisions", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairDecisions_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairEligibilityAssessment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Coverage")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset>("EvaluatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MissingReasonsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PolicyContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("PolicyRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("RoadHandover")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("RoadSectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceFactsHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SourceMapping")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("PolicyRevisionId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RoadSectionId");
+
+                    b.ToTable("RepairEligibilityAssessments", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairEligibilityAssessments_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionAuthorization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CrewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("FirstServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("FirstStartOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FirstStartPayloadHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset?>("FirstStartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("IssuedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LocationVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte>("Permission")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("PolicyRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("TimeProvenance")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset?>("VerifiedStartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("CrewId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("IssuedBy");
+
+                    b.HasIndex("PolicyRevisionId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("TaskId")
+                        .IsUnique();
+
+                    b.ToTable("RepairExecutionAuthorizations", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairExecutionAuthorizations_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionFinish", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ClaimedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("ExecutionStartId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OperationOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("TimeProofFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("TimeProvenance")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset?>("VerifiedOriginalAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("ExecutionStartId")
+                        .IsUnique();
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("OperationOriginId");
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("ProjectId", "OriginId")
+                        .IsUnique();
+
+                    b.ToTable("RepairExecutionFinishes", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairExecutionFinishes_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionStart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AssessmentContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthorityFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChecklistVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset>("ClaimedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("EligibilityAssessmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FirstStartId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OperationOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte>("TimeProvenance")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset?>("VerifiedOriginalAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("EligibilityAssessmentId");
+
+                    b.HasIndex("FirstStartId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("OperationOriginId");
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("ProjectId", "OriginId")
+                        .IsUnique();
+
+                    b.ToTable("RepairExecutionStarts", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairExecutionStarts_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("AssignedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AssignmentVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("AuthorizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChecklistVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("CrewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CrsProfileRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("LayoutRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LocationVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("MapPublicationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("ObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PlanHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PolicyContentHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("PolicyRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("RouteVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SegmentSetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SlabId")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TaskVersion")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedBy");
+
+                    b.HasIndex("AssignmentId")
+                        .IsUnique();
+
+                    b.HasIndex("AuthorizationId");
+
+                    b.HasIndex("CrewId");
+
+                    b.HasIndex("CrsProfileRevisionId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("LayoutRevisionId");
+
+                    b.HasIndex("MapPublicationId");
+
+                    b.HasIndex("ObligationId");
+
+                    b.HasIndex("PolicyRevisionId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RouteVersionId");
+
+                    b.HasIndex("SegmentSetId");
+
+                    b.HasIndex("TaskId")
+                        .IsUnique();
+
+                    b.ToTable("RepairFieldTaskBindings", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairFieldTaskBindings_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ApprovedPlanHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset?>("AssignedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("AssignedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CancelledBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChecklistVersion")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("CrewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentAssessmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentAttemptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentBindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentExecutionFinishId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentExecutionStartId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentIntakeLinkId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("EffectiveDecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("EffectiveIntakeSubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("ObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PredecessorItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProposalPlanHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("ProposedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ProposedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RepairPlan")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte>("State")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("SupersededByItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CrewId");
+
+                    b.HasIndex("CurrentAssessmentId");
+
+                    b.HasIndex("CurrentAttemptId");
+
+                    b.HasIndex("CurrentBindingId");
+
+                    b.HasIndex("CurrentExecutionFinishId");
+
+                    b.HasIndex("CurrentExecutionStartId");
+
+                    b.HasIndex("CurrentIntakeLinkId");
+
+                    b.HasIndex("CurrentReviewId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("EffectiveDecisionId");
+
+                    b.HasIndex("EffectiveIntakeSubmissionId");
+
+                    b.HasIndex("ObligationId");
+
+                    b.HasIndex("PackageId");
+
+                    b.HasIndex("PredecessorItemId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SupersededByItemId");
+
+                    b.ToTable("RepairItems", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairItems_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairItemLifecycleEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("AttemptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("ObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("ReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Role")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("SourceVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("SubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("DecisionId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("ObligationId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReviewId");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("RepairItemLifecycleEvents", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairItemLifecycleEvents_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairMeasurementAssessment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("FirstStartId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("FormalSourceSubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LocationFactsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LocationState")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("MissingReasonsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OperationOriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginalActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Readiness")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("ServerReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("FirstStartId");
+
+                    b.HasIndex("FormalSourceSubmissionId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("OperationOriginId");
+
+                    b.HasIndex("OriginalActorId");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("ProjectId", "OriginId")
+                        .IsUnique();
+
+                    b.ToTable("RepairMeasurementAssessments", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairMeasurementAssessments_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairNormalSuccessor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("SourceAssessmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SourceCancellationEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SourceDecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SourceHandoverEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SourceItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TargetItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("ObligationId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SourceAssessmentId");
+
+                    b.HasIndex("SourceCancellationEventId");
+
+                    b.HasIndex("SourceDecisionId");
+
+                    b.HasIndex("SourceHandoverEventId");
+
+                    b.HasIndex("SourceItemId")
+                        .IsUnique();
+
+                    b.HasIndex("TargetItemId")
+                        .IsUnique();
+
+                    b.ToTable("RepairNormalSuccessors", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairNormalSuccessors_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentRepairItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("EffectiveResolutionDecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("EffectiveResolutionHeadDecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Kind")
+                        .HasColumnType("tinyint");
+
+                    b.Property<bool>("Mandatory")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("OriginalCrewFirstStartId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentRepairItemId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("EffectiveResolutionDecisionId");
+
+                    b.HasIndex("EffectiveResolutionHeadDecisionId");
+
+                    b.HasIndex("OriginalCrewFirstStartId");
+
+                    b.HasIndex("PackageId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("RepairObligations", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairObligations_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte?>("DefectStatusAtAnchor")
+                        .HasColumnType("tinyint");
+
+                    b.Property<long>("MutationRevision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("RepairPackages", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairPackages_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentChangeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PublishedRevisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentChangeId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("PublishedRevisionId");
+
+                    b.ToTable("RepairPolicyDrafts", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairPolicyDrafts_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyDraftChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ChecklistVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("DefectTypeCode")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("DraftId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Measurements")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("StopConditions")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("DraftId");
+
+                    b.ToTable("RepairPolicyDraftChanges", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairPolicyDraftChanges_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChecklistVersion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("DefectTypeCode")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("PublishedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StopConditions")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedBy");
+
+                    b.HasIndex("ProjectId", "Revision")
+                        .IsUnique();
+
+                    b.ToTable("RepairPolicyRevisions", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairPolicyRevisions_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairReviewRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("DecisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<byte>("Role")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("DecisionId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("RepairReviewRequests", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairReviewRequests_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyActionSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid>("MeasureId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("MeasureId", "Kind", "OriginId")
+                        .IsUnique();
+
+                    b.ToTable("RepairSafetyActionSources", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairSafetyActionSources_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyCheck", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("EvidenceIds")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Findings")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("MeasureId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Result")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("MeasureId");
+
+                    b.ToTable("RepairSafetyChecks", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairSafetyChecks_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyMonitoring", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentCheckId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FormalObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MeasureId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SafetyObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentCheckId");
+
+                    b.HasIndex("FormalObligationId");
+
+                    b.HasIndex("MeasureId")
+                        .IsUnique();
+
+                    b.HasIndex("SafetyObligationId")
+                        .IsUnique();
+
+                    b.ToTable("RepairSafetyMonitoring", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairSafetyMonitoring_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.SafetyResponsibilityTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Handover")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("MeasureId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("NextActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PreviousActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedBy");
+
+                    b.HasIndex("NextActorId");
+
+                    b.HasIndex("PreviousActorId");
+
+                    b.ToTable("RepairSafetyResponsibilityTransfers", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairSafetyResponsibilityTransfers_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.TemporarySafetyMeasure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CheckSchedule")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("CurrentResponsibilityTransferId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("FirstCheckDueAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("FormalRepairObligationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("InstallationEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("InstalledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("InstalledBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RemovalCondition")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ReplacementCondition")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("ResponsibleActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("FormalRepairObligationId");
+
+                    b.HasIndex("InstalledBy");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ResponsibleActorId");
+
+                    b.HasIndex("Id", "CurrentResponsibilityTransferId");
+
+                    b.ToTable("RepairTemporarySafetyMeasures", null, t =>
+                        {
+                            t.HasTrigger("TR_RepairTemporarySafetyMeasures_Scope");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Reports.Report", b =>
@@ -7100,6 +10573,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("RepairItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("ReviewedByUserId")
@@ -7256,11 +10734,651 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationAuditRow", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage", null)
+                        .WithMany()
+                        .HasForeignKey("OutboxMessageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationAuditRow", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousAuditId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationCalendarRow", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Clocks.DeadlineClock", null)
+                        .WithMany()
+                        .HasForeignKey("ClockId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage", null)
+                        .WithMany()
+                        .HasForeignKey("OutboxMessageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryAttempt", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryRow", null)
+                        .WithMany()
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryRow", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow", null)
+                        .WithMany()
+                        .HasForeignKey("OccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationEventReceipt", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow", null)
+                        .WithMany()
+                        .HasForeignKey("OccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage", null)
+                        .WithOne()
+                        .HasForeignKey("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationEventReceipt", "OutboxMessageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage", null)
+                        .WithMany()
+                        .HasForeignKey("SourceEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationScopeRow", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationAuditRow", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentAuditId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.Notification", null)
+                        .WithOne()
+                        .HasForeignKey("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationScopeRow", "NotificationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow", null)
+                        .WithMany()
+                        .HasForeignKey("OccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.Notification", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineAdmittedFileReference", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActualFileOwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActualUploadedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentImporterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationAdmission", null)
+                        .WithMany()
+                        .HasForeignKey("AdmissionId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRevocation", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RevokedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedCaptureArtifact", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RegisteredBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedPackageRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ParentPackageId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedPackageRecord", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RegisteredBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineEvidenceCaptureReference", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActualUploaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.UploadSession", null)
+                        .WithMany()
+                        .HasForeignKey("UploadSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationAdmission", null)
+                        .WithMany()
+                        .HasForeignKey("AdmissionId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrant", null)
+                        .WithMany()
+                        .HasForeignKey("GrantId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrant", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("IssuedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("SourceActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedPackageRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientDeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrantRevocation", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RevokedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrant", null)
+                        .WithMany()
+                        .HasForeignKey("GrantId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationAdmission", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentImporterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineSyncBatch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrant", null)
+                        .WithMany()
+                        .HasForeignKey("GrantId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationBinding", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("RepairResourceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineTaskSnapshot", null)
+                        .WithMany()
+                        .HasForeignKey("SnapshotId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationResult", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationAdmission", null)
+                        .WithMany()
+                        .HasForeignKey("AdmissionId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineSyncBatch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineOriginTimeVerification", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionOperationOrigin", null)
+                        .WithMany()
+                        .HasForeignKey("CanonicalOriginId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("VerifiedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineOperationBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflinePackageFileReference", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedPackageRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineSyncBatch", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentImporterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineHandoverGrant", null)
+                        .WithMany()
+                        .HasForeignKey("GrantId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineEncryptedPackageRecord", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientDeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Offline.OfflineTaskSnapshot", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Offline.OfflineDeviceRegistration", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceRegistrationId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -7711,6 +11829,47 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.ProjectLifecycleHistoryRecord", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("LinkedDefectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("ObligationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.ProjectLifecycleHistoryRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OperationalClosureId", "ProjectId")
+                        .HasPrincipalKey("Id", "ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.ProjectMember", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
@@ -7816,6 +11975,1757 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("RoadSectionVersionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairAttempt", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany("Attempts")
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("ObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairEvidenceReference", "Evidence", b1 =>
+                        {
+                            b1.Property<Guid>("AttemptId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("FileId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<byte>("Purpose")
+                                .HasColumnType("tinyint");
+
+                            b1.Property<DateTimeOffset?>("CapturedAt")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<string>("FileVersion")
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<string>("Hash")
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)");
+
+                            b1.Property<bool>("Related")
+                                .HasColumnType("bit");
+
+                            b1.Property<Guid?>("ReuseDecisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<bool>("ReusedSource")
+                                .HasColumnType("bit");
+
+                            b1.Property<Guid>("SourceId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("SourceKind")
+                                .IsRequired()
+                                .HasMaxLength(60)
+                                .HasColumnType("nvarchar(60)");
+
+                            b1.Property<bool>("Verified")
+                                .HasColumnType("bit");
+
+                            b1.HasKey("AttemptId", "FileId", "Purpose");
+
+                            b1.HasIndex("FileId");
+
+                            b1.ToTable("RepairAttemptEvidence", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairAttemptEvidence_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.WithOwner()
+                                .HasForeignKey("AttemptId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                                .WithMany()
+                                .HasForeignKey("FileId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Evidence");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptReview", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptSubmissionLink", null)
+                        .WithMany()
+                        .HasForeignKey("IntakeLinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptSubmissionLink", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionFinish", null)
+                        .WithMany()
+                        .HasForeignKey("ExecutionFinishId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("FormalRootSubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptSubmissionLink", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousLinkId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Clocks.DeadlineClock", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewClockId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairDangerAcknowledgement", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyMonitoring", null)
+                        .WithMany("Acknowledgements")
+                        .HasForeignKey("MonitoringId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDangerWarning", null)
+                        .WithMany()
+                        .HasForeignKey("WarningId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairDangerWarning", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyMonitoring", null)
+                        .WithMany("Warnings")
+                        .HasForeignKey("MonitoringId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibleActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany("Decisions")
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("ObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousObligationHeadDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("SupersedesDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.OwnsOne("RoadGuardSystem.BusinessObjects.Repairs.RepairCorrectionBasis", "Basis", b1 =>
+                        {
+                            b1.Property<Guid>("RepairDecisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Text")
+                                .IsRequired()
+                                .HasMaxLength(2000)
+                                .HasColumnType("nvarchar(2000)");
+
+                            b1.HasKey("RepairDecisionId");
+
+                            b1.ToTable("RepairDecisions");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RepairDecisionId");
+
+                            b1.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairEvidenceReference", "Evidence", b2 =>
+                                {
+                                    b2.Property<Guid>("DecisionId")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.Property<Guid>("FileId")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.Property<DateTimeOffset?>("CapturedAt")
+                                        .HasColumnType("datetimeoffset");
+
+                                    b2.Property<string>("FileVersion")
+                                        .HasMaxLength(200)
+                                        .HasColumnType("nvarchar(200)");
+
+                                    b2.Property<string>("Hash")
+                                        .HasMaxLength(64)
+                                        .HasColumnType("nvarchar(64)");
+
+                                    b2.Property<byte>("Purpose")
+                                        .HasColumnType("tinyint");
+
+                                    b2.Property<bool>("Related")
+                                        .HasColumnType("bit");
+
+                                    b2.Property<Guid?>("ReuseDecisionId")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.Property<bool>("ReusedSource")
+                                        .HasColumnType("bit");
+
+                                    b2.Property<Guid>("SourceId")
+                                        .HasColumnType("uniqueidentifier");
+
+                                    b2.Property<string>("SourceKind")
+                                        .IsRequired()
+                                        .HasMaxLength(60)
+                                        .HasColumnType("nvarchar(60)");
+
+                                    b2.Property<bool>("Verified")
+                                        .HasColumnType("bit");
+
+                                    b2.HasKey("DecisionId", "FileId");
+
+                                    b2.HasIndex("FileId");
+
+                                    b2.ToTable("RepairCorrectionEvidence", null, t =>
+                                        {
+                                            t.HasTrigger("TR_RepairCorrectionEvidence_Immutable");
+                                        });
+
+                                    b2.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("DecisionId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                                    b2.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                                        .WithMany()
+                                        .HasForeignKey("FileId")
+                                        .OnDelete(DeleteBehavior.Restrict)
+                                        .IsRequired();
+                                });
+
+                            b1.Navigation("Evidence");
+                        });
+
+                    b.Navigation("Basis");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairEligibilityAssessment", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairMeasurementAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyRevision", null)
+                        .WithMany()
+                        .HasForeignKey("PolicyRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSection", null)
+                        .WithMany()
+                        .HasForeignKey("RoadSectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairEligibilityHandoverSource", "Handovers", b1 =>
+                        {
+                            b1.Property<Guid>("EligibilityAssessmentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("HandoverDocumentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ContentHash")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)");
+
+                            b1.Property<string>("FactsJson")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<Guid?>("FileId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("RowVersion")
+                                .IsRequired()
+                                .HasMaxLength(24)
+                                .HasColumnType("nvarchar(24)");
+
+                            b1.HasKey("EligibilityAssessmentId", "HandoverDocumentId");
+
+                            b1.HasIndex("FileId");
+
+                            b1.HasIndex("HandoverDocumentId");
+
+                            b1.ToTable("RepairEligibilityHandoverSources", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairEligibilityHandoverSources_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.WithOwner()
+                                .HasForeignKey("EligibilityAssessmentId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                                .WithMany()
+                                .HasForeignKey("FileId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Projects.HandoverDocument", null)
+                                .WithMany()
+                                .HasForeignKey("HandoverDocumentId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairEligibilityWarrantySource", "Warranties", b1 =>
+                        {
+                            b1.Property<Guid>("EligibilityAssessmentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("WarrantyId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ContentHash")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)");
+
+                            b1.Property<string>("FactsJson")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<string>("RowVersion")
+                                .IsRequired()
+                                .HasMaxLength(24)
+                                .HasColumnType("nvarchar(24)");
+
+                            b1.Property<Guid?>("SourceDocumentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("EligibilityAssessmentId", "WarrantyId");
+
+                            b1.HasIndex("SourceDocumentId");
+
+                            b1.HasIndex("WarrantyId");
+
+                            b1.ToTable("RepairEligibilityWarrantySources", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairEligibilityWarrantySources_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.WithOwner()
+                                .HasForeignKey("EligibilityAssessmentId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                                .WithMany()
+                                .HasForeignKey("SourceDocumentId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Warranties.Warranty", null)
+                                .WithMany()
+                                .HasForeignKey("WarrantyId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Handovers");
+
+                    b.Navigation("Warranties");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionAuthorization", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("IssuedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyRevision", null)
+                        .WithMany()
+                        .HasForeignKey("PolicyRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionFinish", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionStart", null)
+                        .WithMany()
+                        .HasForeignKey("ExecutionStartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionOperationOrigin", null)
+                        .WithMany()
+                        .HasForeignKey("OperationOriginId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionStart", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairMeasurementAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairEligibilityAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("EligibilityAssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldTaskStartOrigin", null)
+                        .WithMany()
+                        .HasForeignKey("FirstStartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionOperationOrigin", null)
+                        .WithMany()
+                        .HasForeignKey("OperationOriginId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionAuthorization", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.CrsProfileRevision", null)
+                        .WithMany()
+                        .HasForeignKey("CrsProfileRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.PavementLayoutRevision", null)
+                        .WithMany()
+                        .HasForeignKey("LayoutRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.GeometryMapPublication", null)
+                        .WithMany()
+                        .HasForeignKey("MapPublicationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("ObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyRevision", null)
+                        .WithMany()
+                        .HasForeignKey("PolicyRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RouteVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSegmentSet", null)
+                        .WithMany()
+                        .HasForeignKey("SegmentSetId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CrewId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairMeasurementAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentAssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentAttemptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentBindingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionFinish", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentExecutionFinishId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairExecutionStart", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentExecutionStartId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptSubmissionLink", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentIntakeLinkId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptReview", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentReviewId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("EffectiveDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("EffectiveIntakeSubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("ObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPackage", null)
+                        .WithMany("Items")
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("PredecessorItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("SupersededByItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.OwnsOne("RoadGuardSystem.BusinessObjects.Repairs.RepairWorkHandover", "Handover", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTimeOffset>("At")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<Guid>("FromActorId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("ItemId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("PerformedScope")
+                                .IsRequired()
+                                .HasMaxLength(2000)
+                                .HasColumnType("nvarchar(2000)");
+
+                            b1.Property<string>("SafetyState")
+                                .IsRequired()
+                                .HasMaxLength(2000)
+                                .HasColumnType("nvarchar(2000)");
+
+                            b1.Property<Guid>("ToActorId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("FromActorId");
+
+                            b1.HasIndex("ItemId")
+                                .IsUnique();
+
+                            b1.HasIndex("ToActorId");
+
+                            b1.ToTable("RepairWorkHandovers", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairWorkHandovers_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                                .WithMany()
+                                .HasForeignKey("FromActorId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+
+                            b1.WithOwner()
+                                .HasForeignKey("ItemId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                                .WithMany()
+                                .HasForeignKey("ToActorId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Handover");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairItemLifecycleEvent", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("DecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("ObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairAttemptReview", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairMeasurementAssessment", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionAssignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldTaskStartOrigin", null)
+                        .WithMany()
+                        .HasForeignKey("FirstStartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("FormalSourceSubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionOperationOrigin", null)
+                        .WithMany()
+                        .HasForeignKey("OperationOriginId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairAssessmentEvidenceReference", "Evidence", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid?>("ActualUploaderId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("AssessmentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("CaptureFactsJson")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<Guid>("CaptureOriginId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTimeOffset?>("CapturedAt")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<string>("ChecksumSha256")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)");
+
+                            b1.Property<Guid?>("FileId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("FileVersion")
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<string>("MediaType")
+                                .IsRequired()
+                                .HasMaxLength(120)
+                                .HasColumnType("nvarchar(120)");
+
+                            b1.Property<Guid>("OriginalActorId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Purpose")
+                                .IsRequired()
+                                .HasMaxLength(40)
+                                .HasColumnType("nvarchar(40)");
+
+                            b1.Property<Guid?>("ReuseDecisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("StateAtIntake")
+                                .IsRequired()
+                                .HasMaxLength(40)
+                                .HasColumnType("nvarchar(40)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("ActualUploaderId");
+
+                            b1.HasIndex("FileId");
+
+                            b1.HasIndex("OriginalActorId");
+
+                            b1.HasIndex("ReuseDecisionId");
+
+                            b1.HasIndex("AssessmentId", "CaptureOriginId")
+                                .IsUnique();
+
+                            b1.ToTable("RepairAssessmentEvidence", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairAssessmentEvidence_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                                .WithMany()
+                                .HasForeignKey("ActualUploaderId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.WithOwner()
+                                .HasForeignKey("AssessmentId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                                .WithMany()
+                                .HasForeignKey("FileId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                                .WithMany()
+                                .HasForeignKey("OriginalActorId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionEvidenceReuseDecision", null)
+                                .WithMany()
+                                .HasForeignKey("ReuseDecisionId")
+                                .OnDelete(DeleteBehavior.Restrict);
+                        });
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairAssessmentMeasurementReference", "Measurements", b1 =>
+                        {
+                            b1.Property<Guid>("AssessmentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("MeasurementId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("AssessmentId", "MeasurementId");
+
+                            b1.HasIndex("MeasurementId");
+
+                            b1.ToTable("RepairAssessmentMeasurements", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairAssessmentMeasurements_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.WithOwner()
+                                .HasForeignKey("AssessmentId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Inspections.GroundTruthMeasurement", null)
+                                .WithMany()
+                                .HasForeignKey("MeasurementId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Evidence");
+
+                    b.Navigation("Measurements");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairNormalSuccessor", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("ObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairMeasurementAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("SourceAssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItemLifecycleEvent", null)
+                        .WithMany()
+                        .HasForeignKey("SourceCancellationEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldInspectionTaskEvent", null)
+                        .WithMany()
+                        .HasForeignKey("SourceHandoverEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("SourceItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("TargetItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentRepairItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("EffectiveResolutionDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("EffectiveResolutionHeadDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Inspections.FieldTaskStartOrigin", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalCrewFirstStartId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPackage", null)
+                        .WithMany("Obligations")
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("RoadGuardSystem.BusinessObjects.Repairs.RepairActualScope", "Scope", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("From")
+                                .HasPrecision(18, 3)
+                                .HasColumnType("decimal(18,3)");
+
+                            b1.Property<string>("LocationVersion")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<Guid>("ObligationId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("OffsetFrom")
+                                .HasPrecision(18, 3)
+                                .HasColumnType("decimal(18,3)");
+
+                            b1.Property<decimal>("OffsetTo")
+                                .HasPrecision(18, 3)
+                                .HasColumnType("decimal(18,3)");
+
+                            b1.Property<Guid>("PhysicalRoadId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("RouteLabel")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<decimal>("To")
+                                .HasPrecision(18, 3)
+                                .HasColumnType("decimal(18,3)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("ObligationId")
+                                .IsUnique();
+
+                            b1.HasIndex("PhysicalRoadId");
+
+                            b1.ToTable("RepairActualScopes", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairActualScopes_Scope");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ObligationId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSection", null)
+                                .WithMany()
+                                .HasForeignKey("PhysicalRoadId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairObligationResolutionEvent", "ResolutionHistory", b1 =>
+                        {
+                            b1.Property<Guid>("DecisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<bool>("Accepted")
+                                .HasColumnType("bit");
+
+                            b1.Property<DateTimeOffset>("At")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<Guid>("ObligationId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid?>("PreviousHeadDecisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid?>("SupersedesDecisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("DecisionId");
+
+                            b1.HasIndex("ObligationId");
+
+                            b1.HasIndex("PreviousHeadDecisionId");
+
+                            b1.HasIndex("SupersedesDecisionId");
+
+                            b1.ToTable("RepairObligationResolutionEvents", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairObligationResolutionEvents_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                                .WithMany()
+                                .HasForeignKey("DecisionId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+
+                            b1.WithOwner()
+                                .HasForeignKey("ObligationId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                                .WithMany()
+                                .HasForeignKey("PreviousHeadDecisionId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                                .WithMany()
+                                .HasForeignKey("SupersedesDecisionId")
+                                .OnDelete(DeleteBehavior.Restrict);
+                        });
+
+                    b.Navigation("ResolutionHistory");
+
+                    b.Navigation("Scope")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPackage", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyDraft", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyDraftChange", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentChangeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyRevision", "PublishedRevision")
+                        .WithMany()
+                        .HasForeignKey("PublishedRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PublishedRevision");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyDraftChange", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyDraft", null)
+                        .WithMany("Changes")
+                        .HasForeignKey("DraftId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyRevision", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("PublishedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairMeasurementRule", "Measurements", b1 =>
+                        {
+                            b1.Property<Guid>("PolicyRevisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Code")
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<decimal>("Maximum")
+                                .HasPrecision(20, 6)
+                                .HasColumnType("decimal(20,6)");
+
+                            b1.Property<decimal>("Minimum")
+                                .HasPrecision(20, 6)
+                                .HasColumnType("decimal(20,6)");
+
+                            b1.Property<string>("Unit")
+                                .IsRequired()
+                                .HasMaxLength(80)
+                                .HasColumnType("nvarchar(80)");
+
+                            b1.HasKey("PolicyRevisionId", "Code");
+
+                            b1.ToTable("RepairPolicyMeasurementRules", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairPolicyMeasurementRules_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.WithOwner()
+                                .HasForeignKey("PolicyRevisionId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+                        });
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyRevocation", "Revocations", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("ActorId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTimeOffset>("At")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<Guid>("PolicyRevisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Reason")
+                                .IsRequired()
+                                .HasMaxLength(2000)
+                                .HasColumnType("nvarchar(2000)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("ActorId");
+
+                            b1.HasIndex("PolicyRevisionId");
+
+                            b1.ToTable("RepairPolicyRevocations", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairPolicyRevocations_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                                .WithMany()
+                                .HasForeignKey("ActorId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+
+                            b1.WithOwner()
+                                .HasForeignKey("PolicyRevisionId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+                        });
+
+                    b.Navigation("Measurements");
+
+                    b.Navigation("Revocations");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairReviewRequest", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairDecision", null)
+                        .WithMany()
+                        .HasForeignKey("DecisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany("ReviewRequests")
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyActionSource", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.TemporarySafetyMeasure", null)
+                        .WithMany()
+                        .HasForeignKey("MeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyCheck", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.TemporarySafetyMeasure", null)
+                        .WithMany()
+                        .HasForeignKey("MeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyMonitoring", null)
+                        .WithMany("Checks")
+                        .HasForeignKey("MeasureId")
+                        .HasPrincipalKey("MeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyEvidenceReference", "Evidence", b1 =>
+                        {
+                            b1.Property<Guid>("CheckId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("FileId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid?>("ActualUploaderId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTimeOffset?>("CapturedAt")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<string>("FileVersion")
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<string>("Hash")
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)");
+
+                            b1.Property<byte>("Purpose")
+                                .HasColumnType("tinyint");
+
+                            b1.Property<bool>("Related")
+                                .HasColumnType("bit");
+
+                            b1.Property<Guid?>("ReuseDecisionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<bool>("ReusedSource")
+                                .HasColumnType("bit");
+
+                            b1.Property<Guid>("SourceId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("SourceKind")
+                                .IsRequired()
+                                .HasMaxLength(60)
+                                .HasColumnType("nvarchar(60)");
+
+                            b1.Property<bool>("Verified")
+                                .HasColumnType("bit");
+
+                            b1.HasKey("CheckId", "FileId");
+
+                            b1.HasIndex("ActualUploaderId");
+
+                            b1.HasIndex("FileId");
+
+                            b1.ToTable("RepairSafetyCheckEvidence", null, t =>
+                                {
+                                    t.HasTrigger("TR_RepairSafetyCheckEvidence_Immutable");
+                                });
+
+                            b1.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                                .WithMany()
+                                .HasForeignKey("ActualUploaderId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.WithOwner()
+                                .HasForeignKey("CheckId").Metadata.DeleteBehavior = DeleteBehavior.Restrict;
+
+                            b1.HasOne("RoadGuardSystem.BusinessObjects.Files.StoredFile", null)
+                                .WithMany()
+                                .HasForeignKey("FileId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.Navigation("Evidence");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyMonitoring", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyCheck", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentCheckId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", "FormalObligation")
+                        .WithMany()
+                        .HasForeignKey("FormalObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.TemporarySafetyMeasure", "Measure")
+                        .WithMany()
+                        .HasForeignKey("MeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", "SafetyObligation")
+                        .WithMany()
+                        .HasForeignKey("SafetyObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FormalObligation");
+
+                    b.Navigation("Measure");
+
+                    b.Navigation("SafetyObligation");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.SafetyResponsibilityTransfer", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.TemporarySafetyMeasure", null)
+                        .WithMany("Transfers")
+                        .HasForeignKey("MeasureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("NextActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.TemporarySafetyMeasure", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairObligation", null)
+                        .WithMany()
+                        .HasForeignKey("FormalRepairObligationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("InstalledBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibleActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.SafetyResponsibilityTransfer", null)
+                        .WithMany()
+                        .HasForeignKey("Id", "CurrentResponsibilityTransferId")
+                        .HasPrincipalKey("MeasureId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Reports.Report", b =>
@@ -8725,6 +14635,41 @@ namespace RoadGuardSystem.cRepositories.Migrations
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.UserSession", b =>
                 {
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", b =>
+                {
+                    b.Navigation("Attempts");
+
+                    b.Navigation("Decisions");
+
+                    b.Navigation("ReviewRequests");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPackage", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Obligations");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairPolicyDraft", b =>
+                {
+                    b.Navigation("Changes");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.RepairSafetyMonitoring", b =>
+                {
+                    b.Navigation("Acknowledgements");
+
+                    b.Navigation("Checks");
+
+                    b.Navigation("Warnings");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Repairs.TemporarySafetyMeasure", b =>
+                {
+                    b.Navigation("Transfers");
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Reports.Report", b =>

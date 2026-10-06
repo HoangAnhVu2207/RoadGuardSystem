@@ -38,7 +38,14 @@ public sealed partial class UploadPersistenceService
             if (membership is null || membership.Status != ProjectMemberStatus.Active || membership.RoleCode != user.RoleCode || membership.ValidFrom > today || membership.ValidTo < today)
                 throw new UploadNotFoundException();
         }
-        if(FieldPurpose(scope.Purpose))await GuardFieldScopeAsync(actor,project,scope.TargetId,scope.Purpose,freshFieldUpload,token);
+        if(FieldPurpose(scope.Purpose))
+        {
+            if (await _context.Set<RoadGuardSystem.BusinessObjects.Offline.OfflineEvidenceCaptureReference>().AnyAsync(row => row.FileId == id, token))
+            {
+                if (!await IsCurrentOfflineFileActorAsync(actor,user.RoleCode,id,token)) throw new UploadNotFoundException();
+            }
+            else await GuardFieldScopeAsync(actor,project,scope.TargetId,scope.Purpose,freshFieldUpload,token);
+        }
         if (scope.Purpose is "SURVEY_VIDEO" or "TELEMETRY")
         {
             if (user.RoleCode != UserRoleCode.DroneOperator || scope.TargetId is not { } task) throw new UploadNotFoundException();

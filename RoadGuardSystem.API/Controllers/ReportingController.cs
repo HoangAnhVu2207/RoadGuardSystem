@@ -6,12 +6,14 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoadGuardSystem.API.Middlewares;
+using RoadGuardSystem.API.Authentication;
 using RoadGuardSystem.DTOs.Reporting;
 using RoadGuardSystem.Services.Reporting;
 
 namespace RoadGuardSystem.API.Controllers;
 
 [ApiController, ApiVersion("1.0"), Authorize, Route("api/v{version:apiVersion}/projects/{projectId:guid}/reports")]
+[WebCookieEligible]
 public sealed class ReportingController(IReportingService service) : ControllerBase
 {
     [HttpGet("summary")]

@@ -24,4 +24,5 @@ public interface IExportRepository
     Task FailAsync(ExportClaim claim, string code, bool permanent, CancellationToken ct);
     Task<StoredFile?> GetSourceFileAsync(Guid fileId, CancellationToken ct);
     Task<bool> CanReadSurveySourcesAsync(Guid projectId, Guid[] fileIds, CancellationToken ct);
+    Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId, ExportSourceAuthorityQuery query, CancellationToken ct);
 }

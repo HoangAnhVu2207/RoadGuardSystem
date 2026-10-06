@@ -105,6 +105,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
         services.AddScoped<IInspectionTaskQueryService, InspectionTaskQueryService>();
         services.AddScoped<IFieldInspectionWorkflowService, FieldInspectionWorkflowService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairWorkflowService, RoadGuardSystem.Services.Implementations.Repairs.RepairWorkflowService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairProducerService, RoadGuardSystem.Services.Implementations.Repairs.RepairProducerService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairExecutionService, RoadGuardSystem.Services.Implementations.Repairs.RepairExecutionService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairPolicyService, RoadGuardSystem.Services.Implementations.Repairs.RepairPolicyService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairEligibilityService, RoadGuardSystem.Services.Implementations.Repairs.RepairEligibilityService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairLifecycleService, RoadGuardSystem.Services.Implementations.Repairs.RepairLifecycleService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairSafetyService, RoadGuardSystem.Services.Implementations.Repairs.RepairSafetyService>();
+        services.AddScoped<RoadGuardSystem.Services.Offline.IOfflineWorkflowService, RoadGuardSystem.Services.Offline.OfflineWorkflowService>();
+        services.AddScoped<RoadGuardSystem.Services.Projects.IProjectLifecycleService, RoadGuardSystem.Services.Projects.ProjectLifecycleService>();
         services.AddScoped<ISurveyV2Service, SurveyV2Service>();
         services.AddScoped<ISurveyAssessmentService, SurveyAssessmentService>();
         services.AddScoped<IProcessingV2Service, ProcessingV2Service>();
@@ -116,6 +125,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAnhHuyProducerService, AnhHuyProducerService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddHostedService<ValidationRunWorker>();
+        services.AddScoped<RoadGuardSystem.Services.Messaging.H6NotificationDispatchService>();
+        services.AddScoped<RoadGuardSystem.Services.Messaging.H6NotificationReadService>();
+        services.AddHostedService<RoadGuardSystem.API.Workers.H6NotificationWorker>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProjectAuthorizationMiddlewareResultHandler>();
 

@@ -153,7 +153,7 @@ public sealed class FieldInspectionOperationOriginConfiguration : IEntityTypeCon
         builder.ToTable("FieldInspectionOperationOrigins", table => {
             table.HasTrigger("TR_FieldInspectionOperationOrigins_Immutable");
             table.HasTrigger("TR_FieldInspectionOperationOrigins_Scope");
-            table.HasCheckConstraint("CK_FieldInspectionOperationOrigins_Kind", "[Kind] IN ('FIELD_START','FIELD_SUBMISSION') AND [SchemaVersion]=1");
+            table.HasCheckConstraint("CK_FieldInspectionOperationOrigins_Kind", "[Kind] IN ('FIELD_START','FIELD_SUBMISSION','FIELD_ACCEPT','REPAIR_ASSESSMENT','REPAIR_EXECUTION_START','REPAIR_EXECUTION_FINISH') AND [SchemaVersion]=1");
         });
         builder.HasKey(x=>x.Id);
         builder.Property(x=>x.Id).ValueGeneratedNever();

@@ -7,26 +7,77 @@ using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.DTOs.Inspections;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Integration;
+using RoadGuardSystem.Repositories.Offline;
+using RoadGuardSystem.Repositories.Repairs;
 namespace RoadGuardSystem.Repositories.Implementations.Inspections;
 public sealed partial class FieldInspectionWorkflowRepository
 {
+    // The retained FIELD core owns its original validation and serialization; adapt only the new repair seam.
+    private static GroundTruthMeasurement[] ValidateMeasurements(FieldInspectionTask task, RepairFieldSubmissionData input,
+        Guid session, Guid actor, DateTimeOffset now)
+        => ValidateMeasurements(task, LegacyRepairSubmission(input), session, actor, now);
+    private Task<List<string>> ReadinessAsync(FieldInspectionTask task, RepairFieldSubmissionData input,
+        FieldTaskStartOrigin start, CancellationToken token, Guid? expectedOwner = null,
+        Dictionary<Guid, OfflineEvidenceAdmissionFacts>? resolved = null)
+        => ReadinessAsync(task, LegacyRepairSubmission(input), start, token, expectedOwner, resolved);
+    private Task<ReporterFileFacts> EvidenceFileAsync(FieldInspectionTask task, RepairFieldEvidenceData declaration,
+        CancellationToken token, Guid? expectedOwner = null)
+        => EvidenceFileAsync(task, LegacyRepairEvidence(declaration), token, expectedOwner);
+    private Task<string> CaptureEvidenceFactsAsync(FieldInspectionTask task, RepairFieldEvidenceData declaration,
+        CancellationToken token) => CaptureEvidenceFactsAsync(task, LegacyRepairEvidence(declaration), token);
+    private static FieldEvidenceDeclaration LegacyRepairEvidence(RepairFieldEvidenceData value)
+        => new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256,
+            value.MediaType, value.CapturedAt, value.AttemptChecklist);
+    private static FieldSubmissionInput LegacyRepairSubmission(RepairFieldSubmissionData value)
+        => new(value.OriginId, value.StartOriginId, value.ParentSubmissionId,
+            value.Measurements?.Select(row => row is null ? null! : new FieldMeasurementInput(row.SampleId,
+                row.Type, row.Value, row.State, row.UnknownReason, row.Dimension, row.Unit, row.Longitude,
+                row.Latitude, row.LocationReason, row.Instrument, row.Method, row.Notes)).ToArray(),
+            value.Evidence?.Select(row => row is null ? null! : LegacyRepairEvidence(row)).ToArray(),
+            value.LocationProof is null ? null : new(value.LocationProof.Kind, value.LocationProof.Checklist,
+                value.LocationProof.Longitude, value.LocationProof.Latitude, value.LocationProof.ObservedSlabId,
+                value.LocationProof.ObservedSegmentId, value.LocationProof.ObservedRouteVersionId,
+                value.LocationProof.ObservedChainageMeters), value.CaptureType, value.Repaired,
+            value.UnrepairedReason, value.DeviceId);
     private async Task<FieldWorkflowResult> SubmitAsync(FieldWorkflowCommand c,FieldInspectionTask task,FieldInspectionAssignment assignment,CancellationToken token)
     {
         var input=c.Input as FieldSubmissionInput ?? throw new ArgumentException("Submission input required.");
         var hash=Hash(new{task.Id,input,c.Admission.OriginalActorId});
-        var duplicate=await OriginAsync(c.ProjectId,input.OriginId,"FIELD_SUBMISSION",hash,token);
+        var duplicate=await OriginAsync(c.ProjectId,input.OriginId,"FIELD_SUBMISSION",hash,c.Admission.OriginalActorId,task.Id,token);
         if(duplicate is not null)return new(200,Value:await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(x=>x.Id==duplicate.EffectId,token));
         if(task.Status is not(FieldInspectionTaskStatus.InProgress or FieldInspectionTaskStatus.SupplementRequired))Deny(409,"invalid_state_transition");
         var start=await db.Set<FieldTaskStartOrigin>().SingleOrDefaultAsync(x=>x.Id==input.StartOriginId && x.TaskId==task.Id,token);
         if(start is null)Deny(409,"first_start_required");
         var latest=await db.Set<FieldInspectionSubmission>().Where(x=>x.TaskId==task.Id).OrderByDescending(x=>x.Revision).FirstOrDefaultAsync(token);
         if(latest is null ? input.ParentSubmissionId is not null : input.ParentSubmissionId!=latest.Id)Deny(409,"submission_lineage_conflict");
-        var now=clock.GetUtcNow();var id=Guid.NewGuid();
+        var admitted=await ImportedFactsAsync(c,token);
+        var resolved=new Dictionary<Guid,OfflineEvidenceAdmissionFacts>();
+        if(admitted is not null)
+        {
+            if(evidenceAdmission is null)Deny(403,"signed_evidence_admission_required");
+            foreach(var declaration in input.Evidence??[])
+            {
+                var facts=await evidenceAdmission.ResolveDeclaredEvidenceAsync(c.ProjectId,task.Id,admitted.AdmissionId,
+                    c.Admission.OriginalActorId,new RepairFieldEvidenceData(declaration.CaptureOriginId,declaration.FileId,
+                        declaration.Purpose,declaration.ChecksumSha256,declaration.MediaType,declaration.CapturedAt,
+                        declaration.AttemptChecklist),token);
+                if(facts is not null)
+                {
+                    if(facts.AdmissionId!=admitted.AdmissionId || facts.OriginalActorId!=c.Admission.OriginalActorId ||
+                        !string.Equals(facts.Checksum,declaration.ChecksumSha256,StringComparison.OrdinalIgnoreCase) || facts.Purpose!=declaration.Purpose ||
+                        facts.MediaType!=declaration.MediaType || declaration.FileId is Guid declared && declared!=facts.FileId)
+                        Deny(409,"evidence_version_mismatch");
+                    resolved.Add(declaration.CaptureOriginId,facts);
+                }
+                else if(declaration.FileId is not null)Deny(403,"signed_evidence_admission_required");
+            }
+        }
+        var now=clock.GetUtcNow();var id=admitted?.EffectId??Guid.NewGuid();
         var session=FieldInspectionSession.Create(Guid.NewGuid(),task.Purpose,task.Id,c.ProjectId,task.RoadSectionVersionId,task.SurveyId,
             "FIELD-S-"+Guid.NewGuid().ToString("N"),c.Admission.OriginalActorId,"FIELD inspector",now,null,"FIELD capture",
             FieldInspectionSessionStatus.Completed,null);
         var measurements=ValidateMeasurements(task,input,session.Id,c.Admission.OriginalActorId,now);
-        var missing=await ReadinessAsync(task,input,start,token,c.Admission.OriginalActorId);
+        var missing=await ReadinessAsync(task,input,start,token,c.Admission.OriginalActorId,resolved);
         var row=FieldInspectionSubmission.Create(id,c.ProjectId,task.Id,latest?.RootId??id,latest?.Id,(latest?.Revision??0)+1,
             assignment.Id,start.Id,session.Id,input.OriginId,hash,c.Admission.OriginalActorId,now,JsonSerializer.Serialize(input,Json),
             missing.Count==0?"READY":"INCOMPLETE",JsonSerializer.Serialize(missing,Json));
@@ -34,9 +85,11 @@ public sealed partial class FieldInspectionWorkflowRepository
         db.GroundTruthMeasurements.AddRange(measurements);
         foreach(var declaration in input.Evidence??[])
         {
-            var capture=await CaptureEvidenceFactsAsync(task,declaration,token);
+            resolved.TryGetValue(declaration.CaptureOriginId,out var actual);
+            var capture=actual is null?await CaptureEvidenceFactsAsync(task,declaration,token):
+                await CaptureResolvedEvidenceFactsAsync(task,declaration,actual,token);
             db.Set<FieldInspectionEvidenceLink>().Add(FieldInspectionEvidenceLink.Create(Guid.NewGuid(),c.ProjectId,task.Id,assignment.Id,id,
-                declaration.FileId,declaration.CaptureOriginId,declaration.Purpose,declaration.ChecksumSha256,declaration.MediaType,capture));
+                actual?.FileId??declaration.FileId,declaration.CaptureOriginId,declaration.Purpose,declaration.ChecksumSha256,declaration.MediaType,capture));
         }
         var proof=input.LocationProof;
         db.Set<FieldInspectionLocationProof>().Add(FieldInspectionLocationProof.Create(Guid.NewGuid(),c.ProjectId,task.Id,id,
@@ -70,7 +123,8 @@ public sealed partial class FieldInspectionWorkflowRepository
                 throw new ArgumentException("Malformed evidence declaration.");
         return rows.ToArray();
     }
-    private async Task<List<string>> ReadinessAsync(FieldInspectionTask task,FieldSubmissionInput input,FieldTaskStartOrigin start,CancellationToken token,Guid? expectedOwner=null)
+    private async Task<List<string>> ReadinessAsync(FieldInspectionTask task,FieldSubmissionInput input,FieldTaskStartOrigin start,CancellationToken token,Guid? expectedOwner=null,
+        Dictionary<Guid,OfflineEvidenceAdmissionFacts>? resolved=null)
     {
         var missing=new HashSet<string>(StringComparer.Ordinal);
         if(input.Measurements is null || input.Measurements.Length==0)missing.Add("MEASUREMENT_MISSING");
@@ -120,8 +174,9 @@ public sealed partial class FieldInspectionWorkflowRepository
         if(input.Evidence is null || input.Evidence.Length==0)missing.Add("EVIDENCE_MISSING");
         foreach(var item in input.Evidence??[])
         {
-            if(item.FileId is null){missing.Add("EVIDENCE_UPLOAD_NOT_CREATED");continue;}
-            var file=await EvidenceFileAsync(task,item,token,expectedOwner);
+            var actual=resolved is not null && resolved.TryGetValue(item.CaptureOriginId,out var facts)?facts:null;
+            if(item.FileId is null && actual is null){missing.Add("EVIDENCE_UPLOAD_NOT_CREATED");continue;}
+            var file=await EvidenceFileAsync(task,actual is null?item:item with{FileId=actual.FileId},token,actual?.ActualUploaderId??expectedOwner);
             if(file.State!="VERIFIED")missing.Add("EVIDENCE_PENDING");
             if(input.CaptureType=="REPAIR_CLAIM" && input.Repaired==true && item.Purpose=="AFTER")
             {
@@ -164,6 +219,13 @@ public sealed partial class FieldInspectionWorkflowRepository
         var file=await EvidenceFileAsync(task,declaration,token);
         return JsonSerializer.Serialize(new{declared=declaration,stateAtIntake=file.State,file.FileVersion,file.OwnerId,file.Purpose,file.UploadedAt},Json);
     }
+    private async Task<string> CaptureResolvedEvidenceFactsAsync(FieldInspectionTask task,FieldEvidenceDeclaration declaration,
+        OfflineEvidenceAdmissionFacts admitted,CancellationToken cancellationToken)
+    {
+        var file=await EvidenceFileAsync(task,declaration with{FileId=admitted.FileId},cancellationToken,admitted.ActualUploaderId);
+        return JsonSerializer.Serialize(new{declared=declaration,stateAtIntake=file.State,file.FileVersion,file.OwnerId,file.Purpose,file.UploadedAt,
+            actualFileId=admitted.FileId,offlineAdmission=admitted},Json);
+    }
     private async Task<FieldWorkflowResult> ReviewAsync(FieldWorkflowCommand c,FieldInspectionTask task,CancellationToken token)
     {
         var input=c.Input as FieldReviewInput ?? throw new ArgumentException("Review input required.");
@@ -173,7 +235,22 @@ public sealed partial class FieldInspectionWorkflowRepository
         if(await db.Set<FieldInspectionSubmission>().AnyAsync(x=>x.TaskId==task.Id && x.Revision>row.Revision,token))Deny(409,"submission_lineage_conflict");
         var payload=Decode<FieldSubmissionInput>(row.PayloadJson);
         var start=await db.Set<FieldTaskStartOrigin>().SingleAsync(x=>x.Id==row.StartOriginId,token);
-        if(input.Decision!="SUPPLEMENT" && (await ReadinessAsync(task,payload,start,token,row.OriginalActorId)).Count!=0)Deny(409,"field_result_insufficient");
+        if(input.Decision!="SUPPLEMENT")
+        {
+            var retained=new Dictionary<Guid,OfflineEvidenceAdmissionFacts>();
+            var links=await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().Where(x=>x.SubmissionId==row.Id).ToArrayAsync(token);
+            foreach(var link in links)
+            {
+                using var capture=JsonDocument.Parse(link.CaptureFactsJson);
+                if(!capture.RootElement.TryGetProperty("offlineAdmission",out var admittedJson))continue;
+                if(!capture.RootElement.TryGetProperty("stateAtIntake",out var state) || state.GetString()!="VERIFIED")continue;
+                var admitted=admittedJson.Deserialize<OfflineEvidenceAdmissionFacts>(Json)??throw new JsonException("Missing accepted evidence proof.");
+                if(admitted.FileId!=link.FileId || admitted.OriginalActorId!=row.OriginalActorId || admitted.Checksum!=link.DeclaredChecksum ||
+                    admitted.Purpose!=link.Purpose || admitted.MediaType!=link.MediaType)Deny(409,"evidence_version_mismatch");
+                retained.Add(link.CaptureOriginId,admitted);
+            }
+            if((await ReadinessAsync(task,payload,start,token,row.OriginalActorId,retained)).Count!=0)Deny(409,"field_result_insufficient");
+        }
         var now=clock.GetUtcNow();var review=FieldInspectionReview.Create(Guid.NewGuid(),c.ProjectId,task.Id,row.Id,c.Admission.CallerId,input.Decision,input.Reason,now);
         db.Set<FieldInspectionReview>().Add(review);
         task.Transition(input.Decision=="SUPPLEMENT"?FieldInspectionTaskStatus.SupplementRequired:FieldInspectionTaskStatus.Completed);

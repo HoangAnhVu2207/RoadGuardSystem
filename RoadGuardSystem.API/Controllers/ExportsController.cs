@@ -4,6 +4,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoadGuardSystem.API.Middlewares;
+using RoadGuardSystem.API.Authentication;
 using RoadGuardSystem.DTOs.Exports;
 using RoadGuardSystem.Services.Exports;
 
@@ -11,6 +12,7 @@ namespace RoadGuardSystem.API.Controllers;
 
 [ApiController, ApiVersion("1.0"), Authorize]
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/exports")]
+[WebCookieEligible]
 public sealed class ExportsController(IExportService service) : ControllerBase
 {
     [HttpPost]

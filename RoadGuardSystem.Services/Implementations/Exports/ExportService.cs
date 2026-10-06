@@ -49,7 +49,9 @@ public sealed class ExportService : IExportService
                 if (role is null) return new("forbidden", null);
                 return await CaptureAsync(actorId, role.Value, projectId, normalized, snapshotId, now, token);
             }, ct);
-        return result.Export is null ? new(result.ErrorCode ?? "not_found") : new("success", View(result.Export));
+        if (result.Export is null) return new(result.ErrorCode ?? "not_found");
+        if (!await CanReadSnapshotSourcesAsync(actorId, projectId, ExportSerialization.Read(result.Export.Snapshot), ct)) return new("forbidden");
+        return new("success", View(result.Export));
     }
     public static CreateExportRequestDto? Normalize(CreateExportRequestDto? request)
     {
@@ -113,20 +115,28 @@ public sealed class ExportService : IExportService
     public async Task<ExportResult<ExportJobViewDto>> GetAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct)
     {
         if (await AuthorizeAsync(actorId, projectId, ct) is null) return new("forbidden");
-        var data = await _repo.GetAsync(projectId, exportId, ct); return data is null ? new("not_found") : new("success", View(data));
+        var data = await _repo.GetAsync(projectId, exportId, ct);
+        if (data is null) return new("not_found");
+        return await CanReadSnapshotSourcesAsync(actorId, projectId, ExportSerialization.Read(data.Snapshot), ct)
+            ? new("success", View(data)) : new("forbidden");
     }
     public async Task<ExportResult<ExportManifestV1Dto>> ManifestAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct)
     {
         if (await AuthorizeAsync(actorId, projectId, ct) is null) return new("forbidden");
-        var data = await _repo.GetAsync(projectId, exportId, ct); return data is null ? new("not_found") : new("success", ExportSerialization.Read(data.Snapshot).Manifest with { SnapshotHash = data.Snapshot.Hash });
+        var data = await _repo.GetAsync(projectId, exportId, ct);
+        if (data is null) return new("not_found");
+        var payload = ExportSerialization.Read(data.Snapshot);
+        return await CanReadSnapshotSourcesAsync(actorId, projectId, payload, ct)
+            ? new("success", payload.Manifest with { SnapshotHash = data.Snapshot.Hash }) : new("forbidden");
     }
     public async Task<ExportResult<ExportContentDto>> ContentAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct)
     {
         var role = await AuthorizeAsync(actorId, projectId, ct); if (role is null) return new("forbidden");
         var data = await _repo.GetAsync(projectId, exportId, ct); if (data is null) return new("not_found");
+        var payload = ExportSerialization.Read(data.Snapshot);
+        if (!await CanReadSnapshotSourcesAsync(actorId, projectId, payload, ct)) return new("forbidden");
         if (data.Job.Status != "SUCCEEDED" || data.ArtifactFile is null) return new("export_not_ready");
         if (_clock.GetUtcNow() >= data.Job.ExpiresAt) return new("export_expired");
-        var payload = ExportSerialization.Read(data.Snapshot);
         if (!await CanReadFilesAsync(actorId, role.Value, projectId, payload.Manifest, ct)) return new("forbidden");
         try
         {
@@ -134,11 +144,24 @@ public sealed class ExportService : IExportService
             if (read.Metadata.Sha256 != data.ArtifactFile.Checksum || read.Metadata.SizeBytes != data.ArtifactFile.SizeBytes || read.Metadata.MediaType != data.ArtifactFile.MimeType) { await read.DisposeAsync(); return new("export_storage_unavailable"); }
             // A large disk spool may finish after revocation or expiry. Check again before returning any bytes to HTTP.
             var currentRole = await AuthorizeAsync(actorId, projectId, ct);
-            if (currentRole is null || !await CanReadFilesAsync(actorId, currentRole.Value, projectId, payload.Manifest, ct)) { await read.DisposeAsync(); return new("forbidden"); }
+            if (currentRole is null || !await CanReadSnapshotSourcesAsync(actorId, projectId, payload, ct) ||
+                !await CanReadFilesAsync(actorId, currentRole.Value, projectId, payload.Manifest, ct)) { await read.DisposeAsync(); return new("forbidden"); }
             if (_clock.GetUtcNow() >= data.Job.ExpiresAt) { await read.DisposeAsync(); return new("export_expired"); }
             return new("success", new(read.Content, data.ArtifactFile.MimeType, data.ArtifactFile.OriginalName, read.Metadata.Sha256));
         }
         catch (Exception ex) when (ex is IOException or FileStorageException or HttpRequestException) { return new("export_storage_unavailable"); }
+    }
+    private Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId, ExportSnapshotPayloadDto payload, CancellationToken ct)
+    {
+        if (payload.Manifest.ProjectId != projectId) return Task.FromResult(false);
+        var caseFacts = payload.Dossier?.CaseDefectFacts;
+        var query = new ExportSourceAuthorityQuery(payload.Manifest.ProjectId,
+            payload.Manifest.SourceRevisions.Where(source => source.Kind.StartsWith("Repair", StringComparison.Ordinal))
+                .Select(source => new ExportSourceAuthorityReference(source.Kind, source.Id)).ToArray(),
+            payload.Dossier?.Summary.Metrics.Any(metric => metric.Code == "repairItemsByStatus" && metric.Availability == "AVAILABLE") == true,
+            caseFacts is null ? null : new(caseFacts.ProjectId, caseFacts.Cases.Select(value => value.CaseId).ToArray(),
+                caseFacts.Defects.Select(value => value.DefectId).ToArray()));
+        return _repo.CanReadSnapshotSourcesAsync(actorId, projectId, query, ct);
     }
     private Task<bool> CanReadFilesAsync(Guid actor, UserRoleCode role, Guid project, ExportManifestV1Dto manifest, CancellationToken ct)
     {
@@ -184,6 +207,8 @@ public sealed class ExportService : IExportService
             if (role is null) { await _repo.FailAsync(claim, "export_authority_revoked", true, ct); return true; }
             var payload = ExportSerialization.Read(claim.Snapshot);
             var manifest = payload.Manifest with { SnapshotHash = claim.Snapshot.Hash };
+            if (!await CanReadSnapshotSourcesAsync(claim.RequestedBy, claim.ProjectId, payload, ct))
+            { await _repo.FailAsync(claim, "export_source_access_revoked", true, ct); return true; }
             if (!await CanReadFilesAsync(claim.RequestedBy, role.Value, claim.ProjectId, manifest, ct)) { await _repo.FailAsync(claim, "export_source_access_revoked", true, ct); return true; }
             var key = $"anh02/exports/{claim.Id:D}/{claim.Snapshot.Hash}.{manifest.Format.ToLowerInvariant()}";
             Anh02ArtifactMetadata metadata;
@@ -198,7 +223,8 @@ public sealed class ExportService : IExportService
                 await using var rendered = await _renderer.RenderAsync(payload with { Manifest = manifest }, async (f, token) =>
                 {
                     var currentRole = await AuthorizeAsync(claim.RequestedBy, claim.ProjectId, token);
-                    if (currentRole is null || !await CanReadFilesAsync(claim.RequestedBy, currentRole.Value, claim.ProjectId, manifest, token)) throw new ExportRenderException("export_source_access_revoked");
+                    if (currentRole is null || !await CanReadSnapshotSourcesAsync(claim.RequestedBy, claim.ProjectId, payload, token) ||
+                        !await CanReadFilesAsync(claim.RequestedBy, currentRole.Value, claim.ProjectId, manifest, token)) throw new ExportRenderException("export_source_access_revoked");
                     var source = await _repo.GetSourceFileAsync(f.FileId, token);
                     if (source is null || source.SizeBytes != f.SizeBytes || source.Checksum != f.Sha256 || source.MimeType != f.MediaType) throw new ExportRenderException("export_source_unavailable");
                     if (manifest.Kind == "TRAINING" && manifest.Labels?.Any(label => label.FileId == f.FileId && label.SourceKind == "AI_DETECTION") == true)
@@ -206,6 +232,8 @@ public sealed class ExportService : IExportService
                         try
                         {
                             var frame = await _artifacts.OpenReadAsync(source.StorageUri, token);
+                            try { await RequireCurrentSourceAuthorityAsync(token); }
+                            catch { await frame.DisposeAsync(); throw; }
                             if (frame.Metadata.SizeBytes != f.SizeBytes || frame.Metadata.Sha256 != f.Sha256 || frame.Metadata.MediaType != f.MediaType)
                             {
                                 await frame.DisposeAsync();
@@ -215,7 +243,13 @@ public sealed class ExportService : IExportService
                         }
                         catch (FileNotFoundException) { throw new ExportRenderException("export_source_unavailable"); }
                     }
-                    try { return await _sourceStorage.OpenReadAsync(source.StorageUri, token); }
+                    try
+                    {
+                        var stream = await _sourceStorage.OpenReadAsync(source.StorageUri, token);
+                        try { await RequireCurrentSourceAuthorityAsync(token); }
+                        catch { await stream.DisposeAsync(); throw; }
+                        return stream;
+                    }
                     catch (FileStorageException ex) when (ex.InnerException is Amazon.S3.AmazonS3Exception s3 && s3.StatusCode == System.Net.HttpStatusCode.NotFound) { throw new ExportRenderException("export_source_unavailable"); }
                 }, async token => { if (!await _repo.RenewAsync(claim.Id, claim.Token, token)) throw new ExportRenderException("export_lease_lost"); }, ct);
                 if (!await _repo.RenewAsync(claim.Id, claim.Token, ct)) return true;
@@ -225,8 +259,17 @@ public sealed class ExportService : IExportService
             await _repo.CompleteAsync(claim, metadata, async token =>
             {
                 var current = await AuthorizeAsync(claim.RequestedBy, claim.ProjectId, token);
-                return current.HasValue && await CanReadFilesAsync(claim.RequestedBy, current.Value, claim.ProjectId, manifest, token);
+                return current.HasValue && await CanReadSnapshotSourcesAsync(claim.RequestedBy, claim.ProjectId, payload, token) &&
+                    await CanReadFilesAsync(claim.RequestedBy, current.Value, claim.ProjectId, manifest, token);
             }, ct);
+
+            async Task RequireCurrentSourceAuthorityAsync(CancellationToken token)
+            {
+                var current = await AuthorizeAsync(claim.RequestedBy, claim.ProjectId, token);
+                if (current is null || !await CanReadSnapshotSourcesAsync(claim.RequestedBy, claim.ProjectId, payload, token) ||
+                    !await CanReadFilesAsync(claim.RequestedBy, current.Value, claim.ProjectId, manifest, token))
+                    throw new ExportRenderException("export_source_access_revoked");
+            }
         }
         catch (ExportRenderException ex) { await _repo.FailAsync(claim, ex.Code, ex.Code != "export_lease_lost", ct); }
         catch (InvalidDataException) { await _repo.FailAsync(claim, "export_snapshot_corrupt", true, ct); }

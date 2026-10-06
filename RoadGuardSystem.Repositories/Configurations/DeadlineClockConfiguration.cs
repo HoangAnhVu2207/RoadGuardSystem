@@ -15,7 +15,7 @@ public sealed class DeadlineClockConfiguration : IEntityTypeConfiguration<Deadli
         {
             table.HasTrigger("TR_DeadlineClocks_ImmutableOrigin");
             table.HasCheckConstraint("CK_DeadlineClocks_Kind", "[Kind] BETWEEN 1 AND 10");
-            table.HasCheckConstraint("CK_DeadlineClocks_Times", "[OriginalDueAt]>[OriginAt] AND [CurrentDueAt]>=[OriginalDueAt] AND ([CompletedAt] IS NULL OR [CompletedAt]>=[OriginAt])");
+            table.HasCheckConstraint("CK_DeadlineClocks_Times", "([OriginalDueAt]>[OriginAt] OR ([Kind]=10 AND [OriginalDueAt]=[OriginAt])) AND [CurrentDueAt]>=[OriginalDueAt] AND ([CompletedAt] IS NULL OR [CompletedAt]>=[OriginAt])");
             table.HasCheckConstraint("CK_DeadlineClocks_Acknowledgment", "([AcknowledgedAt] IS NULL AND [AcknowledgedByUserId] IS NULL AND [AcknowledgmentEventId] IS NULL) OR ([Kind]=9 AND [AcknowledgedAt] IS NOT NULL AND [AcknowledgedAt]>=[OriginAt] AND [AcknowledgedByUserId] IS NOT NULL AND [AcknowledgmentEventId] IS NOT NULL AND [CompletedAt] IS NOT NULL AND [CompletedAt]=[AcknowledgedAt])");
         });
         builder.HasKey(x => x.Id);

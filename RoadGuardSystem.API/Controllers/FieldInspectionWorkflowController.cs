@@ -11,7 +11,7 @@ using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Services.Inspections;
 namespace RoadGuardSystem.API.Controllers;
-[ApiController,ApiVersion("1.0"),Authorize]
+[ApiController,ApiVersion("1.0"),Authorize,RoadGuardSystem.API.Authentication.WebCookieEligible]
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/field-inspection-tasks")]
 public sealed class FieldInspectionWorkflowController(IFieldInspectionWorkflowService service,IUploadRepository uploads):ControllerBase
 {

@@ -118,7 +118,8 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
 
         var ordered = references.OrderBy(r => r.Kind, StringComparer.Ordinal).ThenBy(r => r.Id)
             .ThenBy(r => r.ProjectId).ThenBy(r => r.SourceVersion, StringComparer.Ordinal).ToArray();
-        return new(Name, false, ordered, ["HUY_REPAIR_REFERENCE_UNAVAILABLE"]);
+        // H4/H5's persisted evidence tables are inventoried by the adopted HUY02 contributor.
+        return new(Name, true, ordered, []);
     }
 
     public async Task<IReadOnlyList<Guid>> KnownProjectFilesAsync(Guid projectId, CancellationToken token)

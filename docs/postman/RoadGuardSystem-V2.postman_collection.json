@@ -605,6 +605,156 @@
       "key": "h2EffectiveFrom",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "runH4Disposable",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "h4ProjectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4PackageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ItemId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ActorAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ItemETag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4SupersedesDecisionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4OperationKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ReviewReason",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4CorrectionReason",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4CorrectionBasis",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "runH4ProducerDisposable",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "h4ProducerActorAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4DefectETag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4PackageETag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4TaskId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4CreateKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4CreateBodyJson",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ProposeKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ProposeBodyJson",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ApproveKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ApproveBodyJson",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4AssignKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4AssignBodyJson",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4AssessmentKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4AssessmentBodyJson",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ExecutionStartKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ExecutionStartBodyJson",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ExecutionFinishKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h4ExecutionFinishBodyJson",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -12172,6 +12322,2572 @@
                 "type": "text/javascript",
                 "exec": [
                   "const needed=[\"projectId\", \"h3PmAccessToken\", \"h3ConsumerDefectId\", \"h3ConsumerDefectVersion\", \"h3ReviewedTaskId\", \"h3ReviewedSubmissionId\", \"h3ReviewedSubmissionHash\", \"h3ReviewedEvidenceLinkId\", \"h3ConsumerOperationKey\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||pm.variables.get(\"runH3VerifiedConsumer\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "id": "fd3e91cd-b97f-52c8-9d5a-fbdc234c6d56",
+      "name": "94 - H4 correction and immutable history - disposable opt-in",
+      "item": [
+        {
+          "id": "95deaece-698c-5564-8ffa-aadc8d374e5f",
+          "name": "01 Current item and command ETag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Manual disposable fixture only. Use actual scoped package/item and current authorized actor; fixture selectors never grant authority. Correction is current project PM for FT or Supervisor for normal; request is current PM or assigned Crew. Retain exact key/body/item ETag for durable retries. No new repair, closure, recurrence or execution grant is implied."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4PackageId\", \"h4ItemId\", \"h4ActorAccessToken\"];if(pm.variables.get(\"runH4Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200){const b=pm.response.json();const etag=pm.response.headers.get(\"ETag\");if(etag)pm.environment.set(\"h4ItemETag\",etag);if(b.effectiveDecisionId)pm.environment.set(\"h4SupersedesDecisionId\",b.effectiveDecisionId);}",
+                  "pm.test(\"Authorized item result is finite\",()=>{if(pm.response.code===200)pm.expect(pm.response.json().result).to.be.oneOf([\"UNREPAIRED\",\"REPORTED_AWAITING_REVIEW\",\"CONFIRMED\"]);});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "fda8424d-392e-5fee-9e31-25af7c3a49d6",
+          "name": "02 Immutable finite history and representation ETag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/history",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Manual disposable fixture only. Use actual scoped package/item and current authorized actor; fixture selectors never grant authority. Correction is current project PM for FT or Supervisor for normal; request is current PM or assigned Crew. Retain exact key/body/item ETag for durable retries. No new repair, closure, recurrence or execution grant is implied."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4PackageId\", \"h4ItemId\", \"h4ActorAccessToken\"];if(pm.variables.get(\"runH4Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200){const etag=pm.response.headers.get(\"ETag\");pm.test(\"History uses its own representation token\",()=>pm.expect(etag).to.match(/^\"h4-history-v1-[a-f0-9]{64}\"$/));}",
+                  "pm.test(\"History decision results are finite strings\",()=>{if(pm.response.code===200)pm.response.json().decisions.forEach(d=>pm.expect(d.result).to.be.oneOf([\"UNREPAIRED\",\"REPORTED_AWAITING_REVIEW\",\"CONFIRMED\"]));});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "0b410dff-6657-5f94-91b7-ee900ca66e09",
+          "name": "03 Append review request without changing effective decision",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4OperationKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/review-requests",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Manual disposable fixture only. Use actual scoped package/item and current authorized actor; fixture selectors never grant authority. Correction is current project PM for FT or Supervisor for normal; request is current PM or assigned Crew. Retain exact key/body/item ETag for durable retries. No new repair, closure, recurrence or execution grant is implied.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"{{h4ReviewReason}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4PackageId\", \"h4ItemId\", \"h4ActorAccessToken\", \"h4ItemETag\", \"h4OperationKey\", \"h4ReviewReason\"];if(pm.variables.get(\"runH4Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "8fc3fcbe-56d1-5533-a637-b8edd330801d",
+          "name": "04 Append owner-authorized correction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4OperationKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/corrections",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Manual disposable fixture only. Use actual scoped package/item and current authorized actor; fixture selectors never grant authority. Correction is current project PM for FT or Supervisor for normal; request is current PM or assigned Crew. Retain exact key/body/item ETag for durable retries. No new repair, closure, recurrence or execution grant is implied.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supersedesDecisionId\": \"{{h4SupersedesDecisionId}}\",\n  \"result\": \"UNREPAIRED\",\n  \"reason\": \"{{h4CorrectionReason}}\",\n  \"basis\": {\n    \"text\": \"{{h4CorrectionBasis}}\",\n    \"evidenceReferenceIds\": []\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4PackageId\", \"h4ItemId\", \"h4ActorAccessToken\", \"h4ItemETag\", \"h4OperationKey\", \"h4SupersedesDecisionId\", \"h4CorrectionReason\", \"h4CorrectionBasis\"];if(pm.variables.get(\"runH4Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Correction creates or replays a durable decision\",()=>pm.expect(pm.response.code).to.be.oneOf([201,200]));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "id": "18dc6e7b-ad98-576d-868b-f3bbb30e988b",
+      "name": "95 - H4 package and execution producers - disposable opt-in",
+      "item": [
+        {
+          "id": "1f8ee2d1-c4c6-59e0-9d82-20ab72e45fef",
+          "name": "01 PM create package",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4CreateKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4DefectETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ProducerActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{h4CreateBodyJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Disabled disposable fixture. Supply exact typed JSON from RepairWorkflowDtos, genuine source IDs and current required PM/Supervisor/Crew token for this step. Keys are distinct per command and retained unchanged for retries. Copy created resource IDs deliberately after inspecting the response. PRE assessment is not formal intake; HTTP admission evidence alone does not establish physical execution, FT eligibility or external client acceptance. No guessed road coverage/policy/clock extension."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4ProducerActorAccessToken\", \"h4CreateKey\", \"h4CreateBodyJson\", \"h4DefectETag\"];if(pm.variables.get(\"runH4ProducerDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201||pm.response.code===200){const token=pm.response.headers.get(\"ETag\");if(token)pm.environment.set(\"h4PackageETag\",token);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "85244b0d-c0de-53a7-be8f-ea5e9227ab9f",
+          "name": "02 PM propose item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4ProposeKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4PackageETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ProducerActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{h4ProposeBodyJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Disabled disposable fixture. Supply exact typed JSON from RepairWorkflowDtos, genuine source IDs and current required PM/Supervisor/Crew token for this step. Keys are distinct per command and retained unchanged for retries. Copy created resource IDs deliberately after inspecting the response. PRE assessment is not formal intake; HTTP admission evidence alone does not establish physical execution, FT eligibility or external client acceptance. No guessed road coverage/policy/clock extension."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4ProducerActorAccessToken\", \"h4ProposeKey\", \"h4ProposeBodyJson\", \"h4PackageETag\", \"h4PackageId\"];if(pm.variables.get(\"runH4ProducerDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201||pm.response.code===200){const token=pm.response.headers.get(\"ETag\");if(token)pm.environment.set(\"h4ItemETag\",token);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "b59507aa-46d4-5786-835b-ba1c6e9164de",
+          "name": "03 Supervisor approve normal item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4ApproveKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/approve",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ProducerActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{h4ApproveBodyJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Disabled disposable fixture. Supply exact typed JSON from RepairWorkflowDtos, genuine source IDs and current required PM/Supervisor/Crew token for this step. Keys are distinct per command and retained unchanged for retries. Copy created resource IDs deliberately after inspecting the response. PRE assessment is not formal intake; HTTP admission evidence alone does not establish physical execution, FT eligibility or external client acceptance. No guessed road coverage/policy/clock extension."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4ProducerActorAccessToken\", \"h4ApproveKey\", \"h4ApproveBodyJson\", \"h4ItemETag\", \"h4PackageId\", \"h4ItemId\"];if(pm.variables.get(\"runH4ProducerDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201||pm.response.code===200){const token=pm.response.headers.get(\"ETag\");if(token)pm.environment.set(\"h4ItemETag\",token);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "8f848ad9-2d85-5269-8e54-fe5ded9896a3",
+          "name": "04 PM assign native task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4AssignKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/assign",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ProducerActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{h4AssignBodyJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Disabled disposable fixture. Supply exact typed JSON from RepairWorkflowDtos, genuine source IDs and current required PM/Supervisor/Crew token for this step. Keys are distinct per command and retained unchanged for retries. Copy created resource IDs deliberately after inspecting the response. PRE assessment is not formal intake; HTTP admission evidence alone does not establish physical execution, FT eligibility or external client acceptance. No guessed road coverage/policy/clock extension."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4ProducerActorAccessToken\", \"h4AssignKey\", \"h4AssignBodyJson\", \"h4ItemETag\", \"h4PackageId\", \"h4ItemId\"];if(pm.variables.get(\"runH4ProducerDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201||pm.response.code===200){const token=pm.response.headers.get(\"ETag\");if(token)pm.environment.set(\"h4ItemETag\",token);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "aec583df-a45d-5fb8-b075-f32ee73eab05",
+          "name": "05 Crew PRE execution assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4AssessmentKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/tasks/{{h4TaskId}}/assessment",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ProducerActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{h4AssessmentBodyJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Disabled disposable fixture. Supply exact typed JSON from RepairWorkflowDtos, genuine source IDs and current required PM/Supervisor/Crew token for this step. Keys are distinct per command and retained unchanged for retries. Copy created resource IDs deliberately after inspecting the response. PRE assessment is not formal intake; HTTP admission evidence alone does not establish physical execution, FT eligibility or external client acceptance. No guessed road coverage/policy/clock extension."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4ProducerActorAccessToken\", \"h4AssessmentKey\", \"h4AssessmentBodyJson\", \"h4ItemETag\", \"h4PackageId\", \"h4ItemId\", \"h4TaskId\"];if(pm.variables.get(\"runH4ProducerDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201||pm.response.code===200){const token=pm.response.headers.get(\"ETag\");if(token)pm.environment.set(\"h4ItemETag\",token);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "269dec7b-f87f-512b-80be-ae4f07012511",
+          "name": "06 Crew physical execution start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4ExecutionStartKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/tasks/{{h4TaskId}}/execution-start",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ProducerActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{h4ExecutionStartBodyJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Disabled disposable fixture. Supply exact typed JSON from RepairWorkflowDtos, genuine source IDs and current required PM/Supervisor/Crew token for this step. Keys are distinct per command and retained unchanged for retries. Copy created resource IDs deliberately after inspecting the response. PRE assessment is not formal intake; HTTP admission evidence alone does not establish physical execution, FT eligibility or external client acceptance. No guessed road coverage/policy/clock extension."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4ProducerActorAccessToken\", \"h4ExecutionStartKey\", \"h4ExecutionStartBodyJson\", \"h4ItemETag\", \"h4PackageId\", \"h4ItemId\", \"h4TaskId\"];if(pm.variables.get(\"runH4ProducerDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201||pm.response.code===200){const token=pm.response.headers.get(\"ETag\");if(token)pm.environment.set(\"h4ItemETag\",token);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "b687136a-3816-5b4c-9deb-7415eded2b9a",
+          "name": "07 Crew physical execution finish",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h4ExecutionFinishKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/tasks/{{h4TaskId}}/execution-finish",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h4ProducerActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{h4ExecutionFinishBodyJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Disabled disposable fixture. Supply exact typed JSON from RepairWorkflowDtos, genuine source IDs and current required PM/Supervisor/Crew token for this step. Keys are distinct per command and retained unchanged for retries. Copy created resource IDs deliberately after inspecting the response. PRE assessment is not formal intake; HTTP admission evidence alone does not establish physical execution, FT eligibility or external client acceptance. No guessed road coverage/policy/clock extension."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"h4ProducerActorAccessToken\", \"h4ExecutionFinishKey\", \"h4ExecutionFinishBodyJson\", \"h4ItemETag\", \"h4PackageId\", \"h4ItemId\", \"h4TaskId\"];if(pm.variables.get(\"runH4ProducerDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201||pm.response.code===200){const token=pm.response.headers.get(\"ETag\");if(token)pm.environment.set(\"h4ItemETag\",token);}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "96 HUY independent policy safety offline operations (opt-in disposable)",
+      "description": "Local implementation contract. No client/deployment or pending owner activation claim. Select the actual required current PM/Supervisor/Crew token per request. Body variables intentionally have no invented sample source/default. ETags and IDs must be copied deliberately from actual response.",
+      "item": [
+        {
+          "id": "a0cef066-3e8f-50d0-9bd7-91e0c7b57d0c",
+          "name": "01 PM policy draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy01PMpolicydraftKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-policies/drafts",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyPolicyDefinitionJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy01PMpolicydraftKey\", \"huyCurrentActorAccessToken\", \"huyPolicyDefinitionJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "1eb1f7ce-6c4c-53e1-b4c0-507607bcb6c3",
+          "name": "02 PM policy draft read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-policies/drafts/{{huyPolicyDraftId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huyPolicyDraftId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "d940c825-729b-546a-bb1c-5cf3c5556e2f",
+          "name": "03 PM policy draft update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy03PMpolicydraftupdateKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyPolicyDraftETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-policies/drafts/{{huyPolicyDraftId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyPolicyDefinitionJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy03PMpolicydraftupdateKey\", \"huyCurrentActorAccessToken\", \"huyPolicyDefinitionJson\", \"huyPolicyDraftETag\", \"huyPolicyDraftId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "0e434b80-26b2-5344-8a9f-e559748aba95",
+          "name": "04 PM policy publish",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy04PMpolicypublishKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyPolicyDraftETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-policies/drafts/{{huyPolicyDraftId}}/publish",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyPolicyReasonJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy04PMpolicypublishKey\", \"huyCurrentActorAccessToken\", \"huyPolicyDraftETag\", \"huyPolicyDraftId\", \"huyPolicyReasonJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "354e5848-e48c-5845-bb7b-c470330fb67a",
+          "name": "05 PM policy revision read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-policies/revisions/{{huyPolicyRevisionId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huyPolicyRevisionId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "8fdb7b29-2791-5fe3-804d-7876b49dff36",
+          "name": "06 PM policy revoke",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy06PMpolicyrevokeKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyPolicyRevisionETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-policies/revisions/{{huyPolicyRevisionId}}/revoke",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyPolicyReasonJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy06PMpolicyrevokeKey\", \"huyCurrentActorAccessToken\", \"huyPolicyReasonJson\", \"huyPolicyRevisionETag\", \"huyPolicyRevisionId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "d3301327-bc53-5f20-bc07-fe3f4b836bd7",
+          "name": "07 Eligibility actual source read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/eligibility",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huyCurrentActorAccessToken\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "945cfabe-ef2f-56ee-9aa8-992ead7cb936",
+          "name": "08 PM cancellation with performed handover",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy08PMcancellationwithperformedhandoverKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/cancellations",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyCancellationJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemETag\", \"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huy08PMcancellationwithperformedhandoverKey\", \"huyCancellationJson\", \"huyCurrentActorAccessToken\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "f68df463-bf63-563d-895c-e332b48801e7",
+          "name": "09 PM new normal successor plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy09PMnewnormalsuccessorplanKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/normal-successors",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyNormalSuccessorJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemETag\", \"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huy09PMnewnormalsuccessorplanKey\", \"huyCurrentActorAccessToken\", \"huyNormalSuccessorJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "78d8c695-77b7-5098-9508-2ce502892c1e",
+          "name": "10 PM safety setup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy10PMsafetysetupKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h4ItemETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/safety-measures",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huySafetyCreateJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemETag\", \"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huy10PMsafetysetupKey\", \"huyCurrentActorAccessToken\", \"huySafetyCreateJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "bb3948ce-5a56-5a6e-95d2-3ff7db61b162",
+          "name": "11 Safety history read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/safety-measures/{{huySafetyMeasureId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huySafetyMeasureId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "a97c7d38-06d7-559e-9332-204a41ff43ce",
+          "name": "12 Crew safety installation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy12CrewsafetyinstallationKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huySafetyETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/safety-measures/{{huySafetyMeasureId}}/installation",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huySafetyInstallJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huy12CrewsafetyinstallationKey\", \"huyCurrentActorAccessToken\", \"huySafetyETag\", \"huySafetyInstallJson\", \"huySafetyMeasureId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "e112130f-e026-5cd5-ba14-15607256f153",
+          "name": "13 Crew verified safety check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy13CrewverifiedsafetycheckKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huySafetyETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/safety-measures/{{huySafetyMeasureId}}/checks",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huySafetyCheckJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huy13CrewverifiedsafetycheckKey\", \"huyCurrentActorAccessToken\", \"huySafetyCheckJson\", \"huySafetyETag\", \"huySafetyMeasureId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "7dcee88f-5b2a-589c-b77c-71c1f942c040",
+          "name": "14 Crew danger acknowledgement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy14CrewdangeracknowledgementKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huySafetyETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/repair-packages/{{h4PackageId}}/items/{{h4ItemId}}/safety-measures/{{huySafetyMeasureId}}/warnings/{{huySafetyWarningId}}/acknowledgement",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huySafetyAckJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ItemId\", \"h4PackageId\", \"h4ProjectId\", \"huy14CrewdangeracknowledgementKey\", \"huyCurrentActorAccessToken\", \"huySafetyAckJson\", \"huySafetyETag\", \"huySafetyMeasureId\", \"huySafetyWarningId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "eadfe976-5e86-5b46-bade-ffec9a9df5b9",
+          "name": "15 Owner device register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy15OwnerdeviceregisterKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/devices",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyDeviceJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy15OwnerdeviceregisterKey\", \"huyCurrentActorAccessToken\", \"huyDeviceJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "673aeb15-6004-58d3-8a69-a74700cdd895",
+          "name": "16 Owner device read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/devices/{{huyDeviceRegistrationId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huyDeviceRegistrationId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "70cbc3ee-8e5f-566e-bbc0-189d878b6b73",
+          "name": "17 Owner device revoke",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy17OwnerdevicerevokeKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{huyDeviceETag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/devices/{{huyDeviceRegistrationId}}/revoke",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyDeviceRevokeJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy17OwnerdevicerevokeKey\", \"huyCurrentActorAccessToken\", \"huyDeviceETag\", \"huyDeviceRegistrationId\", \"huyDeviceRevokeJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "1a236a4e-7058-5c49-b542-8fc2a7101187",
+          "name": "18 Crew snapshot create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy18CrewsnapshotcreateKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/snapshots",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huySnapshotJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy18CrewsnapshotcreateKey\", \"huyCurrentActorAccessToken\", \"huySnapshotJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "dafa751d-ec4c-594f-b706-366d52b8fb7f",
+          "name": "19 Crew snapshot read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/snapshots/{{huySnapshotId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huySnapshotId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "b54d5c75-bb54-51ec-b75c-da9b399bb5a0",
+          "name": "20 Signed sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy20SignedsyncKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/sync",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huySignedSyncJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy20SignedsyncKey\", \"huyCurrentActorAccessToken\", \"huySignedSyncJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "a18b091a-c056-5a8b-a325-11df6d1524f1",
+          "name": "21 Package export",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy21PackageexportKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/packages/export",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyPackageExportJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy21PackageexportKey\", \"huyCurrentActorAccessToken\", \"huyPackageExportJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "526380ad-5525-55d9-8658-62bf9feeecd1",
+          "name": "22 Package prepare",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy22PackageprepareKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/packages/prepare",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyPackageExportJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy22PackageprepareKey\", \"huyCurrentActorAccessToken\", \"huyPackageExportJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "cdc9ffc2-6a5f-56a7-a038-e05d4bc93ee2",
+          "name": "23 Protected package read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/packages/{{huyOfflinePackageId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huyOfflinePackageId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "c4d41ef3-0d58-51b7-9256-81851568d5e7",
+          "name": "24 Supervisor handover grant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy24SupervisorhandovergrantKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/grants",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyGrantJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy24SupervisorhandovergrantKey\", \"huyCurrentActorAccessToken\", \"huyGrantJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "8d55f9b6-73d7-572b-a3e1-b9313a54a6cb",
+          "name": "25 Protected grant read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/grants/{{huyGrantId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huyGrantId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "213f24d0-6fa4-5d52-aa78-0105c8a3642b",
+          "name": "26 Supervisor grant revoke",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy26SupervisorgrantrevokeKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/grants/{{huyGrantId}}/revoke",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyGrantRevokeJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy26SupervisorgrantrevokeKey\", \"huyCurrentActorAccessToken\", \"huyGrantId\", \"huyGrantRevokeJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "67db0030-2b1b-5fd9-90a8-24dffb4d6ed8",
+          "name": "27 Signed package import",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy27SignedpackageimportKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/import",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyImportJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy27SignedpackageimportKey\", \"huyCurrentActorAccessToken\", \"huyImportJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "38c865f4-68a4-5dae-95eb-8da15fb319b7",
+          "name": "28 Batch acknowledgement read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/batches/{{huyBatchId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyBatchId\", \"huyCurrentActorAccessToken\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "83144d92-1a1b-51f2-8d17-7c3f002d173f",
+          "name": "29 Canonical origin read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/origins/{{huyOriginId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\", \"huyOriginId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "e27179e3-dd9f-571b-a7e1-5eae73132ca4",
+          "name": "30 Original start reconciliation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy30OriginalstartreconciliationKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/starts/reconcile",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyStartReconcileJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy30OriginalstartreconciliationKey\", \"huyCurrentActorAccessToken\", \"huyStartReconcileJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "f73c6ae6-9b3c-5ae5-a4e7-89ae40e14d92",
+          "name": "31 Capture artifact register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy31CaptureartifactregisterKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/artifacts",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyArtifactJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huy31CaptureartifactregisterKey\", \"huyArtifactJson\", \"huyCurrentActorAccessToken\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "fa88b842-a982-570f-991e-9f8ff64d003d",
+          "name": "32 Protected capture artifact read",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/offline/artifacts/{{huyArtifactId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyArtifactId\", \"huyCurrentActorAccessToken\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "c7f09316-f884-5e9a-8d16-145a238950cb",
+          "name": "33 Signed admission upload create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{huy33SignedadmissionuploadcreateKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/offline/uploads",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{huyOfflineUploadJson}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"huy33SignedadmissionuploadcreateKey\", \"huyCurrentActorAccessToken\", \"huyOfflineUploadJson\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "a1ce13fd-034c-534f-a976-242a0aeca116",
+          "name": "34 Intended notification scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/notifications/{{huyNotificationId}}/scope",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"huyCurrentActorAccessToken\", \"huyNotificationId\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "dac0c68c-5784-5717-9c39-d898609ca115",
+          "name": "35 Current scoped clock page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{h4ProjectId}}/clocks?limit=25",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{huyCurrentActorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Disabled by default. Use an isolated disposable project, exact typed DTO JSON and current authorized actor token for this action. Supply real source IDs and quoted ETag; retain each command key across retries. Signed batches/packages must be created by the actual signing producer; no fabricated grant, coverage, CRS, receipt, extension or missed-occurrence policy. A successful request alone does not prove external client adoption."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h4ProjectId\", \"huyCurrentActorAccessToken\"];if(pm.variables.get(\"runHuyIndependentDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite successful contract or explicit protected error\",()=>pm.expect([200,201,400,401,403,404,409,428]).to.include(pm.response.code));",
+                  "if(pm.response.code>=400){pm.test(\"Structured problem\",()=>{pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");pm.expect(pm.response.json()).to.have.property(\"code\");});}"
                 ]
               }
             }

@@ -15,6 +15,7 @@ using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Processing;
 using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.Repositories.Concurrency;
@@ -116,6 +117,13 @@ public class RoadGuardDbContext : DbContext
     public DbSet<FieldInspectionLocationProof> FieldInspectionLocationProofs => Set<FieldInspectionLocationProof>();
     public DbSet<FieldInspectionOperationOrigin> FieldInspectionOperationOrigins => Set<FieldInspectionOperationOrigin>();
 
+    public DbSet<RepairPackage> RepairPackages => Set<RepairPackage>();
+    public DbSet<RepairObligation> RepairObligations => Set<RepairObligation>();
+    public DbSet<RepairItem> RepairItems => Set<RepairItem>();
+    public DbSet<RepairAttempt> RepairAttempts => Set<RepairAttempt>();
+    public DbSet<RepairDecision> RepairDecisions => Set<RepairDecision>();
+    public DbSet<RepairReviewRequest> RepairReviewRequests => Set<RepairReviewRequest>();
+
     public DbSet<DroneDevice> DroneDevices => Set<DroneDevice>();
 
     public DbSet<Project> Projects => Set<Project>();
@@ -174,6 +182,15 @@ public class RoadGuardDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(RoadGuardDbContext).Assembly);
+        Configurations.OfflinePersistenceConfigurations.Configure(modelBuilder);
+        Configurations.ProjectLifecycleHistoryConfiguration.Configure(modelBuilder);
+        Messaging.H6NotificationMappingDraft.Occurrence(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow>());
+        Messaging.H6NotificationMappingDraft.Delivery(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryRow>());
+        Messaging.H6NotificationMappingDraft.Attempt(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryAttempt>());
+        Messaging.H6NotificationMappingDraft.Scope(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationScopeRow>());
+        Messaging.H6NotificationMappingDraft.Audit(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationAuditRow>());
+        Messaging.H6NotificationMappingDraft.Receipt(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationEventReceipt>());
+        Messaging.H6NotificationMappingDraft.Calendar(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationCalendarRow>());
 
         RowVersionConvention.Apply(modelBuilder);
 

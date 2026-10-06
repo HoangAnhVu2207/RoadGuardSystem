@@ -11,33 +11,58 @@ using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Integration;
 using RoadGuardSystem.Repositories.Models.Huy01;
+using RoadGuardSystem.Repositories.Repairs;
 namespace RoadGuardSystem.Repositories.Implementations.Inspections;
 public sealed partial class FieldInspectionWorkflowRepository
 {
+    // Explicit compatibility bridge into the existing FIELD validators; new repair callers use internal contracts.
+    private Task ValidateSourceAsync(Guid project, RepairFieldTaskData input, Guid? ai, CancellationToken token)
+        => ValidateSourceAsync(project, LegacyRepairTask(input), ai, token);
+    private Task ValidatePinsAsync(Guid project, RepairFieldTaskData input, CancellationToken token)
+        => ValidatePinsAsync(project, LegacyRepairTask(input), token);
+    private static FieldTaskCreateInput LegacyRepairTask(RepairFieldTaskData value)
+        => new(value.DefectId, value.DefectVersion, value.SurveyId, value.SourceKind, value.RouteVersionId,
+            value.SegmentSetId, value.LayoutRevisionId, value.SlabId, value.Purpose, value.RequiredMeasurementType,
+            value.MeasurementScope, value.Instructions, value.AssignedToUserId, value.DueAt,
+            value.MapPublicationId, value.CrsProfileRevisionId);
     private async Task<FieldWorkflowResult> ApplyBusinessAsync(FieldWorkflowCommand c,CancellationToken token)
     {
         if(!await db.Projects.AnyAsync(x=>x.Id==c.ProjectId && x.Status==ProjectStatus.Active,token))Deny(409,"project_not_active");
         if(c.Action=="create")return await CreateTaskAsync(c,token);
         var task=await TaskAsync(c.TaskId!.Value,token);
         if(task.LifecycleVersion!=2)Deny(409,"legacy_task_read_only");
+        if((task.TaskMode is "NORMAL" or "CONDITIONAL_FT") && (c.Action is "cancel" or "reassign" or "assign" or "review" or "impact"))
+            Deny(409,"repair_binding_required");
+        var admitted=await ImportedFactsAsync(c,token);
+        if(c.Action=="accept" && admitted is not null)
+        {
+            var replay=await OriginAsync(c.ProjectId,admitted.EffectId,"FIELD_ACCEPT",admitted.CorePayloadHash,c.Admission.OriginalActorId,task.Id,token);
+            if(replay is not null)return new(200,Value:task);
+        }
         if(c.Input is FieldStartInput retryStart)
         {
-            var replay=await OriginAsync(c.ProjectId,retryStart.OriginId,"FIELD_START",Hash(new{task.Id,input=retryStart,c.Admission.OriginalActorId}),token);
+            var replay=await OriginAsync(c.ProjectId,retryStart.OriginId,"FIELD_START",Hash(new{task.Id,input=retryStart,c.Admission.OriginalActorId}),c.Admission.OriginalActorId,task.Id,token);
             if(replay is not null)return new(200,Value:await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleAsync(x=>x.Id==replay.EffectId,token));
         }
         if(c.Input is FieldSubmissionInput retrySubmission)
         {
-            var replay=await OriginAsync(c.ProjectId,retrySubmission.OriginId,"FIELD_SUBMISSION",Hash(new{task.Id,input=retrySubmission,c.Admission.OriginalActorId}),token);
+            var replay=await OriginAsync(c.ProjectId,retrySubmission.OriginId,"FIELD_SUBMISSION",Hash(new{task.Id,input=retrySubmission,c.Admission.OriginalActorId}),c.Admission.OriginalActorId,task.Id,token);
             if(replay is not null)return new(200,Value:await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(x=>x.Id==replay.EffectId,token));
         }
         if(c.ExpectedVersion!=Convert.ToBase64String(task.RowVersion))Deny(409,"concurrency_conflict");
         var assignment=await CurrentAssignmentAsync(task.Id,token);
         if(c.Action is "accept" or "reject" or "start" or "submit")
-            if(assignment is null || assignment.AssignedToUserId!=c.Admission.CallerId)Deny(403,"access_forbidden");
+            if(assignment is null || assignment.AssignedToUserId!=c.Admission.OriginalActorId ||
+                admitted is not null && assignment.Id!=admitted.AssignmentId)Deny(403,"access_forbidden");
         var now=clock.GetUtcNow();
         switch(c.Action)
         {
-            case "accept": task.Transition(FieldInspectionTaskStatus.Accepted);Emit(c,task,assignment,"ACCEPTED",Reason(c.Input),now);break;
+            case "accept":
+                task.Transition(FieldInspectionTaskStatus.Accepted);
+                Emit(c,task,assignment,"ACCEPTED",Reason(c.Input),now,eventId:admitted?.EffectId);
+                if(admitted is not null)db.Add(FieldInspectionOperationOrigin.Create(admitted.EffectId,c.ProjectId,admitted.EffectId,
+                    "FIELD_ACCEPT",admitted.CorePayloadHash,c.Admission.OriginalActorId,admitted.SourceDeviceId,task.Id,admitted.EffectId,now));
+                break;
             case "reject": task.Transition(FieldInspectionTaskStatus.Rejected);assignment!.End(now,Reason(c.Input),true);Emit(c,task,assignment,"REJECTED",Reason(c.Input),now);break;
             case "cancel":
                 var cancelFacts=await HandoverFactsAsync(task,c.Input as FieldTaskActionInput,token);
@@ -137,29 +162,38 @@ public sealed partial class FieldInspectionWorkflowRepository
     {
         var input=c.Input as FieldStartInput ?? throw new ArgumentException("First-start input required.");
         var hash=Hash(new{task.Id,input,c.Admission.OriginalActorId});
-        var duplicate=await OriginAsync(c.ProjectId,input.OriginId,"FIELD_START",hash,token);
+        var duplicate=await OriginAsync(c.ProjectId,input.OriginId,"FIELD_START",hash,c.Admission.OriginalActorId,task.Id,token);
         if(duplicate is not null)return new(200,Value:await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleAsync(x=>x.Id==duplicate.EffectId,token));
         if(task.Status!=FieldInspectionTaskStatus.Accepted)Deny(409,"invalid_state_transition");
         var first=await db.Set<FieldTaskStartOrigin>().SingleOrDefaultAsync(x=>x.TaskId==task.Id,token);
         task.Transition(FieldInspectionTaskStatus.InProgress);
         if(first is not null){Emit(c,task,assignment,"STARTED","Resume immutable first-start after handover",clock.GetUtcNow());return new(200,Value:first);}
-        var now=clock.GetUtcNow();var id=Guid.NewGuid();
+        var admitted=await ImportedFactsAsync(c,token);
+        var now=clock.GetUtcNow();var id=admitted?.EffectId??Guid.NewGuid();
         var origin=FieldTaskStartOrigin.Create(id,c.ProjectId,task.Id,assignment.Id,input.OriginId,hash,c.Admission.OriginalActorId,input.DeviceId,
             input.ClaimedAt,input.MonotonicMilliseconds,input.BootId,now,task.RoadSectionVersionId,task.SegmentSetId,task.LayoutRevisionId,
             c.Admission.TrustedOnlineOrigin,task.MapPublicationId,task.CrsProfileRevisionId,task.SlabId,JsonSerializer.Serialize(new{input.OfflineProof},Json));
         db.AddRange(FieldInspectionOperationOrigin.Create(id,c.ProjectId,input.OriginId,"FIELD_START",hash,c.Admission.OriginalActorId,input.DeviceId,task.Id,id,now),origin);
-        Emit(c,task,assignment,"STARTED","Immutable first FIELD start",now);return new(201,Value:origin);
+        Emit(c,task,assignment,"STARTED","Immutable first FIELD start",now);
+        if(task.TaskMode is "NORMAL" or "CONDITIONAL_FT")
+        {
+            // Existing obligation/auth updates must not precede their new immutable source row.
+            await db.SaveChangesAsync(token);
+            await RecordRepairFirstStartAsync(task,origin,token);
+        }
+        return new(201,Value:origin);
     }
-    private async Task<FieldInspectionOperationOrigin?> OriginAsync(Guid project,Guid origin,string kind,string hash,CancellationToken token)
+    private async Task<FieldInspectionOperationOrigin?> OriginAsync(Guid project,Guid origin,string kind,string hash,Guid originalActor,Guid taskId,CancellationToken token)
     {
         if(origin==Guid.Empty)Deny(400,"validation_error");
+        if(offlineAdmission is not null)await offlineAdmission.GuardOriginBindingAsync(project,origin,kind,hash,originalActor,taskId,token);
         var row=await db.Set<FieldInspectionOperationOrigin>().FromSqlInterpolated($"SELECT * FROM [FieldInspectionOperationOrigins] WITH (UPDLOCK,HOLDLOCK) WHERE [ProjectId]={project} AND [OriginId]={origin}").AsNoTracking().SingleOrDefaultAsync(token);
         if(row is not null && (row.Kind!=kind || row.ContentHash!=hash))Deny(409,"origin_content_conflict");
         return row;
     }
-    private void Emit(FieldWorkflowCommand c,FieldInspectionTask task,FieldInspectionAssignment? assignment,string kind,string reason,DateTimeOffset now,Guid? revision=null,object? facts=null,Guid? impactId=null,Guid? impactDecisionId=null)
+    private void Emit(FieldWorkflowCommand c,FieldInspectionTask task,FieldInspectionAssignment? assignment,string kind,string reason,DateTimeOffset now,Guid? revision=null,object? facts=null,Guid? impactId=null,Guid? impactDecisionId=null,Guid? eventId=null)
     {
-        var id=Guid.NewGuid();db.Set<FieldInspectionTaskEvent>().Add(FieldInspectionTaskEvent.Create(id,c.ProjectId,task.Id,assignment?.Id,c.Admission.CallerId,kind,reason,now,JsonSerializer.Serialize(facts??new{},Json),impactId,impactDecisionId));
+        var id=eventId??Guid.NewGuid();db.Set<FieldInspectionTaskEvent>().Add(FieldInspectionTaskEvent.Create(id,c.ProjectId,task.Id,assignment?.Id,c.Admission.OriginalActorId,kind,reason,now,JsonSerializer.Serialize(facts??new{},Json),impactId,impactDecisionId));
         db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(),c.Admission.CallerId,now,"field_"+kind.ToLowerInvariant(),"FieldInspectionTask",task.Id,null,null,reason,"h3.field",null));
         var messageType=kind switch{"ASSIGNED" or "REASSIGNED"=>"field.task.assigned.v1","SUBMITTED"=>"field.task.submitted.v1","SUPPLEMENT"=>"field.task.supplement_requested.v1",_=>"field.task.lifecycle.v1"};
         db.OutboxMessages.Add(OutboxMessage.Create(id,messageType,now,null,JsonSerializer.Serialize(new{schemaVersion=1,eventId=id,kind,

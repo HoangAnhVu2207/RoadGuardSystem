@@ -7,8 +7,8 @@ using RoadGuardSystem.DTOs.Retention;
 using RoadGuardSystem.Repositories.Retention;
 
 namespace RoadGuardSystem.Repositories.Implementations.Retention;
-/// <summary>Read-only inventory of the two persisted inspection evidence FKs.
-/// Completeness is limited to these tables; repair remains the separate HUY safety signal.
+/// <summary>Read-only inventory of persisted inspection, repair and offline evidence references.
+/// Completeness is limited to the enumerated source tables and verified provenance.
 /// Uses the caller's scoped context/transaction and never admits or deletes evidence.</summary>
 public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) : IRetentionInventoryContributor
 {
@@ -115,6 +115,15 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             references.Add(new("FIELD_BEFORE_REUSE",reuse.Id,reuse.ProjectId,Version(new {reuse.Id,reuse.ProjectId,reuse.TaskId,reuse.FileId,
                 reuse.SourceEvidenceId,reuse.SourceKind,reuse.FileChecksum,reuse.ProvenanceJson,reuse.OccurredAt,reuse.ActorId,reuse.Reason})));
         }
+        var repairOffline = await H4H5RetentionSources.ReadAsync(db, fileId, null, token);
+        foreach (var source in repairOffline)
+        {
+            if (source.ActualChecksum is null || source.DeclaredChecksum is not null &&
+                !string.Equals(source.DeclaredChecksum, source.ActualChecksum, StringComparison.OrdinalIgnoreCase))
+                reasons.Add("H4_H5_EVIDENCE_PROVENANCE_UNRESOLVED");
+            references.Add(new(source.Kind, source.SourceId, source.ProjectId,
+                Version(new { source.FileId, source.FactsJson, source.ActualChecksum })));
+        }
         return new(Name, reasons.Count == 0,
             references.OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.Id).ThenBy(x => x.ProjectId).ToArray(),
             reasons.Order(StringComparer.Ordinal).ToArray());
@@ -130,7 +139,8 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             select measurement.EvidenceFileId!.Value).ToArrayAsync(token);
         var fieldFiles = await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().Where(x => x.ProjectId == projectId && x.FileId != null).Select(x => x.FileId!.Value).ToArrayAsync(token);
         var reuseFiles = await db.Set<FieldInspectionEvidenceReuseDecision>().AsNoTracking().Where(x => x.ProjectId == projectId).Select(x => x.FileId).ToArrayAsync(token);
-        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Distinct().Order().ToArray();
+        var repairOffline = await H4H5RetentionSources.ReadAsync(db, null, projectId, token);
+        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Concat(repairOffline.Select(row => row.FileId)).Distinct().Order().ToArray();
     }
     private static string Version(object facts)
         => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(facts))).ToLowerInvariant();

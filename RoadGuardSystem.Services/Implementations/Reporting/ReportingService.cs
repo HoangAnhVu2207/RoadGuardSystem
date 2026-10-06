@@ -8,7 +8,8 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 namespace RoadGuardSystem.Services.Reporting;
 
 public sealed class ReportingService(IReportingRepository repository, IIdentityRepository identity, IProjectScopeGuard guard, TimeProvider clock,
-    IEnumerable<RoadGuardSystem.Services.Integration.ICaseDefectReadReader>? caseDefectReaders = null) : IReportingService
+    IEnumerable<RoadGuardSystem.Services.Integration.ICaseDefectReadReader>? caseDefectReaders = null,
+    IEnumerable<ICurrentRepairFactsReader>? currentRepairReaders = null) : IReportingService
 {
     public async Task<ReportingResult<ReportingCaptureDto>> CaptureAsync(Guid actor, Guid project, ReportingFiltersDto filters, CancellationToken token)
     {
@@ -35,6 +36,18 @@ public sealed class ReportingService(IReportingRepository repository, IIdentityR
                     }
                 }
                 catch (UnauthorizedAccessException) { return new("access_forbidden"); }
+            }
+            var repairReader=currentRepairReaders?.SingleOrDefault();
+            if(repairReader is not null)
+            {
+                try { capture=CurrentRepairCaptureConsumer.Apply(capture,await repairReader.CaptureAsync(actor,project,normalized,ct)); }
+                catch(UnauthorizedAccessException)
+                {
+                    // Preserve legacy report access without exposing new protected repair facts.
+                    if(!await Authorized(actor,project,ct)) return new("access_forbidden");
+                    capture=CurrentRepairCaptureConsumer.Apply(capture,new(project,[],["REPAIR_PROJECT_AUTHORITY_NOT_VERIFIED"]));
+                }
+                catch(InvalidOperationException) { return new("producer_invalid"); }
             }
             return new("success", capture);
         }, token);

@@ -18,6 +18,7 @@ public sealed class FieldInspectionTaskConfiguration : IEntityTypeConfiguration<
             table.HasTrigger("TR_FieldInspectionTasks_H3Scope");
             table.HasCheckConstraint("CK_FieldInspectionTasks_Source", "([LifecycleVersion]=1 AND [SourceKind]='SURVEY' AND [SurveyId] IS NOT NULL) OR ([LifecycleVersion]=2 AND [Purpose] IN(3,4,5) AND (([SourceKind]='SURVEY' AND [SurveyId] IS NOT NULL) OR ([SourceKind]='REPORTER' AND [SurveyId] IS NULL)))");
             table.HasCheckConstraint("CK_FieldInspectionTasks_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8)");
+            table.HasCheckConstraint("CK_FieldInspectionTasks_RepairMode", "([TaskMode]='MEASURE_ONLY' AND [RepairItemId] IS NULL) OR ([LifecycleVersion]=2 AND [TaskMode] IN('NORMAL','CONDITIONAL_FT') AND [RepairItemId] IS NOT NULL)");
             table.HasCheckConstraint("CK_FieldInspectionTasks_ReviewDecision", "([ReviewDecision] IS NULL AND [ReviewedByUserId] IS NULL AND [ReviewedAt] IS NULL) OR ([ReviewDecision] IS NOT NULL AND [ReviewedByUserId] IS NOT NULL AND [ReviewedAt] IS NOT NULL AND [Status] = 7)");
             table.HasCheckConstraint("CK_FieldInspectionTasks_MeasurementScope_Json", "ISJSON([MeasurementScope]) = 1 AND LEFT(LTRIM([MeasurementScope]), 1) = '{'");
         });
@@ -57,6 +58,7 @@ public sealed class FieldInspectionTaskConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(task => task.ProjectId).HasDatabaseName("IX_FieldInspectionTasks_ProjectId");
         builder.HasOne<Project>().WithMany().HasForeignKey(task => task.ProjectId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Defect>().WithMany().HasForeignKey(task => task.DefectId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<RoadGuardSystem.BusinessObjects.Repairs.RepairItem>().WithMany().HasForeignKey(task => task.RepairItemId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Survey>().WithMany().HasForeignKey(task => task.SurveyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<RoadSectionVersion>().WithMany().HasForeignKey(task => task.RoadSectionVersionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(task => task.AssignedByUserId).OnDelete(DeleteBehavior.Restrict);

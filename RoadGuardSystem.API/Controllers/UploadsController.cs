@@ -55,6 +55,18 @@ public sealed class UploadsController : ControllerBase
         return MapSession(await _service.GetSessionAsync(actorUserId, role, uploadId, cancellationToken), StatusCodes.Status200OK, null);
     }
 
+    [Authorize, RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [HttpPost("offline/uploads")]
+    public async Task<IActionResult> CreateOffline(OfflineUploadCreateRequestDto request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CancellationToken token)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (Request.Headers["Idempotency-Key"].Count != 1 || string.IsNullOrWhiteSpace(idempotencyKey))
+            return ProblemResponse(428, ApiErrorCodes.ValidationError, "One Idempotency-Key is required");
+        return MapSession(await _service.CreateOfflineAsync(actor, role, request, idempotencyKey, CorrelationId(), token),
+            StatusCodes.Status201Created, null);
+    }
+
     [Authorize]
     [HttpPost("uploads/{uploadId:guid}/part-urls")]
     [ProducesResponseType<UploadPartUrlsResponseDto>(StatusCodes.Status200OK)]

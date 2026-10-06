@@ -43,6 +43,20 @@ public sealed class UploadService : IUploadService
         string idempotencyKey,
         Guid? correlationId,
         CancellationToken cancellationToken = default)
+        => await CreateCoreAsync(actorUserId, role, request, idempotencyKey, correlationId, null, cancellationToken);
+
+    public Task<UploadServiceResult> CreateOfflineAsync(Guid actorUserId, UserRoleCode role,
+        OfflineUploadCreateRequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default)
+    {
+        if (request is null || request.AdmissionId == Guid.Empty || request.CaptureOriginId == Guid.Empty ||
+            request.Upload is null || request.Upload.TargetId is null || !IsFieldPurpose(request.Upload.Purpose) ||
+            role is not (UserRoleCode.ProjectManager or UserRoleCode.RepairCrew)) return Task.FromResult(new UploadServiceResult(UploadServiceStatus.InvalidInput));
+        return CreateCoreAsync(actorUserId, role, request.Upload, idempotencyKey, correlationId, request, cancellationToken);
+    }
+
+    private async Task<UploadServiceResult> CreateCoreAsync(Guid actorUserId, UserRoleCode role,
+        UploadCreateRequestDto request, string idempotencyKey, Guid? correlationId,
+        OfflineUploadCreateRequestDto? offline, CancellationToken cancellationToken)
     {
         if (!IsSupportedRole(role) || !IsValidCreate(actorUserId, request, idempotencyKey) || !ValidOptions())
         {
@@ -54,7 +68,7 @@ public sealed class UploadService : IUploadService
             return new(UploadServiceStatus.Forbidden);
         }
 
-        if (IsFieldPurpose(request.Purpose) && (request.TargetId is not Guid fieldTask ||
+        if (offline is null && IsFieldPurpose(request.Purpose) && (request.TargetId is not Guid fieldTask ||
             !await _repository.IsCurrentFieldActorAsync(actorUserId,role,request.ProjectId.Value,fieldTask,request.Purpose.Trim().ToUpperInvariant(),true,cancellationToken)))
             return new(UploadServiceStatus.Forbidden);
 
@@ -68,7 +82,7 @@ public sealed class UploadService : IUploadService
 
         var now = _timeProvider.GetUtcNow();
         var normalized = Normalize(request);
-        var result = await _repository.CreateAsync(new UploadCreatePersistenceRequest(
+        var persistence = new UploadCreatePersistenceRequest(
             actorUserId,
             normalized.ProjectId!.Value,
             normalized.TargetId,
@@ -81,7 +95,11 @@ public sealed class UploadService : IUploadService
             now.AddHours(_options.SessionLifetimeHours),
             idempotencyKey.Trim(),
             Fingerprint($"{normalized.Purpose}|{normalized.ProjectId}|{normalized.TargetId}|{normalized.FileName}|{normalized.MediaType}|{normalized.SizeBytes}|{normalized.ChecksumSha256}"),
-            correlationId), cancellationToken);
+            correlationId);
+        var result = offline is null ? await _repository.CreateAsync(persistence, cancellationToken) :
+            await _repository.CreateOfflineAsync(new(normalized.ProjectId!.Value, normalized.TargetId!.Value,
+                offline.AdmissionId, offline.CaptureOriginId, actorUserId, role,
+                persistence with { RequestFingerprint = Fingerprint($"{persistence.RequestFingerprint}|{offline.AdmissionId:D}|{offline.CaptureOriginId:D}") }), cancellationToken);
         return MapMutation(result);
     }
 
@@ -89,7 +107,8 @@ public sealed class UploadService : IUploadService
     {
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
+            !await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         return new(UploadServiceStatus.Success, ToDto(session));
     }
 
@@ -104,7 +123,8 @@ public sealed class UploadService : IUploadService
         if (string.IsNullOrWhiteSpace(idempotencyKey) || request?.PartNumbers is null) return new(UploadServiceStatus.InvalidInput);
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
+            !await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         var now = _timeProvider.GetUtcNow();
         var urlExpiresAt = now.AddMinutes(_options.SignedPutUrlLifetimeMinutes);
         if (urlExpiresAt > session.ExpiresAt)
@@ -147,7 +167,8 @@ public sealed class UploadService : IUploadService
         if (request?.Parts is null || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(UploadServiceStatus.InvalidInput);
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken,
+        if (!await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
+            !await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken,
             requireActiveTask: session.Status is not ("VERIFYING" or "VERIFIED"))) return new(UploadServiceStatus.Forbidden);
         var result = await _repository.CompleteAsync(new UploadCompletePersistenceRequest(
             actorUserId,
@@ -203,7 +224,7 @@ public sealed class UploadService : IUploadService
     }
 
     private async Task<bool> CanReadFileAsync(Guid actor,UserRoleCode role,FileMetadataPersistenceView file,CancellationToken token)
-        => await CanAccessAssetAsync(actor,role,file.ProjectId,file.Purpose,file.TargetId,false,token) ||
+        => await _repository.IsCurrentOfflineFileActorAsync(actor,role,file.Id,token) || await CanAccessAssetAsync(actor,role,file.ProjectId,file.Purpose,file.TargetId,false,token) ||
             (file.ProjectId is Guid project && IsFieldPurpose(file.Purpose) && await _repository.IsCurrentLegacyFieldFileReaderAsync(actor,role,project,file.Id,file.Purpose!,token));
 
     private async Task<bool> CanAccessAssetAsync(Guid actorUserId, UserRoleCode role, Guid? projectId, string? purpose, Guid? targetId, bool mutation, CancellationToken cancellationToken, bool requireActiveTask = true)

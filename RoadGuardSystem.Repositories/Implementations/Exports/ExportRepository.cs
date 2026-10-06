@@ -11,7 +11,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Repositories.Exports;
 
-public sealed class ExportRepository : IExportRepository
+public sealed partial class ExportRepository : IExportRepository
 {
     private readonly RoadGuardDbContext _db;
     private readonly IdempotencyOperationService _idempotency;
@@ -53,6 +53,26 @@ public sealed class ExportRepository : IExportRepository
                     var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
                     if (member is null || member.RoleCode != user.RoleCode || member.Status != ProjectMemberStatus.Active
                         || member.ValidFrom > today || member.ValidTo < today) throw new CaptureException("forbidden");
+                }
+                // The canonical stored export, including conflict/recovery paths, owns source authority.
+                var originalId = await _db.Set<RoadGuardSystem.BusinessObjects.Idempotency.IdempotencyRecord>().AsNoTracking()
+                    .Where(record => record.ActorUserId == actorId && record.ProjectId == projectId &&
+                        record.Operation == "Anh02.Export.Create" && record.IdempotencyKey == key)
+                    .Select(record => (Guid?)record.OperationId).SingleOrDefaultAsync(token);
+                if (originalId is Guid storedId)
+                {
+                    var original = await GetAsync(projectId, storedId, token);
+                    if (original is null) throw new CaptureException("forbidden");
+                    var payload = ExportSerialization.Read(original.Snapshot);
+                    if (payload.Manifest.ProjectId != projectId) throw new CaptureException("forbidden");
+                    var caseFacts = payload.Dossier?.CaseDefectFacts;
+                    var sourceQuery = new ExportSourceAuthorityQuery(payload.Manifest.ProjectId,
+                        payload.Manifest.SourceRevisions.Where(source => source.Kind.StartsWith("Repair", StringComparison.Ordinal))
+                            .Select(source => new ExportSourceAuthorityReference(source.Kind, source.Id)).ToArray(),
+                        payload.Dossier?.Summary.Metrics.Any(metric => metric.Code == "repairItemsByStatus" && metric.Availability == "AVAILABLE") == true,
+                        caseFacts is null ? null : new(caseFacts.ProjectId, caseFacts.Cases.Select(value => value.CaseId).ToArray(),
+                            caseFacts.Defects.Select(value => value.DefectId).ToArray()));
+                    if (!await CanReadSnapshotSourcesAsync(actorId, projectId, sourceQuery, token)) throw new CaptureException("forbidden");
                 }
             });
             if (outcome.Status == IdempotencyOperationStatus.Conflict) return new("idempotency_conflict", null);

@@ -3,7 +3,7 @@ using RoadGuardSystem.DTOs.Inspections;
 
 namespace RoadGuardSystem.Repositories.Inspections;
 public sealed record FieldAdmissionContext(Guid CallerId, UserRoleCode CallerRole, Guid OriginalActorId,
-    string Mode, bool TrustedOnlineOrigin, Guid? HandoverGrantId = null);
+    string Mode, bool TrustedOnlineOrigin, Guid? HandoverGrantId = null, Guid? OfflineAdmissionId = null);
 public sealed record FieldWorkflowCommand(Guid ProjectId, Guid? TaskId, string Action, object? Input,
     string? Key, string? ExpectedVersion, FieldAdmissionContext Admission);
 public interface IFieldInspectionWorkflowRepository
@@ -12,6 +12,9 @@ public interface IFieldInspectionWorkflowRepository
         Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken);
     // Caller already owns the atomic transaction; this is the same finite business core used by direct admission.
     Task<FieldWorkflowResult> ApplyInTransactionAsync(FieldWorkflowCommand command,
+        Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken);
+    // Internal offline command path; preserves canonical input bytes while calling the same transaction core.
+    Task<FieldCoreOutcome> ApplyInternalInTransactionAsync(FieldWorkflowCommand command,
         Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken);
 }
 public sealed record FieldTaskEvidenceFile(Guid FileId,string State,string Checksum,string MediaType,long SizeBytes,

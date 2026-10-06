@@ -14,7 +14,7 @@ public sealed class WebCookieRequestMiddleware(RequestDelegate next)
     {
         if (context.Request.Headers.ContainsKey("Authorization") &&
             context.Request.Cookies.ContainsKey(WebCookieConfiguration.CookieName) &&
-            WebCookieConfiguration.IsCookieEligibleRequest(context.Request.Method, context.Request.Path) &&
+            WebCookieConfiguration.IsCookieEligibleRequest(context) &&
             context.User.Identity?.IsAuthenticated == true)
         {
             var cookie = await context.AuthenticateAsync(WebCookieConfiguration.Scheme);

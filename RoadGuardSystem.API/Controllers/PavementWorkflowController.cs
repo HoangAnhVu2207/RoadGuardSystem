@@ -11,7 +11,7 @@ using RoadGuardSystem.Services.Projects;
 
 namespace RoadGuardSystem.API.Controllers;
 
-[ApiController, ApiVersion("1.0"), Authorize]
+[ApiController, ApiVersion("1.0"), Authorize, RoadGuardSystem.API.Authentication.WebCookieEligible]
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}")]
 public sealed class PavementWorkflowController(IPavementWorkflowService service) : ControllerBase
 {

@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main, anh, huy]
+    branches: [develop, main, anh, huy, huy-review]
   schedule:
     - cron: "0 18 * * *"
   workflow_dispatch:
@@ -206,6 +206,13 @@ jobs:
           }
 
           $dotnetEf = Join-Path $toolPath 'dotnet-ef'
+          & $dotnetEf migrations has-pending-model-changes `
+            --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj `
+            --context RoadGuardDbContext `
+            --no-build
+          if ($LASTEXITCODE -ne 0) {
+            throw 'The candidate model differs from its additive migration snapshot.'
+          }
           & $dotnetEf database update `
             --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj `
             --context RoadGuardDbContext `

@@ -63,6 +63,8 @@ public sealed class H3FieldInspectionServiceTests
         public Task<FieldWorkflowResult> ExecuteAsync(FieldWorkflowCommand command,Func<CancellationToken,Task<bool>> projectGuard,CancellationToken cancellationToken)
         {Command=command;return Task.FromResult(new FieldWorkflowResult(200));}
         public Task<FieldWorkflowResult> ApplyInTransactionAsync(FieldWorkflowCommand command,Func<CancellationToken,Task<bool>> projectGuard,CancellationToken cancellationToken)=>ExecuteAsync(command,projectGuard,cancellationToken);
+        public Task<FieldCoreOutcome> ApplyInternalInTransactionAsync(FieldWorkflowCommand command,Func<CancellationToken,Task<bool>> projectGuard,CancellationToken cancellationToken)
+            => throw new NotSupportedException("Direct FIELD service fixture does not implement offline admission.");
     }
     private sealed class Scope:IProjectScopeGuard
     {

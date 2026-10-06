@@ -102,6 +102,21 @@ public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWor
         return await ProjectAsync(row, token);
     }
 
+    public async Task<DefectViewDto> ApplyFieldVerificationAsync(Guid actor, Guid project, Guid defect, string expectedVersion,
+        DefectVerificationAction action, RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts source,
+        IReadOnlyCollection<Guid> evidenceIds, string reason, Guid? correlation, CancellationToken token)
+    {
+        var row = await LoadCurrentAsync(project, defect, expectedVersion, token);
+        if(source.DefectId!=defect || row.RoadSectionVersionId!=source.RouteVersionId ||
+            source.Decision!=(action==DefectVerificationAction.Confirm?"CONFIRM":"NO_DEFECT"))
+            throw new CaseWorkflowException(409,"source_not_ready");
+        DefectVerificationLog log;
+        try { log=row.DecideFromField(action,source.TaskId,source.SubmissionId,source.ContentHash,evidenceIds,source.EvidenceIds,actor,reason); }
+        catch(InvalidOperationException){throw new CaseWorkflowException(409,"invalid_state_transition");}
+        db.DefectVerificationLogs.Add(log);Audit(actor,defect,"defect_verified_field",reason,correlation);
+        await db.SaveChangesAsync(token);return await ProjectAsync(row,token);
+    }
+
     private async Task<Defect> LoadCurrentAsync(Guid project, Guid defect,
         string expectedVersion, CancellationToken token)
     {

@@ -269,7 +269,8 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         InProgress = 4,
         SupplementRequired = 5,
         Submitted = 6,
-        Completed = 7
+        Completed = 7,
+        Cancelled = 8
     }
 
     public enum FieldInspectionReviewDecision : byte
@@ -291,7 +292,10 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
     {
         Unknown = 0,
         DefectVerification = 1,
-        ResearchValidation = 2
+        ResearchValidation = 2,
+        PreMeasurement = 3,
+        PostRepair = 4,
+        Verification = 5
     }
 
     public enum FieldInspectionSessionStatus : byte
@@ -308,7 +312,8 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Unknown = 0,
         DepressionDepth = 1,
         SlabFaultingHeight = 2,
-        ShoulderErosionExtent = 3
+        ShoulderErosionExtent = 3,
+        Area = 4
     }
 
     public enum QualityCheckScope : byte

@@ -8,7 +8,7 @@ public sealed record DefectAssessmentRequestDto(string? DefectTypeCode, string? 
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record DefectVerificationRequestDto(string? Decision, string? VerificationMethod,
-    Guid[]? EvidenceIds, string? Reason);
+    Guid[]? EvidenceIds, string? Reason, Guid? FieldTaskId = null, Guid? FieldSubmissionId = null, string? FieldContentHash = null);
 
 public sealed record DefectGeometryDto(int Srid, string Wkt);
 public sealed record DefectViewDto(Guid Id, Guid ProjectId, Guid? RoadSectionVersionId,

@@ -22,6 +22,9 @@ public sealed record ResolvedCandidateSourceFacts(CandidateSourceFacts DomainFac
 // transaction/concurrency boundary; a successful preflight read is not a commit lock.
 public interface IAnhHuyProducerService
 {
+    Task<AnhHuyProducerResult<RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts>> ResolveFieldSourceAsync(Guid actorId, UserRoleCode role,
+        Guid projectId, Guid defectId, Guid taskId, Guid submissionId, string expectedContentHash, CancellationToken cancellationToken = default)
+        => Task.FromResult(new AnhHuyProducerResult<RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts>(AnhHuyProducerStatus.SourceNotReady));
     Task<AnhHuyProducerResult<ResolvedEvidenceFacts>> ResolvePrivateEvidenceAsync(Guid actorId, UserRoleCode role,
         Guid fileId, Guid evidenceId, string? expectedFileVersion = null, CancellationToken cancellationToken = default);
     Task<AnhHuyProducerResult<ResolvedEvidenceFacts>> ResolvePublicationEvidenceAsync(Guid actorId, UserRoleCode role,

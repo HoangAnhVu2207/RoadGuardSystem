@@ -174,8 +174,9 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             if(current is not null)
             {
                 var refs=new List<GeometryAffectedReference>();
-                var field=await db.FieldInspectionTasks.AsNoTracking().Where(x=>x.ProjectId==c.ProjectId && x.RoadSectionVersionId==current.Id).Select(x=>x.Id).ToArrayAsync(ct);
-                refs.AddRange(field.Select(x=>new GeometryAffectedReference("FIELD_TASK",x,current.Id,null,"INCOMPLETE",["LEGACY_SEGMENT_SET_UNPINNED"])));
+                var field=await db.FieldInspectionTasks.AsNoTracking().Where(x=>x.ProjectId==c.ProjectId && x.RoadSectionVersionId==current.Id).Select(x=>new {x.Id,x.SegmentSetId}).ToArrayAsync(ct);
+                refs.AddRange(field.Select(x=>new GeometryAffectedReference("FIELD_TASK",x.Id,current.Id,x.SegmentSetId,
+                    x.SegmentSetId.HasValue?"PINNED_REFERENCE":"INCOMPLETE",x.SegmentSetId.HasValue?[]:["LEGACY_SEGMENT_SET_UNPINNED"])));
                 var surveys=await (from scope in db.SurveyRequestScopes.AsNoTracking() join task in db.SurveyRequests.AsNoTracking() on scope.SurveyRequestId equals task.Id where task.ProjectId==c.ProjectId && scope.RouteSectionVersionId==current.Id select new {task.Id,scope.SegmentSetId}).Distinct().ToArrayAsync(ct);
                 refs.AddRange(surveys.Select(x=>new GeometryAffectedReference("SURVEY_TASK",x.Id,current.Id,x.SegmentSetId,"READY",[])));
                 var defects=await db.Defects.AsNoTracking().Where(x=>x.ProjectId==c.ProjectId && x.RoadSectionVersionId==current.Id).Select(x=>x.Id).ToArrayAsync(ct);

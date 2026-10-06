@@ -282,8 +282,9 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
     private async Task<GeometryAffectedReference[]> ImpactReferences(Guid project, Guid route, CancellationToken ct)
     {
         var result = new List<GeometryAffectedReference>();
-        var field = await db.FieldInspectionTasks.AsNoTracking().Where(x => x.ProjectId == project && x.RoadSectionVersionId == route).Select(x => x.Id).ToArrayAsync(ct);
-        result.AddRange(field.Select(x => new GeometryAffectedReference("FIELD_TASK", x, route, null, "INCOMPLETE", ["LEGACY_SEGMENT_SET_UNPINNED"])));
+        var field = await db.FieldInspectionTasks.AsNoTracking().Where(x => x.ProjectId == project && x.RoadSectionVersionId == route).Select(x => new { x.Id, x.SegmentSetId }).ToArrayAsync(ct);
+        result.AddRange(field.Select(x => new GeometryAffectedReference("FIELD_TASK", x.Id, route, x.SegmentSetId,
+            x.SegmentSetId.HasValue ? "PINNED_REFERENCE" : "INCOMPLETE", x.SegmentSetId.HasValue ? [] : ["LEGACY_SEGMENT_SET_UNPINNED"])));
         var survey = await (from scope in db.SurveyRequestScopes.AsNoTracking() join task in db.SurveyRequests.AsNoTracking() on scope.SurveyRequestId equals task.Id
             where task.ProjectId == project && scope.RouteSectionVersionId == route select new { task.Id, scope.SegmentSetId }).Distinct().ToArrayAsync(ct);
         result.AddRange(survey.Select(x => new GeometryAffectedReference("SURVEY_TASK", x.Id, route, x.SegmentSetId, "READY", [])));

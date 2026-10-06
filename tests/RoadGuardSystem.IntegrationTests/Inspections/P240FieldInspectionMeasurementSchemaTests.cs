@@ -60,8 +60,9 @@ public sealed class P240FieldInspectionMeasurementSchemaTests : IClassFixture<Id
 
         (await context.FieldInspectionSessions.AsNoTracking().SingleAsync(item => item.Id == productSession.Id))
             .Purpose.Should().Be(FieldInspectionPurpose.DefectVerification);
-        (await context.GroundTruthMeasurements.AsNoTracking().SingleAsync(item => item.Id == productMeasurement.Id))
-            .Location.SRID.Should().Be(4326);
+        var persistedMeasurement = await context.GroundTruthMeasurements.AsNoTracking().SingleAsync(item => item.Id == productMeasurement.Id);
+        persistedMeasurement.Location.Should().NotBeNull();
+        persistedMeasurement.Location!.SRID.Should().Be(4326);
         (await context.FieldInspectionSessions.AsNoTracking().SingleAsync(item => item.Id == researchSession.Id))
             .FieldInspectionTaskId.Should().BeNull();
         (await context.GroundTruthMeasurements.AsNoTracking().SingleAsync(item => item.Id == researchMeasurement.Id))

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RoadGuardSystem.aBusinessObjects.Commons;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RoadGuardSystem.BusinessObjects.Defects;
 using RoadGuardSystem.BusinessObjects.Identity;
@@ -14,7 +15,9 @@ public sealed class FieldInspectionTaskConfiguration : IEntityTypeConfiguration<
     {
         builder.ToTable("FieldInspectionTasks", table =>
         {
-            table.HasCheckConstraint("CK_FieldInspectionTasks_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7)");
+            table.HasTrigger("TR_FieldInspectionTasks_H3Scope");
+            table.HasCheckConstraint("CK_FieldInspectionTasks_Source", "([LifecycleVersion]=1 AND [SourceKind]='SURVEY' AND [SurveyId] IS NOT NULL) OR ([LifecycleVersion]=2 AND [Purpose] IN(3,4,5) AND (([SourceKind]='SURVEY' AND [SurveyId] IS NOT NULL) OR ([SourceKind]='REPORTER' AND [SurveyId] IS NULL)))");
+            table.HasCheckConstraint("CK_FieldInspectionTasks_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8)");
             table.HasCheckConstraint("CK_FieldInspectionTasks_ReviewDecision", "([ReviewDecision] IS NULL AND [ReviewedByUserId] IS NULL AND [ReviewedAt] IS NULL) OR ([ReviewDecision] IS NOT NULL AND [ReviewedByUserId] IS NOT NULL AND [ReviewedAt] IS NOT NULL AND [Status] = 7)");
             table.HasCheckConstraint("CK_FieldInspectionTasks_MeasurementScope_Json", "ISJSON([MeasurementScope]) = 1 AND LEFT(LTRIM([MeasurementScope]), 1) = '{'");
         });
@@ -27,7 +30,16 @@ public sealed class FieldInspectionTaskConfiguration : IEntityTypeConfiguration<
         builder.Property(task => task.TaskCode).HasColumnType("nvarchar(80)").IsRequired();
         builder.Property(task => task.ProjectId).HasColumnType("uniqueidentifier").IsRequired();
         builder.Property(task => task.DefectId).HasColumnType("uniqueidentifier").IsRequired();
-        builder.Property(task => task.SurveyId).HasColumnType("uniqueidentifier").IsRequired();
+        builder.Property(task => task.SurveyId).HasColumnType("uniqueidentifier");
+        builder.Property(task => task.LifecycleVersion).HasDefaultValue(1);
+        builder.Property(task => task.TaskMode).HasMaxLength(40).HasDefaultValue("MEASURE_ONLY");
+        builder.Property(task => task.SourceKind).HasMaxLength(20).HasDefaultValue("SURVEY");
+        builder.Property(task => task.Purpose).HasConversion<byte>().HasColumnType("tinyint").HasDefaultValue(FieldInspectionPurpose.DefectVerification);
+        builder.Property(task => task.SlabId).HasMaxLength(160);
+        builder.HasOne<GeometryMapPublication>().WithMany().HasForeignKey(x => x.MapPublicationId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<CrsProfileRevision>().WithMany().HasForeignKey(x => x.CrsProfileRevisionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<RoadSegmentSet>().WithMany().HasForeignKey(task => task.SegmentSetId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<PavementLayoutRevision>().WithMany().HasForeignKey(task => task.LayoutRevisionId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(task => task.RoadSectionVersionId).HasColumnType("uniqueidentifier").IsRequired();
         builder.Property(task => task.RequiredMeasurementType).HasColumnType("tinyint").IsRequired();
         builder.Property(task => task.MeasurementScope).HasColumnType("nvarchar(max)").IsRequired();

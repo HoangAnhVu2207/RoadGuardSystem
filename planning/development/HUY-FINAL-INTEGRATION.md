@@ -16,7 +16,8 @@ H1–H7 technical decisions will be recorded before their dependent edits; the r
 
 - Preflight CURRENT_VERIFIED: clean branch, fetched Anh/Huy tips, active rules/module routes and composition/transport inspected.
 - H0 checkpoint 1a442f50dac0d985b944014027a6153f0d7c87e3 committed/pushed: DI/strict cookie routes/problem media fixed. Selective Anh retention runtime integrated with new 20261006015156_H0RetentionIntegration (six tables/three immutable triggers); original Huy migrations unchanged. Snapshot/designer preserve owned evidence Restrict FKs. Latest distinct SQL cases15/15 pass across full15-case run (14 pass/1 corrected fixture failure) and focused1-case rerun.
-- H1 checkpoint ae2b28956052978d357fb7ee6c2ded3e629c6c1a committed/pushed; BE implementation and two self-reviews COMPLETE. Clock milestone producers remain assigned to H3–H6. H2 independent BE implementation VERIFIED, checkpoint follows final checks; official CRS localized PENDING. H3 design/implementation next; H4 isolated foundation preparation; H5 read-only design audit; H6–H7 runtime NOT_STARTED.
+- H1 checkpoint ae2b28956052978d357fb7ee6c2ded3e629c6c1a committed/pushed; BE implementation and two self-reviews COMPLETE. Clock milestone producers remain assigned to H3–H6.
+- H2 checkpoint b9541660575312620b73cd836090f02f5ea90e00 committed/pushed,64files; independent BE implementation VERIFIED, official CRS localized PENDING. H3 design/implementation IN_PROGRESS; H4 isolated foundation preparation (excluded from H2); H5 read-only design audit complete; H6 read-only design audit; H7 runtime NOT_STARTED. H2 stage contained no Repairs paths; initial H3 dirty paths are only authorized untracked Repairs foundation and root spec update.
 - Prior 108 passing tests are HISTORICAL, not fresh results.
 - H0 self-review pass 1 COMPLETE: inspected authority/receipt/fresh-handler transaction locks; fixed missing fresh retention authority locks and active-role read checks. Inspected migration identity equivalence and FK snapshot preservation. External review not performed.
 - H0 self-review pass 2 COMPLETE: verified shared writer/file reservations, selective integration preserving Huy roots/readers/privacy, exact route predicate shared with mixed-actor middleware, and contract/Postman preservation. Found imported request folder lacked its opt-in parent event; restored skipRequest guard. Final diff and shared roots reviewed; build0errors, diffcheck passed; source snapshot changes exactly390 additions/0 deletions; applied migration files unchanged.
@@ -96,9 +97,129 @@ First-start seam pins stable origin ID/hash, project/task/assignment, original a
 
 H5 admission seam separates authenticated current caller/role from immutable original actor/device, origin/schema/hash, DIRECT/SYNC/HANDOVER admission and optional scoped grant. Existing actor-partitioned command receipts alone cannot deduplicate an origin imported by another recipient. A project/origin unique persisted identity binds canonical content and effect, evaluated under current authority; typed router invokes the same finite FIELD/repair business core, with one atomic transaction per operation. Server renewal encryption keys never become device-data recovery keys. H6 source inspection confirms the current inbox is recipient-only and unique by source/event rather than occurrence, and the existing outbox consumer is registered without a real dispatcher. H6 must add proven project scope/backfill, occurrence fan-out receipts and registered leasing/dispatch, preserving unresolved/unsupported events instead of claiming no-op delivery. No H5/H6 runtime completion is claimed by this design.
 
-## Owner clarification — correction authority
+## H3 technical design and writer reservation
+
+H3 evolves FIELD with LifecycleVersion, nullable Survey and actual Survey/Reporter-Defect source discriminator, immutable route/set/layout/slab pins and new operational purposes separate from legacy1/2 verification/research. Existing constructors retain legacy invariants. Named FIELD writer owns the four inspection models/configs, inspection read/query DTO seams, new workflow models/config/repository/service/controller/tests, task-scoped upload/evidence/read guards, actual FIELD producer and Defect consumer, immediate inspection retention null-safety/new references. Narrow Common/Enums.cs delegation appends FIELD purpose3/4/5, Cancelled8 and Area4 without renumbering existing values. Root alone owns shared DbContext/DI/migration/clocks/spec/contracts/Postman. Repairs paths remain H4-only and excluded from H3 checkpoint.
+
+Persist first-start root once per task with project/typed-origin uniqueness independent of importer; retain original actor/device/hash/pins and separate wall/monotonic/boot claims/server intake/server-owned proof. Direct controller constructs trusted online admission; public input cannot assert verified time. Uncertain/backdated/future/reboot claims retain history without execution authority; later source-bound proof preserves original identity/timestamp. Shared typed core accepts caller-owned transaction for H5 reuse.
+
+Submission root and linked immutable revisions retain assignment/start/session, nullable value/location with explicit UNKNOWN reasons, correct unit/dimension and genuine zero. Real pending file uses an FK; capture before upload uses nullable FileId plus required capture origin/checksum/media/purpose declaration. Invalid auth/schema/foreign/private evidence denies; structurally valid incomplete intake immediately persists root/revision/PM24 origin/audit/outbox/receipt atomically. Supplements append and retain original clock/breach. Supplement request is visible AWAITING_RECEIPT with no inferred48h activation.
+
+Task-scoped admission/attach/read/replay locks current actor/project/task/assignment/purpose/version. PM BEFORE reuse decision retains authorized original provenance and exposes only task-redacted Crew facts, never broadens private Reporter access. AFTER must be new actual attempt/checklist capture; timestamp/purpose relabel alone is insufficient. FIELD producer exposes actual readiness/sufficiency/measurement/location/evidence facts; Defect consumer records FIELD method and cannot confirm UNKNOWN/pending/insufficient submissions. Narrow Crew geometry uses actual task pins, not project-wide access/latest map. Cancel/reassign retains performed portion/handover and immutable submissions; retention inventories all new relations and safely handles nullable GPS immediately.
+
+Focused acceptance includes real Reporter noSurvey/UNKNOWN/zero/dimension, purpose and actor/project/evidence denials, incomplete PM24/no reset, origin cross-caller conflicts/time uncertainty, immutable supplements, actual FIELD→Defect consumer, task map/upload/privacy, cancellation/reassignment, locked receipt replay/ACK loss/rollback/concurrency and fresh/populated SQL scope/history/retention. Technical design is authorized; actual verification follows implementation.
+
+Root additionally reserves tests/IntegrationTests/Inspections/H3FieldMigrationTests.cs and the forward H3FieldLifecycleAndIntake migration. Populated upgrade fixture uses actual H2 legacy research session with genuine0mm and WGS84 longitude106/latitude10, protecting exact value/unit/GPS/purpose/legacy UTM profile/history. It is not yet executed. FIELD writer's first six seam reds executed0pass/6intentionalfail; subsequent behavioral/vertical verification pending. H4 isolated foundation latest46/46 domain tests pass after two self-review passes; full H4 persistence/services/authority/repair flows remain pending and all Repairs paths stay outside H3 checkpoint. H6 new domain/DTO/unit foundation preparation is similarly isolated from shared configuration/model/DI and excluded from H3/H4 checkpoint.
+
+### H3 checkpoint evidence and historical attempts
+
+Continuation review: internal read-only peer review found two additional current-authority windows in the FIELD file path: fresh multipart operations reused a historical/read guard after earlier admission, and evidence downloads released storage streams without rechecking after the awaited open. The FIELD writer is separating fresh upload admission from historical receipt access and adding post-open authority/evidence revalidation with disposal on denial. Controlled race verification is IN_PROGRESS; source edits or the peer finding alone are not a passing result. Expanded workflow SQL first executed11 cases (9pass/2fail): one raw-scope assertion expected a later guard instead of the earlier correct session guard, and BEFORE reuse exposed an EF owned-tracking query failure. The assertion and locked AsNoTracking query were corrected; a fresh full rerun remains required. Expanded HTTP first executed2 cases (1pass/1fail) with an incomplete multipart fixture; actual part issuance/current ETag fixture was corrected. Preserve these historical failures separately from the later verified run.
+
+HEAD remains `b9541660575312620b73cd836090f02f5ea90e00` on `huy-review`; dirty H3 sources plus isolated H4/H6 foundation and H7 runbook preparation are preserved. No new checkpoint/production deployment is claimed. Root shared additions are eight DbSets, scoped FIELD repository/service DI, forward migration `20261006035334_H3FieldLifecycleAndIntake`, its source guard partial, model snapshot, migration fixtures, local contract and fourteen guarded Postman requests. H4/H6/runbook paths remain outside the H3 checkpoint.
+
+CURRENT_VERIFIED: root SQL fresh schema and populated H2 legacy upgrade passed2/2, failed0/skipped0 (`TestResults/H3Migration/h3-field-migration-first-green.trx`), command `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore -p:RunAnalyzers=false --filter FullyQualifiedName~H3FieldMigrationTests`. It proves nullable task Survey/measurement value/GPS, canonical project/origin uniqueness, immutable trigger presence, exact genuine0mm/longitude106/latitude10/SRID4326/research purpose2/legacy profileNULL and model parity. Analyzer-disabled compilation is limited evidence; default build remains required. Empty downgrade/forward restoration and populated UNKNOWN downgrade refusal were added after this run and are not yet verified. Earlier migration-test initial compile executed0 tests due nullable legacy assertion; narrow fixture null assertion was corrected. Earlier pre-migration corrected run executed1 intentional missing-migration failure; these failures remain historical.
+
+Forward SQL guards preserve historical purpose1/2 semantics, add lifecycle2 purposes3–5/nullable Survey, write-once task source/mode/geometry pins, immutable eight-table original history, assignment/project/file source scope, start/submission canonical origins and root/parent/revision lineage. SQL scope validation does not replace runtime current authorization. No legacy row is relabeled UNKNOWN or promoted to repair rights. Full actual FIELD producer/consumer, task upload/privacy/geometry, races/replay/rollback and retention checks remain producing acceptance work.
+
+Postman JSON generation preserved every existing HEAD object/info/variable/identifier and appended14 disposable opt-in requests. All18 added scripts passed Node syntax checking. This is tooling verification only; live Postman/client execution remains NOT_VERIFIED. H3 contract section records frozen producing design with IN_PROGRESS status, not full acceptance.
+
+Owner-unlocked H4 correction foundation has executed a new59-case red run:48passed/11expectedfailed/0skipped (`h4-correction-adopted-red.trx`, analyzers disabled). A preceding default compile failed on H3 checksum-culture analyzers and executed0 tests; FIELD source normalization was corrected by its writer. The red foundation does not establish production correction policy acceptance. H4 green source is undergoing focused verification; full correction transaction/adopted current-project authority/reporting/export acceptance follows H3.
+
+Root independent H7 preparation reserves docs/backend/huy-final-release-runbook.md, excluded from H3/H4 checkpoints until final RC source bindings are verified. It records source/configuration/HTTPS/cookie/storage/worker/migration/recovery procedure and preserves50-user metadata p95≤2s/RPO≤15min/RTO≤4h as NOT_VERIFIED without benchmark/restore evidence. It is not a production deployment authorization or an active claim from file presence.
+
+## Final H3 independent BE verification — CURRENT_VERIFIED
+
+Candidate base/HEAD before the normal checkpoint is `huy-review@b9541660575312620b73cd836090f02f5ea90e00`; remote tip was rechecked and matches. H3 runtime/shared schema/contracts/Postman/spec/test paths are authorized changes. Untracked Repairs, Offline, Messaging notification foundation, Reporting inventory preparation and the H7 runbook are preserved outside this checkpoint. No applied migration or Anh/main/develop path is changed.
+
+Latest117 distinct test identities within H3 and its affected regression set pass, failed0/skipped0: Unit39 (H3 domain18/service6/consumer2 plus affected upload13), SQL38 (H3 workflow19 plus migration2; affected legacy P2406 and pavement11), API40 (new FIELD3 plus affected37). TRX sources: `h3-domain-service-consumer-upload-final.trx`, `h3-field-workflow-v2-pair-final.trx`, `h3-root-affected-sql.trx`, `h3-field-http-final-reviewed.trx`, `h3-root-affected-api.trx`. Root executed affected API37 with default compilation and SQL17 with the coherent latest integration DLL; the full H3 SQL21/default analyzers includes the latest migration guards/model parity. Default API build succeeded with zero errors; its incremental zero-warning output does not imply unrelated existing analyzer warnings were removed. Counts are distinct inside this package, not additional identities across H0–H2.
+
+Actual isolated SQL/HTTP evidence covers PM-confirmed Reporter/noSurvey and genuine Survey/AI KeepNew source chains; current task/assignment actor and protected replay/conflict/recovery; known0/UNKNOWN/m²/null GPS and malformed numeric/unit input; immutable first origin/root/supplements and original PM24 intake; actual FIELD producer→Defect consumer; caller-owned transaction and precommit rollback; ACK-loss recovery with revoked-right denial; cross-kind origin races; raw source/actor/purpose/root/session guards; actual pinned impact effects and R15 handover; private BEFORE reuse and current legacy relation-backed reads; null-safe retention and actual V2 validation pairing of known0 versus unknownNULL. Actual multipart completion/presign races deny fresh capability after task completion. Both dedicated FIELD and generic download paths recheck after storage open, dispose on denied authority, and map expected storage failure to503. Storage behavior is mocked; infrastructure/client accuracy is not asserted.
+
+Root self-review pass1 inspected current role/project/task/file authority before admission/replay/recovery, source privacy/provenance, actual source consumers, first origins/intake clocks, handover/impact and atomic effects. Internal peer findings led to fresh multipart guard separation, post-open stream revalidation/disposal, null-safe evidence/reason SQL, legacy/new purpose partition, root/session uniqueness and actor linkage; actual controlled cases verify them. Pass2 inspected old consumer/receipt compatibility, shared migration/model/FK preservation and downgrade refusal, affected nullable consumers, contract/Postman scope and dirty-file reservations. It found the non-FIELD fingerprint regression; a seeded exact prior-shape receipt reproduced409 before the fix, and the restored old serialization shape now replays under current authority. That one compatibility case uses narrow mocked candidate facts with real SQL source locks/receipt/authority; actual FIELD source production/consumption is verified separately. The V2 known0/unknownNULL public consumer regression is real persisted SQL, with fixture-derived/model data and no prediction-accuracy claim.
+
+Historical failed attempts above are retained. Additional diagnostic history includes SQL14(13pass/1invalid fingerprint fixture), SQL17(16pass/1duplicate detection fixture), zero-test compile blocked by unregistered H4 stub analyzer properties, and isolated prior-receipt source fixture failures before legitimate Case route/set pins were supplied. A corrected fingerprint-only red executed1 expected failure (`h3-legacy-receipt-fingerprint-only-red.trx`); final green includes it. The first standalone build used a wrong csproj filename and executed no build/tests, then the correct project build succeeded. No failing/skipped check is counted as verified.
+
+Fresh final tooling check preserves every HEAD Postman object/info/variable/identifier and verifies all20 scripts for16 new guarded requests; the actual reviewed-source Defect consumer request has a separate manual opt-in. Diff/encoding checks follow before staging. Official CRS/GPS-source accuracy remains localized pending; actual receipt protocol remains pending. MEASURE_ONLY grants no repair execution. Repair claims without trusted actual attempt binding remain insufficient; H4 owns that dependent adapter and actual AFTER/review/final/correction acceptance. H5 imported actor/time/grant admission and H6 delivery activation remain assigned. This checkpoint establishes independent FIELD BE behavior, not repair/offline/client/deployment completion.
+
+## Owner clarification — correction authority (HISTORICAL/SUPERSEDED)
 
 TARGET_CONFIRMED: FT final confirmation is PM; normal final confirmation is Supervisor after PM review. Mistaken/insufficient acceptance appends actor/reason/time/supersedes correction and continues the original obligation; it is not a new recurrence Defect. Original history/export snapshots remain immutable; live effective projection/KPI excludes superseded acceptance. Owner found no authoritative decision for correction authority or its re-review/re-confirm procedure; both remain localized PENDING. Same final-role correction, same individual, Supervisor override and audit authority are not inferred. FT PM/normal Supervisor correction is PROPOSED only. Production correction action without adopted authority denies/pends. Model/history/effective projection/authorization hook and clearly sourced test-policy allow/deny, current-project scope, version/supersedes, concurrency, rollback/replay tests proceed; test policy is not owner approval. Independent H4–H7 remains assigned.
+
+The paragraph above records the earlier decision only. The consolidated owner update below supersedes correction-authority/procedure pending; it does not supersede independent lifecycle-command pending.
+
+## Consolidated owner update — effective correction authority
+
+Source: owner Anh through Huy's consolidated update, 06/10/2026. TARGET_CONFIRMED authority is distinct from implementation evidence. Reviewed remote baselines `huy-review@b9541660575312620b73cd836090f02f5ea90e00` and `anh-review@5089c3267dcdf60645ab34f61b58a79e3cbb0cf6` are evidence, not reset targets. H3 dirty work and writer reservations remain preserved.
+
+### 1. CORRECTION — TARGET_CONFIRMED, IMPLEMENT VERTICAL FLOW (owner text)
+
+Authority:
+- FT: PM có quyền hiện tại trong project được append correction.
+- Normal: Supervisor có quyền hiện tại trong project được điều chỉnh final confirmation.
+- Cùng loại final-role, không bắt buộc cùng cá nhân đã xác nhận.
+- Người thay thế phải có quyền/phân công hợp lệ hiện tại; không auto-grant role/quyền.
+- PM không correct final decision của Supervisor trong normal flow.
+- Không suy Supervisor có FT override chỉ từ role Supervisor.
+
+Report/review request:
+- Crew và PM có thể báo sai sót/đề nghị xem xét theo current authority.
+- Request không thay đổi effective decision hoặc tự tạo correction.
+- Không tự thêm một mandatory approval chain chưa được giao để chặn correction đã được cấp quyền. Repair/rework thực tế vẫn theo authority flow tương ứng.
+
+Correction record:
+- Append-only bản ghi mới, liên kết original/superseded decision.
+- Bắt buộc original decision, reason + evidence/basis, actor + timestamp, corrected result và obligations cần tiếp tục.
+- Không sửa/xóa original decision, submission hoặc historical evidence.
+
+Classification:
+- Xác nhận nhầm/lần sửa chưa thực sự đạt → correction + tiếp nghĩa vụ Defect cũ.
+- Repair thực sự đạt rồi tái phát → linked new Defect, giữ kết quả sửa đúng trước đó.
+- Quy tắc recurrence đã confirmed; actor/procedure tạo linked Defect riêng vẫn theo pending ledger bên dưới.
+
+Effects:
+- Nếu correction làm mất căn cứ close Defect/package, cập nhật business state/projection/obligation trong cùng transaction.
+- Không giữ confirmed/completed khi mandatory obligation còn.
+- Effect này đã được owner cấp trong correction flow: không giữ nó pending vì actor của generic closure command chưa chốt.
+- Không auto-assign Crew, duplicate repair attempt, reopen Case hoặc auto-extend warranty.
+- Repair/rework đi qua flow có authority tương ứng; không phát sinh execution grant từ correction.
+
+KPI/export:
+- Current UI/KPI/new export dùng effective corrected decision.
+- Original history và published snapshots/exports bất biến.
+- Không invent time-bucket/period allocation hoặc đổi denominator.
+
+Security/transaction:
+- Current role/project/resource authority cả fresh admission, replay, conflict và recovery.
+- Idempotency/concurrency ngăn contradictory correction và duplicate active obligation cùng scope.
+- Correction/business state/obligation/projection/audit/receipt và outbox khi applicable phải atomic; reuse current transaction/receipt seams.
+
+Verification bắt buộc:
+correct/wrong role; wrong project; revoked rights; valid substitute khác cá nhân;
+request không đổi effective decision; replay/current-authority replay;
+concurrent correction; rollback; obligation/Defect/package/UI/KPI/new-export effects;
+original decision/submission/evidence/published export không bị rewrite.
+Test phải chứng minh production policy đã adopted, không chỉ injected allow-policy.
+
+### Effective authority and localized activation ledger
+
+| Evidence | Source | Command / role / scope | Implementation / evidence | Exact pending |
+|---|---|---|---|---|
+| TARGET_CONFIRMED | Consolidated owner update §1 | FT correction: current project PM; normal correction: current project Supervisor; valid current authority, different individual permitted | H4 vertical and H7 corrected consumers assigned, IN_PROGRESS; no new PASS claim | None for correction actor or mandatory approval procedure; substitute appointment/grant remains independently pending |
+| TARGET_CONFIRMED | Consolidated owner update §1 | Crew/PM current-authority review request; no effective-decision mutation | H4 request/history flow assigned | No inferred execution grant or automatic assignment |
+| TARGET_CONFIRMED | Consolidated owner update §1 | Atomic correction effects on original obligations, Defect/package state, live UI/KPI/new export; immutable originals/snapshots | H4/H7 transaction and consumer verification assigned | Public time-bucket/period allocation/denominator interpretation remains pending |
+| TARGET_CONFIRMED | Master and update §2 | All R01–R30, persistent login, immutable clock origins/durations, FT predicates/versioned PM policy, lifecycle separation | H0–H2 checkpoints and producing H3–H7 verification recorded separately | No reopened predicates or durations |
+| UNKNOWN / PENDING | Update §3 | Real FT eligibility source interpretation | Reuse actual scoped Warranty dates/road scope/documents and project HandoverDocument facts; return source mapping UNKNOWN where absent | Project handover→specific road/route/segment mapping and maintenance coverage adoption; no inference from defaults |
+| PENDING / NOT_VERIFIED | Update §3 | Official CRS publication and survey accuracy | Versioned H2 core and sampleOnly CANDIDATE fixtures verified separately | Authoritative profile/operation/tolerance/independent controls |
+| PENDING | Update §3 | Actual-received protocol; per-clock extension/execute-right issuance authority; substitute appointment; missed weekly occurrence and business recurrence | Event provenance/history/idempotency/policy seams proceed; technical retry stays same occurrence | No inbox/read/delivery/receipt-as-received assumption; dedicated ACK and latest-period catch-up remain PROPOSED |
+| PENDING | Update §3 | Separate Defect close, linked recurrence creation, construction completion, operational closure, obligation transfer grant/accept/eligible receiver | Lifecycle models/invariants/read projections proceed; production mutations denied without adopted authority | Actors/procedures only; does not block §1 correction effects |
+
+H4 acceptance now requires the complete production correction vertical and actual adopted-role tests listed above. H7 consumers must read effective corrected decisions for live KPI and new snapshots while preserving existing published snapshots. Work review findings, technical design, owner decisions and executed checks retain separate evidence labels. Continue H3→H4→H5→H6→H7 without restarting checkpoints, cutting scope, rewriting applied migrations or deploying production.
+
+## Owner clarification — closure, recurrence and lifecycle command authority
+
+TARGET_CONFIRMED behavior remains R18/R19/R26: explicit Defect close only when mandatory obligations are resolved; Case conclusion/publication separate; true successful-repair recurrence creates a new linked Defect while mistaken acceptance continues the old obligation through correction. Construction completion, operational closure and warranty are separate; operational closure requires resolved obligations or receiver-confirmed transfer; new Reporter intake continues. Supervisor renewed handling scope remains CONFIRMED.
+
+Owner found no adopted actor/procedure for explicit Defect-close, linked-recurrence-create, construction-completion, operational-closure or obligation-transfer grant/accept commands; each activation remains localized PENDING. D09 FT/historically Supervisor-file reopening, proposed closeProject/assessRecurrence and Supervisor→PM device data handover do not authorize these new commands. Do not infer Supervisor close, PM recurrence creation, arbitrary member transfer acceptance or dual approval. Current membership is necessary but not command authority. Continue model/state/history, obligation/linkage/provenance/read projections and authorization hooks with provenance-labeled controlled test policies. Production mutation denies/pends without adopted policy; pending/unaccepted transfer cannot satisfy closure and completion cannot auto-close obligations/warranty. No corresponding vertical command acceptance is claimed; independent H4–H7 continues.
 
 ## Authoritative owner assignment (verbatim)
 ONE SELF-CONTAINED FINAL CODEX EXECUTION PROMPT — ROADGUARD

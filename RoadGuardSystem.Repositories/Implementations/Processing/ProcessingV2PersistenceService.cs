@@ -264,8 +264,9 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
                       join data in _context.SurveyDataVersions.AsNoTracking() on derived.SurveyDataVersionId equals data.Id
                       join survey in _context.Surveys.AsNoTracking() on data.SurveyId equals survey.Id
                       where groundTruthIds.Contains(groundTruth.Id) && derivedIds.Contains(derived.Id) &&
-                            session.ProjectId == projectId && survey.ProjectId == projectId
-                      select new ValidationPairFact(groundTruth.Id, derived.Id, groundTruth.SampleId, groundTruth.RoadSectionVersionId, derived.RoadSectionVersionId, groundTruth.MeasurementType, derived.MeasurementType, groundTruth.Value, derived.Value, groundTruth.Unit, derived.Unit, derived.Status)).ToListAsync(cancellationToken);
+                            session.ProjectId == projectId && survey.ProjectId == projectId &&
+                            groundTruth.Value.HasValue && groundTruth.ValueState == "KNOWN"
+                      select new ValidationPairFact(groundTruth.Id, derived.Id, groundTruth.SampleId, groundTruth.RoadSectionVersionId, derived.RoadSectionVersionId, groundTruth.MeasurementType, derived.MeasurementType, groundTruth.Value!.Value, derived.Value, groundTruth.Unit, derived.Unit, derived.Status)).ToListAsync(cancellationToken);
     }
 
     private static bool PairsAreEligible(IReadOnlyList<ValidationPairFact> facts, IReadOnlyList<ValidationPairReference> pairs, MeasurementType measurementType, string unit)

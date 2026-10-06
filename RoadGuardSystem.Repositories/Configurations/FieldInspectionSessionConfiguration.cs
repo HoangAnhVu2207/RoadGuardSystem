@@ -16,12 +16,12 @@ public sealed class FieldInspectionSessionConfiguration : IEntityTypeConfigurati
         {
             table.HasTrigger("TR_FieldInspectionSessions_Integrity");
             table.HasTrigger("TR_FieldInspectionSessions_Immutable");
-            table.HasCheckConstraint("CK_FieldInspectionSessions_Purpose", "[Purpose] IN (1, 2)");
+            table.HasCheckConstraint("CK_FieldInspectionSessions_Purpose", "[Purpose] IN (1, 2, 3, 4, 5)");
             table.HasCheckConstraint("CK_FieldInspectionSessions_Status", "[Status] IN (1, 2, 3, 4)");
             table.HasCheckConstraint(
                 "CK_FieldInspectionSessions_PurposeScope",
                 "([Purpose] = 1 AND [FieldInspectionTaskId] IS NOT NULL AND [SurveyId] IS NOT NULL AND [InspectorUserId] IS NOT NULL) OR " +
-                "([Purpose] = 2 AND [FieldInspectionTaskId] IS NULL)");
+                "([Purpose] = 2 AND [FieldInspectionTaskId] IS NULL) OR ([Purpose] IN (3,4,5) AND [FieldInspectionTaskId] IS NOT NULL AND [InspectorUserId] IS NOT NULL)");
         });
 
         builder.HasKey(session => session.Id);

@@ -56,7 +56,8 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                 async token =>
                 {
                     if (request.ProjectId is null) await GuardPrivateAsync(request.ActorUserId, null, token);
-                    var now = DateTimeOffset.UtcNow;
+                    else if(FieldPurpose(request.Purpose))await GuardFieldScopeAsync(request.ActorUserId,request.ProjectId.Value,request.TargetId,request.Purpose,true,token);
+                    var now = _fieldClock.GetUtcNow();
                     var fileId = Guid.NewGuid();
                     var objectKey = $"uploads/{fileId:N}";
                     var file = StoredFile.Create(
@@ -105,7 +106,8 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                 },
                 cancellationToken,
                 receiptAccessGuard: request.ProjectId is null
-                    ? token => GuardPrivateAsync(request.ActorUserId, null, token) : null);
+                    ? token => GuardPrivateAsync(request.ActorUserId, null, token) : FieldPurpose(request.Purpose)
+                        ? token=>GuardFieldScopeAsync(request.ActorUserId,request.ProjectId.Value,request.TargetId,request.Purpose,false,token):null);
 
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
             {
@@ -215,6 +217,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                             return (won.OperationId, won.OutcomeJson);
                         }
                     }
+                    await GuardMultipartAsync(actorUserId, session.FileId,true, token);
                     var current = await _context.UploadSessions.SingleOrDefaultAsync(candidate => candidate.Id == uploadId, token)
                         ?? throw new UploadNotFoundException();
                     if (string.IsNullOrWhiteSpace(current.StorageUploadId))
@@ -256,7 +259,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
             var parts = await _storage.PresignPartsAsync(receipt.ObjectKey, receipt.StorageUploadId, receipt.PartNumbers, receipt.ExpiresAt, cancellationToken);
             await MultipartTransactionAsync(async token =>
                 {
-                    await GuardMultipartAsync(actorUserId, session.FileId, token);
+                    await GuardMultipartAsync(actorUserId, session.FileId,true, token);
                     var current = await _context.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == uploadId, token);
                     if (current.StorageUploadId != receipt.StorageUploadId || current.Status != UploadSessionStatus.Uploading ||
                         now >= current.ExpiresAt || DateTimeOffset.UtcNow >= current.ExpiresAt || DateTimeOffset.UtcNow >= receipt.ExpiresAt)
@@ -296,7 +299,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                     var session = await _context.UploadSessions.SingleOrDefaultAsync(candidate => candidate.Id == request.UploadId, token)
                         ?? throw new UploadNotFoundException();
                     var scope = await _context.FileScopes.AsNoTracking().SingleAsync(candidate => candidate.FileId == session.FileId, token);
-                    if (request.ProjectId is null) await GuardPrivateAsync(request.ActorUserId, session.FileId, token);
+                    await GuardMultipartAsync(request.ActorUserId,session.FileId,true,token);
                     if (!string.Equals(session.ExpectedChecksumSha256, request.ChecksumSha256, StringComparison.Ordinal))
                     {
                         throw new ArgumentException("Upload checksum does not match session expectation.");
@@ -322,7 +325,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                         part.RecordCompletion(completedPart.ETag);
                     }
 
-                    var now = DateTimeOffset.UtcNow;
+                    var now = _fieldClock.GetUtcNow();
                     _context.AuditLogs.Add(AuditLog.Create(
                         Guid.NewGuid(), request.ActorUserId, now, "upload_verification_requested", "UploadSession", session.Id,
                         null, JsonSerializer.Serialize(new { session.Id, session.FileId }), "Upload verification requested", "p2-025", request.CorrelationId,
@@ -338,7 +341,11 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                             .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token);
                         if (fileId is null) throw new UploadNotFoundException();
                         await GuardPrivateAsync(request.ActorUserId, fileId, token);
-                    } : null);
+                    } : async token =>
+                    {
+                        var fileId=await _context.UploadSessions.AsNoTracking().Where(x=>x.Id==request.UploadId).Select(x=>(Guid?)x.FileId).SingleOrDefaultAsync(token);
+                        await GuardMultipartAsync(request.ActorUserId,fileId,token);
+                    });
 
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
             {

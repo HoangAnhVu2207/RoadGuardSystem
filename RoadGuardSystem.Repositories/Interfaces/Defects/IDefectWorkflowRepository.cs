@@ -6,6 +6,10 @@ namespace RoadGuardSystem.Repositories.Defects;
 
 public interface IDefectWorkflowRepository
 {
+    Task<DefectViewDto> ApplyFieldVerificationAsync(Guid actor, Guid project, Guid defect, string expectedVersion,
+        DefectVerificationAction action, RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts source,
+        IReadOnlyCollection<Guid> evidenceIds, string reason, Guid? correlation, CancellationToken token)
+        => throw new NotSupportedException("FIELD persistence is not available in this adapter.");
     Task<DefectViewDto?> ReadAsync(Guid project, Guid defect,
         Func<CancellationToken, Task> guard, CancellationToken token);
     Task<DefectPageDto> ListAsync(Guid project, DefectStatus? status, string? type,

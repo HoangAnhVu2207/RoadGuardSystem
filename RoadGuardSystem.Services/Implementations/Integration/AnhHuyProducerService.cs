@@ -11,8 +11,19 @@ using RoadGuardSystem.Services.Authorization;
 namespace RoadGuardSystem.Services.Integration;
 
 public sealed class AnhHuyProducerService(IAnhHuyFactsRepository facts, IGeometryWorkflowRepository geometry,
-    IProjectScopeGuard guard) : IAnhHuyProducerService
+    IProjectScopeGuard guard, RoadGuardSystem.Repositories.Inspections.IFieldInspectionWorkflowRepository? field = null) : IAnhHuyProducerService
 {
+    public async Task<AnhHuyProducerResult<RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts>> ResolveFieldSourceAsync(Guid actorId, UserRoleCode role,
+        Guid projectId, Guid defectId, Guid taskId, Guid submissionId, string expectedContentHash, CancellationToken cancellationToken = default)
+    {
+        if(role!=UserRoleCode.ProjectManager || field is null || !await facts.IsCurrentActorAsync(actorId,role,cancellationToken) ||
+            await guard.AuthorizeAsync(actorId,role,projectId,cancellationToken) is null)
+            return Fail<RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts>(AnhHuyProducerStatus.Forbidden);
+        var result=await field.ExecuteAsync(new(projectId,taskId,"verification-source",new RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceQuery(defectId,submissionId,expectedContentHash),
+            null,null,new(actorId,role,actorId,"DIRECT",false)),async ct=>await guard.AuthorizeAsync(actorId,role,projectId,ct) is not null,cancellationToken);
+        return result.Status==200 && result.Value is RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts source ? new(AnhHuyProducerStatus.Ready,source) :
+            Fail<RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts>(result.Status switch{403=>AnhHuyProducerStatus.Forbidden,404=>AnhHuyProducerStatus.NotFound,_=>AnhHuyProducerStatus.SourceNotReady});
+    }
     private static AnhHuyProducerResult<T> Fail<T>(AnhHuyProducerStatus status)=>new(status);
     private static ResolvedEvidenceFacts Evidence(ReporterFileFacts f, Guid evidenceId)=>new(
         VerifiedEvidenceReference.Create(evidenceId,f.FileId,f.FileVersion,f.OwnerId),f.ProjectId,f.Purpose,f.Checksum,f.SizeBytes,f.MediaType,f.UploadedAt);

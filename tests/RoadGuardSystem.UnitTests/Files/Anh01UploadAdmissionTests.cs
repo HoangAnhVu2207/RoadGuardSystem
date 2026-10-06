@@ -33,7 +33,7 @@ public sealed class Anh01UploadAdmissionTests
         var repo = DispatchProxy.Create<IUploadRepository, RepositoryProxy>();
         var guard = DispatchProxy.Create<IProjectScopeGuard, GuardProxy>();
         var service = new UploadService(repo, guard, TimeProvider.System, Options.Create(new UploadSessionOptions()));
-        var result = await service.CreateAsync(Guid.NewGuid(), UserRoleCode.DroneOperator,
+        var result = await service.CreateAsync(Guid.NewGuid(), purpose == "BEFORE" ? UserRoleCode.RepairCrew : UserRoleCode.DroneOperator,
             new(purpose, Guid.NewGuid(), Guid.NewGuid(), "fixture", mime, bytes, new string('a', 64)), "key", null);
         result.Status.Should().Be(allowed ? UploadServiceStatus.Success : UploadServiceStatus.InvalidInput);
         ((RepositoryProxy)(object)repo).Writes.Should().Be(allowed ? 1 : 0);
@@ -49,7 +49,7 @@ public sealed class Anh01UploadAdmissionTests
         public int Writes { get; private set; }
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            if (targetMethod!.Name == "IsCurrentSurveyOperatorAsync") return Task.FromResult(true);
+            if (targetMethod!.Name is "IsCurrentSurveyOperatorAsync" or "IsCurrentFieldActorAsync") return Task.FromResult(true);
             Writes++;
             return Task.FromResult(new UploadMutationPersistenceResult(UploadPersistenceStatus.Success,
                 new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "opaque", "CREATED", 8388608, DateTimeOffset.UtcNow.AddHours(24), "version")));

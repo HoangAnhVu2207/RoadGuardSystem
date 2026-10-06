@@ -54,6 +54,10 @@ public sealed class UploadService : IUploadService
             return new(UploadServiceStatus.Forbidden);
         }
 
+        if (IsFieldPurpose(request.Purpose) && (request.TargetId is not Guid fieldTask ||
+            !await _repository.IsCurrentFieldActorAsync(actorUserId,role,request.ProjectId.Value,fieldTask,request.Purpose.Trim().ToUpperInvariant(),true,cancellationToken)))
+            return new(UploadServiceStatus.Forbidden);
+
         if (IsSurveyPurpose(request.Purpose) && (role != UserRoleCode.DroneOperator || request.TargetId is not { } taskId ||
             !await _repository.IsCurrentSurveyOperatorAsync(actorUserId, request.ProjectId.Value, taskId, true, cancellationToken)))
             return new(UploadServiceStatus.Forbidden);
@@ -162,7 +166,7 @@ public sealed class UploadService : IUploadService
     {
         var file = await _repository.GetFileMetadataAsync(fileId, cancellationToken);
         if (file is null) return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAssetAsync(actorUserId, role, file.ProjectId, file.Purpose, file.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await CanReadFileAsync(actorUserId,role,file,cancellationToken)) return new(UploadServiceStatus.Forbidden);
         return new(UploadServiceStatus.Success, File: ToDto(file));
     }
 
@@ -170,10 +174,22 @@ public sealed class UploadService : IUploadService
     {
         var file = await _repository.GetFileMetadataAsync(fileId, cancellationToken);
         if (file is null || file.Status != "VERIFIED") return new(UploadServiceStatus.NotFound);
-        if (!await CanAccessAssetAsync(actorUserId, role, file.ProjectId, file.Purpose, file.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
+        if (!await CanReadFileAsync(actorUserId,role,file,cancellationToken)) return new(UploadServiceStatus.Forbidden);
         try
         {
-            return new(UploadServiceStatus.Success, File: ToDto(file), Content: await _repository.OpenFileAsync(file.ObjectKey, cancellationToken));
+            var stream=await _repository.OpenFileAsync(file.ObjectKey,cancellationToken);
+            if(IsFieldPurpose(file.Purpose))
+            {
+                try
+                {
+                    var fresh=await _repository.GetFileMetadataAsync(fileId,cancellationToken);
+                    if(fresh is null || fresh.Status!="VERIFIED" || fresh.Version!=file.Version ||
+                        !await CanReadFileAsync(actorUserId,role,fresh,cancellationToken))
+                    {await stream.DisposeAsync();return new(UploadServiceStatus.Forbidden);}
+                }
+                catch{await stream.DisposeAsync();throw;}
+            }
+            return new(UploadServiceStatus.Success, File: ToDto(file), Content: stream);
         }
         catch (FileStorageException)
         {
@@ -186,14 +202,22 @@ public sealed class UploadService : IUploadService
         await _repository.VerifyNextAsync(cancellationToken);
     }
 
+    private async Task<bool> CanReadFileAsync(Guid actor,UserRoleCode role,FileMetadataPersistenceView file,CancellationToken token)
+        => await CanAccessAssetAsync(actor,role,file.ProjectId,file.Purpose,file.TargetId,false,token) ||
+            (file.ProjectId is Guid project && IsFieldPurpose(file.Purpose) && await _repository.IsCurrentLegacyFieldFileReaderAsync(actor,role,project,file.Id,file.Purpose!,token));
+
     private async Task<bool> CanAccessAssetAsync(Guid actorUserId, UserRoleCode role, Guid? projectId, string? purpose, Guid? targetId, bool mutation, CancellationToken cancellationToken, bool requireActiveTask = true)
     {
         if (projectId is not { } scopedProjectId || !IsSupportedRole(role) || !await InProjectScopeAsync(actorUserId, role, scopedProjectId, cancellationToken)) return false;
+        if (IsFieldPurpose(purpose))return targetId is Guid fieldTask &&
+            await _repository.IsCurrentFieldActorAsync(actorUserId,role,scopedProjectId,fieldTask,purpose!.Trim().ToUpperInvariant(),mutation && requireActiveTask,cancellationToken);
         if (!IsSurveyPurpose(purpose)) return true;
         if (!mutation && role is UserRoleCode.Supervisor or UserRoleCode.ProjectManager) return true;
         return role == UserRoleCode.DroneOperator && targetId is { } taskId &&
             await _repository.IsCurrentSurveyOperatorAsync(actorUserId, scopedProjectId, taskId, mutation && requireActiveTask, cancellationToken);
     }
+
+    private static bool IsFieldPurpose(string? purpose)=>purpose?.Trim().ToUpperInvariant() is "BEFORE" or "AFTER" or "MEASUREMENT";
 
     private static bool IsSurveyPurpose(string? purpose) => purpose?.Trim().ToUpperInvariant() is "SURVEY_VIDEO" or "TELEMETRY";
 

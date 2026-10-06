@@ -2,6 +2,8 @@ namespace RoadGuardSystem.Repositories.Files;
 
 public interface IUploadRepository
 {
+    Task<bool> IsCurrentLegacyFieldFileReaderAsync(Guid actorUserId,RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode role,Guid projectId,Guid fileId,string purpose,CancellationToken cancellationToken=default)=>Task.FromResult(false);
+    Task<bool> IsCurrentFieldActorAsync(Guid actorUserId, RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode role, Guid projectId, Guid taskId, string purpose, bool forUpload, CancellationToken cancellationToken = default) => Task.FromResult(false);
     Task RecoverMultipartsAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     Task<bool> IsCurrentSurveyOperatorAsync(Guid actorUserId, Guid projectId, Guid taskId, bool forUpload, CancellationToken cancellationToken = default);
     Task<UploadMutationPersistenceResult> CreateAsync(UploadCreatePersistenceRequest request, CancellationToken cancellationToken = default);

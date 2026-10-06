@@ -157,6 +157,23 @@ public sealed class Defect
         return log;
     }
 
+    public DefectVerificationLog DecideFromField(DefectVerificationAction action, Guid taskId, Guid submissionId,
+        string contentHash, IReadOnlyCollection<Guid> evidenceIds, IReadOnlyCollection<Guid> verifiedRelatedEvidenceIds, Guid actor, string reason)
+    {
+        if (Status != DefectStatus.Open) throw new InvalidOperationException("Only an Open defect can receive a FIELD decision.");
+        if (taskId == Guid.Empty || submissionId == Guid.Empty || contentHash is null || contentHash.Length != 64 || !contentHash.All(Uri.IsHexDigit))
+            throw new ArgumentException("Actual immutable FIELD task/submission binding required.");
+        if (action is not (DefectVerificationAction.Confirm or DefectVerificationAction.Reject)) throw new ArgumentOutOfRangeException(nameof(action));
+        ArgumentNullException.ThrowIfNull(evidenceIds); ArgumentNullException.ThrowIfNull(verifiedRelatedEvidenceIds);
+        if (evidenceIds.Count == 0 || evidenceIds.Any(id => id == Guid.Empty || !verifiedRelatedEvidenceIds.Contains(id)) || evidenceIds.Distinct().Count() != evidenceIds.Count)
+            throw new InvalidOperationException("Every FIELD evidence item must be verified and related to the reviewed submission.");
+        var nextStatus = action == DefectVerificationAction.Confirm ? DefectStatus.Verified : DefectStatus.Rejected;
+        var log = DefectVerificationLog.Create(Guid.NewGuid(), Id, null, action, JsonSerializer.Serialize(new { Status }),
+            JsonSerializer.Serialize(new { Status = nextStatus, method = "FIELD", submissionId, contentHash, evidenceIds }), null, taskId, actor, reason);
+        Status = nextStatus;
+        return log;
+    }
+
     private static string ValidateCode(string value, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);

@@ -77,6 +77,10 @@ public sealed class FieldInspectionSession
             throw new ArgumentException("Defect verification requires a task, survey, and inspector.");
         }
 
+        if (purpose is FieldInspectionPurpose.PreMeasurement or FieldInspectionPurpose.PostRepair or FieldInspectionPurpose.Verification &&
+            (fieldInspectionTaskId is null || inspectorUserId is null))
+            throw new ArgumentException("Operational sessions require their actual task and inspector.");
+
         if (purpose == FieldInspectionPurpose.ResearchValidation && fieldInspectionTaskId is not null)
         {
             throw new ArgumentException("Research validation cannot reference a field inspection task.", nameof(fieldInspectionTaskId));

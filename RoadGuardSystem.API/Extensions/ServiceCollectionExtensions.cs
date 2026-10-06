@@ -21,6 +21,7 @@ using RoadGuardSystem.Services.Projects;
 using RoadGuardSystem.Services.Warranties;
 using RoadGuardSystem.Services.Surveys;
 using RoadGuardSystem.Services.Inspections;
+using RoadGuardSystem.Services.Implementations.Inspections;
 using RoadGuardSystem.Services.Processing;
 using RoadGuardSystem.Services.Implementations.Processing;
 using RoadGuardSystem.Services.Files;
@@ -103,6 +104,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
         services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
         services.AddScoped<IInspectionTaskQueryService, InspectionTaskQueryService>();
+        services.AddScoped<IFieldInspectionWorkflowService, FieldInspectionWorkflowService>();
         services.AddScoped<ISurveyV2Service, SurveyV2Service>();
         services.AddScoped<ISurveyAssessmentService, SurveyAssessmentService>();
         services.AddScoped<IProcessingV2Service, ProcessingV2Service>();

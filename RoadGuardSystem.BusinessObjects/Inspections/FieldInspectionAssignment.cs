@@ -73,6 +73,14 @@ public sealed class FieldInspectionAssignment
         };
     }
 
+    public void End(DateTimeOffset at, string reason, bool rejected = false)
+    {
+        if (Status != FieldInspectionAssignmentStatus.Active || at < AssignedAt)
+            throw new InvalidOperationException("Only a current assignment can end.");
+        Reason = NormalizeOptional(reason, nameof(reason), 1000) ?? throw new ArgumentException("A handover/end reason is required.");
+        EndedAt = at.ToUniversalTime(); Status = rejected ? FieldInspectionAssignmentStatus.Rejected : FieldInspectionAssignmentStatus.Ended;
+    }
+
     private static string? NormalizeOptional(string? value, string parameterName, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))

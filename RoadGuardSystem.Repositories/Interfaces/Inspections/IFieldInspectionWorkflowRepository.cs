@@ -1,0 +1,19 @@
+using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.DTOs.Inspections;
+
+namespace RoadGuardSystem.Repositories.Inspections;
+public sealed record FieldAdmissionContext(Guid CallerId, UserRoleCode CallerRole, Guid OriginalActorId,
+    string Mode, bool TrustedOnlineOrigin, Guid? HandoverGrantId = null);
+public sealed record FieldWorkflowCommand(Guid ProjectId, Guid? TaskId, string Action, object? Input,
+    string? Key, string? ExpectedVersion, FieldAdmissionContext Admission);
+public interface IFieldInspectionWorkflowRepository
+{
+    Task<FieldWorkflowResult> ExecuteAsync(FieldWorkflowCommand command,
+        Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken);
+    // Caller already owns the atomic transaction; this is the same finite business core used by direct admission.
+    Task<FieldWorkflowResult> ApplyInTransactionAsync(FieldWorkflowCommand command,
+        Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken);
+}
+public sealed record FieldTaskEvidenceFile(Guid FileId,string State,string Checksum,string MediaType,long SizeBytes,
+    [property:System.Text.Json.Serialization.JsonIgnore] string ObjectKey);
+public sealed record FieldTaskListQuery(Guid? AfterId,int Limit);

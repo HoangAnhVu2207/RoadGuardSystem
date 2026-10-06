@@ -107,6 +107,15 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<GroundTruthMeasurement> GroundTruthMeasurements => Set<GroundTruthMeasurement>();
 
+    public DbSet<FieldTaskStartOrigin> FieldTaskStartOrigins => Set<FieldTaskStartOrigin>();
+    public DbSet<FieldInspectionSubmission> FieldInspectionSubmissions => Set<FieldInspectionSubmission>();
+    public DbSet<FieldInspectionReview> FieldInspectionReviews => Set<FieldInspectionReview>();
+    public DbSet<FieldInspectionEvidenceLink> FieldInspectionEvidenceLinks => Set<FieldInspectionEvidenceLink>();
+    public DbSet<FieldInspectionEvidenceReuseDecision> FieldInspectionEvidenceReuseDecisions => Set<FieldInspectionEvidenceReuseDecision>();
+    public DbSet<FieldInspectionTaskEvent> FieldInspectionTaskEvents => Set<FieldInspectionTaskEvent>();
+    public DbSet<FieldInspectionLocationProof> FieldInspectionLocationProofs => Set<FieldInspectionLocationProof>();
+    public DbSet<FieldInspectionOperationOrigin> FieldInspectionOperationOrigins => Set<FieldInspectionOperationOrigin>();
+
     public DbSet<DroneDevice> DroneDevices => Set<DroneDevice>();
 
     public DbSet<Project> Projects => Set<Project>();

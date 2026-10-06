@@ -25,11 +25,16 @@ public sealed class GroundTruthMeasurement
 
     public MeasurementType MeasurementType { get; private set; }
 
-    public decimal Value { get; private set; }
+    public decimal? Value { get; private set; }
+    public string ValueState { get; private set; } = "KNOWN";
+    public string Dimension { get; private set; } = "LENGTH";
+    public string? UnknownReason { get; private set; }
+    public string LocationState { get; private set; } = "CAPTURED";
+    public string? LocationReason { get; private set; }
 
     public string Unit { get; private set; } = string.Empty;
 
-    public Point Location { get; private set; } = null!;
+    public Point? Location { get; private set; }
 
     public string InstrumentName { get; private set; } = string.Empty;
 
@@ -74,7 +79,7 @@ public sealed class GroundTruthMeasurement
             throw new ArgumentException("Optional measurement ids must be non-empty when supplied.");
         }
 
-        if (!Enum.IsDefined(measurementType) || measurementType == MeasurementType.Unknown)
+        if (measurementType is not (MeasurementType.DepressionDepth or MeasurementType.SlabFaultingHeight or MeasurementType.ShoulderErosionExtent))
         {
             throw new ArgumentOutOfRangeException(nameof(measurementType), "Measurement type must be specified.");
         }
@@ -122,6 +127,33 @@ public sealed class GroundTruthMeasurement
             EvidenceFileId = evidenceFileId,
             Notes = normalizedNotes
         };
+    }
+
+    public static GroundTruthMeasurement CreateCaptured(Guid id, Guid sessionId, string sampleId,
+        Guid routeId, Guid? surveyId, Guid defectId, MeasurementType type, decimal? value, string valueState,
+        string? unknownReason, string dimension, string unit, Point? location, string? locationReason,
+        string instrument, string method, string measuredBy, DateTimeOffset measuredAt, Guid? evidenceId, string? notes)
+    {
+        if (id == Guid.Empty || sessionId == Guid.Empty || routeId == Guid.Empty || defectId == Guid.Empty ||
+            surveyId == Guid.Empty || evidenceId == Guid.Empty || measuredAt == default || !Enum.IsDefined(type) || type == MeasurementType.Unknown)
+            throw new ArgumentException("Captured measurement scope and type are required.");
+        if (valueState is not ("KNOWN" or "UNKNOWN") || (valueState == "KNOWN") != value.HasValue || value < 0 ||
+            valueState == "UNKNOWN" && string.IsNullOrWhiteSpace(unknownReason))
+            throw new ArgumentException("UNKNOWN must have a null value and a reason; zero is KNOWN.");
+        var normalizedUnit = NormalizeRequired(unit, nameof(unit), 20).ToLowerInvariant();
+        if (type == MeasurementType.Area ? dimension != "AREA" || normalizedUnit != "m²" :
+            dimension != "LENGTH" || !SupportedUnits.Contains(normalizedUnit))
+            throw new ArgumentException("Measurement type, dimension and unit disagree.");
+        if (location is not null && (location.SRID != 4326 || location.IsEmpty || !double.IsFinite(location.X) || !double.IsFinite(location.Y) || location.X is < -180 or > 180 || location.Y is < -90 or > 90) ||
+            location is null && string.IsNullOrWhiteSpace(locationReason))
+            throw new ArgumentException("Unknown location requires a reason; captured GPS must be valid WGS84.");
+        return new GroundTruthMeasurement { Id = id, FieldInspectionSessionId = sessionId, SampleId = NormalizeRequired(sampleId, nameof(sampleId), 100),
+            RoadSectionVersionId = routeId, SurveyId = surveyId, DefectId = defectId, MeasurementType = type,
+            Value = value, ValueState = valueState, UnknownReason = NormalizeOptional(unknownReason, nameof(unknownReason), 1000),
+            Dimension = dimension, Unit = normalizedUnit, Location = location, LocationState = location is null ? "UNKNOWN" : "CAPTURED",
+            LocationReason = NormalizeOptional(locationReason, nameof(locationReason), 1000), InstrumentName = NormalizeRequired(instrument, nameof(instrument), 150),
+            MeasurementMethod = NormalizeRequired(method, nameof(method), 500), MeasuredBy = NormalizeRequired(measuredBy, nameof(measuredBy), 200),
+            MeasuredAt = measuredAt.ToUniversalTime(), EvidenceFileId = evidenceId, Notes = NormalizeOptional(notes, nameof(notes), 4000) };
     }
 
     private static string NormalizeRequired(string value, string parameterName, int maxLength)

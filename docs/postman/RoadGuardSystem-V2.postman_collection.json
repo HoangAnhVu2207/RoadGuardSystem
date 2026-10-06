@@ -11469,6 +11469,716 @@
           "response": []
         }
       ]
+    },
+    {
+      "id": "5d2f75be-0c06-494d-a276-e852ba5cd36b",
+      "name": "93 - H3 FIELD disposable opt-in",
+      "item": [
+        {
+          "id": "3e307696-1a62-4996-aca8-f1d09c7a4ca3",
+          "name": "01 PM create genuine Reporter MEASURE_ONLY task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3OperationId}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"defectId\": \"{{h3DefectId}}\",\n  \"defectVersion\": \"{{h3DefectVersion}}\",\n  \"surveyId\": null,\n  \"sourceKind\": \"REPORTER\",\n  \"routeVersionId\": \"{{h3RouteVersionId}}\",\n  \"segmentSetId\": null,\n  \"layoutRevisionId\": null,\n  \"slabId\": null,\n  \"purpose\": \"PRE_MEASUREMENT\",\n  \"requiredMeasurementType\": 1,\n  \"measurementScope\": \"{}\",\n  \"instructions\": \"Disposable FIELD intake fixture\",\n  \"assignedToUserId\": \"{{h3CrewUserId}}\",\n  \"dueAt\": \"{{h3DueAt}}\",\n  \"mapPublicationId\": null,\n  \"crsProfileRevisionId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3PmAccessToken\", \"h3DefectId\", \"h3DefectVersion\", \"h3RouteVersionId\", \"h3CrewUserId\", \"h3DueAt\", \"h3OperationId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200||pm.response.code===201){const b=pm.response.json();",
+                  "if(b.id)pm.collectionVariables.set(\"h3TaskId\",b.id);",
+                  "const etag=pm.response.headers.get(\"ETag\");if(etag)pm.collectionVariables.set(\"h3TaskVersion\",etag.replace(/^\"|\"$/g,\"\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "2534736a-5d65-4c9f-b62b-1d5832621e25",
+          "name": "02 Crew current task",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200||pm.response.code===201){const b=pm.response.json();",
+                  "if(b.id)pm.collectionVariables.set(\"h3TaskId\",b.id);",
+                  "const etag=pm.response.headers.get(\"ETag\");if(etag)pm.collectionVariables.set(\"h3TaskVersion\",etag.replace(/^\"|\"$/g,\"\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "3b1579c5-68f3-442b-99b8-1de4fe4e9611",
+          "name": "03 Crew accept",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3OperationId}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h3TaskVersion}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/accept",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Accepted current disposable assignment\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\", \"h3OperationId\", \"h3TaskVersion\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "d2facc87-c3a5-4993-bb78-53ed8d65491f",
+          "name": "04 Crew first measuring start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3OperationId}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h3TaskVersion}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/start",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originId\": \"{{h3StartOperationId}}\",\n  \"claimedAt\": \"{{h3ClaimedAt}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\", \"h3StartOperationId\", \"h3ClaimedAt\", \"h3OperationId\", \"h3TaskVersion\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200||pm.response.code===201){const b=pm.response.json();",
+                  "if(b.id)pm.collectionVariables.set(\"h3StartOriginId\",b.id);",
+                  "const etag=pm.response.headers.get(\"ETag\");if(etag)pm.collectionVariables.set(\"h3TaskVersion\",etag.replace(/^\"|\"$/g,\"\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "20b09081-01f0-4cdb-82da-4c7bbccf3f4e",
+          "name": "05 Crew immutable first origin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/start-origin",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "5f0966b3-6595-4368-a888-825d380bac97",
+          "name": "06 Crew valid incomplete UNKNOWN intake",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3OperationId}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h3TaskVersion}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/submissions",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originId\": \"{{h3SubmissionOperationId}}\",\n  \"startOriginId\": \"{{h3StartOriginId}}\",\n  \"parentSubmissionId\": null,\n  \"measurements\": [\n    {\n      \"sampleId\": \"unknown-1\",\n      \"type\": \"DepressionDepth\",\n      \"value\": null,\n      \"state\": \"UNKNOWN\",\n      \"unknownReason\": \"Instrument unavailable\",\n      \"dimension\": \"LENGTH\",\n      \"unit\": \"mm\",\n      \"longitude\": null,\n      \"latitude\": null,\n      \"locationReason\": \"GPS unavailable\",\n      \"instrument\": \"unavailable\",\n      \"method\": \"manual\",\n      \"notes\": null\n    }\n  ],\n  \"evidence\": [],\n  \"locationProof\": {\n    \"kind\": \"UNKNOWN\",\n    \"checklist\": null,\n    \"longitude\": null,\n    \"latitude\": null\n  },\n  \"captureType\": \"MEASUREMENT\",\n  \"repaired\": null,\n  \"unrepairedReason\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\", \"h3StartOriginId\", \"h3SubmissionOperationId\", \"h3OperationId\", \"h3TaskVersion\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===200||pm.response.code===201){const b=pm.response.json();",
+                  "if(b.id)pm.collectionVariables.set(\"h3SubmissionId\",b.id);",
+                  "const etag=pm.response.headers.get(\"ETag\");if(etag)pm.collectionVariables.set(\"h3TaskVersion\",etag.replace(/^\"|\"$/g,\"\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "e990a9a7-22db-4f1a-9e17-ff537a5dfeb8",
+          "name": "07 PM immutable submission and original review due",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/submissions/{{h3SubmissionId}}",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3PmAccessToken\", \"h3TaskId\", \"h3SubmissionId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "4e55a531-8b90-4583-983c-6f78527c80d4",
+          "name": "08 PM request supplement without assumed receipt48 clock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3OperationId}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h3TaskVersion}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/reviews",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submissionId\": \"{{h3SubmissionId}}\",\n  \"decision\": \"SUPPLEMENT\",\n  \"reason\": \"Complete measurement and position evidence\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3PmAccessToken\", \"h3TaskId\", \"h3SubmissionId\", \"h3OperationId\", \"h3TaskVersion\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "c66404db-0a12-4e5a-b176-3f1a315ca4ce",
+          "name": "09 Crew narrow pinned geometry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/geometry",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "5fcc7fa5-9d07-49ea-96f3-70b37a13dbf4",
+          "name": "10 PM task history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/history",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3PmAccessToken\", \"h3TaskId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "1e5fd83b-b22d-467e-a597-534b1a178009",
+          "name": "11 PM sourced BEFORE reuse",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3OperationId}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h3TaskVersion}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/evidence-reuse",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{h3SourceFileId}}\",\n  \"sourceEvidenceId\": \"{{h3SourceEvidenceId}}\",\n  \"sourceKind\": \"REPORTER\",\n  \"expectedChecksum\": \"{{h3SourceChecksum}}\",\n  \"reason\": \"Authorized task-specific BEFORE provenance\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3PmAccessToken\", \"h3TaskId\", \"h3SourceFileId\", \"h3SourceEvidenceId\", \"h3SourceChecksum\", \"h3OperationId\", \"h3TaskVersion\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "3032a630-c2c4-422c-a2c8-100072f3d110",
+          "name": "12 Crew redacted task evidence",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/evidence/{{h3SourceFileId}}",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\", \"h3SourceFileId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "256704b6-e55c-4204-994a-10fbafc95eed",
+          "name": "13 Crew authorized evidence bytes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3CrewAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/evidence/{{h3SourceFileId}}/content",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3CrewAccessToken\", \"h3TaskId\", \"h3SourceFileId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "f45104df-1c9f-40cf-9c30-03b8040d3687",
+          "name": "14 PM scoped task list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks?limit=20",
+            "description": "Manual opt-in against disposable project, actual adopted sources and current role token. No repair grant; incomplete intake starts PM review24. Candidate CRS does not prove GPS accuracy. Reuse operation key and identical source body for lost-ACK retry; choose a new key for a new command."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3PmAccessToken\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "a01921af-85bc-4206-a6b9-8df50f6bb6dc",
+          "name": "15 PM actual STOP impact with retained performed intake",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3OperationId}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h3TaskVersion}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/field-inspection-tasks/{{h3TaskId}}/location-impact-decisions",
+            "description": "Disposable manual opt-in. Impact must contain this actual task and old route/set pins. STOP preserves first origin and actual submitted history; it grants no repair execution.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"impactId\": \"{{h3ImpactId}}\",\n  \"action\": \"STOP\",\n  \"reason\": \"Stop impacted disposable FIELD task\",\n  \"assignedToUserId\": null,\n  \"handover\": {\n    \"performedPortionState\": \"CAPTURED_INTAKE\",\n    \"summary\": \"Preserve actual measuring intake and incomplete evidence\",\n    \"startOriginId\": \"{{h3StartOriginId}}\",\n    \"submissionIds\": [\n      \"{{h3SubmissionId}}\"\n    ],\n    \"recipientUserId\": null\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\",\"h3PmAccessToken\",\"h3TaskId\",\"h3TaskVersion\",\"h3OperationId\",\"h3ImpactId\",\"h3StartOriginId\",\"h3SubmissionId\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "e41ded3a-999c-4f49-ba96-054863240091",
+          "name": "16 PM actual reviewed FIELD Defect consumer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h3ConsumerOperationKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h3ConsumerDefectVersion}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h3PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/defects/{{h3ConsumerDefectId}}/verification-decisions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"CONFIRM\",\n  \"verificationMethod\": \"FIELD\",\n  \"evidenceIds\": [\n    \"{{h3ReviewedEvidenceLinkId}}\"\n  ],\n  \"reason\": \"Disposable actual reviewed FIELD source\",\n  \"fieldTaskId\": \"{{h3ReviewedTaskId}}\",\n  \"fieldSubmissionId\": \"{{h3ReviewedSubmissionId}}\",\n  \"fieldContentHash\": \"{{h3ReviewedSubmissionHash}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Separate manual opt-in: runH3VerifiedConsumer=true plus runH3Disposable=true. Use a real completed MEASURE_ONLY task, latest READY submission, matching PM CONFIRM review and actual submission evidence-link ID. Do not use the incomplete/STOP task above or fabricate source identities. Reuse identical operation/body/source version for durable receipt retry; current authority remains required. Fixture tooling is not client acceptance."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"projectId\", \"h3PmAccessToken\", \"h3ConsumerDefectId\", \"h3ConsumerDefectVersion\", \"h3ReviewedTaskId\", \"h3ReviewedSubmissionId\", \"h3ReviewedSubmissionHash\", \"h3ReviewedEvidenceLinkId\", \"h3ConsumerOperationKey\"];if(pm.variables.get(\"runH3Disposable\")!==\"true\"||pm.variables.get(\"runH3VerifiedConsumer\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
     }
   ]
 }

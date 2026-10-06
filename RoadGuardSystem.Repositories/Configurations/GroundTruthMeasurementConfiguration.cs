@@ -15,11 +15,11 @@ public sealed class GroundTruthMeasurementConfiguration : IEntityTypeConfigurati
         builder.ToTable("GroundTruthMeasurements", table =>
         {
             table.HasTrigger("TR_GroundTruthMeasurements_Immutable");
-            table.HasCheckConstraint("CK_GroundTruthMeasurements_MeasurementType", "[MeasurementType] IN (1, 2, 3)");
-            table.HasCheckConstraint("CK_GroundTruthMeasurements_Value", "[Value] >= 0");
-            table.HasCheckConstraint("CK_GroundTruthMeasurements_Unit", "LOWER([Unit]) IN ('mm', 'cm', 'm')");
-            table.HasCheckConstraint("CK_GroundTruthMeasurements_Location", "[Location].STSrid = 4326 AND [Location].STIsEmpty() = 0");
-            table.HasCheckConstraint("CK_GroundTruthMeasurements_EvidenceOrReason", "[EvidenceFileId] IS NOT NULL OR LEN(LTRIM(RTRIM([Notes]))) > 0");
+            table.HasCheckConstraint("CK_GroundTruthMeasurements_MeasurementType", "[MeasurementType] IN (1, 2, 3, 4)");
+            table.HasCheckConstraint("CK_GroundTruthMeasurements_Value", "([ValueState]='KNOWN' AND [Value] IS NOT NULL AND [Value]>=0) OR ([ValueState]='UNKNOWN' AND [Value] IS NULL AND [UnknownReason] IS NOT NULL AND LEN(LTRIM(RTRIM([UnknownReason])))>0)");
+            table.HasCheckConstraint("CK_GroundTruthMeasurements_Unit", "([MeasurementType] IN (1,2,3) AND [Dimension]='LENGTH' AND LOWER([Unit]) IN ('mm','cm','m')) OR ([MeasurementType]=4 AND [Dimension]='AREA' AND [Unit]=N'm²')");
+            table.HasCheckConstraint("CK_GroundTruthMeasurements_Location", "([Location] IS NOT NULL AND [LocationState]='CAPTURED' AND [Location].STSrid=4326 AND [Location].STIsEmpty()=0) OR ([Location] IS NULL AND [LocationState]='UNKNOWN' AND [LocationReason] IS NOT NULL AND LEN(LTRIM(RTRIM([LocationReason])))>0)");
+            table.HasCheckConstraint("CK_GroundTruthMeasurements_EvidenceOrReason", "[EvidenceFileId] IS NOT NULL OR [ValueState]='UNKNOWN' OR [LocationState]='UNKNOWN' OR ([Notes] IS NOT NULL AND LEN(LTRIM(RTRIM([Notes]))) > 0)");
         });
 
         builder.HasKey(measurement => measurement.Id);
@@ -30,9 +30,14 @@ public sealed class GroundTruthMeasurementConfiguration : IEntityTypeConfigurati
         builder.Property(measurement => measurement.SurveyId).HasColumnType("uniqueidentifier");
         builder.Property(measurement => measurement.DefectId).HasColumnType("uniqueidentifier");
         builder.Property(measurement => measurement.MeasurementType).HasConversion<byte>().HasColumnType("tinyint").IsRequired();
-        builder.Property(measurement => measurement.Value).HasColumnType("decimal(19,6)").IsRequired();
+        builder.Property(measurement => measurement.Value).HasColumnType("decimal(19,6)");
+        builder.Property(measurement => measurement.ValueState).HasMaxLength(20).HasDefaultValue("KNOWN");
+        builder.Property(measurement => measurement.Dimension).HasMaxLength(20).HasDefaultValue("LENGTH");
+        builder.Property(measurement => measurement.UnknownReason).HasMaxLength(1000);
+        builder.Property(measurement => measurement.LocationState).HasMaxLength(20).HasDefaultValue("CAPTURED");
+        builder.Property(measurement => measurement.LocationReason).HasMaxLength(1000);
         builder.Property(measurement => measurement.Unit).HasColumnType("nvarchar(20)").IsRequired();
-        builder.Property(measurement => measurement.Location).HasColumnType("geography").IsRequired();
+        builder.Property(measurement => measurement.Location).HasColumnType("geography");
         builder.Property(measurement => measurement.InstrumentName).HasColumnType("nvarchar(150)").IsRequired();
         builder.Property(measurement => measurement.InstrumentReference).HasColumnType("nvarchar(150)");
         builder.Property(measurement => measurement.MeasurementMethod).HasColumnType("nvarchar(500)").IsRequired();

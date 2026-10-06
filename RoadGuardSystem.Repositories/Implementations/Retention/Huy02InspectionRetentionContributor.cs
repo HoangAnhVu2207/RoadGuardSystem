@@ -7,14 +7,12 @@ using RoadGuardSystem.DTOs.Retention;
 using RoadGuardSystem.Repositories.Retention;
 
 namespace RoadGuardSystem.Repositories.Implementations.Retention;
-
 /// <summary>Read-only inventory of the two persisted inspection evidence FKs.
 /// Completeness is limited to these tables; repair remains the separate HUY safety signal.
 /// Uses the caller's scoped context/transaction and never admits or deletes evidence.</summary>
 public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) : IRetentionInventoryContributor
 {
     public string Name => "HUY02_INSPECTION";
-
     public async Task<RetentionInventoryContribution> ReadAsync(Guid fileId, CancellationToken token)
     {
         var measurements = await db.GroundTruthMeasurements.AsNoTracking()
@@ -50,7 +48,7 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
                 roads.TryGetValue(session.RoadSectionVersionId, out var roadProject) && roadProject == session.ProjectId &&
                 (session.SurveyId is not Guid surveyId || (surveys.TryGetValue(surveyId, out var survey) &&
                     survey.ProjectId == session.ProjectId && survey.RoadSectionVersionId == session.RoadSectionVersionId));
-            if (session.Purpose == FieldInspectionPurpose.DefectVerification)
+            if (session.Purpose is FieldInspectionPurpose.DefectVerification or FieldInspectionPurpose.PreMeasurement or FieldInspectionPurpose.PostRepair or FieldInspectionPurpose.Verification)
                 valid &= task is not null && session.InspectorUserId.HasValue &&
                     task.ProjectId == session.ProjectId && task.SurveyId == session.SurveyId &&
                     task.RoadSectionVersionId == session.RoadSectionVersionId &&
@@ -77,7 +75,7 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             sessionById.TryGetValue(measurement.FieldInspectionSessionId, out var session);
             var task = session?.FieldInspectionTaskId is Guid taskId ? tasks.GetValueOrDefault(taskId) : null;
             var valid = session is not null && measurement.RoadSectionVersionId == session.RoadSectionVersionId;
-            if (session?.Purpose == FieldInspectionPurpose.DefectVerification)
+            if (session?.Purpose is FieldInspectionPurpose.DefectVerification or FieldInspectionPurpose.PreMeasurement or FieldInspectionPurpose.PostRepair or FieldInspectionPurpose.Verification)
                 valid &= task is not null && measurement.DefectId == task.DefectId &&
                     measurement.SurveyId == session.SurveyId;
             else
@@ -88,16 +86,39 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
                 Version(new { measurement.Id, measurement.FieldInspectionSessionId, measurement.SampleId,
                     measurement.RoadSectionVersionId, measurement.SurveyId, measurement.DefectId,
                     measurement.MeasurementType, measurement.Value, measurement.Unit,
-                    Longitude = measurement.Location.X, Latitude = measurement.Location.Y,
+                    Longitude = measurement.Location == null ? (double?)null : measurement.Location.X,
+                    Latitude = measurement.Location == null ? (double?)null : measurement.Location.Y,
+                    measurement.ValueState, measurement.UnknownReason, measurement.Dimension, measurement.LocationState, measurement.LocationReason,
                     measurement.InstrumentName, measurement.InstrumentReference, measurement.MeasurementMethod,
                     measurement.MeasuredBy, measurement.MeasuredAt, measurement.EvidenceFileId, measurement.Notes,
                     Session = sessionFacts.GetValueOrDefault(measurement.FieldInspectionSessionId) })));
+        }
+        var links = await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().Where(x => x.FileId == fileId).OrderBy(x => x.Id).ToArrayAsync(token);
+        var reuses = await db.Set<FieldInspectionEvidenceReuseDecision>().AsNoTracking().Where(x => x.FileId == fileId).OrderBy(x => x.Id).ToArrayAsync(token);
+        var fileChecksum = await db.Files.AsNoTracking().Where(x => x.Id == fileId).Select(x => x.Checksum).SingleOrDefaultAsync(token);
+        foreach (var link in links)
+        {
+            var task = await db.FieldInspectionTasks.AsNoTracking().SingleOrDefaultAsync(x => x.Id == link.TaskId, token);
+            var submission = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == link.SubmissionId, token);
+            var assignment = await db.FieldInspectionAssignments.AsNoTracking().SingleOrDefaultAsync(x => x.Id == link.AssignmentId, token);
+            if (task is null || submission is null || assignment is null || task.ProjectId != link.ProjectId || submission.TaskId != link.TaskId ||
+                submission.ProjectId != link.ProjectId || assignment.FieldInspectionTaskId != link.TaskId || link.DeclaredChecksum != fileChecksum)
+                reasons.Add("H3_FIELD_EVIDENCE_PROVENANCE_UNRESOLVED");
+            references.Add(new("FIELD_INSPECTION_EVIDENCE",link.Id,link.ProjectId,Version(new {link.Id,link.ProjectId,link.TaskId,link.AssignmentId,
+                link.SubmissionId,link.FileId,link.CaptureOriginId,link.Purpose,link.DeclaredChecksum,link.MediaType,link.CaptureFactsJson,
+                SubmissionHash=submission?.ContentHash,RootId=submission?.RootId,RouteVersionId=task?.RoadSectionVersionId,task?.SegmentSetId,task?.LayoutRevisionId})));
+        }
+        foreach (var reuse in reuses)
+        {
+            if (reuse.FileChecksum != fileChecksum || !await db.FieldInspectionTasks.AsNoTracking().AnyAsync(x => x.Id == reuse.TaskId && x.ProjectId == reuse.ProjectId,token))
+                reasons.Add("H3_FIELD_REUSE_PROVENANCE_UNRESOLVED");
+            references.Add(new("FIELD_BEFORE_REUSE",reuse.Id,reuse.ProjectId,Version(new {reuse.Id,reuse.ProjectId,reuse.TaskId,reuse.FileId,
+                reuse.SourceEvidenceId,reuse.SourceKind,reuse.FileChecksum,reuse.ProvenanceJson,reuse.OccurredAt,reuse.ActorId,reuse.Reason})));
         }
         return new(Name, reasons.Count == 0,
             references.OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.Id).ThenBy(x => x.ProjectId).ToArray(),
             reasons.Order(StringComparer.Ordinal).ToArray());
     }
-
     public async Task<IReadOnlyList<Guid>> KnownProjectFilesAsync(Guid projectId, CancellationToken token)
     {
         var sessions = db.FieldInspectionSessions.AsNoTracking().Where(x => x.ProjectId == projectId);
@@ -107,9 +128,10 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             join session in sessions on measurement.FieldInspectionSessionId equals session.Id
             where measurement.EvidenceFileId != null
             select measurement.EvidenceFileId!.Value).ToArrayAsync(token);
-        return sessionFiles.Concat(measurementFiles).Distinct().Order().ToArray();
+        var fieldFiles = await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().Where(x => x.ProjectId == projectId && x.FileId != null).Select(x => x.FileId!.Value).ToArrayAsync(token);
+        var reuseFiles = await db.Set<FieldInspectionEvidenceReuseDecision>().AsNoTracking().Where(x => x.ProjectId == projectId).Select(x => x.FileId).ToArrayAsync(token);
+        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Distinct().Order().ToArray();
     }
-
     private static string Version(object facts)
         => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(facts))).ToLowerInvariant();
 }

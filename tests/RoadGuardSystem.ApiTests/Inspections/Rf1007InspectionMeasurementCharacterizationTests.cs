@@ -106,6 +106,8 @@ public sealed class Rf1007InspectionMeasurementCharacterizationTests
         measurementAfter.MeasurementType.Should().Be(measurementBefore.MeasurementType);
         measurementAfter.Value.Should().Be(measurementBefore.Value);
         measurementAfter.Unit.Should().Be(measurementBefore.Unit);
+        Assert.NotNull(measurementAfter.Location);
+        Assert.NotNull(measurementBefore.Location);
         measurementAfter.Location.SRID.Should().Be(measurementBefore.Location.SRID);
         measurementAfter.Location.Coordinate.X.Should().Be(measurementBefore.Location.Coordinate.X);
         measurementAfter.Location.Coordinate.Y.Should().Be(measurementBefore.Location.Coordinate.Y);
@@ -179,6 +181,7 @@ public sealed class Rf1007InspectionMeasurementCharacterizationTests
         measurement.MeasurementType.Should().Be(MeasurementType.DepressionDepth);
         measurement.Value.Should().BeGreaterThan(0);
         measurement.Unit.Should().Be("mm");
+        Assert.NotNull(measurement.Location);
         measurement.Location.SRID.Should().Be(4326);
     }
 

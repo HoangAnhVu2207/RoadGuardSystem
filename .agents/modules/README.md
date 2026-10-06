@@ -2,7 +2,7 @@
 
 Start development from [the current plan](../../planning/development/README.md) and one assigned spec. Use `anh-review` and `huy-review` for implementation/handoff. The four packages are PROPOSED until their specs are assigned; package routing does not approve undesigned routes/schema. RF IDs below locate historical evidence only. Web/Android/AI consumer owners remain UNKNOWN.
 
-Each row is a reading route, not an instruction to load every source. Use `planning/refactor/04-operation-crosswalk.json` for operation-specific source lines and `04-source-crosswalk.json` for historical IDs. Actual scope/writer/interfaces come from the assigned development spec. Anh coordinates DbContext/migration/snapshot, canonical contract, shared DI and integrated Postman; reserve one writer per shared file and integration order, never simultaneous shared edits.
+Each row is a reading route, not an instruction to load every source. Use `planning/refactor/04-operation-crosswalk.json` for operation-specific source lines and `04-source-crosswalk.json` for historical IDs. Actual scope/writer/interfaces come from the assigned development spec. For the assigned HUY-FINAL-INTEGRATION execution, Huy coordinates DbContext/migration/snapshot, canonical contract, shared DI and integrated Postman; reserve one writer per shared file and integration order, never simultaneous shared edits.
 
 | Module / historical evidence | Product and decision | Contract and backend | Current controller -> service/repository; tests | Competition, shared files and gate |
 |---|---|---|---|---|

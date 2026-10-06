@@ -1,3 +1,5 @@
+> HISTORICAL assignment: superseded where conflicting by the owner-assigned 06/10/2026 [HUY final integration](HUY-FINAL-INTEGRATION.md). Accepted I1/N1/R1/DOC and execution evidence below are retained. Old B1–B6/S1/S2 stop conditions do not govern the new execution.
+
 # HUY-02: existing inspection/inbox authority and inspection retention adapter
 
 Status: ASSIGNED; overall PARTIAL. Assignment: Huy's finite autonomous implementation request, 2026-10-04. Writer: Huy/Codex LOCAL, `huy-review` only. Initial and implementation base: `5a6d4c3b1957c0142c4d4d83679c11066ca1cdb7` (parent `21cf8f7de6fea1bf419dadbfac39476d11474a07`); initial dirty/untracked paths: none. Initial live `huy-review` equals base; live `anh-review`: `5089c3267dcdf60645ab34f61b58a79e3cbb0cf6`. These are evidence, not reset/integration targets. HUY-01 closure is not reopened.

@@ -17,9 +17,31 @@ internal static class WebCookieConfiguration
     {
         if (context.Request.Headers.ContainsKey("Authorization"))
             return Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-        return IsCookieEligiblePath(context.Request.Path) && context.Request.Cookies.ContainsKey(CookieName)
+        return IsCookieEligibleRequest(context.Request.Method, context.Request.Path) && context.Request.Cookies.ContainsKey(CookieName)
             ? Scheme
             : Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+    }
+
+    internal static bool IsCookieEligibleRequest(string method, PathString requestPath)
+    {
+        var path = requestPath.Value ?? "";
+        // Normalize one optional trailing slash, without admitting extra segments.
+        if (path.EndsWith('/')) path = path[..^1];
+        if (path.Equals("/api/v1/me/inspection-tasks", StringComparison.OrdinalIgnoreCase))
+            return HttpMethods.IsGet(method);
+        var parts = path.Split('/');
+        if (parts.Length >= 4 && parts[0] == "" &&
+            parts[1].Equals("api", StringComparison.OrdinalIgnoreCase) &&
+            parts[2].Equals("v1", StringComparison.OrdinalIgnoreCase) &&
+            parts[3].Equals("notifications", StringComparison.OrdinalIgnoreCase))
+        {
+            if (parts.Length == 4) return HttpMethods.IsGet(method);
+            if (!Guid.TryParse(parts[4], out _)) return false;
+            if (parts.Length == 5) return HttpMethods.IsGet(method);
+            return parts.Length == 6 && parts[5].Equals("read", StringComparison.OrdinalIgnoreCase)
+                && HttpMethods.IsPost(method);
+        }
+        return IsCookieEligiblePath(requestPath);
     }
 
     internal static bool IsCookieEligiblePath(PathString requestPath)

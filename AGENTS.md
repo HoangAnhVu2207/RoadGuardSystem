@@ -1,5 +1,7 @@
 # RoadGuard development entrypoint
 
+> Active assignment: [HUY-FINAL-INTEGRATION](planning/development/HUY-FINAL-INTEGRATION.md), owner-authorized 06/10/2026. R01–R30, clocks, persistent login and shared ownership in that spec supersede conflicting earlier package guidance. Huy is the assigned shared writer; preserve one writer/file. Prior HUY-02 accepted evidence remains historical.
+
 The manifest records active owner-accepted guidance. Start from one assigned spec in [development](planning/development/README.md) and the [module route](.agents/modules/README.md). Development tasks need no RF-* identifier. RF tasks/reports and docs/history remain historical checkpoints and evidence, including embedded AGENTS.md copies; they do not assign development work. Read only the relevant product, backend, contract, decision, code and test sources.
 
 Evidence labels are `CURRENT_VERIFIED` (observed implementation or executed check), `TARGET_CONFIRMED` (sourced owner decision), `PROPOSED`, `UNKNOWN`, and `HISTORICAL`. Current code establishes implementation, not business authority. Confirmed 32-44 requirements are in `docs/product/confirmed-decisions.md`; acceptance of a requirement does not accept a wire contract, schema, implementation or test. Historical 148 items and 701 excerpts are review material. A route candidate is not contract equivalence. A file in `contracts/` is active only when its status and adoption evidence say so.

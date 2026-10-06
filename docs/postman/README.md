@@ -1,5 +1,9 @@
 # Chạy thử RoadGuard API bằng Postman
 
+## HUY final H0 integration (06/10/2026)
+
+The appended `HUY final H0 - retention integration - opted-in` folder selectively preserves seven Anh retention requests and identifiers. Enable `anh02Enabled` only against an isolated local project. Inventory/basis, holds and evaluation never perform physical deletion; unavailable repair inventory still blocks basis. Existing Huy folders are preserved. Collection JSON validation and BE tests are separate from a live Postman run. Cookie inspection/inbox methods, CSRF and bearer precedence are recorded in [local contract](../../contracts/http/huy-final.local-contract.md).
+
 ## HUY-01 current opt-in workflows (2026-10-04)
 
 Collection now includes `HUY-01 AI, reporting and export - opted-in`,

@@ -390,6 +390,61 @@
       "key": "validationRunId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "anh02HoldId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02EvaluationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02HoldETag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02BasisETag",
+      "value": "\"none\"",
+      "type": "string"
+    },
+    {
+      "key": "anh02InventoryVersion",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02WarrantyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02HoldKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02ReleaseKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02BasisKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02EvaluationKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "anh02RetentionFileId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -9296,6 +9351,484 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "HUY final H0 - retention integration - opted-in",
+      "description": "Owner-assigned H0 selective Anh integration. Evaluation/hold only; no deletion. Requires anh02Enabled=true and isolated local project. BE HTTP verified separately; collection is not live-run evidence.",
+      "item": [
+        {
+          "name": "Retention current file inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/files/{{anh02RetentionFileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "files",
+                "{{anh02RetentionFileId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.environment.set(\"anh02InventoryVersion\",pm.response.json().inventoryVersion);",
+                  "if(pm.response.code===200)pm.environment.set(\"anh02BasisETag\",pm.response.headers.get(\"ETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Basis requires complete current inventory - Supervisor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02BasisKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh02BasisETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/files/{{anh02RetentionFileId}}/basis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "files",
+                "{{anh02RetentionFileId}}",
+                "basis"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"warrantyIds\": [\n    \"{{anh02WarrantyId}}\"\n  ],\n  \"expectedReferenceInventoryVersion\": \"{{anh02InventoryVersion}}\",\n  \"reason\": \"Confirm all obligations only after inventory complete\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02BasisKey\"))pm.environment.set(\"anh02BasisKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 409\",()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test(\"Explicit unavailable/problem code\",()=>pm.expect(pm.response.json().code).to.eql(\"retention_inventory_incomplete\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold create - Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02HoldKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scopeType\": \"FILE\",\n  \"scopeId\": \"{{anh02RetentionFileId}}\",\n  \"reason\": \"Independent review hold\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02HoldKey\"))pm.environment.set(\"anh02HoldKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 201\",()=>pm.expect(pm.response.code).to.eql(201));",
+                  "if(pm.response.code===201)pm.environment.set(\"anh02HoldId\",pm.response.json().id);",
+                  "if(pm.response.code===201)pm.environment.set(\"anh02HoldETag\",pm.response.headers.get(\"ETag\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold read",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{anh02HoldId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{anh02HoldId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold release - Supervisor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02ReleaseKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{anh02HoldETag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/retention/holds/{{anh02HoldId}}/release",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "retention",
+                "holds",
+                "{{anh02HoldId}}",
+                "release"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Review hold released\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02ReleaseKey\"))pm.environment.set(\"anh02ReleaseKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluation admission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{anh02EvaluationKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/evaluations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "evaluations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\n    \"{{anh02RetentionFileId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"anh02EvaluationKey\"))pm.environment.set(\"anh02EvaluationKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 202\",()=>pm.expect(pm.response.code).to.eql(202));",
+                  "if(pm.response.code===202)pm.environment.set(\"anh02EvaluationId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluation snapshot read",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{projectManagerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/retention/evaluations/{{anh02EvaluationId}}?pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "retention",
+                "evaluations",
+                "{{anh02EvaluationId}}"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\",()=>pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"anh02Enabled\")!==\"true\" && pm.collectionVariables.get(\"anh02Enabled\")!==\"true\"){console.log(\"ANH-02 manual isolated workflow disabled\");pm.execution.skipRequest();}"
+            ]
+          }
         }
       ]
     }

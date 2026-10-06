@@ -30,6 +30,16 @@ public static class Huy01ReporterPersistenceExtensions
         services.TryAddScoped<RoadGuardSystem.Repositories.Reporting.IReportingRepository, RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
             RoadGuardSystem.Repositories.Implementations.Retention.Huy01RetentionInventoryContributor>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
+            RoadGuardSystem.Repositories.Implementations.Retention.Huy02InspectionRetentionContributor>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
+            RoadGuardSystem.Repositories.Retention.ExportRetentionInventoryContributor>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
+            RoadGuardSystem.Repositories.Retention.AiRetentionInventoryContributor>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
+            RoadGuardSystem.Repositories.Retention.ReporterIntakeRetentionInventoryContributor>());
+        services.TryAddScoped<RoadGuardSystem.Repositories.Retention.IRetentionRepository,
+            RoadGuardSystem.Repositories.Retention.RetentionRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryRepository,
             RoadGuardSystem.Repositories.Retention.RetentionInventoryRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Exports.IExportRepository,

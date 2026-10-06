@@ -131,8 +131,7 @@ public sealed class Huy02NotificationApiTests(AuthenticationSqlServerFixture fix
         var denied = await ReadAsync(client, notification.Id, "session", etag);
         Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
         Assert.Null(denied.Headers.ETag);
-        // Existing shared JWT challenge uses WriteAsJsonAsync (application/json).
-        // Module transaction-time denial is separately verified as problem+json.
+        Assert.Equal("application/problem+json", denied.Content.Headers.ContentType?.MediaType);
         var problem = await denied.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("auth_session_revoked", problem.GetProperty("code").GetString());
         Assert.True(problem.TryGetProperty("correlationId", out _));

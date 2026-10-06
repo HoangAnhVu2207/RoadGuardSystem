@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.ApiTests.Infrastructure;
@@ -18,6 +19,26 @@ namespace RoadGuardSystem.ApiTests.Inspections;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class Huy02InspectionRetentionTests(AuthenticationSqlServerFixture fixture)
 {
+    [Fact]
+    public async Task ProductionScope_CompositeIncludesInspectionAndPreservesIncompleteHuy()
+    {
+        var actor = await fixture.CreateUserAsync($"h0_retention_{Guid.NewGuid():N}", "Current1!");
+        await using var db = fixture.CreateDbContext();
+        var file = AddFile(db, actor.Id);
+        var scope = AddScope(db, file.Id, FieldInspectionSessionStatus.Completed);
+        await db.SaveChangesAsync();
+        await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
+        using var requestScope = factory.Services.CreateScope();
+        var contributors = requestScope.ServiceProvider.GetServices<IRetentionInventoryContributor>().ToArray();
+        Assert.Single(contributors, x => x.Name == "HUY02_INSPECTION");
+        Assert.Single(contributors, x => x.Name == "HUY");
+        var inventory = await requestScope.ServiceProvider.GetRequiredService<IRetentionInventoryRepository>().ReadAsync(file.Id, default);
+        Assert.NotNull(inventory);
+        Assert.Contains(inventory.References, x => x.Kind == "FIELD_INSPECTION_SESSION" && x.Id == scope.Session.Id && x.ProjectId == scope.Project.Id);
+        Assert.Contains("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.False(inventory.Complete);
+    }
+
     [Fact]
     public async Task SessionAndMeasurementReferencesWithoutFileScopeReachRealComposite()
     {

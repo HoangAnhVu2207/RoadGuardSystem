@@ -37,6 +37,7 @@ if (builder.Configuration.GetValue($"{UploadSessionOptions.SectionName}:Recovery
 if (builder.Configuration.GetValue("Anh02:WorkersEnabled", false))
 {
     builder.Services.AddHostedService<ExportWorker>();
+    builder.Services.AddHostedService<RetentionEvaluationWorker>();
     if ((builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing") || builder.Environment.IsEnvironment("Test"))
         && builder.Configuration.GetValue("Anh02:MockEnabled", false))
         builder.Services.AddHostedService<AiMockRunWorker>();

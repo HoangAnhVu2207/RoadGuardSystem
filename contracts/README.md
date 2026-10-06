@@ -1,5 +1,7 @@
 # Contract transition index (RF-04 draft, inactive)
 
+Current owner-assigned final integration adoption is tracked in [HUY final local contract](http/huy-final.local-contract.md); only its implemented, evidenced package surfaces are active locally.
+
 Current additive development adoption is recorded separately in
 [ANH-01 local contract](http/anh01.local-contract.md). Its owner-assigned
 revision and local evidence do not activate the historical drafts below.

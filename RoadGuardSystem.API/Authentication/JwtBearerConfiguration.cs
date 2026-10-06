@@ -134,7 +134,8 @@ internal static class JwtBearerConfiguration
         problem.Extensions["correlationId"] = correlationId;
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problem, context.HttpContext.RequestAborted);
+        await context.Response.WriteAsJsonAsync(problem, options: null,
+            contentType: "application/problem+json", cancellationToken: context.HttpContext.RequestAborted);
     }
 
     private static bool IsPasswordChangeAllowed(string method, PathString path)

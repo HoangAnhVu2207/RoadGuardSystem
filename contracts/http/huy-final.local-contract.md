@@ -1,0 +1,9 @@
+# HUY final additive HTTP adoption
+
+Status: ACTIVE_LOCAL_DEVELOPMENT, PARTIAL H0. Authority: [owner-assigned specification](../../planning/development/HUY-FINAL-INTEGRATION.md), 06/10/2026. This record does not claim external FE/Android adoption, activate historical drafts or change the FE lock.
+
+Cookie transport now admits GET `/api/v1/me/inspection-tasks`, GET `/api/v1/notifications`, GET `/api/v1/notifications/{notificationId:guid}` and POST `/api/v1/notifications/{notificationId:guid}/read`, with one optional trailing slash. Existing DTO/status/ETag/cursor/idempotency semantics remain. Authorization headers select bearer even when invalid; valid credentials for different actors return 400 `validation_error`. Cookie writes require an actor-bound `X-CSRF-TOKEN`; missing/invalid token returns 403 `csrf_failed`. Authentication challenges serialize `application/problem+json` with status/code/correlationId. Current session, role and resource authorization still apply.
+
+Selective Anh retention routes are integrated: GET project file inventory, PUT its `/basis`, POST project `/retention/evaluations`, GET evaluation snapshot, POST `/retention/holds`, GET hold and POST hold `/release`. Current serialization sources are RetentionController and DTOs/Retention. Basis and holds require Supervisor; project inventory/evaluation permits current PM membership or Supervisor. Commands require Idempotency-Key; basis and release require quoted If-Match. Reads return quoted ETag; created hold returns 201/Location, evaluation admission 202/Location. Error body is ProblemDetails with code/correlationId. No physical deletion route exists. Missing repair inventory continues fail closed; registration does not make inventory complete.
+
+H1–H7 adoption will be added with their producing implementations and evidence. Persistent login is the confirmed H1 target, not yet implemented at this H0 record.

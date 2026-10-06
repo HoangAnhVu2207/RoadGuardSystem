@@ -480,7 +480,7 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         afterCookieVerification.Audits.Should().Be(afterCookieAssessment.Audits + 1);
         afterCookieVerification.Receipts.Should().Be(afterCookieAssessment.Receipts + 1);
         (await verification.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString().Should().Be("VERIFIED");
-        await AssertDefectCookieInactiveSessionsAsync(web, pm.Id, createdDefectId, defectPath);
+        await AssertDefectCookiePersistentLifecycleAsync(web, pm.Id, createdDefectId, defectPath);
         var verifiedList = await client.GetAsync($"/api/v1/projects/{project}/defects?status=VERIFIED&type={defectTypeCode}&pageSize=1");
         verifiedList.StatusCode.Should().Be(HttpStatusCode.OK);
         var verifiedItems = (await verifiedList.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items");
@@ -940,22 +940,24 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         }
     }
 
-    private async Task AssertDefectCookieInactiveSessionsAsync(HttpClient web, Guid actor, Guid defect, string path)
+    private async Task AssertDefectCookiePersistentLifecycleAsync(HttpClient web, Guid actor, Guid defect, string path)
     {
-        foreach (var state in new[] { "IDLE", "ABSOLUTE", "REVOKED" })
+        // H1 login creates persistent server sessions; idle time cannot expire them.
+        // Finite ticket expiration and legacy absolute expiry have dedicated H1 tests.
+        foreach (var state in new[] { "IDLE", "REVOKED" })
         {
             await using (var db = sql.CreateDbContext())
             {
                 var session = await db.Sessions.SingleAsync(value => value.UserId == actor &&
                     value.Transport == RoadGuardSystem.BusinessObjects.Identity.SessionTransport.Web);
                 session.LastActivityAt = state == "IDLE" ? DateTimeOffset.UtcNow.AddMinutes(-31) : DateTimeOffset.UtcNow.AddMinutes(-2);
-                session.ExpiresAt = state == "ABSOLUTE" ? session.IssuedAt.AddMilliseconds(1) : DateTimeOffset.UtcNow.AddHours(1);
+                session.ExpiresAt.Should().BeNull();
                 session.RevokedAt = state == "REVOKED" ? DateTimeOffset.UtcNow : null;
                 await db.SaveChangesAsync();
             }
             var before = await DefectCookieEffectsAsync(actor, defect);
-            (await web.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-            (await DefectCookieEffectsAsync(actor, defect)).Should().Be(before);
+            (await web.GetAsync(path)).StatusCode.Should().Be(state == "REVOKED" ? HttpStatusCode.Unauthorized : HttpStatusCode.OK);
+            if (state == "REVOKED") (await DefectCookieEffectsAsync(actor, defect)).Should().Be(before);
         }
     }
 

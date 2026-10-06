@@ -112,6 +112,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IPrimaryProjectManagerRepository, PrimaryProjectManagerPersistenceService>();
         services.AddScoped<IRoadSectionVersionRepository, RoadSectionVersionPersistenceService>();
         services.AddScoped<IGeometryWorkflowRepository, GeometryWorkflowPersistenceService>();
+        services.AddScoped<IPavementWorkflowRepository, PavementWorkflowRepository>();
         services.AddScoped<IWarrantyRepository, WarrantyPersistenceService>();
         services.AddScoped<ISurveyAssignmentRepository, SurveyAssignmentPersistenceService>();
         services.AddScoped<ISurveyDataValidationAdmissionRepository, SurveyDataValidationAdmissionPersistenceService>();

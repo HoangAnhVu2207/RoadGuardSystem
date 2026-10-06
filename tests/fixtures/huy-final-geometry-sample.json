@@ -1,0 +1,34 @@
+{
+  "fixtureVersion": 1,
+  "status": "CANDIDATE",
+  "sampleOnly": true,
+  "limitations": ["SYNTHETIC_NOT_PROJECT_DATA", "NO_OFFICIAL_CRS_OPERATION", "NO_INDEPENDENT_SURVEY_CONTROLS", "NO_SURVEY_ACCURACY_ACCEPTANCE"],
+  "profile": {
+    "code": "SYNTHETIC_EN_METRES_V1",
+    "sourceSrid": 0,
+    "datum": "SYNTHETIC_LOCAL_PLANE",
+    "projection": "SYNTHETIC_PLANAR",
+    "axisOrder": "EN",
+    "metresPerUnit": 1,
+    "sourceReference": "tests/fixtures/huy-final-native-source.txt",
+    "sourceChecksum": "1cb1f8e68fc9af45ed34aab349cc302b76abbcd7fcd70fe37078d9badbf869ff",
+    "sampleOnly": true,
+    "operation": null,
+    "independentControls": [],
+    "sourcedToleranceMeters": null,
+    "toleranceSource": null
+  },
+  "alignment": {
+    "crsProfileRevisionId": "REPLACE_WITH_SERVER_CREATED_REVISION_ID",
+    "spatialSrid": 0,
+    "primitives": [
+      { "kind": "LINE", "start": {"x": 0, "y": 0}, "end": {"x": 200, "y": 0} },
+      { "kind": "ARC", "start": {"x": 200, "y": 0}, "end": {"x": 300, "y": 100}, "center": {"x": 200, "y": 100}, "radius": 100, "startAngleRadians": -1.5707963267948966, "sweepRadians": 1.5707963267948966 }
+    ]
+  },
+  "analyticLengthExpression": "200 + 50*pi",
+  "analyticLengthMeters": 357.07963267948966,
+  "widthProfile": [{"fromOffsetMeters": 0, "toOffsetMeters": 357.07963267948966, "widthMeters": 12}],
+  "surveyWidthMeters": 20,
+  "displayToleranceMeters": 0.01
+}

@@ -99,6 +99,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWarrantyCreationService, WarrantyCreationService>();
         services.AddScoped<IRoadSectionVersionService, RoadSectionVersionService>();
         services.AddScoped<IGeometryWorkflowService, GeometryWorkflowService>();
+        services.AddScoped<IPavementWorkflowService, PavementWorkflowService>();
         services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
         services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
         services.AddScoped<IInspectionTaskQueryService, InspectionTaskQueryService>();

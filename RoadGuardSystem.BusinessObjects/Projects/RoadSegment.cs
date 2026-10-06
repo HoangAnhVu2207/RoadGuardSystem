@@ -13,10 +13,11 @@ public sealed class RoadSegment
     public double? StartStationMeters { get; private set; }
     public double? EndStationMeters { get; private set; }
     public NetTopologySuite.Geometries.LineString? Geometry { get; private set; }
-    public void SetGeometry(double from, double to, double origin, NetTopologySuite.Geometries.LineString geometry)
+    public void SetGeometry(double from, double to, double origin, NetTopologySuite.Geometries.LineString geometry,
+        double? calibratedStart = null, double? calibratedEnd = null)
     {
         if (!double.IsFinite(from) || !double.IsFinite(to) || from < 0 || to <= from || geometry.Length <= 0) throw new ArgumentException("Invalid segment offsets.");
-        FromOffsetMeters = from; ToOffsetMeters = to; StartStationMeters = origin + from; EndStationMeters = origin + to; Geometry = geometry;
+        FromOffsetMeters = from; ToOffsetMeters = to; StartStationMeters = calibratedStart ?? origin + from; EndStationMeters = calibratedEnd ?? origin + to; Geometry = geometry;
     }
 
     public static RoadSegment Create(Guid id, Guid segmentSetId, Guid roadSectionVersionId, int sequence)

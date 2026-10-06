@@ -32,6 +32,7 @@ public sealed class HuyFinalTransportCompositionTests
         services.AddHuy01ReporterPersistence().AddHuy01ReporterPersistence();
         var contributors = services.Where(x => x.ServiceType == typeof(IRetentionInventoryContributor)).ToArray();
         Assert.Single(contributors, x => x.ImplementationType?.Name == "Huy02InspectionRetentionContributor");
+        Assert.Single(contributors, x => x.ImplementationType?.Name == "PavementRetentionContributor");
         Assert.Single(contributors, x => x.ImplementationType?.Name == "Huy01RetentionInventoryContributor");
         Assert.Single(contributors, x => x.ImplementationType?.Name == "ExportRetentionInventoryContributor");
         Assert.Single(contributors, x => x.ImplementationType?.Name == "AiRetentionInventoryContributor");

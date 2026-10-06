@@ -33,6 +33,8 @@ public static class Huy01ReporterPersistenceExtensions
         services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
             RoadGuardSystem.Repositories.Implementations.Retention.Huy02InspectionRetentionContributor>());
         services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
+            RoadGuardSystem.Repositories.Implementations.Retention.PavementRetentionContributor>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
             RoadGuardSystem.Repositories.Retention.ExportRetentionInventoryContributor>());
         services.TryAddEnumerable(ServiceDescriptor.Scoped<RoadGuardSystem.Repositories.Retention.IRetentionInventoryContributor,
             RoadGuardSystem.Repositories.Retention.AiRetentionInventoryContributor>());

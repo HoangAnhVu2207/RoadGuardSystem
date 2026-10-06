@@ -130,3 +130,8 @@ Không tạo request mẫu cho các operation này bằng payload phỏng đoán
 - Seed PM, Operator, Repair Crew: role/status và seed password khớp tại thời điểm kiểm tra; chưa chạy hết các API folder bằng Runner.
 - Static collection JSON parsing và toàn bộ 37-route parity: chưa xác minh lại sau lần chỉnh sửa hiện tại.
 - Real SMTP send, mailbox receipt, OTP verify/login và invitation accept: chưa chạy trong lượt này.
+### HUY final H2 candidate geometry
+
+Sixteen new requests are opt-in (`h2GeometryEnabled=false` by default). Supply separate PM/Supervisor tokens, fresh operation keys, a disposable project and explicit `h2EffectiveFrom`. The flow creates a candidate profile, route system, native line, Supervisor-confirmed version, PM-published 100m set, equal-strip plan and SAMPLE map publication. Captured profile/version/hash variables bind later requests. Native layer bbox is in that layer's declared CRS; cursors are publication/filter-bound. Browser MapLibre behavior and live Postman execution are not verified by these fixtures.
+
+The fixture provenance is [huy-final-native-source.txt](../../tests/fixtures/huy-final-native-source.txt); its checksum and synthetic limits are in [huy-final-geometry-sample.json](../../tests/fixtures/huy-final-geometry-sample.json). No VN2000 project parameters, independent control accuracy or official publication acceptance are implied. The JSON fixture also includes a quarter-circle example; the manual Postman flow uses its simpler 200m line subset.

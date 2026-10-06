@@ -12,13 +12,14 @@ public sealed class RoadSectionVersionConfiguration : IEntityTypeConfiguration<R
         builder.ToTable("RoadSectionVersions", table =>
         {
             table.HasTrigger("TR_RoadSectionVersions_Immutable");
+            table.HasTrigger("TR_RoadSectionVersions_ProfileScope");
             table.HasCheckConstraint("CK_RoadSectionVersions_VersionNo_Positive", "[VersionNo] > 0");
             table.HasCheckConstraint(
                 "CK_RoadSectionVersions_Geometry_LineString",
                 "[Geometry].STGeometryType() = 'LineString'");
             table.HasCheckConstraint(
                 "CK_RoadSectionVersions_Geometry_AllowedSrid",
-                "[Geometry].STSrid IN (32648, 32649)");
+                "([CrsProfileRevisionId] IS NULL AND [Geometry].STSrid IN (32648, 32649)) OR ([CrsProfileRevisionId] IS NOT NULL AND [Geometry].STSrid>=0)");
         });
 
         builder.HasKey(version => version.Id);
@@ -54,6 +55,8 @@ public sealed class RoadSectionVersionConfiguration : IEntityTypeConfiguration<R
             .WithMany()
             .HasForeignKey(version => version.RoadSectionId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<CrsProfileRevision>().WithMany().HasForeignKey(x => x.CrsProfileRevisionId).OnDelete(DeleteBehavior.Restrict);
+        builder.Property(x => x.CrsProfileRevisionId).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
 
         builder.Property(version => version.RoadSectionId).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
         builder.Property(version => version.VersionNo).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);

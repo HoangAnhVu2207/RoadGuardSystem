@@ -14,6 +14,18 @@ namespace RoadGuardSystem.API.Controllers;
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}")]
 public sealed class GeometryWorkflowController(IGeometryWorkflowService service):ControllerBase
 {
+    [HttpPost("crs-profiles")]
+    public Task<IActionResult> CreateProfile(Guid projectId,CrsProfileInput input,CancellationToken ct)=>Run(projectId,"profile-create",ct,input:input);
+    [HttpGet("crs-profiles")]
+    public Task<IActionResult> Profiles(Guid projectId,CancellationToken ct)=>Run(projectId,"profile-list",ct);
+    [HttpGet("crs-profiles/{profileId:guid}")]
+    public Task<IActionResult> Profile(Guid projectId,Guid profileId,CancellationToken ct)=>Run(projectId,"profile-get",ct,draft:profileId);
+    [HttpPost("route-systems")]
+    public Task<IActionResult> CreateSystem(Guid projectId,RouteSystemInput input,CancellationToken ct)=>Run(projectId,"system-create",ct,input:input);
+    [HttpGet("route-systems")]
+    public Task<IActionResult> Systems(Guid projectId,CancellationToken ct)=>Run(projectId,"system-list",ct);
+    [HttpGet("road-geometry-drafts/{draftId:guid}/readiness")]
+    public Task<IActionResult> Readiness(Guid projectId,Guid draftId,CancellationToken ct)=>Run(projectId,"draft-readiness",ct,draft:draftId);
     [HttpPost("road-geometry-drafts")]
     [HttpPost("road-sections/{roadSectionId:guid}/geometry-drafts")]
     public Task<IActionResult> CreateDraft(Guid projectId,GeometryDraftInput input,CancellationToken ct,Guid? roadSectionId=null)=>Run(projectId,"draft-create",ct,roadSectionId,input:input);

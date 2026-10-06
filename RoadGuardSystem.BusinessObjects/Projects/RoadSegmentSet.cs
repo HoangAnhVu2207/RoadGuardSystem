@@ -17,7 +17,7 @@ public sealed class RoadSegmentSet
         if (Status != "DRAFT") throw new InvalidOperationException("Only drafts can be edited.");
         DefinitionJson = definition; GeometryHash = hash;
     }
-    public void Publish(Guid actor) { if (Status != "DRAFT") throw new InvalidOperationException(); Status = "PUBLISHED"; PublishedBy = actor; PublishedAt = DateTimeOffset.UtcNow; }
+    public void Publish(Guid actor, DateTimeOffset? now = null) { if (Status != "DRAFT") throw new InvalidOperationException(); Status = "PUBLISHED"; PublishedBy = actor; PublishedAt = now ?? DateTimeOffset.UtcNow; }
     public void Supersede() { if (Status != "PUBLISHED") throw new InvalidOperationException(); Status = "SUPERSEDED"; }
 
     public static RoadSegmentSet Create(Guid id, Guid roadSectionVersionId, string status = "PUBLISHED")

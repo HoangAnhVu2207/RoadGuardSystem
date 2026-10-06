@@ -11,11 +11,14 @@ public sealed record ResolvedEvidenceFacts(VerifiedEvidenceReference Reference, 
     string Purpose, string ChecksumSha256, long SizeBytes, string MediaType, DateTimeOffset UploadedAt);
 public sealed record GeometrySegmentContext(Guid Id, int Sequence, Guid? PreviousId, Guid? NextId);
 public sealed record ProjectGeometryContext(string SchemaVersion, Guid ProjectId, Guid RouteVersionId,
-    Guid SegmentSetId, string Version, GeometryPackageView Package, GeometrySegmentContext[] Segments);
+    Guid SegmentSetId, string Version, GeometryPackageView Package, GeometrySegmentContext[] Segments,
+    Guid? CrsProfileRevisionId = null, Guid? RouteSystemId = null, double? CanonicalLengthMeters = null,
+    double? DeclaredLengthMeters = null, ChainageCalibrationInput? ChainageCalibration = null,
+    bool SampleOnly = false, string OfficialReadiness = "UNKNOWN");
 public sealed record ResolvedCandidateSourceFacts(CandidateSourceFacts DomainFacts, Guid CaseId,
     Guid[] EvidenceIds, ResolvedEvidenceFacts[] Evidence, ProjectGeometryContext Geometry);
 
-// Anh owns these real read producers. Huy must re-resolve them inside its command
+// The accepted Huy integration owns these real read producers. Consumers re-resolve them inside their command
 // transaction/concurrency boundary; a successful preflight read is not a commit lock.
 public interface IAnhHuyProducerService
 {

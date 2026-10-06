@@ -480,6 +480,131 @@
       "key": "h1RefreshSuccessor",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "h2GeometryEnabled",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "h2PmAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2SupervisorAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2ProfileKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2SystemKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2DraftKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2ConfirmKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2SetKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2SetPublishKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2PlanKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2MapPublishKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2CrsProfileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2RouteSystemId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2DraftId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2DraftETag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2RoadSectionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2RouteVersionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2SegmentSetId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2SetETag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2LayoutId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2LayoutHash",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2PublicationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2PublicationHash",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2SlabCursor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h2EffectiveFrom",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -10296,6 +10421,1052 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "HUY final H2 - native candidate geometry - opted-in",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.variables.get(\"h2GeometryEnabled\")!==\"true\")pm.execution.skipRequest();"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "id": "feb296e5-4850-49d6-939a-adbc8d7451d5",
+          "name": "01 PM create CANDIDATE profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2ProfileKey}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/crs-profiles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "crs-profiles"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SYNTHETIC_EN_METRES_V1\",\n  \"sourceSrid\": 0,\n  \"datum\": \"SYNTHETIC_LOCAL_PLANE\",\n  \"projection\": \"SYNTHETIC_PLANAR\",\n  \"axisOrder\": \"EN\",\n  \"metresPerUnit\": 1,\n  \"sourceReference\": \"tests/fixtures/huy-final-native-source.txt\",\n  \"sourceChecksum\": \"1cb1f8e68fc9af45ed34aab349cc302b76abbcd7fcd70fe37078d9badbf869ff\",\n  \"sampleOnly\": true,\n  \"operation\": null,\n  \"independentControls\": [],\n  \"sourcedToleranceMeters\": null,\n  \"toleranceSource\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2ProfileKey\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"id\"]!==undefined)pm.collectionVariables.set(\"h2CrsProfileId\",b[\"id\"]===null?\"\":String(b[\"id\"]));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "29b9cb6d-86bc-441f-8075-a7b0943bac7d",
+          "name": "02 PM read pinned profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/crs-profiles/{{h2CrsProfileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "crs-profiles",
+                "{{h2CrsProfileId}}"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2CrsProfileId\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "7582323d-af9b-4486-8cdf-aca9156acdfb",
+          "name": "03 PM create route system",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2SystemKey}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/route-systems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "route-systems"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"H2-SAMPLE-SYSTEM\",\n  \"name\": \"Synthetic fixture system\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2SystemKey\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"id\"]!==undefined)pm.collectionVariables.set(\"h2RouteSystemId\",b[\"id\"]===null?\"\":String(b[\"id\"]));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "a948c1e2-a5c7-46bd-bc7f-cba75af143df",
+          "name": "04 PM create native draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2DraftKey}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceKind\": \"NATIVE_ALIGNMENT\",\n  \"sourceCrs\": 0,\n  \"stationOriginMeters\": 0,\n  \"changeReason\": \"Synthetic candidate fixture; not project survey data\",\n  \"coordinates\": null,\n  \"sourceFileId\": null,\n  \"trackIndex\": null,\n  \"trackSegmentIndex\": null,\n  \"widthProfile\": [\n    {\n      \"fromOffsetMeters\": 0,\n      \"toOffsetMeters\": 200,\n      \"widthMeters\": 12\n    }\n  ],\n  \"surveyWidthMeters\": 20,\n  \"roadCode\": \"H2-SAMPLE-ONLY\",\n  \"roadName\": \"Synthetic native line\",\n  \"nativeAlignment\": {\n    \"crsProfileRevisionId\": \"{{h2CrsProfileId}}\",\n    \"spatialSrid\": 0,\n    \"primitives\": [\n      {\n        \"kind\": \"LINE\",\n        \"start\": {\n          \"x\": 0,\n          \"y\": 0\n        },\n        \"end\": {\n          \"x\": 200,\n          \"y\": 0\n        }\n      }\n    ]\n  },\n  \"routeSystemId\": \"{{h2RouteSystemId}}\",\n  \"routeKind\": \"MAIN\",\n  \"tessellationToleranceMeters\": 0.01\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2CrsProfileId\", \"h2RouteSystemId\", \"h2DraftKey\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"id\"]!==undefined)pm.collectionVariables.set(\"h2DraftId\",b[\"id\"]===null?\"\":String(b[\"id\"]));",
+                  "pm.collectionVariables.set(\"h2DraftETag\",pm.response.headers.get(\"ETag\")||\"\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "cdbb3c2d-c214-45c8-86f1-20459a8360f4",
+          "name": "05 PM draft readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts/{{h2DraftId}}/readiness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts",
+                "{{h2DraftId}}",
+                "readiness"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2DraftId\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "4fd63aee-25a6-43b4-b517-7cf95afcc6b0",
+          "name": "06 PM analytic preview",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts/{{h2DraftId}}/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts",
+                "{{h2DraftId}}",
+                "preview"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2DraftId\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "e3c770a6-8f77-4ef4-9936-76d7f5c16544",
+          "name": "07 Supervisor confirm exact draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2ConfirmKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h2DraftETag}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2SupervisorAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-geometry-drafts/{{h2DraftId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-geometry-drafts",
+                "{{h2DraftId}}",
+                "confirm"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expectedCurrentVersionId\": null,\n  \"effectiveFrom\": \"{{h2EffectiveFrom}}\",\n  \"reason\": \"Synthetic candidate fixture\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2SupervisorAccessToken\", \"h2DraftId\", \"h2EffectiveFrom\", \"h2ConfirmKey\", \"h2DraftETag\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"roadSectionId\"]!==undefined)pm.collectionVariables.set(\"h2RoadSectionId\",b[\"roadSectionId\"]===null?\"\":String(b[\"roadSectionId\"]));",
+                  "if(b[\"routeVersionId\"]!==undefined)pm.collectionVariables.set(\"h2RouteVersionId\",b[\"routeVersionId\"]===null?\"\":String(b[\"routeVersionId\"]));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "5bbf2c04-c70e-4fc6-a7ce-d9e87b4cbd69",
+          "name": "08 PM create analytic 100m set",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2SetKey}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{h2RoadSectionId}}/versions/{{h2RouteVersionId}}/segment-sets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{h2RoadSectionId}}",
+                "versions",
+                "{{h2RouteVersionId}}",
+                "segment-sets"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetLengthMeters\": 100,\n  \"remainderMode\": \"KEEP\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2RoadSectionId\", \"h2RouteVersionId\", \"h2SetKey\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"id\"]!==undefined)pm.collectionVariables.set(\"h2SegmentSetId\",b[\"id\"]===null?\"\":String(b[\"id\"]));",
+                  "pm.collectionVariables.set(\"h2SetETag\",pm.response.headers.get(\"ETag\")||\"\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "1195a003-efcb-40ac-b129-731fb801df89",
+          "name": "09 PM publish exact segment set",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2SetPublishKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "{{h2SetETag}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/road-sections/{{h2RoadSectionId}}/versions/{{h2RouteVersionId}}/segment-sets/{{h2SegmentSetId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "road-sections",
+                "{{h2RoadSectionId}}",
+                "versions",
+                "{{h2RouteVersionId}}",
+                "segment-sets",
+                "{{h2SegmentSetId}}",
+                "publish"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expectedPublishedSetId\": null,\n  \"reason\": \"Synthetic candidate fixture\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2RoadSectionId\", \"h2RouteVersionId\", \"h2SegmentSetId\", \"h2SetPublishKey\", \"h2SetETag\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "1ad6b30a-ad9b-4563-a495-189effcc7f79",
+          "name": "10 PM create equal strip pavement plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2PlanKey}}"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/route-versions/{{h2RouteVersionId}}/segment-sets/{{h2SegmentSetId}}/pavement-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "route-versions",
+                "{{h2RouteVersionId}}",
+                "segment-sets",
+                "{{h2SegmentSetId}}",
+                "pavement-plans"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"layout\": {\n    \"stripWidthMeters\": 4,\n    \"slabLengthMeters\": 6,\n    \"widthProfile\": [\n      {\n        \"fromOffsetMeters\": 0,\n        \"toOffsetMeters\": 200,\n        \"widthMeters\": 12\n      }\n    ]\n  },\n  \"displayToleranceMeters\": 0.01\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2RouteVersionId\", \"h2SegmentSetId\", \"h2PlanKey\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"id\"]!==undefined)pm.collectionVariables.set(\"h2LayoutId\",b[\"id\"]===null?\"\":String(b[\"id\"]));",
+                  "if(b[\"contentHash\"]!==undefined)pm.collectionVariables.set(\"h2LayoutHash\",b[\"contentHash\"]===null?\"\":String(b[\"contentHash\"]));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "1eb5a366-1137-4a85-a1e0-4f093927b9e3",
+          "name": "11 PM read immutable plan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/pavement-layouts/{{h2LayoutId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "pavement-layouts",
+                "{{h2LayoutId}}"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2LayoutId\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "f23cd092-04fe-4e59-aca2-a7ef2c6a1e17",
+          "name": "12 PM publish SAMPLE map",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h2MapPublishKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{h2LayoutHash}}\""
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/geometry-map-publications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "geometry-map-publications"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"layoutRevisionId\": \"{{h2LayoutId}}\",\n  \"publicationMode\": \"SAMPLE\",\n  \"reason\": \"Synthetic fixture; official gate remains pending\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2LayoutId\", \"h2MapPublishKey\", \"h2LayoutHash\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"publicationId\"]!==undefined)pm.collectionVariables.set(\"h2PublicationId\",b[\"publicationId\"]===null?\"\":String(b[\"publicationId\"]));",
+                  "if(b[\"contentHash\"]!==undefined)pm.collectionVariables.set(\"h2PublicationHash\",b[\"contentHash\"]===null?\"\":String(b[\"contentHash\"]));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "7386e44b-e0b1-44da-b0f4-275843fae49a",
+          "name": "13 PM read manifest",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/geometry-map-publications/{{h2PublicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "geometry-map-publications",
+                "{{h2PublicationId}}"
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2PublicationId\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"contentHash\"]!==undefined)pm.collectionVariables.set(\"h2PublicationHash\",b[\"contentHash\"]===null?\"\":String(b[\"contentHash\"]));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "8b84c1f4-3328-49a3-97e3-f8bc106f7a4b",
+          "name": "14 PM route layer pinned page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/geometry-map-publications/{{h2PublicationId}}/layers/route?expectedContentHash={{h2PublicationHash}}&limit=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "geometry-map-publications",
+                "{{h2PublicationId}}",
+                "layers",
+                "route"
+              ],
+              "query": [
+                {
+                  "key": "expectedContentHash",
+                  "value": "{{h2PublicationHash}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2PublicationId\", \"h2PublicationHash\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "ffd2b1af-7a10-49c2-9fff-243a6b3c323a",
+          "name": "15 PM slabs pinned first page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/geometry-map-publications/{{h2PublicationId}}/layers/slabs?expectedContentHash={{h2PublicationHash}}&limit=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "geometry-map-publications",
+                "{{h2PublicationId}}",
+                "layers",
+                "slabs"
+              ],
+              "query": [
+                {
+                  "key": "expectedContentHash",
+                  "value": "{{h2PublicationHash}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2PublicationId\", \"h2PublicationHash\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code>=200&&pm.response.code<300){const b=pm.response.json();",
+                  "if(b[\"nextCursor\"]!==undefined)pm.collectionVariables.set(\"h2SlabCursor\",b[\"nextCursor\"]===null?\"\":encodeURIComponent(String(b[\"nextCursor\"])));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "id": "cbc7371e-19a0-4073-bcb2-c30ef3cf35a2",
+          "name": "16 PM slabs same-publication next page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{h2PmAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/geometry-map-publications/{{h2PublicationId}}/layers/slabs?expectedContentHash={{h2PublicationHash}}&limit=2&cursor={{h2SlabCursor}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "geometry-map-publications",
+                "{{h2PublicationId}}",
+                "layers",
+                "slabs"
+              ],
+              "query": [
+                {
+                  "key": "expectedContentHash",
+                  "value": "{{h2PublicationHash}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "2"
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{h2SlabCursor}}"
+                }
+              ]
+            },
+            "description": "Manual opt-in candidate fixture. Use disposable project and supplied role token. SAMPLE publication never establishes official CRS or survey accuracy."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"h2PmAccessToken\", \"h2PublicationId\", \"h2PublicationHash\", \"h2SlabCursor\"];if(needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "response": []
         }
       ]
     }

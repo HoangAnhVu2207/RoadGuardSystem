@@ -45,7 +45,7 @@ public sealed class AnhHuyProducerService(IAnhHuyFactsRepository facts, IGeometr
     {
         if(role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) || !await facts.IsCurrentActorAsync(actorId,role,cancellationToken)
             || await guard.AuthorizeAsync(actorId,role,projectId,cancellationToken) is null) return Fail<ProjectGeometryContext>(AnhHuyProducerStatus.Forbidden);
-        var result=await geometry.ExecuteAsync(new GeometryWorkflowCommand(actorId,projectId,"package",null,null,routeVersionId,segmentSetId,null,null,null),
+        var result=await geometry.ExecuteAsync(new GeometryWorkflowCommand(actorId,projectId,"package",null,null,routeVersionId,segmentSetId,null,null,null,role),
             RoadGuardSystem.Services.Projects.GeometryEngine.Preview,RoadGuardSystem.Services.Projects.GeometryEngine.Segments,cancellationToken);
         if(result.Value is not GeometryPackageView package) return Fail<ProjectGeometryContext>(AnhHuyProducerStatus.NotFound);
         if(package.Route.MetadataStatus!="COMPLETE" || package.SegmentSet.MetadataStatus!="COMPLETE") return Fail<ProjectGeometryContext>(AnhHuyProducerStatus.SourceNotReady);
@@ -53,7 +53,10 @@ public sealed class AnhHuyProducerService(IAnhHuyFactsRepository facts, IGeometr
             return Fail<ProjectGeometryContext>(AnhHuyProducerStatus.StaleGeometry);
         var ordered=package.SegmentSet.Segments.OrderBy(s=>s.Sequence).ToArray();
         var adjacency=ordered.Select((s,i)=>new GeometrySegmentContext(s.Id,s.Sequence,i==0?null:ordered[i-1].Id,i==ordered.Length-1?null:ordered[i+1].Id)).ToArray();
-        return new(AnhHuyProducerStatus.Ready,new("anh-huy.geometry.v1",projectId,routeVersionId,segmentSetId,result.Version!,package,adjacency));
+        var native=package.Route.CrsProfileRevisionId.HasValue;
+        return new(AnhHuyProducerStatus.Ready,new(native?"anh-huy.geometry.v2":"anh-huy.geometry.v1",projectId,routeVersionId,segmentSetId,result.Version!,package,adjacency,
+            package.Route.CrsProfileRevisionId,package.Route.RouteSystemId,package.Route.LengthMeters,package.Route.DeclaredLengthMeters,
+            package.Route.ChainageCalibration,package.Route.SampleOnly,native?"OFFICIAL_CRS_OPERATION_AND_INDEPENDENT_CONTROL_NOT_VERIFIED":"UNKNOWN"));
     }
     public async Task<AnhHuyProducerResult<ResolvedCandidateSourceFacts>> ResolveCandidateSourceAsync(Guid actorId, UserRoleCode role,
         Guid projectId, CandidateSourceKind kind, Guid sourceId, string? expectedSourceVersion=null,

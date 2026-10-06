@@ -252,8 +252,19 @@ public class RoadGuardDbContext : DbContext
             }
         }
 
-        foreach (var entry in ChangeTracker.Entries<RoadSectionVersion>())
+        foreach (var entry in ChangeTracker.Entries<RoadSectionVersion>().ToList())
         {
+            if(entry.State==EntityState.Added)
+            {
+                if(entry.Entity.CrsProfileRevisionId is Guid profileId)
+                {
+                    var profile=Set<CrsProfileRevision>().Find(profileId)??throw new InvalidOperationException("Native route profile must exist.");
+                    var section=RoadSections.Find(entry.Entity.RoadSectionId)??throw new InvalidOperationException("Native route road section must exist.");
+                    if(profile.ProjectId!=section.ProjectId) throw new InvalidOperationException("Native route profile project mismatch.");
+                    SpatialValidation.EnsureProjectEngineeringGeometry(entry.Entity.Geometry,profileId,profile.SourceSrid);
+                }
+                else SpatialValidation.EnsureProjectEngineeringGeometry(entry.Entity.Geometry,entry.Entity.Geometry.SRID);
+            }
             if (entry.State == EntityState.Modified &&
                 entry.Properties.Any(property => property.IsModified && property.Metadata.Name != nameof(RoadSectionVersion.IsCurrent)))
             {

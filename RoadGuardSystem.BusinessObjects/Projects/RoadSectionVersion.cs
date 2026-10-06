@@ -17,6 +17,7 @@ public sealed class RoadSectionVersion
     public bool IsCurrent { get; private set; }
 
     public LineString Geometry { get; private set; } = null!;
+    public Guid? CrsProfileRevisionId { get; private set; }
 
     public DateTimeOffset EffectiveFrom { get; private set; }
 
@@ -60,6 +61,11 @@ public sealed class RoadSectionVersion
     }
 
     public void MarkCurrent() => IsCurrent = true;
+    public void PinNativeProfile(Guid profileId)
+    {
+        if (profileId == Guid.Empty || CrsProfileRevisionId.HasValue) throw new InvalidOperationException("A native profile must be pinned once at creation.");
+        CrsProfileRevisionId = profileId;
+    }
 
     public void ClearCurrent() => IsCurrent = false;
 

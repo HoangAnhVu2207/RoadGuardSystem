@@ -65,6 +65,17 @@ public sealed class AnhHuyGeometrySourceTests(AuthenticationSqlServerFixture sql
         var context=await producer.ResolveGeometryAsync(manager.Id,UserRoleCode.ProjectManager,project,route,setId);
         context.Status.Should().Be(AnhHuyProducerStatus.Ready);
         context.Facts!.Segments.Should().HaveCount(3);
+        context.Facts.SchemaVersion.Should().Be("anh-huy.geometry.v1");
+        var consumerDb=scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.RoadGuardDbContext>();
+        await consumerDb.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var consumerTransaction=await consumerDb.Database.BeginTransactionAsync();
+            // Actual producer and geometry repository share the candidate command's scoped context.
+            var inCommand=await producer.ResolveGeometryAsync(manager.Id,UserRoleCode.ProjectManager,project,route,setId);
+            inCommand.Status.Should().Be(AnhHuyProducerStatus.Ready);
+            scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.RoadGuardDbContext>().Database.CurrentTransaction.Should().BeSameAs(consumerTransaction);
+            await consumerTransaction.RollbackAsync();
+        });
         context.Facts.Segments[0].NextId.Should().Be(context.Facts.Segments[1].Id);
         (await producer.ResolveGeometryAsync(manager.Id,UserRoleCode.ProjectManager,project,route,setId,"stale")).Status.Should().Be(AnhHuyProducerStatus.StaleGeometry);
         (await producer.ResolveGeometryAsync(supervisor.Id,UserRoleCode.Supervisor,Guid.NewGuid(),route,setId)).Status.Should().Be(AnhHuyProducerStatus.NotFound);

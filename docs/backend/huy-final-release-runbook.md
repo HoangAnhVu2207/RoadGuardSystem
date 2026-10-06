@@ -54,6 +54,6 @@ Recovery rehearsals must include database, object references/content and server 
 | RPO ≤15min | Actual backup/log/object schedule and restore drill proving the newest recoverable consistent committed point | NOT_VERIFIED |
 | RTO ≤4h | Timed end-to-end recovery including SQL, objects, keys, workers and business integrity smoke | NOT_VERIFIED |
 | Actual browser/mobile behavior | Finite ticket renewal, persistent queue through kill/reboot, storage/camera failure, offline time uncertainty, network recovery and no deletion before durable ACK | NOT_VERIFIED |
-| Exact final-SHA hosted CI | Successful hosted run whose head SHA equals the final delivered commit; preserve run URL and job outcomes | PENDING final SHA |
+| Exact final-SHA hosted CI | Successful hosted run whose head SHA equals the final delivered commit; preserve run URL and job outcomes | a56 attempt 1 FAILED (SQL607/41, API377/3/1 skip, unit907/2, full format); later documentation checkpoint requires its own SHA/run mapping |
 
 Final RC delivery records these actual results and any remaining localized gates. Reviewable source and local passing checks do not imply deployed or full external acceptance.

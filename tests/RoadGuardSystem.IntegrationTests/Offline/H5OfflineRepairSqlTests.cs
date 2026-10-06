@@ -253,8 +253,14 @@ public sealed class H5OfflineRepairSqlTests(IdentitySqlServerFixture sql) : ICla
             now, recipient.Id, recipientSignature);
         var admission = OfflineOperationAdmission.Record(Guid.NewGuid(), source.Project, batch.Id,
             binding.Id, source.Pm, UserRoleCode.ProjectManager, grantId,
-            JsonSerializer.Serialize(new { operation.TaskId, operation.AssignmentId, operation.SnapshotId,
-                sourceRegistrationId = ready.Registration.Id, claimStatus = "SIGNED_ORIGIN_UNVERIFIED_TIME" }, Json), now);
+            JsonSerializer.Serialize(new
+            {
+                operation.TaskId,
+                operation.AssignmentId,
+                operation.SnapshotId,
+                sourceRegistrationId = ready.Registration.Id,
+                claimStatus = "SIGNED_ORIGIN_UNVERIFIED_TIME"
+            }, Json), now);
         db.AddRange(binding, batch, admission); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
 
         var storage = new VerifiedStorage(checksum);
@@ -278,6 +284,7 @@ public sealed class H5OfflineRepairSqlTests(IdentitySqlServerFixture sql) : ICla
             source.Project, createdUpload.Session.Id, currentUpload.Version,
             [new CompletedStoragePart(1, "part-etag")], checksum,
             "repair-complete-" + Guid.NewGuid(), new string('f', 64), null))).Status);
+        Assert.Equal(UploadPersistenceStatus.Success, await uploads.VerifyNextAsync());
         Assert.Equal(1, await db.Set<OfflineEvidenceCaptureReference>().CountAsync(row =>
             row.AdmissionId == admission.Id && row.ActualUploaderId == source.Pm &&
             row.OriginalActorId == source.Crew));

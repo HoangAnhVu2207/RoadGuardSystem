@@ -44,8 +44,12 @@ public sealed class H6NotificationUnknownAuditRepository(RoadGuardDbContext db, 
                 if (!NotificationRegisteredTypes.IsOwnedUnregistered(message.MessageType)) continue;
                 db.Set<H6NotificationAuditRow>().Add(new()
                 {
-                    Id = Guid.NewGuid(), OutboxMessageId = message.Id, Classification = "UNKNOWN_PROTECTED",
-                    SourceKind = "UNREGISTERED", SourceId = Guid.Empty, ReasonCode = "notification_event_unregistered",
+                    Id = Guid.NewGuid(),
+                    OutboxMessageId = message.Id,
+                    Classification = "UNKNOWN_PROTECTED",
+                    SourceKind = "UNREGISTERED",
+                    SourceId = Guid.Empty,
+                    ReasonCode = "notification_event_unregistered",
                     ResolverVersion = NotificationRegisteredTypes.RegistryVersion,
                     DedupKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(message.Id.ToString("N") + "|" + NotificationRegisteredTypes.RegistryVersion))).ToLowerInvariant(),
                     RecordedAtUtc = clock.GetUtcNow().ToUniversalTime()

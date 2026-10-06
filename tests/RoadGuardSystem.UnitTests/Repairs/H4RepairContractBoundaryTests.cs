@@ -24,13 +24,17 @@ public sealed class H4RepairContractBoundaryTests
         var item = Guid.NewGuid(); var task = Guid.NewGuid();
         FieldMeasurementInput[]? measurements = shape switch
         {
-            0 => null, 1 => [], 3 => [null!],
+            0 => null,
+            1 => [],
+            3 => [null!],
             _ => [new("m1", "WIDTH", 12.340m, "MEASURED", null, "LENGTH", "mm", 106.7, 10.8,
                 "observed", "gauge", "manual", "retained note")]
         };
         FieldEvidenceDeclaration[]? evidence = shape switch
         {
-            0 => null, 1 => [], 3 => [null!],
+            0 => null,
+            1 => [],
+            3 => [null!],
             _ => [new(Guid.NewGuid(), null, "BEFORE", new string('b', 64), "image/jpeg",
                 new DateTimeOffset(2026, 10, 6, 7, 30, 0, TimeSpan.FromHours(7)), "checklist")]
         };

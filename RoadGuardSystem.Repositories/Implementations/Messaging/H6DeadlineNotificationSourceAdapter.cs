@@ -13,8 +13,11 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
     private readonly TimeProvider time = clock ?? TimeProvider.System;
     public bool Supports(string sourceKind) => sourceKind == "DeadlineClock";
     public IQueryable<H6SourceScope> ScopeQuery()
-        => db.Set<DeadlineClock>().Select(clock => new H6SourceScope { SourceKind = "DeadlineClock",
-            SourceId = clock.Id, ProjectId = clock.ProjectId,
+        => db.Set<DeadlineClock>().Select(clock => new H6SourceScope
+        {
+            SourceKind = "DeadlineClock",
+            SourceId = clock.Id,
+            ProjectId = clock.ProjectId,
             AssignedUserId = clock.Kind == DeadlineClockKind.FirstSafetyCheck ||
                 clock.Kind == DeadlineClockKind.DangerAcknowledgment
                 ? db.Set<TemporarySafetyMeasure>().Where(row => row.Id == clock.TargetId &&
@@ -28,7 +31,8 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
                                 item.ProjectId == clock.ProjectId && item.CurrentBindingId == binding.Id &&
                                 item.SupersededByItemId == null))
                             .Select(binding => (Guid?)binding.CrewId).FirstOrDefault()
-                        : null });
+                        : null
+        });
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan); cancellationToken.ThrowIfCancellationRequested();

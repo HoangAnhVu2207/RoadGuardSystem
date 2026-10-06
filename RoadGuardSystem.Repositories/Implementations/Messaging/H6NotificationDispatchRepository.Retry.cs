@@ -48,8 +48,14 @@ public sealed partial class H6NotificationDispatchRepository
                 if (plan is null)
                 {
                     delivery.ReasonCode = reason; delivery.NextAttemptAtUtc = now.AddMinutes(5);
-                    db.Set<H6NotificationDeliveryAttempt>().Add(new() { Id = Guid.NewGuid(), DeliveryId = delivery.Id,
-                        ObservedAtUtc = now, Status = delivery.Status, ReasonCode = reason });
+                    db.Set<H6NotificationDeliveryAttempt>().Add(new()
+                    {
+                        Id = Guid.NewGuid(),
+                        DeliveryId = delivery.Id,
+                        ObservedAtUtc = now,
+                        Status = delivery.Status,
+                        ReasonCode = reason
+                    });
                 }
                 else { RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now); if (reason is null) delivered++; }
             }

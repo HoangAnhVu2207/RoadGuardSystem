@@ -52,9 +52,9 @@ public static class OfflineWorkflowEngine
         ArgumentNullException.ThrowIfNull(operation);
         return operation.Kind switch
         {
-            "FIELD_ACCEPT" when operation.FieldAction is not null => Hash(new { id=operation.TaskId, input=operation.FieldAction, operation.OriginalActorId }),
-            "FIELD_START" when operation.FieldStart is not null => Hash(new { id=operation.TaskId, input=operation.FieldStart, operation.OriginalActorId }),
-            "FIELD_SUBMISSION" when operation.FieldSubmission is not null => Hash(new { id=operation.TaskId, input=operation.FieldSubmission, operation.OriginalActorId }),
+            "FIELD_ACCEPT" when operation.FieldAction is not null => Hash(new { id = operation.TaskId, input = operation.FieldAction, operation.OriginalActorId }),
+            "FIELD_START" when operation.FieldStart is not null => Hash(new { id = operation.TaskId, input = operation.FieldStart, operation.OriginalActorId }),
+            "FIELD_SUBMISSION" when operation.FieldSubmission is not null => Hash(new { id = operation.TaskId, input = operation.FieldSubmission, operation.OriginalActorId }),
             _ => throw new ArgumentException("A typed FIELD body is required.", nameof(operation))
         };
     }
@@ -115,8 +115,14 @@ public static class OfflineWorkflowEngine
         if (projectId == Guid.Empty || batchId == Guid.Empty || sourceRegistrationId == Guid.Empty || descriptors.Count is < 1 or > 1000 ||
             descriptors.Any(x => x is null) || descriptors.Select(x => x.OriginId).Distinct().Count() != descriptors.Count)
             throw new ArgumentException("A bounded unique descriptor set is required.", nameof(descriptors));
-        return JsonSerializer.SerializeToUtf8Bytes(new { schemaVersion=1, projectId, sourceBatchId=batchId, sourceDeviceRegistrationId=sourceRegistrationId,
-            items=descriptors.OrderBy(x => x.OriginId.ToString("N"), StringComparer.Ordinal).ToArray() }, Json);
+        return JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            schemaVersion = 1,
+            projectId,
+            sourceBatchId = batchId,
+            sourceDeviceRegistrationId = sourceRegistrationId,
+            items = descriptors.OrderBy(x => x.OriginId.ToString("N"), StringComparer.Ordinal).ToArray()
+        }, Json);
     }
     public static byte[] CanonicalAttachedPayload(Guid sourceBatchId, Guid sourceRegistrationId,
         OfflineOperationInput[] operations, string sourceSignature)

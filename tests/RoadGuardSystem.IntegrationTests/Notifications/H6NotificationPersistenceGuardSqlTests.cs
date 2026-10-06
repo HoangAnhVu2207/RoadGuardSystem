@@ -19,25 +19,34 @@ public sealed class H6NotificationPersistenceGuardSqlTests(IdentitySqlServerFixt
     {
         // A destructive migration probe needs its own database, never the shared
         // producer fixture used by the other cases in this class.
-        var isolated=new SqlServerTestFixture(createSpatialProbeSchema:false);await isolated.InitializeAsync();
+        var isolated = new SqlServerTestFixture(createSpatialProbeSchema: false); await isolated.InitializeAsync();
         try
         {
-            await using var db=new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
-                .UseSqlServer(isolated.ConnectionString,options=>options.UseNetTopologySuite()).Options);
-            await db.Database.MigrateAsync();var now=DateTimeOffset.UtcNow;
-            var message=OutboxMessage.Create(Guid.NewGuid(),"field.future.v99",now,null,"{}");
-            db.Add(message);await db.SaveChangesAsync();
+            await using var db = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
+                .UseSqlServer(isolated.ConnectionString, options => options.UseNetTopologySuite()).Options);
+            await db.Database.MigrateAsync(); var now = DateTimeOffset.UtcNow;
+            var message = OutboxMessage.Create(Guid.NewGuid(), "field.future.v99", now, null, "{}");
+            db.Add(message); await db.SaveChangesAsync();
             // Controlled retained audit tests preservation, not notification admission authority.
-            var audit=new H6NotificationAuditRow {Id=Guid.NewGuid(),OutboxMessageId=message.Id,Classification="UNKNOWN_PROTECTED",
-                SourceKind="OutboxMessage",SourceId=message.Id,ReasonCode="notification_event_unregistered",
-                ResolverVersion="fixture",DedupKey=new string('a',64),RecordedAtUtc=now};
-            db.Add(audit);await db.SaveChangesAsync();
-            var error=await Assert.ThrowsAsync<SqlException>(()=>db.GetService<IMigrator>().MigrateAsync("20261006094905_H5OfflinePersistence"));
-            Assert.Equal(51199,error.Number);
-            Assert.True(await db.Set<H6NotificationAuditRow>().AnyAsync(row=>row.Id==audit.Id));
-            Assert.True(await db.OutboxMessages.AnyAsync(row=>row.Id==message.Id));
+            var audit = new H6NotificationAuditRow
+            {
+                Id = Guid.NewGuid(),
+                OutboxMessageId = message.Id,
+                Classification = "UNKNOWN_PROTECTED",
+                SourceKind = "OutboxMessage",
+                SourceId = message.Id,
+                ReasonCode = "notification_event_unregistered",
+                ResolverVersion = "fixture",
+                DedupKey = new string('a', 64),
+                RecordedAtUtc = now
+            };
+            db.Add(audit); await db.SaveChangesAsync();
+            var error = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync("20261006094905_H5OfflinePersistence"));
+            Assert.Equal(51199, error.Number);
+            Assert.True(await db.Set<H6NotificationAuditRow>().AnyAsync(row => row.Id == audit.Id));
+            Assert.True(await db.OutboxMessages.AnyAsync(row => row.Id == message.Id));
         }
-        finally {await isolated.DisposeAsync();}
+        finally { await isolated.DisposeAsync(); }
     }
     [Theory]
     [InlineData("OCCURRENCE")]

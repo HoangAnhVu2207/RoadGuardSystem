@@ -219,8 +219,11 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
             return new(receipt.Status == IdempotencyOperationStatus.Replayed ? 200 : 201,
                 Value: fact, Replayed: receipt.Status == IdempotencyOperationStatus.Replayed);
         }
-        catch (ExistingReceipt) { db.ChangeTracker.Clear(); return await Produce(actor, role, project, package, item,
-            measure, operation, key, command, apply, token); }
+        catch (ExistingReceipt)
+        {
+            db.ChangeTracker.Clear(); return await Produce(actor, role, project, package, item,
+            measure, operation, key, command, apply, token);
+        }
         catch (Denied denied) { db.ChangeTracker.Clear(); return denied.Result; }
         catch (ArgumentException) { db.ChangeTracker.Clear(); return new(400, "validation_error"); }
         catch (InvalidOperationException) { db.ChangeTracker.Clear(); return new(409, "invalid_state_transition"); }

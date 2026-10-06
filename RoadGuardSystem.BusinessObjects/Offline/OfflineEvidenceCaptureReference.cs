@@ -26,14 +26,30 @@ public sealed class OfflineEvidenceCaptureReference
         string purpose, string checksum, string mediaType, DateTimeOffset? declaredCapturedAt,
         string captureFactsJson, DateTimeOffset at)
     {
-        OfflineRuntimeGuards.Identity(id,project,task,admission,binding,capture,originalActor,uploader,file,uploadSession);
-        OfflineRuntimeGuards.Time(at);OfflineRuntimeGuards.Hash(checksum);OfflineRuntimeGuards.Json(captureFactsJson,1048576);
-        if(purpose is not("BEFORE" or "AFTER" or "MEASUREMENT") || mediaType is not("image/jpeg" or "image/png") ||
-            grant==Guid.Empty || originalActor!=uploader && grant is null)
+        OfflineRuntimeGuards.Identity(id, project, task, admission, binding, capture, originalActor, uploader, file, uploadSession);
+        OfflineRuntimeGuards.Time(at); OfflineRuntimeGuards.Hash(checksum); OfflineRuntimeGuards.Json(captureFactsJson, 1048576);
+        if (purpose is not ("BEFORE" or "AFTER" or "MEASUREMENT") || mediaType is not ("image/jpeg" or "image/png") ||
+            grant == Guid.Empty || originalActor != uploader && grant is null)
             throw new ArgumentException("Exact scoped capture and actual uploader provenance are required.");
-        return new(){Id=id,ProjectId=project,TaskId=task,AdmissionId=admission,BindingId=binding,CaptureOriginId=capture,
-            OriginalActorId=originalActor,ActualUploaderId=uploader,GrantId=grant,FileId=file,UploadSessionId=uploadSession,
-            Purpose=purpose,Checksum=checksum.ToLowerInvariant(),MediaType=mediaType,DeclaredCapturedAt=declaredCapturedAt,
-            CaptureFactsJson=captureFactsJson,AdmittedAt=at.ToUniversalTime()};
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            TaskId = task,
+            AdmissionId = admission,
+            BindingId = binding,
+            CaptureOriginId = capture,
+            OriginalActorId = originalActor,
+            ActualUploaderId = uploader,
+            GrantId = grant,
+            FileId = file,
+            UploadSessionId = uploadSession,
+            Purpose = purpose,
+            Checksum = checksum.ToLowerInvariant(),
+            MediaType = mediaType,
+            DeclaredCapturedAt = declaredCapturedAt,
+            CaptureFactsJson = captureFactsJson,
+            AdmittedAt = at.ToUniversalTime()
+        };
     }
 }

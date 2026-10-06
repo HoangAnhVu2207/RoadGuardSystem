@@ -51,14 +51,23 @@ public sealed class OfflineEncryptedCaptureArtifact
         var chunk = manifest.Chunks[chunkIndex];
         return new()
         {
-            Id = chunk.ArtifactId, ProjectId = manifest.ProjectId, ParentPackageId = parent.Id,
-            CaptureOriginId = manifest.CaptureOriginId, TaskId = manifest.TaskId, OriginalActorId = source.ActorId,
-            SourceDeviceRegistrationId = source.Id, ChunkIndex = chunk.Index, ChunkOffset = chunk.Offset,
-            ChunkLength = chunk.Length, PlaintextChecksum = chunk.PlaintextChecksum,
+            Id = chunk.ArtifactId,
+            ProjectId = manifest.ProjectId,
+            ParentPackageId = parent.Id,
+            CaptureOriginId = manifest.CaptureOriginId,
+            TaskId = manifest.TaskId,
+            OriginalActorId = source.ActorId,
+            SourceDeviceRegistrationId = source.Id,
+            ChunkIndex = chunk.Index,
+            ChunkOffset = chunk.Offset,
+            ChunkLength = chunk.Length,
+            PlaintextChecksum = chunk.PlaintextChecksum,
             EnvelopeFingerprint = chunk.EnvelopeFingerprint,
             ManifestHash = Convert.ToHexString(SHA256.HashData(canonical)).ToLowerInvariant(),
-            SignedManifestJson = Encoding.UTF8.GetString(canonical), ManifestSignature = manifestSignature,
-            CipherEnvelopeJson = JsonSerializer.Serialize(encryptedChunk, Json), RegisteredBy = currentRegistrar,
+            SignedManifestJson = Encoding.UTF8.GetString(canonical),
+            ManifestSignature = manifestSignature,
+            CipherEnvelopeJson = JsonSerializer.Serialize(encryptedChunk, Json),
+            RegisteredBy = currentRegistrar,
             RegisteredAt = at.ToUniversalTime()
         };
     }

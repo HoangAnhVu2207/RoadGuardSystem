@@ -39,8 +39,12 @@ public sealed partial class RepairWorkflowRepository
                     if (now < item.EffectiveDecision.At) Deny(409, "decision_time_source_conflict");
                     var request = item.RequestReview(Guid.NewGuid(), command.ActorId, command.Role, command.Input.Reason, now);
                     db.Add(request);
-                    var state = JsonSerializer.Serialize(new { effectiveDecisionId = item.EffectiveDecisionId,
-                        result = ResultName(item.EffectiveDecision.Result), itemState = item.State.ToString() }, Json);
+                    var state = JsonSerializer.Serialize(new
+                    {
+                        effectiveDecisionId = item.EffectiveDecisionId,
+                        result = ResultName(item.EffectiveDecision.Result),
+                        itemState = item.State.ToString()
+                    }, Json);
                     db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), command.ActorId, now, "repair_review_requested",
                         "RepairItem", item.Id, state, state, request.Reason, "h4.repair", request.Id,
                         ["effectiveDecisionId", "result", "itemState"]));
@@ -68,12 +72,12 @@ public sealed partial class RepairWorkflowRepository
             row.ProjectId == command.ProjectId && row.Operation == ReviewRequestOperation && row.IdempotencyKey == command.Key, token);
         if (receipt is null) return;
         var source = await (from request in db.Set<RepairReviewRequest>().AsNoTracking()
-            join item in db.Set<RepairItem>().AsNoTracking() on request.ItemId equals item.Id
-            join decision in db.Set<RepairDecision>().AsNoTracking() on request.DecisionId equals decision.Id
-            where request.Id == receipt.OperationId && request.ActorId == command.ActorId && request.ProjectId == command.ProjectId &&
-                item.ProjectId == request.ProjectId && decision.ItemId == item.Id && decision.ObligationId == item.ObligationId &&
-                decision.DefectId == item.DefectId && decision.Mode == item.Mode
-            select new { ItemId = item.Id, PackageId = EF.Property<Guid?>(item, "PackageId") }).SingleOrDefaultAsync(token);
+                            join item in db.Set<RepairItem>().AsNoTracking() on request.ItemId equals item.Id
+                            join decision in db.Set<RepairDecision>().AsNoTracking() on request.DecisionId equals decision.Id
+                            where request.Id == receipt.OperationId && request.ActorId == command.ActorId && request.ProjectId == command.ProjectId &&
+                                item.ProjectId == request.ProjectId && decision.ItemId == item.Id && decision.ObligationId == item.ObligationId &&
+                                decision.DefectId == item.DefectId && decision.Mode == item.Mode
+                            select new { ItemId = item.Id, PackageId = EF.Property<Guid?>(item, "PackageId") }).SingleOrDefaultAsync(token);
         if (source is null || source.PackageId is null) Deny(403, "stored_receipt_access_forbidden");
         await GuardReviewRequestResourceAsync(command.ActorId, command.Role, command.ProjectId, source.PackageId.Value, source.ItemId, token);
     }

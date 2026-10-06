@@ -34,11 +34,11 @@ public sealed partial class ExportRepository
                 "RepairObligation" => await _db.Set<RepairObligation>().AsNoTracking().AnyAsync(obligation =>
                     obligation.Id == source.Id && obligation.ProjectId == projectId, ct),
                 "RepairDecision" => await (from decision in _db.Set<RepairDecision>().AsNoTracking()
-                    join item in _db.Set<RepairItem>().AsNoTracking() on decision.ItemId equals item.Id
-                    join obligation in _db.Set<RepairObligation>().AsNoTracking() on decision.ObligationId equals obligation.Id
-                    where decision.Id == source.Id && item.ProjectId == projectId && obligation.ProjectId == projectId &&
-                        item.ObligationId == obligation.Id && decision.DefectId == item.DefectId && decision.DefectId == obligation.DefectId
-                    select decision.Id).AnyAsync(ct),
+                                           join item in _db.Set<RepairItem>().AsNoTracking() on decision.ItemId equals item.Id
+                                           join obligation in _db.Set<RepairObligation>().AsNoTracking() on decision.ObligationId equals obligation.Id
+                                           where decision.Id == source.Id && item.ProjectId == projectId && obligation.ProjectId == projectId &&
+                                               item.ObligationId == obligation.Id && decision.DefectId == item.DefectId && decision.DefectId == obligation.DefectId
+                                           select decision.Id).AnyAsync(ct),
                 _ => false
             };
             if (!exists) return false;

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Services.Messaging;
 using Xunit;
@@ -143,9 +144,20 @@ public sealed class Huy02NotificationApiTests(AuthenticationSqlServerFixture fix
     private async Task<(RoadGuardSystem.BusinessObjects.Identity.ApplicationUser Actor, Notification Notification)> SeedAsync()
     {
         var actor = await fixture.CreateUserAsync($"h02_inbox_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
-        var notification = Notification.Create(Guid.NewGuid(), actor.Id, "Test", Guid.NewGuid(), "created",
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            ProjectCode = $"H02-{Guid.NewGuid():N}",
+            Name = "Inbox source",
+            Status = ProjectStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var notification = Notification.Create(Guid.NewGuid(), actor.Id, "Project", project.Id, "created",
             "Test", "Inbox content", DateTimeOffset.UtcNow);
         await using var db = fixture.CreateDbContext();
+        db.Projects.Add(project);
+        db.ProjectMembers.Add(ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, actor.Id,
+            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))));
         db.Notifications.Add(notification);
         await db.SaveChangesAsync();
         return (actor, notification);

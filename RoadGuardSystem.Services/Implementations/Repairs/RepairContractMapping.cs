@@ -2,6 +2,7 @@ using RoadGuardSystem.DTOs.Inspections;
 using RoadGuardSystem.DTOs.Repairs;
 using RoadGuardSystem.Repositories.Repairs;
 namespace RoadGuardSystem.Services.Implementations.Repairs;
+
 internal static class RepairContractMapping
 {
     public static RepairFieldEvidenceData ToData(FieldEvidenceDeclaration value) => new(value.CaptureOriginId,
@@ -271,25 +272,28 @@ internal static class RepairContractMapping
     {
         var result = await pending;
         if (result.Value is null) return result;
-        return result with { Value = result.Value switch
+        return result with
         {
-            RepairAssessmentFact value => ToWire(value),
-            RepairAttemptHistoryFact value => ToWire(value),
-            RepairAttemptIntakeFact value => ToWire(value),
-            RepairAttemptReviewFact value => ToWire(value),
-            RepairCorrectionBasisHistoryFact value => ToWire(value),
-            RepairCorrectionFact value => ToWire(value),
-            RepairDecisionHistoryFact value => ToWire(value),
-            RepairEvidenceHistoryFact value => ToWire(value),
-            RepairExecutionFinishFact value => ToWire(value),
-            RepairExecutionStartFact value => ToWire(value),
-            RepairHistoryFact value => ToWire(value),
-            RepairItemFact value => ToWire(value),
-            RepairPackageFact value => ToWire(value),
-            RepairReviewRequestHistoryFact value => ToWire(value),
-            RepairReviewRequestFact value => ToWire(value),
-            RepairTaskBindingFact value => ToWire(value),
-            _ => throw new InvalidOperationException("Unrecognized repair repository outcome.")
-        }};
+            Value = result.Value switch
+            {
+                RepairAssessmentFact value => ToWire(value),
+                RepairAttemptHistoryFact value => ToWire(value),
+                RepairAttemptIntakeFact value => ToWire(value),
+                RepairAttemptReviewFact value => ToWire(value),
+                RepairCorrectionBasisHistoryFact value => ToWire(value),
+                RepairCorrectionFact value => ToWire(value),
+                RepairDecisionHistoryFact value => ToWire(value),
+                RepairEvidenceHistoryFact value => ToWire(value),
+                RepairExecutionFinishFact value => ToWire(value),
+                RepairExecutionStartFact value => ToWire(value),
+                RepairHistoryFact value => ToWire(value),
+                RepairItemFact value => ToWire(value),
+                RepairPackageFact value => ToWire(value),
+                RepairReviewRequestHistoryFact value => ToWire(value),
+                RepairReviewRequestFact value => ToWire(value),
+                RepairTaskBindingFact value => ToWire(value),
+                _ => throw new InvalidOperationException("Unrecognized repair repository outcome.")
+            }
+        };
     }
 }

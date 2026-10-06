@@ -22,8 +22,19 @@ public sealed class OfflineTaskSnapshot
         OfflineRuntimeGuards.Json(snapshotJson, 1048576);
         try { if (Convert.FromBase64String(taskVersion).Length != 8) throw new ArgumentException("Task version is required."); }
         catch (FormatException exception) { throw new ArgumentException("Task version is invalid.", exception); }
-        return new() { Id=id, ProjectId=project, TaskId=task, AssignmentId=assignment, OriginalActorId=originalActor,
-            DeviceRegistrationId=deviceRegistration, TaskVersion=taskVersion, AssignmentHash=assignmentHash.ToLowerInvariant(),
-            SnapshotJson=snapshotJson, ContentHash=OfflineRuntimeGuards.Digest(snapshotJson), DownloadedAt=at.ToUniversalTime() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            TaskId = task,
+            AssignmentId = assignment,
+            OriginalActorId = originalActor,
+            DeviceRegistrationId = deviceRegistration,
+            TaskVersion = taskVersion,
+            AssignmentHash = assignmentHash.ToLowerInvariant(),
+            SnapshotJson = snapshotJson,
+            ContentHash = OfflineRuntimeGuards.Digest(snapshotJson),
+            DownloadedAt = at.ToUniversalTime()
+        };
     }
 }

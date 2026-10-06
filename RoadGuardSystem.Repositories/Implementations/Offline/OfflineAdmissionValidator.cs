@@ -37,11 +37,16 @@ public sealed class OfflineAdmissionValidator : IOfflineFieldAdmissionValidator,
         ArgumentNullException.ThrowIfNull(command);
         var kind = command.Action switch
         {
-            "accept" => "FIELD_ACCEPT", "start" => "FIELD_START", "submit" => "FIELD_SUBMISSION", _ => null
+            "accept" => "FIELD_ACCEPT",
+            "start" => "FIELD_START",
+            "submit" => "FIELD_SUBMISSION",
+            _ => null
         };
         var hash = Digest(JsonSerializer.Serialize(new
         {
-            id = command.TaskId, input = command.Input, command.Admission.OriginalActorId
+            id = command.TaskId,
+            input = command.Input,
+            command.Admission.OriginalActorId
         }, Json));
         return ValidateCoreAsync(command.ProjectId, command.TaskId, command.Admission, kind, hash,
             null, null, committedCaptureContinuation, cancellationToken);
@@ -395,10 +400,21 @@ public sealed class OfflineAdmissionValidator : IOfflineFieldAdmissionValidator,
             throw new OfflineAdmissionRejectedException(409, "evidence_version_mismatch");
         if (retained is null)
         {
-            var provenance = JsonSerializer.Serialize(new { file.UploadedAt, file.UploadedByUserId, scope.OwnerUserId,
-                file.Checksum, file.MimeType, file.SizeBytes, uploadSessionId = upload.Id,
-                uploadVersion = Convert.ToBase64String(upload.RowVersion), declaration.CapturedAt,
-                declaration.AttemptChecklist, source = "SIGNED_DECLARATION_VERIFIED_FILE_BYTES", timeProvenance = "CLAIMED" }, Json);
+            var provenance = JsonSerializer.Serialize(new
+            {
+                file.UploadedAt,
+                file.UploadedByUserId,
+                scope.OwnerUserId,
+                file.Checksum,
+                file.MimeType,
+                file.SizeBytes,
+                uploadSessionId = upload.Id,
+                uploadVersion = Convert.ToBase64String(upload.RowVersion),
+                declaration.CapturedAt,
+                declaration.AttemptChecklist,
+                source = "SIGNED_DECLARATION_VERIFIED_FILE_BYTES",
+                timeProvenance = "CLAIMED"
+            }, Json);
             retained = OfflineAdmittedFileReference.Capture(Guid.NewGuid(), projectId, taskId, admission.Id, binding.Id,
                 declaration.CaptureOriginId, file.Id, originalActorId, admission.CurrentImporterId, scope.OwnerUserId,
                 uploadedBy, declaration.Purpose, declaration.ChecksumSha256, file.Checksum, provenance, _clock.GetUtcNow());
@@ -483,8 +499,13 @@ public sealed class OfflineAdmissionValidator : IOfflineFieldAdmissionValidator,
         return new(request.ProjectId, request.TaskId, admission.Id, binding.Id, request.CaptureOriginId,
             binding.OriginalActorId, request.CurrentActorId, admission.GrantId, declaration.ChecksumSha256,
             declaration.Purpose, declaration.MediaType, declaration.CapturedAt,
-            JsonSerializer.Serialize(new { declaration.AttemptChecklist, declaration.CapturedAt,
-                source = "SIGNED_DECLARATION", timeProvenance = "CLAIMED" }, Json));
+            JsonSerializer.Serialize(new
+            {
+                declaration.AttemptChecklist,
+                declaration.CapturedAt,
+                source = "SIGNED_DECLARATION",
+                timeProvenance = "CLAIMED"
+            }, Json));
     }
     public async Task BindCreatedFileAsync(OfflineUploadCaptureFacts facts, Guid fileId, Guid uploadSessionId,
         DateTimeOffset admittedAt, CancellationToken cancellationToken)

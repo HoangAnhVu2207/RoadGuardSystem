@@ -48,7 +48,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
                 principalTable: "RepairItemLifecycleEvents",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
-            ReplaceCanonicalKinds(migrationBuilder,forward:true);
+            ReplaceCanonicalKinds(migrationBuilder, forward: true);
         }
 
         /// <inheritdoc />
@@ -56,7 +56,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
         {
             migrationBuilder.Sql("IF EXISTS(SELECT 1 FROM FieldInspectionOperationOrigins WHERE Kind NOT IN ('FIELD_START','FIELD_SUBMISSION')) THROW 51392, 'Populated canonical repair or accept history requires a data-preserving migration.', 1;");
             migrationBuilder.Sql("IF EXISTS(SELECT 1 FROM RepairNormalSuccessors WHERE SourceCancellationEventId IS NOT NULL OR SourceHandoverEventId IS NOT NULL) THROW 51391, 'Populated continuation source history requires a data-preserving migration.', 1;");
-            ReplaceCanonicalKinds(migrationBuilder,forward:false);
+            ReplaceCanonicalKinds(migrationBuilder, forward: false);
             migrationBuilder.DropForeignKey(
                 name: "FK_RepairNormalSuccessors_FieldInspectionTaskEvents_SourceHandoverEventId",
                 table: "RepairNormalSuccessors");

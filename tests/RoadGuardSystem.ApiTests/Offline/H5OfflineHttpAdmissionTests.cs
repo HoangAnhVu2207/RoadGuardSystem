@@ -24,9 +24,15 @@ public sealed class H5OfflineHttpAdmissionTests(AuthenticationSqlServerFixture f
             null, null, null, null, DateTimeOffset.UtcNow);
         await using (var setup = fixture.CreateDbContext())
         {
-            setup.AddRange(project, new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id,
-                UserId = actor.Id, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active,
-                ValidFrom = new DateOnly(2000, 1, 1) });
+            setup.AddRange(project, new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = actor.Id,
+                RoleCode = UserRoleCode.RepairCrew,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new DateOnly(2000, 1, 1)
+            });
             await setup.SaveChangesAsync();
         }
         await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);

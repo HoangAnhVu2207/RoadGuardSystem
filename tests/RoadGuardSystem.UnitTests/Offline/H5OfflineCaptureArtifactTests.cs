@@ -59,7 +59,7 @@ public sealed class H5OfflineCaptureArtifactTests
         Assert.Throws<CryptographicException>(() => OfflineCaptureArtifacts.ValidateEnvelope(manifest, 0,
             package, stranger.PublicKeys.SigningPublicKey));
         Assert.Throws<ArgumentException>(() => OfflineCaptureArtifacts.ValidateEnvelope(manifest with
-            { CaptureOriginId = Guid.NewGuid() }, 0, package, sender.PublicKeys.SigningPublicKey));
+        { CaptureOriginId = Guid.NewGuid() }, 0, package, sender.PublicKeys.SigningPublicKey));
         using var recovered = OfflineHandoverCrypto.Open(package, receiver, sender.PublicKeys.SigningPublicKey);
         Assert.Equal(plaintext, recovered.Plaintext.ToArray());
     }

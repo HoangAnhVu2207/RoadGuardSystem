@@ -115,8 +115,13 @@ public sealed class H4RepairProducingAdmissionSqlTests(IdentitySqlServerFixture 
         var obligation = RepairObligation.Create(Guid.NewGuid(), source.Project, source.Defect, RepairObligationKind.FormalRepair,
             true, RepairActualScope.Create(Guid.NewGuid(), source.Road, "h4-frame-v1:" + Convert.ToHexString(
                 System.Security.Cryptography.SHA256.HashData(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new
-                { routeVersionId = source.Route, segmentSetId = (Guid?)source.Set, layoutRevisionId = (Guid?)null,
-                    slabId = (string?)null, crsProfileRevisionId = (Guid?)null },
+                {
+                    routeVersionId = source.Route,
+                    segmentSetId = (Guid?)source.Set,
+                    layoutRevisionId = (Guid?)null,
+                    slabId = (string?)null,
+                    crsProfileRevisionId = (Guid?)null
+                },
                     Json))).ToLowerInvariant(),
                 "actual road", 1, 2, 0, 1));
         var package = RepairPackage.Create(Guid.NewGuid(), source.Project, source.Defect, [obligation]);

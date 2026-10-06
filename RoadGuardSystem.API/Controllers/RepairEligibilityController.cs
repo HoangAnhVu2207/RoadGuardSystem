@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using RoadGuardSystem.API.Authorization;
 using RoadGuardSystem.Services.Repairs;
 namespace RoadGuardSystem.API.Controllers;
+
 [ApiController, ApiVersion("1.0"), Authorize, RoadGuardSystem.API.Authentication.WebCookieEligible]
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/repair-packages/{packageId:guid}/items/{itemId:guid}/eligibility")]
 public sealed class RepairEligibilityController(IRepairEligibilityService service) : ControllerBase

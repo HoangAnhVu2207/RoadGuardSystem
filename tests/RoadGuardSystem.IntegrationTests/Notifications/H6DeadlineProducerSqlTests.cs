@@ -63,9 +63,15 @@ public sealed class H6DeadlineProducerSqlTests(IdentitySqlServerFixture sql) : I
         // Controlled current-role fixture; role-change command authority is tested by Identity.
         await db.Users.Where(row => row.Id == seed.Manager)
             .ExecuteUpdateAsync(update => update.SetProperty(row => row.RoleCode, UserRoleCode.Supervisor));
-        db.ProjectMembers.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = sourceClock.ProjectId,
-            UserId = seed.Manager, RoleCode = UserRoleCode.Supervisor, Status = ProjectMemberStatus.Active,
-            ValidFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)) });
+        db.ProjectMembers.Add(new ProjectMember
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = sourceClock.ProjectId,
+            UserId = seed.Manager,
+            RoleCode = UserRoleCode.Supervisor,
+            Status = ProjectMemberStatus.Active,
+            ValidFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))
+        });
         await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         var breach = await db.Set<DeadlineBreach>().AsNoTracking().SingleAsync(row => row.ClockId == seed.Clock);
         var message = await db.OutboxMessages.SingleAsync(row => row.Id == breach.Id);

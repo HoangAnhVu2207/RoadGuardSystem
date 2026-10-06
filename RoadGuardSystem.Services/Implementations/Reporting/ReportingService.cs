@@ -37,17 +37,17 @@ public sealed class ReportingService(IReportingRepository repository, IIdentityR
                 }
                 catch (UnauthorizedAccessException) { return new("access_forbidden"); }
             }
-            var repairReader=currentRepairReaders?.SingleOrDefault();
-            if(repairReader is not null)
+            var repairReader = currentRepairReaders?.SingleOrDefault();
+            if (repairReader is not null)
             {
-                try { capture=CurrentRepairCaptureConsumer.Apply(capture,await repairReader.CaptureAsync(actor,project,normalized,ct)); }
-                catch(UnauthorizedAccessException)
+                try { capture = CurrentRepairCaptureConsumer.Apply(capture, await repairReader.CaptureAsync(actor, project, normalized, ct)); }
+                catch (UnauthorizedAccessException)
                 {
                     // Preserve legacy report access without exposing new protected repair facts.
-                    if(!await Authorized(actor,project,ct)) return new("access_forbidden");
-                    capture=CurrentRepairCaptureConsumer.Apply(capture,new(project,[],["REPAIR_PROJECT_AUTHORITY_NOT_VERIFIED"]));
+                    if (!await Authorized(actor, project, ct)) return new("access_forbidden");
+                    capture = CurrentRepairCaptureConsumer.Apply(capture, new(project, [], ["REPAIR_PROJECT_AUTHORITY_NOT_VERIFIED"]));
                 }
-                catch(InvalidOperationException) { return new("producer_invalid"); }
+                catch (InvalidOperationException) { return new("producer_invalid"); }
             }
             return new("success", capture);
         }, token);

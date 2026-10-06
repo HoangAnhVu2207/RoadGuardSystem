@@ -37,15 +37,27 @@ public sealed class OfflineEncryptedPackageRecord
         Guid sourceRegistration, Guid sourceBatch, string cipherJson, string manifestJson, string signature,
         string payloadHash, string packageFingerprint, DateTimeOffset at)
     {
-        OfflineRuntimeGuards.Identity(id,project,originalActor,sourceRegistration,sourceBatch);
-        OfflineRuntimeGuards.Time(at);OfflineRuntimeGuards.Hash(payloadHash);OfflineRuntimeGuards.Hash(packageFingerprint);
-        OfflineRuntimeGuards.Json(cipherJson,24*1024*1024);OfflineRuntimeGuards.Json(manifestJson,1048576);
-        try {if(Convert.FromBase64String(signature).Length!=64)throw new ArgumentException("A bounded source signature is required.");}
-        catch(FormatException exception){throw new ArgumentException("Source signature is malformed.",exception);}
-        return new(){Id=id,ProjectId=project,OriginalActorId=originalActor,SourceDeviceRegistrationId=sourceRegistration,
-            SourceBatchId=sourceBatch,CipherPackageJson=cipherJson,SignedManifestJson=manifestJson,SourceSignature=signature,
-            ManifestHash=OfflineRuntimeGuards.Digest(manifestJson),PayloadHash=payloadHash.ToLowerInvariant(),
-            PackageFingerprint=packageFingerprint.ToLowerInvariant(),RegisteredAt=at.ToUniversalTime(),
-            RegisteredBy=originalActor,RegistrationMode="SELF_EXPORT"};
+        OfflineRuntimeGuards.Identity(id, project, originalActor, sourceRegistration, sourceBatch);
+        OfflineRuntimeGuards.Time(at); OfflineRuntimeGuards.Hash(payloadHash); OfflineRuntimeGuards.Hash(packageFingerprint);
+        OfflineRuntimeGuards.Json(cipherJson, 24 * 1024 * 1024); OfflineRuntimeGuards.Json(manifestJson, 1048576);
+        try { if (Convert.FromBase64String(signature).Length != 64) throw new ArgumentException("A bounded source signature is required."); }
+        catch (FormatException exception) { throw new ArgumentException("Source signature is malformed.", exception); }
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            OriginalActorId = originalActor,
+            SourceDeviceRegistrationId = sourceRegistration,
+            SourceBatchId = sourceBatch,
+            CipherPackageJson = cipherJson,
+            SignedManifestJson = manifestJson,
+            SourceSignature = signature,
+            ManifestHash = OfflineRuntimeGuards.Digest(manifestJson),
+            PayloadHash = payloadHash.ToLowerInvariant(),
+            PackageFingerprint = packageFingerprint.ToLowerInvariant(),
+            RegisteredAt = at.ToUniversalTime(),
+            RegisteredBy = originalActor,
+            RegistrationMode = "SELF_EXPORT"
+        };
     }
 }

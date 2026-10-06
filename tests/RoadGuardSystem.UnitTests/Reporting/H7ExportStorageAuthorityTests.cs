@@ -19,7 +19,7 @@ namespace RoadGuardSystem.UnitTests.Reporting;
 // Controlled storage/authority race; actual SQL source authority has separate integration evidence.
 public sealed class H7ExportStorageAuthorityTests
 {
-    private static readonly JsonSerializerOptions Json=new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [Theory]
     [InlineData(0)]
@@ -89,99 +89,99 @@ public sealed class H7ExportStorageAuthorityTests
     }
 
     [Theory]
-    [InlineData(false,false)]
-    [InlineData(false,true)]
-    [InlineData(true,false)]
-    [InlineData(true,true)]
-    public async Task RevocationDuringStorageWaitDoesNotReturnSourceBytesToRenderer(bool frame,bool revokeActor)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task RevocationDuringStorageWaitDoesNotReturnSourceBytesToRenderer(bool frame, bool revokeActor)
     {
-        var actor=Guid.NewGuid();var project=Guid.NewGuid();var at=DateTimeOffset.UtcNow;
-        var source=StoredFile.Create(Guid.NewGuid(),"private/source","source.jpg","image/jpeg",4,new string('a',64),actor,at,null);
-        var file=new ExportFileDto(source.Id,"v1",source.Checksum,4,"image/jpeg","files/source.jpg",true,null);
-        ExportLabelDto[]? labels=frame?[new(Guid.NewGuid(),1,Guid.NewGuid(),project,"CRACK",0,0,1,1,
+        var actor = Guid.NewGuid(); var project = Guid.NewGuid(); var at = DateTimeOffset.UtcNow;
+        var source = StoredFile.Create(Guid.NewGuid(), "private/source", "source.jpg", "image/jpeg", 4, new string('a', 64), actor, at, null);
+        var file = new ExportFileDto(source.Id, "v1", source.Checksum, 4, "image/jpeg", "files/source.jpg", true, null);
+        ExportLabelDto[]? labels = frame ? [new(Guid.NewGuid(),1,Guid.NewGuid(),project,"CRACK",0,0,1,1,
             source.Id,"v1",source.Checksum,4,"image/jpeg","AI_DETECTION",Guid.NewGuid(),"v1",Guid.NewGuid(),
-            actor,at,null,null,null,"MOCK",null)]:null;
-        var id=Guid.NewGuid();var kind=frame?"TRAINING":"DOSSIER";
-        var payload=new ExportSnapshotPayloadDto(new("anh02.export.v1",id,project,kind,"ZIP",actor,at,at,[],
-            new(kind,"ZIP",IncludeOriginalFiles:true),[new("RepairItem",Guid.NewGuid(),"v1")],[file],[],labels,""),null);
-        var json=JsonSerializer.Serialize(payload,Json);var snapshot=ExportSnapshot.Create(id,project,json,ExportSerialization.Hash(json),at);
-        var claim=new ExportClaim(Guid.NewGuid(),Guid.NewGuid(),actor,project,snapshot);
-        var sourceAuthority=true;var actorAuthority=true;var reads=0;var writes=0;string? error=null;
-        var opened=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var content=new ObservedStream();
+            actor,at,null,null,null,"MOCK",null)] : null;
+        var id = Guid.NewGuid(); var kind = frame ? "TRAINING" : "DOSSIER";
+        var payload = new ExportSnapshotPayloadDto(new("anh02.export.v1", id, project, kind, "ZIP", actor, at, at, [],
+            new(kind, "ZIP", IncludeOriginalFiles: true), [new("RepairItem", Guid.NewGuid(), "v1")], [file], [], labels, ""), null);
+        var json = JsonSerializer.Serialize(payload, Json); var snapshot = ExportSnapshot.Create(id, project, json, ExportSerialization.Hash(json), at);
+        var claim = new ExportClaim(Guid.NewGuid(), Guid.NewGuid(), actor, project, snapshot);
+        var sourceAuthority = true; var actorAuthority = true; var reads = 0; var writes = 0; string? error = null;
+        var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var content = new ObservedStream();
         async Task<Stream> Open()
         {
-            opened.TrySetResult();await release.Task;return content;
+            opened.TrySetResult(); await release.Task; return content;
         }
-        var repository=Proxy<IExportRepository>((method,args)=>method.Name switch
+        var repository = Proxy<IExportRepository>((method, args) => method.Name switch
         {
-            nameof(IExportRepository.ClaimAsync)=>Task.FromResult<ExportClaim?>(claim),
-            nameof(IExportRepository.RenewAsync)=>Task.FromResult(true),
-            nameof(IExportRepository.CanReadSnapshotSourcesAsync)=>Task.FromResult(sourceAuthority),
-            nameof(IExportRepository.CanReadSurveySourcesAsync)=>Task.FromResult(true),
-            nameof(IExportRepository.GetSourceFileAsync)=>Task.FromResult<StoredFile?>(source),
-            nameof(IExportRepository.CompleteAsync)=>Complete((Func<CancellationToken,Task<bool>>)args![2]!),
-            nameof(IExportRepository.FailAsync)=>Fail((string)args![1]!),
-            _=>throw new InvalidOperationException("Unexpected export repository call: "+method.Name)
+            nameof(IExportRepository.ClaimAsync) => Task.FromResult<ExportClaim?>(claim),
+            nameof(IExportRepository.RenewAsync) => Task.FromResult(true),
+            nameof(IExportRepository.CanReadSnapshotSourcesAsync) => Task.FromResult(sourceAuthority),
+            nameof(IExportRepository.CanReadSurveySourcesAsync) => Task.FromResult(true),
+            nameof(IExportRepository.GetSourceFileAsync) => Task.FromResult<StoredFile?>(source),
+            nameof(IExportRepository.CompleteAsync) => Complete((Func<CancellationToken, Task<bool>>)args![2]!),
+            nameof(IExportRepository.FailAsync) => Fail((string)args![1]!),
+            _ => throw new InvalidOperationException("Unexpected export repository call: " + method.Name)
         });
-        async Task<bool> Complete(Func<CancellationToken,Task<bool>> authorize)=>await authorize(default);
-        Task Fail(string code){error=code;return Task.CompletedTask;}
-        var identity=Proxy<IIdentityRepository>((method,_)=>method.Name switch
+        async Task<bool> Complete(Func<CancellationToken, Task<bool>> authorize) => await authorize(default);
+        Task Fail(string code) { error = code; return Task.CompletedTask; }
+        var identity = Proxy<IIdentityRepository>((method, _) => method.Name switch
         {
-            nameof(IIdentityRepository.GetUserSecurityStateAsync)=>Task.FromResult<UserSecurityState?>(actorAuthority
-                ?new(actor,"fixture","fixture",UserRoleCode.ProjectManager,UserStatus.Active,false,[]):null),
-            nameof(IIdentityRepository.IsRoleActiveAsync)=>Task.FromResult(true),
-            _=>throw new InvalidOperationException("Unexpected identity call: "+method.Name)
+            nameof(IIdentityRepository.GetUserSecurityStateAsync) => Task.FromResult<UserSecurityState?>(actorAuthority
+                ? new(actor, "fixture", "fixture", UserRoleCode.ProjectManager, UserStatus.Active, false, []) : null),
+            nameof(IIdentityRepository.IsRoleActiveAsync) => Task.FromResult(true),
+            _ => throw new InvalidOperationException("Unexpected identity call: " + method.Name)
         });
-        var scope=Proxy<IProjectScopeGuard>((_,_)=>Task.FromResult<ProjectAccessScope?>(new(project,UserRoleCode.ProjectManager,Guid.NewGuid())));
-        var sourceAccess=Proxy<ITrainingSourceAccessReader>((_,_)=>Task.FromResult(true));
-        var artifacts=Proxy<IAnh02ArtifactStore>((method,args)=>method.Name switch
+        var scope = Proxy<IProjectScopeGuard>((_, _) => Task.FromResult<ProjectAccessScope?>(new(project, UserRoleCode.ProjectManager, Guid.NewGuid())));
+        var sourceAccess = Proxy<ITrainingSourceAccessReader>((_, _) => Task.FromResult(true));
+        var artifacts = Proxy<IAnh02ArtifactStore>((method, args) => method.Name switch
         {
-            nameof(IAnh02ArtifactStore.OpenReadAsync)=>ReadArtifact((string)args![0]!),
-            nameof(IAnh02ArtifactStore.WriteAsync)=>WriteArtifact((string)args![0]!),
-            _=>throw new InvalidOperationException("Unexpected artifact call: "+method.Name)
+            nameof(IAnh02ArtifactStore.OpenReadAsync) => ReadArtifact((string)args![0]!),
+            nameof(IAnh02ArtifactStore.WriteAsync) => WriteArtifact((string)args![0]!),
+            _ => throw new InvalidOperationException("Unexpected artifact call: " + method.Name)
         });
         async Task<Anh02ArtifactRead> ReadArtifact(string key)
         {
-            if(key!=source.StorageUri)throw new FileNotFoundException();
-            return new(await Open(),new(key,4,source.Checksum,"image/jpeg"));
+            if (key != source.StorageUri) throw new FileNotFoundException();
+            return new(await Open(), new(key, 4, source.Checksum, "image/jpeg"));
         }
         Task<Anh02ArtifactMetadata> WriteArtifact(string key)
-        {writes++;return Task.FromResult(new Anh02ArtifactMetadata(key,1,new string('b',64),"application/zip"));}
-        var storage=Proxy<IUploadObjectStorage>((method,_)=>method.Name==nameof(IUploadObjectStorage.OpenReadAsync)
-            ?Open():throw new InvalidOperationException("Unexpected source storage call: "+method.Name));
-        var renderer=Proxy<IExportRenderer>((_,args)=>Render((Func<ExportFileDto,CancellationToken,Task<Stream>>)args![1]!));
-        async Task<Stream> Render(Func<ExportFileDto,CancellationToken,Task<Stream>> open)
+        { writes++; return Task.FromResult(new Anh02ArtifactMetadata(key, 1, new string('b', 64), "application/zip")); }
+        var storage = Proxy<IUploadObjectStorage>((method, _) => method.Name == nameof(IUploadObjectStorage.OpenReadAsync)
+            ? Open() : throw new InvalidOperationException("Unexpected source storage call: " + method.Name));
+        var renderer = Proxy<IExportRenderer>((_, args) => Render((Func<ExportFileDto, CancellationToken, Task<Stream>>)args![1]!));
+        async Task<Stream> Render(Func<ExportFileDto, CancellationToken, Task<Stream>> open)
         {
-            await using var stream=await open(file,default);reads+=stream.ReadByte()>=0?1:0;
+            await using var stream = await open(file, default); reads += stream.ReadByte() >= 0 ? 1 : 0;
             return new MemoryStream([9]);
         }
-        using var services=new ServiceCollection().AddScoped<IExportRepository>(_=>repository).BuildServiceProvider();
-        var service=new ExportService(repository,identity,scope,null!,[],[sourceAccess],artifacts,storage,renderer,
-            TimeProvider.System,services.GetRequiredService<IServiceScopeFactory>());
-        var processing=service.ProcessNextAsync(default);
+        using var services = new ServiceCollection().AddScoped<IExportRepository>(_ => repository).BuildServiceProvider();
+        var service = new ExportService(repository, identity, scope, null!, [], [sourceAccess], artifacts, storage, renderer,
+            TimeProvider.System, services.GetRequiredService<IServiceScopeFactory>());
+        var processing = service.ProcessNextAsync(default);
         await opened.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        if(revokeActor)actorAuthority=false;else sourceAuthority=false;
-        release.TrySetResult();Assert.True(await processing.WaitAsync(TimeSpan.FromSeconds(10)));
-        Assert.Equal(0,reads);Assert.Equal(0,writes);Assert.True(content.Disposed);
-        Assert.Equal("export_source_access_revoked",error);
+        if (revokeActor) actorAuthority = false; else sourceAuthority = false;
+        release.TrySetResult(); Assert.True(await processing.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(0, reads); Assert.Equal(0, writes); Assert.True(content.Disposed);
+        Assert.Equal("export_source_access_revoked", error);
     }
 
-    private static T Proxy<T>(Func<MethodInfo,object?[]?,object?> handler) where T:class
+    private static T Proxy<T>(Func<MethodInfo, object?[]?, object?> handler) where T : class
     {
-        var result=DispatchProxy.Create<T,ControlledProxy>();
-        ((ControlledProxy)(object)result).Handler=handler;return result;
+        var result = DispatchProxy.Create<T, ControlledProxy>();
+        ((ControlledProxy)(object)result).Handler = handler; return result;
     }
-    public class ControlledProxy:DispatchProxy
+    public class ControlledProxy : DispatchProxy
     {
-        public Func<MethodInfo,object?[]?,object?> Handler {get;set;}=null!;
-        protected override object? Invoke(MethodInfo? targetMethod,object?[]? args)=>Handler(targetMethod!,args);
+        public Func<MethodInfo, object?[]?, object?> Handler { get; set; } = null!;
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => Handler(targetMethod!, args);
     }
-    private sealed class ObservedStream:MemoryStream
+    private sealed class ObservedStream : MemoryStream
     {
-        public ObservedStream():base([1,2,3,4]){}
-        public bool Disposed {get;private set;}
-        protected override void Dispose(bool disposing){Disposed=true;base.Dispose(disposing);}
+        public ObservedStream() : base([1, 2, 3, 4]) { }
+        public bool Disposed { get; private set; }
+        protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
     }
 }

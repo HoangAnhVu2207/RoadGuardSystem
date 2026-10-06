@@ -11,8 +11,12 @@ public sealed class H6SafetyNotificationSourceAdapter(RoadGuardDbContext db) : I
 
     public IQueryable<H6SourceScope> ScopeQuery()
         => db.Set<TemporarySafetyMeasure>().Select(row => new H6SourceScope
-        { SourceKind = "TemporarySafetyMeasure", SourceId = row.Id, ProjectId = row.ProjectId,
-            AssignedUserId = row.ResponsibleActorId });
+        {
+            SourceKind = "TemporarySafetyMeasure",
+            SourceId = row.Id,
+            ProjectId = row.ProjectId,
+            AssignedUserId = row.ResponsibleActorId
+        });
 
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {

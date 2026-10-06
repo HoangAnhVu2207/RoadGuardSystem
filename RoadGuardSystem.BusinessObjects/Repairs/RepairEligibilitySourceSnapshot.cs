@@ -34,7 +34,8 @@ public sealed class RepairEligibilitySourceSnapshot
             throw new InvalidOperationException("Raw eligibility sources must be unique and belong to the actual project/road scope.");
         return new RepairEligibilitySourceSnapshot
         {
-            ProjectId = project, RoadSectionId = roadSection,
+            ProjectId = project,
+            RoadSectionId = roadSection,
             Warranties = Array.AsReadOnly(warranties.Select(row => new RepairWarrantySource(row.Id, row.ProjectId, row.RoadSectionId,
                 row.HandoverDocumentId, row.HandoverDate, row.WarrantyStartDate, row.WarrantyEndDate, row.Scope, row.Status, row.SourceDocumentId)).ToArray()),
             Handovers = Array.AsReadOnly(handovers.Select(row => new RepairHandoverSource(row.Id, row.ProjectId, row.DocumentNo,

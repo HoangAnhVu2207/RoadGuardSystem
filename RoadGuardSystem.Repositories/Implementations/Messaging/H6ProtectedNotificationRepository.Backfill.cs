@@ -26,13 +26,30 @@ public sealed partial class H6ProtectedNotificationRepository
                 classification = "NON_PROJECT";
             var auditId = Guid.NewGuid(); var now = clock.GetUtcNow().ToUniversalTime();
             var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(notification.Id.ToString("N") + "|legacy|" + NotificationRegisteredTypes.RegistryVersion))).ToLowerInvariant();
-            db.Set<H6NotificationAuditRow>().Add(new() { Id = auditId, NotificationId = notification.Id,
-                ProjectId = project, Classification = classification, SourceKind = notification.SourceEntityType,
-                SourceId = notification.SourceEntityId, ReasonCode = classification == "UNKNOWN_PROTECTED" ? "notification_legacy_scope_unknown" : "notification_legacy_source_verified",
-                ResolverVersion = NotificationRegisteredTypes.RegistryVersion, DedupKey = key, RecordedAtUtc = now });
-            db.Set<H6NotificationScopeRow>().Add(new() { NotificationId = notification.Id, ProjectId = project,
-                Classification = classification, SourceKind = notification.SourceEntityType, SourceId = notification.SourceEntityId,
-                EventType = notification.EventType, ResolverVersion = NotificationRegisteredTypes.RegistryVersion, CurrentAuditId = auditId });
+            db.Set<H6NotificationAuditRow>().Add(new()
+            {
+                Id = auditId,
+                NotificationId = notification.Id,
+                ProjectId = project,
+                Classification = classification,
+                SourceKind = notification.SourceEntityType,
+                SourceId = notification.SourceEntityId,
+                ReasonCode = classification == "UNKNOWN_PROTECTED" ? "notification_legacy_scope_unknown" : "notification_legacy_source_verified",
+                ResolverVersion = NotificationRegisteredTypes.RegistryVersion,
+                DedupKey = key,
+                RecordedAtUtc = now
+            });
+            db.Set<H6NotificationScopeRow>().Add(new()
+            {
+                NotificationId = notification.Id,
+                ProjectId = project,
+                Classification = classification,
+                SourceKind = notification.SourceEntityType,
+                SourceId = notification.SourceEntityId,
+                EventType = notification.EventType,
+                ResolverVersion = NotificationRegisteredTypes.RegistryVersion,
+                CurrentAuditId = auditId
+            });
         }
         await db.SaveChangesAsync(token);
     }
@@ -47,8 +64,11 @@ public sealed partial class H6ProtectedNotificationRepository
             case "Case": case "IncidentCase": return await db.IncidentCases.Where(row => row.Id == id).Select(row => row.ProjectId).SingleOrDefaultAsync(token);
             case "SurveyRequest": return await db.SurveyRequests.Where(row => row.Id == id).Select(row => (Guid?)row.ProjectId).SingleOrDefaultAsync(token);
             case "Survey": return await db.Surveys.Where(row => row.Id == id).Select(row => (Guid?)row.ProjectId).SingleOrDefaultAsync(token);
-            case "RoadSectionVersion": return await (from version in db.RoadSectionVersions join road in db.RoadSections on version.RoadSectionId equals road.Id
-                                                     where version.Id == id select (Guid?)road.ProjectId).SingleOrDefaultAsync(token);
+            case "RoadSectionVersion":
+                return await (from version in db.RoadSectionVersions
+                              join road in db.RoadSections on version.RoadSectionId equals road.Id
+                              where version.Id == id
+                              select (Guid?)road.ProjectId).SingleOrDefaultAsync(token);
         }
         var adapter = sources.SingleOrDefault(source => source.Supports(notification.SourceEntityType));
         return adapter is null ? null : await adapter.ScopeQuery().Where(source => source.SourceId == id && source.SourceKind == notification.SourceEntityType)

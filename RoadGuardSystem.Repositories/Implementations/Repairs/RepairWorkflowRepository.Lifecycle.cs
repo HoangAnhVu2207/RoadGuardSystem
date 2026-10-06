@@ -78,8 +78,11 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
                 }
                 // All original first-start, attempt, submission, decision and clock identities remain attached to the predecessor.
                 RepairItem successor;
-                try { successor = package.ContinueNormally(source.Id, Guid.NewGuid(), command.ActorId, now,
-                    new(command.Input.RepairPlan, command.Input.ChecklistVersion)); }
+                try
+                {
+                    successor = package.ContinueNormally(source.Id, Guid.NewGuid(), command.ActorId, now,
+                    new(command.Input.RepairPlan, command.Input.ChecklistVersion));
+                }
                 catch (InvalidOperationException) { Deny(409, "normal_continuation_source_conflict"); throw; }
                 Touch(package); await db.SaveChangesAsync(ct);
                 db.Entry(obligation).Property(row => row.CurrentRepairItemId).CurrentValue = successor.Id;
@@ -93,8 +96,17 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
                     successor.Id, proposed.Id, now));
                 Notify(proposed, "review.supervisor_required.v1", "SUPERVISOR_REQUIRED");
                 AuditProducer(command.ActorId, "repair_normal_continuation", "RepairItem", successor.Id, command.Input.Reason,
-                    new { continuation.Id, sourceItemId = source.Id, obligationId = obligation.Id, decisionId, cancelId, handoverId,
-                        successor.ProposalPlanHash, obligation.OriginalCrewFirstStartId });
+                    new
+                    {
+                        continuation.Id,
+                        sourceItemId = source.Id,
+                        obligationId = obligation.Id,
+                        decisionId,
+                        cancelId,
+                        handoverId,
+                        successor.ProposalPlanHash,
+                        obligation.OriginalCrewFirstStartId
+                    });
                 await db.SaveChangesAsync(ct);
                 return (continuation.Id, new RepairLifecycleFact(source.Id, successor.Id, obligation.Id,
                     cancelId, handoverId, continuation.Id, source.State.ToString(), successor.State.ToString(),
@@ -144,11 +156,19 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
             var nativeEvent = FieldInspectionTaskEvent.Create(Guid.NewGuid(), item.ProjectId, task.Id, assignment.Id,
                 actor, "CANCELLED", reason, now, JsonSerializer.Serialize(new
                 {
-                    repairItemId = item.Id, bindingId = binding.Id, firstStartId = first?.Id,
-                    firstStartOriginId = first?.OriginId, firstStartContentHash = first?.ContentHash,
-                    performedPortion = performed?.PerformedScope, safetyState = performed?.SafetyState,
-                    recipientUserId = performed?.ToActorId, executionStartId = item.CurrentExecutionStartId,
-                    task.RoadSectionVersionId, task.SegmentSetId, task.LayoutRevisionId, task.SlabId
+                    repairItemId = item.Id,
+                    bindingId = binding.Id,
+                    firstStartId = first?.Id,
+                    firstStartOriginId = first?.OriginId,
+                    firstStartContentHash = first?.ContentHash,
+                    performedPortion = performed?.PerformedScope,
+                    safetyState = performed?.SafetyState,
+                    recipientUserId = performed?.ToActorId,
+                    executionStartId = item.CurrentExecutionStartId,
+                    task.RoadSectionVersionId,
+                    task.SegmentSetId,
+                    task.LayoutRevisionId,
+                    task.SlabId
                 }, Json));
             db.Add(nativeEvent); nativeEventId = nativeEvent.Id;
         }
@@ -176,8 +196,13 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
         assignment.End(now, reason);
         db.Entry(item).Property(row => row.CurrentBindingId).CurrentValue = null;
         db.Add(FieldInspectionTaskEvent.Create(Guid.NewGuid(), item.ProjectId, task.Id, assignment.Id, actor,
-            "REASSIGNED", reason, now, JsonSerializer.Serialize(new { repairItemId = item.Id,
-                decisionId = item.EffectiveDecisionId, purpose = "NORMAL_CONTINUATION", preservesCompletedIntake = true }, Json)));
+            "REASSIGNED", reason, now, JsonSerializer.Serialize(new
+            {
+                repairItemId = item.Id,
+                decisionId = item.EffectiveDecisionId,
+                purpose = "NORMAL_CONTINUATION",
+                preservesCompletedIntake = true
+            }, Json)));
     }
 
     private async Task<(RepairFieldTaskBinding Binding, FieldInspectionTask Task, FieldInspectionAssignment Assignment)>

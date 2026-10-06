@@ -53,9 +53,21 @@ public sealed class OfflineSyncBatch
             }
             catch (FormatException exception) { throw new ArgumentException("Recipient signature is malformed.", exception); }
         }
-        return new() { Id=id, ProjectId=project, SourceBatchId=sourceBatch, SourceDeviceRegistrationId=sourceRegistration,
-            CurrentImporterId=importer, PackageId=package, GrantId=grant,
-            RecipientDeviceRegistrationId=recipientRegistration, RecipientSignature=recipientSignature, SignedDescriptorJson=descriptorJson,
-            SourceSignature=signature, ContentHash=OfflineRuntimeGuards.Digest(descriptorJson), ReceivedAt=at.ToUniversalTime() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            SourceBatchId = sourceBatch,
+            SourceDeviceRegistrationId = sourceRegistration,
+            CurrentImporterId = importer,
+            PackageId = package,
+            GrantId = grant,
+            RecipientDeviceRegistrationId = recipientRegistration,
+            RecipientSignature = recipientSignature,
+            SignedDescriptorJson = descriptorJson,
+            SourceSignature = signature,
+            ContentHash = OfflineRuntimeGuards.Digest(descriptorJson),
+            ReceivedAt = at.ToUniversalTime()
+        };
     }
 }

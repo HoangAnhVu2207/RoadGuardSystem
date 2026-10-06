@@ -160,8 +160,14 @@ public sealed partial class OfflineWorkflowRepository(RoadGuardDbContext db, Tim
             "OfflineDeviceRegistration", id, null, JsonSerializer.Serialize(new { row.Id, row.DeviceRegistrationId }, Json),
             row.Reason, "h5.offline.v1", row.Id, ["deviceRegistrationId"]));
         db.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), "offline.device.revoked.v1", row.RevokedAt,
-            id, JsonSerializer.Serialize(new { projectId = command.ProjectId, sourceKind = "OfflineDeviceRegistration",
-                sourceId = id, originEventId = row.Id, occurredAtUtc = row.RevokedAt }, Json)));
+            id, JsonSerializer.Serialize(new
+            {
+                projectId = command.ProjectId,
+                sourceKind = "OfflineDeviceRegistration",
+                sourceId = id,
+                originEventId = row.Id,
+                occurredAtUtc = row.RevokedAt
+            }, Json)));
         return (row.Id, DeviceView(device, row));
     }
 
@@ -212,23 +218,59 @@ public sealed partial class OfflineWorkflowRepository(RoadGuardDbContext db, Tim
                 throw new OfflineAdmissionRejectedException(409, "repair_snapshot_source_unavailable");
             repairSource = facts.SafePayload;
         }
-        var assignmentJson = JsonSerializer.Serialize(new { assignment.Id, assignment.FieldInspectionTaskId,
-            assignment.AssignedToUserId, assignment.AssignedByUserId, assignment.AssignedAt }, Json);
-        var payload = JsonSerializer.Serialize(new { task.Id, task.ProjectId, task.DefectId, task.SurveyId, task.SourceKind,
-            task.RoadSectionVersionId, task.SegmentSetId, task.LayoutRevisionId, task.SlabId, task.MapPublicationId,
-            task.CrsProfileRevisionId, task.RequiredMeasurementType, task.MeasurementScope, task.Instructions,
-            task.TaskMode, task.RepairItemId, purpose = task.Purpose.ToString(), status = task.Status.ToString(),
-            task.DueAt, assignmentId = assignment.Id, originalActorId = assignment.AssignedToUserId,
-            location, repair = repairSource }, Json);
+        var assignmentJson = JsonSerializer.Serialize(new
+        {
+            assignment.Id,
+            assignment.FieldInspectionTaskId,
+            assignment.AssignedToUserId,
+            assignment.AssignedByUserId,
+            assignment.AssignedAt
+        }, Json);
+        var payload = JsonSerializer.Serialize(new
+        {
+            task.Id,
+            task.ProjectId,
+            task.DefectId,
+            task.SurveyId,
+            task.SourceKind,
+            task.RoadSectionVersionId,
+            task.SegmentSetId,
+            task.LayoutRevisionId,
+            task.SlabId,
+            task.MapPublicationId,
+            task.CrsProfileRevisionId,
+            task.RequiredMeasurementType,
+            task.MeasurementScope,
+            task.Instructions,
+            task.TaskMode,
+            task.RepairItemId,
+            purpose = task.Purpose.ToString(),
+            status = task.Status.ToString(),
+            task.DueAt,
+            assignmentId = assignment.Id,
+            originalActorId = assignment.AssignedToUserId,
+            location,
+            repair = repairSource
+        }, Json);
         var row = OfflineTaskSnapshot.Capture(Guid.NewGuid(), command.ProjectId, task.Id, assignment.Id,
             command.ActorId, device.Id, Convert.ToBase64String(task.RowVersion), Digest(assignmentJson), payload, clock.GetUtcNow());
         db.Add(row);
         return (row.Id, SnapshotView(row));
     }
 
-    private static object SnapshotView(OfflineTaskSnapshot row) => new { row.Id, row.TaskId, row.AssignmentId,
-        row.OriginalActorId, row.DeviceRegistrationId, row.TaskVersion, row.AssignmentHash, row.ContentHash,
-        row.DownloadedAt, snapshot = JsonSerializer.Deserialize<JsonElement>(row.SnapshotJson, Json) };
+    private static object SnapshotView(OfflineTaskSnapshot row) => new
+    {
+        row.Id,
+        row.TaskId,
+        row.AssignmentId,
+        row.OriginalActorId,
+        row.DeviceRegistrationId,
+        row.TaskVersion,
+        row.AssignmentHash,
+        row.ContentHash,
+        row.DownloadedAt,
+        snapshot = JsonSerializer.Deserialize<JsonElement>(row.SnapshotJson, Json)
+    };
 
     private async Task<(OfflineDeviceRegistration Device, FieldInspectionTask Task, FieldInspectionAssignment Assignment)>
         GuardSnapshotScopeAsync(OfflineWorkflowCommand command, CancellationToken cancellationToken)
@@ -280,15 +322,29 @@ public sealed partial class OfflineWorkflowRepository(RoadGuardDbContext db, Tim
             "OfflineDeviceRegistration", row.Id, null, audit, null, "h5.offline.v1", row.Id,
             ["projectId", "deviceId", "registrationId", "revision"]));
         db.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), "offline.device.registered.v1", row.RegisteredAt, row.Id,
-            JsonSerializer.Serialize(new { projectId = row.ProjectId, sourceKind = "OfflineDeviceRegistration", sourceId = row.Id,
-                originEventId = row.Id, occurredAtUtc = row.RegisteredAt }, Json)));
+            JsonSerializer.Serialize(new
+            {
+                projectId = row.ProjectId,
+                sourceKind = "OfflineDeviceRegistration",
+                sourceId = row.Id,
+                originEventId = row.Id,
+                occurredAtUtc = row.RegisteredAt
+            }, Json)));
         return row;
     }
 
     private static object DeviceView(OfflineDeviceRegistration row, OfflineDeviceRevocation? revocation) => new
     {
-        row.Id, row.ProjectId, row.ActorId, row.DeviceId, row.Revision, role = row.RoleSnapshot.ToString(),
-        row.EncryptionPublicKey, row.SigningPublicKey, row.KeyFingerprint, row.RegisteredAt,
+        row.Id,
+        row.ProjectId,
+        row.ActorId,
+        row.DeviceId,
+        row.Revision,
+        role = row.RoleSnapshot.ToString(),
+        row.EncryptionPublicKey,
+        row.SigningPublicKey,
+        row.KeyFingerprint,
+        row.RegisteredAt,
         revokedAt = revocation?.RevokedAt
     };
 }

@@ -29,29 +29,29 @@ public sealed class HuyFinalOwnedRouteCookieHttpTests(AuthenticationSqlServerFix
 
     private async Task CheckOwnedRead(string resource, HttpStatusCode authorizedStatus)
     {
-        var actor=await fixture.CreateUserAsync($"owned-cookie-{Guid.NewGuid():N}","Current1!",UserRoleCode.ProjectManager);
-        var project=await SeedProject(actor.Id);
-        await using var factory=new AuthenticationWebApplicationFactory(fixture.ConnectionString);
-        using var client=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),HandleCookies=true});
-        await Login(client,actor.Email!);
-        var path=$"/api/v1/projects/{project}/{resource}/";
-        Assert.Equal(authorizedStatus,(await client.GetAsync(path)).StatusCode);
-        client.DefaultRequestHeaders.Authorization=new AuthenticationHeaderValue("Bearer","invalid");
-        Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync(path)).StatusCode);
-        client.DefaultRequestHeaders.Authorization=null;
-        var other=await fixture.CreateUserAsync($"owned-other-{Guid.NewGuid():N}","Current1!",UserRoleCode.ProjectManager);
-        using(var bearer=factory.CreateClient())
+        var actor = await fixture.CreateUserAsync($"owned-cookie-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var project = await SeedProject(actor.Id);
+        await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = true });
+        await Login(client, actor.Email!);
+        var path = $"/api/v1/projects/{project}/{resource}/";
+        Assert.Equal(authorizedStatus, (await client.GetAsync(path)).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "invalid");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(path)).StatusCode);
+        client.DefaultRequestHeaders.Authorization = null;
+        var other = await fixture.CreateUserAsync($"owned-other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        using (var bearer = factory.CreateClient())
         {
-            var login=await bearer.PostAsJsonAsync("/api/v1/auth/login",new{email=other.Email,password="Current1!"});
-            Assert.Equal(HttpStatusCode.OK,login.StatusCode);
-            var access=(await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString();
-            client.DefaultRequestHeaders.Authorization=new AuthenticationHeaderValue("Bearer",access);
-            Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync(path)).StatusCode);
-            client.DefaultRequestHeaders.Authorization=null;
+            var login = await bearer.PostAsJsonAsync("/api/v1/auth/login", new { email = other.Email, password = "Current1!" });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+            var access = (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", access);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync(path)).StatusCode);
+            client.DefaultRequestHeaders.Authorization = null;
         }
-        await using(var db=fixture.CreateDbContext())
-            await db.Sessions.Where(row=>row.UserId==actor.Id).ExecuteUpdateAsync(update=>update.SetProperty(row=>row.RevokedAt,DateTimeOffset.UtcNow));
-        Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync(path)).StatusCode);
+        await using (var db = fixture.CreateDbContext())
+            await db.Sessions.Where(row => row.UserId == actor.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.RevokedAt, DateTimeOffset.UtcNow));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(path)).StatusCode);
     }
 
     [Theory]
@@ -61,31 +61,31 @@ public sealed class HuyFinalOwnedRouteCookieHttpTests(AuthenticationSqlServerFix
     [InlineData("exports")]
     public async Task OwnedWriteRequiresCsrfBeforeControllerAdmission(string resource)
     {
-        var actor=await fixture.CreateUserAsync($"owned-write-{Guid.NewGuid():N}","Current1!",UserRoleCode.ProjectManager);
-        var project=await SeedProject(actor.Id);
-        await using var factory=new AuthenticationWebApplicationFactory(fixture.ConnectionString);
-        using var client=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),HandleCookies=true});
-        await Login(client,actor.Email!);
-        var response=await client.PostAsJsonAsync($"/api/v1/projects/{project}/{resource}",new{});
-        Assert.Equal(HttpStatusCode.Forbidden,response.StatusCode);
-        Assert.Equal("csrf_failed",(await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
-        await using var db=fixture.CreateDbContext();
-        Assert.False(await db.IdempotencyRecords.AnyAsync(row=>row.ActorUserId==actor.Id));
+        var actor = await fixture.CreateUserAsync($"owned-write-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var project = await SeedProject(actor.Id);
+        await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = true });
+        await Login(client, actor.Email!);
+        var response = await client.PostAsJsonAsync($"/api/v1/projects/{project}/{resource}", new { });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal("csrf_failed", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        await using var db = fixture.CreateDbContext();
+        Assert.False(await db.IdempotencyRecords.AnyAsync(row => row.ActorUserId == actor.Id));
     }
 
     private async Task<Guid> SeedProject(Guid actor)
     {
-        await using var db=fixture.CreateDbContext();var now=DateTimeOffset.UtcNow;
-        var project=Project.Create(Guid.NewGuid(),Guid.NewGuid().ToString(),"Owned cookie transport fixture",null,null,null,null,now);
-        db.AddRange(project,ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(),project.Id,actor,DateOnly.FromDateTime(now.UtcDateTime)));
-        await db.SaveChangesAsync();return project.Id;
+        await using var db = fixture.CreateDbContext(); var now = DateTimeOffset.UtcNow;
+        var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Owned cookie transport fixture", null, null, null, null, now);
+        db.AddRange(project, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, actor, DateOnly.FromDateTime(now.UtcDateTime)));
+        await db.SaveChangesAsync(); return project.Id;
     }
 
-    private static async Task Login(HttpClient client,string email)
+    private static async Task Login(HttpClient client, string email)
     {
-        var csrf=(await (await client.GetAsync("/api/v1/auth/web/csrf")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString()!;
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN",csrf);
-        Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/v1/auth/web/login",new{email,password="Current1!"})).StatusCode);
+        var csrf = (await (await client.GetAsync("/api/v1/auth/web/csrf")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString()!;
+        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/web/login", new { email, password = "Current1!" })).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
     }
 }

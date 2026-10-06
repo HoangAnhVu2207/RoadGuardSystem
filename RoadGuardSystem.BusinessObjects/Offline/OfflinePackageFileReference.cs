@@ -12,7 +12,7 @@ public sealed class OfflinePackageFileReference
     public static OfflinePackageFileReference Capture(Guid id, Guid project, Guid package, Guid file,
         string checksum, string factsJson)
     {
-        OfflineRuntimeGuards.Identity(id,project,package,file);OfflineRuntimeGuards.Hash(checksum);OfflineRuntimeGuards.Json(factsJson,1048576);
-        return new(){Id=id,ProjectId=project,PackageId=package,FileId=file,ContentChecksum=checksum.ToLowerInvariant(),CaptureFactsJson=factsJson};
+        OfflineRuntimeGuards.Identity(id, project, package, file); OfflineRuntimeGuards.Hash(checksum); OfflineRuntimeGuards.Json(factsJson, 1048576);
+        return new() { Id = id, ProjectId = project, PackageId = package, FileId = file, ContentChecksum = checksum.ToLowerInvariant(), CaptureFactsJson = factsJson };
     }
 }

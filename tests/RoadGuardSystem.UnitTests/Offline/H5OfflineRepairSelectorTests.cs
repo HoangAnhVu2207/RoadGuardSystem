@@ -27,11 +27,11 @@ public sealed class H5OfflineRepairSelectorTests
             Guid.NewGuid(), Guid.NewGuid(), Convert.ToBase64String(new byte[8]), new string('a', 64), [], null, Repair: payload);
         Assert.Equal(item, OfflineWorkflowEngine.Describe(operation).RepairResourceId);
         Assert.Throws<ArgumentException>(() => OfflineWorkflowEngine.Describe(operation with
-            { Repair = payload with { Action = "cancel" } }));
+        { Repair = payload with { Action = "cancel" } }));
         Assert.Throws<ArgumentException>(() => OfflineWorkflowEngine.Describe(operation with
-            { Repair = payload with { Start = start, Finish = finish, Assessment = assessment } }));
+        { Repair = payload with { Start = start, Finish = finish, Assessment = assessment } }));
         Assert.Throws<ArgumentException>(() => OfflineWorkflowEngine.Describe(operation with
-            { Repair = new OfflineRepairPayload(item, action) }));
+        { Repair = new OfflineRepairPayload(item, action) }));
         Assert.Throws<ArgumentException>(() => OfflineWorkflowEngine.Describe(operation with { OriginId = Guid.NewGuid() }));
         Assert.Throws<ArgumentException>(() => OfflineWorkflowEngine.Describe(operation with { SourceDeviceId = Guid.NewGuid() }));
     }

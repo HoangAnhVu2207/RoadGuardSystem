@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.BusinessObjects.Projects;
 using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Authentication;
@@ -17,8 +18,23 @@ public sealed class HuyFinalCookieHttpTests(AuthenticationSqlServerFixture fixtu
     public async Task CookieInbox_WriteCsrfReplayBearerPrecedenceAndMixedActors()
     {
         var actor = await fixture.CreateUserAsync($"final-cookie-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
-        var notification = Notification.Create(Guid.NewGuid(), actor.Id, "Test", Guid.NewGuid(), "created", "Test", "Inbox", DateTimeOffset.UtcNow);
-        await using (var db = fixture.CreateDbContext()) { db.Add(notification); await db.SaveChangesAsync(); }
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            ProjectCode = $"COOKIE-{Guid.NewGuid():N}",
+            Name = "Inbox source",
+            Status = ProjectStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var notification = Notification.Create(Guid.NewGuid(), actor.Id, "Project", project.Id, "created", "Test", "Inbox", DateTimeOffset.UtcNow);
+        await using (var db = fixture.CreateDbContext())
+        {
+            db.Projects.Add(project);
+            db.ProjectMembers.Add(ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, actor.Id,
+                DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))));
+            db.Notifications.Add(notification);
+            await db.SaveChangesAsync();
+        }
         await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = true });
         var csrf = await LoginCookieAsync(client, actor.Email!);

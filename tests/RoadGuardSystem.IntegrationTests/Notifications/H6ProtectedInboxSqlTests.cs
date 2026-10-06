@@ -118,9 +118,20 @@ public sealed class H6ProtectedInboxSqlTests(IdentitySqlServerFixture sql) : ICl
     private static ApplicationUser User(UserRoleCode role)
     {
         var email = "h6-" + Guid.NewGuid().ToString("N") + "@example.test";
-        return new() { Id = Guid.NewGuid(), UserName = email, NormalizedUserName = email.ToUpperInvariant(),
-            Email = email, NormalizedEmail = email.ToUpperInvariant(), DisplayName = "H6 fixture", RoleCode = role,
-            Status = UserStatus.Active, PasswordHash = "fixture-no-login", MustChangePassword = false, CreatedAt = DateTimeOffset.UtcNow };
+        return new()
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            DisplayName = "H6 fixture",
+            RoleCode = role,
+            Status = UserStatus.Active,
+            PasswordHash = "fixture-no-login",
+            MustChangePassword = false,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
     }
     private static string Fingerprint(string payload) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
     private static H6ProtectedNotificationRepository Repo(RoadGuardDbContext db) => new(db, new IdempotencyOperationService(db), TimeProvider.System);

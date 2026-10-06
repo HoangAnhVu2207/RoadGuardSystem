@@ -33,9 +33,18 @@ public sealed class NotificationScopeAudit
             throw new ArgumentException("Audit resolver, source and reason identifiers must be bounded.");
         if ((decision == NotificationScopeDecision.Project) != projectId.HasValue)
             throw new ArgumentException("Only a resolved project decision carries a project identity.", nameof(projectId));
-        return new NotificationScopeAudit { Id = id, NotificationId = notificationId, PreviousAuditId = previousAuditId,
-            ResolverVersion = resolverVersion.Trim(), Decision = decision, ProjectId = projectId,
-            EvidenceSourceType = evidenceSourceType.Trim(), EvidenceSourceId = evidenceSourceId,
-            ReasonCode = reasonCode, RecordedAtUtc = recordedAtUtc.ToUniversalTime() };
+        return new NotificationScopeAudit
+        {
+            Id = id,
+            NotificationId = notificationId,
+            PreviousAuditId = previousAuditId,
+            ResolverVersion = resolverVersion.Trim(),
+            Decision = decision,
+            ProjectId = projectId,
+            EvidenceSourceType = evidenceSourceType.Trim(),
+            EvidenceSourceId = evidenceSourceId,
+            ReasonCode = reasonCode,
+            RecordedAtUtc = recordedAtUtc.ToUniversalTime()
+        };
     }
 }

@@ -73,8 +73,15 @@ public sealed partial class H6NotificationDispatchRepository
                 ORDER BY c.[Id]
                 """).ToArrayAsync(cancellationToken);
             foreach (var sourceClock in clocks)
-                db.Set<H6NotificationCalendarRow>().Add(new() { Id = Guid.NewGuid(), ClockId = sourceClock.Id,
-                    PlannedAtUtc = now, ScheduledAtUtc = next, Status = "PLANNED", SchedulerRunId = schedulerRunId });
+                db.Set<H6NotificationCalendarRow>().Add(new()
+                {
+                    Id = Guid.NewGuid(),
+                    ClockId = sourceClock.Id,
+                    PlannedAtUtc = now,
+                    ScheduledAtUtc = next,
+                    Status = "PLANNED",
+                    SchedulerRunId = schedulerRunId
+                });
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         });

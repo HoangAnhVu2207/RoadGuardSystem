@@ -32,7 +32,10 @@ public sealed partial class OfflineWorkflowRepository
         var operation = "h5.offline." + command.Action + ".v1";
         var fingerprint = Digest(JsonSerializer.Serialize(new
         {
-            command.ProjectId, command.Action, command.ResourceId, command.Input
+            command.ProjectId,
+            command.Action,
+            command.ResourceId,
+            command.Input
         }, Json));
         var receipt = await new IdempotencyOperationService(db).ExecuteSerializableAsync(command.ActorId,
             command.ProjectId, operation, command.Key!, fingerprint, async token =>
@@ -208,8 +211,17 @@ public sealed partial class OfflineWorkflowRepository
                 input.Manifest.Signature, cipher.Header.PayloadSha256, fingerprint, clock.GetUtcNow());
         db.Add(row);
         TransferAudit(command, row.Id, "offline_package_registered", "OfflineEncryptedPackage", row.RegisteredAt);
-        return (row.Id, new { row.Id, row.ProjectId, row.SourceBatchId, row.SourceDeviceRegistrationId,
-            row.ManifestHash, row.PayloadHash, row.PackageFingerprint, row.RegistrationMode });
+        return (row.Id, new
+        {
+            row.Id,
+            row.ProjectId,
+            row.SourceBatchId,
+            row.SourceDeviceRegistrationId,
+            row.ManifestHash,
+            row.PayloadHash,
+            row.PackageFingerprint,
+            row.RegistrationMode
+        });
     }
 
     private async Task<(Guid Id, object Value)> IssueGrantAsync(OfflineWorkflowCommand command, CancellationToken token)
@@ -305,8 +317,16 @@ public sealed partial class OfflineWorkflowRepository
         db.Add(artifact);
         TransferAudit(command, artifact.Id, "offline_capture_artifact_registered",
             "OfflineEncryptedCaptureArtifact", artifact.RegisteredAt);
-        return (artifact.Id, new { artifact.Id, artifact.ParentPackageId, artifact.CaptureOriginId,
-            artifact.TaskId, artifact.ChunkIndex, artifact.EnvelopeFingerprint, artifact.ManifestHash });
+        return (artifact.Id, new
+        {
+            artifact.Id,
+            artifact.ParentPackageId,
+            artifact.CaptureOriginId,
+            artifact.TaskId,
+            artifact.ChunkIndex,
+            artifact.EnvelopeFingerprint,
+            artifact.ManifestHash
+        });
     }
 
     private async Task<OfflineWorkflowFact> ReadTransferAsync(OfflineWorkflowCommand command,
@@ -336,10 +356,19 @@ public sealed partial class OfflineWorkflowRepository
             if (package.OriginalActorId != command.ActorId && command.Role != UserRoleCode.Supervisor &&
                 !await HasCurrentRecipientGrantAsync(command, id, token))
                 return new(403, "access_forbidden");
-            return new(200, Value: new { package.Id, package.ProjectId, package.OriginalActorId,
-                package.SourceDeviceRegistrationId, package.SourceBatchId, package.ManifestHash,
-                package.PayloadHash, package.CipherPackageJson, package.SignedManifestJson,
-                package.SourceSignature });
+            return new(200, Value: new
+            {
+                package.Id,
+                package.ProjectId,
+                package.OriginalActorId,
+                package.SourceDeviceRegistrationId,
+                package.SourceBatchId,
+                package.ManifestHash,
+                package.PayloadHash,
+                package.CipherPackageJson,
+                package.SignedManifestJson,
+                package.SourceSignature
+            });
         }
         if (command.Action == "artifact-get")
         {
@@ -351,12 +380,25 @@ public sealed partial class OfflineWorkflowRepository
                 if (!await HasCurrentRecipientGrantAsync(command, artifact.ParentPackageId, token))
                     return new(403, "access_forbidden");
             }
-            return new(200, Value: new { artifact.Id, artifact.ProjectId, artifact.ParentPackageId,
-                artifact.CaptureOriginId, artifact.TaskId, artifact.OriginalActorId,
-                artifact.SourceDeviceRegistrationId, artifact.ChunkIndex, artifact.ChunkOffset,
-                artifact.ChunkLength, artifact.PlaintextChecksum, artifact.EnvelopeFingerprint,
-                artifact.ManifestHash, artifact.SignedManifestJson, artifact.ManifestSignature,
-                artifact.CipherEnvelopeJson });
+            return new(200, Value: new
+            {
+                artifact.Id,
+                artifact.ProjectId,
+                artifact.ParentPackageId,
+                artifact.CaptureOriginId,
+                artifact.TaskId,
+                artifact.OriginalActorId,
+                artifact.SourceDeviceRegistrationId,
+                artifact.ChunkIndex,
+                artifact.ChunkOffset,
+                artifact.ChunkLength,
+                artifact.PlaintextChecksum,
+                artifact.EnvelopeFingerprint,
+                artifact.ManifestHash,
+                artifact.SignedManifestJson,
+                artifact.ManifestSignature,
+                artifact.CipherEnvelopeJson
+            });
         }
         if (command.Action == "batch-get")
         {
@@ -516,12 +558,32 @@ public sealed partial class OfflineWorkflowRepository
             sourceKind, eventId, null, JsonSerializer.Serialize(new { command.ProjectId, eventId }, Json),
             null, "h5.offline.v1", eventId, ["projectId", "eventId"]));
         db.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), action.Replace('_', '.') + ".v1", at,
-            eventId, JsonSerializer.Serialize(new { projectId = command.ProjectId, sourceKind, sourceId = eventId,
-                originEventId = eventId, occurredAtUtc = at }, Json)));
+            eventId, JsonSerializer.Serialize(new
+            {
+                projectId = command.ProjectId,
+                sourceKind,
+                sourceId = eventId,
+                originEventId = eventId,
+                occurredAtUtc = at
+            }, Json)));
     }
 
     private static object GrantView(OfflineHandoverGrant row, OfflineHandoverGrantRevocation? revoked)
-        => new { row.Id, row.ProjectId, row.PackageId, row.SourceActorId, row.SourceDeviceRegistrationId,
-            row.RecipientActorId, row.RecipientDeviceRegistrationId, role = row.RecipientRole.ToString(),
-            row.IssuedBy, row.IssuedAt, row.ExpiresAt, row.ManifestHash, row.ScopeJson, revokedAt = revoked?.RevokedAt };
+        => new
+        {
+            row.Id,
+            row.ProjectId,
+            row.PackageId,
+            row.SourceActorId,
+            row.SourceDeviceRegistrationId,
+            row.RecipientActorId,
+            row.RecipientDeviceRegistrationId,
+            role = row.RecipientRole.ToString(),
+            row.IssuedBy,
+            row.IssuedAt,
+            row.ExpiresAt,
+            row.ManifestHash,
+            row.ScopeJson,
+            revokedAt = revoked?.RevokedAt
+        };
 }

@@ -11,18 +11,22 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
 {
     public bool Supports(string sourceKind) => sourceKind == "RepairWork";
     public IQueryable<H6SourceScope> ScopeQuery()
-        => db.RepairItems.Select(item => new H6SourceScope { SourceKind = "RepairWork",
-            SourceId = item.Id, ProjectId = item.ProjectId,
+        => db.RepairItems.Select(item => new H6SourceScope
+        {
+            SourceKind = "RepairWork",
+            SourceId = item.Id,
+            ProjectId = item.ProjectId,
             AssignedUserId = (from binding in db.Set<RepairFieldTaskBinding>()
-                             join assignment in db.FieldInspectionAssignments on binding.AssignmentId equals assignment.Id
-                             join task in db.FieldInspectionTasks on binding.TaskId equals task.Id
-                             where item.CurrentBindingId == binding.Id && item.SupersededByItemId == null &&
-                                 binding.ItemId == item.Id && binding.ProjectId == item.ProjectId &&
-                                 task.RepairItemId == item.Id && task.ProjectId == item.ProjectId &&
-                                 assignment.FieldInspectionTaskId == task.Id && assignment.AssignedToUserId == binding.CrewId &&
-                                 assignment.Status == FieldInspectionAssignmentStatus.Active && assignment.EndedAt == null &&
-                                 db.RepairObligations.Any(obligation => obligation.Id == item.ObligationId && obligation.CurrentRepairItemId == item.Id)
-                             select (Guid?)assignment.AssignedToUserId).FirstOrDefault() });
+                              join assignment in db.FieldInspectionAssignments on binding.AssignmentId equals assignment.Id
+                              join task in db.FieldInspectionTasks on binding.TaskId equals task.Id
+                              where item.CurrentBindingId == binding.Id && item.SupersededByItemId == null &&
+                                  binding.ItemId == item.Id && binding.ProjectId == item.ProjectId &&
+                                  task.RepairItemId == item.Id && task.ProjectId == item.ProjectId &&
+                                  assignment.FieldInspectionTaskId == task.Id && assignment.AssignedToUserId == binding.CrewId &&
+                                  assignment.Status == FieldInspectionAssignmentStatus.Active && assignment.EndedAt == null &&
+                                  db.RepairObligations.Any(obligation => obligation.Id == item.ObligationId && obligation.CurrentRepairItemId == item.Id)
+                              select (Guid?)assignment.AssignedToUserId).FirstOrDefault()
+        });
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
@@ -233,9 +237,13 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
         if (obligation is null || decision is null || correctionSource.EventId != correctionSource.OriginEventId ||
             correctionSource.EventId != correctionSource.SourceRevisionId)
             return new("REJECTED", "notification_source_relation_invalid");
-        var result = facts.Result switch { "UNREPAIRED" => RepairPresentationState.Unrepaired,
+        var result = facts.Result switch
+        {
+            "UNREPAIRED" => RepairPresentationState.Unrepaired,
             "REPORTED_AWAITING_REVIEW" => RepairPresentationState.ReportedAwaitingReview,
-            "CONFIRMED" => RepairPresentationState.Confirmed, _ => (RepairPresentationState)0 };
+            "CONFIRMED" => RepairPresentationState.Confirmed,
+            _ => (RepairPresentationState)0
+        };
         var claim = new NotificationRepairCorrectionClaim(correctionSource.EventId, correctionSource.ProjectId,
             correctionSource.SourceId, facts.ObligationId, facts.SupersedesDecisionId, result,
             correctionSource.OccurredAtUtc);

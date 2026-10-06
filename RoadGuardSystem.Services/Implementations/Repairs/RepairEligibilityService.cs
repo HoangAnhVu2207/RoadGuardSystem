@@ -2,6 +2,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.DTOs.Repairs;
 using RoadGuardSystem.Repositories.Repairs;
 namespace RoadGuardSystem.Services.Implementations.Repairs;
+
 public sealed class RepairEligibilityService(IRepairEligibilityRepository repository) : RoadGuardSystem.Services.Repairs.IRepairEligibilityService
 {
     public async Task<RepairEligibilityServiceResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token)

@@ -33,8 +33,17 @@ public sealed class RepairActualScope
         if (new[] { from, to, offsetFrom, offsetTo }.Any(value => value < -maximumStoredBound || value > maximumStoredBound || value != decimal.Round(value, 3)))
             throw new ArgumentException("Scope bounds must fit exact decimal(18,3) storage; rounding cannot establish overlap admission.");
         if (from < 0 || to <= from || offsetTo <= offsetFrom) throw new ArgumentException("Physical scope bounds must have positive extent.");
-        return new RepairActualScope { Id = id, PhysicalRoadId = road, LocationVersion = RepairGuards.Text(version),
-            RouteLabel = RepairGuards.Text(label), From = from, To = to, OffsetFrom = offsetFrom, OffsetTo = offsetTo };
+        return new RepairActualScope
+        {
+            Id = id,
+            PhysicalRoadId = road,
+            LocationVersion = RepairGuards.Text(version),
+            RouteLabel = RepairGuards.Text(label),
+            From = from,
+            To = to,
+            OffsetFrom = offsetFrom,
+            OffsetTo = offsetTo
+        };
     }
     public RepairScopeComparison Compare(RepairActualScope other)
     {
@@ -123,7 +132,8 @@ public sealed record RepairDecision(Guid Id, Guid ItemId, Guid ObligationId, Gui
     RepairPresentationState Result, RepairCorrectionBasis? Basis = null, Guid? PreviousObligationHeadDecisionId = null)
 {
     private RepairDecision() : this(Guid.Empty, Guid.Empty, Guid.Empty, Guid.Empty, default, Guid.Empty, default,
-        string.Empty, default, null, default) { }
+        string.Empty, default, null, default)
+    { }
     public bool Accepted => Result == RepairPresentationState.Confirmed;
 }
 /// <summary>Caller-resolved current project authority facts. Confirmed role is PM for FT, Supervisor for normal.
@@ -191,10 +201,28 @@ public sealed class RepairAttempt
         if (evidence.GroupBy(file => file.FileId).Any(group => group.Any(file => file.Purpose == RepairEvidencePurpose.Before) &&
             group.Any(file => file.Purpose == RepairEvidencePurpose.After)))
             throw new ArgumentException("The same file cannot serve as both BEFORE and fresh AFTER.");
-        var attempt = new RepairAttempt { Id = id, OriginId = origin, PayloadHash = RepairGuards.Text(hash), ItemId = item, ObligationId = obligation,
-            ProjectId = project, DefectId = defect, CrewId = crew, TaskId = task, AssignmentId = assignment, AuthorizationId = authorization,
-            LocationVersion = RepairGuards.Text(location), PolicyRevisionId = policy, Performed = performed, UnperformedReason = unperformedReason,
-            StartedAt = started, FinishedAt = finished, ServerReceivedAt = intake, TimeProvenance = provenance };
+        var attempt = new RepairAttempt
+        {
+            Id = id,
+            OriginId = origin,
+            PayloadHash = RepairGuards.Text(hash),
+            ItemId = item,
+            ObligationId = obligation,
+            ProjectId = project,
+            DefectId = defect,
+            CrewId = crew,
+            TaskId = task,
+            AssignmentId = assignment,
+            AuthorizationId = authorization,
+            LocationVersion = RepairGuards.Text(location),
+            PolicyRevisionId = policy,
+            Performed = performed,
+            UnperformedReason = unperformedReason,
+            StartedAt = started,
+            FinishedAt = finished,
+            ServerReceivedAt = intake,
+            TimeProvenance = provenance
+        };
         attempt._evidence.AddRange(evidence); return attempt;
     }
 }
@@ -250,9 +278,17 @@ public sealed class RepairItem
         RepairGuards.Id(id); ArgumentNullException.ThrowIfNull(obligation); RepairGuards.EnumValue(mode);
         RepairGuards.Actor(actor, role, UserRoleCode.ProjectManager);
         if (obligation.IsResolved) throw new InvalidOperationException("A resolved obligation cannot receive a new active item.");
-        return new RepairItem { Id = id, ObligationId = obligation.Id, DefectId = obligation.DefectId, ProjectId = obligation.ProjectId,
-            Mode = mode, State = mode == RepairMode.Normal ? RepairItemState.AwaitingApproval : RepairItemState.ReadyToAssign,
-            ProposedBy = actor, ProposedAt = RepairGuards.Time(at) };
+        return new RepairItem
+        {
+            Id = id,
+            ObligationId = obligation.Id,
+            DefectId = obligation.DefectId,
+            ProjectId = obligation.ProjectId,
+            Mode = mode,
+            State = mode == RepairMode.Normal ? RepairItemState.AwaitingApproval : RepairItemState.ReadyToAssign,
+            ProposedBy = actor,
+            ProposedAt = RepairGuards.Time(at)
+        };
     }
     public static RepairItem ProposeWithPlan(Guid id, RepairObligation obligation, RepairMode mode, Guid actor,
         UserRoleCode role, DateTimeOffset at, RepairProposalPlan plan)

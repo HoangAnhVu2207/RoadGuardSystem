@@ -34,9 +34,11 @@ public sealed class RepairEligibilityRepository(RoadGuardDbContext db, TimeProvi
                     row.FieldInspectionTaskId == binding.TaskId && row.AssignedToUserId == query.ActorId &&
                     row.Status == FieldInspectionAssignmentStatus.Active && row.EndedAt == null, token)))
                 return new RepairEligibilityReadResult(403, "access_forbidden");
-            var roadId = await (from route in db.RoadSectionVersions.AsNoTracking() join road in db.RoadSections.AsNoTracking()
-                on route.RoadSectionId equals road.Id where route.Id == binding.RouteVersionId && road.ProjectId == query.ProjectId
-                select (Guid?)road.Id).SingleOrDefaultAsync(token);
+            var roadId = await (from route in db.RoadSectionVersions.AsNoTracking()
+                                join road in db.RoadSections.AsNoTracking()
+                on route.RoadSectionId equals road.Id
+                                where route.Id == binding.RouteVersionId && road.ProjectId == query.ProjectId
+                                select (Guid?)road.Id).SingleOrDefaultAsync(token);
             if (roadId is null) return new RepairEligibilityReadResult(409, "repair_scope_source_unavailable");
             var sources = RepairEligibilitySourceSnapshot.Capture(query.ProjectId, roadId.Value,
                 await db.Warranties.AsNoTracking().Where(row => row.ProjectId == query.ProjectId &&

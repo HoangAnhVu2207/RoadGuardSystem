@@ -166,13 +166,19 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
                 .SingleAsync(row => row.ItemId == state.Item.Id)).Id), Guid.NewGuid().ToString(),
             Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == state.Item.Id)
                 .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()));
-        Assert.Equal(403, (await Repo(db).SubmitAttemptAsync(command with { ActorId = state.Source.Pm,
-            Role = UserRoleCode.ProjectManager }, default)).Status);
+        Assert.Equal(403, (await Repo(db).SubmitAttemptAsync(command with
+        {
+            ActorId = state.Source.Pm,
+            Role = UserRoleCode.ProjectManager
+        }, default)).Status);
         var linked = await Repo(db).SubmitAttemptAsync(command, default);
         Assert.Equal(201, linked.Status); db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).SubmitAttemptAsync(command, default)).Status);
-        Assert.Equal(409, (await Repo(db).SubmitAttemptAsync(command with { Key = Guid.NewGuid().ToString(),
-            Input = command.Input with { ExpectedContentHash = new string('f', 64) } }, default)).Status);
+        Assert.Equal(409, (await Repo(db).SubmitAttemptAsync(command with
+        {
+            Key = Guid.NewGuid().ToString(),
+            Input = command.Input with { ExpectedContentHash = new string('f', 64) }
+        }, default)).Status);
         var attempt = await db.Set<RepairAttempt>().AsNoTracking().SingleAsync(row => row.ItemId == state.Item.Id);
         var link = await db.Set<RepairAttemptSubmissionLink>().AsNoTracking().SingleAsync(row => row.AttemptId == attempt.Id);
         var submittedEvent = await db.Set<RepairItemLifecycleEvent>().AsNoTracking().SingleAsync(row =>
@@ -209,10 +215,15 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
             new(intake.Id, "SUPPLEMENT", "missing verified AFTER evidence"), Guid.NewGuid().ToString(),
             Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == state.Item.Id)
                 .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()));
-        Assert.Equal(403, (await Repo(db).ReviewAttemptAsync(reviewCommand with {
-            ActorId = state.Source.Crew, Role = UserRoleCode.RepairCrew }, default)).Status);
-        Assert.Equal(403, (await Repo(db).ReviewAttemptAsync(reviewCommand with {
-            ProjectId = Guid.NewGuid() }, default)).Status);
+        Assert.Equal(403, (await Repo(db).ReviewAttemptAsync(reviewCommand with
+        {
+            ActorId = state.Source.Crew,
+            Role = UserRoleCode.RepairCrew
+        }, default)).Status);
+        Assert.Equal(403, (await Repo(db).ReviewAttemptAsync(reviewCommand with
+        {
+            ProjectId = Guid.NewGuid()
+        }, default)).Status);
         var requested = await Repo(db).ReviewAttemptAsync(reviewCommand, default);
         Assert.True(requested.Status == 201, $"Expected H4 supplement request 201, got {requested.Status}/{requested.Code}.");
         db.ChangeTracker.Clear();
@@ -237,10 +248,14 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
             row.Kind == DeadlineClockKind.CrewSupplement && row.TargetId == state.Item.Id));
         db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).ReviewAttemptAsync(reviewCommand, default)).Status);
-        Assert.Equal(403, (await Repo(db).ReviewAttemptAsync(reviewCommand with {
-            TaskId = Guid.NewGuid() }, default)).Status);
-        Assert.Equal(409, (await Repo(db).ReviewAttemptAsync(reviewCommand with {
-            Key = Guid.NewGuid().ToString() }, default)).Status);
+        Assert.Equal(403, (await Repo(db).ReviewAttemptAsync(reviewCommand with
+        {
+            TaskId = Guid.NewGuid()
+        }, default)).Status);
+        Assert.Equal(409, (await Repo(db).ReviewAttemptAsync(reviewCommand with
+        {
+            Key = Guid.NewGuid().ToString()
+        }, default)).Status);
         var nativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == state.Binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         var supplemented = await field.ExecuteAsync(new(state.Source.Project, state.Binding.TaskId, "submit",
@@ -259,8 +274,10 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         var supplement = await Repo(db).SupplementAttemptAsync(supplementCommand, default);
         Assert.Equal(201, supplement.Status); db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).SupplementAttemptAsync(supplementCommand, default)).Status);
-        Assert.Equal(409, (await Repo(db).SupplementAttemptAsync(supplementCommand with {
-            Key = Guid.NewGuid().ToString() }, default)).Status);
+        Assert.Equal(409, (await Repo(db).SupplementAttemptAsync(supplementCommand with
+        {
+            Key = Guid.NewGuid().ToString()
+        }, default)).Status);
         Assert.Equal(1, await db.Set<RepairAttempt>().CountAsync(row => row.ItemId == state.Item.Id));
         var latestLink = await db.Set<RepairAttemptSubmissionLink>().AsNoTracking().SingleAsync(row =>
             row.SubmissionId == revision.Id);
@@ -272,11 +289,13 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
             state.Source.Project, new ReportingFiltersDto(), default);
         Assert.Empty(stock.MissingReasons);
         Assert.Equal("REPORTED_AWAITING_REVIEW", Assert.Single(stock.Items).Presentation);
-        var secondReview = reviewCommand with {
+        var secondReview = reviewCommand with
+        {
             Input = new(revision.Id, "SUPPLEMENT", "verified AFTER still required"),
             Key = Guid.NewGuid().ToString(),
             ExpectedItemVersion = Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking()
-                .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()) };
+                .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync())
+        };
         Assert.Equal(201, (await Repo(db).ReviewAttemptAsync(secondReview, default)).Status);
         db.ChangeTracker.Clear();
         var now = DateTimeOffset.UtcNow;
@@ -308,10 +327,13 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         Assert.Equal("INCOMPLETE", readyRevision.Readiness);
         var missingReasons = System.Text.Json.JsonSerializer.Deserialize<string[]>(readyRevision.MissingReasonsJson)!;
         Assert.Equal("AFTER_ATTEMPT_BINDING_UNAVAILABLE", Assert.Single(missingReasons));
-        var readySupplement = supplementCommand with {
-            Input = new(readyRevision.Id, readyRevision.ContentHash), Key = Guid.NewGuid().ToString(),
+        var readySupplement = supplementCommand with
+        {
+            Input = new(readyRevision.Id, readyRevision.ContentHash),
+            Key = Guid.NewGuid().ToString(),
             ExpectedItemVersion = Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking()
-                .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()) };
+                .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync())
+        };
         Assert.Equal(201, (await Repo(db).SupplementAttemptAsync(readySupplement, default)).Status);
         db.ChangeTracker.Clear();
         var secondSupplementReview = await db.Set<RepairAttemptReview>().AsNoTracking().SingleAsync(row =>
@@ -332,11 +354,13 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         Assert.Equal(1, await db.Notifications.CountAsync(row => row.SourceEntityId == state.Item.Id &&
             row.RecipientUserId == state.Source.Crew));
         db.ChangeTracker.Clear();
-        var acceptedReview = reviewCommand with {
+        var acceptedReview = reviewCommand with
+        {
             Input = new(readyRevision.Id, "ACCEPT", "verified physical repair and fresh AFTER evidence"),
             Key = Guid.NewGuid().ToString(),
             ExpectedItemVersion = Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking()
-                .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()) };
+                .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync())
+        };
         Assert.Equal(201, (await Repo(db).ReviewAttemptAsync(acceptedReview, default)).Status);
         db.ChangeTracker.Clear();
         Assert.Equal(RepairItemState.Reviewed, (await db.Set<RepairItem>().SingleAsync(row => row.Id == state.Item.Id)).State);
@@ -373,13 +397,18 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
             new("verified normal repair"), Guid.NewGuid().ToString(),
             Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking()
                 .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()));
-        Assert.Equal(403, (await Repo(db).ConfirmFinalAsync(finalCommand with {
-            ActorId = state.Source.Pm, Role = UserRoleCode.ProjectManager }, default)).Status);
+        Assert.Equal(403, (await Repo(db).ConfirmFinalAsync(finalCommand with
+        {
+            ActorId = state.Source.Pm,
+            Role = UserRoleCode.ProjectManager
+        }, default)).Status);
         Assert.Equal(201, (await Repo(db).ConfirmFinalAsync(finalCommand, default)).Status);
         db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).ConfirmFinalAsync(finalCommand, default)).Status);
-        Assert.Equal(409, (await Repo(db).ConfirmFinalAsync(finalCommand with {
-            Key = Guid.NewGuid().ToString() }, default)).Status);
+        Assert.Equal(409, (await Repo(db).ConfirmFinalAsync(finalCommand with
+        {
+            Key = Guid.NewGuid().ToString()
+        }, default)).Status);
         Assert.Equal(RepairItemState.Confirmed, (await db.Set<RepairItem>().SingleAsync(row => row.Id == state.Item.Id)).State);
         Assert.True((await db.Set<RepairObligation>().SingleAsync(row => row.Id == state.Item.ObligationId)).IsResolved);
         Assert.True((await db.Set<RepairPackage>().Include(row => row.Obligations)

@@ -15,8 +15,14 @@ public sealed partial class H6NotificationDispatchRepository
         var recipients = await RecipientsAsync(plan.Envelope!, proof, now, token); var delivered = 0; var unresolved = 0;
         foreach (var recipient in recipients.OrderBy(row => row.Key, StringComparer.Ordinal))
         {
-            var delivery = new H6NotificationDeliveryRow { Id = Guid.NewGuid(), OccurrenceId = occurrence.Id,
-                RecipientUserId = recipient.Actor, RecipientKey = recipient.Key, NextAttemptAtUtc = now.AddMinutes(5) };
+            var delivery = new H6NotificationDeliveryRow
+            {
+                Id = Guid.NewGuid(),
+                OccurrenceId = occurrence.Id,
+                RecipientUserId = recipient.Actor,
+                RecipientKey = recipient.Key,
+                NextAttemptAtUtc = now.AddMinutes(5)
+            };
             var reason = recipient.Actor is Guid actor
                 ? await RecipientAuthorityAsync(actor, recipient.Role, occurrence.ProjectId, plan.Envelope!.RecipientStrategy, proof, now, token)
                 : "notification_responsible_actor_missing";
@@ -62,21 +68,45 @@ public sealed partial class H6NotificationDispatchRepository
             var notification = Notification.Create(Guid.NewGuid(), delivery.RecipientUserId!.Value, occurrence.SourceKind,
                 occurrence.SourceId, occurrence.OccurrenceKey, content.Title, content.Body, occurrence.OccurredAtUtc);
             db.Notifications.Add(notification); var auditId = Guid.NewGuid();
-            db.Set<H6NotificationAuditRow>().Add(new() { Id = auditId, NotificationId = notification.Id,
-                OutboxMessageId = occurrence.SourceEventId, ProjectId = occurrence.ProjectId, Classification = "PROJECT",
-                SourceKind = occurrence.SourceKind, SourceId = occurrence.SourceId, ReasonCode = "notification_source_verified",
+            db.Set<H6NotificationAuditRow>().Add(new()
+            {
+                Id = auditId,
+                NotificationId = notification.Id,
+                OutboxMessageId = occurrence.SourceEventId,
+                ProjectId = occurrence.ProjectId,
+                Classification = "PROJECT",
+                SourceKind = occurrence.SourceKind,
+                SourceId = occurrence.SourceId,
+                ReasonCode = "notification_source_verified",
                 ResolverVersion = NotificationRegisteredTypes.RegistryVersion,
-                DedupKey = Hash(notification.Id.ToString("N") + "|" + NotificationRegisteredTypes.RegistryVersion), RecordedAtUtc = now });
-            db.Set<H6NotificationScopeRow>().Add(new() { NotificationId = notification.Id, ProjectId = occurrence.ProjectId,
-                OccurrenceId = occurrence.Id, Classification = "PROJECT", SourceKind = occurrence.SourceKind, SourceId = occurrence.SourceId,
-                EventType = occurrence.EventType, ResolverVersion = NotificationRegisteredTypes.RegistryVersion, CurrentAuditId = auditId });
+                DedupKey = Hash(notification.Id.ToString("N") + "|" + NotificationRegisteredTypes.RegistryVersion),
+                RecordedAtUtc = now
+            });
+            db.Set<H6NotificationScopeRow>().Add(new()
+            {
+                NotificationId = notification.Id,
+                ProjectId = occurrence.ProjectId,
+                OccurrenceId = occurrence.Id,
+                Classification = "PROJECT",
+                SourceKind = occurrence.SourceKind,
+                SourceId = occurrence.SourceId,
+                EventType = occurrence.EventType,
+                ResolverVersion = NotificationRegisteredTypes.RegistryVersion,
+                CurrentAuditId = auditId
+            });
             delivery.Status = "DELIVERED"; delivery.NotificationId = notification.Id; delivery.DeliveredAtUtc = now;
             delivery.ReasonCode = null;
         }
         else { delivery.Status = "UNRESOLVED"; delivery.ReasonCode = reason; }
         delivery.NextAttemptAtUtc = now.AddMinutes(5);
-        db.Set<H6NotificationDeliveryAttempt>().Add(new() { Id = Guid.NewGuid(), DeliveryId = delivery.Id,
-            ObservedAtUtc = now, Status = delivery.Status, ReasonCode = delivery.ReasonCode });
+        db.Set<H6NotificationDeliveryAttempt>().Add(new()
+        {
+            Id = Guid.NewGuid(),
+            DeliveryId = delivery.Id,
+            ObservedAtUtc = now,
+            Status = delivery.Status,
+            ReasonCode = delivery.ReasonCode
+        });
     }
     private async Task<string?> RecipientAuthorityAsync(Guid actor, UserRoleCode? expectedRole, Guid projectId,
         NotificationRecipientStrategy strategy, H6SourceResolution proof, DateTimeOffset now, CancellationToken token)

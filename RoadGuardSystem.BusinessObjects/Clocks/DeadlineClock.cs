@@ -41,8 +41,17 @@ public sealed class DeadlineClock
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
         var origin = originAt.ToUniversalTime();
-        return new DeadlineClock { Id = id, ProjectId = projectId, Kind = kind, TargetId = targetId,
-            OriginEventId = originEventId, OriginAt = origin, OriginalDueAt = origin.AddHours(hours), CurrentDueAt = origin.AddHours(hours) };
+        return new DeadlineClock
+        {
+            Id = id,
+            ProjectId = projectId,
+            Kind = kind,
+            TargetId = targetId,
+            OriginEventId = originEventId,
+            OriginAt = origin,
+            OriginalDueAt = origin.AddHours(hours),
+            CurrentDueAt = origin.AddHours(hours)
+        };
     }
     public bool IsOverdueAt(DateTimeOffset now) => CompletedAt is null && now.ToUniversalTime() >= CurrentDueAt;
     public static DeadlineClock CreateFirstSafetyCheck(Guid id, Guid projectId, Guid measureId, Guid installationEventId,
@@ -73,8 +82,17 @@ public sealed class DeadlineClock
         var previous = CurrentDueAt;
         var breached = at >= previous;
         if (breached) ObserveBreach(Guid.NewGuid(), at);
-        var extension = new DeadlineExtension { Id = id, ClockId = Id, ActorUserId = actor, OccurredAt = at,
-            PreviousDueAt = previous, NewDueAt = newDue, Reason = reason.Trim(), PreviousDeadlineBreached = breached };
+        var extension = new DeadlineExtension
+        {
+            Id = id,
+            ClockId = Id,
+            ActorUserId = actor,
+            OccurredAt = at,
+            PreviousDueAt = previous,
+            NewDueAt = newDue,
+            Reason = reason.Trim(),
+            PreviousDeadlineBreached = breached
+        };
         _extensions.Add(extension); CurrentDueAt = newDue;
         return extension;
     }

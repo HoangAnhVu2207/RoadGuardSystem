@@ -49,8 +49,15 @@ public sealed class NotificationOccurrence
             envelope.ResponsibleUserId?.ToString("N") ?? "resolve-current",
             scheduled?.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture)
                 ?? envelope.OccurredAtUtc.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture));
-        return new NotificationOccurrence { Id = id, ProjectId = envelope.ProjectId, SourceEventId = envelope.EventId,
-            ScheduledAtUtc = scheduled, OccurrenceKey = Hash(canonical), ContentFingerprint = Hash(content) };
+        return new NotificationOccurrence
+        {
+            Id = id,
+            ProjectId = envelope.ProjectId,
+            SourceEventId = envelope.EventId,
+            ScheduledAtUtc = scheduled,
+            OccurrenceKey = Hash(canonical),
+            ContentFingerprint = Hash(content)
+        };
     }
     private static string Hash(string canonical) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
     public void AcquireLease(Guid fence, DateTimeOffset now, TimeSpan duration)

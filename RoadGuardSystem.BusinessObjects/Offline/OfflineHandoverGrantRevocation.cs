@@ -12,8 +12,8 @@ public sealed class OfflineHandoverGrantRevocation
     public static OfflineHandoverGrantRevocation Record(Guid id, Guid project, Guid grant, Guid actor,
         string reason, DateTimeOffset at)
     {
-        OfflineRuntimeGuards.Identity(id,project,grant,actor);OfflineRuntimeGuards.Time(at);
-        if(string.IsNullOrWhiteSpace(reason) || reason.Length>2000)throw new ArgumentException("Revocation reason is required.");
-        return new(){Id=id,ProjectId=project,GrantId=grant,RevokedBy=actor,RevokedAt=at.ToUniversalTime(),Reason=reason.Trim()};
+        OfflineRuntimeGuards.Identity(id, project, grant, actor); OfflineRuntimeGuards.Time(at);
+        if (string.IsNullOrWhiteSpace(reason) || reason.Length > 2000) throw new ArgumentException("Revocation reason is required.");
+        return new() { Id = id, ProjectId = project, GrantId = grant, RevokedBy = actor, RevokedAt = at.ToUniversalTime(), Reason = reason.Trim() };
     }
 }

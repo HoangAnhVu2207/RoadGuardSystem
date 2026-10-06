@@ -87,8 +87,14 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Users] SET [RoleCode]={roleCode} WHERE [Id]={facts.Actor}");
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [ProjectMembers] SET [RoleCode]={roleCode} WHERE [Id]={facts.Membership}");
         db.ChangeTracker.Clear();
-        var changed = Command(facts) with { Role = UserRoleCode.Supervisor, PackageId = other.Package, ItemId = other.Item,
-            ExpectedVersion = other.Version, Input = new(other.Decision, "UNREPAIRED", "new normal item", new("current evidence basis", [])) };
+        var changed = Command(facts) with
+        {
+            Role = UserRoleCode.Supervisor,
+            PackageId = other.Package,
+            ItemId = other.Item,
+            ExpectedVersion = other.Version,
+            Input = new(other.Decision, "UNREPAIRED", "new normal item", new("current evidence basis", []))
+        };
         var result = await repository.CorrectAsync(changed, CancellationToken.None);
         Assert.Equal(403, result.Status); Assert.Null(result.Value);
         Assert.Equal(other.Decision, await db.Set<RepairItem>().Where(row => row.Id == other.Item).Select(row => row.EffectiveDecisionId).SingleAsync());
@@ -296,8 +302,15 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
         foreach (var role in new[] { currentRole, originalRole, UserRoleCode.ProjectManager }.Distinct())
             if (!await db.Roles.AnyAsync(row => row.Code == role)) db.Add(new ApplicationRole(role, role.ToString()));
         var actor = User(currentRole, now); var original = User(originalRole, now); var pm = User(UserRoleCode.ProjectManager, now);
-        var member = new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = actor.Id,
-            RoleCode = currentRole, Status = ProjectMemberStatus.Active, ValidFrom = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1) };
+        var member = new ProjectMember
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            UserId = actor.Id,
+            RoleCode = currentRole,
+            Status = ProjectMemberStatus.Active,
+            ValidFrom = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1)
+        };
         db.AddRange(project, road, route, type, defect, actor, original, pm); if (membership) db.Add(member); await db.SaveChangesAsync();
         var obligation = RepairObligation.Create(Guid.NewGuid(), project.Id, defect.Id, RepairObligationKind.FormalRepair, true,
             RepairActualScope.Create(Guid.NewGuid(), road.Id, "actual-source-frame-v1", "R", 1, 2, 0, 1));
@@ -315,8 +328,15 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
     private static ApplicationUser User(UserRoleCode role, DateTimeOffset now)
     {
         var name = Guid.NewGuid().ToString();
-        return new() { Id = Guid.NewGuid(), UserName = name, NormalizedUserName = name.ToUpperInvariant(),
-            DisplayName = "SQL correction actor", RoleCode = role,
-            PasswordHash = "controlled-SQL-fixture-no-login", CreatedAt = now };
+        return new()
+        {
+            Id = Guid.NewGuid(),
+            UserName = name,
+            NormalizedUserName = name.ToUpperInvariant(),
+            DisplayName = "SQL correction actor",
+            RoleCode = role,
+            PasswordHash = "controlled-SQL-fixture-no-login",
+            CreatedAt = now
+        };
     }
 }

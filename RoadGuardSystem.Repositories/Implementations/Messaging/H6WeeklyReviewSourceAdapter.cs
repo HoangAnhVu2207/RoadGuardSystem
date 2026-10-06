@@ -16,8 +16,13 @@ public sealed class H6WeeklyReviewSourceAdapter(RoadGuardDbContext db, TimeProvi
     public IQueryable<H6SourceScope> ScopeQuery()
         => db.Set<DeadlineClock>().Where(row => row.Kind == DeadlineClockKind.ProjectManagerReview ||
             row.Kind == DeadlineClockKind.SupervisorInitialApproval || row.Kind == DeadlineClockKind.SupervisorFinalConfirmation)
-            .Select(row => new H6SourceScope { SourceKind = "ReviewObligation", SourceId = row.Id,
-                ProjectId = row.ProjectId, AssignedUserId = null });
+            .Select(row => new H6SourceScope
+            {
+                SourceKind = "ReviewObligation",
+                SourceId = row.Id,
+                ProjectId = row.ProjectId,
+                AssignedUserId = null
+            });
 
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {

@@ -97,8 +97,17 @@ public sealed class NotificationEventEnvelope
             or NotificationEventKind.RepairSubmitted or NotificationEventKind.RepairReworkRequested or NotificationEventKind.FastTrackConfirmedInformation
             && sourceRevisionId is null)
             throw new ArgumentException("Submission and review-request events require an immutable source revision.", nameof(sourceRevisionId));
-        return new NotificationEventEnvelope { EventId = eventId, Kind = kind, ProjectId = projectId,
-            SourceKind = sourceKind, SourceId = sourceId, OriginEventId = originEventId,
-            OccurredAtUtc = occurredAtUtc.ToUniversalTime(), SourceRevisionId = sourceRevisionId, ResponsibleUserId = responsibleUserId };
+        return new NotificationEventEnvelope
+        {
+            EventId = eventId,
+            Kind = kind,
+            ProjectId = projectId,
+            SourceKind = sourceKind,
+            SourceId = sourceId,
+            OriginEventId = originEventId,
+            OccurredAtUtc = occurredAtUtc.ToUniversalTime(),
+            SourceRevisionId = sourceRevisionId,
+            ResponsibleUserId = responsibleUserId
+        };
     }
 }

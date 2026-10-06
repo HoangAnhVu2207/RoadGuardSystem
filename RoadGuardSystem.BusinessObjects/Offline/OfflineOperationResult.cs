@@ -32,9 +32,24 @@ public sealed class OfflineOperationResult
             throw new ArgumentException("A finite truthful item result is required.");
         var acknowledged = state is "COMMITTED" or "REPLAYED";
         if (acknowledged && effect is null) throw new ArgumentException("Acknowledged effects must be durable.");
-        return new() { Id=id, ProjectId=project, BatchId=batch, AdmissionId=admission, OriginId=origin,
-            EffectId=effect, State=state, Code=code, DurableAck=acknowledged, TimeProvenance=timeProvenance,
-            SyncLateness=syncLateness, ClaimedFinishedAt=claimedFinish, VerifiedFinishedAt=verifiedFinish,
-            OutcomeJson=outcomeJson, ResourceVersion=version, RecordedAt=at.ToUniversalTime() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            BatchId = batch,
+            AdmissionId = admission,
+            OriginId = origin,
+            EffectId = effect,
+            State = state,
+            Code = code,
+            DurableAck = acknowledged,
+            TimeProvenance = timeProvenance,
+            SyncLateness = syncLateness,
+            ClaimedFinishedAt = claimedFinish,
+            VerifiedFinishedAt = verifiedFinish,
+            OutcomeJson = outcomeJson,
+            ResourceVersion = version,
+            RecordedAt = at.ToUniversalTime()
+        };
     }
 }

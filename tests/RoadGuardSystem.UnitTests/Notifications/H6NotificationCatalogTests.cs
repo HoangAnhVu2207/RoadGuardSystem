@@ -58,9 +58,13 @@ public sealed class H6NotificationCatalogTests
     public void MalformedOrUnboundEnvelopeIsRejected(string problem)
     {
         var value = Event("SUBMITTED");
-        value = problem switch {
-            "schema" => value with { SchemaVersion = 2 }, "scope" => value with { SourceKind = "RepairWork" },
-            "revision" => value with { SourceRevisionId = null }, _ => value };
+        value = problem switch
+        {
+            "schema" => value with { SchemaVersion = 2 },
+            "scope" => value with { SourceKind = "RepairWork" },
+            "revision" => value with { SourceRevisionId = null },
+            _ => value
+        };
         Assert.Throws<H6NotificationProtocolException>(() => H6NotificationCatalog.Parse(problem == "id" ? Guid.NewGuid() : value.EventId,
             "field.task.submitted.v1", problem == "time" ? At.AddTicks(1) : At, JsonSerializer.Serialize(value, Json)));
     }
@@ -68,13 +72,13 @@ public sealed class H6NotificationCatalogTests
     public void UnknownFieldsAndOversizedPayloadAreRejectedWithoutEchoingPayload()
     {
         var value = Event("ASSIGNED"); var json = JsonSerializer.Serialize(value, Json);
-        Assert.Throws<H6NotificationProtocolException>(() => H6NotificationCatalog.Parse(value.EventId,"field.task.assigned.v1",At,json[..^1]+",\"secret\":\"private\"}"));
-        Assert.Throws<H6NotificationProtocolException>(() => H6NotificationCatalog.Parse(value.EventId,"field.task.assigned.v1",At,new string('a',65537)));
+        Assert.Throws<H6NotificationProtocolException>(() => H6NotificationCatalog.Parse(value.EventId, "field.task.assigned.v1", At, json[..^1] + ",\"secret\":\"private\"}"));
+        Assert.Throws<H6NotificationProtocolException>(() => H6NotificationCatalog.Parse(value.EventId, "field.task.assigned.v1", At, new string('a', 65537)));
     }
-    private static H6NotificationEventDto Event(string action) => new(1,Guid.NewGuid(),action,Guid.NewGuid(),"FieldTask",
-        Guid.NewGuid(),Guid.NewGuid(),At, action is "SUBMITTED" or "SUPPLEMENT" ? Guid.NewGuid() : null,Guid.NewGuid());
-    private static H6DispatchPlan Parse(string type,H6NotificationEventDto value)
-        => H6NotificationCatalog.Parse(value.EventId,type,At,JsonSerializer.Serialize(value,Json));
+    private static H6NotificationEventDto Event(string action) => new(1, Guid.NewGuid(), action, Guid.NewGuid(), "FieldTask",
+        Guid.NewGuid(), Guid.NewGuid(), At, action is "SUBMITTED" or "SUPPLEMENT" ? Guid.NewGuid() : null, Guid.NewGuid());
+    private static H6DispatchPlan Parse(string type, H6NotificationEventDto value)
+        => H6NotificationCatalog.Parse(value.EventId, type, At, JsonSerializer.Serialize(value, Json));
 
     [Fact]
     public void NumericSourceKindIsNotAnAcceptedWireSourceName()

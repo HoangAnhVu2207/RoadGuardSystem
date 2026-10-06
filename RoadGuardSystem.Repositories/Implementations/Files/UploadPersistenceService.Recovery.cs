@@ -18,7 +18,7 @@ public sealed partial class UploadPersistenceService
         IUploadObjectStorage storage, IOptions<UploadSessionOptions> options) : this(context, idempotency, storage)
         => _recoveryOptions = options.Value;
 
-    private Task GuardMultipartAsync(Guid actor, Guid? fileId, CancellationToken token) => GuardMultipartAsync(actor,fileId,false,token);
+    private Task GuardMultipartAsync(Guid actor, Guid? fileId, CancellationToken token) => GuardMultipartAsync(actor, fileId, false, token);
 
     private async Task GuardMultipartAsync(Guid actor, Guid? fileId, bool freshFieldUpload, CancellationToken token)
     {
@@ -38,13 +38,13 @@ public sealed partial class UploadPersistenceService
             if (membership is null || membership.Status != ProjectMemberStatus.Active || membership.RoleCode != user.RoleCode || membership.ValidFrom > today || membership.ValidTo < today)
                 throw new UploadNotFoundException();
         }
-        if(FieldPurpose(scope.Purpose))
+        if (FieldPurpose(scope.Purpose))
         {
             if (await _context.Set<RoadGuardSystem.BusinessObjects.Offline.OfflineEvidenceCaptureReference>().AnyAsync(row => row.FileId == id, token))
             {
-                if (!await IsCurrentOfflineFileActorAsync(actor,user.RoleCode,id,token)) throw new UploadNotFoundException();
+                if (!await IsCurrentOfflineFileActorAsync(actor, user.RoleCode, id, token)) throw new UploadNotFoundException();
             }
-            else await GuardFieldScopeAsync(actor,project,scope.TargetId,scope.Purpose,freshFieldUpload,token);
+            else await GuardFieldScopeAsync(actor, project, scope.TargetId, scope.Purpose, freshFieldUpload, token);
         }
         if (scope.Purpose is "SURVEY_VIDEO" or "TELEMETRY")
         {
@@ -53,8 +53,8 @@ public sealed partial class UploadPersistenceService
             await _context.SurveyAssignments.FromSqlInterpolated($"SELECT * FROM [SurveyAssignments] WITH (UPDLOCK,HOLDLOCK) WHERE [SurveyRequestId]={task}").AsNoTracking().ToListAsync(token);
             if (!await IsCurrentSurveyOperatorAsync(actor, project, task, true, token)) throw new UploadNotFoundException();
         }
-        var upload=await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={id}").AsNoTracking().SingleOrDefaultAsync(token);
-        if(upload is null || upload.OwnerUserId!=actor)throw new UploadNotFoundException();
+        var upload = await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={id}").AsNoTracking().SingleOrDefaultAsync(token);
+        if (upload is null || upload.OwnerUserId != actor) throw new UploadNotFoundException();
     }
 
     private int RetrySeconds => Math.Clamp(RecoveryOptions.RecoveryRetrySeconds, 1, 300);
@@ -80,7 +80,7 @@ public sealed partial class UploadPersistenceService
             await GuardMultipartAsync(actor, fileId, ct);
             if (await _context.IdempotencyRecords.AnyAsync(r => r.ActorUserId == actor && r.ProjectId == projectId
                 && r.Operation == "UploadPartUrlsIssued" && r.IdempotencyKey == key, ct)) return (Initiate: false, Receipt: true);
-            await GuardMultipartAsync(actor,fileId,true,ct);
+            await GuardMultipartAsync(actor, fileId, true, ct);
             var s = await _context.UploadSessions.SingleAsync(s => s.Id == upload, ct);
             if (s.StorageUploadId is not null) return (Initiate: false, Receipt: false);
             if (s.Status != UploadSessionStatus.Pending || now >= s.ExpiresAt) throw new UploadPartConflictException();
@@ -97,7 +97,7 @@ public sealed partial class UploadPersistenceService
             var work = await MultipartTransactionAsync(async ct =>
             {
                 var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == upload).Select(s => s.FileId).SingleAsync(ct);
-                await GuardMultipartAsync(actor, fileId,true, ct);
+                await GuardMultipartAsync(actor, fileId, true, ct);
                 var s = await _context.UploadSessions.SingleAsync(s => s.Id == upload, ct);
                 if (s.MultipartFence != fence || s.Status != UploadSessionStatus.Pending || now >= s.ExpiresAt) return null;
                 s.SetMultipartPhase(fence, "CALLING", now.AddSeconds(RetrySeconds));
@@ -121,7 +121,7 @@ public sealed partial class UploadPersistenceService
         => MultipartTransactionAsync(async ct =>
         {
             var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == upload).Select(s => s.FileId).SingleAsync(ct);
-            await GuardMultipartAsync(actor, fileId,true, ct);
+            await GuardMultipartAsync(actor, fileId, true, ct);
             var s = await _context.UploadSessions.SingleAsync(s => s.Id == upload, ct);
             var checkedNow = now > DateTimeOffset.UtcNow ? now : DateTimeOffset.UtcNow;
             if (s.MultipartFence != fence || s.MultipartPhase != phase || s.Status != UploadSessionStatus.Pending || checkedNow >= s.ExpiresAt)
@@ -137,12 +137,12 @@ public sealed partial class UploadPersistenceService
         var token = cancellationToken;
         var now = DateTimeOffset.UtcNow;
         var uploads = await (from s in _context.UploadSessions.AsNoTracking()
-            join scope in _context.FileScopes.AsNoTracking() on s.FileId equals scope.FileId
-            where (s.MultipartPhase == "TERMINAL" || s.Status == UploadSessionStatus.Pending
-                && (s.MultipartPhase != null || (s.FailureCode != null && s.FailureCode.StartsWith("multipart_initiating:"))))
-                && (s.MultipartNextCheckAt == null || s.MultipartNextCheckAt <= now)
-            orderby s.MultipartNextCheckAt, s.Id
-            select s.Id).Take(Math.Clamp(RecoveryOptions.RecoveryBatchSize, 1, 100)).ToArrayAsync(token);
+                             join scope in _context.FileScopes.AsNoTracking() on s.FileId equals scope.FileId
+                             where (s.MultipartPhase == "TERMINAL" || s.Status == UploadSessionStatus.Pending
+                                 && (s.MultipartPhase != null || (s.FailureCode != null && s.FailureCode.StartsWith("multipart_initiating:"))))
+                                 && (s.MultipartNextCheckAt == null || s.MultipartNextCheckAt <= now)
+                             orderby s.MultipartNextCheckAt, s.Id
+                             select s.Id).Take(Math.Clamp(RecoveryOptions.RecoveryBatchSize, 1, 100)).ToArrayAsync(token);
         foreach (var upload in uploads)
         {
             try { await ReconcileMultipartAsync(upload, null, now, token); }
@@ -168,11 +168,11 @@ public sealed partial class UploadPersistenceService
             if (sweep is null || sweep.NextCheckAt > now) return null;
             sweep.NextCheckAt = now.AddSeconds(RetrySeconds);
             var current = await (from s in _context.UploadSessions.AsNoTracking()
-                join f in _context.Files.AsNoTracking() on s.FileId equals f.Id
-                join scope in _context.FileScopes.AsNoTracking() on s.FileId equals scope.FileId
-                where s.Id == upload && f.StorageUri == s.ObjectKey
-                    && scope.OwnerUserId == s.OwnerUserId && s.MultipartPhase == "DURABLE" && s.StorageUploadId != null
-                select s).SingleOrDefaultAsync(ct);
+                                 join f in _context.Files.AsNoTracking() on s.FileId equals f.Id
+                                 join scope in _context.FileScopes.AsNoTracking() on s.FileId equals scope.FileId
+                                 where s.Id == upload && f.StorageUri == s.ObjectKey
+                                     && scope.OwnerUserId == s.OwnerUserId && s.MultipartPhase == "DURABLE" && s.StorageUploadId != null
+                                 select s).SingleOrDefaultAsync(ct);
             if (current is not null && current.Status == UploadSessionStatus.Uploading && now >= current.ExpiresAt)
             {
                 var terminal = await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={upload}").SingleAsync(ct);
@@ -198,13 +198,13 @@ public sealed partial class UploadPersistenceService
         var work = await MultipartTransactionAsync(async ct =>
         {
             var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == upload).Select(s => s.FileId).SingleAsync(ct);
-            if (caller is { } actor) await GuardMultipartAsync(actor, fileId,true, ct);
+            if (caller is { } actor) await GuardMultipartAsync(actor, fileId, true, ct);
             var s = await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={upload}").SingleAsync(ct);
             // Proven ownership is an immutable session + file + scope exact-key join.
             var owned = await (from file in _context.Files.AsNoTracking()
-                join scope in _context.FileScopes.AsNoTracking() on file.Id equals scope.FileId
-                where file.Id == s.FileId && file.StorageUri == s.ObjectKey && scope.OwnerUserId == s.OwnerUserId
-                select file.Id).AnyAsync(ct);
+                               join scope in _context.FileScopes.AsNoTracking() on file.Id equals scope.FileId
+                               where file.Id == s.FileId && file.StorageUri == s.ObjectKey && scope.OwnerUserId == s.OwnerUserId
+                               select file.Id).AnyAsync(ct);
             if (!owned) return null;
             if (s.MultipartNextCheckAt > now && s.MultipartFence != fence) return null;
             if (s.MultipartPhase is null)
@@ -242,7 +242,7 @@ public sealed partial class UploadPersistenceService
         if (candidates.Count == 0 && now < work.MultipartDeadline) return;
         var stopped = await MultipartTransactionAsync(async ct =>
         {
-            if (caller is { } actor) await GuardMultipartAsync(actor, work.FileId,true, ct);
+            if (caller is { } actor) await GuardMultipartAsync(actor, work.FileId, true, ct);
             var s = await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={upload}").SingleAsync(ct);
             if (s.MultipartFence != fence || s.MultipartPhase != "RECONCILING" || s.Status != UploadSessionStatus.Pending) return false;
             s.StopMultipart(now.AddSeconds(RetrySeconds));

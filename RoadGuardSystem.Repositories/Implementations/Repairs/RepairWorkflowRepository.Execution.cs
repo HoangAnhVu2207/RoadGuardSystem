@@ -97,12 +97,31 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
             var start = new RepairExecutionStart(id, command.ProjectId, item.Id, binding.Id, assessment.Id,
                 assessment.FirstStartId, command.ActorId, id, command.Input.OriginId, hash, command.Input.ClaimedAt,
                 now, admittedTime.VerifiedAt, admittedTime.Provenance, assessment.ContentHash, binding.ChecklistVersion,
-                offlineRepairContext is null ? JsonSerializer.Serialize(new { bindingId = binding.Id, binding.AssignmentId, binding.PlanHash, item.ApprovedBy,
-                    item.ApprovedPlanHash, assessmentId = assessment.Id, assessment.ContentHash, admission = "DIRECT_CURRENT_CREW" }, Json)
-                    : JsonSerializer.Serialize(new { bindingId = binding.Id, binding.AssignmentId, binding.PlanHash, item.ApprovedBy,
-                        item.ApprovedPlanHash, assessmentId = assessment.Id, assessment.ContentHash, admission = "SIGNED_OFFLINE_ORIGINAL_CREW",
+                offlineRepairContext is null ? JsonSerializer.Serialize(new
+                {
+                    bindingId = binding.Id,
+                    binding.AssignmentId,
+                    binding.PlanHash,
+                    item.ApprovedBy,
+                    item.ApprovedPlanHash,
+                    assessmentId = assessment.Id,
+                    assessment.ContentHash,
+                    admission = "DIRECT_CURRENT_CREW"
+                }, Json)
+                    : JsonSerializer.Serialize(new
+                    {
+                        bindingId = binding.Id,
+                        binding.AssignmentId,
+                        binding.PlanHash,
+                        item.ApprovedBy,
+                        item.ApprovedPlanHash,
+                        assessmentId = assessment.Id,
+                        assessment.ContentHash,
+                        admission = "SIGNED_OFFLINE_ORIGINAL_CREW",
                         offlineAdmissionId = offlineRepairContext.Command.Admission.AdmissionId,
-                        importerId = offlineRepairContext.Command.CallerId, verifiedOriginalAt = admittedTime.VerifiedAt }, Json), null);
+                        importerId = offlineRepairContext.Command.CallerId,
+                        verifiedOriginalAt = admittedTime.VerifiedAt
+                    }, Json), null);
             db.AddRange(FieldInspectionOperationOrigin.Create(id, command.ProjectId, command.Input.OriginId,
                 "REPAIR_EXECUTION_START", hash, command.ActorId, RepairOriginDevice(command.Input.DeviceId), binding.TaskId, id, now), start);
             await db.SaveChangesAsync(ct);
@@ -138,12 +157,23 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
             var id = RepairEffectId(); var admittedTime = RepairExecutionTime(now);
             var finish = new RepairExecutionFinish(id, command.ProjectId, item.Id, binding.Id, start.Id,
                 command.ActorId, id, command.Input.OriginId, hash, command.Input.ClaimedAt, now, admittedTime.VerifiedAt, admittedTime.Provenance,
-                offlineRepairContext is null ? JsonSerializer.Serialize(new { source = "ACTUAL_SERVER_EXECUTION_FINISH", originalEventId = id,
-                    executionStartId = start.Id, clientClaim = command.Input.ClaimedAt }, Json)
-                    : JsonSerializer.Serialize(new { source = "SIGNED_OFFLINE_EXECUTION_FINISH_CLAIM", originalEventId = id,
-                        executionStartId = start.Id, clientClaim = command.Input.ClaimedAt,
+                offlineRepairContext is null ? JsonSerializer.Serialize(new
+                {
+                    source = "ACTUAL_SERVER_EXECUTION_FINISH",
+                    originalEventId = id,
+                    executionStartId = start.Id,
+                    clientClaim = command.Input.ClaimedAt
+                }, Json)
+                    : JsonSerializer.Serialize(new
+                    {
+                        source = "SIGNED_OFFLINE_EXECUTION_FINISH_CLAIM",
+                        originalEventId = id,
+                        executionStartId = start.Id,
+                        clientClaim = command.Input.ClaimedAt,
                         offlineAdmissionId = offlineRepairContext.Command.Admission.AdmissionId,
-                        importerId = offlineRepairContext.Command.CallerId, verifiedOriginalAt = admittedTime.VerifiedAt }, Json));
+                        importerId = offlineRepairContext.Command.CallerId,
+                        verifiedOriginalAt = admittedTime.VerifiedAt
+                    }, Json));
             db.AddRange(FieldInspectionOperationOrigin.Create(id, command.ProjectId, command.Input.OriginId,
                 "REPAIR_EXECUTION_FINISH", hash, command.ActorId, RepairOriginDevice(command.Input.DeviceId), binding.TaskId, id, now), finish);
             await db.SaveChangesAsync(ct);

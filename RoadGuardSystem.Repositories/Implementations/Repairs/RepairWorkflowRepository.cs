@@ -87,11 +87,22 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
                         // removing Resolved does not assert existence verification or reopen another aggregate.
                         db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Open;
                     }
-                    var before = JsonSerializer.Serialize(new { effectiveDecisionId = prior.Id, result = ResultName(prior.Result),
-                        obligationResolved = prior.Accepted, defectStatus = priorStatus.ToString() }, Json);
-                    var after = JsonSerializer.Serialize(new { effectiveDecisionId = decision.Id, result = ResultName(decision.Result),
-                        obligationResolved = obligation.IsResolved, defectStatus = defect.Status.ToString(),
-                        closureBasis = invalidated ? "UNKNOWN_LEGACY_SOURCE" : "UNCHANGED", projectMembershipId = member }, Json);
+                    var before = JsonSerializer.Serialize(new
+                    {
+                        effectiveDecisionId = prior.Id,
+                        result = ResultName(prior.Result),
+                        obligationResolved = prior.Accepted,
+                        defectStatus = priorStatus.ToString()
+                    }, Json);
+                    var after = JsonSerializer.Serialize(new
+                    {
+                        effectiveDecisionId = decision.Id,
+                        result = ResultName(decision.Result),
+                        obligationResolved = obligation.IsResolved,
+                        defectStatus = defect.Status.ToString(),
+                        closureBasis = invalidated ? "UNKNOWN_LEGACY_SOURCE" : "UNCHANGED",
+                        projectMembershipId = member
+                    }, Json);
                     db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), command.ActorId, now, "repair_decision_corrected",
                         "RepairItem", item.Id, before, after, command.Input.Reason, "h4.repair", decision.Id,
                         ["effectiveDecisionId", "result", "obligationResolved", "defectStatus", "closureBasis", "projectMembershipId"]));
@@ -130,10 +141,10 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
             // Protected replay/conflict/recovery is authorized against the persisted producer identity,
             // never against a replacement resource supplied in the new request or its stored JSON alone.
             var source = await (from decision in db.Set<RepairDecision>().AsNoTracking()
-                join item in db.Set<RepairItem>().AsNoTracking() on decision.ItemId equals item.Id
-                where decision.Id == receipt.OperationId && item.ProjectId == command.ProjectId &&
-                    decision.ObligationId == item.ObligationId && decision.DefectId == item.DefectId && decision.Mode == item.Mode
-                select new { ItemId = item.Id, PackageId = EF.Property<Guid?>(item, "PackageId") }).SingleOrDefaultAsync(token);
+                                join item in db.Set<RepairItem>().AsNoTracking() on decision.ItemId equals item.Id
+                                where decision.Id == receipt.OperationId && item.ProjectId == command.ProjectId &&
+                                    decision.ObligationId == item.ObligationId && decision.DefectId == item.DefectId && decision.Mode == item.Mode
+                                select new { ItemId = item.Id, PackageId = EF.Property<Guid?>(item, "PackageId") }).SingleOrDefaultAsync(token);
             if (source is null || source.PackageId is null) Deny(403, "stored_receipt_access_forbidden");
             await GuardAsync(command.ActorId, command.Role, command.ProjectId, source.PackageId.Value,
                 source.ItemId, true, token);

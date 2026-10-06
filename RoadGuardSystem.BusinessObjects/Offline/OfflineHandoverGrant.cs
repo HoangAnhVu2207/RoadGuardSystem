@@ -36,11 +36,23 @@ public sealed class OfflineHandoverGrant
         if (scope.RootElement.ValueKind is not (JsonValueKind.Array or JsonValueKind.Object))
             throw new ArgumentException("Grant scope must describe explicit items.");
         var origin = at.ToUniversalTime();
-        return new OfflineHandoverGrant { Id = id, ProjectId = project, PackageId = package,
-            SourceActorId = sourceActor, SourceDeviceRegistrationId = sourceDeviceRegistration,
-            RecipientActorId = recipientActor, RecipientDeviceRegistrationId = recipientDeviceRegistration,
-            RecipientRole = recipientRole, IssuedBy = issuer, IssuedAt = origin, ExpiresAt = origin.AddHours(24),
-            ManifestHash = manifestHash, ScopeJson = scopeJson, Reason = reason.Trim() };
+        return new OfflineHandoverGrant
+        {
+            Id = id,
+            ProjectId = project,
+            PackageId = package,
+            SourceActorId = sourceActor,
+            SourceDeviceRegistrationId = sourceDeviceRegistration,
+            RecipientActorId = recipientActor,
+            RecipientDeviceRegistrationId = recipientDeviceRegistration,
+            RecipientRole = recipientRole,
+            IssuedBy = issuer,
+            IssuedAt = origin,
+            ExpiresAt = origin.AddHours(24),
+            ManifestHash = manifestHash,
+            ScopeJson = scopeJson,
+            Reason = reason.Trim()
+        };
     }
     public bool AllowsNewAdmissionAt(DateTimeOffset at) => at.ToUniversalTime() >= IssuedAt && at.ToUniversalTime() < ExpiresAt;
 }

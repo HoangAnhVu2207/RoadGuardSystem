@@ -20,15 +20,25 @@ public sealed class NotificationRecipientDelivery
     public static NotificationRecipientDelivery Create(Guid id, Guid occurrenceId, Guid recipientUserId)
     {
         NotificationDomainGuard.Id(id); NotificationDomainGuard.Id(occurrenceId); NotificationDomainGuard.Id(recipientUserId);
-        return new NotificationRecipientDelivery { Id = id, OccurrenceId = occurrenceId, RecipientUserId = recipientUserId,
-            Status = NotificationRecipientDeliveryStatus.Pending };
+        return new NotificationRecipientDelivery
+        {
+            Id = id,
+            OccurrenceId = occurrenceId,
+            RecipientUserId = recipientUserId,
+            Status = NotificationRecipientDeliveryStatus.Pending
+        };
     }
     public static NotificationRecipientDelivery CreateUnresolved(Guid id, Guid occurrenceId, NotificationRecipientStrategy strategy, DateTimeOffset now)
     {
         NotificationDomainGuard.Id(id); NotificationDomainGuard.Id(occurrenceId); NotificationDomainGuard.Timestamp(now);
         if (!Enum.IsDefined(strategy)) throw new ArgumentOutOfRangeException(nameof(strategy));
-        var delivery = new NotificationRecipientDelivery { Id = id, OccurrenceId = occurrenceId, UnresolvedStrategy = strategy,
-            Status = NotificationRecipientDeliveryStatus.Unresolved };
+        var delivery = new NotificationRecipientDelivery
+        {
+            Id = id,
+            OccurrenceId = occurrenceId,
+            UnresolvedStrategy = strategy,
+            Status = NotificationRecipientDeliveryStatus.Unresolved
+        };
         delivery.AddHistory(now, NotificationRecipientUnavailableReason.MissingResponsibleActor); return delivery;
     }
     // Resolution records an identity; the transactional caller must independently validate current authority.

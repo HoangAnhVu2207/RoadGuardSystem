@@ -33,10 +33,20 @@ public sealed class OfflineAdmittedFileReference
             throw new ArgumentException("Actual scoped file version and uploader provenance must be retained.");
         return new()
         {
-            Id = id, ProjectId = project, TaskId = task, AdmissionId = admission, BindingId = binding,
-            CaptureOriginId = capture, FileId = file, OriginalActorId = originalActor,
-            CurrentImporterId = currentImporter, ActualFileOwnerId = actualOwner, ActualUploadedById = actualUploadedBy,
-            Purpose = purpose, ContentChecksum = actualChecksum.ToLowerInvariant(), CaptureFactsJson = factsJson,
+            Id = id,
+            ProjectId = project,
+            TaskId = task,
+            AdmissionId = admission,
+            BindingId = binding,
+            CaptureOriginId = capture,
+            FileId = file,
+            OriginalActorId = originalActor,
+            CurrentImporterId = currentImporter,
+            ActualFileOwnerId = actualOwner,
+            ActualUploadedById = actualUploadedBy,
+            Purpose = purpose,
+            ContentChecksum = actualChecksum.ToLowerInvariant(),
+            CaptureFactsJson = factsJson,
             ReferencedAt = at.ToUniversalTime()
         };
     }

@@ -148,11 +148,20 @@ public sealed class FieldInspectionTask
             throw new ArgumentException("Operational source and purpose must be explicit.");
         if (id == Guid.Empty || projectId == Guid.Empty || defectId == Guid.Empty || routeVersionId == Guid.Empty || assigner == Guid.Empty || requiredType == 0)
             throw new ArgumentException("Task, project, Defect, route, assigner and measurement type are required.");
-        var task = new FieldInspectionTask { Id = id, TaskCode = Normalize(code, nameof(code), 80),
-            ProjectId = projectId, DefectId = defectId, RoadSectionVersionId = routeVersionId,
-            RequiredMeasurementType = requiredType, MeasurementScope = ValidateScope(scope),
-            Instructions = NormalizeOptional(instructions, nameof(instructions), 1000), DueAt = dueAt.ToUniversalTime(),
-            Status = FieldInspectionTaskStatus.NewAssigned, AssignedByUserId = assigner };
+        var task = new FieldInspectionTask
+        {
+            Id = id,
+            TaskCode = Normalize(code, nameof(code), 80),
+            ProjectId = projectId,
+            DefectId = defectId,
+            RoadSectionVersionId = routeVersionId,
+            RequiredMeasurementType = requiredType,
+            MeasurementScope = ValidateScope(scope),
+            Instructions = NormalizeOptional(instructions, nameof(instructions), 1000),
+            DueAt = dueAt.ToUniversalTime(),
+            Status = FieldInspectionTaskStatus.NewAssigned,
+            AssignedByUserId = assigner
+        };
         task.SurveyId = surveyId; task.SourceKind = sourceKind; task.LifecycleVersion = 2;
         task.SegmentSetId = segmentSetId; task.LayoutRevisionId = layoutRevisionId; task.SlabId = NormalizeOptional(slabId, nameof(slabId), 160);
         task.Purpose = purpose; task.MapPublicationId = mapPublication; task.CrsProfileRevisionId = profile;

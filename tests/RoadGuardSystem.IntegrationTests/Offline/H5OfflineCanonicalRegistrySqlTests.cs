@@ -116,14 +116,18 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         Assert.Single(await db.Set<OfflineOperationResult>().Where(row => row.AdmissionId == source.AdmissionId && row.DurableAck).ToArrayAsync());
         var batchStatus = await repository.ExecuteAsync(command with
         {
-            Action = "batch-get", Input = null, ResourceId = source.BatchId
+            Action = "batch-get",
+            Input = null,
+            ResourceId = source.BatchId
         }, algorithms, Current, CancellationToken.None);
         Assert.Equal(200, batchStatus.Status);
         Assert.True(JsonSerializer.SerializeToElement(batchStatus.Value, Json).GetProperty("items")[0]
             .GetProperty("durableAcknowledgment").GetBoolean());
         var originStatus = await repository.ExecuteAsync(command with
         {
-            Action = "origin-get", Input = null, ResourceId = source.OriginId
+            Action = "origin-get",
+            Input = null,
+            ResourceId = source.OriginId
         }, algorithms, Current, CancellationToken.None);
         Assert.Equal(200, originStatus.Status);
         Assert.True(JsonSerializer.SerializeToElement(originStatus.Value, Json)
@@ -548,13 +552,24 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         var snapshot = OfflineTaskSnapshot.Capture(Guid.NewGuid(), scope.Project, taskId, assignment.Id, scope.Crew,
             source.Id, Convert.ToBase64String(task.RowVersion), new string('a', 64),
             JsonSerializer.Serialize(new { taskId, assignmentId = assignment.Id }, Json), now);
-        var supervisor = new ApplicationUser { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(),
-            DisplayName = "handover supervisor", PasswordHash = "fixture", RoleCode = UserRoleCode.Supervisor,
-            Status = UserStatus.Active, CreatedAt = now };
+        var supervisor = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = Guid.NewGuid().ToString(),
+            DisplayName = "handover supervisor",
+            PasswordHash = "fixture",
+            RoleCode = UserRoleCode.Supervisor,
+            Status = UserStatus.Active,
+            CreatedAt = now
+        };
         db.AddRange(source, recipient, snapshot, supervisor, new ProjectMember
         {
-            Id = Guid.NewGuid(), ProjectId = scope.Project, UserId = supervisor.Id, RoleCode = UserRoleCode.Supervisor,
-            ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active
+            Id = Guid.NewGuid(),
+            ProjectId = scope.Project,
+            UserId = supervisor.Id,
+            RoleCode = UserRoleCode.Supervisor,
+            ValidFrom = new(2000, 1, 1),
+            Status = ProjectMemberStatus.Active
         });
         await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         var origin = Guid.NewGuid();
@@ -667,8 +682,11 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         var lateBatchId = Guid.NewGuid();
         var lateEndorsement = OfflineRecipientEndorsement.CanonicalClaim(new(scope.Project, packageId,
             grantId, lateBatchId, recipient.Id, attachedHash));
-        var lateImport = import with { BatchId = lateBatchId,
-            RecipientSignature = OfflinePackageAuthentication.SignClaim(lateEndorsement, recipientKeys) };
+        var lateImport = import with
+        {
+            BatchId = lateBatchId,
+            RecipientSignature = OfflinePackageAuthentication.SignClaim(lateEndorsement, recipientKeys)
+        };
         var expiredNew = await RunExpired(lateImport, "expired-new-" + Guid.NewGuid());
         Assert.Equal(403, expiredNew.Status);
         Assert.Equal("handover_grant_expired", expiredNew.Code);
@@ -750,8 +768,15 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         var assignmentHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(assignmentJson))).ToLowerInvariant();
         var snapshot = OfflineTaskSnapshot.Capture(Guid.NewGuid(), scope.Project, taskId, assignment.Id, scope.Crew,
             registration.Id, Convert.ToBase64String(task.RowVersion), assignmentHash,
-            JsonSerializer.Serialize(new { taskId, assignmentId = assignment.Id, routeVersionId = scope.Route,
-                segmentSetId = scope.Set, mode = "MEASURE_ONLY", purpose = "PRE_MEASUREMENT" }, Json), now);
+            JsonSerializer.Serialize(new
+            {
+                taskId,
+                assignmentId = assignment.Id,
+                routeVersionId = scope.Route,
+                segmentSetId = scope.Set,
+                mode = "MEASURE_ONLY",
+                purpose = "PRE_MEASUREMENT"
+            }, Json), now);
         var origin = Guid.NewGuid();
         var body = new FieldStartInput(origin, now.AddDays(-3), DeviceId: deviceId);
         var operation = new OfflineOperationInput(1, origin, origin, "FIELD_START", scope.Crew, deviceId, snapshot.Id,
@@ -889,8 +914,16 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
     private async Task<Scope> Seed()
     {
         await using var db = sql.CreateDbContext(); await sql.SeedRolesAsync(db); var now = DateTimeOffset.UtcNow;
-        ApplicationUser User(UserRoleCode role) => new() { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(),
-            DisplayName = "offline canonical fixture", PasswordHash = "fixture", RoleCode = role, Status = UserStatus.Active, CreatedAt = now };
+        ApplicationUser User(UserRoleCode role) => new()
+        {
+            Id = Guid.NewGuid(),
+            UserName = Guid.NewGuid().ToString(),
+            DisplayName = "offline canonical fixture",
+            PasswordHash = "fixture",
+            RoleCode = role,
+            Status = UserStatus.Active,
+            CreatedAt = now
+        };
         var pm = User(UserRoleCode.ProjectManager); var crew = User(UserRoleCode.RepairCrew); var reporter = User(UserRoleCode.Reporter);
         var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Offline actual source", null, null, null, null, now);
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, "legacy fixture");
@@ -901,8 +934,15 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         var type = DefectType.Create("O" + Guid.NewGuid().ToString("N"), "offline defect");
         db.AddRange(pm, crew, reporter, project, road, route, set, segment, type,
             ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm.Id, new(2000, 1, 1)),
-            new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = crew.Id, RoleCode = UserRoleCode.RepairCrew,
-                ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active });
+            new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = crew.Id,
+                RoleCode = UserRoleCode.RepairCrew,
+                ValidFrom = new(2000, 1, 1),
+                Status = ProjectMemberStatus.Active
+            });
         await db.SaveChangesAsync();
         var file = StoredFile.Create(Guid.NewGuid(), "private/offline-source-" + Guid.NewGuid().ToString("N"),
             "source.jpg", "image/jpeg", 4, new string('a', 64), reporter.Id, now, null);
@@ -915,8 +955,13 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
             [VerifiedEvidenceReference.Create(Guid.NewGuid(), file.Id, Convert.ToBase64String(upload.RowVersion), reporter.Id)]);
         var incident = IncidentCase.CreateUnassigned(Guid.NewGuid(), report.Id, now);
         incident.Triage(project.Id, CaseVerificationMethod.ExistingEvidence, "actual retained source", now);
-        db.AddRange(report, incident); db.Set<HuyCaseReportLink>().Add(new() { Id = Guid.NewGuid(), CaseId = incident.Id,
-            ReportId = report.Id, StartedAt = now }); await db.SaveChangesAsync();
+        db.AddRange(report, incident); db.Set<HuyCaseReportLink>().Add(new()
+        {
+            Id = Guid.NewGuid(),
+            CaseId = incident.Id,
+            ReportId = report.Id,
+            StartedAt = now
+        }); await db.SaveChangesAsync();
         var source = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(CandidateSourceKind.Report, report.Id, "fixture-source"),
             project.Id, "fixture-geometry");
         var accepted = await new CandidateDecisionRepository(db).SaveAcceptedAsync(pm.Id, source, CandidateDecisionKind.KeepNew,

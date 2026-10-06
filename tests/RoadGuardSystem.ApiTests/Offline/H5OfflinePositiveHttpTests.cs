@@ -165,10 +165,24 @@ public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fi
         var type = DefectType.Create("H" + Guid.NewGuid().ToString("N"), "HTTP offline source");
         db.AddRange(project, road, route, set, segment, type,
             ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm, new(2000, 1, 1)),
-            new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = crew,
-                RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) },
-            new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = supervisor,
-                RoleCode = UserRoleCode.Supervisor, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) });
+            new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = crew,
+                RoleCode = UserRoleCode.RepairCrew,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new(2000, 1, 1)
+            },
+            new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = supervisor,
+                RoleCode = UserRoleCode.Supervisor,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new(2000, 1, 1)
+            });
         await db.SaveChangesAsync();
         var file = StoredFile.Create(Guid.NewGuid(), "reporter/h5-" + Guid.NewGuid().ToString("N"),
             "source.jpg", "image/jpeg", 4, new string('b', 64), reporter, now, null);
@@ -179,8 +193,13 @@ public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fi
         var incident = IncidentCase.CreateUnassigned(Guid.NewGuid(), report.Id, now);
         incident.Triage(project.Id, CaseVerificationMethod.ExistingEvidence, "source", now);
         db.AddRange(report, incident);
-        db.Set<HuyCaseReportLink>().Add(new() { Id = Guid.NewGuid(), CaseId = incident.Id,
-            ReportId = report.Id, StartedAt = now });
+        db.Set<HuyCaseReportLink>().Add(new()
+        {
+            Id = Guid.NewGuid(),
+            CaseId = incident.Id,
+            ReportId = report.Id,
+            StartedAt = now
+        });
         await db.SaveChangesAsync();
         var source = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(CandidateSourceKind.Report,
             report.Id, "fixture-source"), project.Id, "fixture-geometry");
@@ -245,7 +264,8 @@ public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fi
     {
         var login = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(userName), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(userName),
+            password = "Current1!"
         });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",

@@ -62,7 +62,7 @@ internal static class OfflinePersistenceConfigurations
             builder.Property<string>(property).HasMaxLength(64).IsUnicode(false).IsRequired();
             var table = builder.Metadata.GetTableName()!;
             builder.ToTable(table, configuration => configuration.HasCheckConstraint($"CK_{table}_{property}",
-                $"LEN([{property}])=64 AND [{property}] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'") );
+                $"LEN([{property}])=64 AND [{property}] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'"));
         }
     }
 

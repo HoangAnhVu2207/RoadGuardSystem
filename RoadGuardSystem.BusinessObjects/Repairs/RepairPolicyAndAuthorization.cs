@@ -57,9 +57,17 @@ public sealed class RepairPolicyRevision
         var stops = stopConditions.Select(RepairGuards.Text).ToArray();
         if (rules.Select(rule => rule.Code).Distinct(StringComparer.Ordinal).Count() != rules.Length ||
             stops.Distinct(StringComparer.Ordinal).Count() != stops.Length) throw new ArgumentException("Configured fact identifiers must be unique.");
-        var policy = new RepairPolicyRevision { Id = id, ProjectId = project, Revision = revision, PublishedBy = actor,
-            PublishedAt = RepairGuards.Time(at), DefectTypeCode = RepairGuards.Text(defectType), ChecklistVersion = RepairGuards.Text(checklist),
-            StopConditions = Array.AsReadOnly(stops) };
+        var policy = new RepairPolicyRevision
+        {
+            Id = id,
+            ProjectId = project,
+            Revision = revision,
+            PublishedBy = actor,
+            PublishedAt = RepairGuards.Time(at),
+            DefectTypeCode = RepairGuards.Text(defectType),
+            ChecklistVersion = RepairGuards.Text(checklist),
+            StopConditions = Array.AsReadOnly(stops)
+        };
         policy._measurements.AddRange(rules); return policy;
     }
     public RepairEligibilityResult Evaluate(IReadOnlyList<RepairMeasurementFact> facts, IReadOnlyList<string> activeStopConditions)
@@ -126,9 +134,21 @@ public sealed class RepairExecutionAuthorization
         RepairGuards.Id(id); RepairGuards.Id(project); RepairGuards.Id(defect); RepairGuards.Id(task);
         RepairGuards.Id(assignment); RepairGuards.Id(crew); RepairGuards.Id(actor); RepairGuards.Id(policyRevision);
         RepairGuards.EnumValue(permission);
-        return new RepairExecutionAuthorization { Id = id, ProjectId = project, DefectId = defect, TaskId = task,
-            AssignmentId = assignment, CrewId = crew, IssuedBy = actor, IssuedAt = RepairGuards.Time(at), Reason = RepairGuards.Text(reason),
-            Permission = permission, LocationVersion = RepairGuards.Text(locationVersion), PolicyRevisionId = policyRevision };
+        return new RepairExecutionAuthorization
+        {
+            Id = id,
+            ProjectId = project,
+            DefectId = defect,
+            TaskId = task,
+            AssignmentId = assignment,
+            CrewId = crew,
+            IssuedBy = actor,
+            IssuedAt = RepairGuards.Time(at),
+            Reason = RepairGuards.Text(reason),
+            Permission = permission,
+            LocationVersion = RepairGuards.Text(locationVersion),
+            PolicyRevisionId = policyRevision
+        };
     }
     public void RecordFirstStart(Guid origin, string hash, DateTimeOffset startedAt, DateTimeOffset receivedAt, RepairTimeProvenance provenance)
     {

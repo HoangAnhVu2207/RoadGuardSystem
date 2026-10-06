@@ -57,18 +57,48 @@ public sealed partial class RepairWorkflowRepository : IOfflineRepairCommandAdap
             var obligation = await db.Set<RepairObligation>().AsNoTracking().SingleAsync(row => row.Id == item.ObligationId, token);
             return new(item.Id, source.TaskId, source.AssignmentId, source.CrewId, version,
                 source.AuthorizationId, source.PolicyRevisionId, source.PolicyContentHash,
-                new { schemaVersion = 1, packageId, itemId = item.Id, itemVersion = version, item.ObligationId,
-                    mode = item.Mode.ToString(), state = item.State.ToString(), item.RepairPlan, item.ChecklistVersion,
-                    item.ProposalPlanHash, item.ApprovedPlanHash, item.ApprovedBy, item.ApprovedAt,
-                    bindingId = source.Id, source.TaskId, source.AssignmentId, source.CrewId, source.AuthorizationId,
-                    source.PolicyRevisionId, source.PolicyContentHash, source.LocationVersion,
-                    item.CurrentAssessmentId, item.CurrentExecutionStartId, item.CurrentExecutionFinishId,
+                new
+                {
+                    schemaVersion = 1,
+                    packageId,
+                    itemId = item.Id,
+                    itemVersion = version,
+                    item.ObligationId,
+                    mode = item.Mode.ToString(),
+                    state = item.State.ToString(),
+                    item.RepairPlan,
+                    item.ChecklistVersion,
+                    item.ProposalPlanHash,
+                    item.ApprovedPlanHash,
+                    item.ApprovedBy,
+                    item.ApprovedAt,
+                    bindingId = source.Id,
+                    source.TaskId,
+                    source.AssignmentId,
+                    source.CrewId,
+                    source.AuthorizationId,
+                    source.PolicyRevisionId,
+                    source.PolicyContentHash,
+                    source.LocationVersion,
+                    item.CurrentAssessmentId,
+                    item.CurrentExecutionStartId,
+                    item.CurrentExecutionFinishId,
                     obligation.OriginalCrewFirstStartId,
-                    policy = policy is null ? null : new { policy.Id, policy.Revision, policy.DefectTypeCode,
-                        policy.ChecklistVersion, policy.PublishedBy, policy.PublishedAt, policy.IsRevoked,
+                    policy = policy is null ? null : new
+                    {
+                        policy.Id,
+                        policy.Revision,
+                        policy.DefectTypeCode,
+                        policy.ChecklistVersion,
+                        policy.PublishedBy,
+                        policy.PublishedAt,
+                        policy.IsRevoked,
                         measurements = policy.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray(),
-                        stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray() },
-                    eligibility = "UNKNOWN_OWNER_MAPPING", executeAuthority = "REVALIDATE_CURRENT_SOURCE_AT_ADMISSION" });
+                        stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray()
+                    },
+                    eligibility = "UNKNOWN_OWNER_MAPPING",
+                    executeAuthority = "REVALIDATE_CURRENT_SOURCE_AT_ADMISSION"
+                });
         }
         catch (Denied) { return null; }
     }

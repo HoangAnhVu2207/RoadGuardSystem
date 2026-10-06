@@ -65,14 +65,23 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 }
                 var now = clock.GetUtcNow();
                 RepairDecision decision;
-                try { decision = item.Confirm(Guid.NewGuid(), command.ActorId, command.Role,
-                    command.Input.Reason, now, obligation.EffectiveResolutionHeadDecisionId); obligation.Resolve(decision); }
+                try
+                {
+                    decision = item.Confirm(Guid.NewGuid(), command.ActorId, command.Role,
+                    command.Input.Reason, now, obligation.EffectiveResolutionHeadDecisionId); obligation.Resolve(decision);
+                }
                 catch (InvalidOperationException) { Deny(409, "final_confirmation_source_conflict"); throw; }
                 supervisorClock?.Complete(now);
                 Touch(package);
                 AuditProducer(command.ActorId, "repair_final_confirmed", "RepairItem", item.Id,
-                    command.Input.Reason, new { decision.Id, reviewId = review.Id, obligationId = obligation.Id,
-                        mode = item.Mode.ToString(), supervisorClockId = supervisorClock?.Id });
+                    command.Input.Reason, new
+                    {
+                        decision.Id,
+                        reviewId = review.Id,
+                        obligationId = obligation.Id,
+                        mode = item.Mode.ToString(),
+                        supervisorClockId = supervisorClock?.Id
+                    });
                 await db.SaveChangesAsync(ct);
                 return (decision.Id, new ProducingOutcome<RepairItemFact>(ItemView(item, VersionOf(item)),
                     VersionOf(item)));
@@ -142,8 +151,11 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                                 StringComparison.OrdinalIgnoreCase))
                             Deny(409, "repair_review_evidence_source_conflict");
                         ReporterFileFacts file;
-                        try { file = await FieldCore().ValidateRepairEvidenceInTransactionAsync(binding.TaskId,
-                            declared, attempt.CrewId, ct); }
+                        try
+                        {
+                            file = await FieldCore().ValidateRepairEvidenceInTransactionAsync(binding.TaskId,
+                            declared, attempt.CrewId, ct);
+                        }
                         catch (RepairFieldCoreRejectedException rejection)
                         { throw new Denied(rejection.Status, rejection.Code ?? "repair_review_evidence_not_ready"); }
                         using var captureFacts = JsonDocument.Parse(sourceLink.CaptureFactsJson);
@@ -180,9 +192,21 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     binding.ChecklistVersion, command.ActorId, command.Role, command.Input.Decision, command.Input.Reason,
                     now, command.Input.Decision == "ACCEPT",
                     command.Input.Decision == "ACCEPT" ? RepairFactState.Confirmed : RepairFactState.Unknown,
-                    JsonSerializer.Serialize(new { fieldReviewId = source.Id, source.ReceiptActivation,
-                        evidence = evidence.Select(row => new { row.FileId, row.FileVersion, row.Hash, row.Purpose,
-                            row.SourceId, row.CapturedAt }), finishId = link.ExecutionFinishId }, Json));
+                    JsonSerializer.Serialize(new
+                    {
+                        fieldReviewId = source.Id,
+                        source.ReceiptActivation,
+                        evidence = evidence.Select(row => new
+                        {
+                            row.FileId,
+                            row.FileVersion,
+                            row.Hash,
+                            row.Purpose,
+                            row.SourceId,
+                            row.CapturedAt
+                        }),
+                        finishId = link.ExecutionFinishId
+                    }, Json));
                 db.AddRange(source, review);
                 native.Transition(command.Input.Decision == "ACCEPT" ? FieldInspectionTaskStatus.Completed :
                     FieldInspectionTaskStatus.SupplementRequired);
@@ -217,8 +241,13 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 Touch(package);
                 AuditProducer(command.ActorId, command.Input.Decision == "ACCEPT" ? "repair_attempt_reviewed" :
                     "repair_supplement_requested", "RepairItem", item.Id,
-                    command.Input.Reason, new { reviewId = review.Id, fieldReviewId = source.Id,
-                        submissionId = submission.Id, link.ReviewClockId });
+                    command.Input.Reason, new
+                    {
+                        reviewId = review.Id,
+                        fieldReviewId = source.Id,
+                        submissionId = submission.Id,
+                        link.ReviewClockId
+                    });
                 await db.SaveChangesAsync(ct);
                 return (review.Id, new ProducingOutcome<RepairAttemptReviewFact>(
                     new(review.Id, item.Id, submission.Id, command.Input.Decision, source.ReceiptActivation), VersionOf(item)));
@@ -289,8 +318,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 Touch(package);
                 AuditProducer(command.ActorId, "repair_attempt_supplement", "RepairItem", item.Id,
                     "Actual immutable H3 supplement; original physical attempt and PM clock retained",
-                    new { linkId = link.Id, previousLinkId = previous.Id, submissionId = submission.Id,
-                        rootId = root.Id, reviewId = review.Id });
+                    new
+                    {
+                        linkId = link.Id,
+                        previousLinkId = previous.Id,
+                        submissionId = submission.Id,
+                        rootId = root.Id,
+                        reviewId = review.Id
+                    });
                 await db.SaveChangesAsync(ct);
                 return (link.Id, new ProducingOutcome<RepairAttemptIntakeFact>(new(attempt.Id, link.Id, item.Id,
                     submission.Id, previous.ReviewClockId, previous.OriginalReviewDueAt, submission.Readiness),
@@ -374,8 +409,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 Touch(package);
                 AuditProducer(command.ActorId, "repair_attempt_intake", "RepairItem", item.Id,
                     "Actual H3 root formal intake; incomplete evidence does not confirm repair",
-                    new { attemptId = attempt.Id, linkId = link.Id, submissionId = submission.Id,
-                        submission.ContentHash, reviewClockId = reviewClock.Id });
+                    new
+                    {
+                        attemptId = attempt.Id,
+                        linkId = link.Id,
+                        submissionId = submission.Id,
+                        submission.ContentHash,
+                        reviewClockId = reviewClock.Id
+                    });
                 await db.SaveChangesAsync(ct);
                 var view = new RepairAttemptIntakeFact(attempt.Id, link.Id, item.Id, submission.Id,
                     reviewClock.Id, reviewClock.OriginalDueAt, submission.Readiness);
@@ -405,14 +446,27 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     locationInput = locationInput with { CrsProfileRevisionId = native?.CrsProfileRevisionId };
                     var check = await FieldCore().ValidateRepairLocationPinsInTransactionAsync(command.ProjectId, locationInput, ct);
                     if (check.Code is not null) Deny(check.Status, check.Code);
-                    var kind = input.Kind switch { "FORMAL_REPAIR" => RepairObligationKind.FormalRepair,
-                        "TEMPORARY_SAFETY" => RepairObligationKind.TemporarySafety, _ => (RepairObligationKind)0 };
+                    var kind = input.Kind switch
+                    {
+                        "FORMAL_REPAIR" => RepairObligationKind.FormalRepair,
+                        "TEMPORARY_SAFETY" => RepairObligationKind.TemporarySafety,
+                        _ => (RepairObligationKind)0
+                    };
                     if (kind == 0) Deny(400, "validation_error");
-                    var frame = "h4-frame-v1:" + SourceHash(new { routeVersionId = route.Id, physical.SegmentSetId,
-                        physical.LayoutRevisionId, physical.SlabId, crsProfileRevisionId = native?.CrsProfileRevisionId });
+                    var frame = "h4-frame-v1:" + SourceHash(new
+                    {
+                        routeVersionId = route.Id,
+                        physical.SegmentSetId,
+                        physical.LayoutRevisionId,
+                        physical.SlabId,
+                        crsProfileRevisionId = native?.CrsProfileRevisionId
+                    });
                     RepairActualScope scope;
-                    try { scope = RepairActualScope.Create(Guid.NewGuid(), road.Id, frame, road.Code,
-                        physical.FromMeters, physical.ToMeters, physical.OffsetFromMeters, physical.OffsetToMeters); }
+                    try
+                    {
+                        scope = RepairActualScope.Create(Guid.NewGuid(), road.Id, frame, road.Code,
+                        physical.FromMeters, physical.ToMeters, physical.OffsetFromMeters, physical.OffsetToMeters);
+                    }
                     catch (ArgumentException) { Deny(400, "validation_error"); throw; }
                     var existing = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope)
                         .Where(row => row.DefectId == defect.Id && row.Kind == kind && row.EffectiveResolutionDecisionId == null).ToArrayAsync(ct);
@@ -493,8 +547,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 if (input.Purpose != "POST_REPAIR" || input.RequiredMeasurementType is < 1 or > 4) Deny(400, "validation_error");
                 var check = await FieldCore().ValidateRepairTaskSourcesInTransactionAsync(command.ProjectId, input, defect, ct);
                 if (check.Code is not null) Deny(check.Status, check.Code);
-                var declaredFrame = "h4-frame-v1:" + SourceHash(new { routeVersionId = input.RouteVersionId,
-                    input.SegmentSetId, input.LayoutRevisionId, input.SlabId, crsProfileRevisionId = input.CrsProfileRevisionId });
+                var declaredFrame = "h4-frame-v1:" + SourceHash(new
+                {
+                    routeVersionId = input.RouteVersionId,
+                    input.SegmentSetId,
+                    input.LayoutRevisionId,
+                    input.SlabId,
+                    crsProfileRevisionId = input.CrsProfileRevisionId
+                });
                 if (declaredFrame != obligation.Scope.LocationVersion) Deny(409, "repair_scope_frame_mismatch");
                 RepairPolicyRevision? policy = null;
                 if (item.Mode == RepairMode.FastTrack)
@@ -528,23 +588,47 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                         obligation.Scope.LocationVersion, policy.Id);
                     db.Add(authorization); await db.SaveChangesAsync(ct);
                 }
-                var policyHash = policy is null ? null : SourceHash(new { policy.Id, policy.ProjectId, policy.Revision,
-                    policy.DefectTypeCode, policy.ChecklistVersion, policy.PublishedAt, policy.PublishedBy,
+                var policyHash = policy is null ? null : SourceHash(new
+                {
+                    policy.Id,
+                    policy.ProjectId,
+                    policy.Revision,
+                    policy.DefectTypeCode,
+                    policy.ChecklistVersion,
+                    policy.PublishedAt,
+                    policy.PublishedBy,
                     measurements = policy.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray(),
-                    stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray() });
+                    stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray()
+                });
                 var binding = new RepairFieldTaskBinding(Guid.NewGuid(), command.ProjectId, defect.Id, obligation.Id, item.Id,
                     task.Id, assignment.Id, input.AssignedToUserId, item.Mode, authorization?.Id, policy?.Id, policyHash,
                     item.ProposalPlanHash!, item.ChecklistVersion!, input.RouteVersionId, input.SegmentSetId, input.LayoutRevisionId,
                     input.SlabId, input.MapPublicationId, input.CrsProfileRevisionId, obligation.Scope.LocationVersion,
-                    command.ActorId, now, command.Input.Reason, Convert.ToBase64String(task.RowVersion), SourceHash(new { assignment.Id,
-                        assignment.FieldInspectionTaskId, assignment.AssignedToUserId, assignment.AssignedByUserId, assignment.AssignedAt }));
+                    command.ActorId, now, command.Input.Reason, Convert.ToBase64String(task.RowVersion), SourceHash(new
+                    {
+                        assignment.Id,
+                        assignment.FieldInspectionTaskId,
+                        assignment.AssignedToUserId,
+                        assignment.AssignedByUserId,
+                        assignment.AssignedAt
+                    }));
                 db.Add(binding); await db.SaveChangesAsync(ct);
                 db.Entry(item).Property(row => row.CurrentBindingId).CurrentValue = binding.Id;
                 var source = Lifecycle(item, command.ActorId, command.Role, "ASSIGNED", command.Input.Reason, command.ExpectedItemVersion, now, binding.Id);
                 Notify(source, "repair.work.assigned.v1", "ASSIGNED");
                 AuditProducer(command.ActorId, "repair_item_assigned", "RepairItem", item.Id, command.Input.Reason,
-                    new { binding.Id, binding.TaskId, binding.AssignmentId, binding.CrewId, binding.AuthorizationId,
-                        binding.PolicyRevisionId, binding.PlanHash, binding.ChecklistVersion, binding.LocationVersion });
+                    new
+                    {
+                        binding.Id,
+                        binding.TaskId,
+                        binding.AssignmentId,
+                        binding.CrewId,
+                        binding.AuthorizationId,
+                        binding.PolicyRevisionId,
+                        binding.PlanHash,
+                        binding.ChecklistVersion,
+                        binding.LocationVersion
+                    });
                 await db.SaveChangesAsync(ct); var version = VersionOf(item);
                 var view = new RepairTaskBindingFact(item.Id, obligation.Id, task.Id, assignment.Id, task.TaskMode,
                     authorization?.Id, policy?.Id, task.RoadSectionVersionId, task.SegmentSetId, task.LayoutRevisionId,

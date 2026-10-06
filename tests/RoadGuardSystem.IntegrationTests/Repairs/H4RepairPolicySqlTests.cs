@@ -21,8 +21,16 @@ public sealed class H4RepairPolicySqlTests(IdentitySqlServerFixture sql) : IClas
     {
         await using var db = sql.CreateDbContext(); await sql.SeedRolesAsync(db);
         var now = DateTimeOffset.UtcNow;
-        var pm = new ApplicationUser { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(), PasswordHash = "fixture",
-            DisplayName = "policy fixture", RoleCode = UserRoleCode.ProjectManager, Status = UserStatus.Active, CreatedAt = now };
+        var pm = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = Guid.NewGuid().ToString(),
+            PasswordHash = "fixture",
+            DisplayName = "policy fixture",
+            RoleCode = UserRoleCode.ProjectManager,
+            Status = UserStatus.Active,
+            CreatedAt = now
+        };
         var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Policy SQL fixture", null, null, null, null, now);
         var type = DefectType.Create("P" + Guid.NewGuid().ToString("N"), "policy defect");
         var member = ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm.Id, new(2000, 1, 1));
@@ -37,8 +45,14 @@ public sealed class H4RepairPolicySqlTests(IdentitySqlServerFixture sql) : IClas
         db.ChangeTracker.Clear();
         Assert.Equal(200, (await repo.ExecuteAsync(create, default)).Status);
         Assert.Equal(409, (await repo.ExecuteAsync(create with { Definition = definition with { ChecklistVersion = "changed" } }, default)).Status);
-        var update = create with { Action = "update", ResourceId = draftId, Key = Guid.NewGuid().ToString(),
-            ExpectedVersion = created.Value.Version, Definition = definition with { ChecklistVersion = "v2", Measurements = [new("width", "mm", 0, 3)] } };
+        var update = create with
+        {
+            Action = "update",
+            ResourceId = draftId,
+            Key = Guid.NewGuid().ToString(),
+            ExpectedVersion = created.Value.Version,
+            Definition = definition with { ChecklistVersion = "v2", Measurements = [new("width", "mm", 0, 3)] }
+        };
         await using (var failing = sql.CreateDbContext(new FailPolicyReceipt()))
             await Assert.ThrowsAsync<InvalidOperationException>(() => new RepairPolicyRepository(failing,
                 new IdempotencyOperationService(failing), TimeProvider.System).ExecuteAsync(update, default));
@@ -47,8 +61,14 @@ public sealed class H4RepairPolicySqlTests(IdentitySqlServerFixture sql) : IClas
         var updated = await repo.ExecuteAsync(update, default); Assert.Equal(201, updated.Status); db.ChangeTracker.Clear();
         Assert.Equal(2, await db.Set<RepairPolicyDraftChange>().CountAsync(row => EF.Property<Guid?>(row, "DraftId") == draftId));
         Assert.Equal("v1", (await db.Set<RepairPolicyDraftChange>().AsNoTracking().SingleAsync(row => row.Id == original.Id)).ChecklistVersion);
-        var publish = update with { Action = "publish", Definition = null, Reason = "publish configured version",
-            Key = Guid.NewGuid().ToString(), ExpectedVersion = updated.Value!.Version };
+        var publish = update with
+        {
+            Action = "publish",
+            Definition = null,
+            Reason = "publish configured version",
+            Key = Guid.NewGuid().ToString(),
+            ExpectedVersion = updated.Value!.Version
+        };
         await using var rival = sql.CreateDbContext();
         var race = await Task.WhenAll(repo.ExecuteAsync(publish, default), new RepairPolicyRepository(rival,
             new IdempotencyOperationService(rival), TimeProvider.System).ExecuteAsync(publish, default));
@@ -59,8 +79,14 @@ public sealed class H4RepairPolicySqlTests(IdentitySqlServerFixture sql) : IClas
         Assert.Equal(200, (await repo.ExecuteAsync(publish, default)).Status);
         var freshDraft = await repo.ExecuteAsync(publish with { Action = "draft-get", Key = null }, default);
         Assert.Equal(409, (await repo.ExecuteAsync(update with { Key = Guid.NewGuid().ToString(), ExpectedVersion = freshDraft.Value!.Version }, default)).Status);
-        var revoke = publish with { Action = "revoke", ResourceId = published.Value.Id, Key = Guid.NewGuid().ToString(),
-            ExpectedVersion = published.Value.Version, Reason = "unsafe policy withdrawn" };
+        var revoke = publish with
+        {
+            Action = "revoke",
+            ResourceId = published.Value.Id,
+            Key = Guid.NewGuid().ToString(),
+            ExpectedVersion = published.Value.Version,
+            Reason = "unsafe policy withdrawn"
+        };
         var revoked = await repo.ExecuteAsync(revoke, default); Assert.Equal(201, revoked.Status); db.ChangeTracker.Clear();
         Assert.Equal("REVOKED", revoked.Value!.State); Assert.Equal(200, (await repo.ExecuteAsync(revoke, default)).Status);
         Assert.Equal(1, await db.Set<RepairPolicyRevision>().CountAsync(row => row.Id == published.Value.Id));

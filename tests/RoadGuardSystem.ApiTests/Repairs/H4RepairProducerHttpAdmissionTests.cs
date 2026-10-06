@@ -55,9 +55,14 @@ public sealed class H4RepairProducerHttpAdmissionTests(AuthenticationSqlServerFi
     private static string Path(string action)
     {
         var root = $"/api/v1/projects/{Guid.NewGuid()}/repair-packages";
-        return action switch { "create" => root, "propose" => root + $"/{Guid.NewGuid()}/items",
+        return action switch
+        {
+            "create" => root,
+            "propose" => root + $"/{Guid.NewGuid()}/items",
             "approve" => root + $"/{Guid.NewGuid()}/items/{Guid.NewGuid()}/approve",
-            "assign" => root + $"/{Guid.NewGuid()}/items/{Guid.NewGuid()}/assign", _ => throw new ArgumentException("Unknown test action.") };
+            "assign" => root + $"/{Guid.NewGuid()}/items/{Guid.NewGuid()}/assign",
+            _ => throw new ArgumentException("Unknown test action.")
+        };
     }
     private static object Input(string action) => action switch
     {

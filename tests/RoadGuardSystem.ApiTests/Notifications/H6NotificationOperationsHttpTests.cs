@@ -24,9 +24,16 @@ public sealed class H6NotificationOperationsHttpTests(AuthenticationSqlServerFix
         var outsider = await fixture.CreateUserAsync("h6-ops-other-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
         var now = DateTimeOffset.UtcNow;
         var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString("N"), "Notification scope", null, null, null, null, now);
-        var membership = new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = owner.Id,
-            RoleCode = UserRoleCode.ProjectManager, Status = ProjectMemberStatus.Active,
-            ValidFrom = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1), IsPrimary = true };
+        var membership = new ProjectMember
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            UserId = owner.Id,
+            RoleCode = UserRoleCode.ProjectManager,
+            Status = ProjectMemberStatus.Active,
+            ValidFrom = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1),
+            IsPrimary = true
+        };
         var notification = Notification.Create(Guid.NewGuid(), owner.Id, "Project", project.Id,
             "PROJECT_SCOPE", "Current project", "Current project notification", now);
         var first = DeadlineClock.Create(Guid.NewGuid(), project.Id, DeadlineClockKind.ProjectManagerReview,

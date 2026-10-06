@@ -23,8 +23,18 @@ public sealed class OfflineOperationAdmission
         OfflineRuntimeGuards.Json(scopeFactsJson, 1048576);
         if (role is not (UserRoleCode.ProjectManager or UserRoleCode.RepairCrew) || grant == Guid.Empty)
             throw new ArgumentException("An actual importing actor is required.");
-        return new() { Id=id, ProjectId=project, BatchId=batch, BindingId=binding, CurrentImporterId=importer,
-            ImporterRole=role, GrantId=grant, AdmissionMode=grant.HasValue ? "HANDOVER" : "DIRECT_SYNC",
-            ScopeFactsJson=scopeFactsJson, AdmittedAt=at.ToUniversalTime() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            BatchId = batch,
+            BindingId = binding,
+            CurrentImporterId = importer,
+            ImporterRole = role,
+            GrantId = grant,
+            AdmissionMode = grant.HasValue ? "HANDOVER" : "DIRECT_SYNC",
+            ScopeFactsJson = scopeFactsJson,
+            AdmittedAt = at.ToUniversalTime()
+        };
     }
 }

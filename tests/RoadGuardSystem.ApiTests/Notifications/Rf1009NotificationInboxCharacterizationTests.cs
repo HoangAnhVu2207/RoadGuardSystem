@@ -38,12 +38,14 @@ public sealed class Rf1009NotificationInboxCharacterizationTests
         // Arrange: create two users and notifications for each
         var recipient = await _sql.CreateUserAsync($"rf1009_recipient_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var outsider = await _sql.CreateUserAsync($"rf1009_outsider_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        await using var source = _sql.CreateDbContext();
+        var projectId = await CreateProjectWithMemberAsync(source, recipient.Id);
 
         var recipientNotification = Notification.Create(
             Guid.NewGuid(),
             recipient.Id,
-            "SurveyRequest",
-            Guid.NewGuid(),
+            "Project",
+            projectId,
             "survey_request.created",
             "Survey request created",
             "A new survey request was created for your project.",
@@ -132,10 +134,12 @@ public sealed class Rf1009NotificationInboxCharacterizationTests
         // Arrange: create recipient with multiple notifications and outsider with own notification
         var recipient = await _sql.CreateUserAsync($"rf1009_list_recipient_{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
         var outsider = await _sql.CreateUserAsync($"rf1009_list_outsider_{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        await using var source = _sql.CreateDbContext();
+        var projectId = await CreateProjectWithMemberAsync(source, recipient.Id, UserRoleCode.DroneOperator);
 
-        var n1 = Notification.Create(Guid.NewGuid(), recipient.Id, "Task", Guid.NewGuid(), "task.assigned", "Task 1", "Body 1", DateTimeOffset.UtcNow.AddMinutes(-30));
-        var n2 = Notification.Create(Guid.NewGuid(), recipient.Id, "Task", Guid.NewGuid(), "task.updated", "Task 2", "Body 2", DateTimeOffset.UtcNow.AddMinutes(-20));
-        var n3 = Notification.Create(Guid.NewGuid(), recipient.Id, "Task", Guid.NewGuid(), "task.completed", "Task 3", "Body 3", DateTimeOffset.UtcNow.AddMinutes(-10));
+        var n1 = Notification.Create(Guid.NewGuid(), recipient.Id, "Project", projectId, "task.assigned", "Task 1", "Body 1", DateTimeOffset.UtcNow.AddMinutes(-30));
+        var n2 = Notification.Create(Guid.NewGuid(), recipient.Id, "Project", projectId, "task.updated", "Task 2", "Body 2", DateTimeOffset.UtcNow.AddMinutes(-20));
+        var n3 = Notification.Create(Guid.NewGuid(), recipient.Id, "Project", projectId, "task.completed", "Task 3", "Body 3", DateTimeOffset.UtcNow.AddMinutes(-10));
         var outsiderN = Notification.Create(Guid.NewGuid(), outsider.Id, "Task", Guid.NewGuid(), "task.assigned", "Outsider task", "Outsider body", DateTimeOffset.UtcNow.AddMinutes(-15));
 
         await using (var setup = _sql.CreateDbContext())
@@ -180,11 +184,13 @@ public sealed class Rf1009NotificationInboxCharacterizationTests
         // Arrange
         var recipient = await _sql.CreateUserAsync($"rf1009_markread_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var outsider = await _sql.CreateUserAsync($"rf1009_markread_outsider_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        await using var source = _sql.CreateDbContext();
+        var projectId = await CreateProjectWithMemberAsync(source, recipient.Id);
         var notification = Notification.Create(
             Guid.NewGuid(),
             recipient.Id,
-            "Defect",
-            Guid.NewGuid(),
+            "Project",
+            projectId,
             "defect.detected",
             "Defect detected",
             "A new defect was detected in your project.",
@@ -527,7 +533,8 @@ public sealed class Rf1009NotificationInboxCharacterizationTests
             notification.RowVersion.ToArray());
     }
 
-    private static async Task<Guid> CreateProjectWithMemberAsync(RoadGuardDbContext context, Guid pmUserId)
+    private static async Task<Guid> CreateProjectWithMemberAsync(RoadGuardDbContext context, Guid userId,
+        UserRoleCode role = UserRoleCode.ProjectManager)
     {
         var projectId = Guid.NewGuid();
         var project = new Project
@@ -542,11 +549,18 @@ public sealed class Rf1009NotificationInboxCharacterizationTests
             RowVersion = new byte[8]
         };
 
-        var member = ProjectMember.CreatePrimaryProjectManager(
-            Guid.NewGuid(),
-            projectId,
-            pmUserId,
-            DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30)));
+        var member = role == UserRoleCode.ProjectManager
+            ? ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), projectId, userId,
+                DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30)))
+            : new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                UserId = userId,
+                RoleCode = role,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30))
+            };
 
         context.Projects.Add(project);
         context.ProjectMembers.Add(member);

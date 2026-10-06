@@ -49,8 +49,11 @@ public sealed class RepairLifecycleService(IRepairLifecycleRepository repository
     {
         var result = await operation;
         if (result.Value is not RepairLifecycleFact fact) return result;
-        return result with { Value = new RepairLifecycleView(fact.SourceItemId, fact.SuccessorItemId, fact.ObligationId,
+        return result with
+        {
+            Value = new RepairLifecycleView(fact.SourceItemId, fact.SuccessorItemId, fact.ObligationId,
             fact.CancellationEventId, fact.HandoverEventId, fact.ContinuationId, fact.SourceState, fact.SuccessorState,
-            fact.SourceVersion, fact.SuccessorVersion) };
+            fact.SourceVersion, fact.SuccessorVersion)
+        };
     }
 }

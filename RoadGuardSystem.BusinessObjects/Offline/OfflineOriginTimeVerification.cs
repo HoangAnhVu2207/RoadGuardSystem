@@ -26,9 +26,15 @@ public sealed class OfflineOriginTimeVerification
             throw new ArgumentException("An independently retained original server event is required.");
         return new()
         {
-            Id = id, ProjectId = projectId, BindingId = bindingId, CanonicalOriginId = canonicalOriginId,
-            TypedEffectId = typedEffectId, ProofSourceKind = proofSourceKind, ProofSourceId = proofSourceId,
-            OriginalOccurredAtUtc = originalOccurredAtUtc.ToUniversalTime(), VerifiedBy = verifiedBy,
+            Id = id,
+            ProjectId = projectId,
+            BindingId = bindingId,
+            CanonicalOriginId = canonicalOriginId,
+            TypedEffectId = typedEffectId,
+            ProofSourceKind = proofSourceKind,
+            ProofSourceId = proofSourceId,
+            OriginalOccurredAtUtc = originalOccurredAtUtc.ToUniversalTime(),
+            VerifiedBy = verifiedBy,
             RecordedAtUtc = recordedAtUtc.ToUniversalTime()
         };
     }

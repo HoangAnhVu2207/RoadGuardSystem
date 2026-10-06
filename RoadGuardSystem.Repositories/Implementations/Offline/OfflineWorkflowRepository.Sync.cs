@@ -90,8 +90,14 @@ public sealed partial class OfflineWorkflowRepository
                 if (admission is null)
                 {
                     admission = OfflineOperationAdmission.Record(Guid.NewGuid(), command.ProjectId, batch.Id, binding.Id,
-                        command.ActorId, command.Role, imported?.GrantId, JsonSerializer.Serialize(new { operation.TaskId, operation.AssignmentId,
-                            operation.SnapshotId, sourceRegistrationId = source.Id, claimStatus = "SIGNED_ORIGIN_UNVERIFIED_TIME" }, Json), clock.GetUtcNow());
+                        command.ActorId, command.Role, imported?.GrantId, JsonSerializer.Serialize(new
+                        {
+                            operation.TaskId,
+                            operation.AssignmentId,
+                            operation.SnapshotId,
+                            sourceRegistrationId = source.Id,
+                            claimStatus = "SIGNED_ORIGIN_UNVERIFIED_TIME"
+                        }, Json), clock.GetUtcNow());
                     db.Add(admission); await db.SaveChangesAsync(token);
                 }
                 admissions.Add(operation.OriginId, admission);

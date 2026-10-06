@@ -22,7 +22,7 @@ namespace RoadGuardSystem.IntegrationTests.Repairs;
 // Native source integration: genuine Reporter lineage; it does not assert survey accuracy or FT eligibility.
 public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql) : IClassFixture<IdentitySqlServerFixture>
 {
-    private static readonly System.Text.Json.JsonSerializerOptions SourceJson=new(System.Text.Json.JsonSerializerDefaults.Web);
+    private static readonly System.Text.Json.JsonSerializerOptions SourceJson = new(System.Text.Json.JsonSerializerDefaults.Web);
     [Theory]
     [InlineData(RepairMode.Normal, "NORMAL")]
     [InlineData(RepairMode.FastTrack, "CONDITIONAL_FT")]
@@ -52,8 +52,14 @@ public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql)
             produced.Item.ProposalPlanHash!, produced.Item.ChecklistVersion!, scope.Route, scope.Set, null, null, null, null,
             "source-route:" + scope.Route, scope.Pm, now, "actual initial normal assignment",
             Convert.ToBase64String(produced.Task.RowVersion), Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-                System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { assignment.Id, assignment.FieldInspectionTaskId,
-                    assignment.AssignedToUserId, assignment.AssignedByUserId, assignment.AssignedAt },
+                System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new
+                {
+                    assignment.Id,
+                    assignment.FieldInspectionTaskId,
+                    assignment.AssignedToUserId,
+                    assignment.AssignedByUserId,
+                    assignment.AssignedAt
+                },
                     SourceJson))).ToLowerInvariant());
         db.Add(binding); await db.SaveChangesAsync();
         db.Entry(produced.Item).Property(row => row.CurrentBindingId).CurrentValue = binding.Id;
@@ -91,9 +97,17 @@ public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql)
         await db.Database.MigrateAsync(); await sql.SeedRolesAsync(db); var now = DateTimeOffset.UtcNow;
         ApplicationUser User(UserRoleCode role)
         {
-            var name = Guid.NewGuid().ToString(); return new() { Id = Guid.NewGuid(), UserName = name,
-                NormalizedUserName = name.ToUpperInvariant(), DisplayName = "H4 genuine source fixture",
-                PasswordHash = "fixture", RoleCode = role, Status = UserStatus.Active, CreatedAt = now };
+            var name = Guid.NewGuid().ToString(); return new()
+            {
+                Id = Guid.NewGuid(),
+                UserName = name,
+                NormalizedUserName = name.ToUpperInvariant(),
+                DisplayName = "H4 genuine source fixture",
+                PasswordHash = "fixture",
+                RoleCode = role,
+                Status = UserStatus.Active,
+                CreatedAt = now
+            };
         }
         var pm = User(UserRoleCode.ProjectManager); var crew = User(UserRoleCode.RepairCrew);
         var supervisor = User(UserRoleCode.Supervisor); var reporter = User(UserRoleCode.Reporter);
@@ -107,10 +121,24 @@ public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql)
         var type = DefectType.Create("H4" + Guid.NewGuid().ToString("N"), "H4 genuine Reporter source");
         db.AddRange(pm, crew, supervisor, reporter, project, road, route, set, segment, type,
             ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm.Id, new(2000, 1, 1)),
-            new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = crew.Id, RoleCode = UserRoleCode.RepairCrew,
-                ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active },
-            new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = supervisor.Id, RoleCode = UserRoleCode.Supervisor,
-                ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active });
+            new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = crew.Id,
+                RoleCode = UserRoleCode.RepairCrew,
+                ValidFrom = new(2000, 1, 1),
+                Status = ProjectMemberStatus.Active
+            },
+            new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = supervisor.Id,
+                RoleCode = UserRoleCode.Supervisor,
+                ValidFrom = new(2000, 1, 1),
+                Status = ProjectMemberStatus.Active
+            });
         await db.SaveChangesAsync();
         var file = StoredFile.Create(Guid.NewGuid(), "private/h4-reporter-" + Guid.NewGuid().ToString("N"), "source.jpg",
             "image/jpeg", 4, new string('b', 64), reporter.Id, now, null);
@@ -123,8 +151,13 @@ public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql)
             [VerifiedEvidenceReference.Create(Guid.NewGuid(), file.Id, Convert.ToBase64String(upload.RowVersion), reporter.Id)]);
         var incident = IncidentCase.CreateUnassigned(Guid.NewGuid(), report.Id, now);
         incident.Triage(project.Id, CaseVerificationMethod.ExistingEvidence, "actual retained source", now);
-        db.AddRange(report, incident); db.Set<HuyCaseReportLink>().Add(new() { Id = Guid.NewGuid(), CaseId = incident.Id,
-            ReportId = report.Id, StartedAt = now }); await db.SaveChangesAsync();
+        db.AddRange(report, incident); db.Set<HuyCaseReportLink>().Add(new()
+        {
+            Id = Guid.NewGuid(),
+            CaseId = incident.Id,
+            ReportId = report.Id,
+            StartedAt = now
+        }); await db.SaveChangesAsync();
         var source = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(CandidateSourceKind.Report, report.Id,
             "fixture-source"), project.Id, "fixture-geometry");
         var accepted = await new CandidateDecisionRepository(db).SaveAcceptedAsync(pm.Id, source, CandidateDecisionKind.KeepNew,

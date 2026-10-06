@@ -16,8 +16,8 @@ public partial class H4RepairProducers
 
     private static void InstallRepairProducerGuards(MigrationBuilder migrationBuilder)
     {
-        ReplaceNativeTaskModeGuard(migrationBuilder,forward:true);
-        ReplaceNativeSessionPurposeGuard(migrationBuilder,forward:true);
+        ReplaceNativeTaskModeGuard(migrationBuilder, forward: true);
+        ReplaceNativeSessionPurposeGuard(migrationBuilder, forward: true);
         foreach (var table in ProducerHistoryTables)
             migrationBuilder.Sql($"""
                 CREATE TRIGGER [TR_{table}_Immutable] ON [{table}] AFTER INSERT, UPDATE, DELETE AS
@@ -90,29 +90,29 @@ public partial class H4RepairProducers
             """);
     }
 
-    private static void ReplaceNativeTaskModeGuard(MigrationBuilder migrationBuilder,bool forward)
+    private static void ReplaceNativeTaskModeGuard(MigrationBuilder migrationBuilder, bool forward)
     {
-        const string prior="i.[TaskMode]<>'MEASURE_ONLY'";
-        const string next="i.[TaskMode] NOT IN ('MEASURE_ONLY','NORMAL','CONDITIONAL_FT')";
-        var source=forward?prior:next;var target=forward?next:prior;
+        const string prior = "i.[TaskMode]<>'MEASURE_ONLY'";
+        const string next = "i.[TaskMode] NOT IN ('MEASURE_ONLY','NORMAL','CONDITIONAL_FT')";
+        var source = forward ? prior : next; var target = forward ? next : prior;
         // Forward correction of the actual installed H3 guard. Preserve every other
         // lineage/geometry/legacy predicate; refuse unexpected installed definitions.
         migrationBuilder.Sql($"""
             DECLARE @nativeTaskGuard nvarchar(max)=OBJECT_DEFINITION(OBJECT_ID(N'[dbo].[TR_FieldInspectionTasks_H3Scope]'));
-            IF @nativeTaskGuard IS NULL OR CHARINDEX(N'{source.Replace("'","''",StringComparison.Ordinal)}',
+            IF @nativeTaskGuard IS NULL OR CHARINDEX(N'{source.Replace("'", "''", StringComparison.Ordinal)}',
                 @nativeTaskGuard COLLATE Latin1_General_100_BIN2)=0
                 THROW 51395, 'Installed FIELD task guard does not match the supported source version.', 1;
-            SET @nativeTaskGuard=REPLACE(@nativeTaskGuard,N'{source.Replace("'","''",StringComparison.Ordinal)}',N'{target.Replace("'","''",StringComparison.Ordinal)}');
+            SET @nativeTaskGuard=REPLACE(@nativeTaskGuard,N'{source.Replace("'", "''", StringComparison.Ordinal)}',N'{target.Replace("'", "''", StringComparison.Ordinal)}');
             SET @nativeTaskGuard=REPLACE(@nativeTaskGuard,N'CREATE OR ALTER TRIGGER',N'ALTER TRIGGER');
             IF LEFT(@nativeTaskGuard,6)=N'CREATE' SET @nativeTaskGuard=STUFF(@nativeTaskGuard,1,6,N'ALTER');
             EXEC sys.sp_executesql @nativeTaskGuard;
             """);
     }
 
-    private static void ReplaceNativeSessionPurposeGuard(MigrationBuilder migrationBuilder,bool forward)
+    private static void ReplaceNativeSessionPurposeGuard(MigrationBuilder migrationBuilder, bool forward)
     {
-        const string prior="t.[Purpose]<>s.[Purpose]";
-        const string next="""
+        const string prior = "t.[Purpose]<>s.[Purpose]";
+        const string next = """
             (t.[Purpose]<>s.[Purpose] AND NOT (s.[Purpose]=3 AND t.[Purpose]=4
                 AND t.[TaskMode] IN('NORMAL','CONDITIONAL_FT') AND t.[RepairItemId] IS NOT NULL
                 AND (EXISTS (SELECT 1 FROM deleted priorSession WHERE priorSession.Id=s.Id) OR t.[Status] IN(2,4))
@@ -124,13 +124,13 @@ public partial class H4RepairProducers
                         AND (EXISTS (SELECT 1 FROM deleted priorSession WHERE priorSession.Id=s.Id)
                             OR (assignment.Status=1 AND assignment.EndedAt IS NULL)))))
             """;
-        var source=forward?prior:next;var target=forward?next:prior;
+        var source = forward ? prior : next; var target = forward ? next : prior;
         migrationBuilder.Sql($"""
             DECLARE @nativeSessionGuard nvarchar(max)=OBJECT_DEFINITION(OBJECT_ID(N'[dbo].[TR_FieldInspectionSessions_Integrity]'));
-            IF @nativeSessionGuard IS NULL OR CHARINDEX(N'{source.Replace("'","''",StringComparison.Ordinal)}',
+            IF @nativeSessionGuard IS NULL OR CHARINDEX(N'{source.Replace("'", "''", StringComparison.Ordinal)}',
                 @nativeSessionGuard COLLATE Latin1_General_100_BIN2)=0
                 THROW 51395, 'Installed FIELD session guard does not match the supported source version.', 1;
-            SET @nativeSessionGuard=REPLACE(@nativeSessionGuard,N'{source.Replace("'","''",StringComparison.Ordinal)}',N'{target.Replace("'","''",StringComparison.Ordinal)}');
+            SET @nativeSessionGuard=REPLACE(@nativeSessionGuard,N'{source.Replace("'", "''", StringComparison.Ordinal)}',N'{target.Replace("'", "''", StringComparison.Ordinal)}');
             SET @nativeSessionGuard=REPLACE(@nativeSessionGuard,N'CREATE OR ALTER TRIGGER',N'ALTER TRIGGER');
             IF LEFT(@nativeSessionGuard,6)=N'CREATE' SET @nativeSessionGuard=STUFF(@nativeSessionGuard,1,6,N'ALTER');
             EXEC sys.sp_executesql @nativeSessionGuard;
@@ -159,7 +159,7 @@ public partial class H4RepairProducers
         migrationBuilder.Sql("DROP TRIGGER IF EXISTS [TR_RepairSafetyMonitoring_Scope];");
         migrationBuilder.Sql("DROP TRIGGER IF EXISTS [TR_RepairObligations_ProducerHeads];");
         migrationBuilder.Sql("DROP TRIGGER IF EXISTS [TR_FieldInspectionTasks_H4RepairPin];");
-        ReplaceNativeTaskModeGuard(migrationBuilder,forward:false);
-        ReplaceNativeSessionPurposeGuard(migrationBuilder,forward:false);
+        ReplaceNativeTaskModeGuard(migrationBuilder, forward: false);
+        ReplaceNativeSessionPurposeGuard(migrationBuilder, forward: false);
     }
 }

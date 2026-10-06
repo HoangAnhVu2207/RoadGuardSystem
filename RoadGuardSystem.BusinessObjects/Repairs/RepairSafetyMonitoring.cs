@@ -47,8 +47,16 @@ public sealed class RepairSafetyMonitoring
             safety.ProjectId != measure.ProjectId || formal.ProjectId != measure.ProjectId ||
             safety.DefectId != measure.DefectId || formal.DefectId != measure.DefectId || formal.Id != measure.FormalRepairObligationId)
             throw new InvalidOperationException("Monitoring requires the actual related safety and formal obligations.");
-        return new RepairSafetyMonitoring { Id = measure.Id, MeasureId = measure.Id, SafetyObligationId = safety.Id,
-            FormalObligationId = formal.Id, Measure = measure, SafetyObligation = safety, FormalObligation = formal };
+        return new RepairSafetyMonitoring
+        {
+            Id = measure.Id,
+            MeasureId = measure.Id,
+            SafetyObligationId = safety.Id,
+            FormalObligationId = formal.Id,
+            Measure = measure,
+            SafetyObligation = safety,
+            FormalObligation = formal
+        };
     }
     public RepairSafetyCheck RecordCheck(Guid id, Guid actor, DateTimeOffset at, RepairSafetyCheckResult result,
         string findings, IReadOnlyList<Guid> evidence)

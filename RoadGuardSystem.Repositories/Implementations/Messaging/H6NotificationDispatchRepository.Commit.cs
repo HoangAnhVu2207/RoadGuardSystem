@@ -49,11 +49,21 @@ public sealed partial class H6NotificationDispatchRepository
                 Receipt(message, claim, row.Id, "COMMITTED", now); message.CompleteLease(Owner(claim));
                 return new("COMMITTED", message.Id, row.Id);
             }
-            row = new() { Id = occurrence.Id, ProjectId = envelope.ProjectId, SourceEventId = message.Id,
-                OccurrenceKey = occurrence.OccurrenceKey, ContentFingerprint = occurrence.ContentFingerprint,
-                EventType = message.MessageType, SourceKind = plan.Source.SourceKind, SourceId = envelope.SourceId,
-                OriginEventId = envelope.OriginEventId, PayloadJson = message.PayloadJson, OccurredAtUtc = envelope.OccurredAtUtc,
-                ScheduledAtUtc = plan.Source.ScheduledAtUtc };
+            row = new()
+            {
+                Id = occurrence.Id,
+                ProjectId = envelope.ProjectId,
+                SourceEventId = message.Id,
+                OccurrenceKey = occurrence.OccurrenceKey,
+                ContentFingerprint = occurrence.ContentFingerprint,
+                EventType = message.MessageType,
+                SourceKind = plan.Source.SourceKind,
+                SourceId = envelope.SourceId,
+                OriginEventId = envelope.OriginEventId,
+                PayloadJson = message.PayloadJson,
+                OccurredAtUtc = envelope.OccurredAtUtc,
+                ScheduledAtUtc = plan.Source.ScheduledAtUtc
+            };
             db.Set<H6NotificationOccurrenceRow>().Add(row);
             var effects = await DeliverAsync(row, plan, proof, now, token);
             Receipt(message, claim, row.Id, "COMMITTED", now); message.CompleteLease(Owner(claim));
@@ -98,13 +108,31 @@ public sealed partial class H6NotificationDispatchRepository
     {
         var key = Hash(messageId.ToString("N") + "|" + NotificationRegisteredTypes.RegistryVersion + "|" + reason);
         if (!await db.Set<H6NotificationAuditRow>().AnyAsync(row => row.DedupKey == key, token))
-            db.Set<H6NotificationAuditRow>().Add(new() { Id = Guid.NewGuid(), OutboxMessageId = messageId, ProjectId = projectId,
-                Classification = classification, SourceKind = provenSource?.SourceKind ?? "REGISTERED", SourceId = provenSource?.SourceId ?? Guid.Empty, ReasonCode = reason,
-                ResolverVersion = NotificationRegisteredTypes.RegistryVersion, DedupKey = key, RecordedAtUtc = now });
+            db.Set<H6NotificationAuditRow>().Add(new()
+            {
+                Id = Guid.NewGuid(),
+                OutboxMessageId = messageId,
+                ProjectId = projectId,
+                Classification = classification,
+                SourceKind = provenSource?.SourceKind ?? "REGISTERED",
+                SourceId = provenSource?.SourceId ?? Guid.Empty,
+                ReasonCode = reason,
+                ResolverVersion = NotificationRegisteredTypes.RegistryVersion,
+                DedupKey = key,
+                RecordedAtUtc = now
+            });
     }
     private void Receipt(OutboxMessage message, H6Claim claim, Guid? occurrenceId, string status, DateTimeOffset now)
-        => db.Set<H6NotificationEventReceipt>().Add(new() { OutboxMessageId = message.Id, CompletionFence = claim.Fence,
-            OccurrenceId = occurrenceId, MessageType = message.MessageType, PayloadHash = Hash(message.PayloadJson), Status = status, RecordedAtUtc = now });
+        => db.Set<H6NotificationEventReceipt>().Add(new()
+        {
+            OutboxMessageId = message.Id,
+            CompletionFence = claim.Fence,
+            OccurrenceId = occurrenceId,
+            MessageType = message.MessageType,
+            PayloadHash = Hash(message.PayloadJson),
+            Status = status,
+            RecordedAtUtc = now
+        });
     private static string Owner(H6Claim claim) => "h6:" + claim.Fence.ToString("N");
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
     private static string Sanitize(string reason) => reason is "notification_envelope_invalid" or "notification_event_unregistered" or

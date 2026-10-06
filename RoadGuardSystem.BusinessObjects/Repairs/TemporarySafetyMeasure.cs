@@ -28,9 +28,17 @@ public sealed class TemporarySafetyMeasure
         string schedule, string replacement, string removal)
     {
         RepairGuards.Id(id); RepairGuards.Id(project); RepairGuards.Id(defect); RepairGuards.Id(formalObligation); RepairGuards.Id(responsible);
-        return new TemporarySafetyMeasure { Id = id, ProjectId = project, DefectId = defect, FormalRepairObligationId = formalObligation,
-            ResponsibleActorId = responsible, CheckSchedule = RepairGuards.Text(schedule), ReplacementCondition = RepairGuards.Text(replacement),
-            RemovalCondition = RepairGuards.Text(removal) };
+        return new TemporarySafetyMeasure
+        {
+            Id = id,
+            ProjectId = project,
+            DefectId = defect,
+            FormalRepairObligationId = formalObligation,
+            ResponsibleActorId = responsible,
+            CheckSchedule = RepairGuards.Text(schedule),
+            ReplacementCondition = RepairGuards.Text(replacement),
+            RemovalCondition = RepairGuards.Text(removal)
+        };
     }
     public void Install(Guid eventId, Guid actor, DateTimeOffset at, DateTimeOffset firstCheckDue)
     {

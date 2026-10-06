@@ -15,8 +15,13 @@ public sealed class H6FieldNotificationSourceAdapter(RoadGuardDbContext db) : IH
            join assignment in db.FieldInspectionAssignments.Where(row => row.Status == FieldInspectionAssignmentStatus.Active && row.EndedAt == null)
                on task.Id equals assignment.FieldInspectionTaskId into assignments
            from assignment in assignments.DefaultIfEmpty()
-           select new H6SourceScope { SourceKind = "FieldTask", SourceId = task.Id,
-               ProjectId = task.ProjectId, AssignedUserId = assignment == null ? null : assignment.AssignedToUserId };
+           select new H6SourceScope
+           {
+               SourceKind = "FieldTask",
+               SourceId = task.Id,
+               ProjectId = task.ProjectId,
+               AssignedUserId = assignment == null ? null : assignment.AssignedToUserId
+           };
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);

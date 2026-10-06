@@ -25,7 +25,7 @@ public sealed class FieldTaskStartOriginConfiguration : IEntityTypeConfiguration
         builder.HasOne<CrsProfileRevision>().WithMany().HasForeignKey(x => x.CrsProfileRevisionId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(x => x.SlabId).HasMaxLength(160);
         builder.Property(x => x.LocationPolicyVersion).HasMaxLength(60);
-        builder.HasOne<FieldInspectionOperationOrigin>().WithMany().HasForeignKey(x=>x.OperationOriginId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<FieldInspectionOperationOrigin>().WithMany().HasForeignKey(x => x.OperationOriginId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(x => x.TaskId).IsUnique();
         builder.HasIndex(x => new { x.ProjectId, x.OriginId }).IsUnique();
         builder.Property(x => x.ContentHash).HasMaxLength(64);
@@ -49,7 +49,7 @@ public sealed class FieldInspectionSubmissionConfiguration : IEntityTypeConfigur
         builder.HasOne<FieldTaskStartOrigin>().WithMany().HasForeignKey(x => x.StartOriginId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<FieldInspectionSession>().WithMany().HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.OriginalActorId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<FieldInspectionOperationOrigin>().WithMany().HasForeignKey(x=>x.OperationOriginId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<FieldInspectionOperationOrigin>().WithMany().HasForeignKey(x => x.OperationOriginId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(x => new { x.RootId, x.Revision }).IsUnique();
         builder.HasIndex(x => x.SessionId).IsUnique().HasDatabaseName("UX_FieldInspectionSubmissions_Session");
         builder.HasIndex(x => x.TaskId).IsUnique().HasFilter("[Revision] = 1").HasDatabaseName("UX_FieldInspectionSubmissions_TaskRoot");
@@ -123,9 +123,9 @@ public sealed class FieldInspectionTaskEventConfiguration : IEntityTypeConfigura
         builder.HasOne<FieldInspectionTask>().WithMany().HasForeignKey(x => x.TaskId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.ActorId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<FieldInspectionAssignment>().WithMany().HasForeignKey(x => x.AssignmentId).OnDelete(DeleteBehavior.Restrict);
-        builder.Property(x=>x.FactsJson).HasDefaultValue("{}");
-        builder.HasOne<GeometryLocationImpact>().WithMany().HasForeignKey(x=>x.LocationImpactId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<GeometryLocationImpactDecision>().WithMany().HasForeignKey(x=>x.LocationImpactDecisionId).OnDelete(DeleteBehavior.Restrict);
+        builder.Property(x => x.FactsJson).HasDefaultValue("{}");
+        builder.HasOne<GeometryLocationImpact>().WithMany().HasForeignKey(x => x.LocationImpactId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<GeometryLocationImpactDecision>().WithMany().HasForeignKey(x => x.LocationImpactDecisionId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(x => x.Kind).HasMaxLength(20);
         builder.Property(x => x.Reason).HasMaxLength(2000);
     }
@@ -150,18 +150,19 @@ public sealed class FieldInspectionOperationOriginConfiguration : IEntityTypeCon
 {
     public void Configure(EntityTypeBuilder<FieldInspectionOperationOrigin> builder)
     {
-        builder.ToTable("FieldInspectionOperationOrigins", table => {
+        builder.ToTable("FieldInspectionOperationOrigins", table =>
+        {
             table.HasTrigger("TR_FieldInspectionOperationOrigins_Immutable");
             table.HasTrigger("TR_FieldInspectionOperationOrigins_Scope");
             table.HasCheckConstraint("CK_FieldInspectionOperationOrigins_Kind", "[Kind] IN ('FIELD_START','FIELD_SUBMISSION','FIELD_ACCEPT','REPAIR_ASSESSMENT','REPAIR_EXECUTION_START','REPAIR_EXECUTION_FINISH') AND [SchemaVersion]=1");
         });
-        builder.HasKey(x=>x.Id);
-        builder.Property(x=>x.Id).ValueGeneratedNever();
-        builder.HasIndex(x=>new {x.ProjectId,x.OriginId}).IsUnique();
-        builder.Property(x=>x.Kind).HasMaxLength(40);
-        builder.Property(x=>x.ContentHash).HasMaxLength(64);
-        builder.HasOne<Project>().WithMany().HasForeignKey(x=>x.ProjectId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<FieldInspectionTask>().WithMany().HasForeignKey(x=>x.TaskId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x=>x.OriginalActorId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        builder.HasIndex(x => new { x.ProjectId, x.OriginId }).IsUnique();
+        builder.Property(x => x.Kind).HasMaxLength(40);
+        builder.Property(x => x.ContentHash).HasMaxLength(64);
+        builder.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<FieldInspectionTask>().WithMany().HasForeignKey(x => x.TaskId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.OriginalActorId).OnDelete(DeleteBehavior.Restrict);
     }
 }

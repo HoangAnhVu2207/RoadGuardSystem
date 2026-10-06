@@ -22,9 +22,19 @@ public sealed class OfflineDeviceRegistration
         if (revision < 1 || role is not (UserRoleCode.RepairCrew or UserRoleCode.ProjectManager))
             throw new ArgumentException("A supported device actor and revision are required.");
         OfflinePackageAuthentication.ValidateRegistration(new(actor, device.ToString("D"), encryptionPublicKey, signingPublicKey));
-        return new() { Id=id, ProjectId=project, ActorId=actor, DeviceId=device, Revision=revision,
-            RoleSnapshot=role, EncryptionPublicKey=encryptionPublicKey, SigningPublicKey=signingPublicKey,
-            KeyFingerprint=OfflineRuntimeGuards.Digest(encryptionPublicKey+"\n"+signingPublicKey), RegisteredAt=at.ToUniversalTime() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            ActorId = actor,
+            DeviceId = device,
+            Revision = revision,
+            RoleSnapshot = role,
+            EncryptionPublicKey = encryptionPublicKey,
+            SigningPublicKey = signingPublicKey,
+            KeyFingerprint = OfflineRuntimeGuards.Digest(encryptionPublicKey + "\n" + signingPublicKey),
+            RegisteredAt = at.ToUniversalTime()
+        };
     }
 }
 public sealed class OfflineDeviceRevocation
@@ -41,7 +51,14 @@ public sealed class OfflineDeviceRevocation
     {
         OfflineRuntimeGuards.Identity(id, project, registration, actor); OfflineRuntimeGuards.Time(at);
         if (string.IsNullOrWhiteSpace(reason) || reason.Length > 2000) throw new ArgumentException("Revocation reason is required.");
-        return new() { Id=id, ProjectId=project, DeviceRegistrationId=registration, RevokedBy=actor,
-            RevokedAt=at.ToUniversalTime(), Reason=reason.Trim() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            DeviceRegistrationId = registration,
+            RevokedBy = actor,
+            RevokedAt = at.ToUniversalTime(),
+            Reason = reason.Trim()
+        };
     }
 }

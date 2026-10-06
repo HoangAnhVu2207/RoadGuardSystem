@@ -5,6 +5,7 @@ using System.Text.Json;
 using FluentAssertions;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 
@@ -23,9 +24,27 @@ public sealed class P2NotificationApiTests
     {
         var owner = await _sql.CreateUserAsync($"p2_notification_owner_{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
         var other = await _sql.CreateUserAsync($"p2_notification_other_{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
-        var notification = Notification.Create(Guid.NewGuid(), owner.Id, "SurveyRequest", Guid.NewGuid(), "ASSIGNED", "Survey assigned", "A survey task was assigned.", DateTimeOffset.UtcNow);
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            ProjectCode = $"P2-INBOX-{Guid.NewGuid():N}",
+            Name = "Inbox source",
+            Status = ProjectStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        var notification = Notification.Create(Guid.NewGuid(), owner.Id, "Project", project.Id, "ASSIGNED", "Survey assigned", "A survey task was assigned.", DateTimeOffset.UtcNow);
         await using (var context = _sql.CreateDbContext())
         {
+            context.Projects.Add(project);
+            context.ProjectMembers.Add(new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = owner.Id,
+                RoleCode = UserRoleCode.DroneOperator,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))
+            });
             context.Notifications.Add(notification);
             await context.SaveChangesAsync();
         }

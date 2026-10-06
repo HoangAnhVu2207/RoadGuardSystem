@@ -59,11 +59,20 @@ public sealed class OfflineOperationBinding
             throw new ArgumentException("The original body hash cannot be rewritten for historical binding.");
         return new()
         {
-            Id = id, ProjectId = canonical.ProjectId, OriginId = canonical.OriginId, EffectId = actualStart.Id,
-            Kind = "FIELD_START", CorePayloadHash = canonical.ContentHash, EnvelopeHash = envelopeHash,
-            OriginalActorId = actualStart.OriginalActorId, SourceDeviceRegistrationId = sourceRegistration,
-            TaskId = actualStart.TaskId, AssignmentId = actualStart.AssignmentId, SnapshotId = snapshot,
-            EnvelopeJson = envelopeJson, FirstServerReceivedAt = receivedAt.ToUniversalTime()
+            Id = id,
+            ProjectId = canonical.ProjectId,
+            OriginId = canonical.OriginId,
+            EffectId = actualStart.Id,
+            Kind = "FIELD_START",
+            CorePayloadHash = canonical.ContentHash,
+            EnvelopeHash = envelopeHash,
+            OriginalActorId = actualStart.OriginalActorId,
+            SourceDeviceRegistrationId = sourceRegistration,
+            TaskId = actualStart.TaskId,
+            AssignmentId = actualStart.AssignmentId,
+            SnapshotId = snapshot,
+            EnvelopeJson = envelopeJson,
+            FirstServerReceivedAt = receivedAt.ToUniversalTime()
         };
     }
     public static OfflineOperationBinding Bind(Guid id, Guid project, Guid origin, Guid effect, string kind,
@@ -78,10 +87,23 @@ public sealed class OfflineOperationBinding
         var repair = kind is "REPAIR_ASSESSMENT" or "REPAIR_EXECUTION_START" or "REPAIR_EXECUTION_FINISH";
         if (repairResourceId == Guid.Empty || repair != repairResourceId.HasValue)
             throw new ArgumentException("Repair kinds require an explicit actual item pin; FIELD kinds have none.");
-        return new() { Id=id, ProjectId=project, OriginId=origin, EffectId=effect, Kind=kind,
-            CorePayloadHash=coreHash.ToLowerInvariant(), EnvelopeHash=envelopeHash.ToLowerInvariant(), OriginalActorId=originalActor,
-            SourceDeviceRegistrationId=sourceRegistration, TaskId=task, AssignmentId=assignment, SnapshotId=snapshot,
-            RepairResourceId=repairResourceId,
-            EnvelopeJson=envelopeJson, FirstServerReceivedAt=at.ToUniversalTime() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            OriginId = origin,
+            EffectId = effect,
+            Kind = kind,
+            CorePayloadHash = coreHash.ToLowerInvariant(),
+            EnvelopeHash = envelopeHash.ToLowerInvariant(),
+            OriginalActorId = originalActor,
+            SourceDeviceRegistrationId = sourceRegistration,
+            TaskId = task,
+            AssignmentId = assignment,
+            SnapshotId = snapshot,
+            RepairResourceId = repairResourceId,
+            EnvelopeJson = envelopeJson,
+            FirstServerReceivedAt = at.ToUniversalTime()
+        };
     }
 }

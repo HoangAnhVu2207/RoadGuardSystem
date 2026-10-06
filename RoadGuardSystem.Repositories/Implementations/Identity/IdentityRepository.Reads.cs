@@ -1,3 +1,4 @@
+using RoadGuardSystem.BusinessObjects.Identity;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
@@ -60,7 +61,7 @@ public sealed partial class IdentityRepository
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
-        return await _context.Sessions
+        var state = await _context.Sessions
             .AsNoTracking()
             .Where(session => session.Id == sessionId)
             .Select(session => new SessionSecurityState(
@@ -69,11 +70,15 @@ public sealed partial class IdentityRepository
                 session.IssuedAt,
                 session.ExpiresAt,
                 session.RevokedAt,
-                session.RevokedAt == null && session.ExpiresAt > DateTimeOffset.UtcNow,
+                session.RevokedAt == null && (session.Lifecycle == SessionLifecycle.PersistentRenewable && session.ExpiresAt == null && session.IssuedRole != null || session.Lifecycle == SessionLifecycle.LegacyBounded && session.ExpiresAt > _timeProvider.GetUtcNow()),
                 session.RowVersion,
                 session.Transport,
-                session.LastActivityAt))
+                session.LastActivityAt, session.Lifecycle, session.IssuedRole))
             .SingleOrDefaultAsync(cancellationToken);
+        if (state is null) return null;
+        return state with { IsActive = new UserSession { IssuedAt = state.IssuedAt, ExpiresAt = state.ExpiresAt,
+            RevokedAt = state.RevokedAt, Transport = state.Transport, LastActivityAt = state.LastActivityAt,
+            Lifecycle = state.Lifecycle, IssuedRole = state.IssuedRole }.IsActiveAt(_timeProvider.GetUtcNow()) };
     }
 
     public async Task<RefreshTokenSecurityState?> FindRefreshTokenByHashAsync(
@@ -94,7 +99,7 @@ public sealed partial class IdentityRepository
                 token.Session.UserId,
                 token.ExpiresAt,
                 token.RevokedAt,
-                token.RevokedAt == null && token.ExpiresAt > DateTimeOffset.UtcNow,
+                token.RevokedAt == null && (token.ExpiresAt == null || token.ExpiresAt > _timeProvider.GetUtcNow()),
                 token.RowVersion))
             .SingleOrDefaultAsync(cancellationToken);
     }

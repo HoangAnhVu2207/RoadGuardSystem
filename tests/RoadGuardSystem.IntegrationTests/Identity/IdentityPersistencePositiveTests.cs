@@ -658,8 +658,8 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         }
     }
 
-    [Fact(DisplayName = "P2-10 Positive: Role change only revokes active sessions and tokens, preserving expired and already-revoked")]
-    public async Task UserRoleChanged_OnlyRevokesActiveCredentials_PreservesExpiredAndAlreadyRevoked()
+    [Fact(DisplayName = "H1: Role change revokes all unrevoked credentials and preserves prior revocation timestamps")]
+    public async Task UserRoleChanged_RevokesAllUnrevokedCredentials_PreservesPriorRevocation()
     {
         await using var context = _fixture.CreateDbContext();
         await _fixture.SeedRolesAsync(context);
@@ -788,10 +788,10 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         verifiedRevokedToken.RevokedAt.Should().Be(priorRevocationTime);
 
         var verifiedExpiredSession = await verifyContext.Sessions.SingleAsync(s => s.Id == expiredSession.Id);
-        verifiedExpiredSession.RevokedAt.Should().BeNull();
+        verifiedExpiredSession.RevokedAt.Should().NotBeNull();
 
         var verifiedExpiredToken = await verifyContext.RefreshTokens.SingleAsync(t => t.Id == expiredToken.Id);
-        verifiedExpiredToken.RevokedAt.Should().BeNull();
+        verifiedExpiredToken.RevokedAt.Should().NotBeNull();
     }
 
     [Fact(DisplayName = "P2-10 Positive: Seeder CLI executes successfully and seeds canonical roles idempotently")]

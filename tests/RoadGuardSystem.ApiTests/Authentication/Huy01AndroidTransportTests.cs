@@ -15,7 +15,7 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class Huy01AndroidTransportTests(AuthenticationSqlServerFixture fixture)
 {
     [Fact]
-    public async Task AndroidLoginAndRefresh_KeepThirtyDayAbsoluteSessionAndFifteenMinuteAccess()
+    public async Task AndroidLoginAndRefresh_PersistentSessionAndFiniteFifteenMinuteAccess()
     {
         var username = $"android-{Guid.NewGuid():N}";
         var user = await fixture.CreateUserAsync(username, "Current1!");
@@ -38,8 +38,8 @@ public sealed class Huy01AndroidTransportTests(AuthenticationSqlServerFixture fi
             var session = await db.Sessions.AsNoTracking().SingleAsync(item => item.Id == sid);
             Assert.Equal(user.Id, session.UserId);
             Assert.Equal(SessionTransport.Android, session.Transport);
-            Assert.InRange(session.ExpiresAt - session.IssuedAt, TimeSpan.FromDays(30).Add(-TimeSpan.FromSeconds(1)),
-                TimeSpan.FromDays(30).Add(TimeSpan.FromSeconds(1)));
+            Assert.Null(session.ExpiresAt);
+            Assert.Equal(SessionLifecycle.PersistentRenewable, session.Lifecycle);
             Assert.InRange(parsed.ValidTo - session.IssuedAt.UtcDateTime, TimeSpan.FromMinutes(15).Add(-TimeSpan.FromSeconds(2)),
                 TimeSpan.FromMinutes(15).Add(TimeSpan.FromSeconds(2)));
         }
@@ -50,10 +50,10 @@ public sealed class Huy01AndroidTransportTests(AuthenticationSqlServerFixture fi
         Assert.Equal(900, rotated.GetProperty("expiresIn").GetInt32());
         await using var verification = fixture.CreateDbContext();
         var persisted = await verification.Sessions.AsNoTracking().SingleAsync(item => item.Id == sid);
-        Assert.Equal(TimeSpan.FromDays(30), persisted.ExpiresAt - persisted.IssuedAt);
+        Assert.Null(persisted.ExpiresAt);
         Assert.Equal(2, await verification.RefreshTokens.CountAsync(item => item.SessionId == sid));
         Assert.All(await verification.RefreshTokens.Where(item => item.SessionId == sid).ToListAsync(),
-            item => Assert.True(item.ExpiresAt <= persisted.ExpiresAt));
+            item => Assert.Null(item.ExpiresAt));
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class Huy01AndroidTransportTests(AuthenticationSqlServerFixture fi
     }
 
     [Fact]
-    public async Task Refresh_AtExpiredAbsoluteSession_DoesNotIssueReplacement()
+    public async Task Refresh_RevokedPersistentSession_DoesNotIssueReplacement()
     {
         var username = $"android-expired-{Guid.NewGuid():N}";
         var user = await fixture.CreateUserAsync(username, "Current1!");
@@ -113,7 +113,7 @@ public sealed class Huy01AndroidTransportTests(AuthenticationSqlServerFixture fi
         {
             var session = await db.Sessions.SingleAsync(item => item.UserId == user.Id);
             sessionId = session.Id;
-            session.ExpiresAt = session.IssuedAt.AddMilliseconds(1);
+            session.RevokedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
         }
 

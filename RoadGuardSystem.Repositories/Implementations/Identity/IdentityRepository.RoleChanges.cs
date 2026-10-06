@@ -74,7 +74,7 @@ public sealed partial class IdentityRepository
             try
             {
                 var oldRoleCode = user.RoleCode;
-                var now = DateTimeOffset.UtcNow;
+                var now = _timeProvider.GetUtcNow();
 
                 using (_context.PermitRoleMutationScope())
                 {
@@ -83,7 +83,7 @@ public sealed partial class IdentityRepository
 
                     // B. Revoke all active sessions (exclude already expired or revoked)
                     var activeSessions = await _context.Sessions
-                        .Where(session => session.UserId == userId && session.RevokedAt == null && session.ExpiresAt > now)
+                        .Where(session => session.UserId == userId && session.RevokedAt == null)
                         .ToListAsync(cancellationToken);
 
                     var sessionIds = activeSessions.Select(session => session.Id).ToList();
@@ -97,7 +97,7 @@ public sealed partial class IdentityRepository
                     if (sessionIds.Count > 0)
                     {
                         var activeTokens = await _context.RefreshTokens
-                            .Where(token => sessionIds.Contains(token.SessionId) && token.RevokedAt == null && token.ExpiresAt > now)
+                            .Where(token => sessionIds.Contains(token.SessionId) && token.RevokedAt == null)
                             .ToListAsync(cancellationToken);
 
                         foreach (var token in activeTokens)

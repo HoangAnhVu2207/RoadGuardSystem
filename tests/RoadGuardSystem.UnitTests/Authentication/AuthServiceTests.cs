@@ -94,7 +94,7 @@ public sealed partial class AuthServiceTests
         repository.IssuedSession!.DeviceMetadataJson.Should().BeNull();
     }
 
-    [Fact(DisplayName = "P1-10 VG-04: login expiry values use the configured access session and refresh lifetimes")]
+    [Fact(DisplayName = "H1: login keeps finite access but removes ordinary server credential deadlines")]
     public async Task Login_ConfiguredLifetimes_DriveAllCredentialExpiries()
     {
         var options = CreateOptions();
@@ -114,9 +114,9 @@ public sealed partial class AuthServiceTests
 
         result.Status.Should().Be(AuthStatus.Success);
         result.Tokens!.AccessTokenExpiresAt.Should().Be(TestNow.AddMinutes(7));
-        result.Tokens.RefreshTokenExpiresAt.Should().Be(TestNow.AddDays(13));
-        repository.IssuedSession!.ExpiresAt.Should().Be(TestNow.AddHours(11));
-        repository.IssuedRefreshToken!.ExpiresAt.Should().Be(TestNow.AddDays(13));
+        ((object?)result.Tokens.RefreshTokenExpiresAt).Should().BeNull();
+        ((object?)repository.IssuedSession!.ExpiresAt).Should().BeNull();
+        ((object?)repository.IssuedRefreshToken!.ExpiresAt).Should().BeNull();
     }
 
     [Fact(DisplayName = "P1-10 Negative: consumed refresh token revokes the family and returns no credentials")]

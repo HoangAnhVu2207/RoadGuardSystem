@@ -67,7 +67,7 @@ internal static class JwtBearerConfiguration
             userId,
             sessionId,
             roleCode,
-            DateTimeOffset.UtcNow,
+            context.HttpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow(),
             cancellationToken: context.HttpContext.RequestAborted);
         if (validation != AuthoritativeSessionValidation.Success)
         {

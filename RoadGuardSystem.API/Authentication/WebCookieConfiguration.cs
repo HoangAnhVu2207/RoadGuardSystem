@@ -12,6 +12,7 @@ internal static class WebCookieConfiguration
     internal const string Scheme = "RoadGuardWeb";
     internal const string UserScheme = "RoadGuardUser";
     internal const string CookieName = "__Host-RoadGuardSession";
+    internal const string RenewalCookieName = "__Host-RoadGuardRenewal";
 
     internal static string SelectScheme(HttpContext context)
     {
@@ -96,7 +97,7 @@ internal static class WebCookieConfiguration
                 }
                 var validator = context.HttpContext.RequestServices.GetRequiredService<AuthoritativeSessionValidator>();
                 var result = await validator
-                    .ValidateAsync(userId, sessionId, role, DateTimeOffset.UtcNow,
+                    .ValidateAsync(userId, sessionId, role, context.HttpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow(),
                         SessionTransport.Web, context.HttpContext.RequestAborted);
                 if (result == AuthoritativeSessionValidation.MustChangePassword &&
                     PasswordChangeAllowed(context.Request.Method, context.Request.Path)) return;

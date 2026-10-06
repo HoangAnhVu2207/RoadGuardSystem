@@ -138,7 +138,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
         }
 
         var operationId = OperationId("VerifyReporterOtp", idempotencyKey);
-        var credentials = CreateCredentials(intent.UserId.Value, operationId, "reporter-verify");
+        var credentials = CreateCredentials(intent.UserId.Value, operationId, "reporter-verify", UserRoleCode.Reporter);
         var fingerprint = HashSecret($"{intentId:N}|{otp}");
         var persisted = await _onboardingRepository.VerifyReporterOtpAsync(
             intentId,
@@ -295,7 +295,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             CreatedAt = _timeProvider.GetUtcNow()
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, password);
-        var credentials = CreateCredentials(user.Id, operationId, "invitation-accept");
+        var credentials = CreateCredentials(user.Id, operationId, "invitation-accept", invitation.RoleCode);
         var persisted = await _onboardingRepository.AcceptInvitationAsync(
             tokenHash,
             user,
@@ -318,7 +318,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
     private (UserSession Session, RefreshToken RefreshToken, DateTimeOffset IssuedAt) CreateCredentials(
         Guid userId,
         Guid operationId,
-        string purpose)
+        string purpose, UserRoleCode role)
     {
         var issuedAt = _timeProvider.GetUtcNow();
         var sessionId = OperationId($"{purpose}:session", operationId.ToString("N"));
@@ -329,14 +329,16 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
                 Id = sessionId,
                 UserId = userId,
                 IssuedAt = issuedAt,
-                ExpiresAt = issuedAt.AddHours(_jwtOptions.SessionLifetimeHours)
+                ExpiresAt = null,
+                Lifecycle = SessionLifecycle.PersistentRenewable,
+                IssuedRole = role
             },
             new RefreshToken
             {
                 Id = OperationId($"{purpose}:refresh-id", operationId.ToString("N")),
                 SessionId = sessionId,
                 TokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(refreshPlaintext))).ToLowerInvariant(),
-                ExpiresAt = issuedAt.AddDays(_jwtOptions.RefreshTokenLifetimeDays)
+                ExpiresAt = null
             },
             issuedAt);
     }
@@ -348,7 +350,7 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             _accessTokenFactory.Create(user.Id, sessionId, user.RoleCode, now),
             TokenSecret($"{purpose}:refresh", operationId),
             now.AddMinutes(_jwtOptions.AccessTokenLifetimeMinutes),
-            now.AddDays(_jwtOptions.RefreshTokenLifetimeDays),
+            null,
             checked(_jwtOptions.AccessTokenLifetimeMinutes * 60),
             user);
     }

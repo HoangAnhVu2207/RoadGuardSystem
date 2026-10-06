@@ -52,6 +52,8 @@ public sealed partial class IdentityRepository
                         return new IssueSessionResult(IssueSessionStatus.StaleConcurrency);
                     }
 
+                    if (session.Lifecycle == SessionLifecycle.PersistentRenewable && session.IssuedRole != user.RoleCode)
+                        return new IssueSessionResult(IssueSessionStatus.InvalidInput);
                     var roleCode = user.RoleCode.ToDbCode();
                     var role = await _context.Roles.FromSqlInterpolated(
                             $"SELECT * FROM [Roles] WITH (UPDLOCK,HOLDLOCK) WHERE [Code]={roleCode}")
@@ -69,6 +71,8 @@ public sealed partial class IdentityRepository
                         ExpiresAt = session.ExpiresAt,
                         RevokedAt = session.RevokedAt,
                         Transport = session.Transport,
+                        Lifecycle = session.Lifecycle,
+                        IssuedRole = session.IssuedRole,
                         LastActivityAt = session.LastActivityAt
                     };
                     var attemptRefreshToken = new RefreshToken

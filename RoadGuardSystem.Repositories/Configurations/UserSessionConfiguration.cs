@@ -10,12 +10,13 @@ public sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSess
     {
         builder.ToTable("Sessions", table =>
         {
+            table.HasTrigger("TR_Sessions_ImmutableLifecycle");
             table.HasCheckConstraint(
                 "CK_Sessions_DeviceMetadataJson_Json",
                 "[DeviceMetadataJson] IS NULL OR ISJSON([DeviceMetadataJson]) = 1");
             table.HasCheckConstraint(
                 "CK_Sessions_ExpiresAt",
-                "[ExpiresAt] > [IssuedAt]");
+                "([Lifecycle] = 0 AND [ExpiresAt] IS NOT NULL AND [ExpiresAt] > [IssuedAt]) OR ([Lifecycle] = 1 AND [ExpiresAt] IS NULL AND [IssuedRole] IS NOT NULL)");
             table.HasCheckConstraint(
                 "CK_Sessions_RevokedAt",
                 "[RevokedAt] IS NULL OR [RevokedAt] >= [IssuedAt]");
@@ -41,9 +42,9 @@ public sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSess
         builder.Property(session => session.DeviceMetadataJson)
             .HasColumnType("nvarchar(max)");
 
-        builder.Property(session => session.ExpiresAt)
-            .HasColumnType("datetimeoffset(7)")
-            .IsRequired();
+        builder.Property(session => session.ExpiresAt).HasColumnType("datetimeoffset(7)");
+        builder.Property(session => session.Lifecycle).HasConversion<byte>().HasDefaultValue(SessionLifecycle.LegacyBounded);
+        builder.Property(session => session.IssuedRole).HasConversion<string>().HasMaxLength(40);
 
         builder.Property(session => session.RevokedAt)
             .HasColumnType("datetimeoffset(7)");

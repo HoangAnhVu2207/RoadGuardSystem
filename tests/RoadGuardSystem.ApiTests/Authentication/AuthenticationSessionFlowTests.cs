@@ -20,7 +20,7 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 
 public sealed partial class AuthenticationFlowTests
 {
-    [Fact(DisplayName = "P1-10 VG-04: configured session and refresh lifetimes persist and return exact expiries")]
+    [Fact(DisplayName = "H1: configured access lifetime remains finite while sessions and renewal are persistent")]
     public async Task Login_ConfiguredSessionAndRefreshLifetimes_DrivePersistedAndReturnedExpiries()
     {
         var username = $"configured_expiry_{Guid.NewGuid():N}";
@@ -39,8 +39,8 @@ public sealed partial class AuthenticationFlowTests
         await using var verification = _sql.CreateDbContext();
         var session = await verification.Sessions.AsNoTracking().SingleAsync(item => item.UserId == user.Id);
         var refresh = await verification.RefreshTokens.AsNoTracking().SingleAsync(item => item.SessionId == session.Id);
-        (session.ExpiresAt - session.IssuedAt).Should().Be(TimeSpan.FromHours(3));
-        refresh.ExpiresAt.Should().Be(session.IssuedAt.AddDays(5));
+        session.ExpiresAt.Should().BeNull();
+        refresh.ExpiresAt.Should().BeNull();
         tokens.ExpiresIn.Should().Be(360);
     }
 
@@ -126,8 +126,8 @@ public sealed partial class AuthenticationFlowTests
         (await verification.Sessions.CountAsync(session => session.UserId == user.Id)).Should().Be(0);
     }
 
-    [Fact(DisplayName = "P1-10 Negative: an expired authoritative session rejects a still-valid JWT")]
-    public async Task Bearer_ExpiredServerSession_ReturnsSessionRevoked()
+    [Fact(DisplayName = "H1: a revoked persistent session rejects a still-valid JWT")]
+    public async Task Bearer_RevokedPersistentSession_ReturnsSessionRevoked()
     {
         var username = $"expired_session_{Guid.NewGuid():N}";
         var user = await _sql.CreateUserAsync(username, "Current1!");
@@ -140,7 +140,7 @@ public sealed partial class AuthenticationFlowTests
         {
             var expiredAt = DateTimeOffset.UtcNow.AddMinutes(-1);
             await context.Database.ExecuteSqlAsync(
-                $"UPDATE [Sessions] SET [IssuedAt] = {expiredAt.AddMinutes(-1)}, [ExpiresAt] = {expiredAt} WHERE [UserId] = {user.Id}");
+                $"UPDATE [Sessions] SET [RevokedAt] = {DateTimeOffset.UtcNow} WHERE [UserId] = {user.Id}");
         }
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);

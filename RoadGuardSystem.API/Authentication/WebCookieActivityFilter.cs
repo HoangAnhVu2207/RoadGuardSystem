@@ -28,7 +28,7 @@ public sealed class WebCookieActivityFilter(IIdentityRepository identity) : IAsy
             var allowedMinimalRead = HttpMethods.IsGet(http.Request.Method) &&
                 http.Request.Path.Value?.EndsWith("/me", StringComparison.OrdinalIgnoreCase) == true;
             var state = valid && role != UserRoleCode.Unknown
-                ? await identity.TouchWebSessionAsync(userId, sessionId, role, DateTimeOffset.UtcNow,
+                ? await identity.TouchWebSessionAsync(userId, sessionId, role, http.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow(),
                     allowMustChangePassword: allowedMinimalRead, cancellationToken: http.RequestAborted)
                 : null;
             if (state is null)

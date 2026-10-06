@@ -53,7 +53,7 @@ public sealed partial class IdentityRepository
                         return new PasswordChangePersistenceResult(StaleConcurrency: true);
                     }
 
-                    var now = DateTimeOffset.UtcNow;
+                    var now = _timeProvider.GetUtcNow();
                     user.PasswordHash = newPasswordHash;
                     user.SecurityStamp = newSecurityStamp;
                     user.MustChangePassword = false;
@@ -199,7 +199,7 @@ public sealed partial class IdentityRepository
                         return new ForcedPasswordChangeResult(ForcedPasswordChangeStatus.StaleConcurrency);
                     }
 
-                    var now = DateTimeOffset.UtcNow;
+                    var now = _timeProvider.GetUtcNow();
                     user.PasswordHash = newPasswordHash;
                     user.SecurityStamp = newSecurityStamp;
                     user.MustChangePassword = false;
@@ -207,8 +207,7 @@ public sealed partial class IdentityRepository
                     var activeSessions = await _context.Sessions
                         .Where(session =>
                             session.UserId == userId &&
-                            session.RevokedAt == null &&
-                            session.ExpiresAt > now)
+                            session.RevokedAt == null)
                         .ToListAsync(attemptCancellationToken);
                     var activeSessionIds = activeSessions.Select(session => session.Id).ToList();
                     foreach (var session in activeSessions)
@@ -221,8 +220,7 @@ public sealed partial class IdentityRepository
                         var activeTokens = await _context.RefreshTokens
                             .Where(token =>
                                 activeSessionIds.Contains(token.SessionId) &&
-                                token.RevokedAt == null &&
-                                token.ExpiresAt > now)
+                                token.RevokedAt == null)
                             .ToListAsync(attemptCancellationToken);
                         foreach (var token in activeTokens)
                         {

@@ -512,15 +512,11 @@ public sealed class P110AuthenticationPersistenceTests : IClassFixture<IdentityS
         var firstLogout = _fixture.CreateRepository(firstContext).RevokeSessionAndFamilyAsync(session.Id);
 
         await pauseFirstUpdate.Reached.WaitAsync(TimeSpan.FromSeconds(20));
-        try
-        {
-            await using var secondContext = _fixture.CreateDbContext();
-            await _fixture.CreateRepository(secondContext).RevokeSessionAndFamilyAsync(session.Id);
-        }
-        finally
-        {
-            pauseFirstUpdate.Release();
-        }
+        await using var secondContext = _fixture.CreateDbContext();
+        var secondLogout = _fixture.CreateRepository(secondContext).RevokeSessionAndFamilyAsync(session.Id);
+        // The second transaction waits behind the authoritative user/session lock.
+        pauseFirstUpdate.Release();
+        await secondLogout;
 
         await firstLogout;
         await using var verification = _fixture.CreateDbContext();
@@ -663,7 +659,7 @@ public sealed class P110AuthenticationPersistenceTests : IClassFixture<IdentityS
         var family = await CreateReplayFamilyAsync(setup, "replay-race");
         var expectedVersion = family.ReplayedToken.RowVersion.ToArray();
         var barrier = new SqlCommandBarrierInterceptor(
-            commandText => commandText.Contains("UPDATE [Sessions]", StringComparison.OrdinalIgnoreCase));
+            commandText => commandText.Contains("FROM [Users] WITH (UPDLOCK,HOLDLOCK)", StringComparison.OrdinalIgnoreCase));
 
         await using var firstContext = _fixture.CreateDbContext(barrier);
         await using var secondContext = _fixture.CreateDbContext(barrier);

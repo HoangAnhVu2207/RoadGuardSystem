@@ -61,21 +61,22 @@ public sealed record SessionSecurityState(
     Guid Id,
     Guid UserId,
     DateTimeOffset IssuedAt,
-    DateTimeOffset ExpiresAt,
+    DateTimeOffset? ExpiresAt,
     DateTimeOffset? RevokedAt,
     bool IsActive,
     byte[] RowVersion,
     SessionTransport Transport = SessionTransport.LegacyBearer,
-    DateTimeOffset? LastActivityAt = null);
+    DateTimeOffset? LastActivityAt = null,
+    SessionLifecycle Lifecycle = SessionLifecycle.LegacyBounded, UserRoleCode? IssuedRole = null);
 
 public sealed record WebSessionState(UserSecurityState User, Guid SessionId,
-    DateTimeOffset IssuedAt, DateTimeOffset AbsoluteExpiresAt, DateTimeOffset IdleExpiresAt);
+    DateTimeOffset IssuedAt, DateTimeOffset? AbsoluteExpiresAt, DateTimeOffset? IdleExpiresAt);
 
 public sealed record RefreshTokenSecurityState(
     Guid Id,
     Guid SessionId,
     Guid UserId,
-    DateTimeOffset ExpiresAt,
+    DateTimeOffset? ExpiresAt,
     DateTimeOffset? RevokedAt,
     bool IsActive,
     byte[] RowVersion);
@@ -94,7 +95,7 @@ public enum RotateRefreshTokenStatus
 public sealed record RotateRefreshTokenResult(
     RotateRefreshTokenStatus Status,
     RefreshToken? NewToken = null,
-    string? ErrorMessage = null);
+    string? ErrorMessage = null, string? ProtectedCredential = null);
 
 public enum IssueSessionStatus
 {
@@ -197,6 +198,15 @@ public interface IIdentityRepository
         byte[] expectedRowVersion,
         RefreshToken newToken,
         CancellationToken cancellationToken = default);
+
+    Task<RotateRefreshTokenResult> RotateRefreshTokenWithReceiptAsync(
+        Guid oldTokenId, byte[] expectedRowVersion, RefreshToken newToken,
+        string operationKey, string originalTokenHash, string protectedCredential,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new RotateRefreshTokenResult(RotateRefreshTokenStatus.InvalidToken));
+
+    Task<WebSessionState?> RenewWebSessionAsync(string tokenHash, DateTimeOffset now,
+        CancellationToken cancellationToken = default) => Task.FromResult<WebSessionState?>(null);
 
     Task<IssueSessionResult> IssueSessionWithRefreshTokenAsync(
         Guid userId,

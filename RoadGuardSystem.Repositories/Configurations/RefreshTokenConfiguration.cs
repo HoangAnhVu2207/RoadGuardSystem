@@ -10,6 +10,7 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
     {
         builder.ToTable("RefreshTokens", table =>
         {
+            table.HasTrigger("TR_RefreshTokens_LifecycleExpiry");
             table.HasCheckConstraint("CK_RefreshTokens_TokenHash_NotEmpty", "LEN(LTRIM(RTRIM([TokenHash]))) >= 32");
         });
 
@@ -32,9 +33,7 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
             .IsUnique()
             .HasDatabaseName("UX_RefreshTokens_TokenHash");
 
-        builder.Property(token => token.ExpiresAt)
-            .HasColumnType("datetimeoffset(7)")
-            .IsRequired();
+        builder.Property(token => token.ExpiresAt).HasColumnType("datetimeoffset(7)");
 
         builder.Property(token => token.RevokedAt)
             .HasColumnType("datetimeoffset(7)");

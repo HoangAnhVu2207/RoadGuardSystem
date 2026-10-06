@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories.Extensions;
@@ -33,7 +34,7 @@ public static class AuthenticationServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<PasswordChangeFingerprintOptions>, PasswordChangeFingerprintOptionsValidator>();
         services.AddOptions<IdentityOnboardingOptions>()
             .Bind(configuration.GetSection(IdentityOnboardingOptions.SectionName));
-        services.AddSingleton(TimeProvider.System);
+        services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IIdentityMessageSender, GmailIdentityMessageSender>();
         services.AddScoped<ICredentialVerifier, IdentityCredentialVerifier>();
         services.AddScoped<AuthoritativeSessionValidator>();

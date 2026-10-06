@@ -86,7 +86,7 @@ public sealed partial class IdentityRepository
                 user.Email = normalizedEmail;
                 user.NormalizedEmail = normalizedEmail?.ToUpperInvariant();
 
-                var now = DateTimeOffset.UtcNow;
+                var now = _timeProvider.GetUtcNow();
                 _context.AuditLogs.Add(AuditLog.Create(
                     id: Guid.NewGuid(),
                     actorUserId: userId,

@@ -65,6 +65,8 @@ public static class ServiceCollectionExtensions
             .AddJwtBearer(options => JwtBearerConfiguration.Configure(options, jwtOptions))
             .AddJwtBearer(AiServiceJwtBearerConfiguration.Scheme, options => AiServiceJwtBearerConfiguration.Configure(options, jwtOptions))
             .AddCookie(WebCookieConfiguration.Scheme, WebCookieConfiguration.Configure);
+        services.AddOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(WebCookieConfiguration.Scheme)
+            .Configure<TimeProvider>((options, clock) => options.TimeProvider = clock);
         services.AddAntiforgery(options =>
         {
             options.HeaderName = "X-CSRF-TOKEN";

@@ -4,6 +4,8 @@
 
 The appended `HUY final H0 - retention integration - opted-in` folder selectively preserves seven Anh retention requests and identifiers. Enable `anh02Enabled` only against an isolated local project. Inventory/basis, holds and evaluation never perform physical deletion; unavailable repair inventory still blocks basis. Existing Huy folders are preserved. Collection JSON validation and BE tests are separate from a live Postman run. Cookie inspection/inbox methods, CSRF and bearer precedence are recorded in [local contract](../../contracts/http/huy-final.local-contract.md).
 
+`HUY final H1 - persistent identity - opted-in` adds nine manual HTTPS requests, disabled unless `h1PersistentEnabled=true`. Use a cookie jar; refresh the CSRF token after login, ticket expiry or revoke. Web renewal uses no bearer header and keeps credentials out of JSON. Android rotation retains `h1RefreshSource` and `h1RefreshOperationKey` for exact retry within two minutes; after ACK, use the successor with a new operation. Logout requires separate `h1AllowLogout=true`. All stored credential variables are empty placeholders in the committed collection. Live Postman/client persistence is not verified by these requests.
+
 ## HUY-01 current opt-in workflows (2026-10-04)
 
 Collection now includes `HUY-01 AI, reporting and export - opted-in`,

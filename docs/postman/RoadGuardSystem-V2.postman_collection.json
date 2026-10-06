@@ -445,6 +445,41 @@
       "key": "anh02RetentionFileId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "h1PersistentEnabled",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "h1AllowLogout",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "h1Csrf",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h1LogoutKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h1RefreshSource",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h1RefreshOperationKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "h1RefreshSuccessor",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -9829,6 +9864,438 @@
               "if(pm.environment.get(\"anh02Enabled\")!==\"true\" && pm.collectionVariables.get(\"anh02Enabled\")!==\"true\"){console.log(\"ANH-02 manual isolated workflow disabled\");pm.execution.skipRequest();}"
             ]
           }
+        }
+      ]
+    },
+    {
+      "name": "HUY final H1 - persistent identity - opted-in",
+      "auth": {
+        "type": "noauth"
+      },
+      "description": "Manual isolated HTTPS/cookie-jar workflow. h1PersistentEnabled=false by default. Run actor CSRF again after login, ticket expiry or revocation. Renew preserves current-authority checks; browser storage is external. Rotation keeps source and operation key until ACK and exact retry within2min; after ACK use successor/new operation. Logout separately guarded. No live Postman verification claimed.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.environment.get(\"h1PersistentEnabled\")!==\"true\" && pm.collectionVariables.get(\"h1PersistentEnabled\")!==\"true\")pm.execution.skipRequest();"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "id": "6957bbb2-744d-4281-a844-c26812fe7eb9",
+          "name": "Web anonymous CSRF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/web/csrf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "web",
+                "csrf"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"CSRF available\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.environment.set(\"h1Csrf\",pm.response.json().requestToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "d240d293-df17-470c-a7e5-0a36eb09ebfd",
+          "name": "Web persistent login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{h1Csrf}}",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/web/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "web",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{projectManagerEmail}}\",\n  \"password\": \"{{projectManagerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Renewable session\",()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(pm.response.json().renewable).to.eql(true);});",
+                  "pm.test(\"No Web credential body\",()=>{const b=pm.response.json();pm.expect(b).not.to.have.property(\"accessToken\");pm.expect(b).not.to.have.property(\"refreshToken\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "ac74f09b-c19b-4139-a161-fb7de12a3053",
+          "name": "Web actor CSRF after login or expired ticket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/web/csrf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "web",
+                "csrf"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"CSRF available\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200)pm.environment.set(\"h1Csrf\",pm.response.json().requestToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "083c9d3a-58a5-407b-b103-a9f0ce568bc5",
+          "name": "Web session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/web/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "web",
+                "session"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Renewable session\",()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(pm.response.json().renewable).to.eql(true);});",
+                  "pm.test(\"No Web credential body\",()=>{const b=pm.response.json();pm.expect(b).not.to.have.property(\"accessToken\");pm.expect(b).not.to.have.property(\"refreshToken\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "615171e7-70eb-484a-9975-84be18a6dfdd",
+          "name": "Web renew independent of finite ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{h1Csrf}}",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/web/renew",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "web",
+                "renew"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Renewable session\",()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(pm.response.json().renewable).to.eql(true);});",
+                  "pm.test(\"No Web credential body\",()=>{const b=pm.response.json();pm.expect(b).not.to.have.property(\"accessToken\");pm.expect(b).not.to.have.property(\"refreshToken\");});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "027bea59-e93f-46c2-b11c-adc1965a223a",
+          "name": "Web logout - separately enabled",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{h1Csrf}}",
+                "type": "text"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h1LogoutKey}}",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/web/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "web",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get(\"h1AllowLogout\")!==\"true\" && pm.collectionVariables.get(\"h1AllowLogout\")!==\"true\")pm.execution.skipRequest();",
+                  "if(!pm.environment.get(\"h1LogoutKey\"))pm.environment.set(\"h1LogoutKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Logout no content\",()=>pm.expect(pm.response.code).to.eql(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "394387f9-30dc-4fe8-9821-b105cca3c665",
+          "name": "Android persistent login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/android/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "android",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{projectManagerEmail}}\",\n  \"password\": \"{{projectManagerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Android login\",()=>pm.expect(pm.response.code).to.eql(200));",
+                  "if(pm.response.code===200){pm.environment.set(\"h1RefreshSource\",pm.response.json().refreshToken);pm.environment.unset(\"h1RefreshOperationKey\");}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "440db5bc-af74-4a79-8a79-d7bc11348b3f",
+          "name": "Android rotate with operation key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h1RefreshOperationKey}}",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/android/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "android",
+                "refresh"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{h1RefreshSource}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.environment.get(\"h1RefreshOperationKey\"))pm.environment.set(\"h1RefreshOperationKey\",pm.variables.replaceIn(\"{{$guid}}\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finite access and protected renewal\",()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(pm.response.json().expiresIn).to.eql(900);});",
+                  "if(pm.response.code===200)pm.environment.set(\"h1RefreshSuccessor\",pm.response.json().refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "2037319a-3be3-4ef9-b71f-75bf98c1e0b9",
+          "name": "Android exact retry within two minutes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{h1RefreshOperationKey}}",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/android/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "android",
+                "refresh"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{h1RefreshSource}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Same active successor\",()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(pm.response.json().refreshToken).to.eql(pm.environment.get(\"h1RefreshSuccessor\"));});"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

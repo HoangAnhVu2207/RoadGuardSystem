@@ -8,11 +8,19 @@ namespace RoadGuardSystem.Repositories.Identity;
 
 public sealed partial class IdentityRepository
 {
-    public async Task<RotateRefreshTokenResult> RotateRefreshTokenAsync(
-        Guid oldTokenId,
-        byte[] expectedRowVersion,
-        RefreshToken newToken,
-        CancellationToken cancellationToken = default)
+    public Task<RotateRefreshTokenResult> RotateRefreshTokenAsync(Guid oldTokenId,
+        byte[] expectedRowVersion, RefreshToken newToken, CancellationToken cancellationToken = default) =>
+        RotateRefreshTokenCoreAsync(oldTokenId, expectedRowVersion, newToken, null, null, null, cancellationToken);
+
+    public Task<RotateRefreshTokenResult> RotateRefreshTokenWithReceiptAsync(Guid oldTokenId,
+        byte[] expectedRowVersion, RefreshToken newToken, string operationKey, string originalTokenHash,
+        string protectedCredential, CancellationToken cancellationToken = default) =>
+        RotateRefreshTokenCoreAsync(oldTokenId, expectedRowVersion, newToken, operationKey,
+            originalTokenHash, protectedCredential, cancellationToken);
+
+    private async Task<RotateRefreshTokenResult> RotateRefreshTokenCoreAsync(Guid oldTokenId,
+        byte[] expectedRowVersion, RefreshToken newToken, string? operationKey, string? originalTokenHash,
+        string? protectedCredential, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(expectedRowVersion);
         ArgumentNullException.ThrowIfNull(newToken);
@@ -52,8 +60,8 @@ public sealed partial class IdentityRepository
                     var session = await _context.Sessions.FromSqlInterpolated(
                             $"SELECT * FROM [Sessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={tokenOwner.SessionId}")
                         .SingleOrDefaultAsync(attemptCancellationToken);
-                    if (session is null || session.UserId != user.Id || session.RevokedAt is not null ||
-                        session.ExpiresAt <= DateTimeOffset.UtcNow)
+                    if (session is null || session.UserId != user.Id || session.IssuedRole is { } snapshotRole && snapshotRole != user.RoleCode || session.RevokedAt is not null ||
+                        !session.IsActiveAt(_timeProvider.GetUtcNow()))
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.SessionRevoked, null,
                             "Parent session is revoked or expired.");
 
@@ -63,6 +71,30 @@ public sealed partial class IdentityRepository
                     if (oldToken is null)
                     {
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.NotFound, null, "Token not found.");
+                    }
+
+                    var now = _timeProvider.GetUtcNow();
+                    var receiptKey = $"{oldTokenId:N}:{operationKey}";
+                    var fingerprint = HashSha256($"{oldToken.TokenHash}:{session.Id:N}:{session.Transport}");
+                    if (operationKey is not null)
+                    {
+                        if (oldToken.TokenHash != originalTokenHash || operationKey.Length > 150 ||
+                            string.IsNullOrWhiteSpace(operationKey) || string.IsNullOrWhiteSpace(protectedCredential))
+                            return new RotateRefreshTokenResult(RotateRefreshTokenStatus.InvalidToken);
+                        var receipt = await FindIdempotencyRecordAsync(user.Id, "RefreshRotation", receiptKey, attemptCancellationToken);
+                        if (receipt is not null)
+                        {
+                            RefreshRotationOutcome? outcome;
+                            try { outcome = System.Text.Json.JsonSerializer.Deserialize<RefreshRotationOutcome>(receipt.OutcomeJson); }
+                            catch (System.Text.Json.JsonException) { return new RotateRefreshTokenResult(RotateRefreshTokenStatus.InvalidToken); }
+                            if (outcome is null) return new RotateRefreshTokenResult(RotateRefreshTokenStatus.InvalidToken);
+                            var successor = await _context.RefreshTokens.FromSqlInterpolated($"SELECT * FROM [RefreshTokens] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={outcome.SuccessorId}").SingleOrDefaultAsync(attemptCancellationToken);
+                            if (receipt.RequestFingerprint != fingerprint || now >= outcome.ReplayUntil ||
+                                successor is null || successor.SessionId != session.Id || !successor.IsActiveAt(now))
+                                return new RotateRefreshTokenResult(RotateRefreshTokenStatus.AlreadyRevoked);
+                            return new RotateRefreshTokenResult(RotateRefreshTokenStatus.Success, successor,
+                                ProtectedCredential: outcome.ProtectedCredential);
+                        }
                     }
 
                     if (!oldToken.RowVersion.SequenceEqual(expectedRowVersion))
@@ -75,20 +107,19 @@ public sealed partial class IdentityRepository
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.AlreadyRevoked, null, "Token is already revoked.");
                     }
 
-                    var now = DateTimeOffset.UtcNow;
                     if (oldToken.ExpiresAt <= now)
                     {
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.Expired, null, "Token is expired.");
                     }
 
-                    if (oldToken.SessionId != session.Id || session.RevokedAt != null || session.ExpiresAt <= now)
+                    if (oldToken.SessionId != session.Id || session.RevokedAt != null || !session.IsActiveAt(now))
                     {
                         return new RotateRefreshTokenResult(RotateRefreshTokenStatus.SessionRevoked, null, "Parent session is revoked or expired.");
                     }
 
                     oldToken.RevokedAt = now;
                     newToken.SessionId = oldToken.SessionId;
-                    newToken.ExpiresAt = newToken.ExpiresAt <= session.ExpiresAt
+                    newToken.ExpiresAt = session.Lifecycle == SessionLifecycle.PersistentRenewable ? null : newToken.ExpiresAt <= session.ExpiresAt
                         ? newToken.ExpiresAt
                         : session.ExpiresAt;
                     var attemptReplacement = new RefreshToken
@@ -100,19 +131,38 @@ public sealed partial class IdentityRepository
                         RevokedAt = newToken.RevokedAt
                     };
                     _context.RefreshTokens.Add(attemptReplacement);
+                    if (operationKey is not null)
+                        _context.IdempotencyRecords.Add(IdempotencyRecord.Create(user.Id, null, "RefreshRotation",
+                            receiptKey, fingerprint, newToken.Id,
+                            System.Text.Json.JsonSerializer.Serialize(new RefreshRotationOutcome(newToken.Id,
+                                protectedCredential!, now.AddMinutes(2))), now));
                     await _context.SaveChangesAsync(attemptCancellationToken);
                     _context.ChangeTracker.Clear();
-                    return new RotateRefreshTokenResult(RotateRefreshTokenStatus.Success, newToken);
+                    return new RotateRefreshTokenResult(RotateRefreshTokenStatus.Success, newToken, ProtectedCredential: protectedCredential);
                 },
                 async verificationCancellationToken =>
                 {
                     _context.ChangeTracker.Clear();
-                    return await _context.RefreshTokens
-                        .AsNoTracking()
-                        .Where(token => token.Id == oldTokenId && token.RevokedAt != null)
-                        .AnyAsync(token => token.Session.RefreshTokens.Any(replacement =>
-                            replacement.Id == newToken.Id &&
-                            replacement.TokenHash == newToken.TokenHash), verificationCancellationToken);
+                    await using var tx = await _context.Database.BeginTransactionAsync(verificationCancellationToken);
+                    var owner = await _context.Sessions.AsNoTracking().Where(s => s.Id == newToken.SessionId)
+                        .Select(s => (Guid?)s.UserId).SingleOrDefaultAsync(verificationCancellationToken);
+                    if (owner is null) return false;
+                    var currentUser = await _context.Users.FromSqlInterpolated($"SELECT * FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={owner.Value}")
+                        .SingleOrDefaultAsync(verificationCancellationToken);
+                    if (currentUser is null || currentUser.Status != UserStatus.Active || currentUser.MustChangePassword) return false;
+                    var currentRoleCode = currentUser.RoleCode.ToDbCode();
+                    var currentRole = await _context.Roles.FromSqlInterpolated($"SELECT * FROM [Roles] WITH (UPDLOCK,HOLDLOCK) WHERE [Code]={currentRoleCode}")
+                        .SingleOrDefaultAsync(verificationCancellationToken);
+                    var currentSession = await _context.Sessions.FromSqlInterpolated($"SELECT * FROM [Sessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={newToken.SessionId}")
+                        .SingleOrDefaultAsync(verificationCancellationToken);
+                    if (currentRole is null || !currentRole.IsActive || currentSession is null ||
+                        !currentSession.IsActiveAt(_timeProvider.GetUtcNow()) ||
+                        currentSession.IssuedRole is { } issuedRole && issuedRole != currentUser.RoleCode) return false;
+                    var successor = await _context.RefreshTokens.FromSqlInterpolated($"SELECT * FROM [RefreshTokens] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={newToken.Id}")
+                        .SingleOrDefaultAsync(verificationCancellationToken);
+                    return successor is not null && successor.TokenHash == newToken.TokenHash && successor.SessionId == currentSession.Id &&
+                        successor.IsActiveAt(_timeProvider.GetUtcNow()) && await _context.RefreshTokens.AsNoTracking()
+                            .AnyAsync(t => t.Id == oldTokenId && t.RevokedAt != null, verificationCancellationToken);
                 },
                 cancellationToken);
         }
@@ -127,6 +177,8 @@ public sealed partial class IdentityRepository
             return new RotateRefreshTokenResult(RotateRefreshTokenStatus.InvalidToken, null, "Replacement token conflicts with an existing credential.");
         }
     }
+
+    private sealed record RefreshRotationOutcome(Guid SuccessorId, string ProtectedCredential, DateTimeOffset ReplayUntil);
 
     public async Task<ReplayRevocationResult> RevokeRefreshTokenFamilyForReplayAsync(
         Guid refreshTokenId,
@@ -173,7 +225,7 @@ public sealed partial class IdentityRepository
                     var replayState = await _context.RefreshTokens
                         .AsNoTracking()
                         .Where(token => token.Id == refreshTokenId)
-                        .Select(token => new { token.SessionId, token.RowVersion })
+                        .Select(token => new { token.SessionId, token.Session.UserId, token.RowVersion })
                         .SingleOrDefaultAsync(attemptCancellationToken);
                     if (replayState is null)
                     {
@@ -185,17 +237,18 @@ public sealed partial class IdentityRepository
                         return new ReplayRevocationResult(ReplayRevocationStatus.StaleConcurrency);
                     }
 
-                    var now = DateTimeOffset.UtcNow;
-                    var session = await _context.Sessions
-                        .Include(candidate => candidate.RefreshTokens)
-                        .SingleAsync(candidate => candidate.Id == replayState.SessionId, attemptCancellationToken);
+                    _ = await _context.Users.FromSqlInterpolated($"SELECT * FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={replayState.UserId}")
+                        .SingleOrDefaultAsync(attemptCancellationToken);
+                    var now = _timeProvider.GetUtcNow();
+                    var session = await _context.Sessions.FromSqlInterpolated($"SELECT * FROM [Sessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={replayState.SessionId}")
+                        .Include(candidate => candidate.RefreshTokens).SingleAsync(attemptCancellationToken);
                     if (session.RevokedAt is null)
                     {
                         session.RevokedAt = now;
                     }
 
                     foreach (var token in session.RefreshTokens.Where(token =>
-                                 token.RevokedAt is null && token.ExpiresAt > now))
+                                 token.RevokedAt is null))
                     {
                         token.RevokedAt = now;
                     }
@@ -266,54 +319,25 @@ public sealed partial class IdentityRepository
         }
     }
 
-    public async Task RevokeSessionAndFamilyAsync(
-        Guid sessionId,
-        CancellationToken cancellationToken = default)
+    public async Task RevokeSessionAndFamilyAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
-        _context.ChangeTracker.Clear();
-        var session = await _context.Sessions
-            .Include(candidate => candidate.RefreshTokens)
-            .SingleOrDefaultAsync(candidate => candidate.Id == sessionId, cancellationToken);
-
-        if (session is null)
+        var owner = await _context.Sessions.AsNoTracking().Where(s => s.Id == sessionId)
+            .Select(s => (Guid?)s.UserId).SingleOrDefaultAsync(cancellationToken);
+        if (owner is null) return;
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteInTransactionAsync(async ct =>
         {
             _context.ChangeTracker.Clear();
-            return;
-        }
-
-        if (session.RevokedAt is not null)
-        {
-            _context.ChangeTracker.Clear();
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        session.RevokedAt = now;
-
-        foreach (var token in session.RefreshTokens.Where(token =>
-                     token.RevokedAt == null && token.ExpiresAt > now))
-        {
-            token.RevokedAt = now;
-        }
-
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-            _context.ChangeTracker.Clear();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            _context.ChangeTracker.Clear();
-            var persistedRevocation = await _context.Sessions
-                .AsNoTracking()
-                .Where(candidate => candidate.Id == sessionId)
-                .Select(candidate => candidate.RevokedAt)
-                .SingleOrDefaultAsync(CancellationToken.None);
-            if (persistedRevocation is null)
-            {
-                throw;
-            }
-        }
+            _ = await _context.Users.FromSqlInterpolated($"SELECT * FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={owner.Value}")
+                .SingleOrDefaultAsync(ct);
+            var session = await _context.Sessions.FromSqlInterpolated($"SELECT * FROM [Sessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={sessionId}")
+                .Include(s => s.RefreshTokens).SingleOrDefaultAsync(ct);
+            if (session is null) return;
+            var now = _timeProvider.GetUtcNow();
+            session.RevokedAt ??= now;
+            foreach (var token in session.RefreshTokens.Where(t => t.RevokedAt is null)) token.RevokedAt = now;
+            await _context.SaveChangesAsync(ct);
+        }, async ct => await _context.Sessions.AsNoTracking().AnyAsync(s => s.Id == sessionId && s.RevokedAt != null, ct), cancellationToken);
     }
 
     public async Task<LogoutPersistenceResult> RevokeSessionAndFamilyAtomicAsync(
@@ -355,12 +379,12 @@ public sealed partial class IdentityRepository
                             IdempotentConflict: durable.RequestFingerprint != requestFingerprint);
                     }
 
-                    var session = await _context.Sessions
+                    _ = await _context.Users.FromSqlInterpolated($"SELECT * FROM [Users] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={userId}")
+                        .SingleOrDefaultAsync(attemptCancellationToken);
+                    var session = await _context.Sessions.FromSqlInterpolated($"SELECT * FROM [Sessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={sessionId}")
                         .Include(candidate => candidate.RefreshTokens)
-                        .SingleOrDefaultAsync(candidate =>
-                            candidate.Id == sessionId && candidate.UserId == userId,
-                            attemptCancellationToken);
-                    var now = DateTimeOffset.UtcNow;
+                        .SingleOrDefaultAsync(candidate => candidate.UserId == userId, attemptCancellationToken);
+                    var now = _timeProvider.GetUtcNow();
                     if (session is not null)
                     {
                         session.RevokedAt ??= now;

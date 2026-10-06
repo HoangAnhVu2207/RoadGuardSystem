@@ -10,14 +10,14 @@ public class RefreshToken
 
     public string TokenHash { get; set; } = string.Empty;
 
-    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
 
     public DateTimeOffset? RevokedAt { get; set; }
 
     public byte[] RowVersion { get; set; } = [];
 
     // Derived states
-    public bool IsActiveAt(DateTimeOffset now) => RevokedAt == null && ExpiresAt > now.ToUniversalTime();
+    public bool IsActiveAt(DateTimeOffset now) => RevokedAt == null && (ExpiresAt is null || ExpiresAt > now.ToUniversalTime());
 
     public bool IsRevoked => RevokedAt != null;
 

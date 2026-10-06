@@ -23,11 +23,11 @@ public sealed record AuthTokens(
     string AccessToken,
     string RefreshToken,
     DateTimeOffset AccessTokenExpiresAt,
-    DateTimeOffset RefreshTokenExpiresAt,
+    DateTimeOffset? RefreshTokenExpiresAt,
     int ExpiresIn,
     UserSecurityState User,
     Guid SessionId = default,
-    DateTimeOffset SessionExpiresAt = default,
+    DateTimeOffset? SessionExpiresAt = default,
     DateTimeOffset SessionIssuedAt = default);
 
 public sealed record AuthResult(AuthStatus Status, AuthTokens? Tokens = null, string? ErrorMessage = null);
@@ -35,7 +35,7 @@ public sealed record AuthResult(AuthStatus Status, AuthTokens? Tokens = null, st
 public sealed record LoginCommand(string Email, string Password, SessionTransport Transport = SessionTransport.LegacyBearer);
 
 public sealed record RefreshCommand(string RefreshToken, Guid? CorrelationId = null,
-    SessionTransport? RequiredTransport = null);
+    SessionTransport? RequiredTransport = null, string? OperationKey = null);
 
 public sealed record ForcedPasswordChangeCommand(
     string Username,

@@ -60,8 +60,8 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
         {
             var session = await db.Sessions.AsNoTracking().SingleAsync(item => item.UserId == user.Id);
             Assert.Equal(SessionTransport.Web, session.Transport);
-            Assert.InRange(session.ExpiresAt - session.IssuedAt,
-                TimeSpan.FromHours(12).Add(-TimeSpan.FromSeconds(1)), TimeSpan.FromHours(12).Add(TimeSpan.FromSeconds(1)));
+            Assert.Null(session.ExpiresAt);
+            Assert.Equal(SessionLifecycle.PersistentRenewable, session.Lifecycle);
         }
 
         var active = await client.GetAsync("/api/v1/auth/web/session");
@@ -133,7 +133,7 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
     }
 
     [Fact]
-    public async Task WebSession_RejectsIdleAndAbsoluteExpiryWithoutRevivingSession()
+    public async Task WebSession_PersistentIgnoresIdleTelemetry_ButRevocationDenies()
     {
         var username = $"web-expiry-{Guid.NewGuid():N}";
         var user = await fixture.CreateUserAsync(username, "Current1!");
@@ -155,15 +155,15 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
             session.LastActivityAt = idleAt;
             await db.SaveChangesAsync();
         }
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/web/session")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/auth/web/session")).StatusCode);
         await using (var db = fixture.CreateDbContext())
-            Assert.Equal(idleAt, (await db.Sessions.AsNoTracking().SingleAsync(item => item.UserId == user.Id)).LastActivityAt);
+            Assert.NotEqual(idleAt, (await db.Sessions.AsNoTracking().SingleAsync(item => item.UserId == user.Id)).LastActivityAt);
 
         await using (var db = fixture.CreateDbContext())
         {
             var session = await db.Sessions.SingleAsync(item => item.UserId == user.Id);
             session.LastActivityAt = DateTimeOffset.UtcNow;
-            session.ExpiresAt = session.IssuedAt.AddMilliseconds(1);
+            session.RevokedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
         }
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/web/session")).StatusCode);

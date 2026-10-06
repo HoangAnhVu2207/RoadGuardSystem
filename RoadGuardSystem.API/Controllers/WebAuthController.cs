@@ -4,6 +4,8 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using RoadGuardSystem.Services.Generators;
 using Microsoft.AspNetCore.Mvc;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.API.Authentication;
@@ -18,7 +20,7 @@ namespace RoadGuardSystem.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/auth/web")]
-public sealed class WebAuthController(IAuthService auth, IIdentityRepository identity, IAntiforgery antiforgery)
+public sealed class WebAuthController(IAuthService auth, IIdentityRepository identity, IAntiforgery antiforgery, IDataProtectionProvider protection, TimeProvider clock)
     : ControllerBase
 {
     [AllowAnonymous]
@@ -51,10 +53,49 @@ public sealed class WebAuthController(IAuthService auth, IIdentityRepository ide
         };
         await HttpContext.SignInAsync(WebCookieConfiguration.Scheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, WebCookieConfiguration.Scheme)),
-            new AuthenticationProperties { IsPersistent = true, ExpiresUtc = issued.SessionExpiresAt });
-        return Ok(View(issued.User, issued.SessionIssuedAt, issued.SessionExpiresAt,
-            issued.SessionIssuedAt.AddMinutes(30)));
+            new AuthenticationProperties { IsPersistent = true, ExpiresUtc = clock.GetUtcNow().AddHours(12) });
+        SetRenewalCookie(protection.CreateProtector("RoadGuard.WebRenewal.v1").Protect(issued.RefreshToken));
+        return Ok(View(issued.User, issued.SessionIssuedAt, null, null));
     }
+
+    [AllowAnonymous]
+    [HttpPost("renew")]
+    public async Task<IActionResult> Renew(CancellationToken token)
+    {
+        NoStore();
+        if (Request.Headers.ContainsKey("Authorization")) return ProblemResult(400, "validation_error");
+        var existing = await HttpContext.AuthenticateAsync(WebCookieConfiguration.Scheme);
+        if (existing.Succeeded && existing.Principal is not null) HttpContext.User = existing.Principal;
+        if (!await ValidCsrfAsync()) return ProblemResult(403, "csrf_failed");
+        if (!Request.Cookies.TryGetValue(WebCookieConfiguration.RenewalCookieName, out var protectedValue))
+            return ProblemResult(401, "auth_session_revoked");
+        string credential;
+        try { credential = protection.CreateProtector("RoadGuard.WebRenewal.v1").Unprotect(protectedValue); }
+        catch (System.Security.Cryptography.CryptographicException) { return ProblemResult(401, "auth_session_revoked"); }
+        var hash = RefreshTokenGenerator.Hash(credential);
+        if (existing.Succeeded)
+        {
+            var owner = await identity.FindRefreshTokenByHashAsync(hash, token);
+            if (owner is null) return ProblemResult(401, "auth_session_revoked");
+            if (existing.Principal?.FindFirstValue(JwtRegisteredClaimNames.Sub) != owner.UserId.ToString() ||
+                existing.Principal?.FindFirstValue("sid") != owner.SessionId.ToString()) return ProblemResult(400, "validation_error");
+        }
+        var state = await identity.RenewWebSessionAsync(hash, clock.GetUtcNow(), token);
+        if (state is null) return ProblemResult(401, "auth_session_revoked");
+        if (existing.Succeeded && (existing.Principal?.FindFirstValue(JwtRegisteredClaimNames.Sub) != state.User.Id.ToString() ||
+            existing.Principal?.FindFirstValue("sid") != state.SessionId.ToString())) return ProblemResult(400, "validation_error");
+        var claims = new[] { new Claim(JwtRegisteredClaimNames.Sub, state.User.Id.ToString()),
+            new Claim("sid", state.SessionId.ToString()), new Claim("role", state.User.RoleCode.ToDbCode()) };
+        await HttpContext.SignInAsync(WebCookieConfiguration.Scheme,
+            new ClaimsPrincipal(new ClaimsIdentity(claims, WebCookieConfiguration.Scheme)),
+            new AuthenticationProperties { IsPersistent = true, ExpiresUtc = clock.GetUtcNow().AddHours(12) });
+        SetRenewalCookie(protectedValue);
+        return Ok(View(state.User, state.IssuedAt, null, null));
+    }
+
+    private void SetRenewalCookie(string value) => Response.Cookies.Append(WebCookieConfiguration.RenewalCookieName,
+        value, new CookieOptions { HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/",
+            MaxAge = TimeSpan.FromDays(365) });
 
     [Authorize(AuthenticationSchemes = WebCookieConfiguration.Scheme)]
     [HttpGet("session")]
@@ -62,7 +103,7 @@ public sealed class WebAuthController(IAuthService auth, IIdentityRepository ide
     {
         NoStore();
         if (!TryClaims(out var userId, out var sessionId, out var role)) return ProblemResult(401, "auth_unauthorized");
-        var state = await identity.TouchWebSessionAsync(userId, sessionId, role, DateTimeOffset.UtcNow,
+        var state = await identity.TouchWebSessionAsync(userId, sessionId, role, clock.GetUtcNow(),
             allowMustChangePassword: true, cancellationToken: token);
         return state is null ? ProblemResult(401, "auth_session_revoked")
             : Ok(View(state.User, state.IssuedAt, state.AbsoluteExpiresAt, state.IdleExpiresAt));
@@ -81,6 +122,7 @@ public sealed class WebAuthController(IAuthService auth, IIdentityRepository ide
         var result = await auth.LogoutAsync(userId, sessionId, normalized, cancellationToken: token);
         if (result.Status != AuthStatus.Success) return ProblemResult(409, "idempotency_key_reused");
         await HttpContext.SignOutAsync(WebCookieConfiguration.Scheme);
+        Response.Cookies.Delete(WebCookieConfiguration.RenewalCookieName, new CookieOptions { Secure = true, Path = "/" });
         return NoContent();
     }
 
@@ -101,14 +143,16 @@ public sealed class WebAuthController(IAuthService auth, IIdentityRepository ide
     }
 
     private static object View(UserSecurityState user, DateTimeOffset issuedAt,
-        DateTimeOffset absoluteExpiresAt, DateTimeOffset idleExpiresAt) => new
+        DateTimeOffset? absoluteExpiresAt, DateTimeOffset? idleExpiresAt) => new
     {
         user = new { id = user.Id, displayName = user.DisplayName, role = ToV2Role(user.RoleCode),
             version = Convert.ToBase64String(user.RowVersion) },
         mustChangePassword = user.MustChangePassword,
         issuedAt,
         absoluteExpiresAt,
-        idleExpiresAt
+        idleExpiresAt,
+        renewable = absoluteExpiresAt is null,
+        ticketLifetimeSeconds = 43200
     };
 
     private ObjectResult ProblemResult(int status, string code)

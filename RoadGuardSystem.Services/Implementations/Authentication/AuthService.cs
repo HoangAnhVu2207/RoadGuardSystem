@@ -84,12 +84,9 @@ public sealed class AuthService : IAuthService
             UserId = user.Id,
             IssuedAt = now,
             DeviceMetadataJson = null,
-            ExpiresAt = command.Transport switch
-            {
-                SessionTransport.Android => now.AddDays(30),
-                SessionTransport.Web => now.AddHours(12),
-                _ => now.AddHours(_options.SessionLifetimeHours)
-            },
+            ExpiresAt = null,
+            Lifecycle = SessionLifecycle.PersistentRenewable,
+            IssuedRole = user.RoleCode,
             Transport = command.Transport,
             LastActivityAt = command.Transport == SessionTransport.Web ? now : null
         };
@@ -98,12 +95,7 @@ public sealed class AuthService : IAuthService
             Id = Guid.NewGuid(),
             SessionId = session.Id,
             TokenHash = material.HashHex,
-            ExpiresAt = command.Transport switch
-            {
-                SessionTransport.Android => now.AddDays(30),
-                SessionTransport.Web => now.AddHours(12),
-                _ => now.AddDays(_options.RefreshTokenLifetimeDays)
-            }
+            ExpiresAt = null
         };
 
         var issue = await _identityRepository.IssueSessionWithRefreshTokenAsync(
@@ -133,7 +125,9 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthResult> RefreshAsync(RefreshCommand command, CancellationToken cancellationToken = default)
     {
-        if (command is null || string.IsNullOrWhiteSpace(command.RefreshToken))
+        if (command is null || string.IsNullOrWhiteSpace(command.RefreshToken) ||
+            command.OperationKey is not null && (command.OperationKey.Length is < 1 or > 150 ||
+                command.OperationKey.Any(c => c is < '!' or > '~')))
         {
             return new AuthResult(AuthStatus.InvalidInput);
         }
@@ -146,7 +140,7 @@ public sealed class AuthService : IAuthService
             return new AuthResult(AuthStatus.RefreshTokenInvalid);
         }
 
-        if (token.RevokedAt is not null)
+        if (token.RevokedAt is not null && string.IsNullOrWhiteSpace(command.OperationKey))
         {
             await _identityRepository.RevokeRefreshTokenFamilyForReplayAsync(
                 token.Id,
@@ -156,20 +150,21 @@ public sealed class AuthService : IAuthService
             return new AuthResult(AuthStatus.SessionRevoked);
         }
 
-        if (token.ExpiresAt <= now)
+        if (token.ExpiresAt is { } expiry && expiry <= now)
         {
             return new AuthResult(AuthStatus.RefreshTokenExpired);
         }
 
         var session = await _identityRepository.GetSessionSecurityStateAsync(token.SessionId, cancellationToken);
-        if (session is null || session.UserId != token.UserId || session.RevokedAt is not null || session.ExpiresAt <= now ||
+        if (session is null || session.UserId != token.UserId || session.RevokedAt is not null || !SessionIsActive(session, now) ||
             command.RequiredTransport is { } required && session.Transport != required)
         {
             return new AuthResult(AuthStatus.SessionRevoked);
         }
 
         var user = await _identityRepository.GetUserSecurityStateAsync(token.UserId, cancellationToken);
-        if (user is null || user.Status != UserStatus.Active || user.MustChangePassword ||
+        if (user is null || session.Lifecycle == SessionLifecycle.LegacyBounded && token.ExpiresAt is null || user.Status != UserStatus.Active || user.MustChangePassword ||
+            session.IssuedRole is { } issuedRole && user.RoleCode != issuedRole ||
             !await _identityRepository.IsRoleActiveAsync(user.RoleCode, cancellationToken))
         {
             return new AuthResult(AuthStatus.Unauthorized);
@@ -181,16 +176,23 @@ public sealed class AuthService : IAuthService
             Id = Guid.NewGuid(),
             SessionId = token.SessionId,
             TokenHash = material.HashHex,
-            ExpiresAt = Min(now.AddDays(session.Transport == SessionTransport.Android ? 30 : _options.RefreshTokenLifetimeDays), session.ExpiresAt)
+            ExpiresAt = session.Lifecycle == SessionLifecycle.PersistentRenewable ? null : Min(now.AddDays(session.Transport == SessionTransport.Android ? 30 : _options.RefreshTokenLifetimeDays), session.ExpiresAt!.Value)
         };
-        var rotation = await _identityRepository.RotateRefreshTokenAsync(
-            token.Id,
-            token.RowVersion,
-            replacement,
-            cancellationToken);
+        var protector = new RefreshCredentialProtection(_options);
+        var rotation = string.IsNullOrWhiteSpace(command.OperationKey)
+            ? await _identityRepository.RotateRefreshTokenAsync(token.Id, token.RowVersion, replacement, cancellationToken)
+            : await _identityRepository.RotateRefreshTokenWithReceiptAsync(token.Id, token.RowVersion, replacement,
+                command.OperationKey, tokenHash, protector.Protect(material.Plaintext), cancellationToken);
         if (rotation.Status == RotateRefreshTokenStatus.Success)
         {
-            return Success(user, token.SessionId, material, replacement.ExpiresAt, now,
+            RefreshTokenMaterial returnedMaterial;
+            try { returnedMaterial = rotation.ProtectedCredential is null ? material :
+                new RefreshTokenMaterial(protector.Unprotect(rotation.ProtectedCredential), rotation.NewToken!.TokenHash); }
+            catch (Exception error) when (error is CryptographicException or FormatException or KeyNotFoundException)
+            { return new AuthResult(AuthStatus.RefreshTokenInvalid); }
+            if (RefreshTokenGenerator.Hash(returnedMaterial.Plaintext) != rotation.NewToken?.TokenHash)
+                return new AuthResult(AuthStatus.RefreshTokenInvalid);
+            return Success(user, token.SessionId, returnedMaterial, rotation.NewToken?.ExpiresAt ?? replacement.ExpiresAt, now,
                 session.Transport, session.ExpiresAt);
         }
 
@@ -220,6 +222,11 @@ public sealed class AuthService : IAuthService
                 ? new AuthResult(AuthStatus.RefreshTokenExpired)
                 : new AuthResult(AuthStatus.RefreshTokenInvalid);
     }
+
+    private static bool SessionIsActive(SessionSecurityState session, DateTimeOffset now) =>
+        new UserSession { IssuedAt = session.IssuedAt, ExpiresAt = session.ExpiresAt,
+            RevokedAt = session.RevokedAt, Transport = session.Transport, LastActivityAt = session.LastActivityAt,
+            Lifecycle = session.Lifecycle, IssuedRole = session.IssuedRole }.IsActiveAt(now);
 
     private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second) =>
         first <= second ? first : second;
@@ -405,10 +412,10 @@ public sealed class AuthService : IAuthService
         UserSecurityState user,
         Guid sessionId,
         RefreshTokenMaterial material,
-        DateTimeOffset refreshTokenExpiresAt,
+        DateTimeOffset? refreshTokenExpiresAt,
         DateTimeOffset issuedAt,
         SessionTransport transport = SessionTransport.LegacyBearer,
-        DateTimeOffset sessionExpiresAt = default)
+        DateTimeOffset? sessionExpiresAt = default)
     {
         var lifetimeMinutes = transport == SessionTransport.Android ? 15 : _options.AccessTokenLifetimeMinutes;
         var accessToken = _accessTokenFactory.Create(user.Id, sessionId, user.RoleCode, issuedAt, lifetimeMinutes);

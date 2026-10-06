@@ -40,10 +40,10 @@ public sealed class AuthoritativeSessionValidator
             if (session is null ||
                 session.UserId != userId ||
                 session.RevokedAt is not null ||
-                session.ExpiresAt <= now ||
                 requiredTransport is { } transport && session.Transport != transport ||
-                session.Transport == SessionTransport.Web &&
-                (session.LastActivityAt ?? session.IssuedAt).AddMinutes(30) <= now)
+                !new UserSession { IssuedAt = session.IssuedAt, ExpiresAt = session.ExpiresAt,
+                    RevokedAt = session.RevokedAt, Transport = session.Transport, LastActivityAt = session.LastActivityAt,
+                    Lifecycle = session.Lifecycle, IssuedRole = session.IssuedRole }.IsActiveAt(now))
             {
                 return AuthoritativeSessionValidation.SessionRevoked;
             }
@@ -54,7 +54,7 @@ public sealed class AuthoritativeSessionValidator
                 return AuthoritativeSessionValidation.Unauthorized;
             }
 
-            if (user.RoleCode != roleSnapshot)
+            if (user.RoleCode != roleSnapshot || session.IssuedRole is { } issuedRole && issuedRole != user.RoleCode)
             {
                 await _identityRepository.RevokeSessionAndFamilyAsync(sessionId, cancellationToken);
                 return AuthoritativeSessionValidation.SessionRevoked;

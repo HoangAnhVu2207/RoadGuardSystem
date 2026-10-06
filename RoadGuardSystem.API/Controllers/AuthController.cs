@@ -50,8 +50,11 @@ public sealed class AuthController : ControllerBase
     [AllowAnonymous]
     [HttpPost("android/refresh")]
     public async Task<IActionResult> AndroidRefresh(RefreshRequestDto request, CancellationToken cancellationToken)
-        => MapResult(await _authService.RefreshAsync(
-            new RefreshCommand(request.RefreshToken!, CorrelationId(), SessionTransport.Android), cancellationToken));
+    {
+        if (!TryOperationKey(out var key)) return MapResult(new AuthResult(AuthStatus.InvalidInput));
+        return MapResult(await _authService.RefreshAsync(
+            new RefreshCommand(request.RefreshToken!, CorrelationId(), SessionTransport.Android, key), cancellationToken));
+    }
 
     [AllowAnonymous]
     [HttpPost("refresh")]
@@ -61,10 +64,21 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<IActionResult> Refresh(RefreshRequestDto request, CancellationToken cancellationToken)
     {
+        if (!TryOperationKey(out var key)) return MapResult(new AuthResult(AuthStatus.InvalidInput));
         var result = await _authService.RefreshAsync(
-            new RefreshCommand(request.RefreshToken!, CorrelationId()),
+            new RefreshCommand(request.RefreshToken!, CorrelationId(), OperationKey: key),
             cancellationToken);
         return MapResult(result);
+    }
+
+    private bool TryOperationKey(out string? key)
+    {
+        key = null;
+        if (!Request.Headers.TryGetValue("Idempotency-Key", out var values))
+            return !Request.Headers.ContainsKey("Idempotency-Key");
+        if (values.Count != 1) return false;
+        key = values[0]?.Trim(' ');
+        return key is { Length: > 0 and <= 150 } && key.All(c => c is >= '!' and <= '~');
     }
 
     [AllowAnonymous]

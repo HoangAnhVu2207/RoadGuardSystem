@@ -207,7 +207,7 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
         context.Sessions.Add(sessionExpiresBeforeIssued);
         var actExpires = () => context.SaveChangesAsync();
         await actExpires.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Session ExpiresAt must be after IssuedAt*");
+            .WithMessage("*Session lifecycle requires a bounded legacy expiry*");
 
         context.Entry(sessionExpiresBeforeIssued).State = EntityState.Detached;
 

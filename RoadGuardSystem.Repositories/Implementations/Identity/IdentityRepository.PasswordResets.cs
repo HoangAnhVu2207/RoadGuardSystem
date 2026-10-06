@@ -76,7 +76,7 @@ public sealed partial class IdentityRepository
                         return new AdminPasswordResetResult(AdminPasswordResetStatus.StaleConcurrency);
                     }
 
-                    var now = DateTimeOffset.UtcNow;
+                    var now = _timeProvider.GetUtcNow();
                     var previousMustChangePassword = target.MustChangePassword;
                     target.PasswordHash = newPasswordHash;
                     target.SecurityStamp = newSecurityStamp;
@@ -85,8 +85,7 @@ public sealed partial class IdentityRepository
                     var activeSessions = await _context.Sessions
                         .Where(session =>
                             session.UserId == targetUserId &&
-                            session.RevokedAt == null &&
-                            session.ExpiresAt > now)
+                            session.RevokedAt == null)
                         .ToListAsync(attemptCancellationToken);
                     var activeSessionIds = activeSessions.Select(session => session.Id).ToList();
                     foreach (var session in activeSessions)
@@ -99,8 +98,7 @@ public sealed partial class IdentityRepository
                         var activeTokens = await _context.RefreshTokens
                             .Where(token =>
                                 activeSessionIds.Contains(token.SessionId) &&
-                                token.RevokedAt == null &&
-                                token.ExpiresAt > now)
+                                token.RevokedAt == null)
                             .ToListAsync(attemptCancellationToken);
                         foreach (var token in activeTokens)
                         {

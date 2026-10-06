@@ -82,14 +82,14 @@ public sealed partial class IdentityRepository
 
                     var oldStatus = target.Status;
                     var oldRole = target.RoleCode;
-                    var now = DateTimeOffset.UtcNow;
+                    var now = _timeProvider.GetUtcNow();
                     using var roleMutationScope = _context.PermitRoleMutationScope();
                     target.RoleCode = roleCode;
                     target.Status = status;
                     target.SuspendedAt = status == UserStatus.Suspended ? now : null;
 
                     var activeSessions = await _context.Sessions
-                        .Where(item => item.UserId == targetUserId && item.RevokedAt == null && item.ExpiresAt > now)
+                        .Where(item => item.UserId == targetUserId && item.RevokedAt == null)
                         .ToListAsync(attemptCancellationToken);
                     var sessionIds = activeSessions.Select(item => item.Id).ToList();
                     foreach (var session in activeSessions)

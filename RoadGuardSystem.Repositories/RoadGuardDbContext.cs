@@ -320,6 +320,10 @@ public class RoadGuardDbContext : DbContext
                 {
                     throw new InvalidOperationException("UserSession.DeviceMetadataJson is write-once and cannot be modified.");
                 }
+                if (entry.Property(s => s.Lifecycle).IsModified || entry.Property(s => s.IssuedRole).IsModified)
+                {
+                    throw new InvalidOperationException("UserSession lifecycle and issued role are write-once and cannot be modified.");
+                }
             }
             else if (entry.State == EntityState.Added)
             {
@@ -329,9 +333,16 @@ public class RoadGuardDbContext : DbContext
                     throw new InvalidOperationException($"Invalid Session DeviceMetadataJson: {validation.ErrorMessage}");
                 }
 
-                if (entry.Entity.ExpiresAt <= entry.Entity.IssuedAt)
+                var validLifecycle = entry.Entity.Lifecycle switch
                 {
-                    throw new InvalidOperationException("Session ExpiresAt must be after IssuedAt.");
+                    SessionLifecycle.LegacyBounded => entry.Entity.ExpiresAt is { } expiry && expiry > entry.Entity.IssuedAt,
+                    SessionLifecycle.PersistentRenewable => entry.Entity.ExpiresAt is null &&
+                        entry.Entity.IssuedRole is { } role && role != UserRoleCode.Unknown && Enum.IsDefined(role),
+                    _ => false
+                };
+                if (!validLifecycle)
+                {
+                    throw new InvalidOperationException("Session lifecycle requires a bounded legacy expiry or a persistent issued role without expiry.");
                 }
 
                 if (entry.Entity.RevokedAt != null && entry.Entity.RevokedAt < entry.Entity.IssuedAt)

@@ -17,6 +17,13 @@ namespace RoadGuardSystem.API.Controllers;
 [Route("api/v{version:apiVersion}")]
 public sealed class H6NotificationOperationsController(H6NotificationReadService service) : ControllerBase
 {
+    [HttpGet("projects/{projectId:guid}/weekly-digests/{digestId:guid}")]
+    public async Task<IActionResult> WeeklyDigest(Guid projectId, Guid digestId, CancellationToken token)
+    {
+        if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
+        var value = await service.WeeklyDigestAsync(actor, role, projectId, digestId, token);
+        return value is null ? Error(404, "notification_not_found") : Ok(value);
+    }
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     [HttpGet("notifications/{notificationId:guid}/scope")]
     public async Task<IActionResult> Scope(Guid notificationId, CancellationToken cancellationToken)

@@ -22,6 +22,7 @@ public interface IH6NotificationDispatchRepository
 }
 public interface IH6NotificationOperationsRepository
 {
+    Task<WeeklyDigestReadFact?> WeeklyDigestAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid digestId, CancellationToken token);
     Task<H6ScopeFact?> ScopeAsync(Guid actorId, UserRoleCode authenticatedRole, Guid notificationId, CancellationToken cancellationToken);
     Task<H6ClockPageFact> ClocksPageAsync(Guid actorId, UserRoleCode authenticatedRole, Guid projectId,
         H6ClockCursorFact? cursor, int limit, CancellationToken cancellationToken);

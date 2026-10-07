@@ -6,7 +6,7 @@ Status: IN_PROGRESS preparation under [HUY-FINAL-INTEGRATION](../../planning/dev
 
 Record the exact Git SHA, image/artifact digest, source comparison, applied migration list, configuration revision and executing operator. Use the same SHA for hosted CI, build artifact and smoke checks. Preserve logs and test results with timestamps and environment identity, without credentials or personal data. Local SQL and mock storage/client tests are classified separately from real infrastructure checks.
 
-Current package checkpoints and localized source/policy gates are in the assigned spec and its summary. Do not activate official CRS publication, unresolved receipt semantics, deadline/substitute authority or separate lifecycle command authority by changing configuration defaults. Correction authority is owner-confirmed: current project PM for FT and current project Supervisor for normal; verify the actual production guard and transaction evidence. Candidate/sample geometry and test repair policies are explicitly labeled fixtures.
+Current owner activation (Anh07/10/2026) and package checkpoints are in the assigned spec and summary. LD02 business ACK, LD03 ordinary extension authority/history, LD04 eligible substitute duty and LD05 latest-missed weekly recovery have production paths; acceptance is recorded per capability. LD06–LD08a are authorized ongoing implementation, not pending owner authority. Official CRS, extension numerical limits/additional offline execution, real coverage/statistical source facts and public-period formulas remain localized gates. Do not activate those dependent behaviors by configuration defaults. Correction authority remains current project PM for FT/current project Supervisor for normal. Candidate/sample geometry and test repair policies are explicitly labeled fixtures.
 
 ## Configuration and transport
 
@@ -34,7 +34,7 @@ Inventory every enabled worker, source event registry, queue lease, retry policy
 
 Start one registered consumer for each owned event family. Notification leasing must exclude processing/validation dispatch events. Unsupported or unresolved events remain visible and cannot be marked successfully delivered by a no-op handler. Crash/restart retries use the same occurrence and durable recipient effect, without duplicate business commands or new clock origins. Verify stale-lease fencing and current-authority receipt access.
 
-Check readiness, database/object reachability and worker progress through the actual deployed monitoring surface. Record bounded queue age, retries, dead letters, unresolved recipients, overdue clocks and awaiting-receipt obligations. Delivery/read events cannot acknowledge a danger warning or substitute for an unadopted business receipt protocol. Logs use correlation IDs and safe reason codes, without tokens, keys, personal evidence or connection strings.
+Check readiness, database/object reachability and worker progress through the actual deployed monitoring surface. Record bounded queue age, retries, dead letters, unresolved recipients, overdue clocks and awaiting-receipt obligations. Delivery/read events cannot acknowledge a danger warning or receiving request; their production business ACK actions are separate. Weekly recovery emits one latest missed aggregate and keeps older periods as history. Logs use correlation IDs and safe reason codes, without tokens, keys, personal evidence or connection strings.
 
 ## Migration and recovery procedure
 

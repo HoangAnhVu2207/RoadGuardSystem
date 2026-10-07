@@ -15149,6 +15149,32 @@
               "listen": "prerequest"
             }
           ]
+        },
+        {
+          "id": "7557dc5f-37aa-483d-8611-a108885fa759",
+          "name": "Read latest weekly aggregate captured at recovery",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationDigestId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              },
+              "listen": "prerequest"
+            }
+          ],
+          "request": {
+            "description": "Immutable pending-at-recovery duties and all missed-period history. Recipient current project rights required. Existing weekly event identities remain unchanged.",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/weekly-digests/{{activationDigestId}}",
+            "method": "GET"
+          }
         }
       ]
     }

@@ -14,7 +14,7 @@ public enum NotificationEventKind : byte
 public enum NotificationSourceKind : byte
 {
     FieldTask = 1, RepairWork = 2, DeadlineClock = 3, TemporarySafetyMeasure = 4,
-    ReviewObligation = 5, ProjectLifecycle = 6
+    ReviewObligation = 5, ProjectLifecycle = 6, ReviewDigest = 7
 }
 
 public enum NotificationRecipientStrategy : byte
@@ -88,7 +88,7 @@ public sealed class NotificationEventEnvelope
             NotificationEventKind.DeadlineBreached => sourceKind == NotificationSourceKind.DeadlineClock,
             NotificationEventKind.SafetyWarning or NotificationEventKind.SafetyInspectionDue or
                 NotificationEventKind.SafetyMeasureAssigned => sourceKind == NotificationSourceKind.TemporarySafetyMeasure,
-            NotificationEventKind.WeeklyReviewPending => sourceKind == NotificationSourceKind.ReviewObligation,
+            NotificationEventKind.WeeklyReviewPending => sourceKind is NotificationSourceKind.ReviewObligation or NotificationSourceKind.ReviewDigest,
             NotificationEventKind.ProjectObligationTransferred or NotificationEventKind.ProjectHandlingRenewed => sourceKind == NotificationSourceKind.ProjectLifecycle,
             _ => false
         };

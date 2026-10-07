@@ -109,12 +109,12 @@ public sealed class H6NotificationFoundationTests
     }
 
     [Fact]
-    public void CalendarUsesMondayNineVietnamTimeWithoutCatchupChoice()
+    public void CalendarUsesMondayNineVietnamTimeAndConfirmedLatestRecovery()
     {
         NotificationCalendarPolicy.NextWeeklyReview(Now.AddTicks(-1)).Should().Be(Now);
         NotificationCalendarPolicy.NextWeeklyReview(Now).Should().Be(Now.AddDays(7));
         NotificationCalendarPolicy.EvaluateMissedPeriod(Now, Now.AddDays(8)).Should()
-            .Be(NotificationCalendarDecision.PendingPolicy);
+            .Be(NotificationCalendarDecision.RecoverLatest);
     }
 
     [Fact]

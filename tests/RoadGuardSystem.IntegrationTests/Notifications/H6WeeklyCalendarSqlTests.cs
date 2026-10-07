@@ -32,18 +32,18 @@ public sealed class H6WeeklyCalendarSqlTests(IdentitySqlServerFixture sql) : ICl
         Assert.Equal(Monday, planned.ScheduledAtUtc);
         Assert.Equal("PLANNED", planned.Status);
         time.Now = Monday.AddMilliseconds(10);
-        Assert.Equal(0, await repository.ObserveCalendarAsync(Guid.NewGuid(), null, default));
+        await RecoverExactlyOneForClock(db, repository, seed.Clock, Guid.NewGuid(), null);
         Assert.Equal("PLANNED", (await db.Set<H6NotificationCalendarRow>().SingleAsync(row => row.Id == planned.Id)).Status);
         time.AdvanceBy = TimeSpan.FromMilliseconds(1);
         var callback = time.GetUtcNow();
-        Assert.Equal(1, await repository.ObserveCalendarAsync(run,
+        Assert.Equal(0, await repository.ObserveCalendarAsync(run,
             new(run, Monday, callback, true), default));
         Assert.Equal(0, await repository.ObserveCalendarAsync(run,
             new(run, Monday, callback, true), default));
         db.ChangeTracker.Clear();
-        var committed = await db.Set<H6NotificationCalendarRow>().SingleAsync(row => row.Id == planned.Id);
-        Assert.Equal("COMMITTED", committed.Status);
-        Assert.Equal(planned.Id, committed.OutboxMessageId);
+        var committed = await db.Set<WeeklyReviewDigest>().SingleAsync(row => row.Duties.Any(d => d.ClockId == seed.Clock));
+        Assert.Equal(Monday, committed.ScheduledAtUtc);
+        Assert.Equal(seed.Manager, committed.RecipientId);
         var message = await db.OutboxMessages.SingleAsync(row => row.Id == committed.Id);
         var fence = Guid.NewGuid();
         message.AcquireLease("h6:" + fence.ToString("N"), time.Now, TimeSpan.FromMinutes(2), 32);
@@ -59,19 +59,24 @@ public sealed class H6WeeklyCalendarSqlTests(IdentitySqlServerFixture sql) : ICl
     }
 
     [Fact]
-    public async Task RestartLeavesMissedPeriodPendingWithoutOutboxOrCatchup()
+    public async Task RestartRecoversOnlyLatestMissedPeriodAndRetriesSameAggregate()
     {
         var seed = await new H6DeadlineProducerSqlTests(sql).Intake();
         await using var db = sql.CreateDbContext();
         var time = new MutableClock(Monday.AddMinutes(-1));
         var repository = new H6NotificationDispatchRepository(db, time);
         await repository.ObserveCalendarAsync(Guid.NewGuid(), null, default);
-        time.Now = Monday.AddMinutes(2);
+        time.Now = Monday.AddDays(21).AddMinutes(2);
+        await RecoverExactlyOneForClock(db, repository, seed.Clock, Guid.NewGuid(), null);
         Assert.Equal(0, await repository.ObserveCalendarAsync(Guid.NewGuid(), null, default));
         var missed = await db.Set<H6NotificationCalendarRow>().SingleAsync(row => row.ClockId == seed.Clock && row.ScheduledAtUtc == Monday);
-        Assert.Equal("PENDING_POLICY", missed.Status);
+        Assert.Equal("PLANNED", missed.Status);
         Assert.Null(missed.OutboxMessageId);
         Assert.False(await db.OutboxMessages.AnyAsync(row => row.Id == missed.Id));
+        var project = await db.Set<DeadlineClock>().Where(c => c.Id == seed.Clock).Select(c => c.ProjectId).SingleAsync();
+        var digest = await db.Set<WeeklyReviewDigest>().Include(d => d.Duties).SingleAsync(d => d.ProjectId == project);
+        Assert.Equal(Monday.AddDays(21), digest.ScheduledAtUtc); Assert.Single(digest.Duties);
+        Assert.Equal(4, await db.Set<WeeklyReviewRecoveryPeriod>().CountAsync(p => p.ProjectId == project));
     }
 
     [Fact]
@@ -93,8 +98,8 @@ public sealed class H6WeeklyCalendarSqlTests(IdentitySqlServerFixture sql) : ICl
         var time = new MutableClock(Monday.AddMinutes(-1)); var repository = new H6NotificationDispatchRepository(db, time);
         var run = Guid.NewGuid(); await repository.ObserveCalendarAsync(run, null, default);
         time.Now = Monday.AddMilliseconds(10);
-        Assert.Equal(1, await repository.ObserveCalendarAsync(run, new(run, Monday, time.Now, true), default));
-        var period = await db.Set<H6NotificationCalendarRow>().SingleAsync(row => row.ClockId == reviewClock.Id &&
+        await RecoverExactlyOneForClock(db, repository, reviewClock.Id, run, new(run, Monday, time.Now, true));
+        var period = await db.Set<WeeklyReviewDigest>().SingleAsync(row => row.Duties.Any(d => d.ClockId == reviewClock.Id) &&
             row.ScheduledAtUtc == Monday);
         var message = await db.OutboxMessages.SingleAsync(row => row.Id == period.Id);
         var fence = Guid.NewGuid(); message.AcquireLease("h6:" + fence.ToString("N"), time.Now, TimeSpan.FromMinutes(2), 32);
@@ -108,6 +113,14 @@ public sealed class H6WeeklyCalendarSqlTests(IdentitySqlServerFixture sql) : ICl
             .Select(row => row.RecipientUserId).SingleAsync());
     }
 
+    private static async Task RecoverExactlyOneForClock(RoadGuardSystem.Repositories.RoadGuardDbContext db,
+        H6NotificationDispatchRepository repository, Guid clockId, Guid run, NotificationScheduledCallbackWitness? witness)
+    {
+        var before = await db.Set<WeeklyReviewDigest>().Select(d => d.Id).ToArrayAsync();
+        var admitted = await repository.ObserveCalendarAsync(run, witness, default);
+        var created = await db.Set<WeeklyReviewDigest>().Include(d => d.Duties).Where(d => !before.Contains(d.Id)).ToArrayAsync();
+        Assert.Equal(created.Length, admitted); Assert.Single(created.Where(d => d.Duties.Any(duty => duty.ClockId == clockId)));
+    }
     private sealed class MutableClock(DateTimeOffset now) : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = now;

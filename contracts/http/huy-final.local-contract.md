@@ -2,7 +2,17 @@
 
 Status: ACTIVE_LOCAL_DEVELOPMENT for producing H0–H7 independent contracts. Authority: [owner-assigned specification](../../planning/development/HUY-FINAL-INTEGRATION.md), owner Anh update06/10/2026 and technical continuation07/10. Exact acceptance evidence and owner-pending activation are recorded separately in that spec. This record does not claim external FE/Android adoption, activate historical drafts or change the FE lock.
 
-## Owner activation LD02–LD04 (07/10/2026)
+## Current owner activation contracts (07/10/2026)
+
+## Owner activation LD05 — weekly aggregate recovery (07/10/2026)
+
+ACTIVE_LOCAL_DEVELOPMENT. Existing production H6 worker recovers latest Monday09 Asia/Ho_Chi_Minh period (UTC02) in a serializable transaction. Every missed period is retained in immutable `WeeklyReviewRecoveryPeriods`; older periods emit no outbox. Current proved review duties pending AT RECOVERY are aggregated into one immutable `WeeklyReviewDigest` per project/recipient/period, with exact clock/producer/target/original time/current due links. SQL uniqueness and recovery locking prevent competing workers/restarts from emitting another occurrence. No daily/hourly business reminder was added. Existing historical calendar rows, PENDING_POLICY observations and committed occurrence identities remain unchanged; recovery records establish current adoption separately.
+
+Existing event type `review.weekly_pending.v1` gains additive source kind `ReviewDigest`. Its exact sourceId/originEventId/eventId/sourceRevisionId all identify the durable aggregate; scheduledAtUtc is the latest period, occurredAtUtc is recovery server time, responsibleUserId is the captured recipient or null if unresolved. No per-clock event is produced by new recovery. Source adapter verifies transport, exact period and immutable captured pending sources; delivery and unresolved retry recheck current responsibility/role/project membership. A captured recipient is never silently changed; a missing individual can resolve once to a unique eligible responsible actor. Technical retry uses the same occurrence/delivery and notification, not a new weekly event. Preserved legacy weekly events retain their existing proof/retry path and consume current duty appointments.
+
+GET `/api/v1/projects/{projectId}/weekly-digests/{digestId}` requires the current captured recipient role/project rights (or the actual delivered recipient of an originally unresolved occurrence). 200 returns `id`, `projectId`, `recipientId`, `scheduledAtUtc`, `recoveredAtUtc`, `pendingAtRecovery` (clockId/targetId/kind/originEventId/originAtUtc/dueAtRecoveryUtc), and all `recoveryPeriods` recorded in that recovery. Wrong recipient/project or revoked rights returns404; unauthorized401. Recipient-owned notification scope/read behavior is preserved. No source/producer evidence is obtained from inbox ReadAt. New schema is additive, source-bound, immutable and refuses populated downgrade; retention records aggregate links to retained inspection evidence. Static guarded Postman read is opt-in; no external consumer/deployment acceptance claimed.
+
+## Owner activation LD02–LD04 routes
 
 ACTIVE_LOCAL_DEVELOPMENT, owner-confirmed activation assignment. Production Controller → Service → Repository and current serializable source/authority guards:
 

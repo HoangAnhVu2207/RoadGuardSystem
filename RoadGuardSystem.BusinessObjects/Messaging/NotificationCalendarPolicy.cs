@@ -1,6 +1,6 @@
 namespace RoadGuardSystem.BusinessObjects.Messaging;
 
-public enum NotificationCalendarDecision : byte { NotDue = 1, PendingPolicy = 2 }
+public enum NotificationCalendarDecision : byte { NotDue = 1, PendingPolicy = 2, RecoverLatest = 3 }
 
 public static class NotificationCalendarPolicy
 {
@@ -12,9 +12,9 @@ public static class NotificationCalendarPolicy
     public static NotificationCalendarDecision EvaluateMissedPeriod(DateTimeOffset scheduledAtUtc, DateTimeOffset observedAtUtc)
     {
         ValidateWeeklyPeriod(scheduledAtUtc); NotificationDomainGuard.Timestamp(observedAtUtc);
-        // The calendar is confirmed; catch-up/skip authority is not. This result does not activate delivery.
+        // Owner Anh 07/10/2026: latest missed period only; production recovery captures pending work atomically.
         return observedAtUtc.ToUniversalTime() < scheduledAtUtc.ToUniversalTime()
-            ? NotificationCalendarDecision.NotDue : NotificationCalendarDecision.PendingPolicy;
+            ? NotificationCalendarDecision.NotDue : NotificationCalendarDecision.RecoverLatest;
     }
     internal static void ValidateWeeklyPeriod(DateTimeOffset scheduledAtUtc)
     {

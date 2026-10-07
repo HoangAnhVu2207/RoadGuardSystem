@@ -4,6 +4,11 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.DTOs.Messaging;
 
+public sealed record WeeklyDigestDutyView(Guid ClockId, Guid TargetId, string Kind, Guid OriginEventId,
+    DateTimeOffset OriginAtUtc, DateTimeOffset DueAtRecoveryUtc);
+public sealed record WeeklyDigestView(Guid Id, Guid ProjectId, Guid? RecipientId, DateTimeOffset ScheduledAtUtc,
+    DateTimeOffset RecoveredAtUtc, WeeklyDigestDutyView[] PendingAtRecovery, DateTimeOffset[] RecoveryPeriods);
+
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record H6NotificationEventDto(int SchemaVersion, Guid EventId, string Kind, Guid ProjectId,
     string SourceKind, Guid SourceId, Guid OriginEventId, DateTimeOffset OccurredAtUtc,

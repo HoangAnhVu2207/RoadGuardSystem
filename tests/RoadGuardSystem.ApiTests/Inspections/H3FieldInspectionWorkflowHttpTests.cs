@@ -11,6 +11,7 @@ using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Reports;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Clocks;
+using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.Repositories.Implementations.Defects;
 using RoadGuardSystem.Repositories.Models.Huy01;
 using RoadGuardSystem.Repositories.Storage;
@@ -26,6 +27,8 @@ namespace RoadGuardSystem.ApiTests.Inspections;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFixture sql)
 {
+    private sealed class WeeklyTestClock(DateTimeOffset now) : TimeProvider
+    { public override DateTimeOffset GetUtcNow() => now; }
 
     [Fact]
     public async Task Reporter_cannot_create_operational_FIELD_task()
@@ -72,6 +75,25 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         await Login(client,pm.UserName!);Assert.Equal(HttpStatusCode.Conflict,(await Post(client,path+"/reviews",new{submissionId=first.GetProperty("id").GetGuid(),decision="CONFIRM",reason="insufficient"},version:await Version(client,path))).StatusCode);
         var supplement=await Post(client,path+"/reviews",new{submissionId=first.GetProperty("id").GetGuid(),decision="SUPPLEMENT",reason="need actual capture"},version:await Version(client,path));Assert.Equal(HttpStatusCode.Created,supplement.StatusCode);Assert.Equal("BUSINESS_ACK_REQUIRED",(await supplement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("receiptActivation").GetString());
         Guid receivingId;
+        Guid weeklyDigestId;
+        await using (var weeklyDb = sql.CreateDbContext())
+        {
+            var actualReview = await weeklyDb.Set<DeadlineClock>().AsNoTracking().SingleAsync(c =>
+                c.TargetId == id && c.Kind == DeadlineClockKind.ProjectManagerReview);
+            var recovery = NotificationCalendarPolicy.NextWeeklyReview(actualReview.OriginAt).AddDays(14).AddMinutes(2);
+            await new RoadGuardSystem.Repositories.Messaging.H6NotificationDispatchRepository(weeklyDb, new WeeklyTestClock(recovery))
+                .ObserveCalendarAsync(Guid.NewGuid(), null, default);
+            var digest = await weeklyDb.Set<WeeklyReviewDigest>().Include(d => d.Duties).SingleAsync(d => d.ProjectId == scope.Project);
+            weeklyDigestId = digest.Id; Assert.Single(digest.Duties); Assert.Equal(actualReview.Id, digest.Duties.Single().ClockId);
+        }
+        var weeklyPath = $"/api/v1/projects/{scope.Project}/weekly-digests/{weeklyDigestId}";
+        var weeklyResponse = await client.GetAsync(weeklyPath); Assert.Equal(HttpStatusCode.OK, weeklyResponse.StatusCode);
+        var weeklyJson = await weeklyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Single(weeklyJson.GetProperty("pendingAtRecovery").EnumerateArray());
+        Assert.Equal(3, weeklyJson.GetProperty("recoveryPeriods").GetArrayLength());
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/weekly-digests/{weeklyDigestId}")).StatusCode);
+        await Login(client, crew.UserName!); Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(weeklyPath)).StatusCode);
+        await Login(client, pm.UserName!);
         await using (var sourceDb = sql.CreateDbContext())
         {
             var receiving = await sourceDb.Set<BusinessReceivingRequest>().AsNoTracking().SingleAsync(r => r.ScopeId == id);
@@ -142,6 +164,13 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         await Login(client,other.UserName!);Assert.Equal(HttpStatusCode.Forbidden,(await client.GetAsync(path+$"/evidence/{file}/content")).StatusCode);
         await Login(client,pm.UserName!);Assert.Equal(HttpStatusCode.Created,(await Post(client,path+"/reviews",new{submissionId=second.GetProperty("id").GetGuid(),decision="CONFIRM",reason="actual result"},version:await Version(client,path))).StatusCode);
         await using(var revoke=sql.CreateDbContext()){await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProjectMembers SET Status=2 WHERE ProjectId={scope.Project} AND UserId={pm.Id}");}
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(weeklyPath)).StatusCode);
+        await using (var retentionDb = sql.CreateDbContext())
+        {
+            var inventory = await new RoadGuardSystem.Repositories.Implementations.Retention.Huy02InspectionRetentionContributor(retentionDb)
+                .ReadAsync(file, default);
+            Assert.Contains(inventory.References, reference => reference.Kind == "WEEKLY_REVIEW_DIGEST" && reference.Id == weeklyDigestId);
+        }
         Assert.Equal(HttpStatusCode.Forbidden,(await Post(client,root,body,key)).StatusCode);
     }
     private static async Task Login(HttpClient client,string user){var r=await client.PostAsJsonAsync("/api/v1/auth/login",new{email=AuthenticationSqlServerFixture.EmailFor(user),password="Current1!"});Assert.Equal(HttpStatusCode.OK,r.StatusCode);client.DefaultRequestHeaders.Authorization=new AuthenticationHeaderValue("Bearer",(await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());}

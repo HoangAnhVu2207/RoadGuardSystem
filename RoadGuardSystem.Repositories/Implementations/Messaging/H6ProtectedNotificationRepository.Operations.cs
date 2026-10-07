@@ -7,6 +7,21 @@ namespace RoadGuardSystem.Repositories.Messaging;
 
 public sealed partial class H6ProtectedNotificationRepository
 {
+    public Task<WeeklyDigestReadFact?> WeeklyDigestAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid digestId, CancellationToken token)
+        => ReadAsync<WeeklyDigestReadFact?>(actorId, async (currentRole, ct) =>
+        {
+            if (!await BusinessDutyRepository.CurrentAuthority(db, clock, actorId, role, projectId, ct)) return null;
+            var digest = await db.Set<WeeklyReviewDigest>().AsNoTracking().Include(d => d.Duties).SingleOrDefaultAsync(d =>
+                d.Id == digestId && d.ProjectId == projectId && d.RecipientRole == currentRole &&
+                (d.RecipientId == actorId || d.RecipientId == null && db.Notifications.Any(n => n.SourceEntityId == d.Id &&
+                    n.SourceEntityType == "ReviewDigest" && n.RecipientUserId == actorId)), ct);
+            if (digest is null) return null;
+            var periods = await db.Set<WeeklyReviewRecoveryPeriod>().Where(p => p.ProjectId == projectId &&
+                p.RecoveredAtUtc == digest.RecoveredAtUtc).OrderBy(p => p.ScheduledAtUtc).Select(p => p.ScheduledAtUtc).ToArrayAsync(ct);
+            return new(digest.Id, digest.ProjectId, digest.RecipientId, digest.ScheduledAtUtc, digest.RecoveredAtUtc,
+                digest.Duties.OrderBy(d => d.ClockId).Select(d => new WeeklyDigestDutyFact(d.ClockId, d.TargetId, d.Kind,
+                    d.OriginEventId, d.OriginAtUtc, d.DueAtRecoveryUtc)).ToArray(), periods);
+        }, () => null, token, role);
     public Task<H6ScopeFact?> ScopeAsync(Guid actorId, UserRoleCode authenticatedRole, Guid notificationId, CancellationToken cancellationToken)
         => ReadAsync<H6ScopeFact?>(actorId, async (role, token) =>
             await db.Set<H6NotificationScopeRow>().AsNoTracking().Where(scope => scope.NotificationId == notificationId &&
@@ -46,7 +61,7 @@ public sealed partial class H6ProtectedNotificationRepository
                         extension.PreviousDueAt, extension.NewDueAt, extension.Reason, extension.PreviousDeadlineBreached)).ToArray(),
                 row.Breaches.OrderBy(breach => breach.DueAt).ThenBy(breach => breach.Id)
                     .Select(breach => new H6ClockBreachFact(breach.Id, breach.DueAt, breach.ObservedAt)).ToArray(),
-                ["EXTENSION_NUMERICAL_LIMIT_POLICY_PENDING", "ADDITIONAL_FT_OFFLINE_AUTHORIZATION_PENDING", "WEEKLY_CATCHUP_POLICY_PENDING"])
+                ["EXTENSION_NUMERICAL_LIMIT_POLICY_PENDING", "ADDITIONAL_FT_OFFLINE_AUTHORIZATION_PENDING"])
             {
                 AppointedActorId = row.AppointedActorId, AppointedRole = row.AppointedRole?.ToString(),
                 Appointments = row.Appointments.OrderBy(a => a.EffectiveAt).Select(a => (object)new

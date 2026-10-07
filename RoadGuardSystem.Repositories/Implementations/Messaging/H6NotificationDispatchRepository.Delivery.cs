@@ -26,7 +26,7 @@ public sealed partial class H6NotificationDispatchRepository
             var reason = recipient.Actor is Guid actor
                 ? await RecipientAuthorityAsync(actor, recipient.Role, occurrence.ProjectId, plan.Envelope!.RecipientStrategy, proof, now, token)
                 : "notification_responsible_actor_missing";
-            RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now);
+            RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now, proof.BodyOverride);
             if (reason is null) delivered++; else unresolved++;
             db.Set<H6NotificationDeliveryRow>().Add(delivery);
         }
@@ -62,13 +62,13 @@ public sealed partial class H6NotificationDispatchRepository
     private static Recipient RecipientFor(Guid? actor, UserRoleCode? role, string missing)
         => new(actor is Guid id ? "actor:" + id.ToString("N") : "pending:" + missing, actor, role);
     private void RecordDeliveryAttempt(H6NotificationDeliveryRow delivery, H6NotificationOccurrenceRow occurrence,
-        NotificationEventKind kind, string? reason, DateTimeOffset now)
+        NotificationEventKind kind, string? reason, DateTimeOffset now, string? bodyOverride = null)
     {
         if (reason is null)
         {
             var content = NotificationMessageContent.For(kind);
             var notification = Notification.Create(Guid.NewGuid(), delivery.RecipientUserId!.Value, occurrence.SourceKind,
-                occurrence.SourceId, occurrence.OccurrenceKey, content.Title, content.Body, occurrence.OccurredAtUtc);
+                occurrence.SourceId, occurrence.OccurrenceKey, content.Title, bodyOverride ?? content.Body, occurrence.OccurredAtUtc);
             db.Notifications.Add(notification); var auditId = Guid.NewGuid();
             db.Set<H6NotificationAuditRow>().Add(new()
             {

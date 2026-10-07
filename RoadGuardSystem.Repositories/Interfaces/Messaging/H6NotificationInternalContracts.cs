@@ -18,7 +18,7 @@ public sealed record H6SourceScope(string SourceKind, Guid SourceId, Guid Projec
 }
 public sealed record H6SourceResolution(string Status, string? ReasonCode = null,
     Guid? TaskId = null, Guid? AssignmentId = null, Guid? ResponsibleUserId = null, bool ResponsibleIsSupervisor = false,
-    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null);
+    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null, string? BodyOverride = null);
 public sealed record H6Claim(Guid Id, string MessageType, DateTimeOffset OccurredAtUtc,
     string PayloadJson, Guid Fence, DateTimeOffset LeaseExpiresAtUtc, int Attempt);
 public sealed record H6DispatchOutcome(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,
@@ -39,3 +39,7 @@ public sealed record H6ClockFact(Guid Id, Guid ProjectId, string Kind, Guid Targ
     public object[] Appointments { get; init; } = [];
 }
 public sealed record H6ClockPageFact(string Status, H6ClockFact[] Items, H6ClockCursorFact? Continuation = null);
+public sealed record WeeklyDigestDutyFact(Guid ClockId, Guid TargetId, string Kind, Guid OriginEventId,
+    DateTimeOffset OriginAtUtc, DateTimeOffset DueAtRecoveryUtc);
+public sealed record WeeklyDigestReadFact(Guid Id, Guid ProjectId, Guid? RecipientId, DateTimeOffset ScheduledAtUtc,
+    DateTimeOffset RecoveredAtUtc, WeeklyDigestDutyFact[] PendingAtRecovery, DateTimeOffset[] RecoveryPeriods);

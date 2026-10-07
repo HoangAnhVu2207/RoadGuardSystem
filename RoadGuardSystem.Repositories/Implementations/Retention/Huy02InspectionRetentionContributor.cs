@@ -182,6 +182,17 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
         }
         var repairOffline = await H4H5RetentionSources.ReadAsync(db, fileId, null, token);
         var linkedSubmissions = links.Select(x => x.SubmissionId).Distinct().ToArray();
+        var linkedTasks = links.Select(x => x.TaskId).Distinct().ToArray();
+        var weeklySources = await db.Set<RoadGuardSystem.BusinessObjects.Messaging.WeeklyReviewDigest>().AsNoTracking()
+            .Where(d => d.Duties.Any(duty => linkedSubmissions.Contains(duty.OriginEventId) ||
+                linkedTasks.Contains(duty.TargetId) || db.RepairItems.Any(item => item.Id == duty.TargetId &&
+                    db.Set<RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding>().Any(binding =>
+                        binding.ItemId == item.Id && linkedTasks.Contains(binding.TaskId)))))
+            .Include(d => d.Duties).ToArrayAsync(token);
+        foreach (var digest in weeklySources)
+            references.Add(new("WEEKLY_REVIEW_DIGEST", digest.Id, digest.ProjectId,
+                Version(new { digest.ScheduledAtUtc, digest.RecoveredAtUtc, digest.RecipientId, digest.RecipientRole,
+                    duties = digest.Duties.OrderBy(d => d.ClockId).Select(d => new { d.ClockId, d.OriginEventId, d.TargetId, d.DueAtRecoveryUtc }) })));
         var receivingSources = await db.Set<BusinessReceivingRequest>().AsNoTracking().Where(r =>
             r.SourceKind == "FieldReview" && db.Set<FieldInspectionReview>().Any(v => v.Id == r.SourceId && linkedSubmissions.Contains(v.SubmissionId)) ||
             r.SourceKind == "RepairReview" && db.Set<RepairAttemptReview>().Any(v => v.Id == r.SourceId && linkedSubmissions.Contains(v.SubmissionId)) ||

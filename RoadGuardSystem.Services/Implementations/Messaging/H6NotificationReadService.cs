@@ -6,6 +6,13 @@ namespace RoadGuardSystem.Services.Messaging;
 
 public sealed class H6NotificationReadService(IH6NotificationOperationsRepository repository)
 {
+    public async Task<WeeklyDigestView?> WeeklyDigestAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid digestId, CancellationToken token)
+    {
+        var fact = await repository.WeeklyDigestAsync(actorId, role, projectId, digestId, token);
+        return fact is null ? null : new(fact.Id, fact.ProjectId, fact.RecipientId, fact.ScheduledAtUtc, fact.RecoveredAtUtc,
+            fact.PendingAtRecovery.Select(d => new WeeklyDigestDutyView(d.ClockId, d.TargetId, d.Kind, d.OriginEventId,
+                d.OriginAtUtc, d.DueAtRecoveryUtc)).ToArray(), fact.RecoveryPeriods);
+    }
     public async Task<H6NotificationScopeDto?> ScopeAsync(Guid actorId, UserRoleCode role, Guid notificationId,
         CancellationToken cancellationToken)
     {

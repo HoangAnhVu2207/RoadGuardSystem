@@ -57,7 +57,7 @@ public sealed partial class H6NotificationDispatchRepository
                         ReasonCode = reason
                     });
                 }
-                else { RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now); if (reason is null) delivered++; }
+                else { RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now, proof.BodyOverride); if (reason is null) delivered++; }
             }
             await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken);
         });

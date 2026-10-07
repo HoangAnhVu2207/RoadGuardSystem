@@ -9,7 +9,8 @@ namespace RoadGuardSystem.Services.Reporting;
 
 public sealed class ReportingService(IReportingRepository repository, IIdentityRepository identity, IProjectScopeGuard guard, TimeProvider clock,
     IEnumerable<RoadGuardSystem.Services.Integration.ICaseDefectReadReader>? caseDefectReaders = null,
-    IEnumerable<ICurrentRepairFactsReader>? currentRepairReaders = null) : IReportingService
+    IEnumerable<ICurrentRepairFactsReader>? currentRepairReaders = null,
+    IEnumerable<IDefectStatisticsRepository>? defectStatisticsReaders = null) : IReportingService
 {
     public async Task<ReportingResult<ReportingCaptureDto>> CaptureAsync(Guid actor, Guid project, ReportingFiltersDto filters, CancellationToken token)
     {
@@ -48,6 +49,15 @@ public sealed class ReportingService(IReportingRepository repository, IIdentityR
                     capture = CurrentRepairCaptureConsumer.Apply(capture, new(project, [], ["REPAIR_PROJECT_AUTHORITY_NOT_VERIFIED"]));
                 }
                 catch (InvalidOperationException) { return new("producer_invalid"); }
+            }
+            var statisticsReader = defectStatisticsReaders?.SingleOrDefault();
+            if (statisticsReader is not null)
+            {
+                var actorState = await identity.GetUserSecurityStateAsync(actor, ct);
+                if (actorState is null) return new("access_forbidden");
+                var statistics = await statisticsReader.ReadAsync(actor, actorState.RoleCode, project, normalized, ct);
+                if (statistics.Value is not null) capture = DefectStatisticsCaptureConsumer.Apply(capture, statistics.Value.Statistics);
+                else return new(statistics.Status switch { 403 => "access_forbidden", 404 => "not_found", 400 => "validation_error", _ => "producer_invalid" });
             }
             return new("success", capture);
         }, token);

@@ -77,6 +77,7 @@ public static class ServiceCollectionExtensions
             options.Cookie.Path = "/";
             options.Cookie.HttpOnly = true;
         });
+        services.AddScoped<RoadGuardSystem.Services.Reporting.IDefectStatisticsService, RoadGuardSystem.Services.Reporting.DefectStatisticsService>();
         services.AddScoped<WebCookieActivityFilter>();
         services.AddAuthorization(options =>
         {

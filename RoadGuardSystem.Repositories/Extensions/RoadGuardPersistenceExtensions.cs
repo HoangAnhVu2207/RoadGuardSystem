@@ -102,6 +102,7 @@ public static class RoadGuardPersistenceExtensions
             }
         });
 
+        services.AddScoped<RoadGuardSystem.Repositories.Reporting.IDefectStatisticsRepository, RoadGuardSystem.Repositories.Implementations.Reporting.DefectStatisticsRepository>();
         services.AddScoped<RoadGuardTransactionService>();
         services.AddScoped<IdempotencyOperationService>();
         services.AddScoped<ConsumerEffectService>();

@@ -27,7 +27,8 @@ public sealed record ReportingAvailabilityFact(string Availability, string[] Rea
 
 public sealed record ReportingCaptureFact(ProjectSummaryV1Fact Summary, ReportingItemFact[] Items, ReportingFileFact[] Files,
     ReportingTimelineItemFact[] Timeline, ReportingAvailabilityFact TimelineAvailability,
-    CaseDefectSnapshotV1Fact? CaseDefectFacts = null);
+    CaseDefectSnapshotV1Fact? CaseDefectFacts = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] global::RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSnapshot? DefectStatistics = null);
 
 public sealed record ReportingDimensionsFact(string? Status = null, string? Band = null, Guid? RouteVersionId = null, Guid? SegmentSetId = null);
 

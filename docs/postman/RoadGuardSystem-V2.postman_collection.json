@@ -15617,6 +15617,85 @@
           }
         }
       ]
+    },
+    {
+      "id": "ac9e4fd6-56fe-4529-bf31-0e3dda4af2fe",
+      "name": "LD08a explicit identities and quantities (manual TEST_ONLY)",
+      "item": [
+        {
+          "id": "069d0124-5700-4244-beed-5a356928eb15",
+          "name": "Read explicit identities, measurements and current statistics",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\", \"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/defect-statistics",
+            "description": "Manual disposable exact-scope sources from GET. Explicit TEST_ONLY; no geometry inference or real-data verification claim."
+          }
+        },
+        {
+          "id": "0195ca17-aaaa-49a2-943f-19364e1eb1de",
+          "name": "PM confirm TEST_ONLY exact statistics sources",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\", \"activationActorAccessToken\", \"activationObligationId\", \"activationScopeHash\", \"statisticsDefectVersion\", \"statisticsSharedPartId\", \"statisticsSegmentId\", \"statisticsMeasurementId\", \"statisticsMeasurementVersion\", \"statisticsReadVersion\", \"activationIdempotencyKey\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{statisticsReadVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/defect-statistics",
+            "description": "Manual disposable exact-scope sources from GET. Explicit TEST_ONLY; no geometry inference or real-data verification claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"obligationId\": \"{{activationObligationId}}\",\n  \"scopeHash\": \"{{activationScopeHash}}\",\n  \"defectVersion\": \"{{statisticsDefectVersion}}\",\n  \"sharedPartId\": \"{{statisticsSharedPartId}}\",\n  \"segmentIds\": [\n    \"{{statisticsSegmentId}}\"\n  ],\n  \"quantities\": [\n    {\n      \"measurementId\": \"{{statisticsMeasurementId}}\",\n      \"sourceVersion\": \"{{statisticsMeasurementVersion}}\",\n      \"segmentId\": null\n    }\n  ],\n  \"provenance\": \"TEST_ONLY\",\n  \"reason\": \"TEST_ONLY explicit identity and actual source measurement\",\n  \"supersedesId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 }

@@ -111,7 +111,9 @@ public sealed class LD07RoadCoverageSqlTests(IdentitySqlServerFixture sql) : ICl
     [Fact]
     public async Task EmptyCoverageDowngradeAndReapplyRetainPopulatedRepairAndVerifiedSource()
     {
-        await using var db = sql.CreateDbContext(); var state = await Seed(db);
+        await using var isolated = new IdentitySqlServerFixture();
+        await isolated.InitializeAsync();
+        await using var db = isolated.CreateDbContext(); var state = await Seed(db);
         await db.GetService<IMigrator>().MigrateAsync("20261007115552_OwnerLifecycleActivation");
         Assert.True(await db.RepairItems.AsNoTracking().AnyAsync(row => row.Id == state.Item));
         Assert.True(await db.Files.AsNoTracking().AnyAsync(row => row.Id == state.SourceFile));

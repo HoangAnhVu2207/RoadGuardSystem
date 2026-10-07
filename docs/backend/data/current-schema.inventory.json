@@ -2,8 +2,8 @@
   "status": "CURRENT_VERIFIED_ISOLATED_SQL",
   "provider": "Microsoft.EntityFrameworkCore.SqlServer 8.0.17",
   "sqlImage": "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04",
-  "lastMigration": "20261007131646_OwnerRoadCoverageActivation",
-  "migrationCount": 68,
+  "lastMigration": "20261007135009_OwnerDefectStatisticsActivation",
+  "migrationCount": 69,
   "inputHashes": [
     {
       "path": "RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs",
@@ -451,7 +451,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/PersistenceFacts/ReportingFacts.cs",
-      "sha256": "a7ef6a197813713bde7bd1a7ef01fbcd082cc8ba5e40a34aae73ea7ae4cec21d"
+      "sha256": "4ed33eb297418cfc10dcb31a6da9af584aeef6dc016bc4c7eaade785befb6657"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/PersistenceFacts/ReportsFacts.cs",
@@ -608,6 +608,10 @@
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/TemporarySafetyMeasure.cs",
       "sha256": "f1688dbd1f91144a384383a3839b12e972b219a32afaff8af9398efdb8091d23"
+    },
+    {
+      "path": "RoadGuardSystem.BusinessObjects/Reporting/DefectStatisticsSource.cs",
+      "sha256": "3dd6dfd8c540b22fa6d93833a41643d83906cc9cc1a9185bf6b16cb36b5c1bea"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Reporting/RepairReportingInventory.cs",
@@ -786,6 +790,10 @@
       "sha256": "fc0c826b0b779b9ce36b235741f54529cd8966d24d966fa3e3d023fc2206c794"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Configurations/DefectStatisticsConfiguration.cs",
+      "sha256": "bc68d64880a86054e03192535b84c8108eee558e4a7eb6ef800876a6c700c4e5"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Configurations/DefectTypeConfiguration.cs",
       "sha256": "478c2b41c179b6ea70320b54e9ba5989dc623ff5e718dcd288cc079f44acb427"
     },
@@ -939,7 +947,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/RoadCoverageConfiguration.cs",
-      "sha256": "dd805e97da22555d23da6126408edae3fc9aee6ce28223c39ce2076ed4183e8f"
+      "sha256": "afdaf79036524fcb158ac413379472fe2d759fae772463fe9cc1655df1f6bb7a"
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/RoadGeometryConfiguration.cs",
@@ -1047,7 +1055,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs",
-      "sha256": "2ab76fba300548b26a9e778f9ea763d3bbce0fac851b861acdd1f083417b013e"
+      "sha256": "9ddb9a377866e907d2a40ff080a9d2cebcf7b92368134261b1a4339f992d11ea"
     },
     {
       "path": "RoadGuardSystem.Repositories/Helpers/PagedList.cs",
@@ -1467,7 +1475,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairFtEligibility.cs",
-      "sha256": "58cdc030783f9530893168d29969f4dabe70216e9ea50d732c69a7920df63e4e"
+      "sha256": "60c443b82e175e93c21613f8314fa5bed50b7097938df4c4b11e285b715a37d4"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairPolicyRepository.cs",
@@ -1503,15 +1511,19 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageRepository.cs",
-      "sha256": "7b66c9fa2d987f26dfb6a2eedd2ca0c693974430d297007ce1fed577336b2a52"
+      "sha256": "3de8b2eeaedc7b250f602647d88faf68db4139a0612df02be8bdce288184354d"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageResolver.cs",
-      "sha256": "d9da8e1aa7a387b4ccb1cb06dfa22efc3270b28fc906e4007b0fe4c0cb25fe26"
+      "sha256": "62056fffc0e486cd41c526acb73e43eca7cf56df927abc812b59ecfeeb075478"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs",
-      "sha256": "38a66b8d9499f7b6d4d09fe4a5fe8735af17811bfefb7f9e176dbd3edf197291"
+      "sha256": "e768deeaa565527427007e49a36b6091040bf8cc4799cd59e05b2683b81f3118"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
+      "sha256": "450460a8f7233b90980c3b201eca0d9a1e02028d134ae57962e9da453a6a93e3"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
@@ -1547,7 +1559,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Retention/Huy02InspectionRetentionContributor.cs",
-      "sha256": "7b0d1bb0618c3046040e3e44d0f0820e8110eb3af44adfe645941ca0926342ed"
+      "sha256": "6d6f44dafd777cf57aa7405f319cb95342711c8171c2cc4e051ba39558583627"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Retention/PavementRetentionContributor.cs",
@@ -2052,6 +2064,10 @@
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Reporting/ICurrentRepairFactsRepository.cs",
       "sha256": "24b2f9f4e8106cf1b056fa42d4b72833ffdba1759e4cfc3c4c865d82c6b16e80"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Interfaces/Reporting/IDefectStatisticsRepository.cs",
+      "sha256": "2304d096e6acf2e23d0fa7b13423d09c258879c8a98cec970520b97b3abf1449"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Reporting/IReportingRepository.cs",
@@ -2718,6 +2734,14 @@
       "sha256": "ad0528c93ec057f6c0801adc5758997689dc6c241fe6d3fd120d39932d878cdb"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261007135009_OwnerDefectStatisticsActivation.Designer.cs",
+      "sha256": "ecb6d902ea4e290a940a0b34a35dd65e50e7dc8a9a3737f036cd8594fa3bf384"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261007135009_OwnerDefectStatisticsActivation.cs",
+      "sha256": "2b933edf4908494d9e831fb6bb990f32ce1ce0f465f282f3c15d2ddf07185727"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Migrations/H3FieldLifecycleAndIntake.Guards.cs",
       "sha256": "afebd9d08299755aad946c9ce2a3a9f07537aef715dc4d2cf138d8addba4970e"
     },
@@ -2746,6 +2770,10 @@
       "sha256": "c00f119c2cefd51b9f0a5d8595c25c5517ec17c29fc73c028a97943909f75cc6"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Migrations/OwnerDefectStatisticsActivation.Guards.cs",
+      "sha256": "1c4f5c1817326c587af05ec3d4ecc3968aacb58b85e2780d56a104d91754ab29"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Migrations/OwnerLifecycleActivation.Guards.cs",
       "sha256": "99a7b2693ec78e354a60be809157cb0877193d536515ac05c6309d5d754816ac"
     },
@@ -2759,7 +2787,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextModelSnapshot.cs",
-      "sha256": "b21c9ac75f4098281f0c549f7a1ca6b81e67a7fa41a2641c1cac59556fed59dd"
+      "sha256": "d80b5b076f362f49b7fdc69049e13c327aa0b0fd787275defd6cd9701dc6214a"
     },
     {
       "path": "RoadGuardSystem.Repositories/Models/Huy01/HuyIntegrationRows.cs",
@@ -2811,7 +2839,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/RoadGuardDbContext.cs",
-      "sha256": "b3bcc27ec4a9cad71743c3222d346142c384c5b7288a608378561f5eb4f717a6"
+      "sha256": "3f369a5ee8272d0b6b32513cd6d0043d20ad4ee2a442126c046718a4f3571df8"
     },
     {
       "path": "RoadGuardSystem.Repositories/Spatial/SpatialConstants.cs",
@@ -10130,6 +10158,510 @@
       ],
       "Checks": [
         "CK_DefectSourceLinks_TypedSource"
+      ]
+    },
+    {
+      "TableKey": "dbo.DefectStatisticsSources",
+      "Entities": [
+        "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ActorId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ConfirmedAtUtc",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "ConfirmedAtUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DefectId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "DefectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DefectVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "DefectVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(100)",
+          "Nullable": false,
+          "MaxLength": 100,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "From",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "From",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "LocationVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "LocationVersion",
+          "ClrType": "String",
+          "SqlType": "nvarchar(200)",
+          "Nullable": false,
+          "MaxLength": 200,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ObligationId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "ObligationId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetFrom",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "OffsetFrom",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetTo",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "OffsetTo",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Provenance",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "Provenance",
+          "ClrType": "String",
+          "SqlType": "varchar(20)",
+          "Nullable": false,
+          "MaxLength": 20,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "QuantitiesJson",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "QuantitiesJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Reason",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "Reason",
+          "ClrType": "String",
+          "SqlType": "nvarchar(2000)",
+          "Nullable": false,
+          "MaxLength": 2000,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RoadSectionId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "RoadSectionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RouteVersionId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "RouteVersionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ScopeHash",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "ScopeHash",
+          "ClrType": "String",
+          "SqlType": "varchar(64)",
+          "Nullable": false,
+          "MaxLength": 64,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SegmentIdsJson",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "SegmentIdsJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SharedPartId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "SharedPartId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceFactsJson",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "SourceFactsJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupersedesId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "SupersedesId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "To",
+          "Entity": "RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource",
+          "Property": "To",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_DefectStatisticsSources_DefectStatisticsSources_SupersedesId",
+          "Columns": [
+            "SupersedesId"
+          ],
+          "PrincipalTable": "dbo.DefectStatisticsSources",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": false,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_Defects_DefectId",
+          "Columns": [
+            "DefectId"
+          ],
+          "PrincipalTable": "dbo.Defects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_Projects_ProjectId",
+          "Columns": [
+            "ProjectId"
+          ],
+          "PrincipalTable": "dbo.Projects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_RepairObligations_ObligationId",
+          "Columns": [
+            "ObligationId"
+          ],
+          "PrincipalTable": "dbo.RepairObligations",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_RoadSectionVersions_RouteVersionId",
+          "Columns": [
+            "RouteVersionId"
+          ],
+          "PrincipalTable": "dbo.RoadSectionVersions",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_RoadSections_RoadSectionId",
+          "Columns": [
+            "RoadSectionId"
+          ],
+          "PrincipalTable": "dbo.RoadSections",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_Users_ActorId",
+          "Columns": [
+            "ActorId"
+          ],
+          "PrincipalTable": "dbo.Users",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_DefectStatisticsSources_ActorId",
+        "IX_DefectStatisticsSources_DefectId",
+        "IX_DefectStatisticsSources_ObligationId",
+        "IX_DefectStatisticsSources_ProjectId_SharedPartId",
+        "IX_DefectStatisticsSources_RoadSectionId",
+        "IX_DefectStatisticsSources_RouteVersionId",
+        "IX_DefectStatisticsSources_SupersedesId"
+      ],
+      "Checks": [
+        "CK_DefectStatisticsSources_Bounds",
+        "CK_DefectStatisticsSources_Facts"
       ]
     },
     {
@@ -56227,6 +56759,510 @@
       ]
     },
     {
+      "TableKey": "dbo.DefectStatisticsSources",
+      "Entities": [
+        "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ActorId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ConfirmedAtUtc",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ConfirmedAtUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DefectId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "DefectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DefectVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "DefectVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(100)",
+          "Nullable": false,
+          "MaxLength": 100,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "From",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "From",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "LocationVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "LocationVersion",
+          "ClrType": "String",
+          "SqlType": "nvarchar(200)",
+          "Nullable": false,
+          "MaxLength": 200,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ObligationId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ObligationId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetFrom",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "OffsetFrom",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetTo",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "OffsetTo",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Provenance",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Provenance",
+          "ClrType": "String",
+          "SqlType": "varchar(20)",
+          "Nullable": false,
+          "MaxLength": 20,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "QuantitiesJson",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "QuantitiesJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Reason",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Reason",
+          "ClrType": "String",
+          "SqlType": "nvarchar(2000)",
+          "Nullable": false,
+          "MaxLength": 2000,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RoadSectionId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "RoadSectionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RouteVersionId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "RouteVersionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ScopeHash",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ScopeHash",
+          "ClrType": "String",
+          "SqlType": "varchar(64)",
+          "Nullable": false,
+          "MaxLength": 64,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SegmentIdsJson",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SegmentIdsJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SharedPartId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SharedPartId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceFactsJson",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SourceFactsJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupersedesId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SupersedesId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "To",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "To",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_DefectStatisticsSources_DefectStatisticsSources_SupersedesId",
+          "Columns": [
+            "SupersedesId"
+          ],
+          "PrincipalTable": "dbo.DefectStatisticsSources",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": false,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_Defects_DefectId",
+          "Columns": [
+            "DefectId"
+          ],
+          "PrincipalTable": "dbo.Defects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_Projects_ProjectId",
+          "Columns": [
+            "ProjectId"
+          ],
+          "PrincipalTable": "dbo.Projects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_RepairObligations_ObligationId",
+          "Columns": [
+            "ObligationId"
+          ],
+          "PrincipalTable": "dbo.RepairObligations",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_RoadSectionVersions_RouteVersionId",
+          "Columns": [
+            "RouteVersionId"
+          ],
+          "PrincipalTable": "dbo.RoadSectionVersions",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_RoadSections_RoadSectionId",
+          "Columns": [
+            "RoadSectionId"
+          ],
+          "PrincipalTable": "dbo.RoadSections",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_DefectStatisticsSources_Users_ActorId",
+          "Columns": [
+            "ActorId"
+          ],
+          "PrincipalTable": "dbo.Users",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_DefectStatisticsSources_ActorId",
+        "IX_DefectStatisticsSources_DefectId",
+        "IX_DefectStatisticsSources_ObligationId",
+        "IX_DefectStatisticsSources_ProjectId_SharedPartId",
+        "IX_DefectStatisticsSources_RoadSectionId",
+        "IX_DefectStatisticsSources_RouteVersionId",
+        "IX_DefectStatisticsSources_SupersedesId"
+      ],
+      "Checks": [
+        "CK_DefectStatisticsSources_Bounds",
+        "CK_DefectStatisticsSources_Facts"
+      ]
+    },
+    {
       "TableKey": "dbo.DefectTypes",
       "Entities": [
         "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
@@ -95312,6 +96348,20 @@
       },
       {
         "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "CK_DefectStatisticsSources_Bounds",
+        "definition": "([From]\u003E=(0) AND [To]\u003E[From] AND [OffsetTo]\u003E[OffsetFrom])",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "CK_DefectStatisticsSources_Facts",
+        "definition": "(isjson([SegmentIdsJson])=(1) AND isjson([QuantitiesJson])=(1) AND isjson([SourceFactsJson])=(1) AND (([Provenance]) collate Latin1_General_100_BIN2=\u0027TEST_ONLY\u0027 OR ([Provenance]) collate Latin1_General_100_BIN2=\u0027REAL_SOURCE\u0027))",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
         "table": "DefectVerificationLogs",
         "name": "CK_DefectVerificationLogs_Action",
         "definition": "([Action]=(5) OR [Action]=(4) OR [Action]=(3) OR [Action]=(2) OR [Action]=(1))",
@@ -100388,6 +101438,270 @@
         "precision": 0,
         "scale": 0,
         "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "Id",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "ProjectId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "DefectId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "DefectVersion",
+        "type": "varchar",
+        "maxLengthBytes": 100,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "ObligationId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "ScopeHash",
+        "type": "varchar",
+        "maxLengthBytes": 64,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "RoadSectionId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "RouteVersionId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "LocationVersion",
+        "type": "nvarchar",
+        "maxLengthBytes": 400,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "From",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "To",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "OffsetFrom",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "OffsetTo",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "SharedPartId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "SegmentIdsJson",
+        "type": "nvarchar",
+        "maxLengthBytes": -1,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "QuantitiesJson",
+        "type": "nvarchar",
+        "maxLengthBytes": -1,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "SourceFactsJson",
+        "type": "nvarchar",
+        "maxLengthBytes": -1,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "Provenance",
+        "type": "varchar",
+        "maxLengthBytes": 20,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "ActorId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "ConfirmedAtUtc",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "Reason",
+        "type": "nvarchar",
+        "maxLengthBytes": 4000,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "SupersedesId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": true,
         "identity": false,
         "computed": false
       },
@@ -121096,6 +122410,90 @@
       },
       {
         "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "FK_DefectStatisticsSources_Defects_DefectId",
+        "column": "DefectId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Defects",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "FK_DefectStatisticsSources_DefectStatisticsSources_SupersedesId",
+        "column": "SupersedesId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "DefectStatisticsSources",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "FK_DefectStatisticsSources_Projects_ProjectId",
+        "column": "ProjectId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Projects",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "FK_DefectStatisticsSources_RepairObligations_ObligationId",
+        "column": "ObligationId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "RepairObligations",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "FK_DefectStatisticsSources_RoadSections_RoadSectionId",
+        "column": "RoadSectionId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "RoadSections",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "FK_DefectStatisticsSources_RoadSectionVersions_RouteVersionId",
+        "column": "RouteVersionId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "RoadSectionVersions",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "FK_DefectStatisticsSources_Users_ActorId",
+        "column": "ActorId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Users",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
         "table": "DefectVerificationLogs",
         "name": "FK_DefectVerificationLogs_AIDetections_AIDetectionId",
         "column": "AIDetectionId",
@@ -130003,6 +131401,103 @@
         "unique": true,
         "filtered": true,
         "filter": "([EndedAt] IS NULL)",
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_ActorId",
+        "column": "ActorId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_DefectId",
+        "column": "DefectId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_ObligationId",
+        "column": "ObligationId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_ProjectId_SharedPartId",
+        "column": "ProjectId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_ProjectId_SharedPartId",
+        "column": "SharedPartId",
+        "ordinal": 2,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_RoadSectionId",
+        "column": "RoadSectionId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_RouteVersionId",
+        "column": "RouteVersionId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "IX_DefectStatisticsSources_SupersedesId",
+        "column": "SupersedesId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": true,
+        "filtered": true,
+        "filter": "([SupersedesId] IS NOT NULL)",
         "kind": "NONCLUSTERED"
       },
       {
@@ -139407,6 +140902,14 @@
       },
       {
         "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "PK_DefectStatisticsSources",
+        "kind": "PRIMARY_KEY_CONSTRAINT",
+        "column": "Id",
+        "ordinal": 1
+      },
+      {
+        "schema": "dbo",
         "table": "DefectTypes",
         "name": "PK_DefectTypes",
         "kind": "PRIMARY_KEY_CONSTRAINT",
@@ -141269,6 +142772,10 @@
       },
       {
         "schema": "dbo",
+        "table": "DefectStatisticsSources"
+      },
+      {
+        "schema": "dbo",
         "table": "DefectTypes"
       },
       {
@@ -142182,6 +143689,26 @@
         "notForReplication": false,
         "definition": "CREATE TRIGGER [TR_DeadlineExtensions_Immutable] ON [DeadlineExtensions] AFTER UPDATE, DELETE AS\r\nBEGIN SET NOCOUNT ON; THROW 51001, \u0027Deadline extension history is immutable.\u0027, 1; END\r\n",
         "events": "DELETE,UPDATE"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "TR_DefectStatisticsSources_Immutable",
+        "disabled": false,
+        "insteadOf": false,
+        "notForReplication": false,
+        "definition": "CREATE TRIGGER TR_DefectStatisticsSources_Immutable ON DefectStatisticsSources AFTER UPDATE,DELETE AS\r\nBEGIN SET NOCOUNT ON;\r\n  IF EXISTS(SELECT 1 FROM deleted) THROW 51800, \u0027Statistics source confirmations are append-only.\u0027, 1;\r\nEND\r\n",
+        "events": "DELETE,UPDATE"
+      },
+      {
+        "schema": "dbo",
+        "table": "DefectStatisticsSources",
+        "name": "TR_DefectStatisticsSources_Scope",
+        "disabled": false,
+        "insteadOf": false,
+        "notForReplication": false,
+        "definition": "CREATE TRIGGER TR_DefectStatisticsSources_Scope ON DefectStatisticsSources AFTER INSERT AS\r\nBEGIN SET NOCOUNT ON;\r\n  IF EXISTS(SELECT 1 FROM inserted i WHERE\r\n    NOT EXISTS(SELECT 1 FROM RepairObligations o JOIN RepairActualScopes s ON s.ObligationId=o.Id\r\n      JOIN Defects d ON d.Id=o.DefectId LEFT JOIN ObligationResponsibilities r ON r.ObligationId=o.Id\r\n      WHERE o.Id=i.ObligationId AND d.Id=i.DefectId AND d.ProjectId=i.ProjectId AND o.ProjectId=i.ProjectId\r\n        AND COALESCE(r.CurrentProjectId,o.ProjectId)=i.ProjectId AND d.RoadSectionVersionId=i.RouteVersionId\r\n        AND s.PhysicalRoadId=i.RoadSectionId AND s.LocationVersion=i.LocationVersion\r\n        AND s.[From]=i.[From] AND s.[To]=i.[To] AND s.OffsetFrom=i.OffsetFrom AND s.OffsetTo=i.OffsetTo)\r\n    OR NOT EXISTS(SELECT 1 FROM OPENJSON(i.SegmentIdsJson))\r\n    OR EXISTS(SELECT 1 FROM OPENJSON(i.SegmentIdsJson) j WHERE NOT EXISTS(SELECT 1 FROM RoadSegments s\r\n      JOIN RoadSegmentSets ss ON ss.Id=s.SegmentSetId WHERE s.Id=TRY_CONVERT(uniqueidentifier,j.[value])\r\n        AND s.RoadSectionVersionId=i.RouteVersionId AND ss.RoadSectionVersionId=i.RouteVersionId AND ss.Status=\u0027PUBLISHED\u0027))\r\n    OR EXISTS(SELECT 1 FROM DefectStatisticsSources p WHERE p.Id\u003C\u003Ei.Id AND p.SharedPartId=i.SharedPartId\r\n      AND (p.ProjectId\u003C\u003Ei.ProjectId OR p.RoadSectionId\u003C\u003Ei.RoadSectionId OR p.LocationVersion\u003C\u003Ei.LocationVersion\r\n        OR p.[From]\u003C\u003Ei.[From] OR p.[To]\u003C\u003Ei.[To] OR p.OffsetFrom\u003C\u003Ei.OffsetFrom OR p.OffsetTo\u003C\u003Ei.OffsetTo OR p.Provenance\u003C\u003Ei.Provenance))\r\n    OR (i.SupersedesId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM DefectStatisticsSources p WHERE p.Id=i.SupersedesId\r\n      AND p.ProjectId=i.ProjectId AND p.ObligationId=i.ObligationId AND p.SharedPartId=i.SharedPartId AND p.Provenance=i.Provenance))\r\n    OR EXISTS(SELECT 1 FROM OPENJSON(i.QuantitiesJson) WITH(measurementId uniqueidentifier,segmentId uniqueidentifier) q\r\n      WHERE NOT EXISTS(SELECT 1 FROM GroundTruthMeasurements m WHERE m.Id=q.measurementId AND m.RoadSectionVersionId=i.RouteVersionId\r\n        AND (m.DefectId=i.DefectId OR EXISTS(SELECT 1 FROM DefectStatisticsSources p WHERE p.ProjectId=i.ProjectId\r\n          AND p.SharedPartId=i.SharedPartId AND p.DefectId=m.DefectId)))\r\n        OR (q.segmentId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM OPENJSON(i.SegmentIdsJson) j WHERE TRY_CONVERT(uniqueidentifier,j.[value])=q.segmentId)))\r\n    OR (i.Provenance=\u0027REAL_SOURCE\u0027 AND EXISTS(SELECT 1 FROM OPENJSON(i.QuantitiesJson) WITH(measurementId uniqueidentifier) q\r\n      JOIN GroundTruthMeasurements m ON m.Id=q.measurementId WHERE m.Notes LIKE \u0027TEST_ONLY%\u0027)))\r\n    THROW 51801, \u0027Statistics require exact current scope, segments, measurement sources and immutable identity.\u0027, 1;\r\nEND\r\n",
+        "events": "INSERT"
       },
       {
         "schema": "dbo",
@@ -144425,6 +145952,50 @@
           "Action": "CREATE",
           "Path": "RoadGuardSystem.Repositories/Migrations/20261006021748_H1PersistentIdentityAndClocks.cs",
           "Line": 181
+        }
+      ],
+      "runtimeBehavior": "NOT_TESTED"
+    },
+    {
+      "Schema": "dbo",
+      "Table": "DefectStatisticsSources",
+      "Name": "TR_DefectStatisticsSources_Immutable",
+      "observedDefinitionSha256Utf8Lf": "9e52fc22c20f744b0521691c46d5eef63d07f10930e87b6156ecfa4ae897c4a0",
+      "createdMigration": "20261007135009_OwnerDefectStatisticsActivation",
+      "lastDefinitionMigration": "20261007135009_OwnerDefectStatisticsActivation",
+      "sourcePath": "RoadGuardSystem.Repositories/Migrations/OwnerDefectStatisticsActivation.Guards.cs",
+      "sourceLine": 8,
+      "migrationSqlSha256Utf8Lf": "90ed428be81bcfcbbf0c13414ada8d954822cc44e086351f0654dd05edc1e4e6",
+      "expectedCatalogDefinitionSha256Utf8Lf": "90ed428be81bcfcbbf0c13414ada8d954822cc44e086351f0654dd05edc1e4e6",
+      "textComparison": "OUTER_WHITESPACE_ONLY",
+      "operationHistory": [
+        {
+          "MigrationId": "20261007135009_OwnerDefectStatisticsActivation",
+          "Action": "CREATE",
+          "Path": "RoadGuardSystem.Repositories/Migrations/OwnerDefectStatisticsActivation.Guards.cs",
+          "Line": 8
+        }
+      ],
+      "runtimeBehavior": "NOT_TESTED"
+    },
+    {
+      "Schema": "dbo",
+      "Table": "DefectStatisticsSources",
+      "Name": "TR_DefectStatisticsSources_Scope",
+      "observedDefinitionSha256Utf8Lf": "b99f5e0e060dab022cff3e9a00a84f291fd597016c22f2c0d69e99eac02c5824",
+      "createdMigration": "20261007135009_OwnerDefectStatisticsActivation",
+      "lastDefinitionMigration": "20261007135009_OwnerDefectStatisticsActivation",
+      "sourcePath": "RoadGuardSystem.Repositories/Migrations/OwnerDefectStatisticsActivation.Guards.cs",
+      "sourceLine": 14,
+      "migrationSqlSha256Utf8Lf": "0dd782a06b7d69d999522aeaedbd17419cf2141a727a28d0087e47d98fdf4a83",
+      "expectedCatalogDefinitionSha256Utf8Lf": "0dd782a06b7d69d999522aeaedbd17419cf2141a727a28d0087e47d98fdf4a83",
+      "textComparison": "OUTER_WHITESPACE_ONLY",
+      "operationHistory": [
+        {
+          "MigrationId": "20261007135009_OwnerDefectStatisticsActivation",
+          "Action": "CREATE",
+          "Path": "RoadGuardSystem.Repositories/Migrations/OwnerDefectStatisticsActivation.Guards.cs",
+          "Line": 14
         }
       ],
       "runtimeBehavior": "NOT_TESTED"

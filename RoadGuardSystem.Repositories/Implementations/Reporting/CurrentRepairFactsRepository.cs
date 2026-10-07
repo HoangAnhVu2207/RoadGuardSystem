@@ -27,15 +27,24 @@ public sealed class CurrentRepairFactsRepository(RoadGuardDbContext db, TimeProv
             member.UserId == actor && member.ProjectId == project && member.RoleCode == role && member.Status == ProjectMemberStatus.Active &&
             member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), token))
             throw new UnauthorizedAccessException("Current project repair reporting authority is required.");
-        // Current stock is independent of period allocation. Segment/shared-road allocation requires its own sourced mapping.
+        // Only explicit current source associations can filter repair stock by segment.
+        Guid[]? allocatedObligations = null;
+        string[] allocationMissing = [];
         if (filters.SegmentSetId.HasValue || filters.SegmentIds is { Length: > 0 })
-            return new(project, [], ["REPAIR_SEGMENT_ALLOCATION_NOT_VERIFIED"]);
+        {
+            var statistics = await new DefectStatisticsRepository(db, clock).ReadAsync(actor, role.Value, project,
+                new(RouteVersionId: filters.RouteVersionId, SegmentSetId: filters.SegmentSetId, SegmentIds: filters.SegmentIds), token);
+            if (statistics.Value is null) return new(project, [], ["REPAIR_SEGMENT_ALLOCATION_NOT_VERIFIED"]);
+            allocatedObligations = statistics.Value.Statistics.Sources.Select(row => row.ObligationId).Distinct().ToArray();
+            allocationMissing = statistics.Value.Statistics.MissingReasons;
+        }
         var rows = await (from item in db.Set<RepairItem>().AsNoTracking()
                           join obligation in db.Set<RepairObligation>().AsNoTracking() on item.ObligationId equals obligation.Id
                           join defect in db.Defects.AsNoTracking() on item.DefectId equals defect.Id
                           where (db.Set<ObligationResponsibility>().Where(owner => owner.ObligationId == obligation.Id)
                               .Select(owner => (Guid?)owner.CurrentProjectId).SingleOrDefault() ?? item.ProjectId) == project &&
-                              (!filters.RouteVersionId.HasValue || defect.RoadSectionVersionId == filters.RouteVersionId)
+                              (!filters.RouteVersionId.HasValue || defect.RoadSectionVersionId == filters.RouteVersionId) &&
+                              (allocatedObligations == null || allocatedObligations.Contains(obligation.Id))
                           select new
                           {
                               item.Id,
@@ -59,7 +68,7 @@ public sealed class CurrentRepairFactsRepository(RoadGuardDbContext db, TimeProv
                                   .Select(value => (Guid?)value.ItemId).SingleOrDefault(),
                               HasAttempt = db.Set<RepairAttempt>().Any(attempt => attempt.ItemId == item.Id)
                           }).ToArrayAsync(token);
-        var missing = new HashSet<string>(StringComparer.Ordinal);
+        var missing = new HashSet<string>(allocationMissing, StringComparer.Ordinal);
         if (await db.Defects.AsNoTracking().AnyAsync(defect => defect.ProjectId == project &&
             (!filters.RouteVersionId.HasValue || defect.RoadSectionVersionId == filters.RouteVersionId) &&
             !db.Set<RepairObligation>().Any(obligation => obligation.ProjectId == project && obligation.DefectId == defect.Id), token))

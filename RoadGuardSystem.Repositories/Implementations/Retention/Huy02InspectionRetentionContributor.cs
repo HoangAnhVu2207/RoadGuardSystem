@@ -242,6 +242,9 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             row.HandoverFileId == fileId || row.CoverageFileId == fileId).ToArrayAsync(token);
         foreach (var mapping in coverageMappings)
             references.Add(new("ROAD_COVERAGE_MAPPING", mapping.Id, mapping.ProjectId, Version(mapping)));
+        var statisticsSources = await db.Set<RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource>().AsNoTracking().ToArrayAsync(token);
+        foreach (var source in statisticsSources.Where(row => StatisticsEvidence(row.SourceFactsJson).Contains(fileId)))
+            references.Add(new("DEFECT_STATISTICS_SOURCE", source.Id, source.ProjectId, Version(source)));
         return new(Name, reasons.Count == 0,
             references.OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.Id).ThenBy(x => x.ProjectId).ToArray(),
             reasons.Order(StringComparer.Ordinal).ToArray());
@@ -264,8 +267,16 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
                                     select evidence.FileId).ToArrayAsync(token);
         var coverageFiles = await db.Set<RoadCoverageMapping>().AsNoTracking().Where(row => row.ProjectId == projectId)
             .Select(row => new { row.HandoverFileId, row.CoverageFileId }).ToArrayAsync(token);
-        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Concat(repairOffline.Select(row => row.FileId))
+        var statisticsSources = await db.Set<RoadGuardSystem.BusinessObjects.Reporting.DefectStatisticsSource>().AsNoTracking().Where(row => row.ProjectId == projectId)
+            .Select(row => row.SourceFactsJson).ToArrayAsync(token);
+        return statisticsSources.SelectMany(StatisticsEvidence).Concat(sessionFiles).Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Concat(repairOffline.Select(row => row.FileId))
             .Concat(lifecycleFiles).Concat(coverageFiles.SelectMany(row => new[] { row.HandoverFileId, row.CoverageFileId })).Distinct().Order().ToArray();
+    }
+    private static Guid[] StatisticsEvidence(string sourceFacts)
+    {
+        using var document = JsonDocument.Parse(sourceFacts);
+        return document.RootElement.GetProperty("measurements").EnumerateArray().Where(row => row.TryGetProperty("evidenceFileId", out var id) && id.ValueKind == JsonValueKind.String)
+            .Select(row => row.GetProperty("evidenceFileId").GetGuid()).Distinct().ToArray();
     }
     private static string Version(object facts)
         => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(facts))).ToLowerInvariant();

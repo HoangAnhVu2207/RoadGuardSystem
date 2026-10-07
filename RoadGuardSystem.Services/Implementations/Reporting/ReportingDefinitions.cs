@@ -6,7 +6,7 @@ namespace RoadGuardSystem.Services.Reporting;
 public static class ReportingDefinitions
 {
     public const string Schema = "anh02.reporting.v1";
-    public static readonly string[] Codes = ["reportsReceived", "casesByStatus", "defectsByStatus", "surveyTasksByStatus", "legacyUnclassified", "baselineCoverageByBand", "verifiedSourceBytes", "repairItemsByStatus", "repairAcceptanceRate", "validationMetrics"];
+    public static readonly string[] Codes = ["reportsReceived", "casesByStatus", "defectsByStatus", "surveyTasksByStatus", "legacyUnclassified", "baselineCoverageByBand", "verifiedSourceBytes", "repairItemsByStatus", "repairAcceptanceRate", "validationMetrics", "projectDistinctDefects", "matchedDistinctDefects", "explicitSharedParts", "segmentRelatedDefects", "sourcedAllocatedQuantity", "sourcedUnallocatedQuantity"];
     public static readonly ReportingAvailabilityDto TimelineAvailability = new("PARTIAL", ["MAPPED_ANH01_AUDITS_ONLY", "HUY_TIMELINE_READER_UNAVAILABLE"]);
     public static ReportingCaptureDto Create(Guid project, DateTimeOffset readAt, ReportingFiltersDto filters, ReportingFacts facts)
     {

@@ -20,7 +20,8 @@ public sealed record RepairItemAssignInput(FieldTaskCreateInput Task, Guid? Poli
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairMeasurementAssessmentInput(Guid OriginId, Guid FieldFirstStartId,
     FieldMeasurementInput[]? Measurements, FieldEvidenceDeclaration[]? Evidence,
-    FieldPositionProofInput? LocationProof, Guid? DeviceId = null);
+    FieldPositionProofInput? LocationProof, Guid? DeviceId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Dictionary<string, bool?>? StopConditions = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairExecutionStartInput(Guid OriginId, Guid FieldFirstStartId, DateTimeOffset ClaimedAt, Guid AssessmentId,
     Guid? DeviceId = null, long? MonotonicMilliseconds = null, string? BootId = null);

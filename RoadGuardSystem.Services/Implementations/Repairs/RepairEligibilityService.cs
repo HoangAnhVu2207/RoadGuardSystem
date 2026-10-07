@@ -9,9 +9,9 @@ public sealed class RepairEligibilityService(IRepairEligibilityRepository reposi
     {
         if (new[] { actor, project, package, item }.Any(id => id == Guid.Empty)) return new(400, "validation_error");
         var result = await repository.ReadAsync(new(actor, role, project, package, item), token); var facts = result.Value;
-        return new(result.Status, result.Code, facts is null ? null : new(false, "OWNER_SOURCE_ACTIVATION_PENDING", facts.ItemId,
+        return new(result.Status, result.Code, facts is null ? null : new(facts.MissingReasons.Length == 0, facts.MissingReasons.Length == 0 ? "ELIGIBLE" : "INELIGIBLE", facts.ItemId,
             facts.BindingId, facts.PolicyRevisionId, facts.PolicyContentHash, facts.PolicyState, facts.Rules.ToArray(), facts.AssessmentId,
             facts.MeasurementIds.ToArray(), facts.OriginalVerifiedStart, facts.ExecutionExpiresAt, facts.Sources.SourceMapping,
-            facts.Sources.Warranties.ToArray(), facts.Sources.Handovers.ToArray(), facts.MissingReasons.ToArray(), facts.Version));
+            facts.Sources.Warranties.ToArray(), facts.Sources.Handovers.ToArray(), facts.MissingReasons.ToArray(), facts.Version, facts.Sources.Mapping));
     }
 }

@@ -185,6 +185,7 @@ public class RoadGuardDbContext : DbContext
         Configurations.OfflinePersistenceConfigurations.Configure(modelBuilder);
         Configurations.ProjectLifecycleHistoryConfiguration.Configure(modelBuilder);
         Configurations.LD06LifecycleConfiguration.Configure(modelBuilder);
+        Configurations.RoadCoverageConfiguration.Configure(modelBuilder);
         Messaging.H6NotificationMappingDraft.Occurrence(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow>());
         Messaging.H6NotificationMappingDraft.Delivery(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryRow>());
         Messaging.H6NotificationMappingDraft.Attempt(modelBuilder.Entity<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryAttempt>());

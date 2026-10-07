@@ -238,6 +238,10 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             references.Add(new("LIFECYCLE_ACTION_EVIDENCE", evidence.Id, evidence.ProjectId,
                 Version(new { evidence.Kind, evidence.At, evidence.ScopeHash, evidence.Checksum })));
         }
+        var coverageMappings = await db.Set<RoadCoverageMapping>().AsNoTracking().Where(row =>
+            row.HandoverFileId == fileId || row.CoverageFileId == fileId).ToArrayAsync(token);
+        foreach (var mapping in coverageMappings)
+            references.Add(new("ROAD_COVERAGE_MAPPING", mapping.Id, mapping.ProjectId, Version(mapping)));
         return new(Name, reasons.Count == 0,
             references.OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.Id).ThenBy(x => x.ProjectId).ToArray(),
             reasons.Order(StringComparer.Ordinal).ToArray());
@@ -258,7 +262,10 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
                                     join action in db.Set<RoadGuardSystem.BusinessObjects.Projects.LD06LifecycleAction>().AsNoTracking() on evidence.ActionId equals action.Id
                                     where action.ProjectId == projectId
                                     select evidence.FileId).ToArrayAsync(token);
-        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Concat(repairOffline.Select(row => row.FileId)).Concat(lifecycleFiles).Distinct().Order().ToArray();
+        var coverageFiles = await db.Set<RoadCoverageMapping>().AsNoTracking().Where(row => row.ProjectId == projectId)
+            .Select(row => new { row.HandoverFileId, row.CoverageFileId }).ToArrayAsync(token);
+        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Concat(repairOffline.Select(row => row.FileId))
+            .Concat(lifecycleFiles).Concat(coverageFiles.SelectMany(row => new[] { row.HandoverFileId, row.CoverageFileId })).Distinct().Order().ToArray();
     }
     private static string Version(object facts)
         => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(facts))).ToLowerInvariant();

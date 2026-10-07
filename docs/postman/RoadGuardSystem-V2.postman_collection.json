@@ -15538,6 +15538,85 @@
           }
         }
       ]
+    },
+    {
+      "id": "d439ac92-cfc7-4707-b194-2ad28c275eac",
+      "name": "LD07 source-linked road coverage (manual TEST_ONLY)",
+      "item": [
+        {
+          "id": "4bf98053-0e63-4c20-9701-b5847a3b6930",
+          "name": "Read exact source, scope and history pins",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\", \"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/road-coverage",
+            "description": "Manual disposable production route. Source and scope pins must come from GET; TEST_ONLY never authorizes real FT execution."
+          }
+        },
+        {
+          "id": "60a40cae-d7c9-4cea-82e2-4241c85a3482",
+          "name": "Supervisor confirm TEST_ONLY source mapping",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\", \"activationActorAccessToken\", \"activationObligationId\", \"activationScopeHash\", \"coverageHandoverId\", \"coverageHandoverVersion\", \"coverageSourceId\", \"coverageSourceVersion\", \"coverageFromUtc\", \"coverageToUtc\", \"coverageReadVersion\", \"activationIdempotencyKey\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{coverageReadVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/road-coverage",
+            "description": "Manual disposable production route. Source and scope pins must come from GET; TEST_ONLY never authorizes real FT execution.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scopeObligationId\": \"{{activationObligationId}}\",\n  \"expectedScopeHash\": \"{{activationScopeHash}}\",\n  \"handoverDocumentId\": \"{{coverageHandoverId}}\",\n  \"handoverVersion\": \"{{coverageHandoverVersion}}\",\n  \"sourceId\": \"{{coverageSourceId}}\",\n  \"sourceVersion\": \"{{coverageSourceVersion}}\",\n  \"applicableFromUtc\": \"{{coverageFromUtc}}\",\n  \"applicableToUtc\": \"{{coverageToUtc}}\",\n  \"sourceKind\": \"WARRANTY\",\n  \"provenance\": \"TEST_ONLY\",\n  \"reason\": \"TEST_ONLY disposable source mapping\",\n  \"supersedesId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 }

@@ -133,7 +133,7 @@ public sealed class H4RepairLifecycleSqlTests(IdentitySqlServerFixture sql) : IC
         var crew = await service.ReadAsync(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Project,
             state.Package.Id, state.Item.Id, default);
         Assert.Equal(200, crew.Status); Assert.False(crew.Value!.Eligible);
-        Assert.Equal("OWNER_SOURCE_ACTIVATION_PENDING", crew.Value.Activation);
+        Assert.Equal("INELIGIBLE", crew.Value.Activation);
         Assert.Contains("COVERAGE_MAPPING_UNKNOWN", crew.Value.MissingReasons);
         Assert.Equal(403, (await repository.ReadAsync(query with { Role = UserRoleCode.RepairCrew }, default)).Status);
         Assert.Equal(403, (await repository.ReadAsync(query with { ProjectId = Guid.NewGuid() }, default)).Status);

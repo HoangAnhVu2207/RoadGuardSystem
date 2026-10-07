@@ -54,14 +54,11 @@ public sealed class RepairEligibilityRepository(RoadGuardDbContext db, TimeProvi
             var authorization = await db.Set<RepairExecutionAuthorization>().AsNoTracking().SingleOrDefaultAsync(row =>
                 row.Id == binding.AuthorizationId && row.ProjectId == item.ProjectId && row.TaskId == binding.TaskId &&
                 row.AssignmentId == binding.AssignmentId && row.CrewId == binding.CrewId, token);
-            var missing = new List<string> { "ROAD_HANDOVER_MAPPING_UNKNOWN", "COVERAGE_MAPPING_UNKNOWN" };
-            if (item.Mode != RepairMode.FastTrack) missing.Add("NORMAL_FLOW_REQUIRES_SUPERVISOR_APPROVAL");
+            var obligation = await db.RepairObligations.AsNoTracking().Include(row => row.Scope).SingleAsync(row => row.Id == item.ObligationId, token);
+            var coverage = await RoadCoverageResolver.Resolve(db, effective, obligation.Scope, clock.GetUtcNow(), token);
+            sources.ApplyMapping(coverage);
+            var missing = await RepairFtEligibility.Missing(db, clock, item, binding, assessment, policy, authorization, coverage, token);
             var policyState = policy is null ? "UNAVAILABLE" : policy.IsRevoked ? "REVOKED" : policy.Measurements.Count == 0 ? "NOT_CONFIGURED" : "CONFIGURED";
-            if (policyState != "CONFIGURED") missing.Add("POLICY_" + policyState);
-            if (assessment is null) missing.Add("ASSESSMENT_REQUIRED");
-            else missing.AddRange(JsonSerializer.Deserialize<string[]>(assessment.MissingReasonsJson, Json) ?? []);
-            if (authorization?.VerifiedStartedAt is null) missing.Add("FIRST_START_NOT_VERIFIED");
-            else if (clock.GetUtcNow() >= authorization.ExpiresAt) missing.Add("EXECUTION_WINDOW_EXPIRED");
             var facts = new RepairEligibilityFacts(item.Id, binding.Id, binding.PolicyRevisionId, binding.PolicyContentHash,
                 policyState, policy?.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray() ?? [], assessment?.Id,
                 assessment?.Measurements.Select(row => row.MeasurementId).Order().ToArray() ?? [], authorization?.VerifiedStartedAt,

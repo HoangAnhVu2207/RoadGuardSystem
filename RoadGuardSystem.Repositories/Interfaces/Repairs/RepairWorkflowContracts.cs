@@ -76,7 +76,8 @@ public sealed record RepairItemFact(Guid Id, Guid ProjectId, Guid DefectId, Guid
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairMeasurementAssessmentData(Guid OriginId, Guid FieldFirstStartId,
     RepairFieldMeasurementData[]? Measurements, RepairFieldEvidenceData[]? Evidence,
-    RepairFieldPositionData? LocationProof, Guid? DeviceId = null);
+    RepairFieldPositionData? LocationProof, Guid? DeviceId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Dictionary<string, bool?>? StopConditions = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairObligationData(string Kind, bool Mandatory, RepairActualScopeData Scope, string Reason);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

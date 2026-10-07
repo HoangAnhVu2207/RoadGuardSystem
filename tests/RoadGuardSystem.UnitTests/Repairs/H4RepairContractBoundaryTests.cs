@@ -39,7 +39,8 @@ public sealed class H4RepairContractBoundaryTests
                 new DateTimeOffset(2026, 10, 6, 7, 30, 0, TimeSpan.FromHours(7)), "checklist")]
         };
         var input = new RepairMeasurementAssessmentInput(Guid.NewGuid(), Guid.NewGuid(), measurements, evidence,
-            shape == 2 ? new("GPS_CAPTURE", "checklist", 106.7, 10.8, "slab", Guid.NewGuid(), Guid.NewGuid(), 12.34) : null);
+            shape == 2 ? new("GPS_CAPTURE", "checklist", 106.7, 10.8, "slab", Guid.NewGuid(), Guid.NewGuid(), 12.34) : null,
+            StopConditions: shape == 2 ? new() { ["TEST_ONLY_STOP"] = false } : null);
         var repository = new Recording();
         var service = new RepairExecutionService(repository);
         await service.AssessAsync(actor, UserRoleCode.RepairCrew, project, package, item, task, input,

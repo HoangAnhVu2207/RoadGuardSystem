@@ -2,8 +2,8 @@
   "status": "CURRENT_VERIFIED_ISOLATED_SQL",
   "provider": "Microsoft.EntityFrameworkCore.SqlServer 8.0.17",
   "sqlImage": "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04",
-  "lastMigration": "20261007115552_OwnerLifecycleActivation",
-  "migrationCount": 67,
+  "lastMigration": "20261007131646_OwnerRoadCoverageActivation",
+  "migrationCount": 68,
   "inputHashes": [
     {
       "path": "RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs",
@@ -567,7 +567,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/RepairEligibilitySourceSnapshot.cs",
-      "sha256": "dcf1fd0df073b685963098288f2376596fd4417b39f567a4802a1600ab01fa20"
+      "sha256": "999ce4a8b6159b4afcca385e7485ecb447205b0ab3bb9b84775126d1282e9f92"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/RepairGuards.cs",
@@ -600,6 +600,10 @@
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/RepairWork.cs",
       "sha256": "db0c27ee7e496fa33251a095f75fb715f6d36b5c508f818abba05b6d46bd170e"
+    },
+    {
+      "path": "RoadGuardSystem.BusinessObjects/Repairs/RoadCoverageMapping.cs",
+      "sha256": "9bf4aa9e832a319beb8725a26823ae00b2173a35a83285bcbd39a7e43357456a"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/TemporarySafetyMeasure.cs",
@@ -934,6 +938,10 @@
       "sha256": "e1c53e993317eb018af73677d11f2ee569ed299df4bc1dbde82047548d220093"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Configurations/RoadCoverageConfiguration.cs",
+      "sha256": "dd805e97da22555d23da6126408edae3fc9aee6ce28223c39ce2076ed4183e8f"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Configurations/RoadGeometryConfiguration.cs",
       "sha256": "02c5d2ec23cb36d8c88c6ae279fdcbce113e0632d876e96350a5579b9c500c9f"
     },
@@ -1039,7 +1047,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs",
-      "sha256": "f83d637f40f62e49eee869de7cd0f8bb73fd5175792e3c880ea77050b275a8dd"
+      "sha256": "2ab76fba300548b26a9e778f9ea763d3bbce0fac851b861acdd1f083417b013e"
     },
     {
       "path": "RoadGuardSystem.Repositories/Helpers/PagedList.cs",
@@ -1215,7 +1223,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.RepairCapture.cs",
-      "sha256": "300bf434ca1f1437d27f05eae315235261f5accfceaabf381975536c8f1250ea"
+      "sha256": "bc4925ab8a904973bc2e929f3fc14ba898cdd39f6ba04dbeeb77188c2d0cca15"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.RepairFirstStart.cs",
@@ -1455,7 +1463,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairEligibilityRepository.cs",
-      "sha256": "7d57fcab862bae53cfb238e9c101fe9f2eaacb4e9ac4f492f5ade2b52c479b7e"
+      "sha256": "0ccab2ceb4823fb971837e6f8fb53557819a036ec43031cec842b3c061bf6da6"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairFtEligibility.cs",
+      "sha256": "58cdc030783f9530893168d29969f4dabe70216e9ea50d732c69a7920df63e4e"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairPolicyRepository.cs",
@@ -1467,7 +1479,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Execution.cs",
-      "sha256": "316e03c255535bc801a9701c5d3a9be54d538f007fa2b833bafb9aadb8d5be4a"
+      "sha256": "eb798328513c4a1f98bc70d244ad4d44652aeec2ba91b8988c3e823892909138"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Lifecycle.cs",
@@ -1475,7 +1487,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Offline.cs",
-      "sha256": "4e6eae873ac77b92dc294d6a89099d8f26a4e4c30289260126da16704dd6c37f"
+      "sha256": "20b22930cd8552047cbd039c0ee4d090e0d508119baceade09820f7fc6f5948d"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
@@ -1488,6 +1500,14 @@
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.cs",
       "sha256": "bbd0beb0cd975c34b96d5e86e1abfcf209ab58146c731f3e3e17013f585ef8ea"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageRepository.cs",
+      "sha256": "7b66c9fa2d987f26dfb6a2eedd2ca0c693974430d297007ce1fed577336b2a52"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageResolver.cs",
+      "sha256": "d9da8e1aa7a387b4ccb1cb06dfa22efc3270b28fc906e4007b0fe4c0cb25fe26"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs",
@@ -1527,7 +1547,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Retention/Huy02InspectionRetentionContributor.cs",
-      "sha256": "10099e71ee5788f1e86ffb74203d1a067af1607fd2b91df3e9503673e6a644da"
+      "sha256": "7b0d1bb0618c3046040e3e44d0f0820e8110eb3af44adfe645941ca0926342ed"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Retention/PavementRetentionContributor.cs",
@@ -2018,12 +2038,16 @@
       "sha256": "a50d3175784d30d5735fa5d85cde3462fd7ce76f1fb0161c1533bec5404eeadd"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Interfaces/Repairs/IRoadCoverageRepository.cs",
+      "sha256": "bcbc19ba09f19c2456a44d9891730c9e963ce85a6470d3b4e86c85c245ae7af7"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Interfaces/Repairs/RepairCommandCoreHash.cs",
       "sha256": "d2ba7a9676e10029f8c7df21d49f4029372ce219905c9596fb7133b0aca9b72e"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Repairs/RepairWorkflowContracts.cs",
-      "sha256": "8d60ed87629f44380e4c3556cca9f5126de845ac37d77955a97cff2edeb29ab4"
+      "sha256": "6cb552b6c63cd8dfb818adac174481474319724e39a31f450c04d1898c2971de"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Reporting/ICurrentRepairFactsRepository.cs",
@@ -2686,6 +2710,14 @@
       "sha256": "0defc7a705df731b9b01b68c83dfc6ecfeada40fde80688fb80a483c73a895da"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261007131646_OwnerRoadCoverageActivation.Designer.cs",
+      "sha256": "55123b508b2b05847193f366bd8763f1ac8c21a01db0b69d6f4221c9059d799e"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261007131646_OwnerRoadCoverageActivation.cs",
+      "sha256": "ad0528c93ec057f6c0801adc5758997689dc6c241fe6d3fd120d39932d878cdb"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Migrations/H3FieldLifecycleAndIntake.Guards.cs",
       "sha256": "afebd9d08299755aad946c9ce2a3a9f07537aef715dc4d2cf138d8addba4970e"
     },
@@ -2718,12 +2750,16 @@
       "sha256": "99a7b2693ec78e354a60be809157cb0877193d536515ac05c6309d5d754816ac"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Migrations/OwnerRoadCoverageActivation.Guards.cs",
+      "sha256": "9b270a5854f3502ac06ee0e81100e086a1ff61506286b7223b47b6528b408a47"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextDesignTimeFactory.cs",
       "sha256": "506aeecc0b0bc2e2b1cdda18aa13f315ad2f85f15854bd4369a60632bb5fdbc4"
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextModelSnapshot.cs",
-      "sha256": "6cc6438dbbecdaff9eb5338fd965327f6814995215a13148d2f8b27d6a549a63"
+      "sha256": "b21c9ac75f4098281f0c549f7a1ca6b81e67a7fa41a2641c1cac59556fed59dd"
     },
     {
       "path": "RoadGuardSystem.Repositories/Models/Huy01/HuyIntegrationRows.cs",
@@ -2775,7 +2811,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/RoadGuardDbContext.cs",
-      "sha256": "1c527e9cc93393ddb1e4c567441899cd9e45e36b4f87867219a7100c1db00985"
+      "sha256": "b3bcc27ec4a9cad71743c3222d346142c384c5b7288a608378561f5eb4f717a6"
     },
     {
       "path": "RoadGuardSystem.Repositories/Spatial/SpatialConstants.cs",
@@ -40645,6 +40681,559 @@
       ],
       "Checks": [
         "CK_RetentionHold_State"
+      ]
+    },
+    {
+      "TableKey": "dbo.RoadCoverageMappings",
+      "Entities": [
+        "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ActorId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ApplicableFromUtc",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "ApplicableFromUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ApplicableToUtc",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "ApplicableToUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ConfirmedAtUtc",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "ConfirmedAtUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "CoverageFileId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "CoverageFileId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "From",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "From",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "HandoverDocumentId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "HandoverDocumentId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "HandoverFileId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "HandoverFileId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "HandoverVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "HandoverVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(64)",
+          "Nullable": false,
+          "MaxLength": 64,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "LocationVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "LocationVersion",
+          "ClrType": "String",
+          "SqlType": "nvarchar(200)",
+          "Nullable": false,
+          "MaxLength": 200,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetFrom",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "OffsetFrom",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetTo",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "OffsetTo",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Provenance",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "Provenance",
+          "ClrType": "String",
+          "SqlType": "varchar(20)",
+          "Nullable": false,
+          "MaxLength": 20,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Reason",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "Reason",
+          "ClrType": "String",
+          "SqlType": "nvarchar(2000)",
+          "Nullable": false,
+          "MaxLength": 2000,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RoadSectionId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "RoadSectionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ScopeObligationId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "ScopeObligationId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceFactsJson",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "SourceFactsJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "SourceId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceKind",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "SourceKind",
+          "ClrType": "String",
+          "SqlType": "varchar(30)",
+          "Nullable": false,
+          "MaxLength": 30,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "SourceVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(64)",
+          "Nullable": false,
+          "MaxLength": 64,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupersedesId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "SupersedesId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "To",
+          "Entity": "RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageMapping",
+          "Property": "To",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_RoadCoverageMappings_Files_CoverageFileId",
+          "Columns": [
+            "CoverageFileId"
+          ],
+          "PrincipalTable": "dbo.Files",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_Files_HandoverFileId",
+          "Columns": [
+            "HandoverFileId"
+          ],
+          "PrincipalTable": "dbo.Files",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_HandoverDocuments_HandoverDocumentId",
+          "Columns": [
+            "HandoverDocumentId"
+          ],
+          "PrincipalTable": "dbo.HandoverDocuments",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_Projects_ProjectId",
+          "Columns": [
+            "ProjectId"
+          ],
+          "PrincipalTable": "dbo.Projects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_RepairObligations_ScopeObligationId",
+          "Columns": [
+            "ScopeObligationId"
+          ],
+          "PrincipalTable": "dbo.RepairObligations",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_RoadCoverageMappings_SupersedesId",
+          "Columns": [
+            "SupersedesId"
+          ],
+          "PrincipalTable": "dbo.RoadCoverageMappings",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": false,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_RoadSections_RoadSectionId",
+          "Columns": [
+            "RoadSectionId"
+          ],
+          "PrincipalTable": "dbo.RoadSections",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_Users_ActorId",
+          "Columns": [
+            "ActorId"
+          ],
+          "PrincipalTable": "dbo.Users",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_RoadCoverageMappings_ActorId",
+        "IX_RoadCoverageMappings_CoverageFileId",
+        "IX_RoadCoverageMappings_HandoverDocumentId",
+        "IX_RoadCoverageMappings_HandoverFileId",
+        "IX_RoadCoverageMappings_ProjectId_RoadSectionId_LocationVersion",
+        "IX_RoadCoverageMappings_RoadSectionId",
+        "IX_RoadCoverageMappings_ScopeObligationId",
+        "IX_RoadCoverageMappings_SupersedesId"
+      ],
+      "Checks": [
+        "CK_RoadCoverageMappings_Bounds",
+        "CK_RoadCoverageMappings_Source"
       ]
     },
     {
@@ -86189,6 +86778,559 @@
       ]
     },
     {
+      "TableKey": "dbo.RoadCoverageMappings",
+      "Entities": [
+        "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ActorId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ApplicableFromUtc",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ApplicableFromUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ApplicableToUtc",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ApplicableToUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ConfirmedAtUtc",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ConfirmedAtUtc",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "CoverageFileId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "CoverageFileId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "From",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "From",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "HandoverDocumentId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "HandoverDocumentId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "HandoverFileId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "HandoverFileId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "HandoverVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "HandoverVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(64)",
+          "Nullable": false,
+          "MaxLength": 64,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "LocationVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "LocationVersion",
+          "ClrType": "String",
+          "SqlType": "nvarchar(200)",
+          "Nullable": false,
+          "MaxLength": 200,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetFrom",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "OffsetFrom",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "OffsetTo",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "OffsetTo",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Provenance",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Provenance",
+          "ClrType": "String",
+          "SqlType": "varchar(20)",
+          "Nullable": false,
+          "MaxLength": 20,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Reason",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Reason",
+          "ClrType": "String",
+          "SqlType": "nvarchar(2000)",
+          "Nullable": false,
+          "MaxLength": 2000,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RoadSectionId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "RoadSectionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ScopeObligationId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ScopeObligationId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceFactsJson",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SourceFactsJson",
+          "ClrType": "String",
+          "SqlType": "nvarchar(max)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SourceId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceKind",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SourceKind",
+          "ClrType": "String",
+          "SqlType": "varchar(30)",
+          "Nullable": false,
+          "MaxLength": 30,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SourceVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SourceVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(64)",
+          "Nullable": false,
+          "MaxLength": 64,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupersedesId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SupersedesId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "To",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "To",
+          "ClrType": "Decimal",
+          "SqlType": "decimal(18,3)",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": 18,
+          "Scale": 3,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_RoadCoverageMappings_Files_CoverageFileId",
+          "Columns": [
+            "CoverageFileId"
+          ],
+          "PrincipalTable": "dbo.Files",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_Files_HandoverFileId",
+          "Columns": [
+            "HandoverFileId"
+          ],
+          "PrincipalTable": "dbo.Files",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_HandoverDocuments_HandoverDocumentId",
+          "Columns": [
+            "HandoverDocumentId"
+          ],
+          "PrincipalTable": "dbo.HandoverDocuments",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_Projects_ProjectId",
+          "Columns": [
+            "ProjectId"
+          ],
+          "PrincipalTable": "dbo.Projects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_RepairObligations_ScopeObligationId",
+          "Columns": [
+            "ScopeObligationId"
+          ],
+          "PrincipalTable": "dbo.RepairObligations",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_RoadCoverageMappings_SupersedesId",
+          "Columns": [
+            "SupersedesId"
+          ],
+          "PrincipalTable": "dbo.RoadCoverageMappings",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": false,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_RoadSections_RoadSectionId",
+          "Columns": [
+            "RoadSectionId"
+          ],
+          "PrincipalTable": "dbo.RoadSections",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_RoadCoverageMappings_Users_ActorId",
+          "Columns": [
+            "ActorId"
+          ],
+          "PrincipalTable": "dbo.Users",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_RoadCoverageMappings_ActorId",
+        "IX_RoadCoverageMappings_CoverageFileId",
+        "IX_RoadCoverageMappings_HandoverDocumentId",
+        "IX_RoadCoverageMappings_HandoverFileId",
+        "IX_RoadCoverageMappings_ProjectId_RoadSectionId_LocationVersion",
+        "IX_RoadCoverageMappings_RoadSectionId",
+        "IX_RoadCoverageMappings_ScopeObligationId",
+        "IX_RoadCoverageMappings_SupersedesId"
+      ],
+      "Checks": [
+        "CK_RoadCoverageMappings_Bounds",
+        "CK_RoadCoverageMappings_Source"
+      ]
+    },
+    {
       "TableKey": "dbo.RoadGeometryDrafts",
       "Entities": [
         "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
@@ -95055,6 +96197,20 @@
         "table": "RetentionHolds",
         "name": "CK_RetentionHold_State",
         "definition": "(([ScopeType]=\u0027FILE\u0027 OR [ScopeType]=\u0027PROJECT\u0027) AND ([State]=\u0027RELEASED\u0027 OR [State]=\u0027ACTIVE\u0027) AND ([State]=\u0027ACTIVE\u0027 AND [ReleasedBy] IS NULL AND [ReleasedAt] IS NULL OR [State]=\u0027RELEASED\u0027 AND [ReleasedBy] IS NOT NULL AND [ReleasedAt] IS NOT NULL))",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "CK_RoadCoverageMappings_Bounds",
+        "definition": "([From]\u003E=(0) AND [To]\u003E[From] AND [OffsetTo]\u003E[OffsetFrom] AND [ApplicableToUtc]\u003E[ApplicableFromUtc])",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "CK_RoadCoverageMappings_Source",
+        "definition": "((([SourceKind]) collate Latin1_General_100_BIN2=\u0027MAINTENANCE_BASIS\u0027 OR ([SourceKind]) collate Latin1_General_100_BIN2=\u0027WARRANTY\u0027) AND (([Provenance]) collate Latin1_General_100_BIN2=\u0027TEST_ONLY\u0027 OR ([Provenance]) collate Latin1_General_100_BIN2=\u0027REAL_SOURCE\u0027) AND isjson([SourceFactsJson])=(1))",
         "disabled": false
       },
       {
@@ -114161,6 +115317,294 @@
       },
       {
         "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "Id",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "ProjectId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "ScopeObligationId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "RoadSectionId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "LocationVersion",
+        "type": "nvarchar",
+        "maxLengthBytes": 400,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "From",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "To",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "OffsetFrom",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "OffsetTo",
+        "type": "decimal",
+        "maxLengthBytes": 9,
+        "precision": 18,
+        "scale": 3,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "ApplicableFromUtc",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "ApplicableToUtc",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "HandoverDocumentId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "HandoverVersion",
+        "type": "varchar",
+        "maxLengthBytes": 64,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "SourceKind",
+        "type": "varchar",
+        "maxLengthBytes": 30,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "SourceId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "SourceVersion",
+        "type": "varchar",
+        "maxLengthBytes": 64,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "HandoverFileId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "CoverageFileId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "SourceFactsJson",
+        "type": "nvarchar",
+        "maxLengthBytes": -1,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "Provenance",
+        "type": "varchar",
+        "maxLengthBytes": 20,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "ActorId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "ConfirmedAtUtc",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "Reason",
+        "type": "nvarchar",
+        "maxLengthBytes": 4000,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "SupersedesId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": true,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
         "table": "RoadGeometryDrafts",
         "name": "Id",
         "type": "uniqueidentifier",
@@ -125688,6 +127132,102 @@
       },
       {
         "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_Files_CoverageFileId",
+        "column": "CoverageFileId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Files",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_Files_HandoverFileId",
+        "column": "HandoverFileId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Files",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_HandoverDocuments_HandoverDocumentId",
+        "column": "HandoverDocumentId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "HandoverDocuments",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_Projects_ProjectId",
+        "column": "ProjectId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Projects",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_RepairObligations_ScopeObligationId",
+        "column": "ScopeObligationId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "RepairObligations",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_RoadCoverageMappings_SupersedesId",
+        "column": "SupersedesId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "RoadCoverageMappings",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_RoadSections_RoadSectionId",
+        "column": "RoadSectionId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "RoadSections",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "FK_RoadCoverageMappings_Users_ActorId",
+        "column": "ActorId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Users",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "disabled": false
+      },
+      {
+        "schema": "dbo",
         "table": "RoadGeometryDrafts",
         "name": "FK_RoadGeometryDrafts_Projects_ProjectId",
         "column": "ProjectId",
@@ -135772,6 +137312,127 @@
       },
       {
         "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_ActorId",
+        "column": "ActorId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_CoverageFileId",
+        "column": "CoverageFileId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_HandoverDocumentId",
+        "column": "HandoverDocumentId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_HandoverFileId",
+        "column": "HandoverFileId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_ProjectId_RoadSectionId_LocationVersion",
+        "column": "ProjectId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_ProjectId_RoadSectionId_LocationVersion",
+        "column": "RoadSectionId",
+        "ordinal": 2,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_ProjectId_RoadSectionId_LocationVersion",
+        "column": "LocationVersion",
+        "ordinal": 3,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_RoadSectionId",
+        "column": "RoadSectionId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_ScopeObligationId",
+        "column": "ScopeObligationId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "IX_RoadCoverageMappings_SupersedesId",
+        "column": "SupersedesId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": true,
+        "filtered": true,
+        "filter": "([SupersedesId] IS NOT NULL)",
+        "kind": "NONCLUSTERED"
+      },
+      {
+        "schema": "dbo",
         "table": "RoadGeometryDrafts",
         "name": "IX_RoadGeometryDrafts_ProjectId",
         "column": "ProjectId",
@@ -139066,6 +140727,14 @@
       },
       {
         "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "PK_RoadCoverageMappings",
+        "kind": "PRIMARY_KEY_CONSTRAINT",
+        "column": "Id",
+        "ordinal": 1
+      },
+      {
+        "schema": "dbo",
         "table": "RoadGeometryDrafts",
         "name": "PK_RoadGeometryDrafts",
         "kind": "PRIMARY_KEY_CONSTRAINT",
@@ -140057,6 +141726,10 @@
       {
         "schema": "dbo",
         "table": "RetentionHolds"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings"
       },
       {
         "schema": "dbo",
@@ -141859,6 +143532,26 @@
         "notForReplication": false,
         "definition": "CREATE TRIGGER [TR_RetentionHoldHistories_Immutable] ON [dbo].[RetentionHoldHistories] AFTER UPDATE, DELETE AS BEGIN SET NOCOUNT ON; THROW 51220, \u0027Retention hold history is immutable.\u0027, 1; END\r\n",
         "events": "DELETE,UPDATE"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "TR_RoadCoverageMappings_Immutable",
+        "disabled": false,
+        "insteadOf": false,
+        "notForReplication": false,
+        "definition": "CREATE TRIGGER TR_RoadCoverageMappings_Immutable ON RoadCoverageMappings AFTER UPDATE,DELETE AS\r\nBEGIN SET NOCOUNT ON;\r\n  IF EXISTS(SELECT 1 FROM deleted) THROW 51700, \u0027Road coverage confirmations are append-only.\u0027, 1;\r\nEND\r\n",
+        "events": "DELETE,UPDATE"
+      },
+      {
+        "schema": "dbo",
+        "table": "RoadCoverageMappings",
+        "name": "TR_RoadCoverageMappings_Scope",
+        "disabled": false,
+        "insteadOf": false,
+        "notForReplication": false,
+        "definition": "CREATE TRIGGER TR_RoadCoverageMappings_Scope ON RoadCoverageMappings AFTER INSERT AS\r\nBEGIN SET NOCOUNT ON;\r\n  IF EXISTS(SELECT 1 FROM inserted i WHERE LEN(i.SourceVersion)\u003C\u003E64 OR LEN(i.HandoverVersion)\u003C\u003E64\r\n    OR NOT EXISTS(SELECT 1 FROM RepairObligations o JOIN RepairActualScopes s ON s.ObligationId=o.Id\r\n      LEFT JOIN ObligationResponsibilities r ON r.ObligationId=o.Id\r\n      WHERE o.Id=i.ScopeObligationId AND COALESCE(r.CurrentProjectId,o.ProjectId)=i.ProjectId\r\n        AND s.PhysicalRoadId=i.RoadSectionId AND s.LocationVersion=i.LocationVersion\r\n        AND s.[From]=i.[From] AND s.[To]=i.[To] AND s.OffsetFrom=i.OffsetFrom AND s.OffsetTo=i.OffsetTo)\r\n    OR NOT EXISTS(SELECT 1 FROM HandoverDocuments h WHERE h.Id=i.HandoverDocumentId\r\n      AND h.ProjectId=i.ProjectId AND h.FileId=i.HandoverFileId AND h.AcceptedByUserId IS NOT NULL)\r\n    OR (i.SourceKind=\u0027WARRANTY\u0027 AND NOT EXISTS(SELECT 1 FROM Warranties w WHERE w.Id=i.SourceId\r\n      AND w.ProjectId=i.ProjectId AND w.SourceDocumentId=i.CoverageFileId\r\n      AND (w.RoadSectionId IS NULL OR w.RoadSectionId=i.RoadSectionId)\r\n      AND (w.HandoverDocumentId IS NULL OR w.HandoverDocumentId=i.HandoverDocumentId)))\r\n    OR (i.SourceKind=\u0027MAINTENANCE_BASIS\u0027 AND i.SourceId\u003C\u003Ei.CoverageFileId)\r\n    OR NOT EXISTS(SELECT 1 FROM FileScopes f WHERE f.FileId=i.HandoverFileId AND f.ProjectId=i.ProjectId)\r\n    OR NOT EXISTS(SELECT 1 FROM FileScopes f WHERE f.FileId=i.CoverageFileId AND f.ProjectId=i.ProjectId)\r\n    OR (i.Provenance=\u0027REAL_SOURCE\u0027 AND EXISTS(SELECT 1 FROM Files f JOIN FileScopes s ON s.FileId=f.Id\r\n      WHERE f.Id IN (i.HandoverFileId,i.CoverageFileId) AND s.ProjectId=i.ProjectId\r\n        AND (s.Purpose LIKE \u0027TEST_ONLY%\u0027 OR f.StorageUri LIKE \u0027TEST_ONLY/%\u0027)))\r\n    OR (i.SupersedesId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM RoadCoverageMappings p\r\n      WHERE p.Id=i.SupersedesId AND p.ProjectId=i.ProjectId AND p.ScopeObligationId=i.ScopeObligationId\r\n        AND p.Provenance=i.Provenance AND p.ConfirmedAtUtc\u003C=i.ConfirmedAtUtc))\r\n    OR (i.Provenance=\u0027REAL_SOURCE\u0027 AND EXISTS(SELECT 1 FROM RoadCoverageMappings p\r\n      WHERE p.Id\u003C\u003Ei.Id AND p.ProjectId=i.ProjectId AND p.Provenance=\u0027TEST_ONLY\u0027\r\n        AND ((p.SourceKind=i.SourceKind AND p.SourceId=i.SourceId) OR p.HandoverDocumentId=i.HandoverDocumentId))))\r\n    THROW 51701, \u0027Coverage requires its exact scoped sources and immutable provenance.\u0027, 1;\r\nEND\r\n",
+        "events": "INSERT"
       },
       {
         "schema": "dbo",
@@ -145750,6 +147443,50 @@
           "Action": "CREATE",
           "Path": "RoadGuardSystem.Repositories/Migrations/20261006015156_H0RetentionIntegration.cs",
           "Line": 282
+        }
+      ],
+      "runtimeBehavior": "NOT_TESTED"
+    },
+    {
+      "Schema": "dbo",
+      "Table": "RoadCoverageMappings",
+      "Name": "TR_RoadCoverageMappings_Immutable",
+      "observedDefinitionSha256Utf8Lf": "0580492a7ce252ccd956c44f833ce1f119b832822377b74f8a1aa8ca62f7ffe8",
+      "createdMigration": "20261007131646_OwnerRoadCoverageActivation",
+      "lastDefinitionMigration": "20261007131646_OwnerRoadCoverageActivation",
+      "sourcePath": "RoadGuardSystem.Repositories/Migrations/OwnerRoadCoverageActivation.Guards.cs",
+      "sourceLine": 10,
+      "migrationSqlSha256Utf8Lf": "8b075d52dfe656e288233436100721add1106ada7b44a78c097153415fff3b91",
+      "expectedCatalogDefinitionSha256Utf8Lf": "8b075d52dfe656e288233436100721add1106ada7b44a78c097153415fff3b91",
+      "textComparison": "OUTER_WHITESPACE_ONLY",
+      "operationHistory": [
+        {
+          "MigrationId": "20261007131646_OwnerRoadCoverageActivation",
+          "Action": "CREATE",
+          "Path": "RoadGuardSystem.Repositories/Migrations/OwnerRoadCoverageActivation.Guards.cs",
+          "Line": 10
+        }
+      ],
+      "runtimeBehavior": "NOT_TESTED"
+    },
+    {
+      "Schema": "dbo",
+      "Table": "RoadCoverageMappings",
+      "Name": "TR_RoadCoverageMappings_Scope",
+      "observedDefinitionSha256Utf8Lf": "de2f64b8ef888746b0d3fa9dd439f815a74fc53f5448501f4aeaddb8be6ef032",
+      "createdMigration": "20261007131646_OwnerRoadCoverageActivation",
+      "lastDefinitionMigration": "20261007131646_OwnerRoadCoverageActivation",
+      "sourcePath": "RoadGuardSystem.Repositories/Migrations/OwnerRoadCoverageActivation.Guards.cs",
+      "sourceLine": 16,
+      "migrationSqlSha256Utf8Lf": "9f4e72478e075de0dad5345c3be54a76f82203136e599fb29cdf0c0bbe9dba95",
+      "expectedCatalogDefinitionSha256Utf8Lf": "9f4e72478e075de0dad5345c3be54a76f82203136e599fb29cdf0c0bbe9dba95",
+      "textComparison": "OUTER_WHITESPACE_ONLY",
+      "operationHistory": [
+        {
+          "MigrationId": "20261007131646_OwnerRoadCoverageActivation",
+          "Action": "CREATE",
+          "Path": "RoadGuardSystem.Repositories/Migrations/OwnerRoadCoverageActivation.Guards.cs",
+          "Line": 16
         }
       ],
       "runtimeBehavior": "NOT_TESTED"

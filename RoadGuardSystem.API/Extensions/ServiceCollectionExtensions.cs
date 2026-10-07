@@ -110,6 +110,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairExecutionService, RoadGuardSystem.Services.Implementations.Repairs.RepairExecutionService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairPolicyService, RoadGuardSystem.Services.Implementations.Repairs.RepairPolicyService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairEligibilityService, RoadGuardSystem.Services.Implementations.Repairs.RepairEligibilityService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.IRoadCoverageService, RoadGuardSystem.Services.Implementations.Repairs.RoadCoverageService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairLifecycleService, RoadGuardSystem.Services.Implementations.Repairs.RepairLifecycleService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairSafetyService, RoadGuardSystem.Services.Implementations.Repairs.RepairSafetyService>();
         services.AddScoped<RoadGuardSystem.Services.Offline.IOfflineWorkflowService, RoadGuardSystem.Services.Offline.OfflineWorkflowService>();

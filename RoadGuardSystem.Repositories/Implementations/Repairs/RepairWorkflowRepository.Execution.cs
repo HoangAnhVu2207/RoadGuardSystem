@@ -87,9 +87,27 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
                 assessment.Stage != "PRE_EXECUTION" || binding.PlanHash != item.ProposalPlanHash || binding.ChecklistVersion != item.ChecklistVersion)
                 Deny(409, "assessment_source_conflict");
             if (item.State != RepairItemState.Assigned || item.CurrentExecutionStartId is not null) Deny(409, "invalid_state_transition");
+            Guid? eligibilityId = null;
             if (item.Mode == RepairMode.FastTrack)
-                Deny(409, "fast_track_coverage_mapping_unknown");
-            if (item.ApprovedPlanHash != binding.PlanHash || item.ApprovedBy is null) Deny(409, "normal_plan_not_approved");
+            {
+                if (offlineRepairContext is not null) Deny(409, "fast_track_offline_authority_not_activated");
+                var obligation = package.Obligations.Single(row => row.Id == item.ObligationId);
+                var responsibleProject = await ObligationResponsibilityScope.ResolveAsync(db, obligation.Id, obligation.ProjectId, ct);
+                var coverage = await RoadCoverageResolver.Resolve(db, responsibleProject, obligation.Scope, clock.GetUtcNow(), ct);
+                var policy = await db.Set<RepairPolicyRevision>().AsNoTracking().Include(row => row.Measurements).Include(row => row.Revocations)
+                    .SingleOrDefaultAsync(row => row.Id == binding.PolicyRevisionId, ct);
+                var authorization = await db.Set<RepairExecutionAuthorization>().AsNoTracking().SingleOrDefaultAsync(row => row.Id == binding.AuthorizationId, ct);
+                await db.Entry(assessment).Collection(row => row.Measurements).LoadAsync(ct);
+                var missing = await RepairFtEligibility.Missing(db, clock, item, binding, assessment, policy, authorization, coverage, ct);
+                if (missing.Length != 0) Deny(409, coverage.State == "UNKNOWN_OWNER_MAPPING" ? "fast_track_coverage_mapping_unknown" :
+                    coverage.State == "TEST_ONLY_MAPPING" ? "test_only_source_not_executable" : "fast_track_prerequisites_not_met");
+                eligibilityId = Guid.NewGuid();
+                db.Add(new RepairEligibilityAssessment(eligibilityId.Value, item.ProjectId, item.Id, binding.Id, assessment.Id,
+                    obligation.Scope.PhysicalRoadId, policy!.Id, binding.PolicyContentHash!, RepairFactState.Confirmed, RepairFactState.Confirmed,
+                    "LD07_MAPPING:" + coverage.Mapping!.Id.ToString("D"), RoadCoverageResolver.Hash(coverage.Mapping), clock.GetUtcNow(), "[]"));
+                await db.SaveChangesAsync(ct);
+            }
+            else if (item.ApprovedPlanHash != binding.PlanHash || item.ApprovedBy is null) Deny(409, "normal_plan_not_approved");
             var native = await db.FieldInspectionTasks.SingleAsync(row => row.Id == binding.TaskId, ct);
             if (native.Status != FieldInspectionTaskStatus.InProgress) Deny(409, "field_first_start_required");
             var now = clock.GetUtcNow(); var id = RepairEffectId();
@@ -121,7 +139,7 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
                         offlineAdmissionId = offlineRepairContext.Command.Admission.AdmissionId,
                         importerId = offlineRepairContext.Command.CallerId,
                         verifiedOriginalAt = admittedTime.VerifiedAt
-                    }, Json), null);
+                    }, Json), eligibilityId);
             db.AddRange(FieldInspectionOperationOrigin.Create(id, command.ProjectId, command.Input.OriginId,
                 "REPAIR_EXECUTION_START", hash, command.ActorId, RepairOriginDevice(command.Input.DeviceId), binding.TaskId, id, now), start);
             await db.SaveChangesAsync(ct);

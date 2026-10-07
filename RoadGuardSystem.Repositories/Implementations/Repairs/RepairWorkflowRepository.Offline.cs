@@ -54,7 +54,9 @@ public sealed partial class RepairWorkflowRepository : IOfflineRepairCommandAdap
                 .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync(token));
             var policy = await db.Set<RepairPolicyRevision>().AsNoTracking().Include(row => row.Measurements).Include(row => row.Revocations)
                 .SingleOrDefaultAsync(row => row.Id == source.PolicyRevisionId && row.ProjectId == query.ProjectId, token);
-            var obligation = await db.Set<RepairObligation>().AsNoTracking().SingleAsync(row => row.Id == item.ObligationId, token);
+            var obligation = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope).SingleAsync(row => row.Id == item.ObligationId, token);
+            var effectiveProject = await ObligationResponsibilityScope.ResolveAsync(db, obligation.Id, obligation.ProjectId, token);
+            var coverage = await RoadCoverageResolver.Resolve(db, effectiveProject, obligation.Scope, clock.GetUtcNow(), token);
             return new(item.Id, source.TaskId, source.AssignmentId, source.CrewId, version,
                 source.AuthorizationId, source.PolicyRevisionId, source.PolicyContentHash,
                 new
@@ -96,7 +98,9 @@ public sealed partial class RepairWorkflowRepository : IOfflineRepairCommandAdap
                         measurements = policy.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray(),
                         stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray()
                     },
-                    eligibility = "UNKNOWN_OWNER_MAPPING",
+                    eligibility = coverage.State,
+                    coverageMapping = coverage.Mapping,
+                    coverageSourceHash = coverage.Mapping is null ? null : RoadCoverageResolver.Hash(coverage.Mapping),
                     executeAuthority = "REVALIDATE_CURRENT_SOURCE_AT_ADMISSION"
                 });
         }

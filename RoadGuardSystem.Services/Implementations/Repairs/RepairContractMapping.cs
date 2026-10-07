@@ -222,7 +222,7 @@ internal static class RepairContractMapping
         value.Measurements is null ? null : value.Measurements.Select(element => element is null ? null! : ToData(element)).ToArray(),
         value.Evidence is null ? null : value.Evidence.Select(element => element is null ? null! : ToData(element)).ToArray(),
         value.LocationProof is null ? null : ToData(value.LocationProof),
-        value.DeviceId);
+        value.DeviceId, value.StopConditions);
     public static RepairObligationData ToData(RepairObligationInput value) => new(value.Kind,
         value.Mandatory,
         value.Scope is null ? null! : ToData(value.Scope),

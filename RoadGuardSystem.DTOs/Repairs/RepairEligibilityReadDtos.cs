@@ -5,5 +5,5 @@ public sealed record RepairEligibilityReadView(bool Eligible, string Activation,
     Guid? PolicyRevisionId, string? PolicyContentHash, string PolicyState, RepairMeasurementRule[] Rules,
     Guid? AssessmentId, Guid[] MeasurementIds, DateTimeOffset? OriginalVerifiedStart, DateTimeOffset? ExecutionExpiresAt,
     string SourceMapping, RepairWarrantySource[] WarrantySources, RepairHandoverSource[] HandoverSources,
-    string[] MissingReasons, string Version);
+    string[] MissingReasons, string Version, RoadCoverageMapping? CoverageMapping = null);
 public sealed record RepairEligibilityServiceResult(int Status, string? Code = null, RepairEligibilityReadView? Value = null);

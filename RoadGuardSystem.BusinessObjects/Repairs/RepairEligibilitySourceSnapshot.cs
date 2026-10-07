@@ -21,6 +21,14 @@ public sealed class RepairEligibilitySourceSnapshot
     public RepairFactState RoadHandover { get; private set; } = RepairFactState.Unknown;
     public RepairFactState Coverage { get; private set; } = RepairFactState.Unknown;
     public string SourceMapping { get; private set; } = "UNKNOWN_OWNER_MAPPING";
+    public RoadCoverageMapping? Mapping { get; private set; }
+    public void ApplyMapping(RoadCoverageResolution resolution)
+    {
+        ArgumentNullException.ThrowIfNull(resolution);
+        SourceMapping = resolution.State; Mapping = resolution.Mapping;
+        RoadHandover = resolution.PermitsExecution ? RepairFactState.Confirmed : RepairFactState.Unknown;
+        Coverage = resolution.PermitsExecution ? RepairFactState.Confirmed : RepairFactState.Unknown;
+    }
     private RepairEligibilitySourceSnapshot() { }
     public static RepairEligibilitySourceSnapshot Capture(Guid project, Guid roadSection, IReadOnlyList<Warranty> warranties,
         IReadOnlyList<HandoverDocument> handovers)

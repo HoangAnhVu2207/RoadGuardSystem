@@ -43,6 +43,8 @@ public sealed partial class FieldInspectionWorkflowRepository
                 Deny(409, "repair_capture_source_conflict");
             if ((input.Evidence ?? []).Any(row => row is null || row.Purpose == "AFTER"))
                 throw new ArgumentException("PRE_EXECUTION assessment cannot declare completed repair evidence.");
+            if (input.StopConditions is { } stops && (stops.Count > 100 || stops.Keys.Any(code => string.IsNullOrWhiteSpace(code) || code.Length > 200)))
+                throw new ArgumentException("Stop observations require bounded explicit policy codes.");
             var resolved = new Dictionary<Guid, OfflineEvidenceAdmissionFacts>();
             if (offlineAdmissionId is Guid admissionId)
             {

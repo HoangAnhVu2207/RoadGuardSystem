@@ -19,7 +19,7 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
             command.Key, CancelItemOperation, command, async ct =>
             {
                 var package = await LockedPackage(command.PackageId, ct);
-                await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId);
                 EnsureLifecycleHead(package, item, command.ExpectedVersion);
                 var now = clock.GetUtcNow();
@@ -36,7 +36,7 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
             command.Key, ContinueNormalOperation, command, async ct =>
             {
                 var package = await LockedPackage(command.PackageId, ct);
-                await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var source = package.Items.Single(row => row.Id == command.ItemId);
                 EnsureLifecycleHead(package, source, command.ExpectedVersion);
                 var obligation = package.Obligations.Single(row => row.Id == source.ObligationId);
@@ -58,7 +58,7 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
                     if (command.Input.Handover is not null || source.CurrentBindingId is not null)
                         Deny(409, "normal_continuation_source_conflict");
                     var cancellation = await db.Set<RepairItemLifecycleEvent>().AsNoTracking().SingleOrDefaultAsync(row =>
-                        row.ItemId == source.Id && row.ProjectId == command.ProjectId && row.Kind == "CANCELLED", ct);
+                        row.ItemId == source.Id && row.ProjectId == package.ProjectId && row.Kind == "CANCELLED", ct);
                     if (cancellation is null) Deny(409, "cancellation_source_required");
                     cancelId = cancellation.Id;
                     if (cancellation.BindingId is not null)
@@ -86,13 +86,13 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
                 catch (InvalidOperationException) { Deny(409, "normal_continuation_source_conflict"); throw; }
                 Touch(package); await db.SaveChangesAsync(ct);
                 db.Entry(obligation).Property(row => row.CurrentRepairItemId).CurrentValue = successor.Id;
-                var continuation = new RepairNormalSuccessor(Guid.NewGuid(), command.ProjectId, obligation.Id,
+                var continuation = new RepairNormalSuccessor(Guid.NewGuid(), package.ProjectId, obligation.Id,
                     source.Id, successor.Id, decisionId, command.ActorId, command.Input.Reason, now,
                     source.CurrentAssessmentId, cancelId, handoverId);
                 db.Add(continuation);
                 var proposed = Lifecycle(successor, command.ActorId, command.Role, "PROPOSED", command.Input.Reason,
                     command.ExpectedVersion, now);
-                db.Add(DeadlineClock.Create(Guid.NewGuid(), command.ProjectId, DeadlineClockKind.SupervisorInitialApproval,
+                db.Add(DeadlineClock.Create(Guid.NewGuid(), package.ProjectId, DeadlineClockKind.SupervisorInitialApproval,
                     successor.Id, proposed.Id, now));
                 Notify(proposed, "review.supervisor_required.v1", "SUPERVISOR_REQUIRED");
                 AuditProducer(command.ActorId, "repair_normal_continuation", "RepairItem", successor.Id, command.Input.Reason,
@@ -246,11 +246,11 @@ public sealed partial class RepairWorkflowRepository : IRepairLifecycleRepositor
                 if (stored is null) return;
                 Guid? sourceItem = operation == CancelItemOperation
                     ? await db.Set<RepairItemLifecycleEvent>().Where(row => row.Id == stored.OperationId &&
-                        row.ProjectId == project && row.Kind == "CANCELLED").Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(ct)
-                    : await db.Set<RepairNormalSuccessor>().Where(row => row.Id == stored.OperationId && row.ProjectId == project)
+                        row.Kind == "CANCELLED").Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(ct)
+                    : await db.Set<RepairNormalSuccessor>().Where(row => row.Id == stored.OperationId)
                         .Select(row => (Guid?)row.SourceItemId).SingleOrDefaultAsync(ct);
                 if (sourceItem is null) Deny(403, "stored_receipt_access_forbidden");
-                var sourcePackage = await db.Set<RepairItem>().Where(row => row.Id == sourceItem && row.ProjectId == project)
+                var sourcePackage = await db.Set<RepairItem>().Where(row => row.Id == sourceItem)
                     .Select(row => EF.Property<Guid?>(row, "PackageId")).SingleOrDefaultAsync(ct);
                 if (sourcePackage is null) Deny(403, "stored_receipt_access_forbidden");
                 await GuardItemResource(project, sourcePackage.Value, sourceItem.Value, ct);

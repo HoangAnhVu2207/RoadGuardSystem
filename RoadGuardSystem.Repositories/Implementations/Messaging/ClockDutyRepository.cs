@@ -21,7 +21,7 @@ public sealed class ClockDutyRepository(RoadGuardDbContext db, IdempotencyOperat
     {
         var row = await db.Set<DeadlineClock>().FromSqlInterpolated($"SELECT * FROM [DeadlineClocks] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={c.ClockId}")
             .Include(x => x.Extensions).Include(x => x.Breaches).Include(x => x.Appointments).AsSplitQuery().SingleOrDefaultAsync(token);
-        if (row is null || row.ProjectId != c.ProjectId) throw new Denied(404, "not_found");
+        if (row is null || await new H6DeadlineNotificationSourceAdapter(db, time).ResponsibilityProjectAsync(row, token) != c.ProjectId) throw new Denied(404, "not_found");
         return row;
     }
     private async Task Guard(ClockDutyCommand c, CancellationToken token)

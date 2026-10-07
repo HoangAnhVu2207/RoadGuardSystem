@@ -14,9 +14,10 @@ public sealed class H6ProjectLifecycleAuthorityTests
     [InlineData(ProjectLifecycleCommandKind.OperationalClose)]
     [InlineData(ProjectLifecycleCommandKind.ObligationTransferGrant)]
     [InlineData(ProjectLifecycleCommandKind.ObligationTransferAccept)]
-    public void PendingCommands_DoNotInheritSupervisorAuthority(ProjectLifecycleCommandKind command)
+    public void OwnerConfirmedCommands_RequireTheirExactRole(ProjectLifecycleCommandKind command)
         => ProjectLifecycleAuthority.Evaluate(command, UserRoleCode.Supervisor, true, true)
-            .Should().Be("lifecycle_authority_pending");
+            .Should().Be(command is ProjectLifecycleCommandKind.LinkedRecurrenceCreate or ProjectLifecycleCommandKind.ConstructionComplete
+                ? "access_forbidden" : "success");
 
     [Theory]
     [InlineData(UserRoleCode.ProjectManager)]

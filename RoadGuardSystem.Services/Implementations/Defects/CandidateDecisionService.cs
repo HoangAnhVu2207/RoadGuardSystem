@@ -15,7 +15,7 @@ namespace RoadGuardSystem.Services.Implementations.Defects;
 
 public sealed class CandidateDecisionService(ICandidateDecisionRepository repository, ICaseWorkflowRepository cases,
     IAnhHuyProducerService producer, IEnumerable<IAiCandidateFactsReader> aiReaders, IProjectScopeGuard scope,
-    IdempotencyOperationService idempotency) : ICandidateDecisionService
+    IdempotencyOperationService idempotency, RoadGuardSystem.Repositories.Projects.IProjectLifecycleRepository? lifecycle = null) : ICandidateDecisionService
 {
     private sealed record DecisionSource(CandidateSourceFacts DomainFacts, ProjectGeometryContext Geometry, Guid? CaseId);
     public Task<CandidateDecisionResult> ReadAsync(Guid actor, UserRoleCode role, Guid projectId, Guid decisionId, CancellationToken ct)
@@ -39,6 +39,10 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
             if (kind == CandidateSourceKind.Unknown) return Invalid("sourceKind");
             var decision = request.Decision switch { "REJECT" => CandidateDecisionKind.Reject, "KEEP_NEW" => CandidateDecisionKind.KeepNew, "LINK_EXISTING" => CandidateDecisionKind.LinkExisting, _ => CandidateDecisionKind.Unknown };
             if (decision == CandidateDecisionKind.Unknown) return Invalid("decision");
+            if (request.Recurrence is { } recurrence && (decision != CandidateDecisionKind.KeepNew || lifecycle is null ||
+                recurrence.PreviousDefectId == Guid.Empty || recurrence.PriorRepairDecisionId == Guid.Empty || recurrence.EvidenceFileIds is null ||
+                recurrence.EvidenceFileIds.Length is < 1 or > 100 || recurrence.EvidenceFileIds.Any(x => x == Guid.Empty) ||
+                recurrence.EvidenceFileIds.Distinct().Count() != recurrence.EvidenceFileIds.Length)) return Invalid("recurrence");
             if (request.TargetDefectId == Guid.Empty || request.SupersedesDecisionId == Guid.Empty) return Invalid("targetDefectId");
             var hasVersion = !string.IsNullOrWhiteSpace(request.TargetVersion);
             if (decision == CandidateDecisionKind.Reject && (request.TargetDefectId is not null || request.TargetVersion is not null || request.Classification is not null) ||
@@ -64,12 +68,20 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
                 else await repository.LockAiSourceAsync(normalized.SourceId, token);
                 var current = await ResolveAsync(actor, role, projectId, kind, normalized.SourceId, null, null, null, token);
                 if (current.Status != AnhHuyProducerStatus.Ready) Throw(current.Status);
+                if (normalized.Recurrence is { } recurrence)
+                    await lifecycle!.ValidateRecurrenceAsync(projectId, recurrence.PreviousDefectId, recurrence.PriorRepairDecisionId, recurrence.EvidenceFileIds, token);
                 return current.Facts!;
             }
-            var execution = await Huy01CommandExecution.ExecuteAsync(handler => idempotency.ExecuteAsync(actor, projectId, "huy01.candidate.decide.v1", key.Trim(' '), fingerprint,
-                handler, ct, receiptAccessGuard: async token => { await Guard(token); }), async token =>
+            var execution = await Huy01CommandExecution.ExecuteAsync(handler => normalized.Recurrence is null
+                ? idempotency.ExecuteAsync(actor, projectId, "huy01.candidate.decide.v1", key.Trim(' '), fingerprint,
+                    handler, ct, receiptAccessGuard: async token => { await Guard(token); })
+                : idempotency.ExecuteSerializableAsync(actor, projectId, "huy01.candidate.decide.v1", key.Trim(' '), fingerprint,
+                    handler, ct, receiptAccessGuard: async token => { await Guard(token); }), async token =>
                 {
                     await Guard(token);
+                    if (normalized.Recurrence is { ExpectedLifecycleVersion: { } expected } &&
+                        (await lifecycle!.ReadAsync(actor, projectId, token))?.Version != expected)
+                        throw new CaseWorkflowException(409, "concurrency_conflict");
                     var fresh = await ResolveAsync(actor, role, projectId, kind, normalized.SourceId,
                         normalized.SourceVersion, normalized.GeometryVersion, normalized.PreviousDecisionVersion, token);
                     if (fresh.Status != AnhHuyProducerStatus.Ready) Throw(fresh.Status);
@@ -102,6 +114,9 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
                         write = await repository.SaveAcceptedAsync(actor, source.DomainFacts, decision,
                             classification, normalized.TargetDefectId, normalized.TargetVersion,
                             correction, normalized.Reason!, correlation, token);
+                        if (normalized.Recurrence is { } recurrence)
+                            await lifecycle!.LinkRecurrenceAsync(actor, projectId, write.DefectId!.Value, recurrence.PreviousDefectId,
+                                recurrence.PriorRepairDecisionId, recurrence.EvidenceFileIds, normalized.Reason!, token);
                     }
                     return (write.Id, JsonSerializer.Serialize(write));
                 }, exception => exception is CaseWorkflowException { Code: "candidate_stale" or "concurrency_conflict" });

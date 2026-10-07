@@ -10,12 +10,19 @@ public sealed partial class H6ProtectedNotificationRepository
     public Task<WeeklyDigestReadFact?> WeeklyDigestAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid digestId, CancellationToken token)
         => ReadAsync<WeeklyDigestReadFact?>(actorId, async (currentRole, ct) =>
         {
-            if (!await BusinessDutyRepository.CurrentAuthority(db, clock, actorId, role, projectId, ct)) return null;
+            if (role != currentRole || role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)) return null;
             var digest = await db.Set<WeeklyReviewDigest>().AsNoTracking().Include(d => d.Duties).SingleOrDefaultAsync(d =>
                 d.Id == digestId && d.ProjectId == projectId && d.RecipientRole == currentRole &&
                 (d.RecipientId == actorId || d.RecipientId == null && db.Notifications.Any(n => n.SourceEntityId == d.Id &&
                     n.SourceEntityType == "ReviewDigest" && n.RecipientUserId == actorId)), ct);
             if (digest is null) return null;
+            foreach (var captured in digest.Duties)
+            {
+                var duty = await db.Set<DeadlineClock>().AsNoTracking().SingleOrDefaultAsync(row => row.Id == captured.ClockId &&
+                    row.ProjectId == digest.ProjectId && row.TargetId == captured.TargetId && row.OriginEventId == captured.OriginEventId, ct);
+                if (duty is null || !await BusinessDutyRepository.CurrentAuthority(db, clock, actorId, role,
+                    await new H6DeadlineNotificationSourceAdapter(db, clock).ResponsibilityProjectAsync(duty, ct), ct)) return null;
+            }
             var periods = await db.Set<WeeklyReviewRecoveryPeriod>().Where(p => p.ProjectId == projectId &&
                 p.RecoveredAtUtc == digest.RecoveredAtUtc).OrderBy(p => p.ScheduledAtUtc).Select(p => p.ScheduledAtUtc).ToArrayAsync(ct);
             return new(digest.Id, digest.ProjectId, digest.RecipientId, digest.ScheduledAtUtc, digest.RecoveredAtUtc,

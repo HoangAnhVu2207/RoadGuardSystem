@@ -78,7 +78,7 @@ public sealed partial class H6NotificationDispatchRepository
                         if (proof.ResponsibleIsSupervisor)
                         {
                             var day = DateOnly.FromDateTime(now.UtcDateTime);
-                            var supervisors = await db.ProjectMembers.Where(m => m.ProjectId == project.Key && m.RoleCode == role &&
+                            var supervisors = await db.ProjectMembers.Where(m => m.ProjectId == (proof.ResponsibilityProjectId ?? project.Key) && m.RoleCode == role &&
                                 m.Status == ProjectMemberStatus.Active && m.ValidFrom <= day && (m.ValidTo == null || m.ValidTo >= day))
                                 .Select(m => m.UserId).Distinct().ToArrayAsync(cancellationToken);
                             recipients = supervisors.Length == 0 ? [null] : supervisors.Select(a => (Guid?)a).ToArray();
@@ -87,7 +87,7 @@ public sealed partial class H6NotificationDispatchRepository
                         foreach (var recipient in recipients)
                         {
                             var eligible = recipient is Guid actor && await BusinessDutyRepository.CurrentAuthority(db, clock,
-                                actor, role, project.Key, cancellationToken) ? recipient : null;
+                                actor, role, proof.ResponsibilityProjectId ?? project.Key, cancellationToken) ? recipient : null;
                             var key = (eligible, role);
                             if (!groups.TryGetValue(key, out var duties)) groups[key] = duties = [];
                             duties.Add(duty);

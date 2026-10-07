@@ -1,3 +1,5 @@
+using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.Repositories.Repairs;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Repairs;
@@ -15,7 +17,10 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
         {
             SourceKind = "RepairWork",
             SourceId = item.Id,
-            ProjectId = item.ProjectId,
+            ProjectId = db.Set<ObligationResponsibility>().Where(owner => owner.ObligationId == item.ObligationId && owner.OriginProjectId == item.ProjectId)
+                .Select(owner => (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? item.ProjectId,
+            AssignedProjectId = item.ProjectId,
+            ProjectAuthorityVerified = false,
             AssignedUserId = (from binding in db.Set<RepairFieldTaskBinding>()
                               join assignment in db.FieldInspectionAssignments on binding.AssignmentId equals assignment.Id
                               join task in db.FieldInspectionTasks on binding.TaskId equals task.Id
@@ -31,12 +36,21 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
     {
         var proof = await ResolveCoreAsync(plan, cancellationToken);
         if (proof.Status != "VERIFIED") return proof;
+        var item = await db.RepairItems.AsNoTracking().SingleAsync(row => row.Id == plan.Source.SourceId, cancellationToken);
+        var effective = await ObligationResponsibilityScope.ResolveAsync(db, item.ObligationId, item.ProjectId, cancellationToken);
+        proof = proof with { ResponsibilityProjectId = effective };
+        if (effective != item.ProjectId && plan.MessageType == "review.supervisor_required.v1")
+            return proof with { ResponsibleUserId = null, ResponsibleRole = null, ResponsibleIsSupervisor = true };
         var duty = await db.Set<DeadlineClock>().AsNoTracking().Where(c => c.ProjectId == plan.Source.ProjectId &&
             c.AppointedActorId != null && c.CompletedAt == null &&
             (plan.MessageType == "review.supervisor_required.v1" && c.TargetId == plan.Source.SourceId &&
                 (c.Kind == DeadlineClockKind.SupervisorInitialApproval || c.Kind == DeadlineClockKind.SupervisorFinalConfirmation) ||
              plan.MessageType == "repair.work.submitted.v1" && c.TargetId == proof.TaskId && c.Kind == DeadlineClockKind.ProjectManagerReview))
             .SingleOrDefaultAsync(cancellationToken);
+        if (duty?.AppointedActorId is Guid appointed && effective != item.ProjectId &&
+            (duty.AppointedRole is not UserRoleCode appointedRole ||
+             !await BusinessDutyRepository.CurrentAuthority(db, TimeProvider.System, appointed, appointedRole, effective, cancellationToken)))
+            return proof with { ResponsibleUserId = null, ResponsibleRole = null };
         return duty is null ? proof : proof with
         {
             ResponsibleUserId = duty.AppointedActorId,

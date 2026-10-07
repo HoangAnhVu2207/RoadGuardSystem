@@ -8,7 +8,9 @@ public sealed record CandidateClassificationDto(string? DefectTypeCode, string? 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CandidateDecisionRequestDto(string? SourceKind, Guid SourceId, string? SourceVersion,
     string? GeometryVersion, string? Decision, Guid? TargetDefectId, string? TargetVersion,
-    CandidateClassificationDto? Classification, string? Reason, Guid? SupersedesDecisionId = null, string? PreviousDecisionVersion = null);
+    CandidateClassificationDto? Classification, string? Reason, Guid? SupersedesDecisionId = null, string? PreviousDecisionVersion = null,
+    CandidateRecurrenceDto? Recurrence = null);
+public sealed record CandidateRecurrenceDto(Guid PreviousDefectId, Guid PriorRepairDecisionId, Guid[] EvidenceFileIds, string? ExpectedLifecycleVersion = null);
 public sealed record CandidateDecisionResponseDto(Guid Id, string SourceKind, Guid SourceId, string Decision,
     Guid? DefectId, string Version, Guid? SupersedesDecisionId)
 {

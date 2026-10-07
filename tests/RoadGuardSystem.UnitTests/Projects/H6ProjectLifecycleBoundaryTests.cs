@@ -67,6 +67,9 @@ public sealed class H6ProjectLifecycleBoundaryTests
         Func<ProjectRenewedHandlingCommand, CancellationToken, ProjectLifecycleWriteResult> renew)
         : IProjectLifecycleRepository
     {
+        public Task<ProjectLifecycleWriteResult> ExecuteAsync(LD06LifecycleCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task ValidateRecurrenceAsync(Guid project, Guid predecessor, Guid decision, Guid[] evidence, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task LinkRecurrenceAsync(Guid actor, Guid project, Guid newDefect, Guid predecessor, Guid decision, Guid[] evidence, string reason, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<ProjectLifecycleFacts?> ReadAsync(Guid actor, Guid project, CancellationToken cancellationToken)
             => Task.FromResult(facts);
         public Task<ProjectLifecycleWriteResult> RenewAsync(ProjectRenewedHandlingCommand command,

@@ -74,7 +74,7 @@ public sealed partial class RepairWorkflowRepository
         var source = await (from request in db.Set<RepairReviewRequest>().AsNoTracking()
                             join item in db.Set<RepairItem>().AsNoTracking() on request.ItemId equals item.Id
                             join decision in db.Set<RepairDecision>().AsNoTracking() on request.DecisionId equals decision.Id
-                            where request.Id == receipt.OperationId && request.ActorId == command.ActorId && request.ProjectId == command.ProjectId &&
+                            where request.Id == receipt.OperationId && request.ActorId == command.ActorId &&
                                 item.ProjectId == request.ProjectId && decision.ItemId == item.Id && decision.ObligationId == item.ObligationId &&
                                 decision.DefectId == item.DefectId && decision.Mode == item.Mode
                             select new { ItemId = item.Id, PackageId = EF.Property<Guid?>(item, "PackageId") }).SingleOrDefaultAsync(token);
@@ -93,9 +93,10 @@ public sealed partial class RepairWorkflowRepository
             row.RoleCode == role && row.Status == ProjectMemberStatus.Active && row.ValidFrom <= today &&
             (row.ValidTo == null || row.ValidTo >= today), token)) Deny(403, "access_forbidden");
         var scope = await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")
-            .AsNoTracking().Select(row => new { row.ProjectId, row.CrewId, PackageId = EF.Property<Guid?>(row, "PackageId") }).SingleOrDefaultAsync(token);
-        if (scope is null || scope.ProjectId != project || scope.PackageId != package ||
-            !await db.Set<RepairPackage>().AnyAsync(row => row.Id == package && row.ProjectId == project, token)) Deny(404, "not_found");
+            .AsNoTracking().Select(row => new { row.ProjectId, row.ObligationId, row.CrewId, PackageId = EF.Property<Guid?>(row, "PackageId") }).SingleOrDefaultAsync(token);
+        if (scope is null || scope.PackageId != package ||
+            !await db.Set<RepairPackage>().AnyAsync(row => row.Id == package && row.ProjectId == scope.ProjectId, token)) Deny(404, "not_found");
+        if (project != (role == UserRoleCode.RepairCrew ? scope.ProjectId : await ObligationResponsibilityScope.ResolveAsync(db, scope.ObligationId, scope.ProjectId, token))) Deny(404, "not_found");
         if (role == UserRoleCode.RepairCrew && scope.CrewId != actor) Deny(403, "access_forbidden");
     }
 }

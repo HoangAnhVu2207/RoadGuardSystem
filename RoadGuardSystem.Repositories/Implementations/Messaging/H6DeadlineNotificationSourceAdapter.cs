@@ -1,3 +1,5 @@
+using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.Repositories.Repairs;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Clocks;
@@ -17,7 +19,17 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
         {
             SourceKind = "DeadlineClock",
             SourceId = clock.Id,
-            ProjectId = clock.ProjectId,
+            ProjectId = (from owner in db.Set<ObligationResponsibility>()
+                         where owner.OriginProjectId == clock.ProjectId &&
+                         (db.RepairItems.Any(item => item.ObligationId == owner.ObligationId && (item.Id == clock.TargetId ||
+                              db.Set<RepairFieldTaskBinding>().Any(binding => binding.ItemId == item.Id && binding.TaskId == clock.TargetId) ||
+                              db.Set<BusinessReceivingRequest>().Any(request => request.Id == clock.TargetId && request.SourceKind == "ReviewBreach" &&
+                                  db.Set<DeadlineClock>().Any(review => review.Id == request.ScopeId &&
+                                      (review.TargetId == item.Id || db.Set<RepairFieldTaskBinding>().Any(binding => binding.ItemId == item.Id && binding.TaskId == review.TargetId)))))) ||
+                          db.Set<RepairSafetyMonitoring>().Any(m => m.MeasureId == clock.TargetId && m.SafetyObligationId == owner.ObligationId))
+                         select (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? clock.ProjectId,
+            AssignedProjectId = clock.ProjectId,
+            ProjectAuthorityVerified = false,
             AssignedUserId = clock.AppointedActorId ?? (clock.Kind == DeadlineClockKind.CrewSupplement || clock.Kind == DeadlineClockKind.SupervisorEscalation
                 ? db.Set<BusinessReceivingRequest>().Where(r => r.Id == clock.TargetId && r.ClockId == clock.Id &&
                     r.ProjectId == clock.ProjectId).Select(r => r.ResponsibleActorId).FirstOrDefault()
@@ -59,16 +71,42 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
     public async Task<H6SourceResolution> ResolveDutyAsync(DeadlineClock sourceClock, CancellationToken cancellationToken)
     {
         var proof = await ResolveOriginalDutyAsync(sourceClock, cancellationToken);
-        if (proof.Status != "VERIFIED" || sourceClock.AppointedActorId is null) return proof;
+        if (proof.Status != "VERIFIED") return proof;
+        var effective = await ResponsibilityProjectAsync(sourceClock, cancellationToken);
+        proof = proof with { ResponsibilityProjectId = effective };
+        if (sourceClock.AppointedActorId is null) return proof;
         if (!await db.Set<DeadlineDutyAppointment>().AnyAsync(a => a.ClockId == sourceClock.Id &&
             a.CurrentActorId == sourceClock.AppointedActorId && a.Role == sourceClock.AppointedRole, cancellationToken))
             return new("REJECTED", "notification_duty_assignment_invalid");
+        if (effective != sourceClock.ProjectId && (sourceClock.AppointedRole is not UserRoleCode role ||
+            !await BusinessDutyRepository.CurrentAuthority(db, time, sourceClock.AppointedActorId.Value, role, effective, cancellationToken)))
+            return proof; // The immutable old appointment cannot retain transferred operational duty.
         return proof with
         {
             ResponsibleUserId = sourceClock.AppointedActorId,
             ResponsibleRole = sourceClock.AppointedRole,
             ResponsibleIsSupervisor = false
         };
+    }
+
+    public async Task<Guid> ResponsibilityProjectAsync(DeadlineClock sourceClock, CancellationToken token)
+    {
+        if (sourceClock.Kind == DeadlineClockKind.SupervisorEscalation)
+        {
+            var request = await db.Set<BusinessReceivingRequest>().AsNoTracking().SingleOrDefaultAsync(r =>
+                r.Id == sourceClock.TargetId && r.ProjectId == sourceClock.ProjectId && r.ClockId == sourceClock.Id, token);
+            if (request is not null) return await BusinessDutyRepository.ResponsibilityProjectAsync(db, time, request, token);
+        }
+        var safety = await db.Set<RepairSafetyMonitoring>().AsNoTracking()
+            .Where(m => m.MeasureId == sourceClock.TargetId).Select(m => (Guid?)m.SafetyObligationId).SingleOrDefaultAsync(token);
+        if (safety is Guid safetyObligation)
+            return await ObligationResponsibilityScope.ResolveAsync(db, safetyObligation, sourceClock.ProjectId, token);
+        var item = await db.RepairItems.AsNoTracking().Where(item => item.ProjectId == sourceClock.ProjectId &&
+            (item.Id == sourceClock.TargetId || db.Set<RepairFieldTaskBinding>().Any(binding =>
+                binding.ItemId == item.Id && binding.TaskId == sourceClock.TargetId)))
+            .Select(item => (Guid?)item.ObligationId).SingleOrDefaultAsync(token);
+        return item is Guid obligation ? await ObligationResponsibilityScope.ResolveAsync(db, obligation, sourceClock.ProjectId, token)
+            : sourceClock.ProjectId;
     }
 
     private async Task<H6SourceResolution> ResolveOriginalDutyAsync(DeadlineClock sourceClock, CancellationToken cancellationToken)

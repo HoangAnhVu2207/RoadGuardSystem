@@ -39,6 +39,57 @@ namespace RoadGuardSystem.ApiTests.Reports;
 public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture sql)
 {
     [Fact]
+    public async Task ActualOperationalClosureKeepsProductionReportIntakeAndSupervisorTriageAvailable()
+    {
+        var reporter = await sql.CreateUserAsync($"ld06-intake-r-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var supervisor = await sql.CreateUserAsync($"ld06-intake-s-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        await using var db = sql.CreateDbContext();
+        var now = DateTimeOffset.UtcNow;
+        var project = RoadGuardSystem.BusinessObjects.Projects.Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(),
+            "TEST_ONLY closed project intake", null, null, null, null, now);
+        db.AddRange(project, new RoadGuardSystem.BusinessObjects.Projects.ProjectMember
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            UserId = supervisor.Id,
+            RoleCode = UserRoleCode.Supervisor,
+            Status = ProjectMemberStatus.Active,
+            ValidFrom = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-1)
+        });
+        await db.SaveChangesAsync();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>();
+            services.AddSingleton<IUploadObjectStorage>(new VerifiedPhotoStorage());
+        });
+        using var supClient = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        using var reporterClient = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await LoginAsync(supClient, supervisor.UserName!); await LoginAsync(reporterClient, reporter.UserName!);
+        var lifecyclePath = $"/api/v1/projects/{project.Id}/lifecycle";
+        var initial = await supClient.GetAsync(lifecyclePath); Assert.Equal(HttpStatusCode.OK, initial.StatusCode);
+        var closed = await SendAsync(supClient, HttpMethod.Post, lifecyclePath + "/operational-closures",
+            new { reason = "TEST_ONLY actual empty inventory decision", evidenceFileIds = Array.Empty<Guid>() },
+            Guid.NewGuid().ToString(), initial.Headers.ETag!.ToString());
+        Assert.Equal(HttpStatusCode.Created, closed.StatusCode);
+        var evidence = await UploadVerifiedAsync(reporterClient, factory);
+        var intake = await SendAsync(reporterClient, HttpMethod.Post, "/api/v1/reports", new
+        {
+            description = "TEST_ONLY new Report after committed closure",
+            evidence = new[] { new { fileId = evidence.FileId, fileVersion = evidence.Version, locationSource = "UNKNOWN" } }
+        }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Created, intake.StatusCode);
+        var reportId = (await intake.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var caseId = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().Where(row => row.ReportId == reportId).Select(row => row.CaseId).SingleAsync();
+        var incident = await supClient.GetAsync($"/api/v1/cases/{caseId}"); Assert.Equal(HttpStatusCode.OK, incident.StatusCode);
+        var triage = await SendAsync(supClient, HttpMethod.Post, $"/api/v1/cases/{caseId}/triage",
+            new { projectId = project.Id, verificationMethod = "EXISTING_EVIDENCE", reason = "TEST_ONLY continuing intake" },
+            Guid.NewGuid().ToString(), incident.Headers.ETag!.ToString());
+        Assert.Equal(HttpStatusCode.OK, triage.StatusCode);
+        Assert.Equal(project.Id, await db.Set<RoadGuardSystem.BusinessObjects.Cases.IncidentCase>().Where(row => row.Id == caseId).Select(row => row.ProjectId).SingleAsync());
+        Assert.Single(await db.Set<RoadGuardSystem.BusinessObjects.Projects.LD06LifecycleAction>().Where(row => row.ProjectId == project.Id).ToArrayAsync());
+    }
+
+    [Fact]
     [Trait("Package", "HUY-01")]
     public async Task ProductionRoot_BindsReporterCaseAndCandidateServicesOnce()
     {

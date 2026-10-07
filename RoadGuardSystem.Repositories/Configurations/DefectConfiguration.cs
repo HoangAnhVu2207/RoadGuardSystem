@@ -15,7 +15,7 @@ public sealed class DefectConfiguration : IEntityTypeConfiguration<Defect>
         builder.ToTable("Defects", table =>
         {
             table.HasCheckConstraint("CK_Defects_Severity", "[Severity] IS NULL OR [Severity] IN (0, 1, 2, 3, 4)");
-            table.HasCheckConstraint("CK_Defects_Status", "[Status] IS NULL OR [Status] IN (0, 1, 2, 3, 4)");
+            table.HasCheckConstraint("CK_Defects_Status", "[Status] IS NULL OR [Status] IN (0, 1, 2, 3, 4, 5)");
         });
         builder.HasKey(defect => defect.Id);
         builder.Property<byte[]>("RowVersion").IsRowVersion();

@@ -35,6 +35,14 @@ public sealed class ProjectLifecycleController(IProjectLifecycleService service)
         return Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out actor) &&
             ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out role);
     }
+    [HttpPost("{command}")]
+    public async Task<IActionResult> Execute(Guid projectId, string command, LD06LifecycleInputDto input, CancellationToken cancellationToken)
+    {
+        if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
+        if (Request.Headers["Idempotency-Key"].Count > 1 || Request.Headers.IfMatch.Count > 1) return Error(400, "validation_error");
+        return Map(await service.ExecuteAsync(actor, role, projectId, command, input,
+            Request.Headers["Idempotency-Key"].ToString(), Request.Headers.IfMatch.ToString(), cancellationToken));
+    }
     private ObjectResult Map(ProjectLifecycleMutationResult result)
     {
         if (result.Code is not null) return Error(result.Status, result.Code);

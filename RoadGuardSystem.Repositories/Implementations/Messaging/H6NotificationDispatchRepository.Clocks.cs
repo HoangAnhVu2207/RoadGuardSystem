@@ -44,8 +44,9 @@ public sealed partial class H6NotificationDispatchRepository
                             s.ServerReceivedAt == sourceClock.OriginAt, cancellationToken) &&
                         !await db.Set<BusinessReceivingRequest>().AnyAsync(r => r.SourceKind == "ReviewBreach" && r.SourceId == breach.Id, cancellationToken))
                     {
+                        var effectiveProject = await new H6DeadlineNotificationSourceAdapter(db, clock).ResponsibilityProjectAsync(sourceClock, cancellationToken);
                         var day = DateOnly.FromDateTime(now.UtcDateTime);
-                        var supervisors = await db.ProjectMembers.Where(m => m.ProjectId == sourceClock.ProjectId &&
+                        var supervisors = await db.ProjectMembers.Where(m => m.ProjectId == effectiveProject &&
                             m.RoleCode == UserRoleCode.Supervisor && m.Status == ProjectMemberStatus.Active &&
                             m.ValidFrom <= day && (m.ValidTo == null || m.ValidTo >= day))
                             .Select(m => m.UserId).Distinct().Take(2).ToArrayAsync(cancellationToken);

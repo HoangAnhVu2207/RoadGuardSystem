@@ -36,7 +36,7 @@ public sealed partial class H6NotificationDispatchRepository
         DateTimeOffset now, CancellationToken token)
     {
         var day = DateOnly.FromDateTime(now.UtcDateTime);
-        var members = db.ProjectMembers.Where(row => row.ProjectId == envelope.ProjectId && row.Status == ProjectMemberStatus.Active &&
+        var members = db.ProjectMembers.Where(row => row.ProjectId == (proof.ResponsibilityProjectId ?? envelope.ProjectId) && row.Status == ProjectMemberStatus.Active &&
             row.ValidFrom <= day && (!row.ValidTo.HasValue || row.ValidTo >= day));
         var results = new List<Recipient>();
         if (envelope.RecipientStrategy == NotificationRecipientStrategy.AssignedCrew)
@@ -115,6 +115,18 @@ public sealed partial class H6NotificationDispatchRepository
     private async Task<string?> RecipientAuthorityAsync(Guid actor, UserRoleCode? expectedRole, Guid projectId,
         NotificationRecipientStrategy strategy, H6SourceResolution proof, DateTimeOffset now, CancellationToken token)
     {
+        // Assigned crews keep their exact existing source assignment; supervisory duty follows accepted responsibility.
+        if (expectedRole != UserRoleCode.RepairCrew)
+        {
+            if (proof.ResponsibilityProjectIds is { Length: > 0 } projects)
+            {
+                foreach (var scope in projects.Distinct().Order())
+                    if (expectedRole is not UserRoleCode role || !await BusinessDutyRepository.CurrentAuthority(db, clock, actor, role, scope, token))
+                        return "notification_membership_lost";
+                projectId = projects[0];
+            }
+            else projectId = proof.ResponsibilityProjectId ?? projectId;
+        }
         await Anh02ReceiptAuthority.LockAsync(db, actor, projectId, token);
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(row => row.Id == actor, token);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword) return "notification_user_inactive";

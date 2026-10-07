@@ -12,7 +12,7 @@ using RoadGuardSystem.Repositories.Integration;
 
 namespace RoadGuardSystem.Repositories.Projects;
 
-public sealed class ProjectLifecycleRepository(RoadGuardDbContext db, TimeProvider clock) : IProjectLifecycleRepository
+public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, TimeProvider clock) : IProjectLifecycleRepository
 {
     private const string RenewOperation = "h6.project.renewed-scope.v1";
     private sealed class Rejected(int status, string code) : Exception
@@ -107,7 +107,14 @@ public sealed class ProjectLifecycleRepository(RoadGuardDbContext db, TimeProvid
         if (projectVersion is null) return null;
         var history = await db.Set<ProjectLifecycleHistoryRecord>().AsNoTracking().Where(row => row.ProjectId == project)
             .OrderBy(row => row.RecordedAtUtc).ThenBy(row => row.Id).ToArrayAsync(token);
-        var obligations = await db.Set<RepairObligation>().AsNoTracking().Where(row => row.ProjectId == project)
+        var responsibilities = await db.Set<ObligationResponsibility>().AsNoTracking()
+            .Where(row => row.OriginProjectId == project || row.CurrentProjectId == project).ToArrayAsync(token);
+        var acceptanceIds = responsibilities.Select(row => row.AcceptanceActionId).ToArray();
+        var issueIds = await db.Set<LD06LifecycleAction>().Where(row => acceptanceIds.Contains(row.Id)).Select(row => row.SourceActionId).ToArrayAsync(token);
+        var actions = await db.Set<LD06LifecycleAction>().AsNoTracking().Where(row => row.ProjectId == project || row.ReceivingProjectId == project || acceptanceIds.Contains(row.Id) || issueIds.Contains(row.Id))
+            .OrderBy(row => row.At).ThenBy(row => row.Id).ToArrayAsync(token);
+        var receivedIds = responsibilities.Where(row => row.CurrentProjectId == project).Select(row => row.ObligationId).ToArray();
+        var obligations = await db.Set<RepairObligation>().AsNoTracking().Where(row => row.ProjectId == project || receivedIds.Contains(row.Id))
             .Select(row => new
             {
                 row.Id,
@@ -117,23 +124,41 @@ public sealed class ProjectLifecycleRepository(RoadGuardDbContext db, TimeProvid
                 Version = EF.Property<byte[]>(row, "RowVersion")
             }).ToArrayAsync(token);
         var defects = await db.Defects.AsNoTracking().Where(row => row.ProjectId == project).Select(row => row.Id).ToArrayAsync(token);
+        var defectVersions = await db.Defects.AsNoTracking().Where(row => row.ProjectId == project)
+            .Select(row => new { row.Id, row.Status, Version = EF.Property<byte[]>(row, "RowVersion") }).ToArrayAsync(token);
         var proved = history.Where(row => row.SourceDisposition == "TARGET_CONFIRMED" && !string.IsNullOrWhiteSpace(row.AuthoritySourceReference)).ToArray();
-        // An empty query is not a completeness proof. A future adopted lifecycle
-        // producer must retain an exact inventory observation; candidates cannot do so.
-        var inventory = proved.Where(row => row.Kind == ProjectLifecycleFactKind.InventoryObservation).Any(row =>
+        // An empty query is not a completeness proof. Committed operational actions
+        // retain their exact inventory observation; historical candidates cannot do so.
+        var inventory = actions.Where(row => row.ProjectId == project && row.Kind == LD06ActionKind.OperationalClose).Any(row =>
+            MatchesInventory(row.FactsJson, defects, obligations.Select(value => value.Id).ToArray())) || proved.Where(row => row.Kind == ProjectLifecycleFactKind.InventoryObservation).Any(row =>
             MatchesInventory(row.FactsJson, defects, obligations.Select(value => value.Id).ToArray())) &&
             defects.All(id => obligations.Any(row => row.DefectId == id));
         var facts = obligations.Select(row => new ProjectLifecycleObligationFact(row.Id, row.Mandatory,
             row.EffectiveResolutionDecisionId.HasValue, Transfer(row.Id))).ToArray();
+        var ownedIds = obligations.Where(row => (responsibilities.SingleOrDefault(r => r.ObligationId == row.Id)?.CurrentProjectId ?? project) == project)
+            .Select(row => row.Id).ToArray();
+        var ownedObligations = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope).Where(row => ownedIds.Contains(row.Id)).ToArrayAsync(token);
+        var transferable = ownedObligations.OrderBy(row => row.Id).Select(row => new LD06TransferableObligationFact(row.Id, row.DefectId,
+            row.Kind.ToString(), row.Mandatory, row.Scope.Id, row.Scope.PhysicalRoadId, row.Scope.LocationVersion, row.Scope.RouteLabel,
+            row.Scope.From, row.Scope.To, row.Scope.OffsetFrom, row.Scope.OffsetTo, LD06LifecycleAction.HashScope(row),
+            Convert.ToBase64String(obligations.Single(o => o.Id == row.Id).Version))).ToArray();
         ProjectObligationTransferFact? Transfer(Guid obligation)
         {
+            var current = responsibilities.SingleOrDefault(row => row.ObligationId == obligation);
+            if (current is not null && current.CurrentProjectId != project)
+            {
+                var acceptance = actions.SingleOrDefault(row => row.Id == current.AcceptanceActionId && row.Kind == LD06ActionKind.AcceptTransfer);
+                var issue = acceptance is null ? null : actions.SingleOrDefault(row => row.Id == acceptance.SourceActionId && row.Kind == LD06ActionKind.IssueTransfer);
+                if (issue is not null && acceptance is not null && issue.ObligationId == obligation && issue.ReceivingProjectId == acceptance.ProjectId)
+                    return new(issue.Id, acceptance.ActorId, true, true, true);
+            }
             var accepted = proved.LastOrDefault(row => row.Kind == ProjectLifecycleFactKind.ObligationTransferAcceptance && row.ObligationId == obligation);
             var grant = accepted is null ? null : proved.SingleOrDefault(row => row.Id == accepted.GrantId && row.Kind == ProjectLifecycleFactKind.ObligationTransferGrant);
             return accepted is not null && grant is not null && grant.ObligationId == obligation && grant.ReceiverId == accepted.ReceiverId &&
                 accepted.ActorId == accepted.ReceiverId && accepted.RecordedAtUtc >= grant.RecordedAtUtc
                 ? new(grant.Id, accepted.ReceiverId!.Value, true, true, true) : null;
         }
-        var completion = proved.Any(row => row.Kind == ProjectLifecycleFactKind.ConstructionCompletion);
+        var completion = actions.Any(row => row.ProjectId == project && row.Kind == LD06ActionKind.ConfirmConstruction) || proved.Any(row => row.Kind == ProjectLifecycleFactKind.ConstructionCompletion);
         var closed = proved.Any(row => row.Kind == ProjectLifecycleFactKind.OperationalClosure);
         var warranty = await db.Warranties.AsNoTracking().AnyAsync(row => row.ProjectId == project, token);
         var projection = ProjectLifecycleProjection.Evaluate(completion, closed, warranty, facts);
@@ -149,14 +174,22 @@ public sealed class ProjectLifecycleRepository(RoadGuardDbContext db, TimeProvid
             history = output,
             obligations = obligations.OrderBy(row => row.Id),
             defects = defects.Order(),
+            defectVersions = defectVersions.OrderBy(row => row.Id),
             warranty,
-            inventory
+            inventory,
+            actions,
+            responsibilities = responsibilities.OrderBy(row => row.ObligationId),
+            transferable
         });
         var version = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(revision))).ToLowerInvariant();
         return new(project, completion ? "CONFIRMED" : "UNKNOWN", closed && inventory ?
-            (projection.OperationallyClosed ? "CONFIRMED" : "BASIS_INVALIDATED") : "UNKNOWN", warranty, true,
+            (projection.OperationallyClosed ? "CONFIRMED" : "BASIS_INVALIDATED") :
+            actions.Any(row => row.ProjectId == project && row.Kind == LD06ActionKind.OperationalClose) ? "BASIS_INVALIDATED" : "UNKNOWN", warranty, true,
             inventory ? "VERIFIED" : "UNKNOWN", inventory ? (projection.CanOperationallyClose ? "ELIGIBLE" : "BLOCKED") : "UNKNOWN",
-            projection.OutstandingMandatoryObligationIds.ToArray(), missing.ToArray(), output, version);
+            projection.OutstandingMandatoryObligationIds.ToArray(), missing.ToArray(), output, version,
+            actions.Select(row => new LD06ActionFact(row.Id, row.ProjectId, row.Kind.ToString(), row.ActorId, row.At, row.SourceActionId,
+                row.DefectId, row.LinkedDefectId, row.ObligationId, row.ReceivingProjectId, row.PriorRepairDecisionId, row.ScopeHash, row.FactsJson)).ToArray(),
+            responsibilities.Select(row => new ObligationResponsibilityFact(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, row.AcceptanceActionId)).ToArray(), transferable);
     }
 
     private static string? HandlingScope(ProjectLifecycleHistoryRecord record)

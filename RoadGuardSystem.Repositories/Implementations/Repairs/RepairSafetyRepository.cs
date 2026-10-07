@@ -58,6 +58,8 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                     formal.Kind != RepairObligationKind.FormalRepair || safety.Kind != RepairObligationKind.TemporarySafety ||
                     safety.IsResolved || formal.IsResolved || safety.ProjectId != item.ProjectId || safety.DefectId != item.DefectId ||
                     !Within(safety.Scope, formal.Scope)) Deny(409, "safety_obligation_source_conflict");
+                if (await ObligationResponsibilityScope.ResolveAsync(db, safety.Id, safety.ProjectId, ct) != command.ProjectId)
+                    Deny(403, "safety_scope_not_authorized");
                 if (await db.Set<RepairSafetyMonitoring>().AnyAsync(row => row.SafetyObligationId == safety.Id, ct))
                     Deny(409, "safety_measure_already_exists");
                 var measure = TemporarySafetyMeasure.Create(Guid.NewGuid(), item.ProjectId, item.DefectId, formal.Id,
@@ -68,7 +70,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 await db.SaveChangesAsync(ct);
                 db.Add(monitoring);
                 await db.SaveChangesAsync(ct);
-                await ActionSource(measure.Id, command.ProjectId, item.Id, binding.Id, command.ActorId,
+                await ActionSource(measure.Id, item.ProjectId, item.Id, binding.Id, command.ActorId,
                     "ASSIGNED", now, measure.Id, command.Reason, "safety.measure_assigned.v1", "SAFETY_ASSIGNED", ct);
                 Audit(command.ActorId, "repair_safety_assigned", measure.Id, command.Reason, new
                 { itemId = item.Id, bindingId = binding.Id, safetyObligationId = safety.Id, formalObligationId = formal.Id });
@@ -88,10 +90,10 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 if (monitoring.Measure.InstalledAt is not null) Deny(409, "safety_already_installed");
                 var now = clock.GetUtcNow(); var eventId = Guid.NewGuid();
                 monitoring.Measure.Install(eventId, command.ActorId, now, command.FirstCheckDueAt);
-                db.Add(DeadlineClock.CreateFirstSafetyCheck(Guid.NewGuid(), command.ProjectId, monitoring.MeasureId,
+                db.Add(DeadlineClock.CreateFirstSafetyCheck(Guid.NewGuid(), item.ProjectId, monitoring.MeasureId,
                     eventId, now, command.FirstCheckDueAt));
                 await db.SaveChangesAsync(ct);
-                await ActionSource(monitoring.MeasureId, command.ProjectId, item.Id, binding.Id, command.ActorId,
+                await ActionSource(monitoring.MeasureId, item.ProjectId, item.Id, binding.Id, command.ActorId,
                     "INSTALLED", now, eventId, command.Reason, null, null, ct);
                 Audit(command.ActorId, "repair_safety_installed", monitoring.MeasureId, command.Reason,
                     new { eventId, command.FirstCheckDueAt });
@@ -122,7 +124,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 db.Entry(monitoring).Property(row => row.CurrentCheckId).CurrentValue = null;
                 await db.SaveChangesAsync(ct);
                 db.Entry(monitoring).Property(row => row.CurrentCheckId).CurrentValue = head;
-                var first = await db.Set<DeadlineClock>().SingleOrDefaultAsync(row => row.ProjectId == command.ProjectId &&
+                var first = await db.Set<DeadlineClock>().SingleOrDefaultAsync(row => row.ProjectId == monitoring.Measure.ProjectId &&
                     row.TargetId == monitoring.MeasureId && row.Kind == DeadlineClockKind.FirstSafetyCheck &&
                     row.OriginEventId == monitoring.Measure.InstallationEventId, ct);
                 if (first is null) Deny(409, "safety_first_check_clock_missing");
@@ -131,10 +133,10 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 {
                     var warningId = Guid.NewGuid();
                     var warning = monitoring.ReceiveDangerWarning(warningId, checkId, now, command.Findings);
-                    db.Add(DeadlineClock.Create(Guid.NewGuid(), command.ProjectId, DeadlineClockKind.DangerAcknowledgment,
+                    db.Add(DeadlineClock.Create(Guid.NewGuid(), item.ProjectId, DeadlineClockKind.DangerAcknowledgment,
                         monitoring.MeasureId, warning.Id, warning.ServerReceivedAt));
                     await db.SaveChangesAsync(ct);
-                    await ActionSource(monitoring.MeasureId, command.ProjectId, item.Id, binding.Id, command.ActorId,
+                    await ActionSource(monitoring.MeasureId, item.ProjectId, item.Id, binding.Id, command.ActorId,
                         "WARNING", now, warning.Id, command.Findings, "safety.warning.v1", "WARNING", ct);
                 }
                 Audit(command.ActorId, "repair_safety_checked", monitoring.MeasureId, command.Findings,
@@ -157,7 +159,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                     monitoring.Acknowledgements.Any(row => row.WarningId == warning.Id))
                     Deny(409, "safety_warning_not_current");
                 var deadline = await db.Set<DeadlineClock>().Include(row => row.Breaches)
-                    .SingleOrDefaultAsync(row => row.ProjectId == command.ProjectId &&
+                    .SingleOrDefaultAsync(row => row.ProjectId == monitoring.Measure.ProjectId &&
                     row.TargetId == monitoring.MeasureId && row.Kind == DeadlineClockKind.DangerAcknowledgment &&
                     row.OriginEventId == warning.Id && row.OriginAt == warning.ServerReceivedAt, ct);
                 if (deadline is null || deadline.CompletedAt is not null) Deny(409, "safety_warning_clock_conflict");
@@ -189,7 +191,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                     var owned = operation switch
                     {
                         "h4.repair.safety.create.v1" => await db.Set<RepairSafetyActionSource>().AsNoTracking()
-                            .AnyAsync(row => row.MeasureId == stored.OperationId && row.ProjectId == project &&
+                            .AnyAsync(row => row.MeasureId == stored.OperationId &&
                                 row.ItemId == item && row.Kind == "ASSIGNED", ct),
                         "h4.repair.safety.install.v1" => await db.Set<TemporarySafetyMeasure>().AsNoTracking()
                             .AnyAsync(row => row.Id == measure && row.InstallationEventId == stored.OperationId, ct),
@@ -243,28 +245,33 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 (row.ValidTo == null || row.ValidTo >= day), ct)) Deny(403, "access_forbidden");
         var scope = await db.Set<RepairPackage>().FromSqlInterpolated($"SELECT * FROM [RepairPackages] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={package}")
             .AsNoTracking().SingleOrDefaultAsync(ct);
-        if (scope is null || scope.ProjectId != project ||
-            !await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")
-                .AsNoTracking().AnyAsync(row => row.ProjectId == project && row.DefectId == scope.DefectId &&
-                    EF.Property<Guid?>(row, "PackageId") == package, ct)) Deny(404, "not_found");
+        var work = await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")
+            .AsNoTracking().SingleOrDefaultAsync(ct);
+        if (scope is null || work is null || work.ProjectId != scope.ProjectId || work.DefectId != scope.DefectId ||
+            !await db.Set<RepairItem>().AnyAsync(row => row.Id == item && EF.Property<Guid?>(row, "PackageId") == package, ct)) Deny(404, "not_found");
+        var effective = await ObligationResponsibilityScope.ResolveAsync(db, work.ObligationId, work.ProjectId, ct);
+        if (measure is null && project != (role == UserRoleCode.RepairCrew ? work.ProjectId : effective)) Deny(404, "not_found");
         if (measure is Guid id)
         {
             var monitoring = await db.Set<RepairSafetyMonitoring>().Include(row => row.Measure)
                 .SingleOrDefaultAsync(row => row.MeasureId == id, ct);
             if (monitoring is null) Deny(404, "not_found");
-            if (monitoring.Measure.ProjectId != project || monitoring.Measure.DefectId != scope.DefectId ||
+            if (monitoring.Measure.ProjectId != scope.ProjectId || monitoring.Measure.DefectId != scope.DefectId ||
                 monitoring.FormalObligationId != (await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == item)
                     .Select(row => row.ObligationId).SingleAsync(ct)) ||
                 !await db.Set<RepairSafetyActionSource>().AsNoTracking().AnyAsync(row => row.MeasureId == id &&
-                    row.ProjectId == project && row.ItemId == item && row.Kind == "ASSIGNED", ct) ||
+                    row.ProjectId == scope.ProjectId && row.ItemId == item && row.Kind == "ASSIGNED", ct) ||
                 !await db.Set<RepairObligation>().AsNoTracking().AnyAsync(row => row.Id == monitoring.SafetyObligationId &&
-                    row.ProjectId == project && row.DefectId == scope.DefectId &&
+                    row.ProjectId == scope.ProjectId && row.DefectId == scope.DefectId &&
                     row.Kind == RepairObligationKind.TemporarySafety &&
                     row.EffectiveResolutionDecisionId == null, ct)) Deny(404, "not_found");
+            var safetyOwner = await ObligationResponsibilityScope.ResolveAsync(db, monitoring.SafetyObligationId, scope.ProjectId, ct);
+            effective = safetyOwner;
+            if (project != (role == UserRoleCode.RepairCrew ? scope.ProjectId : safetyOwner)) Deny(404, "not_found");
             if (role == UserRoleCode.RepairCrew && actor != monitoring.Measure.ResponsibleActorId)
                 Deny(403, "safety_responsibility_not_current");
         }
-        if (requireActive && !await db.Projects.AsNoTracking().AnyAsync(row => row.Id == project &&
+        if (requireActive && !await db.Projects.AsNoTracking().AnyAsync(row => row.Id == effective &&
             row.Status == ProjectStatus.Active, ct)) Deny(409, "project_not_active");
     }
 
@@ -274,16 +281,16 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
         var package = await db.Set<RepairPackage>().Include(row => row.Obligations).SingleAsync(row => row.Id == packageId, ct);
         var item = await db.Set<RepairItem>().SingleAsync(row => row.Id == itemId, ct);
         if (item.CurrentBindingId is not Guid bindingId) throw new Denied(409, "repair_binding_not_current");
-        if (item.ProjectId != project || item.DefectId != package.DefectId ||
+        if (item.ProjectId != package.ProjectId || item.DefectId != package.DefectId ||
             item.SupersededByItemId is not null || item.Mode != RepairMode.Normal || item.CrewId is null ||
             !await db.Set<RepairObligation>().AnyAsync(row => row.Id == item.ObligationId &&
                 row.CurrentRepairItemId == item.Id, ct)) Deny(409, "repair_binding_not_current");
         var binding = await db.Set<RepairFieldTaskBinding>().SingleAsync(row => row.Id == bindingId, ct);
         var task = await db.FieldInspectionTasks.SingleAsync(row => row.Id == binding.TaskId, ct);
         var assignment = await db.FieldInspectionAssignments.SingleAsync(row => row.Id == binding.AssignmentId, ct);
-        if (binding.ItemId != item.Id || binding.ProjectId != project || binding.ObligationId != item.ObligationId ||
+        if (binding.ItemId != item.Id || binding.ProjectId != item.ProjectId || binding.ObligationId != item.ObligationId ||
             binding.CrewId != item.CrewId || binding.Mode != RepairMode.Normal ||
-            task.ProjectId != project || task.RepairItemId != item.Id || task.TaskMode != "NORMAL" ||
+            task.ProjectId != item.ProjectId || task.RepairItemId != item.Id || task.TaskMode != "NORMAL" ||
             assignment.FieldInspectionTaskId != task.Id || assignment.AssignedToUserId != binding.CrewId ||
             assignment.Status != FieldInspectionAssignmentStatus.Active || assignment.EndedAt is not null)
             Deny(409, "repair_assignment_not_current");
@@ -296,16 +303,16 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
         var monitoring = await Monitoring(measure, ct);
         var item = await db.Set<RepairItem>().SingleAsync(row => row.Id == itemId, ct);
         var assigned = await db.Set<RepairSafetyActionSource>().SingleOrDefaultAsync(row => row.MeasureId == measure &&
-            row.ProjectId == project && row.ItemId == itemId && row.Kind == "ASSIGNED", ct);
+            row.ProjectId == item.ProjectId && row.ItemId == itemId && row.Kind == "ASSIGNED", ct);
         if (assigned is null) Deny(409, "safety_assignment_source_conflict");
         var binding = await db.Set<RepairFieldTaskBinding>().SingleAsync(row => row.Id == assigned.BindingId, ct);
-        if (monitoring.Measure.ProjectId != project || monitoring.Measure.DefectId != item.DefectId ||
+        if (monitoring.Measure.ProjectId != item.ProjectId || monitoring.Measure.DefectId != item.DefectId ||
             monitoring.FormalObligationId != item.ObligationId || item.Mode != RepairMode.Normal ||
             item.ApprovedBy is null || item.ApprovedPlanHash != item.ProposalPlanHash ||
-            binding.ItemId != item.Id || binding.ProjectId != project || binding.ObligationId != item.ObligationId ||
+            binding.ItemId != item.Id || binding.ProjectId != item.ProjectId || binding.ObligationId != item.ObligationId ||
             binding.CrewId != monitoring.Measure.ResponsibleActorId || binding.Mode != RepairMode.Normal ||
             !await db.Set<RepairObligation>().AnyAsync(row => row.Id == monitoring.SafetyObligationId &&
-                row.ProjectId == project && row.DefectId == item.DefectId &&
+                row.ProjectId == item.ProjectId && row.DefectId == item.DefectId &&
                 row.Kind == RepairObligationKind.TemporarySafety &&
                 row.EffectiveResolutionDecisionId == null, ct))
             Deny(409, "safety_responsibility_source_conflict");

@@ -5,6 +5,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Inspections;
+using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.Repositories.Reporting;
 
 namespace RoadGuardSystem.Repositories.Implementations.Reporting;
@@ -32,7 +33,9 @@ public sealed class CurrentRepairFactsRepository(RoadGuardDbContext db, TimeProv
         var rows = await (from item in db.Set<RepairItem>().AsNoTracking()
                           join obligation in db.Set<RepairObligation>().AsNoTracking() on item.ObligationId equals obligation.Id
                           join defect in db.Defects.AsNoTracking() on item.DefectId equals defect.Id
-                          where item.ProjectId == project && (!filters.RouteVersionId.HasValue || defect.RoadSectionVersionId == filters.RouteVersionId)
+                          where (db.Set<ObligationResponsibility>().Where(owner => owner.ObligationId == obligation.Id)
+                              .Select(owner => (Guid?)owner.CurrentProjectId).SingleOrDefault() ?? item.ProjectId) == project &&
+                              (!filters.RouteVersionId.HasValue || defect.RoadSectionVersionId == filters.RouteVersionId)
                           select new
                           {
                               item.Id,
@@ -223,12 +226,12 @@ public sealed class CurrentRepairFactsRepository(RoadGuardDbContext db, TimeProv
                     previousLinks.GetValueOrDefault(previousId) : null;
                 var parent = previous is null ? null : previousSubmissions.GetValueOrDefault(previous.SubmissionId);
                 if (row.State is not (RepairItemState.Submitted or RepairItemState.Reviewed) ||
-                    source is null || root is null || source.AttemptId != row.CurrentAttemptId || source.LinkProject != project ||
-                    source.AttemptProject != project || source.SubmissionProject != project || source.ClockProject != project ||
+                    source is null || root is null || source.AttemptId != row.CurrentAttemptId || source.LinkProject != row.ProjectId ||
+                    source.AttemptProject != row.ProjectId || source.SubmissionProject != row.ProjectId || source.ClockProject != row.ProjectId ||
                     source.LinkItem != row.Id || source.AttemptItem != row.Id || source.AttemptDefect != row.DefectId ||
                     source.AttemptObligation != row.ObligationId || source.LinkBinding != row.CurrentBindingId ||
                     source.SubmissionId != row.EffectiveIntakeSubmissionId || source.SubmissionRoot != root.Id ||
-                    root.ProjectId != project || root.TaskId != source.TaskId || root.AssignmentId != source.AssignmentId ||
+                    root.ProjectId != row.ProjectId || root.TaskId != source.TaskId || root.AssignmentId != source.AssignmentId ||
                     root.OriginalActorId != source.CrewId || root.RootId != root.Id || root.ParentId is not null ||
                     root.Revision != 1 || source.TaskId != source.SubmissionTask ||
                     source.AssignmentId != source.SubmissionAssignment || source.CrewId != source.SubmissionActor ||
@@ -248,7 +251,7 @@ public sealed class CurrentRepairFactsRepository(RoadGuardDbContext db, TimeProv
                     source.ClockDue != source.OriginalReviewDueAt ||
                     source.Performed && (source.ExecutionFinishId != row.CurrentExecutionFinishId ||
                         source.ExecutionFinishId is not Guid finishId || !finishes.TryGetValue(finishId, out var finish) ||
-                        finish.ProjectId != project || finish.ItemId != row.Id || finish.BindingId != row.CurrentBindingId ||
+                        finish.ProjectId != row.ProjectId || finish.ItemId != row.Id || finish.BindingId != row.CurrentBindingId ||
                         finish.OriginalActorId != source.CrewId || finish.VerifiedOriginalAt != source.FinishedAt) ||
                     !source.Performed && source.ExecutionFinishId is not null)
                 {

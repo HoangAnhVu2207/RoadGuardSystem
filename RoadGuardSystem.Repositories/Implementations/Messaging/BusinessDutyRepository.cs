@@ -36,8 +36,17 @@ public sealed class BusinessDutyRepository(RoadGuardDbContext db, IdempotencyOpe
         var row = await db.Set<BusinessReceivingRequest>().FromSqlInterpolated(
             $"SELECT * FROM [BusinessReceivingRequests] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={request}")
             .Include(x => x.Clock).ThenInclude(x => x!.Breaches).Include(x => x.Appointments).AsSplitQuery().SingleOrDefaultAsync(token);
-        if (row is null || row.ProjectId != project) throw new Denied(404, "not_found");
+        if (row is null || await ResponsibilityProjectAsync(db, time, row, token) != project) throw new Denied(404, "not_found");
         return row;
+    }
+
+    internal static async Task<Guid> ResponsibilityProjectAsync(RoadGuardDbContext db, TimeProvider time,
+        BusinessReceivingRequest request, CancellationToken token)
+    {
+        if (request.SourceKind != "ReviewBreach" || request.Kind != DeadlineClockKind.SupervisorEscalation) return request.ProjectId;
+        var source = await db.Set<DeadlineClock>().AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.ScopeId &&
+            c.ProjectId == request.ProjectId && c.Kind == DeadlineClockKind.ProjectManagerReview, token);
+        return source is null ? request.ProjectId : await new H6DeadlineNotificationSourceAdapter(db, time).ResponsibilityProjectAsync(source, token);
     }
 
     internal static async Task<bool> SourceCurrent(RoadGuardDbContext db, BusinessReceivingRequest request, CancellationToken token)
@@ -175,7 +184,13 @@ public sealed class BusinessDutyRepository(RoadGuardDbContext db, IdempotencyOpe
             {
                 await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
                 if (!await CurrentAuthority(db, time, actor, role, project, token)) Deny(403, "access_forbidden");
-                var query = db.Set<BusinessReceivingRequest>().AsNoTracking().Where(x => x.ProjectId == project);
+                var query = db.Set<BusinessReceivingRequest>().AsNoTracking().Where(x =>
+                    (x.SourceKind != "ReviewBreach" ? x.ProjectId :
+                     (from owner in db.Set<RoadGuardSystem.BusinessObjects.Projects.ObligationResponsibility>()
+                      where owner.OriginProjectId == x.ProjectId && db.Set<DeadlineClock>().Any(c => c.Id == x.ScopeId &&
+                          db.RepairItems.Any(i => i.ObligationId == owner.ObligationId &&
+                              (i.Id == c.TargetId || db.Set<RepairFieldTaskBinding>().Any(b => b.ItemId == i.Id && b.TaskId == c.TargetId))))
+                      select (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? x.ProjectId) == project);
                 if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)) query = query.Where(x => x.ResponsibleActorId == actor);
                 if (scope is Guid scopeId) query = query.Where(x => x.ScopeId == scopeId);
                 if (after is Guid afterId) query = query.Where(x => x.Id.CompareTo(afterId) > 0);

@@ -7,8 +7,8 @@ public enum ProjectLifecycleFactKind : byte
     DefectClosure = 7, LinkedRecurrence = 8
 }
 
-// A recorded source is not command authority. Pending generic lifecycle commands
-// cannot create verified facts through an API; technical import candidates stay candidates.
+// Historical import candidates remain non-authoritative. Production closure mirrors
+// bind an exact committed LD06 action; renewed handling retains that immutable source.
 public sealed class ProjectLifecycleHistoryRecord
 {
     private ProjectLifecycleHistoryRecord() { }
@@ -43,6 +43,16 @@ public sealed class ProjectLifecycleHistoryRecord
             System.Text.Json.JsonSerializer.Serialize(new { handlingScope = handlingScope.Trim() }));
         record.OperationalClosureId = closure.Id; record.SourceDisposition = "TARGET_CONFIRMED";
         record.AuthoritySourceReference = "OWNER_UPDATE_2026-10-06:R26_SUPERVISOR_RENEWED_SCOPE";
+        return record;
+    }
+
+    public static ProjectLifecycleHistoryRecord RecordProductionClosure(LD06LifecycleAction action)
+    {
+        if (action.Kind != LD06ActionKind.OperationalClose) throw new ArgumentException("Actual operational closure required.");
+        var record = RecordCandidate(action.Id, action.ProjectId, ProjectLifecycleFactKind.OperationalClosure,
+            action.ActorId, action.At, action.Reason, "LD06_PRODUCTION_ACTION", action.FactsJson);
+        record.SourceDisposition = "TARGET_CONFIRMED";
+        record.AuthoritySourceReference = "LD06_PRODUCTION_ACTION:" + action.Id;
         return record;
     }
 

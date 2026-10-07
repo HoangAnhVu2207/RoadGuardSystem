@@ -21,7 +21,7 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
                 command.ItemId, command.TaskId, ct), async ct =>
             {
                 var package = await LockedPackage(command.PackageId, ct);
-                await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                await FreshAnchor(command.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId);
                 var binding = await db.Set<RepairFieldTaskBinding>().SingleAsync(row => row.Id == item.CurrentBindingId, ct);
                 var hash = RepairCommandCoreHash.Assessment(command.TaskId, item.Id, command.ActorId, command.Input);
@@ -69,7 +69,7 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
         {
             var package = await LockedPackage(command.PackageId, ct);
             var item = package.Items.Single(row => row.Id == command.ItemId);
-            await FreshAnchor(command.ProjectId, item.DefectId, ct);
+            await FreshAnchor(command.ProjectId, item.DefectId, ct, command.ItemId);
             var binding = await db.Set<RepairFieldTaskBinding>().SingleAsync(row => row.Id == item.CurrentBindingId, ct);
             var hash = RepairCommandCoreHash.ExecutionStart(command.TaskId, item.Id, command.ActorId, command.Input);
             var canonical = await RepairOrigin(command.ProjectId, command.Input.OriginId, "REPAIR_EXECUTION_START", hash, command.ActorId, command.TaskId, ct);
@@ -138,7 +138,7 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
                 command.ItemId, command.TaskId, ct), async ct =>
         {
             var package = await LockedPackage(command.PackageId, ct); var item = package.Items.Single(row => row.Id == command.ItemId);
-            await FreshAnchor(command.ProjectId, item.DefectId, ct);
+            await FreshAnchor(command.ProjectId, item.DefectId, ct, command.ItemId);
             var binding = await db.Set<RepairFieldTaskBinding>().SingleAsync(row => row.Id == item.CurrentBindingId, ct);
             var hash = RepairCommandCoreHash.ExecutionFinish(command.TaskId, item.Id, command.ActorId, command.Input);
             var canonical = await RepairOrigin(command.ProjectId, command.Input.OriginId, "REPAIR_EXECUTION_FINISH", hash, command.ActorId, command.TaskId, ct);
@@ -191,7 +191,7 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
 
     private async Task GuardExecutionResource(Guid actor, Guid project, Guid package, Guid item, Guid task, CancellationToken token)
     {
-        await GuardItemResource(project, package, item, token);
+        await GuardItemResource(project, package, item, token, originalCrew: true);
         var current = await db.Set<RepairItem>().AsNoTracking().SingleAsync(row => row.Id == item, token);
         if (current.CurrentBindingId is null || current.SupersededByItemId is not null) Deny(403, "repair_binding_not_current");
         var binding = await db.Set<RepairFieldTaskBinding>().AsNoTracking().SingleAsync(row => row.Id == current.CurrentBindingId, token);

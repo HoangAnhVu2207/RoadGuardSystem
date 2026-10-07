@@ -15,8 +15,16 @@ namespace RoadGuardSystem.ApiTests.Projects;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class H6ProjectLifecycleHttpTests(AuthenticationSqlServerFixture fixture)
 {
-    [Fact]
-    public async Task CookieRenewedScopeRequiresCsrfBeforeAnyHistoryOrReceipt()
+    [Theory]
+    [InlineData("renewed-handling-scope")]
+    [InlineData("construction-declarations")]
+    [InlineData("construction-confirmations")]
+    [InlineData("defect-closures")]
+    [InlineData("operational-closures")]
+    [InlineData("recurrences")]
+    [InlineData("obligation-transfers")]
+    [InlineData("obligation-transfer-acceptances")]
+    public async Task CookieLifecycleWritesRequireCsrfBeforeAnyHistoryOrReceipt(string action)
     {
         var actor = await fixture.CreateUserAsync("lifecycle-cookie-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.Supervisor);
         await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
@@ -26,7 +34,7 @@ public sealed class H6ProjectLifecycleHttpTests(AuthenticationSqlServerFixture f
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/web/login", new { email = actor.Email, password = "Current1!" })).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN"); client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString());
         client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", $"\"{new string('a', 64)}\"");
-        var response = await client.PostAsJsonAsync($"/api/v1/projects/{Guid.NewGuid()}/lifecycle/renewed-handling-scope",
+        var response = await client.PostAsJsonAsync($"/api/v1/projects/{Guid.NewGuid()}/lifecycle/{action}",
             new RenewedHandlingScopeInput(Guid.NewGuid(), "renew", "scope", "basis"));
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         Assert.Equal("csrf_failed", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());

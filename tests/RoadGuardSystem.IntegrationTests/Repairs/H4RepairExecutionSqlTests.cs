@@ -279,7 +279,15 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
     public Task AcceptedPmReviewFinalDeadlineBreachUsesCurrentSupervisorAndReplaysOnce(bool revokeSupervisorMembership)
         => RunNormalReviewChain(true, revokeSupervisorMembership);
 
-    private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership, bool extendFinal = false)
+    internal Task WithSuccessfulRepair(Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task> action)
+        => RunNormalReviewChain(false, false, confirmedFixture: action);
+
+    internal Task WithPendingReview(Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task> action)
+        => RunNormalReviewChain(false, false, pendingReviewFixture: action);
+
+    private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership, bool extendFinal = false,
+        Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task>? confirmedFixture = null,
+        Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task>? pendingReviewFixture = null)
     {
         await using var db = sql.CreateDbContext(); var state = await AssignedAndStarted(db);
         var assessed = await Assess(db, state); var assessment = Assert.IsType<RepairAssessmentFact>(assessed.Value);
@@ -352,6 +360,11 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         Assert.Equal(1, await db.Set<RepairAttempt>().CountAsync(row => row.ItemId == state.Item.Id));
         Assert.Equal(1, await db.Set<DeadlineClock>().CountAsync(row => row.TargetId == state.Binding.TaskId &&
             row.Kind == DeadlineClockKind.ProjectManagerReview));
+        if (pendingReviewFixture is not null)
+        {
+            await pendingReviewFixture(db, state.Source, state.Item.Id, reviewClock.Id);
+            return;
+        }
         var stock = await new CurrentRepairFactsReader(new CurrentRepairFactsRepository(db, TimeProvider.System)).CaptureAsync(state.Source.Pm,
             state.Source.Project, new ReportingFiltersDto(), default);
         Assert.Empty(stock.MissingReasons);
@@ -632,6 +645,12 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         Assert.Equal(intake.ContentHash, (await db.Set<FieldInspectionSubmission>().AsNoTracking()
             .SingleAsync(row => row.Id == intake.Id)).ContentHash);
         Assert.Empty((await db.Set<RepairAttempt>().AsNoTracking().SingleAsync(row => row.Id == attempt.Id)).Evidence);
+        if (confirmedFixture is not null)
+        {
+            var actualDecision = await db.Set<RepairDecision>().AsNoTracking().SingleAsync(row => row.ItemId == state.Item.Id && row.SupersedesDecisionId == null);
+            await confirmedFixture(db, state.Source, state.Item.Id, actualDecision.Id);
+            return;
+        }
         stock = await new CurrentRepairFactsReader(new CurrentRepairFactsRepository(db, TimeProvider.System)).CaptureAsync(state.Source.Pm,
             state.Source.Project, new ReportingFiltersDto(), default);
         Assert.Empty(stock.MissingReasons);

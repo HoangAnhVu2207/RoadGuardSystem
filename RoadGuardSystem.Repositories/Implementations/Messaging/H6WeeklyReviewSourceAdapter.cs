@@ -1,3 +1,4 @@
+using RoadGuardSystem.BusinessObjects.Projects;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Clocks;
@@ -20,10 +21,32 @@ public sealed class H6WeeklyReviewSourceAdapter(RoadGuardDbContext db, TimeProvi
             {
                 SourceKind = "ReviewObligation",
                 SourceId = row.Id,
-                ProjectId = row.ProjectId,
-                AssignedUserId = null
-            }).Union(db.Set<WeeklyReviewDigest>().Select(d => new H6SourceScope
-            { SourceKind = "ReviewDigest", SourceId = d.Id, ProjectId = d.ProjectId, AssignedUserId = d.RecipientId }));
+                AssignedProjectId = row.ProjectId,
+                ProjectId = (from owner in db.Set<ObligationResponsibility>()
+                             where owner.OriginProjectId == row.ProjectId && db.RepairItems.Any(item => item.ObligationId == owner.ObligationId &&
+                                 (item.Id == row.TargetId || db.Set<RepairFieldTaskBinding>().Any(binding => binding.ItemId == item.Id && binding.TaskId == row.TargetId)))
+                             select (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? row.ProjectId,
+                AssignedUserId = null,
+                ProjectAuthorityVerified = false
+            }).Union(db.Set<WeeklyReviewDigest>().SelectMany(d => db.Notifications.Where(n => n.SourceEntityType == "ReviewDigest" && n.SourceEntityId == d.Id && (d.RecipientId == null || d.RecipientId == n.RecipientUserId)), (d, n) => new H6SourceScope
+            {
+                SourceKind = "ReviewDigest",
+                SourceId = d.Id,
+                AssignedProjectId = d.ProjectId,
+                ProjectId = d.ProjectId,
+                AssignedUserId = n.RecipientUserId,
+                ProjectAuthorityVerified = d.Duties.All(duty => db.ProjectMembers.Any(member =>
+                    member.UserId == n.RecipientUserId &&
+                    (d.RecipientRole == UserRoleCode.Supervisor && member.RoleCode == UserRoleCode.Supervisor ||
+                     d.RecipientRole == UserRoleCode.ProjectManager && member.RoleCode == UserRoleCode.ProjectManager) &&
+                    member.Status == ProjectMemberStatus.Active &&
+                    member.ValidFrom <= DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime) &&
+                    (member.ValidTo == null || member.ValidTo >= DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime)) &&
+                    member.ProjectId == ((from owner in db.Set<ObligationResponsibility>()
+                                          where owner.OriginProjectId == d.ProjectId && db.RepairItems.Any(item => item.ObligationId == owner.ObligationId &&
+                                              (item.Id == duty.TargetId || db.Set<RepairFieldTaskBinding>().Any(binding => binding.ItemId == item.Id && binding.TaskId == duty.TargetId)))
+                                          select (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? d.ProjectId)))
+            }));
 
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {
@@ -108,6 +131,7 @@ public sealed class H6WeeklyReviewSourceAdapter(RoadGuardDbContext db, TimeProvi
             return new("REJECTED", "notification_source_relation_invalid");
         var responsibilityCurrent = false;
         var currentCandidates = new HashSet<Guid>();
+        var responsibilityProjects = new HashSet<Guid>();
         foreach (var captured in digest.Duties)
         {
             var duty = await db.Set<DeadlineClock>().AsNoTracking().SingleOrDefaultAsync(c => c.Id == captured.ClockId, token);
@@ -118,21 +142,24 @@ public sealed class H6WeeklyReviewSourceAdapter(RoadGuardDbContext db, TimeProvi
                 return new("REJECTED", "notification_source_relation_invalid");
             var proof = await new H6DeadlineNotificationSourceAdapter(db, clock).ResolveDutyAsync(duty, token);
             if (proof.Status != "VERIFIED") return new("REJECTED", "notification_source_relation_invalid");
+            responsibilityProjects.Add(proof.ResponsibilityProjectId ?? digest.ProjectId);
             if (proof.ResponsibleUserId is Guid responsible) currentCandidates.Add(responsible);
             if (proof.ResponsibleIsSupervisor)
             {
                 var day = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-                var supervisors = await db.ProjectMembers.Where(m => m.ProjectId == digest.ProjectId &&
+                var supervisors = await db.ProjectMembers.Where(m => m.ProjectId == (proof.ResponsibilityProjectId ?? digest.ProjectId) &&
                     m.RoleCode == UserRoleCode.Supervisor && m.Status == ProjectMemberStatus.Active &&
                     m.ValidFrom <= day && (m.ValidTo == null || m.ValidTo >= day)).Select(m => m.UserId).Distinct().ToArrayAsync(token);
                 foreach (var actor in supervisors) currentCandidates.Add(actor);
             }
             if (proof.Status == "VERIFIED" && (proof.ResponsibleUserId == digest.RecipientId ||
-                proof.ResponsibleIsSupervisor && digest.RecipientRole == UserRoleCode.Supervisor)) responsibilityCurrent = true;
+                proof.ResponsibleIsSupervisor && digest.RecipientRole == UserRoleCode.Supervisor && currentCandidates.Contains(digest.RecipientId ?? Guid.Empty))) responsibilityCurrent = true;
         }
         var currentRecipient = digest.RecipientId is null && currentCandidates.Count == 1 ? currentCandidates.Single()
             : responsibilityCurrent ? digest.RecipientId : null;
         return new("VERIFIED", ResponsibleUserId: currentRecipient, ResponsibleRole: digest.RecipientRole,
+            ResponsibilityProjectId: responsibilityProjects.Count == 1 ? responsibilityProjects.Single() : null,
+            ResponsibilityProjectIds: responsibilityProjects.Order().ToArray(),
             BodyOverride: $"{digest.Duties.Count} review duties pending at recovery {digest.RecoveredAtUtc:O}; latest Monday period {digest.ScheduledAtUtc:O}. Digest {digest.Id:D}.");
     }
 }

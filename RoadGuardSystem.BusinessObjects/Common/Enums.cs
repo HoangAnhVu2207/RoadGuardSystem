@@ -247,7 +247,8 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         Open = 1,
         Verified = 2,
         Rejected = 3,
-        Resolved = 4
+        Resolved = 4,
+        Closed = 5
     }
 
     public enum DefectVerificationAction : byte

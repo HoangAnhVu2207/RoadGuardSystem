@@ -39,7 +39,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 if (string.IsNullOrWhiteSpace(command.Input.Reason) || command.Input.Reason.Length > 2000)
                     Deny(400, "validation_error");
                 var package = await LockedPackage(command.PackageId, ct);
-                await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId);
                 var obligation = package.Obligations.Single(row => row.Id == item.ObligationId);
                 if (VersionOf(item) != command.ExpectedItemVersion) Deny(409, "concurrency_conflict");
@@ -48,7 +48,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     obligation.CurrentRepairItemId != item.Id || obligation.IsResolved)
                     Deny(409, "invalid_state_transition");
                 var review = await db.Set<RepairAttemptReview>().AsNoTracking().SingleOrDefaultAsync(row =>
-                    row.Id == item.CurrentReviewId && row.ProjectId == command.ProjectId && row.ItemId == item.Id &&
+                    row.Id == item.CurrentReviewId && row.ProjectId == package.ProjectId && row.ItemId == item.Id &&
                     row.AttemptId == item.CurrentAttemptId && row.IntakeLinkId == item.CurrentIntakeLinkId &&
                     row.SubmissionId == item.EffectiveIntakeSubmissionId && row.Decision == "ACCEPT" &&
                     row.EvidenceSufficient && row.ExecutionAuthority == RepairFactState.Confirmed &&
@@ -58,7 +58,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 if (item.Mode == RepairMode.Normal)
                 {
                     supervisorClock = await db.Set<DeadlineClock>().SingleOrDefaultAsync(row =>
-                        row.ProjectId == command.ProjectId && row.TargetId == item.Id &&
+                        row.ProjectId == package.ProjectId && row.TargetId == item.Id &&
                         row.Kind == DeadlineClockKind.SupervisorFinalConfirmation && row.OriginEventId == review.Id &&
                         row.OriginAt == review.At, ct);
                     if (supervisorClock is null) Deny(409, "supervisor_final_clock_source_conflict");
@@ -96,7 +96,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 if (command.Input.Decision is not ("SUPPLEMENT" or "ACCEPT") || string.IsNullOrWhiteSpace(command.Input.Reason) ||
                     command.Input.Reason.Length > 2000) Deny(400, "validation_error");
                 var package = await LockedPackage(command.PackageId, ct);
-                await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId);
                 if (VersionOf(item) != command.ExpectedItemVersion) Deny(409, "concurrency_conflict");
                 if (item.State != RepairItemState.Submitted || item.CurrentReviewId is not null ||
@@ -109,7 +109,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     row.Id == item.CurrentIntakeLinkId && row.ItemId == item.Id && row.BindingId == binding.Id &&
                     row.AttemptId == item.CurrentAttemptId && row.SubmissionId == command.Input.FieldSubmissionId, ct);
                 var submission = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(row =>
-                    row.Id == link.SubmissionId && row.ProjectId == command.ProjectId && row.TaskId == binding.TaskId &&
+                    row.Id == link.SubmissionId && row.ProjectId == package.ProjectId && row.TaskId == binding.TaskId &&
                     row.AssignmentId == binding.AssignmentId, ct);
                 if (submission.ContentHash != link.SubmissionContentHash ||
                     await db.Set<FieldInspectionSubmission>().AnyAsync(row => row.RootId == link.FormalRootSubmissionId &&
@@ -143,7 +143,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     foreach (var declared in payload.Evidence)
                     {
                         var sourceLink = links.SingleOrDefault(row => row.CaptureOriginId == declared.CaptureOriginId);
-                        if (sourceLink is null || sourceLink.ProjectId != command.ProjectId ||
+                        if (sourceLink is null || sourceLink.ProjectId != package.ProjectId ||
                             sourceLink.TaskId != binding.TaskId || sourceLink.AssignmentId != binding.AssignmentId ||
                             sourceLink.FileId is null || sourceLink.FileId != declared.FileId ||
                             sourceLink.Purpose != declared.Purpose ||
@@ -184,10 +184,10 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     try { item.Review(command.ActorId, command.Role, now, evidence); }
                     catch (InvalidOperationException) { Deny(409, "repair_review_source_insufficient"); throw; }
                 }
-                var source = FieldInspectionReview.Create(Guid.NewGuid(), command.ProjectId, binding.TaskId,
+                var source = FieldInspectionReview.Create(Guid.NewGuid(), package.ProjectId, binding.TaskId,
                     submission.Id, command.ActorId,
                     command.Input.Decision == "ACCEPT" ? "CONFIRM" : "SUPPLEMENT", command.Input.Reason, now);
-                var review = new RepairAttemptReview(Guid.NewGuid(), command.ProjectId, item.Id, binding.Id,
+                var review = new RepairAttemptReview(Guid.NewGuid(), package.ProjectId, item.Id, binding.Id,
                     link.AttemptId, link.Id, submission.Id, submission.ContentHash, binding.PlanHash,
                     binding.ChecklistVersion, command.ActorId, command.Role, command.Input.Decision, command.Input.Reason,
                     now, command.Input.Decision == "ACCEPT",
@@ -212,9 +212,9 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     FieldInspectionTaskStatus.SupplementRequired);
                 if (command.Input.Decision == "SUPPLEMENT")
                 {
-                    BusinessRequestProducer.Supplement(db, command.ProjectId, "RepairReview", review.Id,
+                    BusinessRequestProducer.Supplement(db, package.ProjectId, "RepairReview", review.Id,
                         binding.TaskId, binding.CrewId, now);
-                    var rework = new RepairItemLifecycleEvent(Guid.NewGuid(), command.ProjectId,
+                    var rework = new RepairItemLifecycleEvent(Guid.NewGuid(), package.ProjectId,
                         item.DefectId, item.ObligationId, item.Id, item.Mode, "REWORK", command.ActorId,
                         command.Role, command.Input.Reason, now, binding.Id, link.AttemptId,
                         submission.Id, review.Id, null, command.ExpectedItemVersion);
@@ -224,14 +224,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 if (command.Input.Decision == "ACCEPT")
                 {
                     var reviewClock = await db.Set<DeadlineClock>().SingleAsync(row => row.Id == link.ReviewClockId &&
-                        row.ProjectId == command.ProjectId && row.TargetId == binding.TaskId &&
+                        row.ProjectId == package.ProjectId && row.TargetId == binding.TaskId &&
                         row.OriginEventId == link.FormalRootSubmissionId, ct);
                     reviewClock.Complete(now);
                     if (item.Mode == RepairMode.Normal)
                     {
-                        db.Add(DeadlineClock.Create(Guid.NewGuid(), command.ProjectId,
+                        db.Add(DeadlineClock.Create(Guid.NewGuid(), package.ProjectId,
                             DeadlineClockKind.SupervisorFinalConfirmation, item.Id, review.Id, now));
-                        var handoff = new RepairItemLifecycleEvent(Guid.NewGuid(), command.ProjectId,
+                        var handoff = new RepairItemLifecycleEvent(Guid.NewGuid(), package.ProjectId,
                             item.DefectId, item.ObligationId, item.Id, item.Mode, "PM_REVIEWED", command.ActorId,
                             command.Role, command.Input.Reason, now, binding.Id, link.AttemptId,
                             submission.Id, review.Id, null, command.ExpectedItemVersion);
@@ -262,7 +262,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 command.PackageId, command.ItemId, command.TaskId, ct), async ct =>
             {
                 var package = await LockedPackage(command.PackageId, ct);
-                await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId);
                 if (VersionOf(item) != command.ExpectedItemVersion) Deny(409, "concurrency_conflict");
                 if (item.State != RepairItemState.Submitted || item.CurrentAttemptId is null ||
@@ -277,11 +277,11 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     row.Id == item.CurrentReviewId && row.IntakeLinkId == previous.Id &&
                     row.Decision == "SUPPLEMENT" && row.ItemId == item.Id, ct);
                 var prior = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(row =>
-                    row.Id == previous.SubmissionId && row.ProjectId == command.ProjectId, ct);
+                    row.Id == previous.SubmissionId && row.ProjectId == package.ProjectId, ct);
                 var submission = await db.Set<FieldInspectionSubmission>().FromSqlInterpolated(
                     $"SELECT * FROM [FieldInspectionSubmissions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={command.Input.FieldSubmissionId}")
                     .AsNoTracking().SingleOrDefaultAsync(ct);
-                if (submission is null || submission.ProjectId != command.ProjectId ||
+                if (submission is null || submission.ProjectId != package.ProjectId ||
                     submission.TaskId != binding.TaskId || submission.AssignmentId != binding.AssignmentId ||
                     submission.OriginalActorId != command.ActorId || submission.RootId != previous.FormalRootSubmissionId ||
                     submission.ParentId != previous.SubmissionId || submission.Revision != prior.Revision + 1 ||
@@ -309,7 +309,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 catch (InvalidOperationException) { Deny(409, "physical_claim_source_conflict"); throw; }
                 if (intake.EffectiveSubmission.Id != submission.Id || review.SubmissionId != prior.Id)
                     Deny(409, "submission_lineage_conflict");
-                var link = new RepairAttemptSubmissionLink(Guid.NewGuid(), command.ProjectId, item.Id, binding.Id,
+                var link = new RepairAttemptSubmissionLink(Guid.NewGuid(), package.ProjectId, item.Id, binding.Id,
                     attempt.Id, submission.Id, root.Id, previous.Id, previous.ExecutionFinishId,
                     submission.ContentHash, previous.FormalRootServerReceivedAt, previous.ReviewClockId,
                     previous.OriginalReviewDueAt);
@@ -340,7 +340,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 command.PackageId, command.ItemId, command.TaskId, ct), async ct =>
             {
                 var package = await LockedPackage(command.PackageId, ct);
-                await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId);
                 if (VersionOf(item) != command.ExpectedItemVersion) Deny(409, "concurrency_conflict");
                 if (item.State != RepairItemState.InProgress || item.CurrentAttemptId is not null ||
@@ -348,7 +348,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 var binding = await db.Set<RepairFieldTaskBinding>().AsNoTracking().SingleAsync(row =>
                     row.Id == item.CurrentBindingId && row.TaskId == command.TaskId, ct);
                 var submission = await db.Set<FieldInspectionSubmission>().FromSqlInterpolated(
-                    $"SELECT * FROM [FieldInspectionSubmissions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={command.Input.FieldSubmissionId} AND [ProjectId]={command.ProjectId}")
+                    $"SELECT * FROM [FieldInspectionSubmissions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={command.Input.FieldSubmissionId} AND [ProjectId]={package.ProjectId}")
                     .AsNoTracking().SingleOrDefaultAsync(ct);
                 if (submission is null || submission.TaskId != binding.TaskId || submission.AssignmentId != binding.AssignmentId ||
                     submission.OriginalActorId != command.ActorId || submission.RootId != submission.Id ||
@@ -386,23 +386,23 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 else if (command.Input.ExecutionFinishId is not null) Deny(409, "execution_finish_source_conflict");
                 var reviewClock = await db.Set<DeadlineClock>().FromSqlInterpolated(
                     $"SELECT * FROM [DeadlineClocks] WITH (UPDLOCK,HOLDLOCK) WHERE [TargetId]={binding.TaskId} AND [Kind]={(byte)DeadlineClockKind.ProjectManagerReview}")
-                    .AsNoTracking().SingleOrDefaultAsync(row => row.ProjectId == command.ProjectId &&
+                    .AsNoTracking().SingleOrDefaultAsync(row => row.ProjectId == package.ProjectId &&
                         row.OriginEventId == submission.Id && row.OriginAt == submission.ServerReceivedAt, ct);
                 if (reviewClock is null) Deny(409, "pm_review_clock_source_conflict");
                 var attempt = RepairAttempt.Submit(Guid.NewGuid(), submission.OriginId, submission.ContentHash,
-                    item.Id, item.ObligationId, command.ProjectId, item.DefectId, command.ActorId, binding.TaskId,
+                    item.Id, item.ObligationId, package.ProjectId, item.DefectId, command.ActorId, binding.TaskId,
                     binding.AssignmentId, binding.AuthorizationId, binding.LocationVersion, binding.PolicyRevisionId,
                     capture.Repaired == true, capture.Repaired == true ? null : capture.UnrepairedReason,
                     physicalStart.VerifiedOriginalAt, finish?.VerifiedOriginalAt, submission.ServerReceivedAt,
                     finish?.TimeProvenance ?? RepairTimeProvenance.Uncertain, []);
-                var link = new RepairAttemptSubmissionLink(Guid.NewGuid(), command.ProjectId, item.Id, binding.Id,
+                var link = new RepairAttemptSubmissionLink(Guid.NewGuid(), package.ProjectId, item.Id, binding.Id,
                     attempt.Id, submission.Id, submission.Id, null, finish?.Id, submission.ContentHash,
                     submission.ServerReceivedAt, reviewClock.Id, reviewClock.OriginalDueAt);
                 item.Submit(attempt);
                 db.Add(link); db.Entry(item).Property(row => row.CurrentAttemptId).CurrentValue = attempt.Id;
                 db.Entry(item).Property(row => row.CurrentIntakeLinkId).CurrentValue = link.Id;
                 db.Entry(item).Property(row => row.EffectiveIntakeSubmissionId).CurrentValue = submission.Id;
-                var source = new RepairItemLifecycleEvent(Guid.NewGuid(), command.ProjectId, item.DefectId,
+                var source = new RepairItemLifecycleEvent(Guid.NewGuid(), package.ProjectId, item.DefectId,
                     item.ObligationId, item.Id, item.Mode, "SUBMITTED", command.ActorId, command.Role,
                     "Formal H3 root intake", submission.ServerReceivedAt, binding.Id, attempt.Id,
                     submission.Id, null, null, command.ExpectedItemVersion);
@@ -518,7 +518,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
         => ProduceAsync(command.ActorId, command.Role, UserRoleCode.Supervisor, command.ProjectId, command.Key, ApproveOperation, command,
             ct => GuardItemResource(command.ProjectId, command.PackageId, command.ItemId, ct), async ct =>
             {
-                var package = await LockedPackage(command.PackageId, ct); await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                var package = await LockedPackage(command.PackageId, ct); await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId); var obligation = package.Obligations.Single(row => row.Id == item.ObligationId);
                 if (VersionOf(item) != command.ExpectedItemVersion) Deny(409, "concurrency_conflict");
                 if (item.Mode != RepairMode.Normal || item.State != RepairItemState.AwaitingApproval ||
@@ -538,7 +538,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
         => ProduceAsync(command.ActorId, command.Role, UserRoleCode.ProjectManager, command.ProjectId, command.Key, AssignOperation, command,
             ct => GuardItemResource(command.ProjectId, command.PackageId, command.ItemId, ct), async ct =>
             {
-                var package = await LockedPackage(command.PackageId, ct); var defect = await FreshAnchor(command.ProjectId, package.DefectId, ct);
+                var package = await LockedPackage(command.PackageId, ct); var defect = await FreshAnchor(package.ProjectId, package.DefectId, ct, command.ItemId);
                 var item = package.Items.Single(row => row.Id == command.ItemId); var obligation = package.Obligations.Single(row => row.Id == item.ObligationId);
                 if (VersionOf(item) != command.ExpectedItemVersion) Deny(409, "concurrency_conflict");
                 var input = command.Input.Task;
@@ -547,7 +547,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 if (input.DefectId != defect.Id || input.RouteVersionId != defect.RoadSectionVersionId ||
                     input.DefectVersion != VersionOf(defect)) Deny(409, "repair_source_conflict");
                 if (input.Purpose != "POST_REPAIR" || input.RequiredMeasurementType is < 1 or > 4) Deny(400, "validation_error");
-                var check = await FieldCore().ValidateRepairTaskSourcesInTransactionAsync(command.ProjectId, input, defect, ct);
+                var check = await FieldCore().ValidateRepairTaskSourcesInTransactionAsync(package.ProjectId, input, defect, ct);
                 if (check.Code is not null) Deny(check.Status, check.Code);
                 var declaredFrame = "h4-frame-v1:" + SourceHash(new
                 {
@@ -563,10 +563,10 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 {
                     if (obligation.OriginalCrewFirstStartId is not null) Deny(409, "execution_regrant_policy_pending");
                     policy = await db.Set<RepairPolicyRevision>().Include(row => row.Measurements).Include(row => row.Revocations)
-                        .SingleOrDefaultAsync(row => row.Id == command.Input.PolicyRevisionId && row.ProjectId == command.ProjectId, ct);
+                        .SingleOrDefaultAsync(row => row.Id == command.Input.PolicyRevisionId && row.ProjectId == package.ProjectId, ct);
                     if (policy is null || policy.IsRevoked || policy.DefectTypeCode != defect.DefectTypeCode ||
                         policy.ChecklistVersion != item.ChecklistVersion || !await db.Set<RepairPolicyDraft>().AnyAsync(row =>
-                            row.ProjectId == command.ProjectId && row.PublishedRevisionId == policy.Id && row.CurrentChangeId != null, ct))
+                            row.ProjectId == package.ProjectId && row.PublishedRevisionId == policy.Id && row.CurrentChangeId != null, ct))
                         Deny(409, "published_policy_source_required");
                 }
                 else if (command.Input.PolicyRevisionId is not null) Deny(400, "validation_error");
@@ -585,7 +585,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 RepairExecutionAuthorization? authorization = null;
                 if (policy is not null)
                 {
-                    authorization = RepairExecutionAuthorization.Issue(Guid.NewGuid(), command.ProjectId, defect.Id, task.Id,
+                    authorization = RepairExecutionAuthorization.Issue(Guid.NewGuid(), package.ProjectId, defect.Id, task.Id,
                         assignment.Id, input.AssignedToUserId, command.ActorId, now, command.Input.Reason, RepairTaskMode.ConditionalFastTrack,
                         obligation.Scope.LocationVersion, policy.Id);
                     db.Add(authorization); await db.SaveChangesAsync(ct);
@@ -602,7 +602,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     measurements = policy.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray(),
                     stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray()
                 });
-                var binding = new RepairFieldTaskBinding(Guid.NewGuid(), command.ProjectId, defect.Id, obligation.Id, item.Id,
+                var binding = new RepairFieldTaskBinding(Guid.NewGuid(), package.ProjectId, defect.Id, obligation.Id, item.Id,
                     task.Id, assignment.Id, input.AssignedToUserId, item.Mode, authorization?.Id, policy?.Id, policyHash,
                     item.ProposalPlanHash!, item.ChecklistVersion!, input.RouteVersionId, input.SegmentSetId, input.LayoutRevisionId,
                     input.SlabId, input.MapPublicationId, input.CrsProfileRevisionId, obligation.Scope.LocationVersion,
@@ -669,12 +669,18 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
     private async Task<RepairPackage> LockedPackage(Guid id, CancellationToken token)
         => await db.Set<RepairPackage>().FromSqlInterpolated($"SELECT * FROM [RepairPackages] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={id}")
             .Include(row => row.Obligations).Include(row => row.Items).SingleAsync(token);
-    private async Task<Defect> FreshAnchor(Guid project, Guid id, CancellationToken token)
+    private async Task<Defect> FreshAnchor(Guid project, Guid id, CancellationToken token, Guid? itemId = null)
     {
         var defect = await db.Defects.FromSqlInterpolated($"SELECT * FROM [Defects] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={id}").SingleAsync(token);
         if (defect.ProjectId != project || defect.RoadSectionVersionId is null ||
             defect.Status is not (DefectStatus.Open or DefectStatus.Verified)) Deny(409, "repair_anchor_not_ready");
-        if (!await db.Projects.AnyAsync(row => row.Id == project && row.Status == ProjectStatus.Active, token)) Deny(409, "project_not_active");
+        var responsibleProject = project;
+        if (itemId is Guid itemIdentity)
+        {
+            var item = await db.RepairItems.AsNoTracking().SingleAsync(row => row.Id == itemIdentity && row.ProjectId == project && row.DefectId == id, token);
+            responsibleProject = await ObligationResponsibilityScope.ResolveAsync(db, item.ObligationId, item.ProjectId, token);
+        }
+        if (!await db.Projects.AnyAsync(row => row.Id == responsibleProject && row.Status == ProjectStatus.Active, token)) Deny(409, "project_not_active");
         return defect;
     }
     private async Task CurrentProducerAuthority(Guid actor, UserRoleCode role, UserRoleCode required, Guid project, CancellationToken token)
@@ -699,12 +705,21 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
             .AsNoTracking().SingleOrDefaultAsync(token);
         if (source is null || source.ProjectId != project) Deny(404, "not_found");
         await GuardDefectResource(project, source.DefectId, token);
+        if (await db.Set<ObligationResponsibility>().AnyAsync(owner => owner.OriginProjectId == project && owner.CurrentProjectId != project &&
+            db.Set<RepairObligation>().Any(obligation => obligation.Id == owner.ObligationId && EF.Property<Guid?>(obligation, "PackageId") == package), token)) Deny(403, "obligation_responsibility_transferred");
     }
-    private async Task GuardItemResource(Guid project, Guid package, Guid item, CancellationToken token)
+    private async Task GuardItemResource(Guid project, Guid package, Guid item, CancellationToken token,
+        bool originalCrew = false)
     {
-        await GuardPackageResource(project, package, token);
-        if (!await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")
-            .AsNoTracking().AnyAsync(row => row.ProjectId == project && EF.Property<Guid?>(row, "PackageId") == package, token)) Deny(404, "not_found");
+        var source = await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")
+            .AsNoTracking().SingleOrDefaultAsync(token);
+        var packageId = source is null ? null : await db.Set<RepairItem>().Where(row => row.Id == item)
+            .Select(row => EF.Property<Guid?>(row, "PackageId")).SingleAsync(token);
+        if (source is null || packageId != package || !await db.Set<RepairPackage>().AnyAsync(row =>
+            row.Id == package && row.ProjectId == source.ProjectId && row.DefectId == source.DefectId, token)) Deny(404, "not_found");
+        var effective = await ObligationResponsibilityScope.ResolveAsync(db, source.ObligationId, source.ProjectId, token);
+        if (project != (originalCrew ? source.ProjectId : effective)) Deny(404, "not_found");
+        await GuardDefectResource(source.ProjectId, source.DefectId, token);
     }
     private async Task GuardReviewResource(Guid actor, Guid project, Guid package, Guid item, Guid task, CancellationToken token)
     {
@@ -713,7 +728,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
         var bindingId = await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == item)
             .Select(row => row.CurrentBindingId).SingleAsync(token);
         if (bindingId is null || !await db.Set<RepairFieldTaskBinding>().AsNoTracking().AnyAsync(row =>
-            row.Id == bindingId && row.ProjectId == project && row.ItemId == item && row.TaskId == task, token))
+            row.Id == bindingId && row.ItemId == item && row.TaskId == task, token))
             Deny(403, "repair_binding_not_current");
     }
     private async Task GuardFinalResource(Guid actor, Guid project, Guid package, Guid item, UserRoleCode role, CancellationToken token)
@@ -728,8 +743,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
 
     private async Task GuardDutyAssignee(Guid actor, Guid project, Guid target, DeadlineClockKind kind, CancellationToken token)
     {
-        if (await db.Set<DeadlineClock>().AnyAsync(x => x.ProjectId == project && x.TargetId == target && x.Kind == kind &&
-            x.AppointedActorId != null && x.AppointedActorId != actor, token)) Deny(403, "current_review_assignee_required");
+        var duty = await db.Set<DeadlineClock>().AsNoTracking().SingleOrDefaultAsync(x => x.TargetId == target && x.Kind == kind, token);
+        if (duty?.AppointedActorId is not Guid appointed || appointed == actor) return;
+        var effective = await new H6DeadlineNotificationSourceAdapter(db, clock).ResponsibilityProjectAsync(duty, token);
+        if (effective != project) Deny(403, "current_review_assignee_required");
+        // A source appointment remains immutable history but cannot retain transferred duty.
+        if (effective != duty.ProjectId && duty.AppointedRole is UserRoleCode role &&
+            !await BusinessDutyRepository.CurrentAuthority(db, clock, appointed, role, effective, token)) return;
+        Deny(403, "current_review_assignee_required");
     }
 
     private async Task GuardStoredProduction(Guid actor, Guid project, string operation, Guid operationId, CancellationToken token)
@@ -738,31 +759,33 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
         Guid? item = operation switch
         {
             ProposeOperation => operationId,
-            ApproveOperation => await db.Set<RepairItemLifecycleEvent>().Where(row => row.Id == operationId && row.ProjectId == project &&
+            ApproveOperation => await db.Set<RepairItemLifecycleEvent>().Where(row => row.Id == operationId &&
                 row.Kind == "APPROVED" && row.Mode == RepairMode.Normal).Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
-            AssignOperation => await db.Set<RepairFieldTaskBinding>().Where(row => row.Id == operationId && row.ProjectId == project)
+            AssignOperation => await db.Set<RepairFieldTaskBinding>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
-            AttemptSubmitOperation => await db.Set<RepairAttemptSubmissionLink>().Where(row => row.Id == operationId && row.ProjectId == project)
+            AttemptSubmitOperation => await db.Set<RepairAttemptSubmissionLink>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
-            AttemptSupplementOperation => await db.Set<RepairAttemptSubmissionLink>().Where(row => row.Id == operationId && row.ProjectId == project)
+            AttemptSupplementOperation => await db.Set<RepairAttemptSubmissionLink>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
-            AttemptReviewOperation => await db.Set<RepairAttemptReview>().Where(row => row.Id == operationId && row.ProjectId == project)
+            AttemptReviewOperation => await db.Set<RepairAttemptReview>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
             FinalConfirmOperation => await db.Set<RepairDecision>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
-            AssessmentOperation => await db.Set<RepairMeasurementAssessment>().Where(row => row.Id == operationId && row.ProjectId == project)
+            AssessmentOperation => await db.Set<RepairMeasurementAssessment>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
-            ExecutionStartOperation => await db.Set<RepairExecutionStart>().Where(row => row.Id == operationId && row.ProjectId == project)
+            ExecutionStartOperation => await db.Set<RepairExecutionStart>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
-            ExecutionFinishOperation => await db.Set<RepairExecutionFinish>().Where(row => row.Id == operationId && row.ProjectId == project)
+            ExecutionFinishOperation => await db.Set<RepairExecutionFinish>().Where(row => row.Id == operationId)
                 .Select(row => (Guid?)row.ItemId).SingleOrDefaultAsync(token),
             _ => null
         };
         if (item is null) Deny(403, "stored_receipt_access_forbidden");
-        var package = await db.Set<RepairItem>().Where(row => row.Id == item && row.ProjectId == project)
+        var package = await db.Set<RepairItem>().Where(row => row.Id == item)
             .Select(row => EF.Property<Guid?>(row, "PackageId")).SingleOrDefaultAsync(token);
         if (package is null) Deny(403, "stored_receipt_access_forbidden");
-        await GuardItemResource(project, package.Value, item.Value, token);
+        var crewOperation = operation is AttemptSubmitOperation or AttemptSupplementOperation or AssessmentOperation or
+            ExecutionStartOperation or ExecutionFinishOperation;
+        await GuardItemResource(project, package.Value, item.Value, token, originalCrew: crewOperation);
         if (operation == FinalConfirmOperation)
         {
             var mode = await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == item)

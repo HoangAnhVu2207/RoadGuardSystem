@@ -226,6 +226,18 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             references.Add(new(source.Kind, source.SourceId, source.ProjectId,
                 Version(new { source.FileId, source.FactsJson, source.ActualChecksum })));
         }
+        var lifecycleEvidence = await (from evidence in db.Set<RoadGuardSystem.BusinessObjects.Projects.LD06ActionEvidence>().AsNoTracking()
+                                       join action in db.Set<RoadGuardSystem.BusinessObjects.Projects.LD06LifecycleAction>().AsNoTracking() on evidence.ActionId equals action.Id
+                                       join file in db.Files.AsNoTracking() on evidence.FileId equals file.Id
+                                       where evidence.FileId == fileId
+                                       select new { action.Id, action.ProjectId, action.Kind, action.At, action.ScopeHash, evidence.Checksum, ActualChecksum = file.Checksum }).ToArrayAsync(token);
+        foreach (var evidence in lifecycleEvidence)
+        {
+            if (!string.Equals(evidence.Checksum, evidence.ActualChecksum, StringComparison.OrdinalIgnoreCase))
+                reasons.Add("LIFECYCLE_EVIDENCE_PROVENANCE_UNRESOLVED");
+            references.Add(new("LIFECYCLE_ACTION_EVIDENCE", evidence.Id, evidence.ProjectId,
+                Version(new { evidence.Kind, evidence.At, evidence.ScopeHash, evidence.Checksum })));
+        }
         return new(Name, reasons.Count == 0,
             references.OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.Id).ThenBy(x => x.ProjectId).ToArray(),
             reasons.Order(StringComparer.Ordinal).ToArray());
@@ -242,7 +254,11 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
         var fieldFiles = await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().Where(x => x.ProjectId == projectId && x.FileId != null).Select(x => x.FileId!.Value).ToArrayAsync(token);
         var reuseFiles = await db.Set<FieldInspectionEvidenceReuseDecision>().AsNoTracking().Where(x => x.ProjectId == projectId).Select(x => x.FileId).ToArrayAsync(token);
         var repairOffline = await H4H5RetentionSources.ReadAsync(db, null, projectId, token);
-        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Concat(repairOffline.Select(row => row.FileId)).Distinct().Order().ToArray();
+        var lifecycleFiles = await (from evidence in db.Set<RoadGuardSystem.BusinessObjects.Projects.LD06ActionEvidence>().AsNoTracking()
+                                    join action in db.Set<RoadGuardSystem.BusinessObjects.Projects.LD06LifecycleAction>().AsNoTracking() on evidence.ActionId equals action.Id
+                                    where action.ProjectId == projectId
+                                    select evidence.FileId).ToArrayAsync(token);
+        return sessionFiles.Concat(measurementFiles).Concat(fieldFiles).Concat(reuseFiles).Concat(repairOffline.Select(row => row.FileId)).Concat(lifecycleFiles).Distinct().Order().ToArray();
     }
     private static string Version(object facts)
         => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(facts))).ToLowerInvariant();

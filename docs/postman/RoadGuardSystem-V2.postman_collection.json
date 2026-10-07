@@ -15177,6 +15177,367 @@
           }
         }
       ]
+    },
+    {
+      "name": "Owner activation LD06 lifecycle (manual disposable)",
+      "description": "Current owner-confirmed A-F procedures. Read lifecycle ETag first; retain key and body for replay, use receiving project and actor for acceptance. No automatic live-data execution.",
+      "item": [
+        {
+          "id": "1298a2e5-8be0-4737-81b3-39687d95b910",
+          "name": "Read lifecycle and exact incoming transfer scope",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim."
+          }
+        },
+        {
+          "id": "a80cad1a-a366-45da-a8a5-47d0ce9e8296",
+          "name": "PM declare construction completion",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{activationLifecycleVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle/construction-declarations",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"TEST_ONLY disposable acceptance\",\n  \"evidenceFileIds\": [\n    \"{{activationEvidenceFileId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "4474a639-f154-4746-bda7-f37943b8b5ca",
+          "name": "Supervisor confirm exact declaration",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{activationLifecycleVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle/construction-confirmations",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"TEST_ONLY disposable acceptance\",\n  \"evidenceFileIds\": [],\n  \"sourceActionId\": \"{{activationDeclarationId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "17a99b96-0833-481a-959e-41a6283eb6a0",
+          "name": "Supervisor explicitly close resolved Defect",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{activationLifecycleVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle/defect-closures",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"TEST_ONLY disposable acceptance\",\n  \"evidenceFileIds\": [],\n  \"defectId\": \"{{activationDefectId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "3432db3c-c1b3-4a3a-a796-6fae6332c755",
+          "name": "Supervisor operationally close current inventory",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{activationLifecycleVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle/operational-closures",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"TEST_ONLY disposable acceptance\",\n  \"evidenceFileIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "664551e1-5f24-40de-b686-fe4e02645716",
+          "name": "PM confirm genuine new Defect and link recurrence atomically",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{activationLifecycleVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle/recurrences",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"TEST_ONLY disposable acceptance\",\n  \"evidenceFileIds\": [\n    \"{{activationEvidenceFileId}}\"\n  ],\n  \"defectId\": \"{{activationDefectId}}\",\n  \"priorRepairDecisionId\": \"{{activationPriorRepairDecisionId}}\",\n  \"newDefect\": {\n    \"sourceKind\": \"REPORT\",\n    \"sourceId\": \"{{activationNewReportId}}\",\n    \"sourceVersion\": \"{{activationCandidateSourceVersion}}\",\n    \"geometryVersion\": \"{{activationCandidateGeometryVersion}}\",\n    \"decision\": \"KEEP_NEW\",\n    \"targetDefectId\": null,\n    \"targetVersion\": null,\n    \"classification\": {\n      \"defectTypeCode\": \"{{activationDefectTypeCode}}\",\n      \"causeCategoryCode\": null,\n      \"severity\": \"LOW\",\n      \"roadSectionVersionId\": \"{{activationRoadVersionId}}\"\n    },\n    \"reason\": \"TEST_ONLY genuine recurrence\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "814b68f2-2aa3-4abc-b7f1-fb22867c5285",
+          "name": "Current responsible Supervisor issue exact obligation transfer",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{activationLifecycleVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle/obligation-transfers",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"TEST_ONLY disposable acceptance\",\n  \"evidenceFileIds\": [],\n  \"obligationId\": \"{{activationObligationId}}\",\n  \"receivingProjectId\": \"{{activationReceivingProjectId}}\",\n  \"scopeHash\": \"{{activationScopeHash}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "ee691650-9743-4053-975e-88c630627e02",
+          "name": "Receiving Supervisor accept unchanged exact transfer",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{activationActorAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{activationIdempotencyKey}}"
+              },
+              {
+                "key": "If-Match",
+                "value": "\"{{activationLifecycleVersion}}\""
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/lifecycle/obligation-transfer-acceptances",
+            "description": "Manual disposable owner-activation scenario. Select the current required actor, exact project and source pins. Local wire only; no external acceptance claim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"TEST_ONLY disposable acceptance\",\n  \"evidenceFileIds\": [],\n  \"sourceActionId\": \"{{activationTransferIssueId}}\",\n  \"obligationId\": \"{{activationObligationId}}\",\n  \"scopeHash\": \"{{activationScopeHash}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 }

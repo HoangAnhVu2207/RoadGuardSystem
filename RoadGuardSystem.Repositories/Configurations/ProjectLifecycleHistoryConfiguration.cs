@@ -15,6 +15,7 @@ internal static class ProjectLifecycleHistoryConfiguration
         {
             table.HasTrigger("TR_ProjectLifecycleHistory_Immutable");
             table.HasTrigger("TR_ProjectLifecycleHistory_Scope");
+            table.HasTrigger("TR_ProjectLifecycleHistory_Production");
             table.HasCheckConstraint("CK_ProjectLifecycleHistory_Source", "[Kind] IN (1,2,3,4,5,6,7,8) AND [SourceDisposition] IN ('CANDIDATE','TARGET_CONFIRMED') AND ([SourceDisposition]='CANDIDATE' OR LEN([AuthoritySourceReference])>0)");
             table.HasCheckConstraint("CK_ProjectLifecycleHistory_Facts", "ISJSON([FactsJson])=1");
         });

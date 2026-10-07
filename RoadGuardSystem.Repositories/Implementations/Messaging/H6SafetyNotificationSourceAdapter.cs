@@ -1,3 +1,5 @@
+using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.Repositories.Repairs;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Clocks;
@@ -14,11 +16,28 @@ public sealed class H6SafetyNotificationSourceAdapter(RoadGuardDbContext db) : I
         {
             SourceKind = "TemporarySafetyMeasure",
             SourceId = row.Id,
-            ProjectId = row.ProjectId,
+            ProjectId = (from monitoring in db.Set<RepairSafetyMonitoring>()
+                         join owner in db.Set<ObligationResponsibility>() on monitoring.SafetyObligationId equals owner.ObligationId
+                         where monitoring.MeasureId == row.Id && owner.OriginProjectId == row.ProjectId
+                         select (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? row.ProjectId,
+            AssignedProjectId = row.ProjectId,
+            ProjectAuthorityVerified = false,
             AssignedUserId = row.ResponsibleActorId
         });
 
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
+    {
+        var proof = await ResolveCoreAsync(plan, cancellationToken);
+        if (proof.Status != "VERIFIED") return proof;
+        var monitoring = await db.Set<RepairSafetyMonitoring>().AsNoTracking().SingleAsync(row => row.MeasureId == plan.Source.SourceId, cancellationToken);
+        return proof with
+        {
+            ResponsibilityProjectId = await ObligationResponsibilityScope.ResolveAsync(db,
+            monitoring.SafetyObligationId, plan.Source.ProjectId, cancellationToken)
+        };
+    }
+
+    private async Task<H6SourceResolution> ResolveCoreAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
         if (db.Database.CurrentTransaction is null) throw new InvalidOperationException("Source proof requires the caller's transaction.");

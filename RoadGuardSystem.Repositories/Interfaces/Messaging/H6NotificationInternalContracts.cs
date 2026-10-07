@@ -12,13 +12,13 @@ public sealed record H6StoredEvent(int SchemaVersion, Guid EventId, string Kind,
 public sealed record H6StoredCorrectionFacts(Guid ObligationId, Guid SupersedesDecisionId, string Result);
 public sealed record H6DispatchPlan(H6StoredEvent Source, NotificationEventEnvelope? Envelope,
     string MessageType, string Title, string Body, bool AuditOnly, H6StoredCorrectionFacts? AuditFacts = null);
-public sealed record H6SourceScope(string SourceKind, Guid SourceId, Guid ProjectId, Guid? AssignedUserId = null)
+public sealed record H6SourceScope(string SourceKind, Guid SourceId, Guid ProjectId, Guid? AssignedUserId = null, Guid? AssignedProjectId = null, bool ProjectAuthorityVerified = false)
 {
     public H6SourceScope() : this("", Guid.Empty, Guid.Empty) { }
 }
 public sealed record H6SourceResolution(string Status, string? ReasonCode = null,
     Guid? TaskId = null, Guid? AssignmentId = null, Guid? ResponsibleUserId = null, bool ResponsibleIsSupervisor = false,
-    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null, string? BodyOverride = null);
+    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null, string? BodyOverride = null, Guid? ResponsibilityProjectId = null, Guid[]? ResponsibilityProjectIds = null);
 public sealed record H6Claim(Guid Id, string MessageType, DateTimeOffset OccurredAtUtc,
     string PayloadJson, Guid Fence, DateTimeOffset LeaseExpiresAtUtc, int Attempt);
 public sealed record H6DispatchOutcome(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,

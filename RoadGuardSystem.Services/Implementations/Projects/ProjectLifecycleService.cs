@@ -4,7 +4,8 @@ using RoadGuardSystem.Repositories.Projects;
 
 namespace RoadGuardSystem.Services.Projects;
 
-public sealed class ProjectLifecycleService(IProjectLifecycleRepository repository) : IProjectLifecycleService
+public sealed partial class ProjectLifecycleService(IProjectLifecycleRepository repository,
+    RoadGuardSystem.Services.Defects.ICandidateDecisionService? candidateDecisions = null) : IProjectLifecycleService
 {
     public async Task<ProjectLifecycleMutationResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, CancellationToken cancellationToken)
     {
@@ -41,7 +42,12 @@ public sealed class ProjectLifecycleService(IProjectLifecycleRepository reposito
             value.OutstandingMandatoryObligationIds, value.MissingReasons, value.History.Select(row => new ProjectLifecycleHistoryDto(
                 row.Id, row.Kind, row.ActorId, row.RecordedAtUtc, row.ObligationId, row.GrantId, row.ReceiverId,
                 row.OperationalClosureId, row.Reason, row.BasisReference, row.AuthoritySourceReference, row.SourceDisposition,
-                row.DefectId, row.LinkedDefectId, row.HandlingScope)).ToArray(), value.Version);
+                row.DefectId, row.LinkedDefectId, row.HandlingScope)).ToArray(), value.Version,
+            value.Actions?.Select(row => new LD06ActionDto(row.Id, row.ProjectId, row.Kind, row.ActorId, row.At, row.SourceActionId,
+                row.DefectId, row.LinkedDefectId, row.ObligationId, row.ReceivingProjectId, row.PriorRepairDecisionId, row.ScopeHash, row.FactsJson)).ToArray(),
+            value.Responsibilities?.Select(row => new ObligationResponsibilityDto(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, row.AcceptanceActionId)).ToArray(),
+            value.TransferableObligations?.Select(row => new LD06TransferableObligationDto(row.Id, row.DefectId, row.Kind, row.Mandatory, row.ScopeId,
+                row.PhysicalRoadId, row.LocationVersion, row.RouteLabel, row.From, row.To, row.OffsetFrom, row.OffsetTo, row.ScopeHash, row.Version)).ToArray());
     private static bool Text(string? value, int maximum) => !string.IsNullOrWhiteSpace(value) && value.Length <= maximum;
     private static Task<ProjectLifecycleMutationResult> Error(int status, string code) => Task.FromResult(new ProjectLifecycleMutationResult(status, code));
 }

@@ -36,8 +36,9 @@ public sealed partial class H6ProtectedNotificationRepository
         {
             var actual = adapter.ScopeQuery();
             ids = ids.Union(owned.Where(row => actual.Any(source => source.SourceId == row.SourceEntityId &&
-                source.SourceKind == EF.Functions.Collate(row.SourceEntityType, ExactNames) && projects.Contains(source.ProjectId) &&
-                (generic || role == UserRoleCode.RepairCrew && source.AssignedUserId == actor))).Select(row => row.Id));
+                source.SourceKind == EF.Functions.Collate(row.SourceEntityType, ExactNames) && (generic &&
+                    (source.SourceKind == "ReviewDigest" ? source.ProjectAuthorityVerified && source.AssignedUserId == actor : projects.Contains(source.ProjectId)) || role == UserRoleCode.RepairCrew &&
+                    projects.Contains(source.AssignedProjectId ?? source.ProjectId) && source.AssignedUserId == actor))).Select(row => row.Id));
         }
         return owned.Where(row => ids.Contains(row.Id));
     }

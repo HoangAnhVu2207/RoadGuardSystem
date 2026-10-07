@@ -150,15 +150,16 @@ public sealed class P221RoadWarrantySchemaTests : IClassFixture<IdentitySqlServe
                 .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite())
                 .Options;
             await using var context = new RoadGuardDbContext(options);
-            await context.Database.MigrateAsync();
+            await context.GetService<IMigrator>().MigrateAsync("20260920154542_AddRoadSectionVersionAndWarrantySchema");
             (await CountP221TablesAsync(context)).Should().Be(3);
 
             var migrator = context.GetService<IMigrator>();
             await migrator.MigrateAsync("20260920140643_AddNotificationPersistenceBoundary");
             (await CountP221TablesAsync(context)).Should().Be(0);
 
-            await context.Database.MigrateAsync();
+            await context.GetService<IMigrator>().MigrateAsync("20260920154542_AddRoadSectionVersionAndWarrantySchema");
             (await CountP221TablesAsync(context)).Should().Be(3);
+            await context.Database.MigrateAsync();
         }
         finally
         {

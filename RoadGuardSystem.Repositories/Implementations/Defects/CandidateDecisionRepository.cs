@@ -6,7 +6,7 @@ using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Candidates;
 using RoadGuardSystem.BusinessObjects.Defects;
 using RoadGuardSystem.BusinessObjects.Reports;
-using RoadGuardSystem.DTOs.Defects;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Defects;
 using RoadGuardSystem.Repositories.Cases;
 using RoadGuardSystem.Repositories.Defects;
 using RoadGuardSystem.Repositories.Models.Huy01;
@@ -15,6 +15,14 @@ namespace RoadGuardSystem.Repositories.Implementations.Defects;
 
 public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandidateDecisionRepository
 {
+    public Task<T?> ReadSnapshotConsistentlyAsync<T>(Func<CancellationToken, Task<T?>> read, CancellationToken ct) where T : class
+    {
+        if (db.Database.CurrentTransaction is { } current &&
+            current.GetDbTransaction().IsolationLevel is not (IsolationLevel.Serializable or IsolationLevel.Snapshot))
+            return Task.FromResult<T?>(null);
+        return ReadConsistentlyAsync(read, ct);
+    }
+
     public Task<T> ReadConsistentlyAsync<T>(Func<CancellationToken, Task<T>> read, CancellationToken ct)
     {
         if (db.Database.CurrentTransaction is { } current)
@@ -35,8 +43,13 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
     public async Task<IReadOnlyList<CandidateTargetMatchFact>> MatchTargetsAsync(Guid projectId, CancellationToken ct)
     {
         var targets = await db.Defects.AsNoTracking().Where(defect => defect.ProjectId == projectId)
-            .Select(defect => new { defect.Id, defect.ProjectId, defect.RoadSectionVersionId,
-                Version = EF.Property<byte[]>(defect, "RowVersion") }).ToArrayAsync(ct);
+            .Select(defect => new
+            {
+                defect.Id,
+                defect.ProjectId,
+                defect.RoadSectionVersionId,
+                Version = EF.Property<byte[]>(defect, "RowVersion")
+            }).ToArrayAsync(ct);
         var ids = targets.Select(target => target.Id).ToArray();
         var links = await db.Set<HuyDefectSourceLink>().AsNoTracking()
             .Where(link => ids.Contains(link.DefectId) && link.ProjectId == projectId && link.EndedAt == null)
@@ -69,8 +82,11 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
             await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [FileScopes] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={file}").SingleAsync(ct);
             await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={file}").SingleAsync(ct);
         }
-        var geometry = await db.IncidentCases.Where(c => c.Id == expectedCase).Select(c => new {
-            Route = EF.Property<Guid?>(c, "GeometryRouteVersionId"), Set = EF.Property<Guid?>(c, "GeometrySegmentSetId") }).SingleAsync(ct);
+        var geometry = await db.IncidentCases.Where(c => c.Id == expectedCase).Select(c => new
+        {
+            Route = EF.Property<Guid?>(c, "GeometryRouteVersionId"),
+            Set = EF.Property<Guid?>(c, "GeometrySegmentSetId")
+        }).SingleAsync(ct);
         if (geometry.Route is null || geometry.Set is null) throw new CaseWorkflowException(409, "source_not_ready");
         await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [RoadSectionVersions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={geometry.Route}").SingleAsync(ct);
         await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [RoadSegmentSets] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={geometry.Set}").SingleAsync(ct);
@@ -92,7 +108,7 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [CandidateSourceHeads] WITH (UPDLOCK,HOLDLOCK) WHERE [SourceKind]={(int)CandidateSourceKind.AiDetection} AND [SourceId]={detectionId}").SingleAsync(ct);
     }
 
-    public async Task<CandidateDecisionResponseDto> SaveRejectAsync(Guid actor, CandidateSourceFacts facts, CandidateCorrection? correction,
+    public async Task<CandidateDecisionResponseFact> SaveRejectAsync(Guid actor, CandidateSourceFacts facts, CandidateCorrection? correction,
         string reason, Guid? correlation, CancellationToken ct)
     {
         var head = await db.Set<HuyCandidateSourceHead>().SingleOrDefaultAsync(h => h.SourceKind == facts.Source.Kind && h.SourceId == facts.Source.Id, ct);
@@ -115,7 +131,7 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         return Project(decision, db.Entry(decision).Property<byte[]>("RowVersion").CurrentValue!);
     }
 
-    public async Task<CandidateDecisionResponseDto> SaveAcceptedAsync(Guid actor, CandidateSourceFacts facts,
+    public async Task<CandidateDecisionResponseFact> SaveAcceptedAsync(Guid actor, CandidateSourceFacts facts,
         CandidateDecisionKind kind, CandidateClassification? classification, Guid? targetDefectId,
         string? targetVersion, CandidateCorrection? correction, string reason, Guid? correlation, CancellationToken ct)
     {
@@ -176,15 +192,24 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         if (created is not null) db.Defects.Add(created);
         db.Set<HuyDefectSourceLink>().Add(new()
         {
-            Id = Guid.NewGuid(), SourceKind = facts.Source.Kind, SourceId = facts.Source.Id,
+            Id = Guid.NewGuid(),
+            SourceKind = facts.Source.Kind,
+            SourceId = facts.Source.Id,
             ReportSourceId = facts.Source.Kind == CandidateSourceKind.Report ? facts.Source.Id : null,
             AIDetectionSourceId = facts.Source.Kind == CandidateSourceKind.AiDetection ? facts.Source.Id : null,
-            ProjectId = facts.ProjectId, DefectId = defectId,
-            DecisionId = decision.Id, CreatedAt = now
+            ProjectId = facts.ProjectId,
+            DefectId = defectId,
+            DecisionId = decision.Id,
+            CreatedAt = now
         });
         if (head is null)
-            db.Set<HuyCandidateSourceHead>().Add(new() { SourceKind = facts.Source.Kind,
-                SourceId = facts.Source.Id, ProjectId = facts.ProjectId, DecisionId = decision.Id });
+            db.Set<HuyCandidateSourceHead>().Add(new()
+            {
+                SourceKind = facts.Source.Kind,
+                SourceId = facts.Source.Id,
+                ProjectId = facts.ProjectId,
+                DecisionId = decision.Id
+            });
         else head.DecisionId = decision.Id;
         db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, now, "candidate_decided", "CandidateDecision", decision.Id,
             null, JsonSerializer.Serialize(new { decisionId = decision.Id, sourceId = facts.Source.Id }), reason,
@@ -193,7 +218,7 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
         return Project(decision, db.Entry(decision).Property<byte[]>("RowVersion").CurrentValue!, defectId);
     }
 
-    public Task<CandidateDecisionResponseDto?> ReadAsync(Guid projectId, Guid decisionId, Func<CancellationToken, Task> guard, CancellationToken ct)
+    public Task<CandidateDecisionResponseFact?> ReadAsync(Guid projectId, Guid decisionId, Func<CancellationToken, Task> guard, CancellationToken ct)
         => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -206,7 +231,7 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
             await tx.CommitAsync(ct);
             return row is null ? null : Project(row.Decision, row.Version, linkedDefect);
         });
-    private static CandidateDecisionResponseDto Project(CandidateDecision d, byte[] version, Guid? defectId = null)
+    private static CandidateDecisionResponseFact Project(CandidateDecision d, byte[] version, Guid? defectId = null)
         => new(d.Id, d.Source.Kind == CandidateSourceKind.Report ? "REPORT" : "AI_DETECTION", d.Source.Id,
             d.Decision == CandidateDecisionKind.Reject ? "REJECT" : d.Decision == CandidateDecisionKind.KeepNew ? "KEEP_NEW" : "LINK_EXISTING",
             defectId ?? d.TargetDefectId, Convert.ToBase64String(version), d.SupersedesDecisionId);

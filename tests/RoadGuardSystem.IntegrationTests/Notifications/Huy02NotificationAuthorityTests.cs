@@ -210,9 +210,16 @@ public sealed class Huy02NotificationAuthorityTests(IdentitySqlServerFixture fix
     {
         await using var db = fixture.CreateDbContext();
         await fixture.SeedRolesAsync(db);
-        var actor = new ApplicationUser { Id = Guid.NewGuid(), UserName = $"huy02_{Guid.NewGuid():N}",
-            DisplayName = "Test recipient", PasswordHash = "fixture", RoleCode = UserRoleCode.ProjectManager,
-            Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow };
+        var actor = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = $"huy02_{Guid.NewGuid():N}",
+            DisplayName = "Test recipient",
+            PasswordHash = "fixture",
+            RoleCode = UserRoleCode.ProjectManager,
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
         var notification = Notification.Create(Guid.NewGuid(), actor.Id, "Test", Guid.NewGuid(), "test.created",
             "Test", "Owned inbox", DateTimeOffset.UtcNow);
         db.AddRange(actor, notification);

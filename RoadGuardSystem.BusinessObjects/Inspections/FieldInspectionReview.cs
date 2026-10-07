@@ -15,11 +15,20 @@ public sealed class FieldInspectionReview
     public static FieldInspectionReview Create(Guid id, Guid project, Guid task, Guid submission, Guid actor,
         string decision, string reason, DateTimeOffset at)
     {
-        if (new[] {id,project,task,submission,actor}.Any(x => x == Guid.Empty) ||
+        if (new[] { id, project, task, submission, actor }.Any(x => x == Guid.Empty) ||
             decision is not ("CONFIRM" or "NO_DEFECT" or "SUPPLEMENT") || string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 2000)
             throw new ArgumentException("A bounded actor review decision is required.");
-        return new FieldInspectionReview { Id=id,ProjectId=project,TaskId=task,SubmissionId=submission,ActorId=actor,
-            Decision=decision,Reason=reason.Trim(),OccurredAt=at.ToUniversalTime(),
-            ReceiptActivation=decision == "SUPPLEMENT" ? "BUSINESS_ACK_REQUIRED" : "NOT_APPLICABLE" };
+        return new FieldInspectionReview
+        {
+            Id = id,
+            ProjectId = project,
+            TaskId = task,
+            SubmissionId = submission,
+            ActorId = actor,
+            Decision = decision,
+            Reason = reason.Trim(),
+            OccurredAt = at.ToUniversalTime(),
+            ReceiptActivation = decision == "SUPPLEMENT" ? "BUSINESS_ACK_REQUIRED" : "NOT_APPLICABLE"
+        };
     }
 }

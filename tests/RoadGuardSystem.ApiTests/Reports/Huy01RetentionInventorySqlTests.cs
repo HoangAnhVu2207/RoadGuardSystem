@@ -53,8 +53,13 @@ public sealed class Huy01RetentionInventorySqlTests(AuthenticationSqlServerFixtu
             var conclusion = CaseConclusion.Create(conclusionId, CaseConclusionOutcome.NoDefect, [], [evidenceId], "Reviewed evidence", now);
             db.Set<CaseConclusion>().Add(conclusion);
             db.Entry(conclusion).Property<Guid>("CaseId").CurrentValue = caseId;
-            db.Set<HuyConclusionEvidence>().Add(new() { ConclusionId = conclusionId, EvidenceId = evidenceId,
-                SourceReportId = reportId, OriginalEvidenceId = evidenceId });
+            db.Set<HuyConclusionEvidence>().Add(new()
+            {
+                ConclusionId = conclusionId,
+                EvidenceId = evidenceId,
+                SourceReportId = reportId,
+                OriginalEvidenceId = evidenceId
+            });
             await db.SaveChangesAsync();
         }
 

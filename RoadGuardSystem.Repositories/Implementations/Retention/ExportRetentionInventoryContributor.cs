@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Exports;
-using RoadGuardSystem.DTOs.Retention;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Retention;
 namespace RoadGuardSystem.Repositories.Retention;
 
 public sealed class ExportRetentionInventoryContributor(RoadGuardDbContext context) : IRetentionInventoryContributor
@@ -8,9 +8,9 @@ public sealed class ExportRetentionInventoryContributor(RoadGuardDbContext conte
     public string Name => "EXPORT";
     public async Task<RetentionInventoryContribution> ReadAsync(Guid fileId, CancellationToken token)
     {
-        var refs = new List<RetentionReferenceView>(); var bounds = new List<DateTimeOffset?>(); var reasons = new List<string>();
+        var refs = new List<RetentionReferenceViewFact>(); var bounds = new List<DateTimeOffset?>(); var reasons = new List<string>();
         var sources = await (from f in context.Set<ExportSnapshotFile>().AsNoTracking() join s in context.Set<ExportSnapshot>().AsNoTracking() on f.SnapshotId equals s.Id where f.FileId == fileId select new { f, s }).ToListAsync(token);
-        refs.AddRange(sources.Select(x => new RetentionReferenceView("EXPORT_SNAPSHOT_SOURCE", x.f.Id, x.s.ProjectId, RetentionInventoryRepository.Hash(new { x.s.Hash, x.f.FileVersion, x.f.Sha256, x.f.SizeBytes, x.f.Included }))));
+        refs.AddRange(sources.Select(x => new RetentionReferenceViewFact("EXPORT_SNAPSHOT_SOURCE", x.f.Id, x.s.ProjectId, RetentionInventoryRepository.Hash(new { x.s.Hash, x.f.FileVersion, x.f.Sha256, x.f.SizeBytes, x.f.Included }))));
         var outputs = await (from a in context.Set<GeneratedArtifact>().AsNoTracking() join j in context.Set<ExportJob>().AsNoTracking() on a.ExportJobId equals j.Id where a.FileId == fileId select new { a, j }).ToListAsync(token);
         foreach (var row in outputs)
         {

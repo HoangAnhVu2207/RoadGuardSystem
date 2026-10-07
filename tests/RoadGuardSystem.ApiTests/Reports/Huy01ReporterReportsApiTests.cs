@@ -200,16 +200,30 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var geometry = await CreatePublishedGeometryAsync(client, pm.UserName!, supervisor.UserName!, project);
         await LoginAsync(client, supervisor.UserName!);
         var read = await client.GetAsync($"/api/v1/cases/{incident}");
-        var triage = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/triage", new { projectId = project, verificationMethod = "EXISTING_EVIDENCE", reason = "Route provenance",
-            routeVersionId = geometry.Route, segmentSetId = geometry.Set, geometryVersion = geometry.Version }, Guid.NewGuid().ToString(), read.Headers.ETag!.ToString());
+        var triage = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/triage", new
+        {
+            projectId = project,
+            verificationMethod = "EXISTING_EVIDENCE",
+            reason = "Route provenance",
+            routeVersionId = geometry.Route,
+            segmentSetId = geometry.Set,
+            geometryVersion = geometry.Version
+        }, Guid.NewGuid().ToString(), read.Headers.ETag!.ToString());
         triage.StatusCode.Should().Be(HttpStatusCode.OK);
         using var scope = factory.Services.CreateScope();
         var producer = scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Integration.IAnhHuyProducerService>();
         var source = await producer.ResolveCandidateSourceAsync(pm.Id, UserRoleCode.ProjectManager, project, RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, report);
         source.Status.Should().Be(RoadGuardSystem.Services.Integration.AnhHuyProducerStatus.Ready);
         await LoginAsync(client, pm.UserName!);
-        var payload = new { sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
-            geometryVersion = source.Facts.DomainFacts.GeometryVersion, decision = "REJECT", reason = "No defect in source" };
+        var payload = new
+        {
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
+            geometryVersion = source.Facts.DomainFacts.GeometryVersion,
+            decision = "REJECT",
+            reason = "No defect in source"
+        };
         var key = Guid.NewGuid().ToString(); var path = $"/api/v1/projects/{project}/candidate-decisions";
         var decisions = await Task.WhenAll(SendAsync(client, HttpMethod.Post, path, payload, key),
             SendAsync(client, HttpMethod.Post, path, payload, key));
@@ -226,10 +240,17 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var freshStale = await SendAsync(client, HttpMethod.Post, path, payload, Guid.NewGuid().ToString());
         freshStale.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var after = await producer.ResolveCandidateSourceAsync(pm.Id, UserRoleCode.ProjectManager, project, RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, report);
-        var corrected = await SendAsync(client, HttpMethod.Post, path, new { sourceKind = "REPORT", sourceId = report,
-            sourceVersion = after.Facts!.DomainFacts.Source.SourceVersion, geometryVersion = after.Facts.DomainFacts.GeometryVersion,
-            decision = "REJECT", reason = "Corrected reason", supersedesDecisionId = after.Facts.DomainFacts.ActiveDisposition!.DecisionId,
-            previousDecisionVersion = after.Facts.DomainFacts.ActiveDisposition.Version }, Guid.NewGuid().ToString());
+        var corrected = await SendAsync(client, HttpMethod.Post, path, new
+        {
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = after.Facts!.DomainFacts.Source.SourceVersion,
+            geometryVersion = after.Facts.DomainFacts.GeometryVersion,
+            decision = "REJECT",
+            reason = "Corrected reason",
+            supersedesDecisionId = after.Facts.DomainFacts.ActiveDisposition!.DecisionId,
+            previousDecisionVersion = after.Facts.DomainFacts.ActiveDisposition.Version
+        }, Guid.NewGuid().ToString());
         corrected.StatusCode.Should().Be(HttpStatusCode.Created);
         (await client.GetAsync(corrected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
         await using (var db = sql.CreateDbContext())
@@ -297,10 +318,12 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         }
         var keepPayload = new
         {
-            sourceKind = "REPORT", sourceId = report,
+            sourceKind = "REPORT",
+            sourceId = report,
             sourceVersion = keepSource.Facts!.DomainFacts.Source.SourceVersion,
             geometryVersion = keepSource.Facts.DomainFacts.GeometryVersion,
-            decision = "KEEP_NEW", reason = "Verified source needs a distinct defect",
+            decision = "KEEP_NEW",
+            reason = "Verified source needs a distinct defect",
             classification = new { defectTypeCode, severity = "LOW", roadSectionVersionId = geometry.Route },
             supersedesDecisionId = keepSource.Facts.DomainFacts.ActiveDisposition!.DecisionId,
             previousDecisionVersion = keepSource.Facts.DomainFacts.ActiveDisposition.Version
@@ -338,8 +361,12 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var secondCaseRead = await client.GetAsync($"/api/v1/cases/{secondCase}");
         var secondTriage = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{secondCase}/triage", new
         {
-            projectId = project, verificationMethod = "EXISTING_EVIDENCE", reason = "Same route",
-            routeVersionId = geometry.Route, segmentSetId = geometry.Set, geometryVersion = geometry.Version
+            projectId = project,
+            verificationMethod = "EXISTING_EVIDENCE",
+            reason = "Same route",
+            routeVersionId = geometry.Route,
+            segmentSetId = geometry.Set,
+            geometryVersion = geometry.Version
         }, Guid.NewGuid().ToString(), secondCaseRead.Headers.ETag!.ToString());
         secondTriage.StatusCode.Should().Be(HttpStatusCode.OK);
         await LoginAsync(client, pm.UserName!);
@@ -352,11 +379,14 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
                 .Select(item => EF.Property<byte[]>(item, "RowVersion")).SingleAsync());
         object LinkPayload(string version) => new
         {
-            sourceKind = "REPORT", sourceId = secondReport,
+            sourceKind = "REPORT",
+            sourceId = secondReport,
             sourceVersion = secondSource.Facts!.DomainFacts.Source.SourceVersion,
             geometryVersion = secondSource.Facts.DomainFacts.GeometryVersion,
-            decision = "LINK_EXISTING", targetDefectId = createdDefectId,
-            targetVersion = version, reason = "Same verified defect"
+            decision = "LINK_EXISTING",
+            targetDefectId = createdDefectId,
+            targetVersion = version,
+            reason = "Same verified defect"
         };
         (await SendAsync(client, HttpMethod.Post, path, LinkPayload(Convert.ToBase64String(new byte[8])),
             Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
@@ -377,7 +407,7 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyDefectSourceLink>()
                 .CountAsync(link => link.DefectId == createdDefectId && link.EndedAt == null)).Should().Be(2);
             (await db.FieldInspectionTasks.CountAsync(task => task.ProjectId == project && task.DefectId == createdDefectId)).Should().Be(0);
-            var dossier = await new RoadGuardSystem.Services.Implementations.Integration.CaseDefectReadReader(db)
+            var dossier = await new RoadGuardSystem.Services.Implementations.Integration.CaseDefectReadReader(new RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository(db))
                 .CaptureAsync(pm.Id, UserRoleCode.ProjectManager, project,
                     new RoadGuardSystem.DTOs.Reporting.ReportingFiltersDto());
             dossier.Should().NotBeNull();
@@ -450,7 +480,9 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var beforeCookieAssessment = await DefectCookieEffectsAsync(pm.Id, createdDefectId);
         var assessment = await SendAsync(web, HttpMethod.Post, defectPath + "/assessments", new
         {
-            defectTypeCode, severity = "MEDIUM", reason = "PM assessment",
+            defectTypeCode,
+            severity = "MEDIUM",
+            reason = "PM assessment",
             evidenceIds = source.Facts.EvidenceIds
         }, Guid.NewGuid().ToString(), defectRead.Headers.ETag!.ToString());
         assessment.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -470,8 +502,10 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         }
         var verification = await SendAsync(web, HttpMethod.Post, defectPath + "/verification-decisions", new
         {
-            decision = "CONFIRM", verificationMethod = "EXISTING_EVIDENCE",
-            evidenceIds = source.Facts.EvidenceIds, reason = "Verified report image"
+            decision = "CONFIRM",
+            verificationMethod = "EXISTING_EVIDENCE",
+            evidenceIds = source.Facts.EvidenceIds,
+            reason = "Verified report image"
         }, Guid.NewGuid().ToString(), assessment.Headers.ETag!.ToString());
         verification.StatusCode.Should().Be(HttpStatusCode.OK);
         var afterCookieVerification = await DefectCookieEffectsAsync(pm.Id, createdDefectId);
@@ -488,8 +522,10 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         verifiedItems[0].GetProperty("id").GetGuid().Should().Be(createdDefectId);
         (await SendAsync(client, HttpMethod.Post, defectPath + "/verification-decisions", new
         {
-            decision = "CONFIRM", verificationMethod = "EXISTING_EVIDENCE",
-            evidenceIds = source.Facts.EvidenceIds, reason = "Stale verification"
+            decision = "CONFIRM",
+            verificationMethod = "EXISTING_EVIDENCE",
+            evidenceIds = source.Facts.EvidenceIds,
+            reason = "Stale verification"
         }, Guid.NewGuid().ToString(), assessment.Headers.ETag!.ToString())).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
         await using (var db = sql.CreateDbContext())
         {
@@ -501,14 +537,18 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var conclusionCase = await client.GetAsync($"/api/v1/cases/{incident}");
         var confirmed = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/conclusions", new
         {
-            outcome = "CONFIRMED", defectIds = new[] { createdDefectId },
-            evidenceIds = source.Facts.EvidenceIds, reason = "Verified report evidence"
+            outcome = "CONFIRMED",
+            defectIds = new[] { createdDefectId },
+            evidenceIds = source.Facts.EvidenceIds,
+            reason = "Verified report evidence"
         }, Guid.NewGuid().ToString(), conclusionCase.Headers.ETag!.ToString());
         confirmed.StatusCode.Should().Be(HttpStatusCode.OK, await confirmed.Content.ReadAsStringAsync());
         var published = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/publications", new
         {
-            reportIds = new[] { report }, defectIds = new[] { createdDefectId },
-            evidenceIds = source.Facts.EvidenceIds, summary = "Verified defect on report"
+            reportIds = new[] { report },
+            defectIds = new[] { createdDefectId },
+            evidenceIds = source.Facts.EvidenceIds,
+            summary = "Verified defect on report"
         }, Guid.NewGuid().ToString(), confirmed.Headers.ETag!.ToString());
         published.StatusCode.Should().Be(HttpStatusCode.Created);
         await LoginAsync(client, reporter.UserName!);
@@ -519,10 +559,12 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             project, RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, report);
         var forbiddenCorrection = await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "REPORT", sourceId = report,
+            sourceKind = "REPORT",
+            sourceId = report,
             sourceVersion = acceptedHead.Facts!.DomainFacts.Source.SourceVersion,
             geometryVersion = acceptedHead.Facts.DomainFacts.GeometryVersion,
-            decision = "REJECT", reason = "Cannot detach an accepted source without downstream policy",
+            decision = "REJECT",
+            reason = "Cannot detach an accepted source without downstream policy",
             supersedesDecisionId = acceptedHead.Facts.DomainFacts.ActiveDisposition!.DecisionId,
             previousDecisionVersion = acceptedHead.Facts.DomainFacts.ActiveDisposition.Version
         }, Guid.NewGuid().ToString());
@@ -594,8 +636,12 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var caseRead = await client.GetAsync($"/api/v1/cases/{caseId}");
         (await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{caseId}/triage", new
         {
-            projectId = project, verificationMethod = "EXISTING_EVIDENCE", reason = "Known source",
-            routeVersionId = geometry.Route, segmentSetId = geometry.Set, geometryVersion = geometry.Version
+            projectId = project,
+            verificationMethod = "EXISTING_EVIDENCE",
+            reason = "Known source",
+            routeVersionId = geometry.Route,
+            segmentSetId = geometry.Set,
+            geometryVersion = geometry.Version
         }, Guid.NewGuid().ToString(), caseRead.Headers.ETag!.ToString())).StatusCode.Should().Be(HttpStatusCode.OK);
         using var scope = factory.Services.CreateScope();
         var producer = scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Integration.IAnhHuyProducerService>();
@@ -606,45 +652,74 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var path = $"/api/v1/projects/{project}/labels";
         (await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "AI_DETECTION", sourceId = Guid.NewGuid(), sourceVersion = "unavailable",
-            fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
-            defectTypeCode = type, reason = "AI provenance not ready"
+            sourceKind = "AI_DETECTION",
+            sourceId = Guid.NewGuid(),
+            sourceVersion = "unavailable",
+            fileId = file.FileId,
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
+            defectTypeCode = type,
+            reason = "AI provenance not ready"
         }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
-            fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.9m, y = 0.2m, width = 0.3m, height = 0.4m },
-            defectTypeCode = type, reason = "Invalid rectangle"
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
+            fileId = file.FileId,
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.9m, y = 0.2m, width = 0.3m, height = 0.4m },
+            defectTypeCode = type,
+            reason = "Invalid rectangle"
         }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
-            fileId = Guid.NewGuid(), annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
-            defectTypeCode = type, reason = "Unrelated file"
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
+            fileId = Guid.NewGuid(),
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
+            defectTypeCode = type,
+            reason = "Unrelated file"
         }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "REPORT", sourceId = report, sourceVersion = "stale-version",
-            fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
-            defectTypeCode = type, reason = "Stale source"
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = "stale-version",
+            fileId = file.FileId,
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
+            defectTypeCode = type,
+            reason = "Stale source"
         }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
-            fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
-            defectTypeCode = "INACTIVE", reason = "Unknown type"
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
+            fileId = file.FileId,
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
+            defectTypeCode = "INACTIVE",
+            reason = "Unknown type"
         }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
-            fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
-            defectTypeCode = type, reason = "Unknown field", unknown = true
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
+            fileId = file.FileId,
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
+            defectTypeCode = type,
+            reason = "Unknown field",
+            unknown = true
         }, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var createPayload = new
         {
-            sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
-            fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
-            defectTypeCode = type, reason = "Manual classification"
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = source.Facts!.DomainFacts.Source.SourceVersion,
+            fileId = file.FileId,
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.1m, y = 0.2m, width = 0.3m, height = 0.4m },
+            defectTypeCode = type,
+            reason = "Manual classification"
         };
         var failedKey = Guid.NewGuid().ToString();
         var precommit = new CommandCommitFailure(failedKey, false);
@@ -676,8 +751,12 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         createReplay.Headers.ETag.Should().Be(create.Headers.ETag);
         (await SendAsync(client, HttpMethod.Post, path, new
         {
-            sourceKind = "REPORT", sourceId = report, sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
-            fileId = file.FileId, annotation = createPayload.annotation, defectTypeCode = type,
+            sourceKind = "REPORT",
+            sourceId = report,
+            sourceVersion = source.Facts.DomainFacts.Source.SourceVersion,
+            fileId = file.FileId,
+            annotation = createPayload.annotation,
+            defectTypeCode = type,
             reason = "Different same-key payload"
         }, createKey)).StatusCode.Should().Be(HttpStatusCode.Conflict);
         var labelId = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
@@ -759,8 +838,10 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         }
         var revision = await SendAsync(client, HttpMethod.Post, $"{labelPath}/revisions", new
         {
-            fileId = file.FileId, annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.2m, y = 0.2m, width = 0.3m, height = 0.3m },
-            defectTypeCode = type, reason = "Refined outline"
+            fileId = file.FileId,
+            annotation = new { kind = "BBOX", coordinateSpace = "NORMALIZED", x = 0.2m, y = 0.2m, width = 0.3m, height = 0.3m },
+            defectTypeCode = type,
+            reason = "Refined outline"
         }, Guid.NewGuid().ToString(), review.Headers.ETag!.ToString());
         revision.StatusCode.Should().Be(HttpStatusCode.Created);
         var current = await client.GetAsync(labelPath);
@@ -859,7 +940,8 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", anonymous.GetProperty("requestToken").GetString());
         (await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password = "Current1!"
         })).StatusCode.Should().Be(HttpStatusCode.OK);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
         var authorized = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/web/csrf");
@@ -1007,9 +1089,17 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
     {
         var prefix = $"/api/v1/projects/{project}";
         await LoginAsync(client, pm);
-        var draft = await SendAsync(client, HttpMethod.Post, prefix + "/road-geometry-drafts", new { sourceKind = "COORDINATES", sourceCrs = 32648,
-            stationOriginMeters = 0, changeReason = "Candidate fixture", coordinates = new[] { new { x = 500000d, y = 1200000d }, new { x = 500250d, y = 1200000d } },
-            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 250d, widthMeters = 7d } }, surveyWidthMeters = 9d, roadCode = $"R-{Guid.NewGuid():N}" }, Guid.NewGuid().ToString());
+        var draft = await SendAsync(client, HttpMethod.Post, prefix + "/road-geometry-drafts", new
+        {
+            sourceKind = "COORDINATES",
+            sourceCrs = 32648,
+            stationOriginMeters = 0,
+            changeReason = "Candidate fixture",
+            coordinates = new[] { new { x = 500000d, y = 1200000d }, new { x = 500250d, y = 1200000d } },
+            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 250d, widthMeters = 7d } },
+            surveyWidthMeters = 9d,
+            roadCode = $"R-{Guid.NewGuid():N}"
+        }, Guid.NewGuid().ToString());
         draft.EnsureSuccessStatusCode();
         await LoginAsync(client, supervisor);
         var confirmed = await SendAsync(client, HttpMethod.Post, draft.Headers.Location!.OriginalString + "/confirm",
@@ -1047,8 +1137,11 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await LoginAsync(client, reporter.UserName!);
         var file = await UploadVerifiedAsync(client, factory);
-        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Case workflow",
-            evidence = new[] { new { fileId = file.FileId, fileVersion = file.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new
+        {
+            description = "Case workflow",
+            evidence = new[] { new { fileId = file.FileId, fileVersion = file.Version, locationSource = "UNKNOWN" } }
+        }, Guid.NewGuid().ToString());
         var reportId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         Guid caseId;
         await using (var db = sql.CreateDbContext()) caseId = (await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().SingleAsync(l => l.ReportId == reportId && l.EndedAt == null)).CaseId;
@@ -1152,7 +1245,9 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             var current = await client.GetAsync($"/api/v1/cases/{incident}");
             (await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/triage", new
             {
-                projectId = assignedProject, verificationMethod = "EXISTING_EVIDENCE", reason = "Assigned project"
+                projectId = assignedProject,
+                verificationMethod = "EXISTING_EVIDENCE",
+                reason = "Assigned project"
             }, Guid.NewGuid().ToString(), current.Headers.ETag!.ToString())).StatusCode.Should().Be(HttpStatusCode.OK);
         }
         await LoginAsync(client, pm.UserName!);
@@ -1161,13 +1256,15 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var foreignSource = await client.GetAsync($"/api/v1/cases/{foreign.Case}");
         var crossProject = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-links", new
         {
-            reportIds = new[] { foreign.Report }, reason = "Must not cross projects",
+            reportIds = new[] { foreign.Report },
+            reason = "Must not cross projects",
             sourceCaseVersions = new Dictionary<Guid, string> { [foreign.Case] = foreignSource.Headers.ETag!.Tag!.Trim('"') }
         }, Guid.NewGuid().ToString(), target.Headers.ETag!.ToString());
         crossProject.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var staleSource = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-links", new
         {
-            reportIds = new[] { b.Report }, reason = "Stale source must roll back",
+            reportIds = new[] { b.Report },
+            reason = "Stale source must roll back",
             sourceCaseVersions = new Dictionary<Guid, string> { [b.Case] = Convert.ToBase64String(new byte[8]) }
         }, Guid.NewGuid().ToString(), target.Headers.ETag!.ToString());
         staleSource.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
@@ -1181,13 +1278,15 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         }
         var linked = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-links", new
         {
-            reportIds = new[] { b.Report }, reason = "Same incident",
+            reportIds = new[] { b.Report },
+            reason = "Same incident",
             sourceCaseVersions = new Dictionary<Guid, string> { [b.Case] = source.Headers.ETag!.Tag!.Trim('"') }
         }, Guid.NewGuid().ToString(), target.Headers.ETag!.ToString());
         linked.StatusCode.Should().Be(HttpStatusCode.OK, await linked.Content.ReadAsStringAsync());
         var split = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-splits", new
         {
-            reportIds = new[] { b.Report }, reason = "Separate while reviewing"
+            reportIds = new[] { b.Report },
+            reason = "Separate while reviewing"
         }, Guid.NewGuid().ToString(), linked.Headers.ETag!.ToString());
         split.StatusCode.Should().Be(HttpStatusCode.Created, await split.Content.ReadAsStringAsync());
         var splitCase = (await split.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
@@ -1195,25 +1294,33 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var activeTarget = await client.GetAsync($"/api/v1/cases/{a.Case}");
         var relinked = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/report-links", new
         {
-            reportIds = new[] { b.Report }, reason = "Review completed",
+            reportIds = new[] { b.Report },
+            reason = "Review completed",
             sourceCaseVersions = new Dictionary<Guid, string> { [splitCase] = splitSource.Headers.ETag!.Tag!.Trim('"') }
         }, Guid.NewGuid().ToString(), activeTarget.Headers.ETag!.ToString());
         relinked.StatusCode.Should().Be(HttpStatusCode.OK, await relinked.Content.ReadAsStringAsync());
         var concluded = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/conclusions", new
         {
-            outcome = "NO_DEFECT", defectIds = Array.Empty<Guid>(), evidenceIds = new[] { a.Evidence }, reason = "No defect on A"
+            outcome = "NO_DEFECT",
+            defectIds = Array.Empty<Guid>(),
+            evidenceIds = new[] { a.Evidence },
+            reason = "No defect on A"
         }, Guid.NewGuid().ToString(), relinked.Headers.ETag!.ToString());
         concluded.StatusCode.Should().Be(HttpStatusCode.OK);
         var denied = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/publications", new
         {
-            reportIds = new[] { a.Report, b.Report }, defectIds = Array.Empty<Guid>(),
-            evidenceIds = new[] { a.Evidence }, summary = "Evidence belongs only to A"
+            reportIds = new[] { a.Report, b.Report },
+            defectIds = Array.Empty<Guid>(),
+            evidenceIds = new[] { a.Evidence },
+            summary = "Evidence belongs only to A"
         }, Guid.NewGuid().ToString(), concluded.Headers.ETag!.ToString());
         denied.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var allowed = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{a.Case}/publications", new
         {
-            reportIds = new[] { a.Report }, defectIds = Array.Empty<Guid>(),
-            evidenceIds = new[] { a.Evidence }, summary = "A-only publication"
+            reportIds = new[] { a.Report },
+            defectIds = Array.Empty<Guid>(),
+            evidenceIds = new[] { a.Evidence },
+            summary = "A-only publication"
         }, Guid.NewGuid().ToString(), concluded.Headers.ETag!.ToString());
         allowed.StatusCode.Should().Be(HttpStatusCode.Created);
         await using (var db = sql.CreateDbContext())
@@ -1249,8 +1356,11 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await LoginAsync(client, reporter.UserName!);
         var original = await UploadVerifiedAsync(client, factory);
-        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Original",
-            evidence = new[] { new { fileId = original.FileId, fileVersion = original.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new
+        {
+            description = "Original",
+            evidence = new[] { new { fileId = original.FileId, fileVersion = original.Version, locationSource = "UNKNOWN" } }
+        }, Guid.NewGuid().ToString());
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var reportId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         var detail = await client.GetAsync($"/api/v1/reports/{reportId}");
@@ -1325,8 +1435,11 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var stale = await SendAsync(client, HttpMethod.Post, path, payload, Guid.NewGuid().ToString(), detail.Headers.ETag!.ToString());
         stale.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
         var secondFile = await UploadVerifiedAsync(client, factory);
-        var secondReport = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new { description = "Second report",
-            evidence = new[] { new { fileId = secondFile.FileId, fileVersion = secondFile.Version, locationSource = "UNKNOWN" } } }, Guid.NewGuid().ToString());
+        var secondReport = await SendAsync(client, HttpMethod.Post, "/api/v1/reports", new
+        {
+            description = "Second report",
+            evidence = new[] { new { fileId = secondFile.FileId, fileVersion = secondFile.Version, locationSource = "UNKNOWN" } }
+        }, Guid.NewGuid().ToString());
         secondReport.StatusCode.Should().Be(HttpStatusCode.Created);
         var secondReportId = (await secondReport.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         var firstPage = await client.GetFromJsonAsync<JsonElement>("/api/v1/reports?pageSize=1");
@@ -1530,7 +1643,10 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var hash = Convert.ToHexString(SHA256.HashData([1, 2, 3, 4])).ToLowerInvariant();
         var created = await SendAsync(client, HttpMethod.Post, "/api/v1/reporter-evidence/uploads", new
         {
-            fileName = "report.jpg", mediaType = "image/jpeg", sizeBytes = 4L, checksumSha256 = hash
+            fileName = "report.jpg",
+            mediaType = "image/jpeg",
+            sizeBytes = 4L,
+            checksumSha256 = hash
         }, Guid.NewGuid().ToString());
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var session = await created.Content.ReadFromJsonAsync<JsonElement>();
@@ -1542,7 +1658,8 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var current = await client.GetAsync($"/api/v1/reporter-evidence/uploads/{uploadId}");
         var complete = await SendAsync(client, HttpMethod.Post, $"/api/v1/reporter-evidence/uploads/{uploadId}/complete", new
         {
-            checksumSha256 = hash, parts = new[] { new { partNumber = 1, eTag = "part" } }
+            checksumSha256 = hash,
+            parts = new[] { new { partNumber = 1, eTag = "part" } }
         }, Guid.NewGuid().ToString(), current.Headers.ETag!.ToString());
         complete.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
@@ -1557,7 +1674,8 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
     {
         var response = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(userName), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(userName),
+            password = "Current1!"
         });
         response.EnsureSuccessStatusCode();
         var token = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString();

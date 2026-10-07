@@ -48,8 +48,13 @@ public sealed class MultipartRecoveryAdapterTests
             if (Fault == "unavailable") throw new AmazonS3Exception("Synthetic provider outage");
             if (Fault == "stalled") return Task.FromResult(new ListMultipartUploadsResponse { IsTruncated = true });
             Marker = $"{request.KeyMarker}/{request.UploadIdMarker}";
-            return Task.FromResult(new ListMultipartUploadsResponse { IsTruncated = ListCalls == 1, NextKeyMarker = "owned", NextUploadIdMarker = "a",
-                MultipartUploads = ListCalls == 1 ? [new() { Key = "owned", UploadId = "a" }, new() { Key = "owned-neighbor", UploadId = "foreign" }] : [new() { Key = "owned", UploadId = "b" }] });
+            return Task.FromResult(new ListMultipartUploadsResponse
+            {
+                IsTruncated = ListCalls == 1,
+                NextKeyMarker = "owned",
+                NextUploadIdMarker = "a",
+                MultipartUploads = ListCalls == 1 ? [new() { Key = "owned", UploadId = "a" }, new() { Key = "owned-neighbor", UploadId = "foreign" }] : [new() { Key = "owned", UploadId = "b" }]
+            });
         }
         public override Task<ListPartsResponse> ListPartsAsync(ListPartsRequest request, CancellationToken cancellationToken = default)
         { PartCalls++; if (PartCalls == 2) request.PartNumberMarker.Should().Be("5"); return Task.FromResult(new ListPartsResponse { IsTruncated = PartCalls == 1, NextPartNumberMarker = 5, Parts = PartCalls == 1 ? [] : [new() { PartNumber = 6 }] }); }

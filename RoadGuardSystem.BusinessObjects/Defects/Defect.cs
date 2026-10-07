@@ -104,9 +104,18 @@ public sealed class Defect
         ArgumentNullException.ThrowIfNull(source); ArgumentNullException.ThrowIfNull(classification);
         if (id == Guid.Empty || source.Source.Kind != CandidateSourceKind.Report) throw new ArgumentException("A Report source and defect identity are required.");
         if (geometry is not null && geometry.SRID is not (32648 or 32649)) throw new ArgumentException("Resolved metric geometry is required when present.", nameof(geometry));
-        return new Defect { Id = id, ProjectId = source.ProjectId, RoadSectionVersionId = classification.RoadSectionVersionId,
-            DefectTypeCode = classification.DefectTypeCode, CauseCategoryCode = classification.CauseCategoryCode, Severity = classification.Severity,
-            Status = DefectStatus.Open, Geometry = geometry, ReportedAt = reportedAt.ToUniversalTime() };
+        return new Defect
+        {
+            Id = id,
+            ProjectId = source.ProjectId,
+            RoadSectionVersionId = classification.RoadSectionVersionId,
+            DefectTypeCode = classification.DefectTypeCode,
+            CauseCategoryCode = classification.CauseCategoryCode,
+            Severity = classification.Severity,
+            Status = DefectStatus.Open,
+            Geometry = geometry,
+            ReportedAt = reportedAt.ToUniversalTime()
+        };
     }
 
     public static Defect CreateFromAi(Guid id, CandidateSourceFacts source, CandidateClassification classification,
@@ -117,11 +126,19 @@ public sealed class Defect
             throw new ArgumentException("An AI detection source and defect identity are required.");
         if (geometry is not null && geometry.SRID is not (32648 or 32649))
             throw new ArgumentException("Resolved metric geometry is required when present.", nameof(geometry));
-        return new Defect { Id = id, ProjectId = source.ProjectId,
+        return new Defect
+        {
+            Id = id,
+            ProjectId = source.ProjectId,
             RoadSectionVersionId = classification.RoadSectionVersionId,
-            SourceAIDetectionId = source.Source.Id, DefectTypeCode = classification.DefectTypeCode,
-            CauseCategoryCode = classification.CauseCategoryCode, Severity = classification.Severity,
-            Status = DefectStatus.Open, Geometry = geometry, ReportedAt = reportedAt.ToUniversalTime() };
+            SourceAIDetectionId = source.Source.Id,
+            DefectTypeCode = classification.DefectTypeCode,
+            CauseCategoryCode = classification.CauseCategoryCode,
+            Severity = classification.Severity,
+            Status = DefectStatus.Open,
+            Geometry = geometry,
+            ReportedAt = reportedAt.ToUniversalTime()
+        };
     }
 
     public DefectVerificationLog Assess(string type, string? cause, DefectSeverity severity, Guid actor, string reason,

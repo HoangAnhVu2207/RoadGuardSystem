@@ -24,7 +24,7 @@ public sealed class FieldInspectionSubmission
         Guid assignment, Guid start, Guid session, Guid origin, string hash, Guid actor, DateTimeOffset received,
         string payload, string readiness, string missingReasons)
     {
-        if (new[] {id,project,task,root,assignment,start,session,origin,actor}.Any(x => x == Guid.Empty) ||
+        if (new[] { id, project, task, root, assignment, start, session, origin, actor }.Any(x => x == Guid.Empty) ||
             parent == Guid.Empty || revision < 1 || (revision == 1) != (parent is null) ||
             revision == 1 && id != root || string.IsNullOrEmpty(hash) || hash.Length != 64 || hash.Any(x => !Uri.IsHexDigit(x)) ||
             readiness is not ("READY" or "INCOMPLETE") || received == default)
@@ -33,8 +33,25 @@ public sealed class FieldInspectionSubmission
         using var reasons = System.Text.Json.JsonDocument.Parse(missingReasons);
         if (document.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object ||
             reasons.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) throw new ArgumentException("Invalid intake facts.");
-        return new FieldInspectionSubmission { Id=id,ProjectId=project,TaskId=task,RootId=root,ParentId=parent,Revision=revision,
-            AssignmentId=assignment,StartOriginId=start,SessionId=session,OriginId=origin,OperationOriginId=id,ContentHash=hash.ToLowerInvariant(),
-            OriginalActorId=actor,ServerReceivedAt=received.ToUniversalTime(),PayloadJson=payload,Readiness=readiness,MissingReasonsJson=missingReasons };
+        return new FieldInspectionSubmission
+        {
+            Id = id,
+            ProjectId = project,
+            TaskId = task,
+            RootId = root,
+            ParentId = parent,
+            Revision = revision,
+            AssignmentId = assignment,
+            StartOriginId = start,
+            SessionId = session,
+            OriginId = origin,
+            OperationOriginId = id,
+            ContentHash = hash.ToLowerInvariant(),
+            OriginalActorId = actor,
+            ServerReceivedAt = received.ToUniversalTime(),
+            PayloadJson = payload,
+            Readiness = readiness,
+            MissingReasonsJson = missingReasons
+        };
     }
 }

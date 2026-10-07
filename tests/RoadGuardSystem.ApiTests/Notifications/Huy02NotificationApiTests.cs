@@ -5,12 +5,16 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Services.Messaging;
+using RoadGuardSystem.Services.Factories;
+using RoadGuardSystem.Services.Options;
 using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Notifications;
@@ -116,7 +120,27 @@ public sealed class Huy02NotificationApiTests(AuthenticationSqlServerFixture fix
         var (actor, notification) = await SeedAsync();
         await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
         using var client = factory.CreateClient();
-        await LoginAsync(client, actor);
+        if (expire)
+        {
+            // Only pre-H1 legacy sessions have an absolute expiry. Persistent login
+            // sessions retain their write-once lifecycle and are tested via revocation.
+            var issuedAt = DateTimeOffset.UtcNow;
+            var legacySession = new UserSession
+            {
+                Id = Guid.NewGuid(),
+                UserId = actor.Id,
+                IssuedAt = issuedAt,
+                ExpiresAt = issuedAt.AddHours(1),
+                Lifecycle = SessionLifecycle.LegacyBounded
+            };
+            await using var db = fixture.CreateDbContext();
+            db.Sessions.Add(legacySession);
+            await db.SaveChangesAsync();
+            var options = factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+                new AccessTokenFactory(options).Create(actor.Id, legacySession.Id, actor.RoleCode, issuedAt));
+        }
+        else await LoginAsync(client, actor);
         var etag = '"' + Convert.ToBase64String(notification.RowVersion) + '"';
         Assert.Equal(HttpStatusCode.OK, (await ReadAsync(client, notification.Id, "session", etag)).StatusCode);
         await using (var db = fixture.CreateDbContext())

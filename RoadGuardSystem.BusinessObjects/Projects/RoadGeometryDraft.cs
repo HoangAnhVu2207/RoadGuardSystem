@@ -18,10 +18,21 @@ public sealed class RoadGeometryDraft
     public DateTimeOffset UpdatedAt { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
     public static RoadGeometryDraft Create(Guid projectId, Guid? sectionId, string code, string? name,
-        string input, string original, string? checksum, Guid actor, DateTimeOffset? now = null) => new() {
-        Id = Guid.NewGuid(), ProjectId = projectId, RoadSectionId = sectionId, RoadCode = code,
-        RoadName = name, InputJson = input, OriginalCoordinatesJson = original, SourceChecksum = checksum,
-        CreatedBy = actor, UpdatedBy = actor, CreatedAt = now ?? DateTimeOffset.UtcNow, UpdatedAt = now ?? DateTimeOffset.UtcNow };
+        string input, string original, string? checksum, Guid actor, DateTimeOffset? now = null) => new()
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = projectId,
+            RoadSectionId = sectionId,
+            RoadCode = code,
+            RoadName = name,
+            InputJson = input,
+            OriginalCoordinatesJson = original,
+            SourceChecksum = checksum,
+            CreatedBy = actor,
+            UpdatedBy = actor,
+            CreatedAt = now ?? DateTimeOffset.UtcNow,
+            UpdatedAt = now ?? DateTimeOffset.UtcNow
+        };
     public void Edit(string input, string original, string? checksum, string code, string? name, Guid actor, DateTimeOffset? now = null)
     {
         if (Status != "DRAFT") throw new InvalidOperationException("Confirmed draft is immutable.");

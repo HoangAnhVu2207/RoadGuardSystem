@@ -8,8 +8,18 @@ public sealed record ReportingCursorKey(string FilterHash, DateTimeOffset Time, 
 public static class ReportingCursor
 {
     public static string FilterHash(Guid project, ReportingFiltersDto filters, string metric, string? type = null, Guid? aggregate = null) =>
-        Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { project, from = filters.From?.ToUniversalTime(), to = filters.To?.ToUniversalTime(),
-            filters.RouteVersionId, filters.SegmentSetId, segments = (filters.SegmentIds ?? []).Distinct().Order().ToArray(), metric, type, aggregate }))).ToLowerInvariant();
+        Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            project,
+            from = filters.From?.ToUniversalTime(),
+            to = filters.To?.ToUniversalTime(),
+            filters.RouteVersionId,
+            filters.SegmentSetId,
+            segments = (filters.SegmentIds ?? []).Distinct().Order().ToArray(),
+            metric,
+            type,
+            aggregate
+        }))).ToLowerInvariant();
     public static string Encode(string hash, DateTimeOffset time, Guid id) => Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new ReportingCursorKey(hash, time, id)));
     public static bool TryDecode(string? cursor, string hash, out ReportingCursorKey? key)
     {

@@ -1,5 +1,6 @@
 using RoadGuardSystem.Services.Processing.Anh02;
 namespace RoadGuardSystem.API.Workers;
+
 public sealed class AiMockRunWorker(IServiceScopeFactory scopes, ILogger<AiMockRunWorker> logger, TimeProvider clock) : BackgroundService
 {
     private static readonly Action<ILogger, Exception?> Failure = LoggerMessage.Define(LogLevel.Warning,

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Candidates;
 using RoadGuardSystem.BusinessObjects.Cases;
 using RoadGuardSystem.BusinessObjects.Reports;
-using RoadGuardSystem.DTOs.Retention;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Retention;
 using RoadGuardSystem.Repositories.Models.Huy01;
 using RoadGuardSystem.Repositories.Retention;
 
@@ -22,7 +22,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
             .Where(e => e.FileId == fileId).Select(e => new { e.Id, e.ReportId, e.FileVersion }).ToArrayAsync(token);
         var evidenceIds = originals.Concat(supplements).Select(e => e.Id).Distinct().ToArray();
         var reportIds = originals.Concat(supplements).Select(e => e.ReportId).Distinct().ToArray();
-        var references = new List<RetentionReferenceView>();
+        var references = new List<RetentionReferenceViewFact>();
 
         var reports = await db.Reports.AsNoTracking().Where(report => reportIds.Contains(report.Id))
             .Select(report => new
@@ -32,17 +32,17 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                 Revision = EF.Property<long>(report, "Revision"),
                 RowVersion = EF.Property<byte[]>(report, "RowVersion")
             }).ToArrayAsync(token);
-        references.AddRange(reports.Select(row => new RetentionReferenceView("REPORT", row.Id, null,
+        references.AddRange(reports.Select(row => new RetentionReferenceViewFact("REPORT", row.Id, null,
             Version(new { row.Id, row.ReceivedAt, row.Revision, RowVersion = Convert.ToBase64String(row.RowVersion) }))));
-        references.AddRange(originals.Select(row => new RetentionReferenceView("REPORT_EVIDENCE", row.Id, null,
+        references.AddRange(originals.Select(row => new RetentionReferenceViewFact("REPORT_EVIDENCE", row.Id, null,
             Version(new { row.Id, row.ReportId, row.FileVersion }))));
-        references.AddRange(supplements.Select(row => new RetentionReferenceView("REPORT_SUPPLEMENT_EVIDENCE", row.Id, null,
+        references.AddRange(supplements.Select(row => new RetentionReferenceViewFact("REPORT_SUPPLEMENT_EVIDENCE", row.Id, null,
             Version(new { row.Id, row.ReportId, row.FileVersion }))));
 
         var supplementRows = await db.Set<ReportSupplement>().AsNoTracking()
             .Where(s => s.Evidence.Any(e => e.FileId == fileId))
             .Select(s => new { s.Id, s.ReportId, s.ReceivedAt }).ToArrayAsync(token);
-        references.AddRange(supplementRows.Select(row => new RetentionReferenceView("REPORT_SUPPLEMENT", row.Id, null,
+        references.AddRange(supplementRows.Select(row => new RetentionReferenceViewFact("REPORT_SUPPLEMENT", row.Id, null,
             Version(row))));
 
         var links = await (from link in db.Set<HuyCaseReportLink>().AsNoTracking()
@@ -59,7 +59,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                                CaseRevision = EF.Property<long>(incident, "Revision"),
                                CaseVersion = EF.Property<byte[]>(incident, "RowVersion")
                            }).ToArrayAsync(token);
-        references.AddRange(links.Select(row => new RetentionReferenceView("CASE_REPORT_LINK", row.Id, row.ProjectId,
+        references.AddRange(links.Select(row => new RetentionReferenceViewFact("CASE_REPORT_LINK", row.Id, row.ProjectId,
             Version(new
             {
                 row.ReportId,
@@ -84,7 +84,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                                      conclusion.Outcome,
                                      conclusion.ConcludedAt
                                  }).ToArrayAsync(token);
-        references.AddRange(conclusions.Select(row => new RetentionReferenceView("CASE_CONCLUSION_EVIDENCE", row.ConclusionId,
+        references.AddRange(conclusions.Select(row => new RetentionReferenceViewFact("CASE_CONCLUSION_EVIDENCE", row.ConclusionId,
             row.ProjectId, Version(new { row.ConclusionId, row.EvidenceId, row.SourceReportId, row.ProjectId, row.Outcome, row.ConcludedAt }))));
 
         var publications = await (from relation in db.Set<HuyPublicationEvidence>().AsNoTracking()
@@ -100,7 +100,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                                       incident.ProjectId,
                                       publication.PublishedAt
                                   }).ToArrayAsync(token);
-        references.AddRange(publications.Select(row => new RetentionReferenceView("CASE_PUBLICATION_EVIDENCE", row.PublicationId,
+        references.AddRange(publications.Select(row => new RetentionReferenceViewFact("CASE_PUBLICATION_EVIDENCE", row.PublicationId,
             row.ProjectId, Version(new { row.PublicationId, row.RecipientReportId, row.EvidenceId, row.SourceReportId, row.ProjectId, row.PublishedAt }))));
 
         var decisions = await db.SourceDecisions.AsNoTracking()
@@ -115,7 +115,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                 d.SupersedesDecisionId,
                 RowVersion = EF.Property<byte[]>(d, "RowVersion")
             }).ToArrayAsync(token);
-        references.AddRange(decisions.Select(row => new RetentionReferenceView("CANDIDATE_DECISION", row.Id, row.ProjectId,
+        references.AddRange(decisions.Select(row => new RetentionReferenceViewFact("CANDIDATE_DECISION", row.Id, row.ProjectId,
             Version(new
             {
                 row.SourceId,
@@ -140,7 +140,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                                      link.CreatedAt,
                                      link.EndedAt
                                  }).Distinct().ToArrayAsync(token);
-        references.AddRange(sourceLinks.Select(row => new RetentionReferenceView("DEFECT_SOURCE_LINK", row.Id,
+        references.AddRange(sourceLinks.Select(row => new RetentionReferenceViewFact("DEFECT_SOURCE_LINK", row.Id,
             row.ProjectId, Version(row))));
         var supplementalSourceLinks = await (from link in db.Set<HuyDefectSourceLink>().AsNoTracking()
                                              join evidence in db.Set<ReportSupplement>().AsNoTracking().SelectMany(s => s.Evidence)
@@ -158,7 +158,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                                                  link.EndedAt
                                              }).Distinct().ToArrayAsync(token);
         references.AddRange(supplementalSourceLinks.Where(row => sourceLinks.All(existing => existing.Id != row.Id))
-            .Select(row => new RetentionReferenceView("DEFECT_SOURCE_LINK", row.Id, row.ProjectId, Version(row))));
+            .Select(row => new RetentionReferenceViewFact("DEFECT_SOURCE_LINK", row.Id, row.ProjectId, Version(row))));
 
         var revisions = await (from revision in db.Set<HuyTrainingLabelRevision>().AsNoTracking()
                                join head in db.Set<HuyTrainingLabelHead>().AsNoTracking() on revision.LabelId equals head.Id
@@ -176,7 +176,7 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
                                    head.SourceKind,
                                    head.SourceId
                                }).ToArrayAsync(token);
-        references.AddRange(revisions.Select(row => new RetentionReferenceView("TRAINING_LABEL_REVISION",
+        references.AddRange(revisions.Select(row => new RetentionReferenceViewFact("TRAINING_LABEL_REVISION",
             row.Id, row.ProjectId, Version(new
             {
                 row.LabelId,
@@ -193,14 +193,14 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
             .Where(row => revisionIds.Contains(row.RevisionId))
             .Select(row => new { row.Id, row.RevisionId, row.Decision, row.ReviewedAt, row.ActorUserId })
             .ToArrayAsync(token);
-        references.AddRange(reviews.Select(row => new RetentionReferenceView("TRAINING_LABEL_REVIEW", row.Id,
+        references.AddRange(reviews.Select(row => new RetentionReferenceViewFact("TRAINING_LABEL_REVIEW", row.Id,
             revisions.Single(revision => revision.Id == row.RevisionId).ProjectId, Version(row))));
 
         var histories = await (from relation in db.Set<HuyLinkHistoryReport>().AsNoTracking()
                                join history in db.Set<CaseReportLinkHistory>().AsNoTracking() on relation.HistoryId equals history.Id
                                where reportIds.Contains(relation.ReportId)
                                select new { relation.HistoryId, relation.ReportId, history.FromCaseId, history.ToCaseId, history.OccurredAt }).ToArrayAsync(token);
-        references.AddRange(histories.Select(row => new RetentionReferenceView("CASE_LINK_HISTORY", row.HistoryId, null,
+        references.AddRange(histories.Select(row => new RetentionReferenceViewFact("CASE_LINK_HISTORY", row.HistoryId, null,
             Version(row))));
 
         var ordered = references.OrderBy(r => r.Kind, StringComparer.Ordinal).ThenBy(r => r.Id)

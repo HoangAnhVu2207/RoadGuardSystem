@@ -360,9 +360,18 @@ public sealed class ReceiptAccessGuardSqlTests(IdentitySqlServerFixture fixture)
     {
         await using var db = fixture.CreateDbContext(); await fixture.SeedRolesAsync(db);
         var id = Guid.NewGuid();
-        db.Users.Add(new ApplicationUser { Id = id, UserName = id.ToString(), NormalizedUserName = id.ToString().ToUpperInvariant(),
-            DisplayName = "Isolated shared guard fixture", PasswordHash = "non-login-shared-fixture", SecurityStamp = id.ToString(),
-            RoleCode = UserRoleCode.Supervisor, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = id,
+            UserName = id.ToString(),
+            NormalizedUserName = id.ToString().ToUpperInvariant(),
+            DisplayName = "Isolated shared guard fixture",
+            PasswordHash = "non-login-shared-fixture",
+            SecurityStamp = id.ToString(),
+            RoleCode = UserRoleCode.Supervisor,
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
         await db.SaveChangesAsync(); return id;
     }
     private async Task RevokeAsync(Guid actor)

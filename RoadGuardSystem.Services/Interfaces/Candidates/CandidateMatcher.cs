@@ -21,8 +21,13 @@ public static class CandidateMatcher
             if (!metricGpsAvailable) reasons.Add("GPS_MISSING");
             if (metricGpsAvailable && f.AccuracyOverlap) reasons.Add("ACCURACY_OVERLAP");
             if (f.HistoricalLink) reasons.Add("HISTORICAL_LINK");
-            return new { Item = new CandidateMatchItem(f.DefectId, f.Version, f.SegmentId, group,
-                metricGpsAvailable ? f.MetricDistanceMeters : null, reasons), Overlap = metricGpsAvailable && f.AccuracyOverlap, f.HistoricalLink };
+            return new
+            {
+                Item = new CandidateMatchItem(f.DefectId, f.Version, f.SegmentId, group,
+                metricGpsAvailable ? f.MetricDistanceMeters : null, reasons),
+                Overlap = metricGpsAvailable && f.AccuracyOverlap,
+                f.HistoricalLink
+            };
         }).Where(x => expand || x.Item.PriorityGroup < 2).OrderBy(x => x.Item.PriorityGroup).ThenByDescending(x => x.Overlap)
             .ThenBy(x => x.Item.DistanceMeters ?? double.PositiveInfinity).ThenByDescending(x => x.HistoricalLink).ThenBy(x => x.Item.DefectId)
             .Select(x => x.Item).ToArray();

@@ -1,5 +1,5 @@
 using RoadGuardSystem.aBusinessObjects.Commons;
-using RoadGuardSystem.DTOs.Inspections;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 
 namespace RoadGuardSystem.Repositories.Inspections;
 
@@ -9,10 +9,10 @@ public sealed record FieldWorkflowCommand(Guid ProjectId, Guid? TaskId, string A
     string? Key, string? ExpectedVersion, FieldAdmissionContext Admission);
 public interface IFieldInspectionWorkflowRepository
 {
-    Task<FieldWorkflowResult> ExecuteAsync(FieldWorkflowCommand command,
+    Task<FieldWorkflowResultFact> ExecuteAsync(FieldWorkflowCommand command,
         Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken);
     // Caller already owns the atomic transaction; this is the same finite business core used by direct admission.
-    Task<FieldWorkflowResult> ApplyInTransactionAsync(FieldWorkflowCommand command,
+    Task<FieldWorkflowResultFact> ApplyInTransactionAsync(FieldWorkflowCommand command,
         Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken);
     // Internal offline command path; preserves canonical input bytes while calling the same transaction core.
     Task<FieldCoreOutcome> ApplyInternalInTransactionAsync(FieldWorkflowCommand command,

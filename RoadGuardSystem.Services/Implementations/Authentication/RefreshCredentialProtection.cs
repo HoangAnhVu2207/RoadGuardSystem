@@ -26,7 +26,7 @@ public sealed class RefreshCredentialProtection(JwtOptions options)
         if (bytes.Length < 28) throw new CryptographicException("Invalid protected credential.");
         var clear = new byte[bytes.Length - 28];
         using var aes = new AesGcm(Key(Encoding.UTF8.GetString(Convert.FromBase64String(value[..split]))), 16);
-        aes.Decrypt(bytes.AsSpan(0,12), bytes.AsSpan(28), bytes.AsSpan(12,16), clear, Purpose);
+        aes.Decrypt(bytes.AsSpan(0, 12), bytes.AsSpan(28), bytes.AsSpan(12, 16), clear, Purpose);
         return Encoding.UTF8.GetString(clear);
     }
     private byte[] Key(string id) => HMACSHA256.HashData(JwtOptionsValidator.DecodeKey(options.SigningKeys[id]), Purpose);

@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using RoadGuardSystem.Repositories;
 using Xunit;
 
@@ -19,7 +21,11 @@ public sealed class Rf09TransitionRehearsalTests
             var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
                 .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options;
             await using var context = new RoadGuardDbContext(options);
-            await context.Database.MigrateAsync();
+            const string widening = "20261002000100_Anh01M1FileSizeBigint";
+            var migrations = context.Database.GetMigrations().ToArray();
+            var predecessor = migrations[Array.IndexOf(migrations, widening) - 1];
+            var migrator = context.GetService<IMigrator>();
+            await migrator.MigrateAsync(predecessor);
             await using var connection = new SqlConnection(fixture.ConnectionString);
             await connection.OpenAsync();
             var dependentShapeBefore = await ReadFilesDependentShapeAsync(connection);
@@ -33,13 +39,9 @@ public sealed class Rf09TransitionRehearsalTests
             Assert.Equal(2147483647L, Assert.IsType<long>(await ScalarAsync(connection,
                 "SELECT SizeBytes64 FROM dbo.Files WHERE StorageUri = 'rf09-widen-old'")));
 
-            await ExecuteAsync(connection, """
-                ALTER TABLE dbo.Files DROP COLUMN SizeBytes64;
-                ALTER TABLE dbo.Files DROP CONSTRAINT CK_Files_SizeBytes_NonNegative;
-                ALTER TABLE dbo.Files ALTER COLUMN SizeBytes bigint NOT NULL;
-                ALTER TABLE dbo.Files ADD CONSTRAINT CK_Files_SizeBytes_NonNegative CHECK (SizeBytes >= 0);
-                ALTER TABLE dbo.Files ADD SizeBytes64 AS CONVERT(bigint, SizeBytes) PERSISTED;
-                """);
+            await ExecuteAsync(connection, "ALTER TABLE dbo.Files DROP COLUMN SizeBytes64");
+            await migrator.MigrateAsync(widening);
+            await ExecuteAsync(connection, "ALTER TABLE dbo.Files ADD SizeBytes64 AS CONVERT(bigint, SizeBytes) PERSISTED");
             Assert.Equal("bigint", Assert.IsType<string>(await ScalarAsync(connection, """
                 SELECT TYPE_NAME(user_type_id) FROM sys.columns
                 WHERE object_id = OBJECT_ID('dbo.Files') AND name = 'SizeBytes'
@@ -58,9 +60,14 @@ public sealed class Rf09TransitionRehearsalTests
                   AND definition LIKE '%SizeBytes%' AND definition LIKE '%>=%'
                 """)));
 
-            // Current EF model still expects Int32. Even an old in-range row cannot be read after widening.
-            await Assert.ThrowsAsync<InvalidCastException>(async () =>
-                await context.Files.AsNoTracking().SingleAsync(file => file.StorageUri == "rf09-widen-old"));
+            // A historical Int32 reader fails even for an in-range row after the authoritative bigint migration.
+            await using (var command = new SqlCommand("SELECT SizeBytes FROM dbo.Files WHERE StorageUri='rf09-widen-old'", connection))
+            await using (var reader = await command.ExecuteReaderAsync())
+            {
+                Assert.True(await reader.ReadAsync());
+                Assert.Throws<InvalidCastException>(() => reader.GetInt32(0));
+                Assert.Equal(2147483647L, reader.GetInt64(0));
+            }
             await ExecuteAsync(connection, """
                 INSERT dbo.Files (Id, StorageUri, OriginalName, MimeType, SizeBytes, Checksum, UploadedAt)
                 VALUES ('00000000-0000-0000-0000-000000000903', 'rf09-widen-large', 'large.bin',
@@ -72,6 +79,9 @@ public sealed class Rf09TransitionRehearsalTests
             var immutable = await Assert.ThrowsAsync<SqlException>(() => ExecuteAsync(connection,
                 "UPDATE dbo.Files SET SizeBytes = 1 WHERE StorageUri = 'rf09-widen-large'"));
             Assert.Equal(51020, immutable.Number);
+            await context.Database.MigrateAsync();
+            Assert.Equal(2147483647L, (await context.Files.AsNoTracking().SingleAsync(file => file.StorageUri == "rf09-widen-old")).SizeBytes);
+            Assert.Equal(8589934592L, (await context.Files.AsNoTracking().SingleAsync(file => file.StorageUri == "rf09-widen-large")).SizeBytes);
         }
         finally
         {
@@ -92,16 +102,18 @@ public sealed class Rf09TransitionRehearsalTests
             var restoredName = restoreFixture.DatabaseName;
             var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
                 .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options;
+            int migrationCount;
             await using (var context = new RoadGuardDbContext(options))
             {
                 await context.Database.MigrateAsync();
+                migrationCount = context.Database.GetMigrations().Count();
                 Assert.Equal(context.Database.GetMigrations().ToArray(),
                     (await context.Database.GetAppliedMigrationsAsync()).ToArray());
             }
 
             await using var connection = new SqlConnection(fixture.ConnectionString);
             await connection.OpenAsync();
-            Assert.Equal("int", Assert.IsType<string>(await ScalarAsync(connection, """
+            Assert.Equal("bigint", Assert.IsType<string>(await ScalarAsync(connection, """
                 SELECT TYPE_NAME(user_type_id) FROM sys.columns
                 WHERE object_id = OBJECT_ID('dbo.Files') AND name = 'SizeBytes'
                 """)));
@@ -210,9 +222,9 @@ public sealed class Rf09TransitionRehearsalTests
                 SELECT COUNT(*) FROM sys.columns
                 WHERE object_id = OBJECT_ID('dbo.Rf09SizeProbe') AND name = 'SizeBytes64'
                 """)));
-            Assert.Equal(37, Assert.IsType<int>(await ScalarAsync(restoredConnection,
+            Assert.Equal(migrationCount, Assert.IsType<int>(await ScalarAsync(restoredConnection,
                 "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory")));
-            Assert.Equal(1, Assert.IsType<int>(await ScalarAsync(restoredConnection,
+            Assert.Equal(1L, Assert.IsType<long>(await ScalarAsync(restoredConnection,
                 "SELECT SizeBytes FROM dbo.Files WHERE StorageUri = 'rf09-synthetic'")));
         }
         finally

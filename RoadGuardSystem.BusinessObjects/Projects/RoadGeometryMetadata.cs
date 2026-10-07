@@ -10,7 +10,14 @@ public sealed class RoadGeometryMetadata
     public string? Wgs84GeometryJson { get; private set; }
     public Guid ApprovedBy { get; private set; }
     public DateTimeOffset ApprovedAt { get; private set; }
-    public static RoadGeometryMetadata Create(Guid versionId, Guid draftId, string input, string hash, Guid actor, string? wgs84GeometryJson = null, DateTimeOffset? now = null) => new() {
-        RoadSectionVersionId = versionId, SourceDraftId = draftId, InputJson = input,
-        GeometryHash = hash, Wgs84GeometryJson = wgs84GeometryJson, ApprovedBy = actor, ApprovedAt = now ?? DateTimeOffset.UtcNow };
+    public static RoadGeometryMetadata Create(Guid versionId, Guid draftId, string input, string hash, Guid actor, string? wgs84GeometryJson = null, DateTimeOffset? now = null) => new()
+    {
+        RoadSectionVersionId = versionId,
+        SourceDraftId = draftId,
+        InputJson = input,
+        GeometryHash = hash,
+        Wgs84GeometryJson = wgs84GeometryJson,
+        ApprovedBy = actor,
+        ApprovedAt = now ?? DateTimeOffset.UtcNow
+    };
 }

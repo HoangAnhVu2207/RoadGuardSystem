@@ -98,11 +98,13 @@ public static class GeometryEngine
         return new(routeId, alignment.Length, bounds.ToArray(), parts, Hash(new { routeId, definition, boundaries = bounds }));
     }
     public static string Hash(object value) => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value))).ToLowerInvariant();
-    public static GeometryShape Shape(Geometry geometry) => geometry switch {
+    public static GeometryShape Shape(Geometry geometry) => geometry switch
+    {
         LineString l => new("LineString", l.Coordinates.Select(c => new[] { c.X, c.Y }).ToArray()),
         Polygon p => new("Polygon", new[] { p.ExteriorRing.Coordinates.Select(c => new[] { c.X, c.Y }).ToArray() }.Concat(Enumerable.Range(0, p.NumInteriorRings).Select(i => p.GetInteriorRingN(i).Coordinates.Select(c => new[] { c.X, c.Y }).ToArray())).ToArray()),
         MultiPolygon m => new("MultiPolygon", Enumerable.Range(0, m.NumGeometries).Select(i => Shape(m.GetGeometryN(i)).Coordinates).ToArray()),
-        _ => throw new GeometryValidationException("geometry_validation_failed", "Unsupported geometry output.") };
+        _ => throw new GeometryValidationException("geometry_validation_failed", "Unsupported geometry output.")
+    };
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     private static void Fail(string code, string detail) => throw new GeometryValidationException(code, detail);
 }

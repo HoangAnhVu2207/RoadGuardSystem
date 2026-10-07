@@ -479,14 +479,15 @@ public sealed class P220ProjectMembershipMigrationLifecycleTests
                 .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite())
                 .Options;
             await using var context = new RoadGuardDbContext(options);
-            await context.Database.MigrateAsync();
-
-            (await ProjectTableCountAsync(context)).Should().Be(3);
-
             var migrator = context.GetService<IMigrator>();
+            const string testedMigration = "20260920081348_AddProjectMembershipSchema";
+            await migrator.MigrateAsync(testedMigration);
+            (await ProjectTableCountAsync(context)).Should().Be(3);
             await migrator.MigrateAsync("20260919085118_AddImmutableFileStorageBoundary");
             (await ProjectTableCountAsync(context)).Should().Be(0);
 
+            await migrator.MigrateAsync(testedMigration);
+            (await ProjectTableCountAsync(context)).Should().Be(3);
             await context.Database.MigrateAsync();
             (await ProjectTableCountAsync(context)).Should().Be(3);
         }

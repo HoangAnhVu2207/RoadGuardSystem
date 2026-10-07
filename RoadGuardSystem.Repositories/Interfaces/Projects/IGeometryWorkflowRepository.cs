@@ -1,4 +1,4 @@
-using RoadGuardSystem.DTOs.Projects;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects;
 namespace RoadGuardSystem.Repositories.Projects;
 
 public sealed record GeometryWorkflowResult(int Status, string? Code = null, object? Value = null, string? Version = null);
@@ -9,7 +9,7 @@ public interface IGeometryWorkflowRepository
 {
     Task<bool> CanReadAssignedGeometryAsync(Guid actorId, Guid projectId, Guid routeVersionId, Guid setId, CancellationToken cancellationToken);
     Task<GeometryWorkflowResult> ExecuteAsync(GeometryWorkflowCommand command,
-        Func<GeometryDraftInput, int, GeometryPreview> preview,
-        Func<Guid, NetTopologySuite.Geometries.LineString, double, SegmentDefinition, SegmentPreview> segments,
+        Func<GeometryDraftInputFact, int, GeometryPreviewFact> preview,
+        Func<Guid, NetTopologySuite.Geometries.LineString, double, SegmentDefinitionFact, SegmentPreviewFact> segments,
         CancellationToken cancellationToken);
 }

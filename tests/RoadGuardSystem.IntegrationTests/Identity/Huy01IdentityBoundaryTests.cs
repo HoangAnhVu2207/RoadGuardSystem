@@ -71,11 +71,32 @@ public sealed class Huy01IdentityBoundaryTests(IdentitySqlServerFixture sql) : I
     {
         await using var db = sql.CreateDbContext(); await sql.SeedRolesAsync(db);
         var now = DateTimeOffset.UtcNow; var id = Guid.NewGuid(); var email = $"boundary-{id:N}@example.test";
-        db.Users.Add(new() { Id = id, UserName = email, NormalizedUserName = email.ToUpperInvariant(), Email = email,
-            NormalizedEmail = email.ToUpperInvariant(), DisplayName = "OTP fixture", RoleCode = UserRoleCode.Reporter, Status = UserStatus.Pending,
-            SecurityStamp = Guid.NewGuid().ToString(), PasswordHash = "fixture-only", CreatedAt = now });
-        var intent = new ReporterRegistrationIntent { Id = Guid.NewGuid(), UserId = id, NormalizedEmail = email.ToUpperInvariant(), ReporterType = ReporterType.Citizen,
-            OtpHash = new string('a', 64), OtpGeneration = 1, CreatedAt = now, ExpiresAt = now.AddMinutes(10), ResendAvailableAt = now.AddSeconds(60) };
+        db.Users.Add(new()
+        {
+            Id = id,
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            DisplayName = "OTP fixture",
+            RoleCode = UserRoleCode.Reporter,
+            Status = UserStatus.Pending,
+            SecurityStamp = Guid.NewGuid().ToString(),
+            PasswordHash = "fixture-only",
+            CreatedAt = now
+        });
+        var intent = new ReporterRegistrationIntent
+        {
+            Id = Guid.NewGuid(),
+            UserId = id,
+            NormalizedEmail = email.ToUpperInvariant(),
+            ReporterType = ReporterType.Citizen,
+            OtpHash = new string('a', 64),
+            OtpGeneration = 1,
+            CreatedAt = now,
+            ExpiresAt = now.AddMinutes(10),
+            ResendAvailableAt = now.AddSeconds(60)
+        };
         db.ReporterRegistrationIntents.Add(intent); await db.SaveChangesAsync(); return (id, intent, now);
     }
     private static (UserSession, RefreshToken) Credentials(Guid user, DateTimeOffset now)

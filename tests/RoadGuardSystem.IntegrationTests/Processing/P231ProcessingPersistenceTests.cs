@@ -149,39 +149,50 @@ public sealed class P231ProcessingPersistenceTests : IClassFixture<IdentitySqlSe
     [Fact(DisplayName = "P2-31: processing migration downgrades and reapplies with SQL triggers")]
     public async Task MigrationLifecycle_DowngradesAndReapplies()
     {
-        await using var context = _fixture.CreateDbContext();
-        var tableCount = await context.Database.SqlQueryRaw<int>(
-            """
-            SELECT CAST(COUNT(*) AS int) AS [Value]
-            FROM sys.tables
-            WHERE [name] IN ('ProcessingBlocks', 'ProcessingJobs', 'ProcessingAttempts', 'AIModelVersions')
-            """).SingleAsync();
-        tableCount.Should().Be(4);
+        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
+        await fixture.InitializeAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
+                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
+            var lifecycleMigrator = context.GetService<IMigrator>();
+            const string testedMigration = "20260921182227_P231ProcessingAndOutboxDelivery";
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            var tableCount = await context.Database.SqlQueryRaw<int>(
+                """
+                SELECT CAST(COUNT(*) AS int) AS [Value]
+                FROM sys.tables
+                WHERE [name] IN ('ProcessingBlocks', 'ProcessingJobs', 'ProcessingAttempts', 'AIModelVersions')
+                """).SingleAsync();
+            tableCount.Should().Be(4);
 
-        var triggerCount = await context.Database.SqlQueryRaw<int>(
-            """
-            SELECT CAST(COUNT(*) AS int) AS [Value]
-            FROM sys.triggers
-            WHERE [name] IN ('TR_ProcessingBlocks_Immutable', 'TR_ProcessingAttempts_AppendOnly')
-            """).SingleAsync();
-        triggerCount.Should().Be(2);
+            var triggerCount = await context.Database.SqlQueryRaw<int>(
+                """
+                SELECT CAST(COUNT(*) AS int) AS [Value]
+                FROM sys.triggers
+                WHERE [name] IN ('TR_ProcessingBlocks_Immutable', 'TR_ProcessingAttempts_AppendOnly')
+                """).SingleAsync();
+            triggerCount.Should().Be(2);
 
-        var migrator = context.GetService<IMigrator>();
-        await migrator.MigrateAsync("20260921134719_AddP230FlightSurveyIdentityImmutability");
-        (await context.Database.SqlQueryRaw<int>(
-            """
-            SELECT CAST(COUNT(*) AS int) AS [Value]
-            FROM sys.tables
-            WHERE [name] IN ('ProcessingBlocks', 'ProcessingJobs', 'ProcessingAttempts', 'AIModelVersions')
-            """).SingleAsync()).Should().Be(0);
+            var migrator = context.GetService<IMigrator>();
+            await migrator.MigrateAsync("20260921134719_AddP230FlightSurveyIdentityImmutability");
+            (await context.Database.SqlQueryRaw<int>(
+                """
+                SELECT CAST(COUNT(*) AS int) AS [Value]
+                FROM sys.tables
+                WHERE [name] IN ('ProcessingBlocks', 'ProcessingJobs', 'ProcessingAttempts', 'AIModelVersions')
+                """).SingleAsync()).Should().Be(0);
 
-        await context.Database.MigrateAsync();
-        (await context.Database.SqlQueryRaw<int>(
-            """
-            SELECT CAST(COUNT(*) AS int) AS [Value]
-            FROM sys.tables
-            WHERE [name] IN ('ProcessingBlocks', 'ProcessingJobs', 'ProcessingAttempts', 'AIModelVersions')
-            """
-        ).SingleAsync()).Should().Be(4);
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            (await context.Database.SqlQueryRaw<int>(
+                """
+                SELECT CAST(COUNT(*) AS int) AS [Value]
+                FROM sys.tables
+                WHERE [name] IN ('ProcessingBlocks', 'ProcessingJobs', 'ProcessingAttempts', 'AIModelVersions')
+                """
+            ).SingleAsync()).Should().Be(4);
+            await context.Database.MigrateAsync();
+        }
+        finally { await fixture.DisposeAsync(); }
     }
 }

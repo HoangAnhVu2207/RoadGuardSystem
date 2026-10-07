@@ -54,8 +54,12 @@ public sealed class ReporterLifecycleService(IReporterLifecycleRepository reposi
             {
                 var resolved = await producer.ResolvePrivateEvidenceAsync(actorId, role, reference.FileId, evidenceId, reference.FileVersion, ct);
                 if (resolved.Status != AnhHuyProducerStatus.Ready) return new(resolved.Status switch
-                { AnhHuyProducerStatus.Forbidden => UploadServiceStatus.Forbidden, AnhHuyProducerStatus.SourceNotReady => UploadServiceStatus.Conflict,
-                    AnhHuyProducerStatus.StaleFile => UploadServiceStatus.PreconditionFailed, _ => UploadServiceStatus.NotFound });
+                {
+                    AnhHuyProducerStatus.Forbidden => UploadServiceStatus.Forbidden,
+                    AnhHuyProducerStatus.SourceNotReady => UploadServiceStatus.Conflict,
+                    AnhHuyProducerStatus.StaleFile => UploadServiceStatus.PreconditionFailed,
+                    _ => UploadServiceStatus.NotFound
+                });
             }
             return reference.PublicationId is Guid publication
                 ? await files.DownloadPublicationAsync(actorId, role, publication, reportId, evidenceId, ct)
@@ -85,7 +89,10 @@ public sealed class ReporterLifecycleService(IReporterLifecycleRepository reposi
         if (role != UserRoleCode.Reporter) return new(403, "access_forbidden");
         try { return await action(); }
         catch (ReporterLifecycleException e) { return new(e.Status, e.Code); }
-        catch (ReporterIntakeFactsException e) { return new(e.Status == ReporterIntakeFactsStatus.StaleFile ? 412 : e.Status == ReporterIntakeFactsStatus.NotFound ? 404 : e.Status == ReporterIntakeFactsStatus.Forbidden ? 403 : 409,
-            e.Status == ReporterIntakeFactsStatus.StaleFile ? "concurrency_conflict" : e.Status == ReporterIntakeFactsStatus.NotFound ? "not_found" : e.Status == ReporterIntakeFactsStatus.Forbidden ? "access_forbidden" : "source_not_ready"); }
+        catch (ReporterIntakeFactsException e)
+        {
+            return new(e.Status == ReporterIntakeFactsStatus.StaleFile ? 412 : e.Status == ReporterIntakeFactsStatus.NotFound ? 404 : e.Status == ReporterIntakeFactsStatus.Forbidden ? 403 : 409,
+            e.Status == ReporterIntakeFactsStatus.StaleFile ? "concurrency_conflict" : e.Status == ReporterIntakeFactsStatus.NotFound ? "not_found" : e.Status == ReporterIntakeFactsStatus.Forbidden ? "access_forbidden" : "source_not_ready");
+        }
     }
 }

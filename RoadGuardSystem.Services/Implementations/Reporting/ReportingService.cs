@@ -89,9 +89,9 @@ public sealed class ReportingService(IReportingRepository repository, IIdentityR
             {
                 var facts = await repository.CaptureAsync(project, normalized, ct);
                 rows = (facts.Facts?.Timeline ?? []).Where(i => key is null || i.OccurredAt > key.Time || i.OccurredAt == key.Time && new SqlGuid(i.EventId).CompareTo(new SqlGuid(key.Id)) > 0)
-                    .OrderBy(i => i.OccurredAt).ThenBy(i => new SqlGuid(i.EventId)).Take(pageSize + 1).ToArray();
+                    .OrderBy(i => i.OccurredAt).ThenBy(i => new SqlGuid(i.EventId)).Take(pageSize + 1).Select(item => (ReportingTimelineItemDto)item).ToArray();
             }
-            else rows = await repository.TimelineAsync(aggregateType, aggregateId, normalized, key?.Time, key?.Id, pageSize + 1, ct);
+            else rows = (await repository.TimelineAsync(aggregateType, aggregateId, normalized, key?.Time, key?.Id, pageSize + 1, ct)).Select(item => (ReportingTimelineItemDto)item).ToArray();
             var page = rows.Take(pageSize).ToArray();
             return new ReportingResult<ReportingTimelinePageDto>("success", new(ReportingDefinitions.Schema, readAt, page,
                 rows.Length > pageSize ? ReportingCursor.Encode(hash, page[^1].OccurredAt, page[^1].EventId) : null, ReportingDefinitions.TimelineAvailability));

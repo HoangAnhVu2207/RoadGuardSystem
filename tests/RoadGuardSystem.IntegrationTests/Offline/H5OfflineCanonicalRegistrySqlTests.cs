@@ -974,7 +974,7 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
             .Select(x => x.RowVersion).SingleAsync()) : null;
         var guard = new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System);
         return await new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System)
-            .ExecuteAsync(new(scope.Project, task, action, input, Guid.NewGuid().ToString(), expected,
+            .ExecuteAsync(new(scope.Project, task, action, RoadGuardSystem.DTOs.BoundaryFactMappings.ToFacts(input), Guid.NewGuid().ToString(), expected,
                 new(actor, role, actor, "DIRECT", true)), async token =>
                 await guard.AuthorizeAsync(actor, role, scope.Project, token) is not null, CancellationToken.None);
     }

@@ -87,8 +87,12 @@ public sealed class Huy01AndroidTransportTests(AuthenticationSqlServerFixture fi
         {
             var repository = new IdentityRepository(db);
             var result = await repository.RotateRefreshTokenAsync(oldTokenId, version,
-                new RefreshToken { Id = replacementId, TokenHash = new string('a', 64),
-                    ExpiresAt = DateTimeOffset.UtcNow.AddDays(30) });
+                new RefreshToken
+                {
+                    Id = replacementId,
+                    TokenHash = new string('a', 64),
+                    ExpiresAt = DateTimeOffset.UtcNow.AddDays(30)
+                });
             Assert.Equal(RotateRefreshTokenStatus.SessionRevoked, result.Status);
         }
         await using (var db = fixture.CreateDbContext())

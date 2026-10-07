@@ -6,7 +6,7 @@ using RoadGuardSystem.BusinessObjects.Candidates;
 using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
-using RoadGuardSystem.DTOs.Inspections;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Integration;
@@ -21,12 +21,12 @@ public sealed partial class FieldInspectionWorkflowRepository
         => ValidateSourceAsync(project, LegacyRepairTask(input), ai, token);
     private Task ValidatePinsAsync(Guid project, RepairFieldTaskData input, CancellationToken token)
         => ValidatePinsAsync(project, LegacyRepairTask(input), token);
-    private static FieldTaskCreateInput LegacyRepairTask(RepairFieldTaskData value)
+    private static FieldTaskCreateInputFact LegacyRepairTask(RepairFieldTaskData value)
         => new(value.DefectId, value.DefectVersion, value.SurveyId, value.SourceKind, value.RouteVersionId,
             value.SegmentSetId, value.LayoutRevisionId, value.SlabId, value.Purpose, value.RequiredMeasurementType,
             value.MeasurementScope, value.Instructions, value.AssignedToUserId, value.DueAt,
             value.MapPublicationId, value.CrsProfileRevisionId);
-    private async Task<FieldWorkflowResult> ApplyBusinessAsync(FieldWorkflowCommand c, CancellationToken token)
+    private async Task<FieldWorkflowResultFact> ApplyBusinessAsync(FieldWorkflowCommand c, CancellationToken token)
     {
         if (!await db.Projects.AnyAsync(x => x.Id == c.ProjectId && x.Status == ProjectStatus.Active, token)) Deny(409, "project_not_active");
         if (c.Action == "create") return await CreateTaskAsync(c, token);
@@ -40,12 +40,12 @@ public sealed partial class FieldInspectionWorkflowRepository
             var replay = await OriginAsync(c.ProjectId, admitted.EffectId, "FIELD_ACCEPT", admitted.CorePayloadHash, c.Admission.OriginalActorId, task.Id, token);
             if (replay is not null) return new(200, Value: task);
         }
-        if (c.Input is FieldStartInput retryStart)
+        if (c.Input is FieldStartInputFact retryStart)
         {
             var replay = await OriginAsync(c.ProjectId, retryStart.OriginId, "FIELD_START", Hash(new { task.Id, input = retryStart, c.Admission.OriginalActorId }), c.Admission.OriginalActorId, task.Id, token);
             if (replay is not null) return new(200, Value: await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleAsync(x => x.Id == replay.EffectId, token));
         }
-        if (c.Input is FieldSubmissionInput retrySubmission)
+        if (c.Input is FieldSubmissionInputFact retrySubmission)
         {
             var replay = await OriginAsync(c.ProjectId, retrySubmission.OriginId, "FIELD_SUBMISSION", Hash(new { task.Id, input = retrySubmission, c.Admission.OriginalActorId }), c.Admission.OriginalActorId, task.Id, token);
             if (replay is not null) return new(200, Value: await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(x => x.Id == replay.EffectId, token));
@@ -66,11 +66,11 @@ public sealed partial class FieldInspectionWorkflowRepository
                 break;
             case "reject": task.Transition(FieldInspectionTaskStatus.Rejected); assignment!.End(now, Reason(c.Input), true); Emit(c, task, assignment, "REJECTED", Reason(c.Input), now); break;
             case "cancel":
-                var cancelFacts = await HandoverFactsAsync(task, c.Input as FieldTaskActionInput, token);
+                var cancelFacts = await HandoverFactsAsync(task, c.Input as FieldTaskActionInputFact, token);
                 task.Transition(FieldInspectionTaskStatus.Cancelled); assignment?.End(now, Reason(c.Input)); Emit(c, task, assignment, "CANCELLED", Reason(c.Input), now, facts: cancelFacts); break;
             case "assign":
             case "reassign":
-                var action = c.Input as FieldTaskActionInput ?? throw new ArgumentException("Assignment input required.");
+                var action = c.Input as FieldTaskActionInputFact ?? throw new ArgumentException("Assignment input required.");
                 var next = action.AssignedToUserId.GetValueOrDefault();
                 if (next == Guid.Empty) Deny(400, "validation_error");
                 await GuardCrewAsync(c.ProjectId, next, token);
@@ -90,7 +90,7 @@ public sealed partial class FieldInspectionWorkflowRepository
         }
         return new(201, Value: task);
     }
-    private static string Reason(object? input) => input is FieldTaskActionInput a && !string.IsNullOrWhiteSpace(a.Reason) && a.Reason.Trim().Length <= 2000 ? a.Reason.Trim() : throw new ArgumentException("Bounded reason required.");
+    private static string Reason(object? input) => input is FieldTaskActionInputFact a && !string.IsNullOrWhiteSpace(a.Reason) && a.Reason.Trim().Length <= 2000 ? a.Reason.Trim() : throw new ArgumentException("Bounded reason required.");
     private async Task GuardCrewAsync(Guid project, Guid crew, CancellationToken token)
     {
         await Anh02ReceiptAuthority.LockAsync(db, crew, project, token);
@@ -99,9 +99,9 @@ public sealed partial class FieldInspectionWorkflowRepository
             !await db.ProjectMembers.AnyAsync(x => x.ProjectId == project && x.UserId == crew && x.RoleCode == UserRoleCode.RepairCrew &&
                 x.Status == ProjectMemberStatus.Active && x.ValidFrom <= date && (x.ValidTo == null || x.ValidTo >= date), token)) Deny(403, "assignee_not_authorized");
     }
-    private async Task<FieldWorkflowResult> CreateTaskAsync(FieldWorkflowCommand c, CancellationToken token)
+    private async Task<FieldWorkflowResultFact> CreateTaskAsync(FieldWorkflowCommand c, CancellationToken token)
     {
-        var input = c.Input as FieldTaskCreateInput ?? throw new ArgumentException("Task input required.");
+        var input = c.Input as FieldTaskCreateInputFact ?? throw new ArgumentException("Task input required.");
         if (string.IsNullOrWhiteSpace(input.DefectVersion) || input.DueAt == default || input.AssignedToUserId == Guid.Empty) Deny(400, "validation_error");
         var defect = await db.Defects.FromSqlInterpolated($"SELECT * FROM [Defects] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={input.DefectId}").SingleOrDefaultAsync(token);
         if (defect is null || defect.ProjectId != c.ProjectId) Deny(404, "not_found");
@@ -119,7 +119,7 @@ public sealed partial class FieldInspectionWorkflowRepository
         db.AddRange(task, assignment); Emit(c, task, assignment, "ASSIGNED", "FIELD measurement assignment", now);
         return new(201, Value: task);
     }
-    private async Task ValidateSourceAsync(Guid project, FieldTaskCreateInput input, Guid? ai, CancellationToken token)
+    private async Task ValidateSourceAsync(Guid project, FieldTaskCreateInputFact input, Guid? ai, CancellationToken token)
     {
         if (input.SourceKind == "REPORTER")
         {
@@ -146,7 +146,7 @@ public sealed partial class FieldInspectionWorkflowRepository
         }
         else Deny(400, "validation_error");
     }
-    private async Task ValidatePinsAsync(Guid project, FieldTaskCreateInput input, CancellationToken token)
+    private async Task ValidatePinsAsync(Guid project, FieldTaskCreateInputFact input, CancellationToken token)
     {
         if (!await (from route in db.RoadSectionVersions
                     join road in db.RoadSections on route.RoadSectionId equals road.Id
@@ -159,7 +159,7 @@ public sealed partial class FieldInspectionWorkflowRepository
             if (row is null || row.ProjectId != project || row.RouteVersionId != input.RouteVersionId || row.SegmentSetId != input.SegmentSetId || row.CrsProfileRevisionId != input.CrsProfileRevisionId) Deny(409, "geometry_version_mismatch");
             if (input.SlabId is not null)
             {
-                var geometry = Decode<RoadGuardSystem.DTOs.Projects.PavementGeometryPreview>(row.SnapshotJson);
+                var geometry = Decode<RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.PavementGeometryPreviewFact>(row.SnapshotJson);
                 if (!geometry.Slabs.Any(x => x.Key == input.SlabId)) Deny(409, "geometry_version_mismatch");
             }
         }
@@ -169,9 +169,9 @@ public sealed partial class FieldInspectionWorkflowRepository
         var native = await db.Set<RoadGuardSystem.BusinessObjects.Projects.NativeRouteVersionFacts>().AsNoTracking().SingleOrDefaultAsync(x => x.RoadSectionVersionId == input.RouteVersionId, token);
         if (native?.CrsProfileRevisionId != input.CrsProfileRevisionId) Deny(409, "geometry_version_mismatch");
     }
-    private async Task<FieldWorkflowResult> StartAsync(FieldWorkflowCommand c, FieldInspectionTask task, FieldInspectionAssignment assignment, CancellationToken token)
+    private async Task<FieldWorkflowResultFact> StartAsync(FieldWorkflowCommand c, FieldInspectionTask task, FieldInspectionAssignment assignment, CancellationToken token)
     {
-        var input = c.Input as FieldStartInput ?? throw new ArgumentException("First-start input required.");
+        var input = c.Input as FieldStartInputFact ?? throw new ArgumentException("First-start input required.");
         var hash = Hash(new { task.Id, input, c.Admission.OriginalActorId });
         var duplicate = await OriginAsync(c.ProjectId, input.OriginId, "FIELD_START", hash, c.Admission.OriginalActorId, task.Id, token);
         if (duplicate is not null) return new(200, Value: await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleAsync(x => x.Id == duplicate.EffectId, token));
@@ -221,7 +221,7 @@ public sealed partial class FieldInspectionWorkflowRepository
             responsibleUserId = kind is "ASSIGNED" or "REASSIGNED" or "SUPPLEMENT" ? assignment?.AssignedToUserId : null
         }, Json)));
     }
-    private async Task<FieldWorkflowResult> FinalizeResultAsync(FieldWorkflowCommand c, FieldWorkflowResult result, CancellationToken token)
+    private async Task<FieldWorkflowResultFact> FinalizeResultAsync(FieldWorkflowCommand c, FieldWorkflowResultFact result, CancellationToken token)
     {
         if (result.Value is FieldInspectionTask task) return result with { Value = await ViewAsync(task, token), Version = Convert.ToBase64String(task.RowVersion) };
         if (result.Value is FieldInspectionSubmission submission) return result with { Value = await SubmissionViewAsync(submission, token), Version = submission.ContentHash };

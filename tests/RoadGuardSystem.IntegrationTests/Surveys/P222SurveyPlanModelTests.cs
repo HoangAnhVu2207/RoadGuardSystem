@@ -31,7 +31,13 @@ public sealed class P222SurveyPlanModelTests
         request.Should().NotBeNull();
         var mappedRequest = request!;
         mappedRequest.GetTableName().Should().Be("SurveyRequests");
-        mappedRequest.GetForeignKeys().Should().HaveCount(5);
+        mappedRequest.GetForeignKeys().Select(foreignKey => foreignKey.Properties.Single().Name)
+            .Should().BeEquivalentTo([
+                nameof(SurveyRequest.ParentTaskId), nameof(SurveyRequest.ProjectId),
+                nameof(SurveyRequest.RequestedByUserId), nameof(SurveyRequest.RoadSectionId),
+                nameof(SurveyRequest.RoadSectionVersionId), nameof(SurveyRequest.SupplementRequestId),
+                nameof(SurveyRequest.SurveyPlanId)
+            ]);
         mappedRequest.GetForeignKeys().Should().ContainSingle(foreignKey =>
             foreignKey.Properties.Single().Name == nameof(SurveyRequest.SurveyPlanId) && !foreignKey.IsRequired);
     }

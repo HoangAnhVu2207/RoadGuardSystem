@@ -41,9 +41,16 @@ public sealed class Rf1003RequestTaskAssignmentCharacterizationTests
         await using (var setup = _sql.CreateDbContext())
         {
             foreach (var membershipProject in new[] { projectId, secondProjectId })
-            foreach (var member in new[] { operatorUser.Id, replacementOperator.Id })
-                setup.ProjectMembers.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = membershipProject, UserId = member,
-                    RoleCode = UserRoleCode.DroneOperator, ValidFrom = new DateOnly(2026, 1, 1), Status = ProjectMemberStatus.Active });
+                foreach (var member in new[] { operatorUser.Id, replacementOperator.Id })
+                    setup.ProjectMembers.Add(new ProjectMember
+                    {
+                        Id = Guid.NewGuid(),
+                        ProjectId = membershipProject,
+                        UserId = member,
+                        RoleCode = UserRoleCode.DroneOperator,
+                        ValidFrom = new DateOnly(2026, 1, 1),
+                        Status = ProjectMemberStatus.Active
+                    });
             setup.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId, routeVersionId));
             setup.RoadSegments.Add(RoadSegment.Create(segmentId, segmentSetId, routeVersionId, 1));
             var secondSegmentSetId = Guid.NewGuid();

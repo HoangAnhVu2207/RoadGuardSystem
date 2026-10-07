@@ -182,30 +182,30 @@ public sealed class AuthController : ControllerBase
         if (result.Status == AuthStatus.Success && !noContentOnSuccess)
             Response.Headers.CacheControl = "no-store";
         return result.Status switch
-    {
-        AuthStatus.Success when noContentOnSuccess => NoContent(),
-        AuthStatus.Success => Ok(new AuthTokenResponseDto(
-            result.Tokens!.AccessToken,
-            result.Tokens.RefreshToken,
-            "Bearer",
-            result.Tokens.ExpiresIn,
-            result.Tokens.User.MustChangePassword,
-            new AuthActorResponseDto(
-                result.Tokens.User.Id,
-                result.Tokens.User.DisplayName,
-                ToV2Role(result.Tokens.User.RoleCode),
-                Convert.ToBase64String(result.Tokens.User.RowVersion)))),
-        AuthStatus.InvalidInput => AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request"),
-        AuthStatus.InvalidCredentials => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "Unauthorized"),
-        AuthStatus.PasswordChangeRequired => AuthProblem(StatusCodes.Status403Forbidden, ApiErrorCodes.PasswordChangeRequired, "Password change required"),
-        AuthStatus.PasswordPolicyRejected => AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Password policy rejected"),
-        AuthStatus.NotRequired => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict, "Password change is not required"),
-        AuthStatus.SessionRevoked => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.SessionRevoked, "Session revoked"),
-        AuthStatus.RefreshTokenInvalid => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.RefreshTokenInvalid, "Invalid refresh token"),
-        AuthStatus.RefreshTokenExpired => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.RefreshTokenExpired, "Expired refresh token"),
-        AuthStatus.IdempotentConflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.IdempotencyKeyReused, "Idempotency key reused"),
-        AuthStatus.Conflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict, "Conflict"),
-        _ => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized")
+        {
+            AuthStatus.Success when noContentOnSuccess => NoContent(),
+            AuthStatus.Success => Ok(new AuthTokenResponseDto(
+                result.Tokens!.AccessToken,
+                result.Tokens.RefreshToken,
+                "Bearer",
+                result.Tokens.ExpiresIn,
+                result.Tokens.User.MustChangePassword,
+                new AuthActorResponseDto(
+                    result.Tokens.User.Id,
+                    result.Tokens.User.DisplayName,
+                    ToV2Role(result.Tokens.User.RoleCode),
+                    Convert.ToBase64String(result.Tokens.User.RowVersion)))),
+            AuthStatus.InvalidInput => AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request"),
+            AuthStatus.InvalidCredentials => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.InvalidCredentials, "Unauthorized"),
+            AuthStatus.PasswordChangeRequired => AuthProblem(StatusCodes.Status403Forbidden, ApiErrorCodes.PasswordChangeRequired, "Password change required"),
+            AuthStatus.PasswordPolicyRejected => AuthProblem(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Password policy rejected"),
+            AuthStatus.NotRequired => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict, "Password change is not required"),
+            AuthStatus.SessionRevoked => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.SessionRevoked, "Session revoked"),
+            AuthStatus.RefreshTokenInvalid => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.RefreshTokenInvalid, "Invalid refresh token"),
+            AuthStatus.RefreshTokenExpired => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.RefreshTokenExpired, "Expired refresh token"),
+            AuthStatus.IdempotentConflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.IdempotencyKeyReused, "Idempotency key reused"),
+            AuthStatus.Conflict => AuthProblem(StatusCodes.Status409Conflict, ApiErrorCodes.ConcurrencyConflict, "Conflict"),
+            _ => AuthProblem(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized")
         };
     }
 

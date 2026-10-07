@@ -23,8 +23,14 @@ public sealed class HuyFinalSessionPersistenceInvariantTests
     public void ExistingSessionLifecycleAndIssuedRole_AreWriteOnce(string field)
     {
         using var db = Db();
-        var session = new UserSession { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IssuedAt = DateTimeOffset.UtcNow,
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(1), IssuedRole = UserRoleCode.ProjectManager };
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            IssuedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddHours(1),
+            IssuedRole = UserRoleCode.ProjectManager
+        };
         db.Attach(session);
         if (field == "lifecycle") session.Lifecycle = SessionLifecycle.PersistentRenewable;
         else session.IssuedRole = UserRoleCode.RepairCrew;

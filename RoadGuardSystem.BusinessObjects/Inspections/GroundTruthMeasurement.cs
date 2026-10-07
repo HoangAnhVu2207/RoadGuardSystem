@@ -147,13 +147,30 @@ public sealed class GroundTruthMeasurement
         if (location is not null && (location.SRID != 4326 || location.IsEmpty || !double.IsFinite(location.X) || !double.IsFinite(location.Y) || location.X is < -180 or > 180 || location.Y is < -90 or > 90) ||
             location is null && string.IsNullOrWhiteSpace(locationReason))
             throw new ArgumentException("Unknown location requires a reason; captured GPS must be valid WGS84.");
-        return new GroundTruthMeasurement { Id = id, FieldInspectionSessionId = sessionId, SampleId = NormalizeRequired(sampleId, nameof(sampleId), 100),
-            RoadSectionVersionId = routeId, SurveyId = surveyId, DefectId = defectId, MeasurementType = type,
-            Value = value, ValueState = valueState, UnknownReason = NormalizeOptional(unknownReason, nameof(unknownReason), 1000),
-            Dimension = dimension, Unit = normalizedUnit, Location = location, LocationState = location is null ? "UNKNOWN" : "CAPTURED",
-            LocationReason = NormalizeOptional(locationReason, nameof(locationReason), 1000), InstrumentName = NormalizeRequired(instrument, nameof(instrument), 150),
-            MeasurementMethod = NormalizeRequired(method, nameof(method), 500), MeasuredBy = NormalizeRequired(measuredBy, nameof(measuredBy), 200),
-            MeasuredAt = measuredAt.ToUniversalTime(), EvidenceFileId = evidenceId, Notes = NormalizeOptional(notes, nameof(notes), 4000) };
+        return new GroundTruthMeasurement
+        {
+            Id = id,
+            FieldInspectionSessionId = sessionId,
+            SampleId = NormalizeRequired(sampleId, nameof(sampleId), 100),
+            RoadSectionVersionId = routeId,
+            SurveyId = surveyId,
+            DefectId = defectId,
+            MeasurementType = type,
+            Value = value,
+            ValueState = valueState,
+            UnknownReason = NormalizeOptional(unknownReason, nameof(unknownReason), 1000),
+            Dimension = dimension,
+            Unit = normalizedUnit,
+            Location = location,
+            LocationState = location is null ? "UNKNOWN" : "CAPTURED",
+            LocationReason = NormalizeOptional(locationReason, nameof(locationReason), 1000),
+            InstrumentName = NormalizeRequired(instrument, nameof(instrument), 150),
+            MeasurementMethod = NormalizeRequired(method, nameof(method), 500),
+            MeasuredBy = NormalizeRequired(measuredBy, nameof(measuredBy), 200),
+            MeasuredAt = measuredAt.ToUniversalTime(),
+            EvidenceFileId = evidenceId,
+            Notes = NormalizeOptional(notes, nameof(notes), 4000)
+        };
     }
 
     private static string NormalizeRequired(string value, string parameterName, int maxLength)

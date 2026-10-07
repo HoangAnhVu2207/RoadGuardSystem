@@ -38,8 +38,10 @@ public sealed class Anh02RetentionPersistenceTests : IAsyncLifetime
     }
     private static ApplicationUser User(Guid id, UserRoleCode role) => new() { Id = id, UserName = id.ToString(), NormalizedUserName = id.ToString().ToUpperInvariant(), DisplayName = "Isolated retention fixture", RoleCode = role, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow, SecurityStamp = id.ToString(), PasswordHash = "isolated-test-only-no-login" };
     [Theory]
-    [InlineData(false, false)] [InlineData(false, true)]
-    [InlineData(true, false)] [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
     public async Task Basis_and_release_deny_replay_or_conflict_after_preflight(bool release, bool conflict)
     {
         var seed = await SeedAsync(); var key = Guid.NewGuid().ToString(); Guid holdId = default; string version = "none"; string inventoryVersion = "";

@@ -1,4 +1,5 @@
 namespace RoadGuardSystem.BusinessObjects.Inspections;
+
 public sealed class FieldInspectionEvidenceReuseDecision
 {
     public Guid Id { get; private set; }
@@ -16,11 +17,23 @@ public sealed class FieldInspectionEvidenceReuseDecision
     public static FieldInspectionEvidenceReuseDecision Create(Guid id, Guid project, Guid task, Guid file, Guid sourceEvidence,
         Guid actor, string source, string checksum, string provenance, string reason, DateTimeOffset at)
     {
-        if (new[] {id,project,task,file,sourceEvidence,actor}.Any(x => x == Guid.Empty) || source is not ("REPORTER" or "DRONE") ||
+        if (new[] { id, project, task, file, sourceEvidence, actor }.Any(x => x == Guid.Empty) || source is not ("REPORTER" or "DRONE") ||
             string.IsNullOrEmpty(checksum) || checksum.Length != 64 || checksum.Any(x => !Uri.IsHexDigit(x)) || string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 2000)
             throw new ArgumentException("Explicit authorized BEFORE reuse provenance required.");
-        using var document=System.Text.Json.JsonDocument.Parse(provenance);
-        return new FieldInspectionEvidenceReuseDecision {Id=id,ProjectId=project,TaskId=task,FileId=file,SourceEvidenceId=sourceEvidence,ActorId=actor,
-            SourceKind=source,FileChecksum=checksum.ToLowerInvariant(),ProvenanceJson=provenance,Reason=reason.Trim(),OccurredAt=at.ToUniversalTime()};
+        using var document = System.Text.Json.JsonDocument.Parse(provenance);
+        return new FieldInspectionEvidenceReuseDecision
+        {
+            Id = id,
+            ProjectId = project,
+            TaskId = task,
+            FileId = file,
+            SourceEvidenceId = sourceEvidence,
+            ActorId = actor,
+            SourceKind = source,
+            FileChecksum = checksum.ToLowerInvariant(),
+            ProvenanceJson = provenance,
+            Reason = reason.Trim(),
+            OccurredAt = at.ToUniversalTime()
+        };
     }
 }

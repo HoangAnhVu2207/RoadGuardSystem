@@ -167,7 +167,8 @@ public sealed class SurveyV2Service : ISurveyV2Service
                     var dimensions = new[] { position, quality, coverage };
                     var overall = dimensions.Contains("FAIL") ? "FAIL" : dimensions.Contains("UNKNOWN") ? "UNKNOWN" : "PASS";
                     return new DatasetCoverageItemDto(new BandScopeDto(s.RouteVersionId, s.SegmentSetId, [segment], s.TargetBand), position, quality, overall,
-                        [item?.Reason ?? "assessment_scope_not_reviewed"]) { CoverageStatus = coverage };
+                        [item?.Reason ?? "assessment_scope_not_reviewed"])
+                    { CoverageStatus = coverage };
                 })).ToArray();
                 return new(SurveyV2ServiceStatus.Success, new DatasetCoverageResponseDto(datasetId, items, assessment.MethodVersion, assessment.Id, assessment.Version));
             }

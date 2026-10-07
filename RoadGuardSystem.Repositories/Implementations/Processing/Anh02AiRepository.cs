@@ -8,7 +8,7 @@ using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Candidates;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Processing;
-using RoadGuardSystem.DTOs.Processing;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Models.Huy01;
 using RoadGuardSystem.Repositories.Projects;
@@ -34,10 +34,12 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             throw new AiRequestException(403, "access_forbidden");
     }
 
-    public async Task<AiDatasetSourceFacts> ReadSourcesAsync(Guid projectId, CreateAiMockRunRequest request, CancellationToken ct)
+    public async Task<AiDatasetSourceFacts> ReadSourcesAsync(Guid projectId, CreateAiMockRunRequestFact request, CancellationToken ct)
     {
-        var row = await (from d in db.SurveyDataVersions.AsNoTracking() join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
-            where d.Id == request.DatasetId select new { Data = d, s.ProjectId, s.SurveyRequestId }).SingleOrDefaultAsync(ct);
+        var row = await (from d in db.SurveyDataVersions.AsNoTracking()
+                         join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+                         where d.Id == request.DatasetId
+                         select new { Data = d, s.ProjectId, s.SurveyRequestId }).SingleOrDefaultAsync(ct);
         if (row is null || row.ProjectId != projectId) throw new AiRequestException(404, "not_found");
         if (!await db.SurveyRequests.AsNoTracking().AnyAsync(t => t.Id == row.SurveyRequestId && t.ProjectId == projectId, ct))
             throw new AiRequestException(409, "source_not_ready");
@@ -67,13 +69,15 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             var sourceItems = source.RootElement.EnumerateArray().ToArray();
             var ids = sourceItems.Select(s => s.GetProperty("fileId").GetGuid()).ToArray();
             if (ids.Length == 0 || ids.Distinct().Count() != ids.Length) throw new AiRequestException(409, "source_not_ready");
-            var files = await (from f in db.Files.AsNoTracking() join s in db.FileScopes.AsNoTracking() on f.Id equals s.FileId
-                join u in db.UploadSessions.AsNoTracking() on f.Id equals u.FileId where ids.Contains(f.Id)
-                && s.ProjectId == projectId && s.TargetId == row.SurveyRequestId && u.Status == UploadSessionStatus.Verified
-                && s.OwnerUserId == u.OwnerUserId && u.OwnerUserId == f.UploadedByUserId
-                && u.ExpectedChecksumSha256 == f.Checksum && u.ExpectedSizeBytes == f.SizeBytes && u.MediaType == f.MimeType
-                && u.Purpose == s.Purpose && (s.Purpose == "SURVEY_VIDEO" || s.Purpose == "TELEMETRY")
-                select new { File = f, Upload = u, s.Purpose }).ToArrayAsync(ct);
+            var files = await (from f in db.Files.AsNoTracking()
+                               join s in db.FileScopes.AsNoTracking() on f.Id equals s.FileId
+                               join u in db.UploadSessions.AsNoTracking() on f.Id equals u.FileId
+                               where ids.Contains(f.Id)
+                               && s.ProjectId == projectId && s.TargetId == row.SurveyRequestId && u.Status == UploadSessionStatus.Verified
+                               && s.OwnerUserId == u.OwnerUserId && u.OwnerUserId == f.UploadedByUserId
+                               && u.ExpectedChecksumSha256 == f.Checksum && u.ExpectedSizeBytes == f.SizeBytes && u.MediaType == f.MimeType
+                               && u.Purpose == s.Purpose && (s.Purpose == "SURVEY_VIDEO" || s.Purpose == "TELEMETRY")
+                               select new { File = f, Upload = u, s.Purpose }).ToArrayAsync(ct);
             if (files.Length != ids.Length || files.Any(f => !sourceItems.Any(s => s.GetProperty("fileId").GetGuid() == f.File.Id
                 && s.GetProperty("checksumSha256").GetString() == f.File.Checksum && s.GetProperty("sizeBytes").GetInt64() == f.File.SizeBytes
                 && s.GetProperty("mediaType").GetString() == f.File.MimeType && s.GetProperty("purpose").GetString() == f.Purpose)))
@@ -91,7 +95,7 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
         { throw new AiRequestException(409, "source_not_ready"); }
     }
 
-    public async Task<AiMockRunView> AdmitAsync(Guid actorId, UserRoleCode role, Guid projectId, CreateAiMockRunRequest request,
+    public async Task<AiMockRunViewFact> AdmitAsync(Guid actorId, UserRoleCode role, Guid projectId, CreateAiMockRunRequestFact request,
         string key, string fingerprint, Func<Guid, Guid, Guid, AiDatasetSourceFacts, CancellationToken, Task<AiAdmissionManifest>> createManifest, CancellationToken ct)
     {
         await AuthorizeAsync(actorId, role, projectId, true, ct);
@@ -128,10 +132,25 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
                 db.ProcessingJobs.Add(ProcessingJob.CreateQueued(jobId, block.Id, request.ModelVersionId, projectId, manifest.Hash, manifest.CanonicalJson, "MOCK"));
                 db.ProcessingAttempts.Add(ProcessingAttempt.Create(attemptId, jobId, 1, now, null, null, "anh02.mock"));
             }
-            var run = new AiMockRun { Id = runId, ProjectId = projectId, DatasetVersionId = request.DatasetId, ProcessingJobId = jobId,
-                AttemptId = attemptId, ModelVersionId = request.ModelVersionId, RouteVersionId = request.Scope.RouteVersionId, SegmentSetId = request.Scope.SegmentSetId,
-                CreatedBy = actorId, CreatedAt = now, Stage = request.Stage, FixtureVersion = request.FixtureVersion, GeometryVersion = manifest.GeometryVersion,
-                CanonicalManifest = manifest.CanonicalJson, ManifestHash = manifest.Hash, AnalysisRunId = analysis?.Id };
+            var run = new AiMockRun
+            {
+                Id = runId,
+                ProjectId = projectId,
+                DatasetVersionId = request.DatasetId,
+                ProcessingJobId = jobId,
+                AttemptId = attemptId,
+                ModelVersionId = request.ModelVersionId,
+                RouteVersionId = request.Scope.RouteVersionId,
+                SegmentSetId = request.Scope.SegmentSetId,
+                CreatedBy = actorId,
+                CreatedAt = now,
+                Stage = request.Stage,
+                FixtureVersion = request.FixtureVersion,
+                GeometryVersion = manifest.GeometryVersion,
+                CanonicalManifest = manifest.CanonicalJson,
+                ManifestHash = manifest.Hash,
+                AnalysisRunId = analysis?.Id
+            };
             db.Set<AiMockRun>().Add(run);
             db.Set<AiManifestFileReference>().AddRange(facts.Files.Select(f => new AiManifestFileReference { RunId = runId, FileId = f.FileId, FileVersion = f.FileVersion }));
             Audit(actorId, runId, now, "anh02_ai_mock_admitted"); await db.SaveChangesAsync(token);
@@ -142,7 +161,7 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             await AuthorizeAsync(actorId, role, projectId, true, token);
         });
         if (outcome.Status == IdempotencyOperationStatus.Conflict) throw new AiRequestException(409, "duplicate_request");
-        return JsonSerializer.Deserialize<AiMockRunView>(outcome.OutcomeJson!, Json)!;
+        return JsonSerializer.Deserialize<AiMockRunViewFact>(outcome.OutcomeJson!, Json)!;
     }
 
     public Task<AiMockRun?> GetAsync(Guid projectId, Guid runId, CancellationToken ct)
@@ -219,33 +238,36 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
     public async Task<AiCandidateReadFacts?> ReadCandidateAsync(Guid projectId, Guid detectionId, CancellationToken ct)
     {
         var row = await (from proof in db.Set<AiDetectionProvenance>().AsNoTracking()
-            join run in db.Set<AiMockRun>().AsNoTracking() on proof.RunId equals run.Id
-            join result in db.Set<AiResultProvenance>().AsNoTracking() on proof.ResultId equals result.Id
-            join job in db.ProcessingJobs.AsNoTracking() on run.ProcessingJobId equals job.Id
-            join attempt in db.ProcessingAttempts.AsNoTracking() on run.AttemptId equals attempt.Id
-            join block in db.ProcessingBlocks.AsNoTracking() on job.ProcessingBlockId equals block.Id
-            join detection in db.AIDetections.AsNoTracking() on proof.DetectionId equals detection.Id
-            join frame in db.Files.AsNoTracking() on proof.FrameFileId equals frame.Id
-            join source in db.Files.AsNoTracking() on proof.SourceVideoFileId equals source.Id
-            join upload in db.UploadSessions.AsNoTracking() on source.Id equals upload.FileId
-            where proof.DetectionId == detectionId && run.ProjectId == projectId && run.Status == "SUCCEEDED" && upload.Status == UploadSessionStatus.Verified
-                && job.ProjectId == projectId && job.ModelVersionId == run.ModelVersionId && job.Mode == "MOCK"
-                && job.ManifestHash == run.ManifestHash && job.ManifestJson == run.CanonicalManifest && job.Status == ProcessingJobStatus.Completed
-                && block.SurveyDataVersionId == run.DatasetVersionId && attempt.ProcessingJobId == job.Id
-                && attempt.EndedAt != null && attempt.ErrorType == ProcessingAttemptErrorType.None
-            select new { proof, run, result, detection, frame.Checksum, frame.SizeBytes, frame.MimeType, SourceVersion = upload.RowVersion, SourceHash = source.Checksum, SourceBytes = source.SizeBytes }).SingleOrDefaultAsync(ct);
+                         join run in db.Set<AiMockRun>().AsNoTracking() on proof.RunId equals run.Id
+                         join result in db.Set<AiResultProvenance>().AsNoTracking() on proof.ResultId equals result.Id
+                         join job in db.ProcessingJobs.AsNoTracking() on run.ProcessingJobId equals job.Id
+                         join attempt in db.ProcessingAttempts.AsNoTracking() on run.AttemptId equals attempt.Id
+                         join block in db.ProcessingBlocks.AsNoTracking() on job.ProcessingBlockId equals block.Id
+                         join detection in db.AIDetections.AsNoTracking() on proof.DetectionId equals detection.Id
+                         join frame in db.Files.AsNoTracking() on proof.FrameFileId equals frame.Id
+                         join source in db.Files.AsNoTracking() on proof.SourceVideoFileId equals source.Id
+                         join upload in db.UploadSessions.AsNoTracking() on source.Id equals upload.FileId
+                         where proof.DetectionId == detectionId && run.ProjectId == projectId && run.Status == "SUCCEEDED" && upload.Status == UploadSessionStatus.Verified
+                             && job.ProjectId == projectId && job.ModelVersionId == run.ModelVersionId && job.Mode == "MOCK"
+                             && job.ManifestHash == run.ManifestHash && job.ManifestJson == run.CanonicalManifest && job.Status == ProcessingJobStatus.Completed
+                             && block.SurveyDataVersionId == run.DatasetVersionId && attempt.ProcessingJobId == job.Id
+                             && attempt.EndedAt != null && attempt.ErrorType == ProcessingAttemptErrorType.None
+                         select new { proof, run, result, detection, frame.Checksum, frame.SizeBytes, frame.MimeType, SourceVersion = upload.RowVersion, SourceHash = source.Checksum, SourceBytes = source.SizeBytes }).SingleOrDefaultAsync(ct);
         if (row is null) return null;
         var disposition = await (from head in db.Set<HuyCandidateSourceHead>().AsNoTracking()
-            join decision in db.SourceDecisions.AsNoTracking() on head.DecisionId equals decision.Id
-            where head.SourceKind == CandidateSourceKind.AiDetection && head.SourceId == detectionId && head.ProjectId == projectId
-            select new { head.DecisionId, HeadVersion = head.RowVersion, DecisionVersion = EF.Property<byte[]>(decision, "RowVersion") }).SingleOrDefaultAsync(ct);
+                                 join decision in db.SourceDecisions.AsNoTracking() on head.DecisionId equals decision.Id
+                                 where head.SourceKind == CandidateSourceKind.AiDetection && head.SourceId == detectionId && head.ProjectId == projectId
+                                 select new { head.DecisionId, HeadVersion = head.RowVersion, DecisionVersion = EF.Property<byte[]>(decision, "RowVersion") }).SingleOrDefaultAsync(ct);
         return new(row.run, row.result, row.proof, row.detection, row.Checksum, row.SizeBytes, row.MimeType, Convert.ToBase64String(row.SourceVersion), row.SourceHash, row.SourceBytes,
             disposition is null ? null : new(disposition.DecisionId, Convert.ToBase64String(disposition.DecisionVersion)),
             disposition is null ? null : Convert.ToBase64String(disposition.DecisionVersion));
     }
     public Task<Guid?> DetectionProjectAsync(Guid detectionId, CancellationToken ct)
-        => (from detection in db.AIDetections.AsNoTracking() join job in db.ProcessingJobs.AsNoTracking()
-            on detection.ProcessingJobId equals job.Id where detection.Id == detectionId select (Guid?)job.ProjectId).SingleOrDefaultAsync(ct);
+        => (from detection in db.AIDetections.AsNoTracking()
+            join job in db.ProcessingJobs.AsNoTracking()
+            on detection.ProcessingJobId equals job.Id
+            where detection.Id == detectionId
+            select (Guid?)job.ProjectId).SingleOrDefaultAsync(ct);
     private void Audit(Guid actor, Guid run, DateTimeOffset now, string action)
         => db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, now, action, "AiMockRun", run, null, "{}", "Synthetic mock provenance", "ANH-02", null, []));
     // Existing dataset scope/pairs were persisted with CLR PascalCase; wire and
@@ -255,6 +277,6 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
     private static bool Unique(JsonElement value) => value.ValueKind == JsonValueKind.Object
         && value.EnumerateObject().Select(p => p.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() == value.EnumerateObject().Count();
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
-    public static AiMockRunView View(AiMockRun run) => new(run.Id, run.ProjectId, run.Stage, "MOCK", run.Status, run.ProcessingJobId,
+    public static AiMockRunViewFact View(AiMockRun run) => new(run.Id, run.ProjectId, run.Stage, "MOCK", run.Status, run.ProcessingJobId,
         run.AttemptId, run.ManifestHash, run.ResultId, run.FixtureVersion, run.ErrorCode, Convert.ToBase64String(run.RowVersion));
 }

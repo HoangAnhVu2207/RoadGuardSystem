@@ -25,7 +25,10 @@ public sealed class ReporterReportRepository(RoadGuardDbContext context) : IRepo
         context.IncidentCases.Add(intakeCase);
         context.Set<HuyCaseReportLink>().Add(new HuyCaseReportLink
         {
-            Id = Guid.NewGuid(), CaseId = intakeCase.Id, ReportId = report.Id, StartedAt = now
+            Id = Guid.NewGuid(),
+            CaseId = intakeCase.Id,
+            ReportId = report.Id,
+            StartedAt = now
         });
         context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), reporterUserId, now, "report_received", "Report", report.Id,
             null, System.Text.Json.JsonSerializer.Serialize(new { report.Id, intakeCaseId = intakeCase.Id, evidenceCount = evidence.Count }),

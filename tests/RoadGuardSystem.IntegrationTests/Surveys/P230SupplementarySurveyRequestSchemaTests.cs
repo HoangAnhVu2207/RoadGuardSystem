@@ -71,15 +71,26 @@ public sealed class P230SupplementarySurveyRequestSchemaTests : IClassFixture<Id
     [Fact(DisplayName = "P2-30: supplementary request migration downgrades and reapplies")]
     public async Task MigrationLifecycle_DowngradesToDatasetSchemaAndReapplies()
     {
-        await using var context = _fixture.CreateDbContext();
-        (await CountSupplementaryTablesAsync(context)).Should().Be(1);
+        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
+        await fixture.InitializeAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
+                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
+            var lifecycleMigrator = context.GetService<IMigrator>();
+            const string testedMigration = "20260921131946_AddP230SupplementarySurveyRequestSchema";
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            (await CountSupplementaryTablesAsync(context)).Should().Be(1);
 
-        var migrator = context.GetService<IMigrator>();
-        await migrator.MigrateAsync("20260921131520_AddP230DataVersionQualityCheckSchema");
-        (await CountSupplementaryTablesAsync(context)).Should().Be(0);
+            var migrator = context.GetService<IMigrator>();
+            await migrator.MigrateAsync("20260921131520_AddP230DataVersionQualityCheckSchema");
+            (await CountSupplementaryTablesAsync(context)).Should().Be(0);
 
-        await context.Database.MigrateAsync();
-        (await CountSupplementaryTablesAsync(context)).Should().Be(1);
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            (await CountSupplementaryTablesAsync(context)).Should().Be(1);
+            await context.Database.MigrateAsync();
+        }
+        finally { await fixture.DisposeAsync(); }
     }
 
     private async Task<SupplementaryScope> CreateScopeAsync(RoadGuardDbContext context)

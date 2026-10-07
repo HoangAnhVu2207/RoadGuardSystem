@@ -361,19 +361,19 @@ public sealed class H4RepairLifecycleSqlTests(IdentitySqlServerFixture sql) : IC
         var admission = new FieldAdmissionContext(source.Crew, UserRoleCode.RepairCrew, source.Crew, "DIRECT", true);
         if (rejectBeforeStart)
         {
-            var rejected = await field.ExecuteAsync(new(source.Project, task.Id, "reject", new FieldTaskActionInput("actual Crew rejects before starting"),
+            var rejected = await field.ExecuteAsync(new(source.Project, task.Id, "reject", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("actual Crew rejects before starting"),
                 Guid.NewGuid().ToString(), Convert.ToBase64String(task.RowVersion), admission), _ => Task.FromResult(true), default);
             Assert.Equal(201, rejected.Status);
             var rejectedItem = await db.Set<RepairItem>().SingleAsync(row => row.Id == itemFact.Id);
             var rejectedBinding = await db.Set<RepairFieldTaskBinding>().SingleAsync(row => row.Id == rejectedItem.CurrentBindingId);
             return new(source, package, rejectedItem, rejectedBinding, null!); // This fixture branch deliberately has no first-start source.
         }
-        var accepted = await field.ExecuteAsync(new(source.Project, task.Id, "accept", new FieldTaskActionInput("accept"),
+        var accepted = await field.ExecuteAsync(new(source.Project, task.Id, "accept", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("accept"),
             Guid.NewGuid().ToString(), Convert.ToBase64String(task.RowVersion), admission), _ => Task.FromResult(true), default);
         Assert.True(accepted.Status == 201, $"Native accept expected 201, actual {accepted.Status}/{accepted.Code}.");
         var currentNativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == task.Id).Select(row => row.RowVersion).SingleAsync());
-        var started = await field.ExecuteAsync(new(source.Project, task.Id, "start", new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow),
+        var started = await field.ExecuteAsync(new(source.Project, task.Id, "start", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow),
             Guid.NewGuid().ToString(), currentNativeVersion, admission), _ => Task.FromResult(true), default);
         Assert.True(started.Status == 201, $"Native start expected 201, actual {started.Status}/{started.Code}.");
         var item = await db.Set<RepairItem>().SingleAsync(row => row.Id == itemFact.Id);

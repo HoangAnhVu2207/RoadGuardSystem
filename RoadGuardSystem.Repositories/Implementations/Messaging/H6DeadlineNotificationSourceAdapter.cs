@@ -63,8 +63,12 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
         if (!await db.Set<DeadlineDutyAppointment>().AnyAsync(a => a.ClockId == sourceClock.Id &&
             a.CurrentActorId == sourceClock.AppointedActorId && a.Role == sourceClock.AppointedRole, cancellationToken))
             return new("REJECTED", "notification_duty_assignment_invalid");
-        return proof with { ResponsibleUserId = sourceClock.AppointedActorId, ResponsibleRole = sourceClock.AppointedRole,
-            ResponsibleIsSupervisor = false };
+        return proof with
+        {
+            ResponsibleUserId = sourceClock.AppointedActorId,
+            ResponsibleRole = sourceClock.AppointedRole,
+            ResponsibleIsSupervisor = false
+        };
     }
 
     private async Task<H6SourceResolution> ResolveOriginalDutyAsync(DeadlineClock sourceClock, CancellationToken cancellationToken)

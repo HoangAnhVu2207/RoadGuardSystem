@@ -63,7 +63,8 @@ public sealed partial class H6ProtectedNotificationRepository
                     .Select(breach => new H6ClockBreachFact(breach.Id, breach.DueAt, breach.ObservedAt)).ToArray(),
                 ["EXTENSION_NUMERICAL_LIMIT_POLICY_PENDING", "ADDITIONAL_FT_OFFLINE_AUTHORIZATION_PENDING"])
             {
-                AppointedActorId = row.AppointedActorId, AppointedRole = row.AppointedRole?.ToString(),
+                AppointedActorId = row.AppointedActorId,
+                AppointedRole = row.AppointedRole?.ToString(),
                 Appointments = row.Appointments.OrderBy(a => a.EffectiveAt).Select(a => (object)new
                 { a.Id, a.PreviousActorId, a.CurrentActorId, role = a.Role.ToString(), a.DecisionActorId, a.Reason, a.EffectiveAt }).ToArray()
             }).ToArray();

@@ -78,7 +78,7 @@ public sealed class V2P1063MigrationUpgradeTests
                 item.Id == ids.TaskId && item.RowVersion.SequenceEqual(originalTaskVersion!));
 
             var updatedTaskVersion = await ScalarBytesAsync(fixture.ConnectionString,
-                "UPDATE FieldInspectionTasks SET Instructions = @instructions OUTPUT INSERTED.RowVersion WHERE Id = @id",
+                "DECLARE @versions TABLE (RowVersion binary(8)); UPDATE FieldInspectionTasks SET Instructions = @instructions OUTPUT INSERTED.RowVersion INTO @versions WHERE Id = @id; SELECT RowVersion FROM @versions;",
                 ("@instructions", "updated during V2-P1-063 upgrade"), ("@id", ids.TaskId));
             updatedTaskVersion.Should().NotBeEquivalentTo(originalTaskVersion);
 

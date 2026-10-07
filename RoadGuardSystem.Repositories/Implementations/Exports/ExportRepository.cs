@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Exports;
 using RoadGuardSystem.BusinessObjects.Files;
-using RoadGuardSystem.DTOs.Exports;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Storage;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -22,7 +22,7 @@ public sealed partial class ExportRepository : IExportRepository
         _db = db; _idempotency = idempotency; _clock = clock; _options = options?.Value ?? new();
         if (_options.LeaseDurationSeconds < 60 || _options.RetryBackoffSeconds < 1) throw new ArgumentException("Invalid export lease or backoff configuration.");
     }
-    public async Task<ExportAdmissionResult> AdmitAsync(Guid actorId, Guid projectId, CreateExportRequestDto request, string key, string fingerprint, Guid? correlationId, Func<Guid, DateTimeOffset, CancellationToken, Task<ExportCaptureResult>> capture, CancellationToken ct)
+    public async Task<ExportAdmissionResult> AdmitAsync(Guid actorId, Guid projectId, CreateExportRequestFact request, string key, string fingerprint, Guid? correlationId, Func<Guid, DateTimeOffset, CancellationToken, Task<ExportCaptureResult>> capture, CancellationToken ct)
     {
         try
         {
@@ -147,9 +147,9 @@ public static class ExportSerialization
 {
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
     public static string Hash(string json) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
-    public static ExportSnapshotPayloadDto Read(ExportSnapshot snapshot)
+    public static ExportSnapshotPayloadFact Read(ExportSnapshot snapshot)
     {
         if (Hash(snapshot.PayloadJson) != snapshot.Hash) throw new InvalidDataException("Snapshot checksum mismatch.");
-        return JsonSerializer.Deserialize<ExportSnapshotPayloadDto>(snapshot.PayloadJson, Options) ?? throw new InvalidDataException("Snapshot missing.");
+        return JsonSerializer.Deserialize<ExportSnapshotPayloadFact>(snapshot.PayloadJson, Options) ?? throw new InvalidDataException("Snapshot missing.");
     }
 }

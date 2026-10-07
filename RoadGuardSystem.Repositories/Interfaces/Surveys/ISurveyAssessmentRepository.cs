@@ -1,4 +1,5 @@
 namespace RoadGuardSystem.Repositories.Surveys;
+
 public interface ISurveyAssessmentRepository
 {
     Task<AssessmentRecord?> ReadAsync(Guid dataset, Guid? assessment, CancellationToken token);

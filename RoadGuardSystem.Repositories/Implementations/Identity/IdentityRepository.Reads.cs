@@ -76,9 +76,19 @@ public sealed partial class IdentityRepository
                 session.LastActivityAt, session.Lifecycle, session.IssuedRole))
             .SingleOrDefaultAsync(cancellationToken);
         if (state is null) return null;
-        return state with { IsActive = new UserSession { IssuedAt = state.IssuedAt, ExpiresAt = state.ExpiresAt,
-            RevokedAt = state.RevokedAt, Transport = state.Transport, LastActivityAt = state.LastActivityAt,
-            Lifecycle = state.Lifecycle, IssuedRole = state.IssuedRole }.IsActiveAt(_timeProvider.GetUtcNow()) };
+        return state with
+        {
+            IsActive = new UserSession
+            {
+                IssuedAt = state.IssuedAt,
+                ExpiresAt = state.ExpiresAt,
+                RevokedAt = state.RevokedAt,
+                Transport = state.Transport,
+                LastActivityAt = state.LastActivityAt,
+                Lifecycle = state.Lifecycle,
+                IssuedRole = state.IssuedRole
+            }.IsActiveAt(_timeProvider.GetUtcNow())
+        };
     }
 
     public async Task<RefreshTokenSecurityState?> FindRefreshTokenByHashAsync(

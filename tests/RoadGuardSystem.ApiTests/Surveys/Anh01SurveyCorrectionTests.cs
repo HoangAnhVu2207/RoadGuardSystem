@@ -110,9 +110,17 @@ public sealed class Anh01SurveyCorrectionTests(AuthenticationSqlServerFixture sq
         var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
         var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = $"FIX-{Guid.NewGuid():N}", name = "Isolated correction test",
-            engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = manager.Id,
-            handover = new { documentNo = "TEST", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
+        var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            projectCode = $"FIX-{Guid.NewGuid():N}",
+            name = "Isolated correction test",
+            engineeringUtmSrid = 32648,
+            startDate = "2026-09-01",
+            endDate = "2027-09-01",
+            primaryProjectManagerUserId = manager.Id,
+            handover = new { documentNo = "TEST", handoverDate = "2026-08-31" },
+            operationId = Guid.NewGuid()
+        });
         projectResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await Body(projectResponse)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!);
@@ -128,15 +136,31 @@ public sealed class Anh01SurveyCorrectionTests(AuthenticationSqlServerFixture sq
         var (set, segment) = await Publish(client, project, section, route);
         await using (var db = sql.CreateDbContext())
         {
-            foreach (var actor in new[] { first.Id, second.Id }) db.ProjectMembers.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = project, UserId = actor,
-                RoleCode = UserRoleCode.DroneOperator, ValidFrom = new DateOnly(2026, 1, 1), Status = ProjectMemberStatus.Active });
+            foreach (var actor in new[] { first.Id, second.Id }) db.ProjectMembers.Add(new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project,
+                UserId = actor,
+                RoleCode = UserRoleCode.DroneOperator,
+                ValidFrom = new DateOnly(2026, 1, 1),
+                Status = ProjectMemberStatus.Active
+            });
             await db.SaveChangesAsync();
         }
         return new(factory, client, project, section, route, set, segment, supervisor.UserName!, manager.UserName!, first.UserName!, second.UserName!, first.Id, second.Id);
     }
-    private static object Draft(Guid? section = null) => new { sourceKind = "COORDINATES", sourceCrs = 32648, roadSectionId = section, roadCode = section is null ? "TEST" : null,
-        stationOriginMeters = 0d, changeReason = "Test alignment", coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500200d, y = 1100000d } },
-        widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 200d, widthMeters = 8d } }, surveyWidthMeters = 12d };
+    private static object Draft(Guid? section = null) => new
+    {
+        sourceKind = "COORDINATES",
+        sourceCrs = 32648,
+        roadSectionId = section,
+        roadCode = section is null ? "TEST" : null,
+        stationOriginMeters = 0d,
+        changeReason = "Test alignment",
+        coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500200d, y = 1100000d } },
+        widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 200d, widthMeters = 8d } },
+        surveyWidthMeters = 12d
+    };
     private static object[] Scope(SetupData s) => [new { routeVersionId = s.Route, segmentSetId = s.Set, segmentIds = new[] { s.Segment }, targetBand = "SURFACE" }];
     private static async Task<HttpResponseMessage> CreateTask(HttpClient c, SetupData s, HttpStatusCode expected = HttpStatusCode.Created)
     {

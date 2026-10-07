@@ -132,7 +132,7 @@ public sealed class H6FieldSourceSqlTests(IdentitySqlServerFixture sql) : IClass
             CandidateDecisionKind.KeepNew, CandidateClassification.Create(route.Id, type.Code, null, DefectSeverity.Low, null), null, null, null, "actual retained source", null, default);
         var defectVersion = await db.Defects.Where(row => row.Id == accepted.DefectId).Select(row => Convert.ToBase64String(EF.Property<byte[]>(row, "RowVersion"))).SingleAsync();
         var result = await new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System).ExecuteAsync(
-            new(project.Id, null, "create", new FieldTaskCreateInput(accepted.DefectId!.Value, defectVersion, null, "REPORTER", route.Id, set.Id, null, null, "PRE_MEASUREMENT", 1, "{}", "actual FIELD assignment", crew.Id, now.AddDays(1)),
+            new(project.Id, null, "create", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskCreateInputFact(accepted.DefectId!.Value, defectVersion, null, "REPORTER", route.Id, set.Id, null, null, "PRE_MEASUREMENT", 1, "{}", "actual FIELD assignment", crew.Id, now.AddDays(1)),
                 Guid.NewGuid().ToString("N"), null, new(pm.Id, UserRoleCode.ProjectManager, pm.Id, "DIRECT", true)),
             async token => await new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System)
                 .AuthorizeAsync(pm.Id, UserRoleCode.ProjectManager, project.Id, token) is not null, default);

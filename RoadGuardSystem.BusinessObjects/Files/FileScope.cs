@@ -18,8 +18,16 @@ public sealed class FileScope
     {
         if (id == Guid.Empty || fileId == Guid.Empty || ownerUserId == Guid.Empty)
             throw new ArgumentException("Private file scope identifiers must not be empty.");
-        return new FileScope { Id = id, FileId = fileId, OwnerUserId = ownerUserId,
-            Purpose = "REPORT_PHOTO", ProjectId = null, TargetId = null, CreatedAt = createdAt.ToUniversalTime() };
+        return new FileScope
+        {
+            Id = id,
+            FileId = fileId,
+            OwnerUserId = ownerUserId,
+            Purpose = "REPORT_PHOTO",
+            ProjectId = null,
+            TargetId = null,
+            CreatedAt = createdAt.ToUniversalTime()
+        };
     }
 
     public static FileScope Create(

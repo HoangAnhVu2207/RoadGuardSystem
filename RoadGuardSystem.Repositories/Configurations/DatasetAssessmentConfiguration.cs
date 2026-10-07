@@ -24,8 +24,11 @@ public sealed class DatasetAssessmentItemConfiguration : IEntityTypeConfiguratio
     public void Configure(EntityTypeBuilder<DatasetAssessmentItem> builder)
     {
         var b = builder;
-        b.ToTable("DatasetAssessmentItems", t => { t.HasTrigger("TR_DatasetAssessmentItems_Immutable");
-            t.HasCheckConstraint("CK_Assessment_Status", "[PositionStatus] IN ('PASS','FAIL','UNKNOWN') AND [QualityStatus] IN ('PASS','FAIL','UNKNOWN') AND [CoverageStatus] IN ('PASS','FAIL','UNKNOWN')"); });
+        b.ToTable("DatasetAssessmentItems", t =>
+        {
+            t.HasTrigger("TR_DatasetAssessmentItems_Immutable");
+            t.HasCheckConstraint("CK_Assessment_Status", "[PositionStatus] IN ('PASS','FAIL','UNKNOWN') AND [QualityStatus] IN ('PASS','FAIL','UNKNOWN') AND [CoverageStatus] IN ('PASS','FAIL','UNKNOWN')");
+        });
         b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever();
         b.Property(x => x.TargetBand).HasMaxLength(20); b.Property(x => x.PositionStatus).HasMaxLength(10);
         b.Property(x => x.QualityStatus).HasMaxLength(10); b.Property(x => x.CoverageStatus).HasMaxLength(10);

@@ -1213,8 +1213,11 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
 
         var initialRowVersion = oldToken.RowVersion.ToArray();
 
+        // Current authorization locks serialize rotations before the token UPDATE.
+        // Synchronize before either contender takes the user lock, then verify
+        // the loser observes the committed winner's rowversion.
         var barrier = new SqlCommandBarrierInterceptor(
-            commandText => commandText.Contains("UPDATE [RefreshTokens]", StringComparison.OrdinalIgnoreCase));
+            commandText => commandText.Contains("FROM [Users] WITH (UPDLOCK,HOLDLOCK)", StringComparison.OrdinalIgnoreCase));
 
         await using var context1 = _fixture.CreateDbContext(barrier);
         var repo1 = _fixture.CreateRepository(context1);
@@ -1242,7 +1245,7 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
         var task2 = repo2.RotateRefreshTokenAsync(oldToken.Id, initialRowVersion, newToken2);
         var results = await Task.WhenAll(task1, task2);
 
-        barrier.ArrivalCount.Should().Be(2, "both contexts must reach the token UPDATE before either is released");
+        barrier.ArrivalCount.Should().Be(2, "both contenders must arrive before current-authorization serialization");
         results.Select(result => result.Status).Should().ContainSingle(status => status == RotateRefreshTokenStatus.Success);
         results.Select(result => result.Status).Should().ContainSingle(status => status == RotateRefreshTokenStatus.StaleConcurrency);
     }
@@ -1391,7 +1394,7 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
             deferredFkCount.Should().Be(0);
 
             // Step 4: The separate FK stage fails closed while attribution has no matching verified User.
-            var actMigrate = () => context.Database.MigrateAsync();
+            var actMigrate = () => migrator.MigrateAsync("20260918185738_EnforceSecurityLogSafeCodes");
             await actMigrate.Should().ThrowAsync<SqlException>()
                 .Where(ex => ex.Number == 51000 && ex.Message.Contains("Migration precondition failed: AuditLogs contains legacy ActorUserId values"));
 
@@ -1416,7 +1419,7 @@ public sealed class IdentityPersistenceNegativeTests : IClassFixture<IdentitySql
             await context.SaveChangesAsync();
 
             // Step 6: Retry the FK stage; it now succeeds without changing historical AuditLog data.
-            await context.Database.MigrateAsync();
+            await migrator.MigrateAsync("20260918185738_EnforceSecurityLogSafeCodes");
 
             var tableCountP210 = await context.Database.SqlQueryRaw<int>(
                 """

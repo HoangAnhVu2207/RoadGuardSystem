@@ -82,9 +82,16 @@ public sealed class OwnerWeeklyRecoverySqlTests(IdentitySqlServerFixture sql) : 
             await using var db = owned.CreateDbContext();
             var migrator = db.GetService<IMigrator>();
             await migrator.MigrateAsync("20261007053131_OwnerClockDutyAppointments");
-            var pending = new H6NotificationCalendarRow { Id = Guid.NewGuid(), ClockId = seed.Clock,
-                PlannedAtUtc = Monday.AddDays(-1), ScheduledAtUtc = Monday, SchedulerRunId = Guid.NewGuid(),
-                ObservedAtUtc = Monday.AddMinutes(2), Status = "PENDING_POLICY" };
+            var pending = new H6NotificationCalendarRow
+            {
+                Id = Guid.NewGuid(),
+                ClockId = seed.Clock,
+                PlannedAtUtc = Monday.AddDays(-1),
+                ScheduledAtUtc = Monday,
+                SchedulerRunId = Guid.NewGuid(),
+                ObservedAtUtc = Monday.AddMinutes(2),
+                Status = "PENDING_POLICY"
+            };
             db.Add(pending); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
             var original = await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(c => c.Id == seed.Clock);
             await migrator.MigrateAsync(); Assert.False(db.Database.HasPendingModelChanges());

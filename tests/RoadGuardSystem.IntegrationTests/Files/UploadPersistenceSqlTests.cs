@@ -4,6 +4,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Files;
@@ -45,7 +46,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
     {
         await using var context = _fixture.CreateDbContext();
         var user = await AddUserAsync(context);
-        var project = await AddProjectAsync(context);
+        var project = await AddProjectAsync(context, user);
         var checksum = new string('a', 64);
         var storage = new DeterministicUploadStorage(new(16, checksum, "application/pdf"));
         var repository = new UploadPersistenceService(context, new IdempotencyOperationService(context), storage);
@@ -128,16 +129,23 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
     {
         await using var context = _fixture.CreateDbContext();
         var user = await AddUserAsync(context);
-        var project = await AddProjectAsync(context);
+        var project = await AddProjectAsync(context, user);
+        var survey = await AddAcceptedSurveyAsync(context, project, user);
         var storage = new DeterministicUploadStorage(new(8589934592L, new string('a', 64), "video/mp4"));
         var repository = new UploadPersistenceService(context, new IdempotencyOperationService(context), storage);
-        var request = new UploadCreatePersistenceRequest(user.Id, project.Id, null, "SURVEY_VIDEO", "large.mp4", "video/mp4",
+        var request = new UploadCreatePersistenceRequest(user.Id, project.Id, survey.Id, "SURVEY_VIDEO", "large.mp4", "video/mp4",
             8589934592L, new string('a', 64), 8388608, DateTimeOffset.UtcNow.AddHours(24), Guid.NewGuid().ToString(), new string('b', 64), null);
         var created = await repository.CreateAsync(request);
         created.Status.Should().Be(UploadPersistenceStatus.Success);
         var file = await context.Files.AsNoTracking().SingleAsync(f => f.Id == created.Session!.FileId);
         file.SizeBytes.Should().Be(8589934592L);
         var now = DateTimeOffset.UtcNow;
+        // Multipart initialization is a fenced external phase. Complete it before
+        // racing the same durable URL receipt; CALLING recovery is covered by
+        // MultipartRecoveryStateSqlTests rather than assuming immediate replay.
+        var prepared = await repository.GetPartUrlsAsync(user.Id, project.Id, created.Session!.Id, [1],
+            Guid.NewGuid().ToString(), new string('f', 64), now, now.AddMinutes(15));
+        prepared.Status.Should().Be(UploadPersistenceStatus.Success);
         var key = Guid.NewGuid().ToString();
         await using var contender = _fixture.CreateDbContext();
         var contenderRepository = new UploadPersistenceService(contender, new IdempotencyOperationService(contender), storage);
@@ -161,7 +169,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
         (await resumed.UploadSessions.SingleAsync(s => s.Id == created.Session.Id)).ExpiresAt.Should().Be(request.ExpiresAt);
     }
 
-    private async Task<ApplicationUser> AddUserAsync(RoadGuardDbContext context)
+    private async Task<ApplicationUser> AddUserAsync(RoadGuardDbContext context, UserRoleCode role = UserRoleCode.DroneOperator)
     {
         await _fixture.SeedRolesAsync(context);
         var userName = $"upload-user-{Guid.NewGuid():N}";
@@ -172,7 +180,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
             NormalizedUserName = userName.ToUpperInvariant(),
             DisplayName = "Upload SQL fixture user",
             PasswordHash = "fixture-password-hash",
-            RoleCode = UserRoleCode.DroneOperator,
+            RoleCode = role,
             Status = UserStatus.Active,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -181,7 +189,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
         return user;
     }
 
-    private static async Task<Project> AddProjectAsync(RoadGuardDbContext context)
+    private static async Task<Project> AddProjectAsync(RoadGuardDbContext context, ApplicationUser user)
     {
         var project = new Project
         {
@@ -192,8 +200,35 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
             CreatedAt = DateTimeOffset.UtcNow
         };
         context.Projects.Add(project);
+        context.ProjectMembers.Add(new ProjectMember
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            UserId = user.Id,
+            RoleCode = user.RoleCode,
+            Status = ProjectMemberStatus.Active,
+            ValidFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))
+        });
         await context.SaveChangesAsync();
         return project;
+    }
+
+    private async Task<SurveyRequest> AddAcceptedSurveyAsync(RoadGuardDbContext context, Project project, ApplicationUser user)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var manager = await AddUserAsync(context, UserRoleCode.ProjectManager);
+        context.ProjectMembers.Add(ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, manager.Id,
+            DateOnly.FromDateTime(now.UtcDateTime)));
+        var road = RoadSection.Create(Guid.NewGuid(), project.Id, "UPLOAD-ROAD");
+        context.RoadSections.Add(road);
+        var request = SurveyRequest.Create(Guid.NewGuid(), project.Id, road.Id, null, manager.Id,
+            SurveyType.Original, SurveyRequestStatus.NewAssigned, now, now.AddDays(1));
+        request.Accept();
+        context.SurveyRequests.Add(request);
+        context.SurveyAssignments.Add(SurveyAssignment.Create(Guid.NewGuid(), request.Id, user.Id, manager.Id,
+            now, now, null, null, null, null));
+        await context.SaveChangesAsync();
+        return request;
     }
 
     private sealed class DeterministicUploadStorage : IUploadObjectStorage

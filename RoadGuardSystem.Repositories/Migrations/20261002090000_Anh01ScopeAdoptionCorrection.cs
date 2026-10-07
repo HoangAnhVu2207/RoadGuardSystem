@@ -13,8 +13,8 @@ public sealed class Anh01ScopeAdoptionCorrection : Migration
         // audit both representations and remove unsafe adoption without rewriting source JSON.
         foreach (var kind in new[] { "Plan", "Request" })
         {
-            var snapshot=kind=="Plan"?"r.OutputRequirements"
-                :"JSON_QUERY(CASE WHEN ISJSON(r.OutputRequirements)=1 THEN r.OutputRequirements ELSE N'{}' END,'$.scope')";
+            var snapshot = kind == "Plan" ? "r.OutputRequirements"
+                : "JSON_QUERY(CASE WHEN ISJSON(r.OutputRequirements)=1 THEN r.OutputRequirements ELSE N'{}' END,'$.scope')";
             migrationBuilder.Sql($$"""
                 ;WITH Bodies AS (
                   SELECT r.Id, CASE WHEN ISJSON(b.body)=1 AND LEFT(LTRIM(b.body),1)='[' THEN b.body ELSE N'[]' END body

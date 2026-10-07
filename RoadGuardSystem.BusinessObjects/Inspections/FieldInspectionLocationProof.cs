@@ -1,4 +1,5 @@
 namespace RoadGuardSystem.BusinessObjects.Inspections;
+
 public sealed class FieldInspectionLocationProof
 {
     public Guid Id { get; private set; }
@@ -11,10 +12,10 @@ public sealed class FieldInspectionLocationProof
     private FieldInspectionLocationProof() { }
     public static FieldInspectionLocationProof Create(Guid id, Guid project, Guid task, Guid submission, string kind, string facts)
     {
-        if (new[] {id,project,task,submission}.Any(x => x == Guid.Empty) || kind is not ("GPS_CAPTURE" or "POSITION_CHECKLIST" or "UNKNOWN"))
+        if (new[] { id, project, task, submission }.Any(x => x == Guid.Empty) || kind is not ("GPS_CAPTURE" or "POSITION_CHECKLIST" or "UNKNOWN"))
             throw new ArgumentException("Typed location proof required.");
-        using var document=System.Text.Json.JsonDocument.Parse(facts);
-        if(document.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) throw new ArgumentException("Location facts must be object.");
-        return new FieldInspectionLocationProof {Id=id,ProjectId=project,TaskId=task,SubmissionId=submission,Kind=kind,FactsJson=facts};
+        using var document = System.Text.Json.JsonDocument.Parse(facts);
+        if (document.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) throw new ArgumentException("Location facts must be object.");
+        return new FieldInspectionLocationProof { Id = id, ProjectId = project, TaskId = task, SubmissionId = submission, Kind = kind, FactsJson = facts };
     }
 }

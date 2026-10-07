@@ -74,8 +74,13 @@ public sealed class DefectsController(IDefectWorkflowService service) : Controll
 
     private ObjectResult Error(int status, string code, IReadOnlyDictionary<string, string[]>? errors = null)
     {
-        var problem = new ProblemDetails { Status = status, Title = "Defect request failed",
-            Detail = "The defect request could not be completed.", Instance = Request.Path };
+        var problem = new ProblemDetails
+        {
+            Status = status,
+            Title = "Defect request failed",
+            Detail = "The defect request could not be completed.",
+            Instance = Request.Path
+        };
         problem.Extensions["code"] = code;
         problem.Extensions["correlationId"] = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString();
         if (errors is not null) problem.Extensions["errors"] = errors;

@@ -1,10 +1,6 @@
-using System.Data;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using RoadGuardSystem.aBusinessObjects.Commons;
-using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Cases;
 using RoadGuardSystem.Repositories.Defects;
 using RoadGuardSystem.Services.Authorization;
@@ -12,7 +8,7 @@ using RoadGuardSystem.Services.Integration;
 
 namespace RoadGuardSystem.Services.Implementations.Defects;
 
-public sealed class MatchingCandidateSnapshotReader(RoadGuardDbContext db,
+public sealed class MatchingCandidateSnapshotReader(
     ICaseWorkflowRepository cases, ICandidateDecisionRepository candidates,
     IProjectScopeGuard scope, IAnhHuyProducerService geometry,
     IAiCandidateFactsReader ai, TimeProvider clock) : IMatchingCandidateSnapshotReader
@@ -27,19 +23,9 @@ public sealed class MatchingCandidateSnapshotReader(RoadGuardDbContext db,
             detectionIds.Distinct().Count() != detectionIds.Length)
             return null;
 
-        if (db.Database.CurrentTransaction is null)
-            return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
-            {
-                await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-                var captured = await CaptureCoreAsync(actorId, role, projectId, routeVersionId, segmentSetId,
-                    geometryVersion, detectionIds, requestedSnapshotId, cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-                return captured;
-            });
-        if (db.Database.CurrentTransaction.GetDbTransaction().IsolationLevel is not (IsolationLevel.Serializable or IsolationLevel.Snapshot))
-            return null;
-        return await CaptureCoreAsync(actorId, role, projectId, routeVersionId, segmentSetId,
-            geometryVersion, detectionIds, requestedSnapshotId, cancellationToken);
+        return await candidates.ReadSnapshotConsistentlyAsync(token => CaptureCoreAsync(actorId, role,
+            projectId, routeVersionId, segmentSetId, geometryVersion, detectionIds,
+            requestedSnapshotId, token), cancellationToken);
     }
 
     private async Task<MatchingCandidateSnapshotV1?> CaptureCoreAsync(Guid actorId, UserRoleCode role,
@@ -89,7 +75,11 @@ public sealed class MatchingCandidateSnapshotReader(RoadGuardDbContext db,
         IEnumerable<(Guid Id, string Version)> sources, IEnumerable<MatchingCandidateItemV1> items)
         => JsonSerializer.SerializeToUtf8Bytes(new
         {
-            requestedSnapshotId, projectId, routeVersionId, segmentSetId, geometryVersion,
+            requestedSnapshotId,
+            projectId,
+            routeVersionId,
+            segmentSetId,
+            geometryVersion,
             sources = sources.OrderBy(source => source.Id)
                 .Select(source => new { sourceId = source.Id, sourceVersion = source.Version }),
             items = items.OrderBy(item => item.DefectId)

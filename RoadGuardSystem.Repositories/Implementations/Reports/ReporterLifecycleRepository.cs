@@ -4,7 +4,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Cases;
 using RoadGuardSystem.BusinessObjects.Reports;
-using RoadGuardSystem.DTOs.Reports;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports;
 using RoadGuardSystem.Repositories.Models.Huy01;
 using RoadGuardSystem.Repositories.Reports;
 
@@ -18,10 +18,10 @@ public sealed class ReporterLifecycleException(int status, string code) : Except
 
 public sealed class ReporterLifecycleRepository(RoadGuardDbContext db, IReporterReportRepository intake) : IReporterLifecycleRepository
 {
-    public Task<OwnReportDto> ReadAsync(Guid actorId, Guid reportId, CancellationToken ct)
+    public Task<OwnReportFact> ReadAsync(Guid actorId, Guid reportId, CancellationToken ct)
         => InReadTransactionAsync(async () => { await GuardAsync(actorId, reportId, [], ct); return await ProjectAsync(reportId, ct); }, ct);
 
-    public Task<OwnReportPageDto> ListAsync(Guid actorId, int pageSize, string? cursor, CancellationToken ct)
+    public Task<OwnReportPageFact> ListAsync(Guid actorId, int pageSize, string? cursor, CancellationToken ct)
         => InReadTransactionAsync(async () =>
         {
             await intake.EnsureCurrentReceiptAccessAsync(actorId, [], ct);
@@ -36,10 +36,10 @@ public sealed class ReporterLifecycleRepository(RoadGuardDbContext db, IReporter
             }
             var rows = await query.OrderByDescending(r => r.ReceivedAt).ThenByDescending(r => r.Id).Take(pageSize + 1)
                 .Select(r => new { r.Id, r.ReceivedAt }).ToArrayAsync(ct);
-            var items = new List<OwnReportDto>();
+            var items = new List<OwnReportFact>();
             foreach (var row in rows.Take(pageSize)) items.Add(await ProjectAsync(row.Id, ct));
             var last = rows.Take(pageSize).LastOrDefault();
-            return new OwnReportPageDto(items, rows.Length > pageSize && last is not null
+            return new OwnReportPageFact(items, rows.Length > pageSize && last is not null
                 ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new PageCursor(actorId, last.ReceivedAt, last.Id))) : null);
         }, ct);
 
@@ -52,7 +52,7 @@ public sealed class ReporterLifecycleRepository(RoadGuardDbContext db, IReporter
         await intake.EnsureCurrentReceiptAccessAsync(actorId, evidence, ct);
     }
 
-    public async Task<OwnReportDto> SupplementAsync(Guid actorId, Guid reportId, string expectedVersion, string description,
+    public async Task<OwnReportFact> SupplementAsync(Guid actorId, Guid reportId, string expectedVersion, string description,
         IReadOnlyList<VerifiedEvidenceReference> evidence, Guid? correlationId, CancellationToken ct)
     {
         // Actor, case, report, files; re-check the active link after locking.
@@ -94,22 +94,27 @@ public sealed class ReporterLifecycleRepository(RoadGuardDbContext db, IReporter
             return (Guid.Empty, (Guid?)projection.PublicationId, (string?)null);
         }, ct);
 
-    private async Task<OwnReportDto> ProjectAsync(Guid reportId, CancellationToken ct)
+    private async Task<OwnReportFact> ProjectAsync(Guid reportId, CancellationToken ct)
     {
         var report = await db.Reports.AsNoTracking().Include(r => r.Supplements).ThenInclude(s => s.Evidence).SingleAsync(r => r.Id == reportId, ct);
         var version = await db.Reports.Where(r => r.Id == reportId).Select(r => EF.Property<byte[]>(r, "RowVersion")).SingleAsync(ct);
-        var routing = await (from link in db.Set<HuyCaseReportLink>() join incident in db.IncidentCases on link.CaseId equals incident.Id
-            where link.ReportId == reportId && link.EndedAt == null select incident.ProjectId).SingleAsync(ct);
-        var updates = await (from recipient in db.Set<HuyPublicationRecipient>() join p in db.Set<CasePublication>() on recipient.PublicationId equals p.Id
-            where recipient.ReportId == reportId orderby p.PublishedAt, p.Id select p).AsNoTracking().ToArrayAsync(ct);
+        var routing = await (from link in db.Set<HuyCaseReportLink>()
+                             join incident in db.IncidentCases on link.CaseId equals incident.Id
+                             where link.ReportId == reportId && link.EndedAt == null
+                             select incident.ProjectId).SingleAsync(ct);
+        var updates = await (from recipient in db.Set<HuyPublicationRecipient>()
+                             join p in db.Set<CasePublication>() on recipient.PublicationId equals p.Id
+                             where recipient.ReportId == reportId
+                             orderby p.PublishedAt, p.Id
+                             select p).AsNoTracking().ToArrayAsync(ct);
         return new(report.Id, report.Description, report.ReceivedAt, Convert.ToBase64String(version),
             report.OriginalEvidence.Concat(report.Supplements.OrderBy(s => s.ReceivedAt).ThenBy(s => s.Id).SelectMany(s => s.Evidence))
-                .Select(e => new OwnReportEvidenceDto(e.Id, e.FileId, e.FileVersion, e.SupplementId, e.CaptureMetadata?.CapturedAt,
+                .Select(e => new OwnReportEvidenceFact(e.Id, e.FileId, e.FileVersion, e.SupplementId, e.CaptureMetadata?.CapturedAt,
                     e.CaptureMetadata?.LocationSource.ToString().ToUpperInvariant() ?? "UNKNOWN", e.CaptureMetadata?.Latitude is decimal lat
-                        ? new ReportEvidenceLocationDto(lat, e.CaptureMetadata.Longitude, e.CaptureMetadata.AccuracyMeters) : null)).ToArray(),
+                        ? new ReportEvidenceLocationFact(lat, e.CaptureMetadata.Longitude, e.CaptureMetadata.AccuracyMeters) : null)).ToArray(),
             routing is null ? "UNASSIGNED" : "ASSIGNED",
-            updates.Select(p => new OwnReportUpdateDto(p.Id, p.Summary, p.PublishedAt, p.EvidenceIds)).ToArray(),
-            report.Supplements.OrderBy(s => s.ReceivedAt).ThenBy(s => s.Id).Select(s => new OwnReportSupplementDto(s.Id, s.Description, s.ReceivedAt)).ToArray());
+            updates.Select(p => new OwnReportUpdateFact(p.Id, p.Summary, p.PublishedAt, p.EvidenceIds)).ToArray(),
+            report.Supplements.OrderBy(s => s.ReceivedAt).ThenBy(s => s.Id).Select(s => new OwnReportSupplementFact(s.Id, s.Description, s.ReceivedAt)).ToArray());
     }
 
     private Task<int> LockAsync(string sql, Guid id, CancellationToken ct) => db.Database.SqlQueryRaw<int>(sql, id).SingleAsync(ct);

@@ -134,19 +134,29 @@ public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<Identi
     [Fact(DisplayName = "P1-22: planning contract migration downgrades and reapplies")]
     public async Task MigrationLifecycle_DowngradesAndReapplies()
     {
-        await using var context = _fixture.CreateDbContext();
-        var migrator = context.GetService<IMigrator>();
-        await migrator.MigrateAsync("20260921134719_AddP230FlightSurveyIdentityImmutability");
+        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
+        await fixture.InitializeAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
+                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
+            var migrator = context.GetService<IMigrator>();
+            const string testedMigration = "20260921170153_P122CanonicalSurveyRequestStatus";
+            await migrator.MigrateAsync(testedMigration);
+            await migrator.MigrateAsync("20260921134719_AddP230FlightSurveyIdentityImmutability");
 
-        await context.Database.MigrateAsync();
-        var columns = await context.Database.SqlQueryRaw<int>(
-            """
-            SELECT CAST(COUNT(*) AS int) AS [Value]
-            FROM sys.columns
-            WHERE ([object_id] = OBJECT_ID(N'[dbo].[SurveyPlans]') AND [name] = N'OutputRequirements')
-               OR ([object_id] = OBJECT_ID(N'[dbo].[SurveyRequests]') AND [name] IN (N'DueAt', N'OutputRequirements'))
-            """).SingleAsync();
-        columns.Should().Be(3);
+            await migrator.MigrateAsync(testedMigration);
+            var columns = await context.Database.SqlQueryRaw<int>(
+                """
+                SELECT CAST(COUNT(*) AS int) AS [Value]
+                FROM sys.columns
+                WHERE ([object_id] = OBJECT_ID(N'[dbo].[SurveyPlans]') AND [name] = N'OutputRequirements')
+                   OR ([object_id] = OBJECT_ID(N'[dbo].[SurveyRequests]') AND [name] IN (N'DueAt', N'OutputRequirements'))
+                """).SingleAsync();
+            columns.Should().Be(3);
+            await context.Database.MigrateAsync();
+        }
+        finally { await fixture.DisposeAsync(); }
     }
 
     [Fact(DisplayName = "P2-22: planning commands reject a road section version outside the scope")]

@@ -81,10 +81,13 @@ public sealed class H1PersistentIdentityTests(AuthenticationSqlServerFixture fix
         await using (var db = fixture.CreateDbContext())
         {
             if (change == "revoke") await db.Sessions.Where(s => s.UserId == user.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedAt, DateTimeOffset.UtcNow));
-            else { var current = await db.Users.SingleAsync(u => u.Id == user.Id);
+            else
+            {
+                var current = await db.Users.SingleAsync(u => u.Id == user.Id);
                 if (change == "disable") current.Status = UserStatus.Suspended;
                 else { await new IdentityRepository(db).ChangeUserRoleAtomicAsync(current.Id, UserRoleCode.ProjectManager, current.RowVersion, current.Id, Guid.NewGuid()); }
-                if (change == "disable") await db.SaveChangesAsync(); }
+                if (change == "disable") await db.SaveChangesAsync();
+            }
         }
         Assert.Equal(HttpStatusCode.Unauthorized, (await Refresh(client, old, key)).StatusCode);
     }
@@ -155,59 +158,59 @@ public sealed class H1PersistentIdentityTests(AuthenticationSqlServerFixture fix
         async Task<HttpResponseMessage> Login(string email)
         {
             var csrf = await client.GetAsync("/api/v1/auth/web/csrf");
-            using var req = new HttpRequestMessage(HttpMethod.Post,"/api/v1/auth/web/login") { Content=JsonContent.Create(new { email,password="Current1!" }) };
-            req.Headers.Add("Cookie",Cookie(csrf,"__Host-RoadGuardCsrf"));
-            req.Headers.Add("X-CSRF-TOKEN",(await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
-            var response=await client.SendAsync(req);Assert.Equal(HttpStatusCode.OK,response.StatusCode);return response;
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/web/login") { Content = JsonContent.Create(new { email, password = "Current1!" }) };
+            req.Headers.Add("Cookie", Cookie(csrf, "__Host-RoadGuardCsrf"));
+            req.Headers.Add("X-CSRF-TOKEN", (await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
+            var response = await client.SendAsync(req); Assert.Equal(HttpStatusCode.OK, response.StatusCode); return response;
         }
-        var loginA=await Login(a.Email!);var loginB=await Login(b.Email!);
-        using var csrfRequest=new HttpRequestMessage(HttpMethod.Get,"/api/v1/auth/web/csrf");
-        csrfRequest.Headers.Add("Cookie",Cookie(loginA,"__Host-RoadGuardSession"));
-        var actorCsrf=await client.SendAsync(csrfRequest);
-        using var renew=new HttpRequestMessage(HttpMethod.Post,"/api/v1/auth/web/renew");
-        renew.Headers.Add("Cookie",Cookie(loginA,"__Host-RoadGuardSession")+"; "+Cookie(loginB,"__Host-RoadGuardRenewal")+"; "+Cookie(actorCsrf,"__Host-RoadGuardCsrf"));
-        renew.Headers.Add("X-CSRF-TOKEN",(await actorCsrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
-        Assert.Equal(HttpStatusCode.BadRequest,(await client.SendAsync(renew)).StatusCode);
+        var loginA = await Login(a.Email!); var loginB = await Login(b.Email!);
+        using var csrfRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/auth/web/csrf");
+        csrfRequest.Headers.Add("Cookie", Cookie(loginA, "__Host-RoadGuardSession"));
+        var actorCsrf = await client.SendAsync(csrfRequest);
+        using var renew = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/web/renew");
+        renew.Headers.Add("Cookie", Cookie(loginA, "__Host-RoadGuardSession") + "; " + Cookie(loginB, "__Host-RoadGuardRenewal") + "; " + Cookie(actorCsrf, "__Host-RoadGuardCsrf"));
+        renew.Headers.Add("X-CSRF-TOKEN", (await actorCsrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(renew)).StatusCode);
     }
 
     [Fact]
     public async Task ExpiredSignedAccessJwt_DeniedWhilePersistentSessionRemainsActive()
     {
-        var user=await fixture.CreateUserAsync($"h1-finite-{Guid.NewGuid():N}","Current1!");
-        await using var factory=Factory(new MutableClock(DateTimeOffset.UtcNow));
-        using var client=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost")});
-        await AndroidLogin(client,user.Email!);
-        await using var db=fixture.CreateDbContext();var session=await db.Sessions.SingleAsync(x=>x.UserId==user.Id);
-        var options=factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value;
-        var expired=new AccessTokenFactory(options).Create(user.Id,session.Id,user.RoleCode,DateTimeOffset.UtcNow.AddMinutes(-20),15);
-        client.DefaultRequestHeaders.Authorization=new AuthenticationHeaderValue("Bearer",expired);
-        Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/probe/protected")).StatusCode);
+        var user = await fixture.CreateUserAsync($"h1-finite-{Guid.NewGuid():N}", "Current1!");
+        await using var factory = Factory(new MutableClock(DateTimeOffset.UtcNow));
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await AndroidLogin(client, user.Email!);
+        await using var db = fixture.CreateDbContext(); var session = await db.Sessions.SingleAsync(x => x.UserId == user.Id);
+        var options = factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value;
+        var expired = new AccessTokenFactory(options).Create(user.Id, session.Id, user.RoleCode, DateTimeOffset.UtcNow.AddMinutes(-20), 15);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", expired);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/probe/protected")).StatusCode);
         Assert.True(session.IsActiveAt(DateTimeOffset.UtcNow));
     }
-    private static string Cookie(HttpResponseMessage response,string name)=>response.Headers.GetValues("Set-Cookie").Single(v=>v.StartsWith(name+"=",StringComparison.Ordinal)).Split(';',2)[0];
+    private static string Cookie(HttpResponseMessage response, string name) => response.Headers.GetValues("Set-Cookie").Single(v => v.StartsWith(name + "=", StringComparison.Ordinal)).Split(';', 2)[0];
 
     [Fact]
     public async Task SwappedProtectedReceipt_ReturnsNoOtherFamilyCredential()
     {
-        var a=await fixture.CreateUserAsync($"h1-swap-a-{Guid.NewGuid():N}","Current1!");
-        var b=await fixture.CreateUserAsync($"h1-swap-b-{Guid.NewGuid():N}","Current1!");
-        await using var factory=Factory(new MutableClock(DateTimeOffset.UtcNow));
-        using var client=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost")});
-        var oldA=await AndroidLogin(client,a.Email!);var oldB=await AndroidLogin(client,b.Email!);
-        var keyA=Guid.NewGuid().ToString("N");var keyB=Guid.NewGuid().ToString("N");
-        Assert.Equal(HttpStatusCode.OK,(await Refresh(client,oldA,keyA)).StatusCode);
-        var responseB=await Refresh(client,oldB,keyB);Assert.Equal(HttpStatusCode.OK,responseB.StatusCode);
-        var secretB=(await responseB.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("refreshToken").GetString()!;
-        await using(var db=fixture.CreateDbContext())
+        var a = await fixture.CreateUserAsync($"h1-swap-a-{Guid.NewGuid():N}", "Current1!");
+        var b = await fixture.CreateUserAsync($"h1-swap-b-{Guid.NewGuid():N}", "Current1!");
+        await using var factory = Factory(new MutableClock(DateTimeOffset.UtcNow));
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        var oldA = await AndroidLogin(client, a.Email!); var oldB = await AndroidLogin(client, b.Email!);
+        var keyA = Guid.NewGuid().ToString("N"); var keyB = Guid.NewGuid().ToString("N");
+        Assert.Equal(HttpStatusCode.OK, (await Refresh(client, oldA, keyA)).StatusCode);
+        var responseB = await Refresh(client, oldB, keyB); Assert.Equal(HttpStatusCode.OK, responseB.StatusCode);
+        var secretB = (await responseB.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("refreshToken").GetString()!;
+        await using (var db = fixture.CreateDbContext())
         {
-            var receiptA=await db.IdempotencyRecords.SingleAsync(r=>r.ActorUserId==a.Id&&r.Operation=="RefreshRotation");
-            var receiptB=await db.IdempotencyRecords.SingleAsync(r=>r.ActorUserId==b.Id&&r.Operation=="RefreshRotation");
-            var jsonA=System.Text.Json.Nodes.JsonNode.Parse(receiptA.OutcomeJson)!;
-            jsonA["ProtectedCredential"]=System.Text.Json.Nodes.JsonNode.Parse(receiptB.OutcomeJson)!["ProtectedCredential"]!.GetValue<string>();
+            var receiptA = await db.IdempotencyRecords.SingleAsync(r => r.ActorUserId == a.Id && r.Operation == "RefreshRotation");
+            var receiptB = await db.IdempotencyRecords.SingleAsync(r => r.ActorUserId == b.Id && r.Operation == "RefreshRotation");
+            var jsonA = System.Text.Json.Nodes.JsonNode.Parse(receiptA.OutcomeJson)!;
+            jsonA["ProtectedCredential"] = System.Text.Json.Nodes.JsonNode.Parse(receiptB.OutcomeJson)!["ProtectedCredential"]!.GetValue<string>();
             await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE IdempotencyRecords SET OutcomeJson={jsonA.ToJsonString()} WHERE Id={receiptA.Id}");
         }
-        var denied=await Refresh(client,oldA,keyA);
-        Assert.Equal(HttpStatusCode.Unauthorized,denied.StatusCode);Assert.DoesNotContain(secretB,await denied.Content.ReadAsStringAsync());
+        var denied = await Refresh(client, oldA, keyA);
+        Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode); Assert.DoesNotContain(secretB, await denied.Content.ReadAsStringAsync());
     }
 
     private AuthenticationWebApplicationFactory Factory(MutableClock clock) => new(fixture.ConnectionString,

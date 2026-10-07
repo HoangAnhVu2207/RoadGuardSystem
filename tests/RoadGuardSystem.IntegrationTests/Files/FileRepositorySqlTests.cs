@@ -234,14 +234,15 @@ public sealed class FileRepositorySqlTests : IClassFixture<IdentitySqlServerFixt
             await migrator.MigrateAsync(previous);
             (await FileSchemaObjectCountAsync(context)).Should().Be(0);
 
-            await context.Database.MigrateAsync();
+            await migrator.MigrateAsync("20260919085118_AddImmutableFileStorageBoundary");
             (await FileSchemaObjectCountAsync(context)).Should().Be(4);
 
             await migrator.MigrateAsync(previous);
             (await FileSchemaObjectCountAsync(context)).Should().Be(0);
 
-            await context.Database.MigrateAsync();
+            await migrator.MigrateAsync("20260919085118_AddImmutableFileStorageBoundary");
             (await FileSchemaObjectCountAsync(context)).Should().Be(4);
+            await context.Database.MigrateAsync();
         }
         finally
         {

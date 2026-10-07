@@ -107,9 +107,17 @@ public sealed class HuyFinalClockPersistenceTests : IAsyncLifetime
         var project = Guid.NewGuid(); var actor = Guid.NewGuid();
         await using var db = Db();
         db.Add(Project.Create(project, project.ToString(), "Isolated clock fixture", null, null, null, null, DateTimeOffset.UtcNow));
-        db.Add(new ApplicationUser { Id = actor, UserName = actor.ToString(), NormalizedUserName = actor.ToString().ToUpperInvariant(),
-            DisplayName = "Clock fixture", RoleCode = UserRoleCode.ProjectManager, Status = UserStatus.Active,
-            CreatedAt = DateTimeOffset.UtcNow, PasswordHash = "fixture-no-login" });
+        db.Add(new ApplicationUser
+        {
+            Id = actor,
+            UserName = actor.ToString(),
+            NormalizedUserName = actor.ToString().ToUpperInvariant(),
+            DisplayName = "Clock fixture",
+            RoleCode = UserRoleCode.ProjectManager,
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow,
+            PasswordHash = "fixture-no-login"
+        });
         await db.SaveChangesAsync(); return (project, actor);
     }
 }

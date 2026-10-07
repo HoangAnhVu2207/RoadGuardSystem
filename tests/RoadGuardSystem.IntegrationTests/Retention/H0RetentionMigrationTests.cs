@@ -41,7 +41,7 @@ public sealed class H0RetentionMigrationTests : IAsyncLifetime
         await using var finalModelCheck = Db();
         Assert.False(finalModelCheck.Database.HasPendingModelChanges());
         var migrator = db.GetService<IMigrator>();
-        await migrator.MigrateAsync();
+        await migrator.MigrateAsync(Latest);
         Assert.Contains(Latest, await db.Database.GetAppliedMigrationsAsync());
         await migrator.MigrateAsync(Baseline);
         var project = Guid.NewGuid();
@@ -50,21 +50,19 @@ public sealed class H0RetentionMigrationTests : IAsyncLifetime
         var actor = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
         db.Users.Add(new ApplicationUser { Id = actor, UserName = actor.ToString(), NormalizedUserName = actor.ToString().ToUpperInvariant(), DisplayName = "H0 migration fixture", RoleCode = UserRoleCode.Supervisor, Status = UserStatus.Active, CreatedAt = now, PasswordHash = "fixture-no-login" });
+        await db.SaveChangesAsync();
         var session = new UserSession { Id = Guid.NewGuid(), UserId = actor, IssuedAt = now, ExpiresAt = now.AddHours(12), Transport = SessionTransport.Web, LastActivityAt = now, RevokedAt = now.AddMinutes(1) };
-        db.Sessions.Add(session);
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT Sessions (Id,UserId,IssuedAt,ExpiresAt,Transport,LastActivityAt,RevokedAt) VALUES ({session.Id},{actor},{now},{session.ExpiresAt},{(byte)session.Transport},{now},{session.RevokedAt})");
         var receipt = IdempotencyRecord.Create(actor, project, "H0.MigrationFixture", "preserved-key", new string('a', 64), Guid.NewGuid(), "{\"accepted\":true}", now);
         db.Add(receipt);
         var snapshot = ExportSnapshot.Create(Guid.NewGuid(), project, "{\"frozen\":true}", new string('b', 64), now);
         db.Add(snapshot);
         await db.SaveChangesAsync();
         var before = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
-        await migrator.MigrateAsync();
+        await migrator.MigrateAsync(Latest);
         Assert.Equal("H0 baseline survivor", (await db.Projects.AsNoTracking().SingleAsync(p => p.Id == project)).Name);
         db.ChangeTracker.Clear();
-        var retainedSession = await db.Sessions.AsNoTracking().SingleAsync(row => row.Id == session.Id);
-        Assert.Equal(session.Transport, retainedSession.Transport);
-        Assert.Equal(session.ExpiresAt, retainedSession.ExpiresAt);
-        Assert.Equal(session.RevokedAt, retainedSession.RevokedAt);
+        Assert.Equal(1, await db.Database.SqlQuery<int>($"SELECT COUNT(*) AS [Value] FROM Sessions WHERE Id={session.Id} AND Transport={(byte)session.Transport} AND ExpiresAt={session.ExpiresAt} AND RevokedAt={session.RevokedAt}").SingleAsync());
         Assert.Equal(receipt.OutcomeJson, (await db.Set<IdempotencyRecord>().AsNoTracking().SingleAsync(row => row.Id == receipt.Id)).OutcomeJson);
         Assert.Equal(snapshot.Hash, (await db.Set<ExportSnapshot>().AsNoTracking().SingleAsync(row => row.Id == snapshot.Id)).Hash);
         var preservedTables = await db.Database.SqlQueryRaw<string>("SELECT name AS [Value] FROM sys.tables WHERE name IN ('DefectSourceLinks','TrainingLabels','TrainingLabelRevisions','Anh02AiMockRuns','Anh02AiResultProvenance')").ToArrayAsync();
@@ -79,6 +77,12 @@ public sealed class H0RetentionMigrationTests : IAsyncLifetime
         Assert.Contains("Cannot downgrade populated retention integration", denied.Message);
         Assert.True(await db.Set<RetentionEvaluation>().AnyAsync(row => row.Id == evaluation));
         Assert.Contains(Latest, await db.Database.GetAppliedMigrationsAsync());
+        await migrator.MigrateAsync();
+        Assert.Equal(discovered, await db.Database.GetAppliedMigrationsAsync());
+        var retainedSession = await db.Sessions.AsNoTracking().SingleAsync(row => row.Id == session.Id);
+        Assert.Equal(session.Transport, retainedSession.Transport);
+        Assert.Equal(session.ExpiresAt, retainedSession.ExpiresAt);
+        Assert.Equal(session.RevokedAt, retainedSession.RevokedAt);
         await using var upgradedModelCheck = Db();
         Assert.False(upgradedModelCheck.Database.HasPendingModelChanges());
     }

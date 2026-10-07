@@ -2,6 +2,7 @@ using RoadGuardSystem.DTOs.Processing;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Services.Processing.Anh02;
+
 public sealed class Anh02AiOptions
 {
     public bool MockEnabled { get; set; }

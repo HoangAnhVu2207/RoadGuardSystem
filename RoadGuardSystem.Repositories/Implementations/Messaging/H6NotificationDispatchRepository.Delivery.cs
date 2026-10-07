@@ -51,7 +51,9 @@ public sealed partial class H6NotificationDispatchRepository
         if (envelope.RecipientStrategy is NotificationRecipientStrategy.Supervisor or NotificationRecipientStrategy.ResponsibleActorAndSupervisor ||
             envelope.RecipientStrategy == NotificationRecipientStrategy.ResponsibleReviewer && proof.ResponsibleIsSupervisor)
         {
-            var supervisors = envelope.RecipientStrategy == NotificationRecipientStrategy.Supervisor && proof.ResponsibleUserId is Guid appointed
+            var supervisors = envelope.RecipientStrategy == NotificationRecipientStrategy.Supervisor &&
+                (proof.ResponsibleIsSupervisor || proof.ResponsibleRole == UserRoleCode.Supervisor) &&
+                proof.ResponsibleUserId is Guid appointed
                 ? new[] { appointed }
                 : await members.Where(row => row.RoleCode == UserRoleCode.Supervisor).Select(row => row.UserId).Distinct().ToArrayAsync(token);
             if (supervisors.Length == 0) results.Add(RecipientFor(null, UserRoleCode.Supervisor, "Supervisor"));

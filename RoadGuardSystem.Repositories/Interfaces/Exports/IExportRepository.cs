@@ -1,13 +1,13 @@
 using RoadGuardSystem.BusinessObjects.Exports;
 using RoadGuardSystem.BusinessObjects.Files;
-using RoadGuardSystem.DTOs.Exports;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports;
 using RoadGuardSystem.Repositories.Storage;
 
 namespace RoadGuardSystem.Repositories.Exports;
 
 public sealed record ExportPersistenceView(ExportJob Job, ExportSnapshot Snapshot, StoredFile? ArtifactFile);
 public sealed record ExportAdmissionResult(string? ErrorCode, ExportPersistenceView? Export);
-public sealed record ExportCaptureResult(string? ErrorCode, ExportSnapshotPayloadDto? Payload);
+public sealed record ExportCaptureResult(string? ErrorCode, ExportSnapshotPayloadFact? Payload);
 public sealed record ExportClaim(Guid Id, Guid Token, Guid RequestedBy, Guid ProjectId, ExportSnapshot Snapshot);
 public sealed class ExportRepositoryOptions
 {
@@ -16,7 +16,7 @@ public sealed class ExportRepositoryOptions
 }
 public interface IExportRepository
 {
-    Task<ExportAdmissionResult> AdmitAsync(Guid actorId, Guid projectId, CreateExportRequestDto request, string key, string fingerprint, Guid? correlationId, Func<Guid, DateTimeOffset, CancellationToken, Task<ExportCaptureResult>> capture, CancellationToken ct);
+    Task<ExportAdmissionResult> AdmitAsync(Guid actorId, Guid projectId, CreateExportRequestFact request, string key, string fingerprint, Guid? correlationId, Func<Guid, DateTimeOffset, CancellationToken, Task<ExportCaptureResult>> capture, CancellationToken ct);
     Task<ExportPersistenceView?> GetAsync(Guid projectId, Guid id, CancellationToken ct);
     Task<ExportClaim?> ClaimAsync(CancellationToken ct);
     Task<bool> RenewAsync(Guid id, Guid token, CancellationToken ct);

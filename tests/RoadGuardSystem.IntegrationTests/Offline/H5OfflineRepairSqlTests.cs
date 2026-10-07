@@ -73,13 +73,13 @@ public sealed class H5OfflineRepairSqlTests(IdentitySqlServerFixture sql) : ICla
         var nativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         var accepted = await field.ExecuteAsync(new(source.Project, binding.TaskId, "accept",
-            new FieldTaskActionInput("accept"), Guid.NewGuid().ToString(), nativeVersion, direct),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("accept"), Guid.NewGuid().ToString(), nativeVersion, direct),
             _ => Task.FromResult(true), default);
         Assert.Equal(201, accepted.Status);
         nativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         var started = await field.ExecuteAsync(new(source.Project, binding.TaskId, "start",
-            new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow), Guid.NewGuid().ToString(),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow), Guid.NewGuid().ToString(),
             nativeVersion, direct), _ => Task.FromResult(true), default);
         Assert.Equal(201, started.Status);
         var first = await db.Set<FieldTaskStartOrigin>().AsNoTracking()
@@ -367,12 +367,12 @@ public sealed class H5OfflineRepairSqlTests(IdentitySqlServerFixture sql) : ICla
         var nativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         Assert.Equal(201, (await field.ExecuteAsync(new(source.Project, binding.TaskId, "accept",
-            new FieldTaskActionInput("accept"), Guid.NewGuid().ToString(), nativeVersion, direct),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("accept"), Guid.NewGuid().ToString(), nativeVersion, direct),
             _ => Task.FromResult(true), default)).Status);
         nativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         Assert.Equal(201, (await field.ExecuteAsync(new(source.Project, binding.TaskId, "start",
-            new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow), Guid.NewGuid().ToString(),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow), Guid.NewGuid().ToString(),
             nativeVersion, direct), _ => Task.FromResult(true), default)).Status);
         var first = await db.Set<FieldTaskStartOrigin>().AsNoTracking()
             .SingleAsync(row => row.TaskId == binding.TaskId);

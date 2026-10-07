@@ -94,8 +94,14 @@ public sealed class WebAuthController(IAuthService auth, IIdentityRepository ide
     }
 
     private void SetRenewalCookie(string value) => Response.Cookies.Append(WebCookieConfiguration.RenewalCookieName,
-        value, new CookieOptions { HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/",
-            MaxAge = TimeSpan.FromDays(365) });
+        value, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            MaxAge = TimeSpan.FromDays(365)
+        });
 
     [Authorize(AuthenticationSchemes = WebCookieConfiguration.Scheme)]
     [HttpGet("session")]
@@ -144,16 +150,21 @@ public sealed class WebAuthController(IAuthService auth, IIdentityRepository ide
 
     private static object View(UserSecurityState user, DateTimeOffset issuedAt,
         DateTimeOffset? absoluteExpiresAt, DateTimeOffset? idleExpiresAt) => new
-    {
-        user = new { id = user.Id, displayName = user.DisplayName, role = ToV2Role(user.RoleCode),
-            version = Convert.ToBase64String(user.RowVersion) },
-        mustChangePassword = user.MustChangePassword,
-        issuedAt,
-        absoluteExpiresAt,
-        idleExpiresAt,
-        renewable = absoluteExpiresAt is null,
-        ticketLifetimeSeconds = 43200
-    };
+        {
+            user = new
+            {
+                id = user.Id,
+                displayName = user.DisplayName,
+                role = ToV2Role(user.RoleCode),
+                version = Convert.ToBase64String(user.RowVersion)
+            },
+            mustChangePassword = user.MustChangePassword,
+            issuedAt,
+            absoluteExpiresAt,
+            idleExpiresAt,
+            renewable = absoluteExpiresAt is null,
+            ticketLifetimeSeconds = 43200
+        };
 
     private ObjectResult ProblemResult(int status, string code)
     {

@@ -99,10 +99,10 @@ public sealed class H6DeadlineProducerSqlTests(IdentitySqlServerFixture sql) : I
                 async token => await guard.AuthorizeAsync(seed.Crew, UserRoleCode.RepairCrew, task.ProjectId, token) is not null, default);
             Assert.InRange(result.Status, 200, 201);
         }
-        await Run("accept", new FieldTaskActionInput("actual current assignment"));
-        await Run("start", new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow));
+        await Run("accept", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("actual current assignment"));
+        await Run("start", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow));
         var start = await db.FieldTaskStartOrigins.AsNoTracking().SingleAsync(row => row.TaskId == seed.Task);
-        await Run("submit", new FieldSubmissionInput(Guid.NewGuid(), start.Id, null, [], [], null, "MEASUREMENT", null, null));
+        await Run("submit", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionInputFact(Guid.NewGuid(), start.Id, null, [], [], null, "MEASUREMENT", null, null));
         var clock = await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(row => row.TargetId == seed.Task && row.Kind == DeadlineClockKind.ProjectManagerReview);
         var manager = await db.ProjectMembers.Where(row => row.ProjectId == task.ProjectId && row.IsPrimary && row.RoleCode == UserRoleCode.ProjectManager)
             .Select(row => row.UserId).SingleAsync();

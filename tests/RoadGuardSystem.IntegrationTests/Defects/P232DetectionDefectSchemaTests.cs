@@ -226,14 +226,25 @@ public sealed class P232DetectionDefectSchemaTests : IClassFixture<IdentitySqlSe
     [Fact(DisplayName = "P2-32: migration downgrades and reapplies the detection schema")]
     public async Task MigrationLifecycle_DowngradesAndReapplies()
     {
-        await using var context = _fixture.CreateDbContext();
-        var migrator = context.GetService<IMigrator>();
+        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
+        await fixture.InitializeAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
+                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
+            var lifecycleMigrator = context.GetService<IMigrator>();
+            const string testedMigration = "20260922034831_P232DetectionDefectTaskSchema";
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            var migrator = context.GetService<IMigrator>();
 
-        await migrator.MigrateAsync("20260921182227_P231ProcessingAndOutboxDelivery");
-        (await CountP232TablesAsync(context)).Should().Be(0);
+            await migrator.MigrateAsync("20260921182227_P231ProcessingAndOutboxDelivery");
+            (await CountP232TablesAsync(context)).Should().Be(0);
 
-        await context.Database.MigrateAsync();
-        (await CountP232TablesAsync(context)).Should().Be(3);
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            (await CountP232TablesAsync(context)).Should().Be(3);
+            await context.Database.MigrateAsync();
+        }
+        finally { await fixture.DisposeAsync(); }
     }
 
     private async Task<P232Scope> CreateScopeAsync(RoadGuardDbContext context)

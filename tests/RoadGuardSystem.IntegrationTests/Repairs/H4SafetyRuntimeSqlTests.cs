@@ -27,54 +27,64 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
     [Fact]
     public async Task ApprovedBoundNormalSafetyCreatesOnceAndInstallationPinsExactFirstCheckClock()
     {
-        var source = await Seed();
-        await using var db = sql.CreateDbContext();
-        var repository = new RepairSafetyRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
-        var key = Guid.NewGuid().ToString();
-        var command = new SafetyCreateCommand(source.Pm, UserRoleCode.ProjectManager, source.Project,
-            source.Package, source.Item, source.Formal, source.Safety, source.Crew,
-            "each shift", "replace if displaced", "remove after formal repair", "approved temporary barrier",
-            key, source.ItemVersion);
-        var created = await repository.CreateAsync(command, default);
-        Assert.Equal(201, created.Status);
-        var measure = Assert.IsType<SafetyFact>(created.Value);
-        Assert.Equal(source.Crew, measure.ResponsibleActorId);
-        Assert.Equal(source.Safety, measure.SafetyObligationId);
-        Assert.Null(measure.InstalledAt);
-        Assert.Equal(measure.Id, Assert.IsType<SafetyFact>((await repository.CreateAsync(command, default)).Value).Id);
-        Assert.Equal(1, await db.Set<RepairSafetyMonitoring>().CountAsync(row => row.SafetyObligationId == source.Safety));
-        var assigned = await db.Set<RepairSafetyActionSource>().SingleAsync(row => row.MeasureId == measure.Id &&
-            row.Kind == "ASSIGNED");
-        Assert.True(await db.OutboxMessages.AnyAsync(row => row.Id == assigned.Id &&
-            row.MessageType == "safety.measure_assigned.v1"));
-        var now = DateTimeOffset.UtcNow;
-        var due = now.AddHours(12);
-        var install = new SafetyInstallCommand(source.Crew, UserRoleCode.RepairCrew,
-            source.Project, source.Package, source.Item, measure.Id, due, "barrier installed",
-            Guid.NewGuid().ToString(), measure.Version);
-        var installed = await repository.InstallAsync(install, default);
-        Assert.Equal(201, installed.Status);
-        var installedView = Assert.IsType<SafetyFact>(installed.Value);
-        Assert.Equal(due, installedView.FirstCheckDueAt);
-        var clock = await db.Set<DeadlineClock>().SingleAsync(row => row.TargetId == measure.Id &&
-            row.Kind == DeadlineClockKind.FirstSafetyCheck);
-        Assert.Equal(due, clock.OriginalDueAt);
-        Assert.Equal(installedView.InstalledAt, clock.OriginAt);
-        var sourceAction = await db.Set<RepairSafetyActionSource>().SingleAsync(row =>
-            row.MeasureId == measure.Id && row.Kind == "INSTALLED");
-        var immutable = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync(
-            $"UPDATE RepairSafetyActionSources SET Reason={"tampered"} WHERE Id={sourceAction.Id}"));
-        Assert.Equal(51271, immutable.Number);
-        var applied = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
-        Assert.EndsWith("H4SafetySourceAdmission", applied[^1]);
-        var downgrade = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync(applied[^2]));
-        Assert.Equal(51273, downgrade.Number);
-        Assert.True(await db.Set<RepairSafetyActionSource>().AnyAsync(row => row.Id == sourceAction.Id));
-        Assert.False(await db.Set<RepairObligation>().Where(row => row.Id == source.Safety)
-            .Select(row => row.EffectiveResolutionDecisionId != null).SingleAsync());
-        await db.ProjectMembers.Where(row => row.ProjectId == source.Project && row.UserId == source.Crew)
-            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
-        Assert.Equal(403, (await repository.InstallAsync(install, default)).Status);
+        var isolated = new IdentitySqlServerFixture();
+        await isolated.InitializeAsync();
+        try
+        {
+            var source = await Seed(isolated);
+            await using var db = isolated.CreateDbContext();
+            var repository = new RepairSafetyRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
+            var key = Guid.NewGuid().ToString();
+            var command = new SafetyCreateCommand(source.Pm, UserRoleCode.ProjectManager, source.Project,
+                source.Package, source.Item, source.Formal, source.Safety, source.Crew,
+                "each shift", "replace if displaced", "remove after formal repair", "approved temporary barrier",
+                key, source.ItemVersion);
+            var created = await repository.CreateAsync(command, default);
+            Assert.Equal(201, created.Status);
+            var measure = Assert.IsType<SafetyFact>(created.Value);
+            Assert.Equal(source.Crew, measure.ResponsibleActorId);
+            Assert.Equal(source.Safety, measure.SafetyObligationId);
+            Assert.Null(measure.InstalledAt);
+            Assert.Equal(measure.Id, Assert.IsType<SafetyFact>((await repository.CreateAsync(command, default)).Value).Id);
+            Assert.Equal(1, await db.Set<RepairSafetyMonitoring>().CountAsync(row => row.SafetyObligationId == source.Safety));
+            var assigned = await db.Set<RepairSafetyActionSource>().SingleAsync(row => row.MeasureId == measure.Id &&
+                row.Kind == "ASSIGNED");
+            Assert.True(await db.OutboxMessages.AnyAsync(row => row.Id == assigned.Id &&
+                row.MessageType == "safety.measure_assigned.v1"));
+            var now = DateTimeOffset.UtcNow;
+            var due = now.AddHours(12);
+            var install = new SafetyInstallCommand(source.Crew, UserRoleCode.RepairCrew,
+                source.Project, source.Package, source.Item, measure.Id, due, "barrier installed",
+                Guid.NewGuid().ToString(), measure.Version);
+            var installed = await repository.InstallAsync(install, default);
+            Assert.Equal(201, installed.Status);
+            var installedView = Assert.IsType<SafetyFact>(installed.Value);
+            Assert.Equal(due, installedView.FirstCheckDueAt);
+            var clock = await db.Set<DeadlineClock>().SingleAsync(row => row.TargetId == measure.Id &&
+                row.Kind == DeadlineClockKind.FirstSafetyCheck);
+            Assert.Equal(due, clock.OriginalDueAt);
+            Assert.Equal(installedView.InstalledAt, clock.OriginAt);
+            var sourceAction = await db.Set<RepairSafetyActionSource>().SingleAsync(row =>
+                row.MeasureId == measure.Id && row.Kind == "INSTALLED");
+            var immutable = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE RepairSafetyActionSources SET Reason={"tampered"} WHERE Id={sourceAction.Id}"));
+            Assert.Equal(51271, immutable.Number);
+            var applied = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
+            const string safetyMigration = "20261006163740_H4SafetySourceAdmission";
+            var safetyIndex = Array.IndexOf(applied, safetyMigration);
+            Assert.True(safetyIndex > 0);
+            Assert.Equal(db.Database.GetMigrations(), applied);
+            var downgrade = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync(applied[safetyIndex - 1]));
+            Assert.Equal(51273, downgrade.Number);
+            await db.Database.MigrateAsync();
+            Assert.True(await db.Set<RepairSafetyActionSource>().AnyAsync(row => row.Id == sourceAction.Id));
+            Assert.False(await db.Set<RepairObligation>().Where(row => row.Id == source.Safety)
+                .Select(row => row.EffectiveResolutionDecisionId != null).SingleAsync());
+            await db.ProjectMembers.Where(row => row.ProjectId == source.Project && row.UserId == source.Crew)
+                .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
+            Assert.Equal(403, (await repository.InstallAsync(install, default)).Status);
+        }
+        finally { await isolated.DisposeAsync(); }
     }
 
     [Fact]
@@ -168,13 +178,13 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         var admission = new FieldAdmissionContext(source.Crew, UserRoleCode.RepairCrew, source.Crew, "DIRECT", true);
         var accepted = await field.ExecuteAsync(new(source.Project, taskId, "accept",
-            new FieldTaskActionInput("accept approved repair"), Guid.NewGuid().ToString(),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("accept approved repair"), Guid.NewGuid().ToString(),
             Convert.ToBase64String(task.RowVersion), admission), _ => Task.FromResult(true), default);
         Assert.Equal(201, accepted.Status);
         var version = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == taskId).Select(row => row.RowVersion).SingleAsync());
         var started = await field.ExecuteAsync(new(source.Project, taskId, "start",
-            new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow), Guid.NewGuid().ToString(),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow), Guid.NewGuid().ToString(),
             version, admission), _ => Task.FromResult(true), default);
         Assert.Equal(201, started.Status);
         var first = await db.Set<FieldTaskStartOrigin>().SingleAsync(row => row.TaskId == taskId);
@@ -182,7 +192,7 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
         version = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == taskId).Select(row => row.RowVersion).SingleAsync());
         var submitted = await field.ExecuteAsync(new(source.Project, taskId, "submit",
-            new FieldSubmissionInput(Guid.NewGuid(), first.Id, null,
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionInputFact(Guid.NewGuid(), first.Id, null,
                 [new("area", "Area", 0, "KNOWN", null, "AREA", "m²", null, null,
                     "route markers", "manual area gauge", "area measurement")],
                 [new(Guid.NewGuid(), fileId, "MEASUREMENT", new string('a', 64), "image/jpeg",
@@ -263,10 +273,11 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
                 claim.PayloadJson), default);
     }
 
-    private async Task<Source> Seed()
+    private async Task<Source> Seed(IdentitySqlServerFixture? selectedFixture = null)
     {
-        await using var db = sql.CreateDbContext();
-        var actual = await H4GenuineRepairSource.Seed(db, sql);
+        var fixture = selectedFixture ?? sql;
+        await using var db = fixture.CreateDbContext();
+        var actual = await H4GenuineRepairSource.Seed(db, fixture);
         var defectVersion = Convert.ToBase64String(await db.Defects.Where(row => row.Id == actual.Defect)
             .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync());
         var producer = new RepairWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);

@@ -5,7 +5,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Repairs;
-using RoadGuardSystem.DTOs.Retention;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Retention;
 using RoadGuardSystem.Repositories.Retention;
 
 namespace RoadGuardSystem.Repositories.Implementations.Retention;
@@ -41,7 +41,7 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
         var defects = await db.Defects.AsNoTracking().Where(x => defectIds.Contains(x.Id))
             .Select(x => new { x.Id, x.ProjectId, x.RoadSectionVersionId }).ToDictionaryAsync(x => x.Id, token);
         var reasons = new HashSet<string>(StringComparer.Ordinal);
-        var references = new List<RetentionReferenceView>();
+        var references = new List<RetentionReferenceViewFact>();
         var sessionFacts = new Dictionary<Guid, object>();
         foreach (var session in sessions.OrderBy(x => x.Id))
         {
@@ -191,8 +191,14 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             .Include(d => d.Duties).ToArrayAsync(token);
         foreach (var digest in weeklySources)
             references.Add(new("WEEKLY_REVIEW_DIGEST", digest.Id, digest.ProjectId,
-                Version(new { digest.ScheduledAtUtc, digest.RecoveredAtUtc, digest.RecipientId, digest.RecipientRole,
-                    duties = digest.Duties.OrderBy(d => d.ClockId).Select(d => new { d.ClockId, d.OriginEventId, d.TargetId, d.DueAtRecoveryUtc }) })));
+                Version(new
+                {
+                    digest.ScheduledAtUtc,
+                    digest.RecoveredAtUtc,
+                    digest.RecipientId,
+                    digest.RecipientRole,
+                    duties = digest.Duties.OrderBy(d => d.ClockId).Select(d => new { d.ClockId, d.OriginEventId, d.TargetId, d.DueAtRecoveryUtc })
+                })));
         var receivingSources = await db.Set<BusinessReceivingRequest>().AsNoTracking().Where(r =>
             r.SourceKind == "FieldReview" && db.Set<FieldInspectionReview>().Any(v => v.Id == r.SourceId && linkedSubmissions.Contains(v.SubmissionId)) ||
             r.SourceKind == "RepairReview" && db.Set<RepairAttemptReview>().Any(v => v.Id == r.SourceId && linkedSubmissions.Contains(v.SubmissionId)) ||
@@ -200,9 +206,18 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             .Include(r => r.Appointments).ToArrayAsync(token);
         foreach (var receiving in receivingSources)
             references.Add(new("BUSINESS_RECEIVING_REQUEST", receiving.Id, receiving.ProjectId,
-                Version(new { receiving.SourceId, receiving.SourceVersion, receiving.ScopeId, receiving.ResponsibleActorId,
-                    receiving.AcknowledgmentId, receiving.AcknowledgedAt, receiving.ClockId, receiving.CompletedAt,
-                    appointments = receiving.Appointments.Select(a => new { a.Id, a.PreviousActorId, a.CurrentActorId, a.EffectiveAt }) })));
+                Version(new
+                {
+                    receiving.SourceId,
+                    receiving.SourceVersion,
+                    receiving.ScopeId,
+                    receiving.ResponsibleActorId,
+                    receiving.AcknowledgmentId,
+                    receiving.AcknowledgedAt,
+                    receiving.ClockId,
+                    receiving.CompletedAt,
+                    appointments = receiving.Appointments.Select(a => new { a.Id, a.PreviousActorId, a.CurrentActorId, a.EffectiveAt })
+                })));
         foreach (var source in repairOffline)
         {
             if (source.ActualChecksum is null || source.DeclaredChecksum is not null &&

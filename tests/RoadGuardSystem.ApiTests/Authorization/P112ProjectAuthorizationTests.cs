@@ -397,7 +397,8 @@ public sealed class P112ProjectAuthorizationTests
     private static async Task<string> ProblemCodeAsync(HttpResponseMessage response)
     {
         response.Content.Headers.ContentType!.MediaType.Should().Be(
-            response.StatusCode == HttpStatusCode.NotFound ? "application/problem+json" : "application/json");
+            response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Unauthorized
+                ? "application/problem+json" : "application/json");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         body.GetProperty("status").GetInt32().Should().Be((int)response.StatusCode);
         Guid.TryParse(response.Headers.GetValues("X-Correlation-ID").Single(), out var correlationId)

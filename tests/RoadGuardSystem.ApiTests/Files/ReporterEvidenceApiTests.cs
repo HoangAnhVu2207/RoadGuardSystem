@@ -19,6 +19,7 @@ using RoadGuardSystem.Repositories.Models.Huy01;
 using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Files;
+
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
 {
@@ -148,9 +149,17 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
         { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new PhotoStorage()); });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = $"PUB-{Guid.NewGuid():N}", name = "Publication fixture", engineeringUtmSrid = 32648,
-            startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = pm.Id,
-            handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
+        var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            projectCode = $"PUB-{Guid.NewGuid():N}",
+            name = "Publication fixture",
+            engineeringUtmSrid = 32648,
+            startDate = "2026-09-01",
+            endDate = "2027-09-01",
+            primaryProjectManagerUserId = pm.Id,
+            handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
+            operationId = Guid.NewGuid()
+        });
         projectResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await projectResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
         await Login(client, owner.UserName!); var owned = await UploadVerified(client, factory);
@@ -187,8 +196,14 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
         {
             db.Reports.AddRange(reportA, reportB, mismatchReport); db.IncidentCases.AddRange(incident, mismatchCase);
             db.Set<HuyPublicationRecipient>().Add(new HuyPublicationRecipient { PublicationId = mismatchPublication.Id, ReportId = mismatchReport.Id });
-            db.Set<HuyPublicationEvidence>().Add(new HuyPublicationEvidence { PublicationId = mismatchPublication.Id, RecipientReportId = mismatchReport.Id,
-                EvidenceId = mismatchEvidence, SourceReportId = mismatchReport.Id, OriginalEvidenceId = mismatchEvidence });
+            db.Set<HuyPublicationEvidence>().Add(new HuyPublicationEvidence
+            {
+                PublicationId = mismatchPublication.Id,
+                RecipientReportId = mismatchReport.Id,
+                EvidenceId = mismatchEvidence,
+                SourceReportId = mismatchReport.Id,
+                OriginalEvidenceId = mismatchEvidence
+            });
             db.Set<HuyPublicationRecipient>().AddRange(new HuyPublicationRecipient { PublicationId = pubA.Id, ReportId = reportA.Id }, new HuyPublicationRecipient { PublicationId = pubB.Id, ReportId = reportB.Id });
             db.Set<HuyPublicationEvidence>().AddRange(new HuyPublicationEvidence { PublicationId = pubA.Id, RecipientReportId = reportA.Id, EvidenceId = evidenceA, SourceReportId = reportA.Id, OriginalEvidenceId = evidenceA },
                 new HuyPublicationEvidence { PublicationId = pubB.Id, RecipientReportId = reportB.Id, EvidenceId = evidenceB, SourceReportId = reportB.Id, OriginalEvidenceId = evidenceB });

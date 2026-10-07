@@ -36,9 +36,19 @@ public sealed class BusinessReceivingRequest
             !(kind == DeadlineClockKind.CrewSupplement && role == UserRoleCode.RepairCrew ||
               kind == DeadlineClockKind.SupervisorEscalation && role == UserRoleCode.Supervisor))
             throw new ArgumentException("A receiving request needs an exact business source, scope and role.");
-        return new() { Id = id, ProjectId = project, Kind = kind, SourceKind = sourceKind,
-            SourceId = source, SourceVersion = version, ScopeId = scope, ResponsibleActorId = responsible,
-            ResponsibleRole = role, RequestedAt = at.ToUniversalTime() };
+        return new()
+        {
+            Id = id,
+            ProjectId = project,
+            Kind = kind,
+            SourceKind = sourceKind,
+            SourceId = source,
+            SourceVersion = version,
+            ScopeId = scope,
+            ResponsibleActorId = responsible,
+            ResponsibleRole = role,
+            RequestedAt = at.ToUniversalTime()
+        };
     }
 
     public void Appoint(Guid next, Guid actor, string reason, DateTimeOffset at)

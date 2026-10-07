@@ -37,11 +37,30 @@ public sealed class FieldTaskStartOrigin
             boot?.Length > 200) throw new ArgumentException("Explicit bounded first-start provenance is required.");
         using var proof = System.Text.Json.JsonDocument.Parse(claimEvidenceJson);
         if (proof.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) throw new ArgumentException("Claim evidence must be an object.");
-        return new FieldTaskStartOrigin { Id = id, ProjectId = project, TaskId = task, AssignmentId = assignment,
-            OriginId = origin, OperationOriginId = id, ContentHash = hash.ToLowerInvariant(), OriginalActorId = originalActor, DeviceId = device,
-            ClaimedAt = claimedAt.ToUniversalTime(), MonotonicMilliseconds = monotonic, BootId = boot,
-            ServerReceivedAt = receivedAt.ToUniversalTime(), VerifiedOriginalAt = trustedOnlineAdmission ? receivedAt.ToUniversalTime() : null,
-            TimeProvenance = trustedOnlineAdmission ? "SERVER_ONLINE" : "CLAIMED_OFFLINE", RouteVersionId = route,
-            SegmentSetId = set, LayoutRevisionId = layout, MapPublicationId = mapPublication, CrsProfileRevisionId = profile, SlabId = slab, ClaimEvidenceJson = claimEvidenceJson };
+        return new FieldTaskStartOrigin
+        {
+            Id = id,
+            ProjectId = project,
+            TaskId = task,
+            AssignmentId = assignment,
+            OriginId = origin,
+            OperationOriginId = id,
+            ContentHash = hash.ToLowerInvariant(),
+            OriginalActorId = originalActor,
+            DeviceId = device,
+            ClaimedAt = claimedAt.ToUniversalTime(),
+            MonotonicMilliseconds = monotonic,
+            BootId = boot,
+            ServerReceivedAt = receivedAt.ToUniversalTime(),
+            VerifiedOriginalAt = trustedOnlineAdmission ? receivedAt.ToUniversalTime() : null,
+            TimeProvenance = trustedOnlineAdmission ? "SERVER_ONLINE" : "CLAIMED_OFFLINE",
+            RouteVersionId = route,
+            SegmentSetId = set,
+            LayoutRevisionId = layout,
+            MapPublicationId = mapPublication,
+            CrsProfileRevisionId = profile,
+            SlabId = slab,
+            ClaimEvidenceJson = claimEvidenceJson
+        };
     }
 }

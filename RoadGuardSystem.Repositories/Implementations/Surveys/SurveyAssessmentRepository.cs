@@ -67,9 +67,11 @@ public sealed class SurveyAssessmentRepository(RoadGuardDbContext context, Idemp
                 var selected = new List<SelectedBaselineItem>();
                 foreach (var item in items)
                 {
-                    var belongs = await (from d in context.SurveyDataVersions.AsNoTracking() join s in context.Surveys.AsNoTracking() on d.SurveyId equals s.Id
-                        join a in context.Set<DatasetAssessment>().AsNoTracking() on d.Id equals a.DatasetId
-                        where d.Id == item.DatasetId && s.ProjectId == project && a.Id == item.AssessmentId && a.MethodVersion == "pm-evidence-review.v1" select a.Id).AnyAsync(ct);
+                    var belongs = await (from d in context.SurveyDataVersions.AsNoTracking()
+                                         join s in context.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+                                         join a in context.Set<DatasetAssessment>().AsNoTracking() on d.Id equals a.DatasetId
+                                         where d.Id == item.DatasetId && s.ProjectId == project && a.Id == item.AssessmentId && a.MethodVersion == "pm-evidence-review.v1"
+                                         select a.Id).AnyAsync(ct);
                     if (!belongs) throw new AssessmentReject("not_found");
                     var eligible = await context.Set<DatasetAssessmentItem>().AsNoTracking().AnyAsync(a => a.AssessmentId == item.AssessmentId &&
                         a.RouteVersionId == item.RouteVersionId && a.SegmentSetId == item.SegmentSetId && a.SegmentId == item.SegmentId && a.TargetBand == item.TargetBand &&
@@ -104,8 +106,11 @@ public sealed class SurveyAssessmentRepository(RoadGuardDbContext context, Idemp
     }
     public async Task<IReadOnlyList<SelectedBaselineItem>> CurrentAsync(Guid project, Guid? segmentSetId, CancellationToken token)
     {
-        var rows = await (from p in context.Set<BaselineCurrentPointer>().AsNoTracking() join i in context.Set<BaselineSelectionItem>().AsNoTracking() on p.SelectionId equals i.Id
-            where p.ProjectId == project && (!segmentSetId.HasValue || p.SegmentSetId == segmentSetId) orderby p.SegmentId, p.TargetBand select i).ToListAsync(token);
+        var rows = await (from p in context.Set<BaselineCurrentPointer>().AsNoTracking()
+                          join i in context.Set<BaselineSelectionItem>().AsNoTracking() on p.SelectionId equals i.Id
+                          where p.ProjectId == project && (!segmentSetId.HasValue || p.SegmentSetId == segmentSetId)
+                          orderby p.SegmentId, p.TargetBand
+                          select i).ToListAsync(token);
         return rows.Select(ToSelected).ToArray();
     }
     private void Audit(Guid actor, Guid id, string action, Guid? correlation) => context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, DateTimeOffset.UtcNow,

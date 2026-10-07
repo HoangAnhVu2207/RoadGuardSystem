@@ -40,13 +40,16 @@ public sealed class P202MigrationLifecycleTests
             }
 
             await using var context = CreateContext(fixture.ConnectionString);
-            await context.Database.MigrateAsync();
+            var migrator = context.GetService<IMigrator>();
+            const string testedMigration = "20260918065914_AddAuditOutboxIdempotencyConcurrencyPrimitives";
+            await migrator.MigrateAsync(testedMigration);
             (await CountP202TablesAsync(context)).Should().Be(4);
 
-            var migrator = context.GetService<IMigrator>();
             await migrator.MigrateAsync(Migration.InitialDatabase);
             (await CountP202TablesAsync(context)).Should().Be(0);
 
+            await migrator.MigrateAsync(testedMigration);
+            (await CountP202TablesAsync(context)).Should().Be(4);
             await context.Database.MigrateAsync();
             (await CountP202TablesAsync(context)).Should().Be(4);
         }

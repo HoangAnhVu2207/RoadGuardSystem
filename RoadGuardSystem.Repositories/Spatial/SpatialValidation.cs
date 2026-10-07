@@ -11,8 +11,8 @@ public static class SpatialValidation
     public static void EnsureProjectEngineeringGeometry(Geometry? geometry, Guid profileRevisionId, int profileSrid)
     {
         ArgumentNullException.ThrowIfNull(geometry);
-        if(profileRevisionId==Guid.Empty || profileSrid<0 || geometry.SRID!=profileSrid || geometry.Coordinates.Any(c=>!double.IsFinite(c.X) || !double.IsFinite(c.Y)))
-            throw new ArgumentException("Native geometry requires a pinned profile, matching declared SRID and finite coordinates.",nameof(geometry));
+        if (profileRevisionId == Guid.Empty || profileSrid < 0 || geometry.SRID != profileSrid || geometry.Coordinates.Any(c => !double.IsFinite(c.X) || !double.IsFinite(c.Y)))
+            throw new ArgumentException("Native geometry requires a pinned profile, matching declared SRID and finite coordinates.", nameof(geometry));
     }
     /// <summary>
     /// Validates that a GPS geography object has a valid non-zero SRID equal to 4326.

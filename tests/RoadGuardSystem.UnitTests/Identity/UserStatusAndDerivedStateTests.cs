@@ -14,8 +14,11 @@ public sealed class UserStatusAndDerivedStateTests
         var issued = new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero);
         var session = new UserSession
         {
-            Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IssuedAt = issued,
-            ExpiresAt = issued.AddHours(12), Transport = SessionTransport.Web,
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            IssuedAt = issued,
+            ExpiresAt = issued.AddHours(12),
+            Transport = SessionTransport.Web,
             LastActivityAt = issued
         };
 
@@ -32,8 +35,11 @@ public sealed class UserStatusAndDerivedStateTests
         var issued = DateTimeOffset.UtcNow.AddHours(-1);
         var session = new UserSession
         {
-            Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IssuedAt = issued,
-            ExpiresAt = issued.AddMinutes(30), Transport = SessionTransport.Web,
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            IssuedAt = issued,
+            ExpiresAt = issued.AddMinutes(30),
+            Transport = SessionTransport.Web,
             RevokedAt = issued.AddMinutes(5)
         };
 

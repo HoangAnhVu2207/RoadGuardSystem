@@ -79,8 +79,13 @@ public sealed class TrainingLabelsController(ITrainingLabelService service) : Co
 
     private ObjectResult Error(int status, string code, IReadOnlyDictionary<string, string[]>? errors = null)
     {
-        var problem = new ProblemDetails { Status = status, Title = "Training label request failed",
-            Detail = "The training label request could not be completed.", Instance = Request.Path };
+        var problem = new ProblemDetails
+        {
+            Status = status,
+            Title = "Training label request failed",
+            Detail = "The training label request could not be completed.",
+            Instance = Request.Path
+        };
         problem.Extensions["code"] = code;
         problem.Extensions["correlationId"] = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString();
         if (errors is not null) problem.Extensions["errors"] = errors;

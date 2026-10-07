@@ -37,8 +37,12 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
                 (c.Kind == DeadlineClockKind.SupervisorInitialApproval || c.Kind == DeadlineClockKind.SupervisorFinalConfirmation) ||
              plan.MessageType == "repair.work.submitted.v1" && c.TargetId == proof.TaskId && c.Kind == DeadlineClockKind.ProjectManagerReview))
             .SingleOrDefaultAsync(cancellationToken);
-        return duty is null ? proof : proof with { ResponsibleUserId = duty.AppointedActorId,
-            ResponsibleRole = duty.AppointedRole, ResponsibleIsSupervisor = false };
+        return duty is null ? proof : proof with
+        {
+            ResponsibleUserId = duty.AppointedActorId,
+            ResponsibleRole = duty.AppointedRole,
+            ResponsibleIsSupervisor = false
+        };
     }
     private async Task<H6SourceResolution> ResolveCoreAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {

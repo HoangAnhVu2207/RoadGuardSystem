@@ -10,7 +10,7 @@ using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
-using RoadGuardSystem.DTOs.Inspections;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Integration;
@@ -25,7 +25,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
     IOfflineEvidenceAdmissionValidator? evidenceAdmission = null) : IFieldInspectionWorkflowRepository
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private sealed class Denied(int status, string code) : Exception { public FieldWorkflowResult Result { get; } = new(status, code); }
+    private sealed class Denied(int status, string code) : Exception { public FieldWorkflowResultFact Result { get; } = new(status, code); }
     private sealed class ExistingReceipt : Exception { }
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     private static void Deny(int status, string code) => throw new Denied(status, code);
@@ -33,7 +33,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
     private static T Decode<T>(string json) => JsonSerializer.Deserialize<T>(json, Json) ?? throw new ArgumentException("Missing structured facts.");
     private static bool IsRead(string action) => action is "list" or "get" or "start-origin" or "submission" or "history" or "geometry" or "evidence" or "verification-source";
 
-    public async Task<FieldWorkflowResult> ExecuteAsync(FieldWorkflowCommand command,
+    public async Task<FieldWorkflowResultFact> ExecuteAsync(FieldWorkflowCommand command,
         Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken)
     {
         try
@@ -74,7 +74,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         catch (InvalidOperationException error) when (error.Message.StartsWith("Invalid FIELD", StringComparison.Ordinal)) { return new(409, "invalid_state_transition"); }
     }
 
-    public async Task<FieldWorkflowResult> ApplyInTransactionAsync(FieldWorkflowCommand command,
+    public async Task<FieldWorkflowResultFact> ApplyInTransactionAsync(FieldWorkflowCommand command,
         Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken)
     {
         if (db.Database.CurrentTransaction is null) throw new InvalidOperationException("Caller-owned FIELD transaction required.");
@@ -100,9 +100,9 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         ArgumentNullException.ThrowIfNull(command);
         object input = command.Input switch
         {
-            FieldStartData value => new FieldStartInput(value.OriginId, value.ClaimedAt, value.DeviceId,
+            FieldStartData value => new FieldStartInputFact(value.OriginId, value.ClaimedAt, value.DeviceId,
                 value.MonotonicMilliseconds, value.BootId, value.OfflineProof),
-            FieldActionData value => new FieldTaskActionInput(value.Reason, value.AssignedToUserId,
+            FieldActionData value => new FieldTaskActionInputFact(value.Reason, value.AssignedToUserId,
                 value.Handover is null ? null : new(value.Handover.PerformedPortionState, value.Handover.Summary,
                     value.Handover.StartOriginId, value.Handover.SubmissionIds, value.Handover.RecipientUserId)),
             RepairFieldSubmissionData value => LegacyRepairSubmission(value),
@@ -115,14 +115,14 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         return CoreOutcome(await ApplyInTransactionAsync(command with { Input = input }, projectGuard, cancellationToken));
     }
 
-    private static FieldCoreOutcome CoreOutcome(FieldWorkflowResult result)
+    private static FieldCoreOutcome CoreOutcome(FieldWorkflowResultFact result)
         => new(result.Status, result.Code, result.Value is null ? null : JsonSerializer.SerializeToElement(result.Value, Json),
             result.Version, result.Replayed);
 
     private static (Guid OriginId, Guid? DeviceId)? OriginMetadata(object? input) => input switch
     {
-        FieldStartInput value => (value.OriginId, value.DeviceId),
-        FieldSubmissionInput value => (value.OriginId, value.DeviceId),
+        FieldStartInputFact value => (value.OriginId, value.DeviceId),
+        FieldSubmissionInputFact value => (value.OriginId, value.DeviceId),
         FieldStartData value => (value.OriginId, value.DeviceId),
         RepairFieldSubmissionData value => (value.OriginId, value.DeviceId),
         _ => null
@@ -141,7 +141,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         if (!await new AnhHuyFactsRepository(db).IsCurrentActorAsync(a.CallerId, a.CallerRole, token) || !await projectGuard(token)) Deny(403, "access_forbidden");
         if (a.Mode == "DIRECT" && a.OriginalActorId != a.CallerId || a.Mode is not ("DIRECT" or "SYNC" or "HANDOVER")) Deny(403, "access_forbidden");
         var admitted = await ImportedFactsAsync(c, token);
-        if (c.Input is FieldTaskCreateInput create)
+        if (c.Input is FieldTaskCreateInputFact create)
         {
             var defect = await db.Defects.FromSqlInterpolated($"SELECT * FROM [Defects] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={create.DefectId}").AsNoTracking().SingleOrDefaultAsync(token);
             if (defect is null || defect.ProjectId != c.ProjectId) Deny(404, "not_found");
@@ -157,13 +157,13 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
                     x.AssignedToUserId == admitted.OriginalActorId && x.Status == FieldInspectionAssignmentStatus.Active && x.EndedAt == null, token)) Deny(409, "stale_snapshot");
             }
             else if (a.CallerRole == UserRoleCode.RepairCrew && !await db.FieldInspectionAssignments.AnyAsync(x => x.FieldInspectionTaskId == taskId && x.AssignedToUserId == a.CallerId && x.Status == FieldInspectionAssignmentStatus.Active && x.EndedAt == null, token)) Deny(403, "access_forbidden");
-            if (c.Input is FieldLocationImpactActionInput impact) await ImpactAsync(c, task, impact, token);
-            if (c.Input is FieldReviewInput review && !await db.Set<FieldInspectionSubmission>().AnyAsync(x => x.Id == review.SubmissionId && x.TaskId == taskId, token)) Deny(404, "not_found");
+            if (c.Input is FieldLocationImpactActionInputFact impact) await ImpactAsync(c, task, impact, token);
+            if (c.Input is FieldReviewInputFact review && !await db.Set<FieldInspectionSubmission>().AnyAsync(x => x.Id == review.SubmissionId && x.TaskId == taskId, token)) Deny(404, "not_found");
             if (c.Action == "review" && await db.Set<DeadlineClock>().AnyAsync(x => x.ProjectId == c.ProjectId &&
                 x.TargetId == taskId && x.Kind == DeadlineClockKind.ProjectManagerReview && x.AppointedActorId != null &&
                 x.AppointedActorId != a.CallerId, token)) Deny(403, "current_review_assignee_required");
-            if (c.Input is FieldEvidenceReuseInput) await ReuseAsync(c, task, token, true);
-            if (c.Input is FieldSubmissionInput submission)
+            if (c.Input is FieldEvidenceReuseInputFact) await ReuseAsync(c, task, token, true);
+            if (c.Input is FieldSubmissionInputFact submission)
             {
                 if (!await db.Set<FieldTaskStartOrigin>().AnyAsync(x => x.Id == submission.StartOriginId && x.TaskId == taskId, token)) Deny(404, "not_found");
                 if (submission.ParentSubmissionId is Guid parent && !await db.Set<FieldInspectionSubmission>().AnyAsync(x => x.Id == parent && x.TaskId == taskId, token)) Deny(404, "not_found");
@@ -172,7 +172,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         }
     }
 
-    private async Task<FieldWorkflowResult> ReadAsync(FieldWorkflowCommand c, CancellationToken token)
+    private async Task<FieldWorkflowResultFact> ReadAsync(FieldWorkflowCommand c, CancellationToken token)
     {
         if (c.Action == "list")
         {
@@ -182,7 +182,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
             if (c.Admission.CallerRole == UserRoleCode.RepairCrew) rows = rows.Where(x => db.FieldInspectionAssignments.Any(a => a.FieldInspectionTaskId == x.Id && a.AssignedToUserId == c.Admission.CallerId && a.Status == FieldInspectionAssignmentStatus.Active && a.EndedAt == null));
             if (query.AfterId is Guid after) rows = rows.Where(x => x.Id.CompareTo(after) > 0);
             var tasks = await rows.OrderBy(x => x.Id).Take(query.Limit + 1).ToArrayAsync(token);
-            var views = new List<FieldTaskView>(); foreach (var row in tasks.Take(query.Limit)) views.Add(await ViewAsync(row, token));
+            var views = new List<FieldTaskViewFact>(); foreach (var row in tasks.Take(query.Limit)) views.Add(await ViewAsync(row, token));
             return new(200, Value: new { items = views, nextCursor = tasks.Length > query.Limit ? views[^1].Id : (Guid?)null });
         }
         var task = await TaskAsync(c.TaskId!.Value, token);
@@ -211,7 +211,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
 
     private Task<FieldInspectionTask> TaskAsync(Guid id, CancellationToken token) => db.FieldInspectionTasks.SingleAsync(x => x.Id == id, token);
     private async Task<FieldInspectionAssignment?> CurrentAssignmentAsync(Guid task, CancellationToken token) => await db.FieldInspectionAssignments.SingleOrDefaultAsync(x => x.FieldInspectionTaskId == task && x.Status == FieldInspectionAssignmentStatus.Active && x.EndedAt == null, token);
-    private async Task<FieldTaskView> ViewAsync(FieldInspectionTask task, CancellationToken token)
+    private async Task<FieldTaskViewFact> ViewAsync(FieldInspectionTask task, CancellationToken token)
     {
         var assignment = await CurrentAssignmentAsync(task.Id, token);
         var start = await db.Set<FieldTaskStartOrigin>().AsNoTracking().Where(x => x.TaskId == task.Id).Select(x => (Guid?)x.Id).SingleOrDefaultAsync(token);
@@ -220,9 +220,9 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
             task.SlabId, task.Purpose.ToString(), task.TaskMode, task.Status.ToString(), assignment?.Id, assignment?.AssignedToUserId,
             Convert.ToBase64String(task.RowVersion), start, latest, task.MapPublicationId, task.CrsProfileRevisionId, task.RequiredMeasurementType, task.MeasurementScope, task.Instructions, task.DueAt);
     }
-    private async Task<FieldSubmissionView> SubmissionViewAsync(FieldInspectionSubmission row, CancellationToken token)
+    private async Task<FieldSubmissionViewFact> SubmissionViewAsync(FieldInspectionSubmission row, CancellationToken token)
     {
-        var payload = Decode<FieldSubmissionInput>(row.PayloadJson);
+        var payload = Decode<FieldSubmissionInputFact>(row.PayloadJson);
         var root = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(x => x.Id == row.RootId, token);
         return new(row.Id, row.TaskId, row.RootId, row.ParentId, row.Revision, row.ServerReceivedAt, root.ServerReceivedAt.AddHours(24), row.Readiness,
             Decode<string[]>(row.MissingReasonsJson), row.ContentHash, payload.Measurements ?? [], payload.Evidence ?? [], payload.CaptureType, payload.Repaired, payload.UnrepairedReason);

@@ -17,7 +17,7 @@ public sealed class Rf06aSchemaInventoryTests
 {
     private static readonly JsonSerializerOptions InventoryJsonOptions = new() { WriteIndented = true };
     private static readonly Regex TriggerOperationPattern = new(
-        @"(?im)^\s*(?<action>CREATE(?:\s+OR\s+ALTER)?|ALTER|DROP)\s+TRIGGER(?:\s+IF\s+EXISTS)?\s+(?:\[dbo\]\.)?\[(?<name>TR_[^\]]+)\]",
+        @"(?im)^\s*(?<action>CREATE(?:\s+OR\s+ALTER)?|ALTER|DROP)\s+TRIGGER(?:\s+IF\s+EXISTS)?\s+(?:(?:\[dbo\]|dbo)\.)?(?:\[(?<name>TR_[^\]]+)\]|(?<name>TR_[A-Za-z0-9_{}]+))",
         RegexOptions.CultureInvariant);
 
     [Fact]
@@ -67,7 +67,8 @@ public sealed class Rf06aSchemaInventoryTests
         ApplyTriggerOperation(active, history, "TR_Test", "ALTER", "m2", "m2.cs", 20, "ALTER TRIGGER second");
         Assert.Equal("m1", active["TR_Test"].CreatedMigration);
         Assert.Equal("m2", active["TR_Test"].LastDefinitionMigration);
-        Assert.Equal("ALTER TRIGGER second", active["TR_Test"].Definition);
+        Assert.Equal("ALTER TRIGGER second", active["TR_Test"].MigrationSql);
+        Assert.Equal("CREATE TRIGGER second", active["TR_Test"].Definition);
 
         ApplyTriggerOperation(active, history, "TR_Test", "DROP", "m3", "m3.cs", 30, "DROP TRIGGER");
         Assert.False(active.ContainsKey("TR_Test"));
@@ -98,7 +99,7 @@ public sealed class Rf06aSchemaInventoryTests
             var snapshot = context.GetService<IMigrationsAssembly>().ModelSnapshot?.Model
                 ?? throw new InvalidOperationException("Migration snapshot is missing.");
             var model = ExtractModel(context.GetService<IDesignTimeModel>().Model);
-            var snapshotModel = ExtractModel(snapshot);
+            var snapshotModel = ExtractModel(context.GetService<IModelRuntimeInitializer>().Initialize(snapshot, designTime: true));
             await using var connection = new SqlConnection(fixture.ConnectionString);
             await connection.OpenAsync();
 
@@ -180,6 +181,8 @@ public sealed class Rf06aSchemaInventoryTests
                     """)
             };
 
+            var sqlOnlyIndexes = TraceSqlOnlyIndexes(root, context.GetService<IMigrationsAssembly>(), migrations);
+            var sqlOnlyForeignKeys = TraceSqlOnlyForeignKeys(root, context.GetService<IMigrationsAssembly>(), migrations);
             var migrationSources = TraceTriggerSources(root, context.GetService<IMigrationsAssembly>(), migrations);
             Assert.Equal(migrationSources.Keys.Order(StringComparer.Ordinal),
                 sql["triggers"].EnumerateArray().Select(item => item.GetProperty("name").GetString()!)
@@ -228,11 +231,14 @@ public sealed class Rf06aSchemaInventoryTests
                     lastDefinitionMigration = item.Source.LastDefinitionMigration,
                     sourcePath = item.Source.Path,
                     sourceLine = item.Source.Line,
-                    migrationSqlSha256Utf8Lf = HashDefinition(item.Source.Definition),
+                    migrationSqlSha256Utf8Lf = HashDefinition(item.Source.MigrationSql ?? item.Source.Definition),
+                    expectedCatalogDefinitionSha256Utf8Lf = HashDefinition(item.Source.Definition),
                     textComparison = CompareDefinitionText(item.Definition!, item.Source.Definition),
                     operationHistory = item.Source.History,
                     runtimeBehavior = "NOT_TESTED"
-                }).ToArray()
+                }).ToArray(),
+                sqlOnlyForeignKeys,
+                sqlOnlyIndexes
             };
             var output = Path.Combine(root, "docs", "backend", "data", "current-schema.inventory.json");
 
@@ -262,23 +268,27 @@ public sealed class Rf06aSchemaInventoryTests
             {
                 var key = $"{column.GetProperty("schema").GetString()}.{column.GetProperty("table").GetString()}.{column.GetProperty("name").GetString()}";
                 var mapped = modelColumnByName[key];
-                Assert.Equal(mapped.Nullable, column.GetProperty("nullable").GetBoolean());
+                Assert.True(mapped.Nullable == column.GetProperty("nullable").GetBoolean(),
+                    $"SQL nullability drift: {key}: model={mapped.Nullable}, catalog={column.GetProperty("nullable").GetBoolean()}");
                 var sqlType = column.GetProperty("type").GetString()!;
                 var modelType = mapped.SqlType ?? sqlType;
                 Assert.True(modelType.StartsWith(sqlType, StringComparison.OrdinalIgnoreCase) ||
                             (modelType.Equals("rowversion", StringComparison.OrdinalIgnoreCase) && sqlType == "timestamp"),
                     $"SQL type drift: {key}: model={modelType}, catalog={sqlType}");
             }
-            var modelFks = model.SelectMany(item => item.ForeignKeys.Select(fk => $"{item.TableKey}.{fk.Name}")).Order(StringComparer.Ordinal).ToArray();
+            var mappedFks = model.SelectMany(item => item.ForeignKeys.Select(fk => $"{item.TableKey}.{fk.Name}")).Order(StringComparer.Ordinal).ToArray();
+            var modelFks = mappedFks.Concat(sqlOnlyForeignKeys.Select(item => $"{item.TableKey}.{item.ForeignKey.Name}")).Order(StringComparer.Ordinal).ToArray();
             var snapshotFks = snapshotModel.SelectMany(item => item.ForeignKeys.Select(fk => $"{item.TableKey}.{fk.Name}")).Order(StringComparer.Ordinal).ToArray();
             var sqlFks = sql["foreignKeys"].EnumerateArray()
                 .Select(item => $"{item.GetProperty("schema").GetString()}.{item.GetProperty("table").GetString()}.{item.GetProperty("name").GetString()}")
                 .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-            Assert.Equal(modelFks, snapshotFks);
-            Assert.Equal(modelFks, sqlFks);
+            Assert.Equal(mappedFks, snapshotFks);
+            Assert.True(modelFks.SequenceEqual(sqlFks, StringComparer.Ordinal),
+                $"SQL FK drift: model-only=[{string.Join(';', modelFks.Except(sqlFks))}]; catalog-only=[{string.Join(';', sqlFks.Except(modelFks))}]");
             var modelShape = new SchemaShape(modelTables, modelColumns,
                 model.SelectMany(table => table.ForeignKeys.Select(fk =>
-                    $"{table.TableKey}.{string.Join(',', fk.Columns)}->{fk.PrincipalTable}.{string.Join(',', fk.PrincipalColumns)}")).ToArray());
+                    $"{table.TableKey}.{string.Join(',', fk.Columns)}->{fk.PrincipalTable}.{string.Join(',', fk.PrincipalColumns)}"))
+                    .Concat(sqlOnlyForeignKeys.Select(item => $"{item.TableKey}.{string.Join(',', item.ForeignKey.Columns)}->{item.ForeignKey.PrincipalTable}.{string.Join(',', item.ForeignKey.PrincipalColumns)}")).ToArray());
             var sqlShape = new SchemaShape(sqlTables, sqlColumns,
                 sql["foreignKeys"].EnumerateArray().GroupBy(item =>
                     $"{item.GetProperty("schema").GetString()}.{item.GetProperty("table").GetString()}.{item.GetProperty("name").GetString()}")
@@ -292,12 +302,17 @@ public sealed class Rf06aSchemaInventoryTests
                 $"{item.GetProperty("schema").GetString()}.{item.GetProperty("table").GetString()}.{item.GetProperty("name").GetString()}");
             var modelFkByName = model.SelectMany(table => table.ForeignKeys.Select(fk =>
                 new KeyValuePair<string, ModelForeignKey>($"{table.TableKey}.{fk.Name}", fk)))
+                .Concat(sqlOnlyForeignKeys.Select(item => new KeyValuePair<string, ModelForeignKey>($"{item.TableKey}.{item.ForeignKey.Name}", item.ForeignKey)))
                 .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
             foreach (var group in sqlFkGroups)
             {
                 var rows = group.OrderBy(item => item.GetProperty("ordinal").GetInt32()).ToArray();
                 var mapped = modelFkByName[group.Key];
                 Assert.Equal(mapped.Columns, rows.Select(item => item.GetProperty("column").GetString()));
+                Assert.Equal(mapped.PrincipalColumns, rows.Select(item => item.GetProperty("principalColumn").GetString()));
+                Assert.All(rows, row => Assert.False(row.GetProperty("disabled").GetBoolean()));
+                var deleteAction = mapped.DeleteBehavior switch { "NoAction" or "Restrict" or "ClientSetNull" or "ClientCascade" or "ClientNoAction" => "NO_ACTION", "Cascade" => "CASCADE", "SetNull" => "SET_NULL", "SetDefault" => "SET_DEFAULT", _ => throw new InvalidOperationException($"Unsupported FK delete action: {mapped.DeleteBehavior}") };
+                Assert.All(rows, row => Assert.Equal(deleteAction, row.GetProperty("onDelete").GetString()));
                 Assert.Equal(mapped.PrincipalTable,
                     $"{rows[0].GetProperty("principalSchema").GetString()}.{rows[0].GetProperty("principalTable").GetString()}");
             }
@@ -307,7 +322,23 @@ public sealed class Rf06aSchemaInventoryTests
                 .Select(item => $"{item.GetProperty("schema").GetString()}.{item.GetProperty("table").GetString()}.{item.GetProperty("name").GetString()}")
                 .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
             Assert.Equal(modelIndexes, snapshotIndexes);
-            Assert.Equal(modelIndexes, sqlIndexes);
+            var expectedIndexes = modelIndexes.Concat(sqlOnlyIndexes.Select(index => $"{index.TableKey}.{index.Name}")).Order(StringComparer.Ordinal).ToArray();
+            Assert.Equal(expectedIndexes, sqlIndexes);
+            foreach (var index in sqlOnlyIndexes)
+            {
+                var rows = sql["indexes"].EnumerateArray().Where(row => $"{row.GetProperty("schema").GetString()}.{row.GetProperty("table").GetString()}.{row.GetProperty("name").GetString()}" == $"{index.TableKey}.{index.Name}").OrderBy(row => row.GetProperty("ordinal").GetInt32()).ToArray();
+                Assert.Equal(index.Columns, rows.Select(row => row.GetProperty("column").GetString()));
+                Assert.Equal(Enumerable.Range(1, index.Columns.Length), rows.Select(row => row.GetProperty("ordinal").GetInt32()));
+                Assert.All(rows, row =>
+                {
+                    Assert.True(row.GetProperty("unique").GetBoolean());
+                    Assert.True(row.GetProperty("filtered").GetBoolean());
+                    Assert.False(row.GetProperty("included").GetBoolean());
+                    Assert.False(row.GetProperty("descending").GetBoolean());
+                    Assert.Equal("NONCLUSTERED", row.GetProperty("kind").GetString());
+                    Assert.Equal($"({index.Filter})", row.GetProperty("filter").GetString());
+                });
+            }
             var modelChecks = model.SelectMany(item => item.Checks.Select(name => $"{item.TableKey}.{name}")).Order(StringComparer.Ordinal).ToArray();
             var snapshotChecks = snapshotModel.SelectMany(item => item.Checks.Select(name => $"{item.TableKey}.{name}")).Order(StringComparer.Ordinal).ToArray();
             var sqlChecks = sql["checks"].EnumerateArray()
@@ -327,6 +358,7 @@ public sealed class Rf06aSchemaInventoryTests
 
     private static ModelTable[] ExtractModel(IModel model)
     {
+        var relationalModel = model.GetRelationalModel();
         return model.GetEntityTypes().Where(entity => entity.GetTableName() is not null)
             .GroupBy(entity => $"{entity.GetSchema() ?? "dbo"}.{entity.GetTableName()}")
             .OrderBy(group => group.Key, StringComparer.Ordinal)
@@ -340,7 +372,7 @@ public sealed class Rf06aSchemaInventoryTests
                         property.Name,
                         FormatClrType(property.ClrType),
                         property.GetColumnType(),
-                        property.IsNullable,
+                        property.IsColumnNullable(store),
                         property.GetMaxLength(),
                         property.GetPrecision(),
                         property.GetScale(),
@@ -353,17 +385,18 @@ public sealed class Rf06aSchemaInventoryTests
                         GetEnumStoredValues(property))))
                     .GroupBy(column => column.Name).Select(grouping => grouping.First())
                     .OrderBy(column => column.Name, StringComparer.Ordinal).ToArray();
-                var foreignKeys = entities.SelectMany(entity => entity.GetForeignKeys().Select(fk =>
-                    new ModelForeignKey(fk.GetConstraintName() ?? "UNKNOWN",
-                        fk.Properties.Select(property => property.GetColumnName(store) ?? property.Name).ToArray(),
-                        $"{fk.PrincipalEntityType.GetSchema() ?? "dbo"}.{fk.PrincipalEntityType.GetTableName()}",
-                        fk.PrincipalKey.Properties.Select(property => property.Name).ToArray(),
-                        fk.IsRequired, fk.DeleteBehavior.ToString())))
-                    .GroupBy(fk => fk.Name).Select(fks => fks.First()).OrderBy(fk => fk.Name, StringComparer.Ordinal).ToArray();
-                var indexes = entities.SelectMany(entity => entity.GetIndexes().Select(index => index.GetDatabaseName() ?? "UNKNOWN"))
-                    .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-                var checks = entities.SelectMany(entity => entity.GetCheckConstraints().Select(check => check.Name ?? "UNKNOWN"))
-                    .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+                var physicalTable = relationalModel.FindTable(entities[0].GetTableName()!, entities[0].GetSchema())
+                    ?? throw new InvalidOperationException($"Relational table missing: {group.Key}");
+                var foreignKeys = physicalTable.ForeignKeyConstraints.Select(fk =>
+                    new ModelForeignKey(fk.Name, fk.Columns.Select(column => column.Name).ToArray(),
+                        $"{fk.PrincipalTable.Schema ?? "dbo"}.{fk.PrincipalTable.Name}",
+                        fk.PrincipalColumns.Select(column => column.Name).ToArray(),
+                        fk.Columns.All(column => !column.IsNullable), fk.OnDeleteAction.ToString()))
+                    .OrderBy(fk => fk.Name, StringComparer.Ordinal).ToArray();
+                var indexes = physicalTable.Indexes.Select(index => index.Name).Order(StringComparer.Ordinal).ToArray();
+                var checks = physicalTable.CheckConstraints.Select(check => check.Name
+                    ?? throw new InvalidOperationException($"Relational check constraint name missing: {group.Key}"))
+                    .Order(StringComparer.Ordinal).ToArray();
                 return new ModelTable(group.Key, entities.Select(entity => entity.ClrType?.FullName ?? entity.Name).ToArray(),
                     entities.Select(entity => entity.GetQueryFilter()?.ToString()).Where(value => value is not null).ToArray(),
                     columns, foreignKeys, indexes, checks);
@@ -380,6 +413,67 @@ public sealed class Rf06aSchemaInventoryTests
         return document.RootElement.Clone();
     }
 
+    private static SqlOnlyIndex[] TraceSqlOnlyIndexes(string root, IMigrationsAssembly assembly, IEnumerable<string> appliedMigrations)
+    {
+        var result = new List<SqlOnlyIndex>();
+        var pattern = new Regex(@"\ACREATE UNIQUE INDEX \[(?<name>[A-Za-z0-9_]+)\] ON \[(?<table>[A-Za-z0-9_]+)\] \((?<columns>\[[A-Za-z0-9_]+\](?:,\[[A-Za-z0-9_]+\])*)\) WHERE (?<filter>\[[A-Za-z0-9_]+\] IS NULL);\s*\z", RegexOptions.CultureInvariant);
+        foreach (var migrationId in appliedMigrations)
+        {
+            var migration = assembly.CreateMigration(assembly.Migrations[migrationId], "Microsoft.EntityFrameworkCore.SqlServer");
+            foreach (var operation in migration.UpOperations.OfType<SqlOperation>())
+            {
+                if (!Regex.IsMatch(operation.Sql, @"\ACREATE (?:UNIQUE )?INDEX", RegexOptions.CultureInvariant)) continue;
+                var match = pattern.Match(operation.Sql);
+                if (!match.Success) throw new InvalidOperationException($"Unsupported SQL index operation: {migrationId}");
+                var name = match.Groups["name"].Value;
+                var candidates = new List<(string Path, int Line)>();
+                foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "RoadGuardSystem.Repositories/Migrations"), "*.cs").Where(path => !path.EndsWith(".Designer.cs", StringComparison.Ordinal)))
+                {
+                    var text = File.ReadAllText(path);
+                    if (!Regex.IsMatch(text, $@"\bclass\s+{Regex.Escape(migration.GetType().Name)}\b", RegexOptions.CultureInvariant)) continue;
+                    var lines = File.ReadAllLines(path);
+                    for (var line = 0; line < lines.Length; line++)
+                        if (lines[line].Contains("CREATE UNIQUE INDEX", StringComparison.Ordinal) && lines[line].Contains(name, StringComparison.Ordinal))
+                            candidates.Add((Path.GetRelativePath(root, path).Replace('\\', '/'), line + 1));
+                }
+                if (candidates.Count != 1) throw new InvalidOperationException($"SQL index source must resolve uniquely: {migrationId}:{name}");
+                result.Add(new SqlOnlyIndex($"dbo.{match.Groups["table"].Value}", name, match.Groups["columns"].Value.Split(',').Select(column => column.Trim('[', ']')).ToArray(),
+                    match.Groups["filter"].Value, migrationId, candidates[0].Path, candidates[0].Line, HashDefinition(operation.Sql)));
+            }
+        }
+        if (result.Select(index => $"{index.TableKey}.{index.Name}").Distinct(StringComparer.Ordinal).Count() != result.Count) throw new InvalidOperationException("Duplicate SQL-only index source");
+        return result.ToArray();
+    }
+
+    private static SqlOnlyForeignKey[] TraceSqlOnlyForeignKeys(string root, IMigrationsAssembly assembly,
+        IEnumerable<string> appliedMigrations)
+    {
+        var result = new List<SqlOnlyForeignKey>();
+        var pattern = new Regex(@"\AALTER TABLE \[(?<table>[A-Za-z0-9_]+)\] ADD CONSTRAINT \[(?<name>FK_[A-Za-z0-9_]+)\] FOREIGN KEY \((?<columns>[^)]+)\) REFERENCES \[(?<principal>[A-Za-z0-9_]+)\] \((?<principalColumns>[^)]+)\);\s*\z", RegexOptions.CultureInvariant);
+        foreach (var migrationId in appliedMigrations)
+        {
+            var migration = assembly.CreateMigration(assembly.Migrations[migrationId], "Microsoft.EntityFrameworkCore.SqlServer");
+            foreach (var operation in migration.UpOperations.OfType<SqlOperation>())
+            {
+                if (!operation.Sql.Contains("FOREIGN KEY", StringComparison.Ordinal)) continue;
+                var match = pattern.Match(operation.Sql);
+                if (!match.Success) throw new InvalidOperationException($"Unsupported SQL foreign key operation: {migrationId}");
+                var name = match.Groups["name"].Value;
+                var path = $"RoadGuardSystem.Repositories/Migrations/{migrationId}.cs";
+                var lines = File.ReadAllLines(Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar)));
+                var locations = lines.Select((line, index) => (line, index)).Where(item => item.line.Contains(name, StringComparison.Ordinal) && item.line.Contains("FOREIGN KEY", StringComparison.Ordinal)).ToArray();
+                if (locations.Length != 1) throw new InvalidOperationException($"SQL foreign key source must resolve uniquely: {migrationId}:{name}");
+                static string[] Columns(string value) => value.Split(',').Select(column => column.Trim().Trim('[', ']')).ToArray();
+                result.Add(new SqlOnlyForeignKey($"dbo.{match.Groups["table"].Value}",
+                    new ModelForeignKey(name, Columns(match.Groups["columns"].Value), $"dbo.{match.Groups["principal"].Value}", Columns(match.Groups["principalColumns"].Value), false, "NoAction"),
+                    migrationId, path, locations[0].index + 1, HashDefinition(operation.Sql)));
+            }
+        }
+        if (result.Select(item => $"{item.TableKey}.{item.ForeignKey.Name}").Distinct(StringComparer.Ordinal).Count() != result.Count)
+            throw new InvalidOperationException("Duplicate SQL-only foreign key source");
+        return result.ToArray();
+    }
+
     private static Dictionary<string, TriggerSource> TraceTriggerSources(string root, IMigrationsAssembly assembly,
         IEnumerable<string> appliedMigrations)
     {
@@ -393,12 +487,13 @@ public sealed class Rf06aSchemaInventoryTests
             if (!File.Exists(fullPath)) throw new InvalidOperationException($"Migration source missing: {path}");
             foreach (var operation in migration.UpOperations.OfType<SqlOperation>())
             {
+                TraceInstalledDefinitionRewrite(root, fullPath, migration.GetType().Name, migrationId, operation.Sql, active, history);
                 foreach (Match match in TriggerOperationPattern.Matches(operation.Sql))
                 {
                     var name = match.Groups["name"].Value;
                     var action = match.Groups["action"].Value.ToUpperInvariant();
-                    var line = FindTriggerSourceLine(fullPath, name, action);
-                    ApplyTriggerOperation(active, history, name, action, migrationId, path, line, operation.Sql);
+                    var source = FindTriggerSource(root, fullPath, migration.GetType().Name, name, action);
+                    ApplyTriggerOperation(active, history, name, action, migrationId, source.Path, source.Line, operation.Sql);
                 }
             }
         }
@@ -418,7 +513,7 @@ public sealed class Rf06aSchemaInventoryTests
         else if (action.StartsWith("CREATE", StringComparison.Ordinal))
         {
             var created = active.TryGetValue(name, out var previous) ? previous.CreatedMigration : migrationId;
-            active[name] = new TriggerSource(name, created, migrationId, path, line, sql, events.ToArray());
+            active[name] = new TriggerSource(name, created, migrationId, path, line, CatalogDefinition(sql), events.ToArray(), sql);
         }
         else if (active.TryGetValue(name, out var existing))
         {
@@ -427,7 +522,8 @@ public sealed class Rf06aSchemaInventoryTests
                 LastDefinitionMigration = migrationId,
                 Path = path,
                 Line = line,
-                Definition = sql,
+                Definition = CatalogDefinition(sql),
+                MigrationSql = sql,
                 History = events.ToArray()
             };
         }
@@ -437,19 +533,94 @@ public sealed class Rf06aSchemaInventoryTests
         }
     }
 
-    private static int FindTriggerSourceLine(string path, string name, string action)
+    // SQL Server persists CREATE OR ALTER as CREATE followed by three spaces,
+    // and ALTER as CREATE. Derive only that DDL header from the emitted operation;
+    // compare every remaining character and hash the original operation separately.
+    private static string CatalogDefinition(string sql)
+        => Regex.Replace(sql, @"\A(?<leading>\s*)(?:CREATE OR ALTER|ALTER)(?=\s+TRIGGER)",
+            match => match.Groups["leading"].Value + (match.Value.TrimStart().StartsWith("CREATE", StringComparison.Ordinal) ? "CREATE  " : "CREATE"),
+            RegexOptions.CultureInvariant);
+
+    private static void TraceInstalledDefinitionRewrite(string root, string primaryPath, string migrationClass,
+        string migrationId, string sql, Dictionary<string, TriggerSource> active,
+        Dictionary<string, List<TriggerMigrationEvent>> history)
     {
-        var lines = File.ReadAllLines(path);
-        var down = Array.FindIndex(lines, line => line.Contains("protected override void Down", StringComparison.Ordinal));
-        var upLength = down < 0 ? lines.Length : down;
-        for (var index = 0; index < upLength; index++)
+        var declaration = Regex.Match(sql,
+            @"DECLARE (?<variable>@[A-Za-z0-9_]+) nvarchar\(max\)=OBJECT_DEFINITION\(OBJECT_ID\(N'\[dbo\]\.\[(?<name>TR_[A-Za-z0-9_]+)\]'\)\);",
+            RegexOptions.CultureInvariant);
+        if (!declaration.Success) return;
+        var variable = declaration.Groups["variable"].Value;
+        var name = declaration.Groups["name"].Value;
+        if (!active.TryGetValue(name, out var previous))
+            throw new InvalidOperationException($"Installed trigger rewrite has no prior definition: {migrationId}:{name}");
+        var escapedVariable = Regex.Escape(variable);
+        var replacements = Regex.Matches(sql,
+            $@"SET {escapedVariable}=REPLACE\({escapedVariable},N'(?<from>(?:''|[^'])*)',N'(?<to>(?:''|[^'])*)'\);",
+            RegexOptions.CultureInvariant);
+        if (replacements.Count != 2 || !sql.Contains($"EXEC sys.sp_executesql {variable};", StringComparison.Ordinal) ||
+            !sql.Contains($"IF LEFT({variable},6)=N'CREATE' SET {variable}=STUFF({variable},1,6,N'ALTER');", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Unsupported installed trigger rewrite: {migrationId}:{name}");
+        var definition = previous.Definition;
+        for (var index = 0; index < replacements.Count; index++)
         {
-            if (lines[index].Contains($"[{name}]", StringComparison.Ordinal) &&
-                lines[index].Contains("TRIGGER", StringComparison.OrdinalIgnoreCase) &&
-                lines[index].Contains(action.Split(' ')[0], StringComparison.OrdinalIgnoreCase))
-                return index + 1;
+            var from = replacements[index].Groups["from"].Value.Replace("''", "'", StringComparison.Ordinal);
+            var to = replacements[index].Groups["to"].Value.Replace("''", "'", StringComparison.Ordinal);
+            if (index == 0 && !definition.Contains(from, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Installed trigger rewrite source precondition failed: {migrationId}:{name}");
+            definition = definition.Replace(from, to, StringComparison.Ordinal);
         }
-        throw new InvalidOperationException($"Trigger operation not located in migration source: {Path.GetFileName(path)}:{name}");
+        if (definition.StartsWith("CREATE", StringComparison.Ordinal)) definition = "ALTER" + definition[6..];
+        var source = FindInstalledRewriteSource(root, primaryPath, migrationClass, name);
+        ApplyTriggerOperation(active, history, name, "ALTER", migrationId, source.Path, source.Line, definition);
+        active[name] = active[name] with { MigrationSql = sql };
+    }
+
+    private static (string Path, int Line) FindInstalledRewriteSource(string root, string primaryPath,
+        string migrationClass, string name)
+    {
+        var candidates = new List<(string Path, int Line)>();
+        foreach (var path in Directory.EnumerateFiles(Path.GetDirectoryName(primaryPath)!, "*.cs")
+            .Where(path => !path.EndsWith(".Designer.cs", StringComparison.Ordinal)))
+        {
+            var text = File.ReadAllText(path);
+            if (!Regex.IsMatch(text, $@"\bclass\s+{Regex.Escape(migrationClass)}\b", RegexOptions.CultureInvariant)) continue;
+            var lines = File.ReadAllLines(path);
+            for (var index = 0; index < lines.Length; index++)
+                if (lines[index].Contains("OBJECT_DEFINITION", StringComparison.Ordinal) && lines[index].Contains(name, StringComparison.Ordinal))
+                    candidates.Add((Path.GetRelativePath(root, path).Replace('\\', '/'), index + 1));
+        }
+        return candidates.Count == 1 ? candidates[0] : throw new InvalidOperationException(
+            $"Installed trigger rewrite source must resolve uniquely: {Path.GetFileName(primaryPath)}:{name} ({candidates.Count} candidates)");
+    }
+
+    private static (string Path, int Line) FindTriggerSource(string root, string primaryPath,
+        string migrationClass, string name, string action)
+    {
+        var candidates = new List<(string Path, int Line)>();
+        var declaration = new Regex($@"\bclass\s+{Regex.Escape(migrationClass)}\b", RegexOptions.CultureInvariant);
+        foreach (var path in Directory.EnumerateFiles(Path.GetDirectoryName(primaryPath)!, "*.cs")
+            .Where(path => !path.EndsWith(".Designer.cs", StringComparison.Ordinal)))
+        {
+            var text = File.ReadAllText(path);
+            if (!declaration.IsMatch(text)) continue;
+            var lines = File.ReadAllLines(path);
+            var down = Array.FindIndex(lines, line => line.Contains("protected override void Down", StringComparison.Ordinal));
+            var upLength = down < 0 ? lines.Length : down;
+            for (var index = 0; index < upLength; index++)
+            {
+                var match = TriggerOperationPattern.Match(Regex.Replace(lines[index], "^.*?(?=(?:CREATE(?: OR ALTER)?|ALTER|DROP) TRIGGER)", "", RegexOptions.IgnoreCase));
+                if (!match.Success || !match.Groups["action"].Value.Equals(action, StringComparison.OrdinalIgnoreCase)) continue;
+                var template = match.Groups["name"].Value;
+                // UpOperations supplies the exact generated SQL; source lookup also supports
+                // the named interpolation templates and partial helpers which produce it.
+                var pattern = "^" + string.Join("[A-Za-z0-9_]+",
+                    Regex.Split(template, @"\{[A-Za-z_][A-Za-z0-9_]*\}").Select(Regex.Escape)) + "$";
+                if (Regex.IsMatch(name, pattern, RegexOptions.CultureInvariant))
+                    candidates.Add((Path.GetRelativePath(root, path).Replace('\\', '/'), index + 1));
+            }
+        }
+        return candidates.Count == 1 ? candidates[0] : throw new InvalidOperationException(
+            $"Trigger operation source must resolve uniquely: {Path.GetFileName(primaryPath)}:{name} ({candidates.Count} candidates)");
     }
 
     private static string[] VerifyTriggerEvidence(IEnumerable<TriggerEvidence> evidence)
@@ -548,10 +719,12 @@ public sealed class Rf06aSchemaInventoryTests
         ModelForeignKey[] ForeignKeys, string[] Indexes, string[] Checks);
     private sealed record ModelForeignKey(string Name, string[] Columns, string PrincipalTable, string[] PrincipalColumns,
         bool Required, string DeleteBehavior);
+    private sealed record SqlOnlyIndex(string TableKey, string Name, string[] Columns, string Filter, string MigrationId, string Path, int Line, string MigrationSqlSha256Utf8Lf);
+    private sealed record SqlOnlyForeignKey(string TableKey, ModelForeignKey ForeignKey, string MigrationId, string Path, int Line, string MigrationSqlSha256Utf8Lf);
     private sealed record SchemaShape(string[] Tables, string[] Columns, string[] ForeignKeys);
     private sealed record TriggerEvidence(string Schema, string Table, string Name, string? Definition, TriggerSource? Source);
     private sealed record TriggerSource(string Name, string CreatedMigration, string LastDefinitionMigration,
-        string Path, int Line, string Definition, TriggerMigrationEvent[] History);
+        string Path, int Line, string Definition, TriggerMigrationEvent[] History, string? MigrationSql = null);
     private sealed record TriggerMigrationEvent(string MigrationId, string Action, string Path, int Line);
     private sealed record ModelColumn(string Name, string Entity, string Property, string ClrType, string? SqlType,
         bool Nullable, int? MaxLength, int? Precision, int? Scale, string? DefaultSql, string? ComputedSql,

@@ -6,7 +6,7 @@ using RoadGuardSystem.BusinessObjects.Candidates;
 using RoadGuardSystem.BusinessObjects.Cases;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Reports;
-using RoadGuardSystem.DTOs.Cases;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases;
 using RoadGuardSystem.Repositories.Cases;
 using RoadGuardSystem.Repositories.Models.Huy01;
 
@@ -44,7 +44,7 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
         if (fresh.Any(p => p is Guid actual && !projects.Contains(actual)) || role == UserRoleCode.ProjectManager && fresh.Any(p => p is null)) Fail(412, "concurrency_conflict");
     }
 
-    public Task<InternalCaseDto> ReadAsync(Guid actor, UserRoleCode role, Guid caseId, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
+    public Task<InternalCaseFact> ReadAsync(Guid actor, UserRoleCode role, Guid caseId, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
         => InReadAsync(async () => { await GuardAsync(actor, role, [caseId], null, projectAccess, ct); return Project(await LoadAsync(caseId, ct)); }, ct);
 
     public async Task GuardCommandAsync(Guid actor, UserRoleCode role, CaseCommand command,
@@ -58,7 +58,7 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
         }
     }
 
-    public Task<CasePageDto> ListAsync(Guid actor, UserRoleCode role, Guid? project, IncidentCaseStatus? status,
+    public Task<CasePageFact> ListAsync(Guid actor, UserRoleCode role, Guid? project, IncidentCaseStatus? status,
         int pageSize, string? cursor, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
         => InReadAsync(async () =>
         {
@@ -76,10 +76,10 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
             }
             var rows = await query.AsNoTracking().OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id)
                 .Select(c => new { c.Id, c.CreatedAt }).Take(pageSize + 1).ToArrayAsync(ct);
-            var items = new List<InternalCaseDto>();
+            var items = new List<InternalCaseFact>();
             foreach (var row in rows.Take(pageSize)) items.Add(Project(await LoadAsync(row.Id, ct)));
             var last = rows.Take(pageSize).LastOrDefault();
-            return new CasePageDto(items, rows.Length > pageSize && last is not null ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new PageCursor(actor, project, status, last.CreatedAt, last.Id))) : null);
+            return new CasePageFact(items, rows.Length > pageSize && last is not null ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new PageCursor(actor, project, status, last.CreatedAt, last.Id))) : null);
         }, ct);
 
     public async Task<CaseWriteResult> ApplyAsync(Guid actor, UserRoleCode role, CaseCommand command,
@@ -155,8 +155,14 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
                     incident.Conclude(conclusion, CaseConclusionPrerequisites.Create(verifiedDefects, conclusionEvidence.Select(e => e.Id).ToArray()));
                     db.Set<CaseConclusion>().Add(conclusion); db.Entry(conclusion).Property<Guid>("CaseId").CurrentValue = incident.Id;
                     foreach (var id in conclusion.DefectIds) db.Set<HuyConclusionDefect>().Add(new() { ConclusionId = conclusion.Id, DefectId = id });
-                    foreach (var evidence in conclusionEvidence) db.Set<HuyConclusionEvidence>().Add(new() { ConclusionId = conclusion.Id, EvidenceId = evidence.Id, SourceReportId = evidence.ReportId,
-                        OriginalEvidenceId = evidence.SupplementId is null ? evidence.Id : null, SupplementEvidenceId = evidence.SupplementId is not null ? evidence.Id : null });
+                    foreach (var evidence in conclusionEvidence) db.Set<HuyConclusionEvidence>().Add(new()
+                    {
+                        ConclusionId = conclusion.Id,
+                        EvidenceId = evidence.Id,
+                        SourceReportId = evidence.ReportId,
+                        OriginalEvidenceId = evidence.SupplementId is null ? evidence.Id : null,
+                        SupplementEvidenceId = evidence.SupplementId is not null ? evidence.Id : null
+                    });
                     break;
                 case "publish":
                     var selected = await ResolveEvidenceAsync(incident, command.EvidenceIds!, ct);
@@ -172,9 +178,15 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
                     foreach (var recipient in movedReports)
                     {
                         db.Set<HuyPublicationRecipient>().Add(new() { PublicationId = publication.Id, ReportId = recipient });
-                        foreach (var evidence in selected) db.Set<HuyPublicationEvidence>().Add(new() { PublicationId = publication.Id, RecipientReportId = recipient,
-                            EvidenceId = evidence.Id, SourceReportId = evidence.ReportId, OriginalEvidenceId = evidence.SupplementId is null ? evidence.Id : null,
-                            SupplementEvidenceId = evidence.SupplementId is not null ? evidence.Id : null });
+                        foreach (var evidence in selected) db.Set<HuyPublicationEvidence>().Add(new()
+                        {
+                            PublicationId = publication.Id,
+                            RecipientReportId = recipient,
+                            EvidenceId = evidence.Id,
+                            SourceReportId = evidence.ReportId,
+                            OriginalEvidenceId = evidence.SupplementId is null ? evidence.Id : null,
+                            SupplementEvidenceId = evidence.SupplementId is not null ? evidence.Id : null
+                        });
                     }
                     foreach (var id in publication.DefectIds) db.Set<HuyPublicationDefect>().Add(new() { PublicationId = publication.Id, DefectId = id });
                     break;
@@ -208,8 +220,10 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
             await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Files] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={0}", item.FileId, ct);
             await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [FileScopes] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={0}", item.FileId, ct);
             await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={0}", item.FileId, ct);
-            var source = await (from scope in db.FileScopes.AsNoTracking() join upload in db.UploadSessions.AsNoTracking() on scope.FileId equals upload.FileId
-                where scope.FileId == item.FileId select new { scope, upload }).SingleOrDefaultAsync(ct);
+            var source = await (from scope in db.FileScopes.AsNoTracking()
+                                join upload in db.UploadSessions.AsNoTracking() on scope.FileId equals upload.FileId
+                                where scope.FileId == item.FileId
+                                select new { scope, upload }).SingleOrDefaultAsync(ct);
             if (source is null || source.scope.OwnerUserId != item.OwnerUserId || source.scope.ProjectId is not null || source.scope.TargetId is not null || source.scope.Purpose != "REPORT_PHOTO") Fail(404, "not_found");
             if (source!.upload.Status != UploadSessionStatus.Verified) Fail(409, "source_not_ready");
             if (Convert.ToBase64String(source.upload.RowVersion) != item.FileVersion) Fail(412, "concurrency_conflict");
@@ -244,7 +258,7 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
     }
     private void Bump(IncidentCase incident) => db.Entry(incident).Property<long>("Revision").CurrentValue++;
     private string Version(IncidentCase incident) => Convert.ToBase64String(db.Entry(incident).Property<byte[]>("RowVersion").CurrentValue!);
-    private InternalCaseDto Project(IncidentCase incident)
+    private InternalCaseFact Project(IncidentCase incident)
     {
         var conclusion = incident.Conclusions.OrderBy(c => c.ConcludedAt).ThenBy(c => c.Id).LastOrDefault();
         return new(incident.Id, incident.ProjectId, WireStatus(incident.Status), Version(incident), incident.ActiveReportIds,

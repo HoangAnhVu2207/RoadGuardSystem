@@ -173,8 +173,10 @@ public sealed partial class SurveyV2PersistenceService
 
     public async Task<DatasetDetailRecord?> ReadDatasetAsync(Guid id, CancellationToken token = default)
     {
-        var row = await (from d in _context.SurveyDataVersions.AsNoTracking() join s in _context.Surveys.AsNoTracking() on d.SurveyId equals s.Id
-            where d.Id == id select new { d, s.ProjectId, s.SurveyRequestId }).SingleOrDefaultAsync(token);
+        var row = await (from d in _context.SurveyDataVersions.AsNoTracking()
+                         join s in _context.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+                         where d.Id == id
+                         select new { d, s.ProjectId, s.SurveyRequestId }).SingleOrDefaultAsync(token);
         return row is null || row.SurveyRequestId is null ? null : new(row.d.Id, row.SurveyRequestId.Value, row.ProjectId, row.d.SubmittedBy, row.d.ConfirmedAt,
             row.d.RecordedAt, row.d.DeviceId, row.d.ScopeManifest ?? "[]", row.d.SourceManifest, row.d.PairsManifest ?? "[]", Version(row.d), row.d.IntegrityStatus.ToString().ToUpperInvariant());
     }

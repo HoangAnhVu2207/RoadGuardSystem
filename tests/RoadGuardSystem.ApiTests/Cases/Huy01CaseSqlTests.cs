@@ -292,8 +292,14 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
         await using var db = sql.CreateDbContext();
         var cases = await db.IncidentCases.Where(c => c.ProjectId == setup.Project).OrderBy(c => c.Id).ToArrayAsync();
         var ids = cases.Select(c => c.Id).ToArray();
-        var heads = cases.Select(c => new { c.Id, c.Status, Reports = c.ActiveReportIds.Order().ToArray(), Revision = db.Entry(c).Property<long>("Revision").CurrentValue,
-            Version = Convert.ToBase64String(db.Entry(c).Property<byte[]>("RowVersion").CurrentValue!) });
+        var heads = cases.Select(c => new
+        {
+            c.Id,
+            c.Status,
+            Reports = c.ActiveReportIds.Order().ToArray(),
+            Revision = db.Entry(c).Property<long>("Revision").CurrentValue,
+            Version = Convert.ToBase64String(db.Entry(c).Property<byte[]>("RowVersion").CurrentValue!)
+        });
         var links = await db.Set<HuyCaseReportLink>().Where(l => ids.Contains(l.CaseId)).OrderBy(l => l.Id).Select(l => new { l.Id, l.CaseId, l.ReportId, l.EndedAt }).ToArrayAsync();
         var history = await db.Set<CaseReportLinkHistory>().Where(h => ids.Contains(h.FromCaseId) || ids.Contains(h.ToCaseId)).OrderBy(h => h.Id).Select(h => h.Id).ToArrayAsync();
         var audits = await db.AuditLogs.Where(a => ids.Contains(a.EntityId)).OrderBy(a => a.Id).Select(a => a.Id).ToArrayAsync();
@@ -328,9 +334,9 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
     {
         public Task GuardCommandAsync(Guid actor, UserRoleCode role, CaseCommand command, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct) => inner.GuardCommandAsync(actor, role, command, projectAccess, ct);
         public Task GuardAsync(Guid actor, UserRoleCode role, IReadOnlyCollection<Guid> caseIds, Guid? requestedProject, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct) => inner.GuardAsync(actor, role, caseIds, requestedProject, projectAccess, ct);
-        public async Task<RoadGuardSystem.DTOs.Cases.InternalCaseDto> ReadAsync(Guid actor, UserRoleCode role, Guid caseId, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
+        public async Task<RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.InternalCaseFact> ReadAsync(Guid actor, UserRoleCode role, Guid caseId, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
         { var value = await inner.ReadAsync(actor, role, caseId, projectAccess, ct); await barrier.Arrive(ct); return value; }
-        public Task<RoadGuardSystem.DTOs.Cases.CasePageDto> ListAsync(Guid actor, UserRoleCode role, Guid? project, IncidentCaseStatus? status, int pageSize, string? cursor, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct) => inner.ListAsync(actor, role, project, status, pageSize, cursor, projectAccess, ct);
+        public Task<RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.CasePageFact> ListAsync(Guid actor, UserRoleCode role, Guid? project, IncidentCaseStatus? status, int pageSize, string? cursor, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct) => inner.ListAsync(actor, role, project, status, pageSize, cursor, projectAccess, ct);
         public Task<CaseWriteResult> ApplyAsync(Guid actor, UserRoleCode role, CaseCommand command, Func<Guid, CancellationToken, Task<bool>> projectAccess, Func<CancellationToken, Task>? geometryCheck, Guid? correlation, CancellationToken ct) => inner.ApplyAsync(actor, role, command, projectAccess, geometryCheck, correlation, ct);
     }
     private sealed class MutatingReadRepository(ICaseWorkflowRepository inner, Func<Task> mutate) : ICaseWorkflowRepository
@@ -341,9 +347,9 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
         public Task GuardAsync(Guid actor, UserRoleCode role, IReadOnlyCollection<Guid> caseIds, Guid? requestedProject, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct) => inner.GuardAsync(actor, role, caseIds, requestedProject, projectAccess, ct);
         public Task GuardCommandAsync(Guid actor, UserRoleCode role, CaseCommand command, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
         { GuardCalls++; return inner.GuardCommandAsync(actor, role, command, projectAccess, ct); }
-        public async Task<RoadGuardSystem.DTOs.Cases.InternalCaseDto> ReadAsync(Guid actor, UserRoleCode role, Guid caseId, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
+        public async Task<RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.InternalCaseFact> ReadAsync(Guid actor, UserRoleCode role, Guid caseId, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
         { var result = await inner.ReadAsync(actor, role, caseId, projectAccess, ct); if (Interlocked.Exchange(ref _remaining, 0) == 1) await mutate(); return result; }
-        public Task<RoadGuardSystem.DTOs.Cases.CasePageDto> ListAsync(Guid actor, UserRoleCode role, Guid? project, IncidentCaseStatus? status, int pageSize, string? cursor, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct) => inner.ListAsync(actor, role, project, status, pageSize, cursor, projectAccess, ct);
+        public Task<RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.CasePageFact> ListAsync(Guid actor, UserRoleCode role, Guid? project, IncidentCaseStatus? status, int pageSize, string? cursor, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct) => inner.ListAsync(actor, role, project, status, pageSize, cursor, projectAccess, ct);
         public Task<CaseWriteResult> ApplyAsync(Guid actor, UserRoleCode role, CaseCommand command, Func<Guid, CancellationToken, Task<bool>> projectAccess, Func<CancellationToken, Task>? geometryCheck, Guid? correlation, CancellationToken ct)
         { ApplyCalls++; return inner.ApplyAsync(actor, role, command, projectAccess, geometryCheck, correlation, ct); }
     }

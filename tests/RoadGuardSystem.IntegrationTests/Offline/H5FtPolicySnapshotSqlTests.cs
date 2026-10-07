@@ -72,8 +72,13 @@ public sealed class H5FtPolicySnapshotSqlTests(IdentitySqlServerFixture sql) : I
         Assert.Equal(policyId, binding.PolicyRevisionId);
         var expectedPolicyHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
         {
-            policy.Id, policy.ProjectId, policy.Revision, policy.DefectTypeCode, policy.ChecklistVersion,
-            policy.PublishedAt, policy.PublishedBy,
+            policy.Id,
+            policy.ProjectId,
+            policy.Revision,
+            policy.DefectTypeCode,
+            policy.ChecklistVersion,
+            policy.PublishedAt,
+            policy.PublishedBy,
             measurements = policy.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray(),
             stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray()
         }, Json))).ToLowerInvariant();

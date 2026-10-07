@@ -58,7 +58,7 @@ public sealed class Huy01CaseDefectReadSqlTests(AuthenticationSqlServerFixture f
 
         await using (var db = fixture.CreateDbContext())
         {
-            var snapshot = await new CaseDefectReadReader(db).CaptureAsync(pm.Id, UserRoleCode.ProjectManager,
+            var snapshot = await new CaseDefectReadReader(new RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository(db)).CaptureAsync(pm.Id, UserRoleCode.ProjectManager,
                 projectId, new ReportingFiltersDto());
             Assert.NotNull(snapshot);
             Assert.Equal("anh-huy.case-defect.v1", snapshot.SchemaVersion);
@@ -72,7 +72,7 @@ public sealed class Huy01CaseDefectReadSqlTests(AuthenticationSqlServerFixture f
             var consumed = CaseDefectCaptureConsumer.Apply(capture, snapshot);
             Assert.Null(Assert.Single(consumed.Summary.Metrics).Value);
             Assert.NotNull(consumed.CaseDefectFacts);
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => new CaseDefectReadReader(db).CaptureAsync(
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => new CaseDefectReadReader(new RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository(db)).CaptureAsync(
                 pm.Id, UserRoleCode.ProjectManager, Guid.NewGuid(), new ReportingFiltersDto()));
         }
 
@@ -81,7 +81,7 @@ public sealed class Huy01CaseDefectReadSqlTests(AuthenticationSqlServerFixture f
         try
         {
             await using var db = fixture.CreateDbContext();
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => new CaseDefectReadReader(db).CaptureAsync(
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => new CaseDefectReadReader(new RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository(db)).CaptureAsync(
                 pm.Id, UserRoleCode.ProjectManager, projectId, new ReportingFiltersDto()));
         }
         finally

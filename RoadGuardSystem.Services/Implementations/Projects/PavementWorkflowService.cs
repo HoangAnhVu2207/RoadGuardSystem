@@ -3,6 +3,7 @@ using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.DTOs.Projects;
 namespace RoadGuardSystem.Services.Projects;
+
 public sealed class PavementWorkflowService(IPavementWorkflowRepository repository, IProjectScopeGuard guard) : IPavementWorkflowService
 {
     public async Task<GeometryWorkflowResult> ExecuteAsync(UserRoleCode role, PavementWorkflowCommand command,
@@ -22,18 +23,26 @@ public sealed class PavementWorkflowService(IPavementWorkflowRepository reposito
             return new(428, "content_hash_required");
         try
         {
-            return await repository.ExecuteAsync(role, command,
+            var result = await repository.ExecuteAsync(role, command with { Input = RoadGuardSystem.DTOs.BoundaryFactMappings.ToFacts(command.Input) },
                 async token => await guard.AuthorizeAsync(command.ActorId, role, command.ProjectId, token) is not null,
                 (metadata, legacy, input) => PavementFootprintEngine.Planned(metadata?.NativeAlignment is { } native
                     ? NativeAlignment.Create(native) : NativeAlignment.FromLegacy(legacy), input),
-                PavementFootprintEngine.AsBuilt,
-                GeometryEngine.Preview,
+                (snapshot, input) => PavementFootprintEngine.AsBuilt(snapshot, input),
+                (input, srid) => GeometryEngine.Preview(input, srid),
                 (snapshot, query, hash) => GeometryMapPageEngine.Page(snapshot, query.Layer, hash, query.Limit, query.Bbox, query.Cursor),
                 cancellationToken);
+            return result with { Value = RoadGuardSystem.DTOs.BoundaryFactMappings.ToWire(result.Value) };
         }
         catch (GeometryValidationException e)
-        { return new(e.Code switch { "geometry_version_mismatch" or "geometry_layer_unavailable" => 409,
-            "geometry_layer_not_found" => 404, "geometry_cursor_invalid" or "geometry_page_invalid" => 400, _ => 422 }, e.Code); }
+        {
+            return new(e.Code switch
+            {
+                "geometry_version_mismatch" or "geometry_layer_unavailable" => 409,
+                "geometry_layer_not_found" => 404,
+                "geometry_cursor_invalid" or "geometry_page_invalid" => 400,
+                _ => 422
+            }, e.Code);
+        }
         catch (ArgumentException) { return new(422, "pavement_layout_invalid"); }
     }
 }

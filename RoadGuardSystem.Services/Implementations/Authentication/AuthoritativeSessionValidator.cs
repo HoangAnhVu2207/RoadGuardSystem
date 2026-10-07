@@ -41,9 +41,16 @@ public sealed class AuthoritativeSessionValidator
                 session.UserId != userId ||
                 session.RevokedAt is not null ||
                 requiredTransport is { } transport && session.Transport != transport ||
-                !new UserSession { IssuedAt = session.IssuedAt, ExpiresAt = session.ExpiresAt,
-                    RevokedAt = session.RevokedAt, Transport = session.Transport, LastActivityAt = session.LastActivityAt,
-                    Lifecycle = session.Lifecycle, IssuedRole = session.IssuedRole }.IsActiveAt(now))
+                !new UserSession
+                {
+                    IssuedAt = session.IssuedAt,
+                    ExpiresAt = session.ExpiresAt,
+                    RevokedAt = session.RevokedAt,
+                    Transport = session.Transport,
+                    LastActivityAt = session.LastActivityAt,
+                    Lifecycle = session.Lifecycle,
+                    IssuedRole = session.IssuedRole
+                }.IsActiveAt(now))
             {
                 return AuthoritativeSessionValidation.SessionRevoked;
             }

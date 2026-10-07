@@ -53,29 +53,29 @@ public static class ReportingDefinitions
         var scopes = facts.Segments.Select(s => (s.RouteVersionId, s.SegmentSetId)).Concat(facts.PublishedSets.Select(s => (s.RouteVersionId, s.SegmentSetId))).Distinct().ToArray();
         if (scopes.Length == 0) scopes = [(filters.RouteVersionId ?? Guid.Empty, filters.SegmentSetId ?? Guid.Empty)];
         foreach (var (route, set) in scopes)
-        foreach (var band in new[] { "SURFACE", "LEFT_EDGE", "RIGHT_EDGE" })
-        {
-            var segments = facts.Segments.Where(s => s.RouteVersionId == route && s.SegmentSetId == set).Select(s => s.SegmentId).Distinct().ToArray();
-            var eligible = facts.Baselines.Where(b => b.RouteVersionId == route && b.SegmentSetId == set && b.Band == band && segments.Contains(b.SegmentId)).DistinctBy(b => b.SegmentId).ToArray();
-            metrics.Add(new("baselineCoverageByBand", new(Band: band, RouteVersionId: route == Guid.Empty ? null : route, SegmentSetId: set == Guid.Empty ? null : set),
-                segments.Length == 0 ? null : (decimal)eligible.Length * 100 / segments.Length, "percent", eligible.LongLength, segments.LongLength, false, "AVAILABLE",
-                segments.Length == 0 ? ["EMPTY_DENOMINATOR"] : [], eligible.Select(b => new ReportingSourceRefDto("BaselineSelectionItem", b.Id, b.Id.ToString("N")))
-                    .Concat(facts.Sources.Where(s => s.Type == "RoadSegmentSet" && s.Id == set || s.Type == "DatasetAssessment" && eligible.Any(b => b.AssessmentId == s.Id) ||
-                        s.Type == "SurveyDataVersion" && eligible.Any(b => b.DatasetId == s.Id))).ToArray()));
-            items.AddRange(eligible.Select(b => new ReportingItemDto(b.Id, "baselineCoverageByBand", "BaselineSelectionItem", b.Id.ToString("N"),
-                RouteVersionId: route, SegmentSetId: set, SegmentId: b.SegmentId, Band: band, DatasetId: b.DatasetId, AssessmentId: b.AssessmentId)));
-        }
-        var files = facts.Files.DistinctBy(f => f.FileId).OrderBy(f => f.FileId).ToArray();
+            foreach (var band in new[] { "SURFACE", "LEFT_EDGE", "RIGHT_EDGE" })
+            {
+                var segments = facts.Segments.Where(s => s.RouteVersionId == route && s.SegmentSetId == set).Select(s => s.SegmentId).Distinct().ToArray();
+                var eligible = facts.Baselines.Where(b => b.RouteVersionId == route && b.SegmentSetId == set && b.Band == band && segments.Contains(b.SegmentId)).DistinctBy(b => b.SegmentId).ToArray();
+                metrics.Add(new("baselineCoverageByBand", new(Band: band, RouteVersionId: route == Guid.Empty ? null : route, SegmentSetId: set == Guid.Empty ? null : set),
+                    segments.Length == 0 ? null : (decimal)eligible.Length * 100 / segments.Length, "percent", eligible.LongLength, segments.LongLength, false, "AVAILABLE",
+                    segments.Length == 0 ? ["EMPTY_DENOMINATOR"] : [], eligible.Select(b => new ReportingSourceRefDto("BaselineSelectionItem", b.Id, b.Id.ToString("N")))
+                        .Concat(facts.Sources.Select(s => (ReportingSourceRefDto)s).Where(s => s.Type == "RoadSegmentSet" && s.Id == set || s.Type == "DatasetAssessment" && eligible.Any(b => b.AssessmentId == s.Id) ||
+                            s.Type == "SurveyDataVersion" && eligible.Any(b => b.DatasetId == s.Id))).ToArray()));
+                items.AddRange(eligible.Select(b => new ReportingItemDto(b.Id, "baselineCoverageByBand", "BaselineSelectionItem", b.Id.ToString("N"),
+                    RouteVersionId: route, SegmentSetId: set, SegmentId: b.SegmentId, Band: band, DatasetId: b.DatasetId, AssessmentId: b.AssessmentId)));
+            }
+        var files = facts.Files.Select(file => (ReportingFileDto)file).DistinctBy(f => f.FileId).OrderBy(f => f.FileId).ToArray();
         var bytes = files.Aggregate(0L, (sum, file) => checked(sum + file.SizeBytes));
         var sourceWarnings = facts.Warnings.Where(w => w.StartsWith("SOURCE_", StringComparison.Ordinal) || w.StartsWith("SCOPE_", StringComparison.Ordinal)).ToArray();
         metrics.Add(new("verifiedSourceBytes", new(), bytes, "bytes", null, null, false, sourceWarnings.Length == 0 ? "AVAILABLE" : "PARTIAL", sourceWarnings,
-            files.Select(f => new ReportingSourceRefDto("StoredFile", f.FileId, f.Version)).Concat(facts.Sources.Where(s => s.Type == "SurveyDataVersion")).ToArray()));
+            files.Select(f => new ReportingSourceRefDto("StoredFile", f.FileId, f.Version)).Concat(facts.Sources.Select(s => (ReportingSourceRefDto)s).Where(s => s.Type == "SurveyDataVersion")).ToArray()));
         items.AddRange(files.Select(f => new ReportingItemDto(f.FileId, "verifiedSourceBytes", "StoredFile", f.Version, SizeBytes: f.SizeBytes)));
         var validationFiltered = facts.Warnings.Contains("VALIDATION_GEOMETRY_FILTER_UNSUPPORTED");
         metrics.Add(new("validationMetrics", new(), null, "per-run", null, null, false, validationFiltered ? "UNAVAILABLE" : "AVAILABLE",
             validationFiltered ? ["VALIDATION_GEOMETRY_FILTER_UNSUPPORTED"] : ["PER_RUN_VALUES_IN_DRILLDOWN"], facts.Validations.Select(v => new ReportingSourceRefDto("ValidationRun", v.Id, v.Version)).ToArray()));
-        items.AddRange(facts.Validations);
+        items.AddRange(facts.Validations.Select(item => (ReportingItemDto)item));
         return new(new(Schema, project, readAt, "pilot-reporting.v1", filters, metrics.ToArray(), facts.Warnings, facts.Isolation),
-            items.DistinctBy(i => (i.Metric, i.Id)).ToArray(), files, facts.Timeline, TimelineAvailability);
+            items.DistinctBy(i => (i.Metric, i.Id)).ToArray(), files, facts.Timeline.Select(item => (ReportingTimelineItemDto)item).ToArray(), TimelineAvailability);
     }
 }

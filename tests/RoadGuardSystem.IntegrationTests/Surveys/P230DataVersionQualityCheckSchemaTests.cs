@@ -184,15 +184,26 @@ public sealed class P230DataVersionQualityCheckSchemaTests : IClassFixture<Ident
     [Fact(DisplayName = "P2-30: dataset and quality schema migration downgrades and reapplies")]
     public async Task MigrationLifecycle_DowngradesToFlightSurveyFileAndReapplies()
     {
-        await using var context = _fixture.CreateDbContext();
-        (await CountP230TablesAsync(context)).Should().Be(2);
+        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
+        await fixture.InitializeAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
+                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
+            var lifecycleMigrator = context.GetService<IMigrator>();
+            const string testedMigration = "20260921131520_AddP230DataVersionQualityCheckSchema";
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            (await CountP230TablesAsync(context)).Should().Be(2);
 
-        var migrator = context.GetService<IMigrator>();
-        await migrator.MigrateAsync("20260921125553_AddP230FlightSurveyFileSchema");
-        (await CountP230TablesAsync(context)).Should().Be(0);
+            var migrator = context.GetService<IMigrator>();
+            await migrator.MigrateAsync("20260921125553_AddP230FlightSurveyFileSchema");
+            (await CountP230TablesAsync(context)).Should().Be(0);
 
-        await context.Database.MigrateAsync();
-        (await CountP230TablesAsync(context)).Should().Be(2);
+            await lifecycleMigrator.MigrateAsync(testedMigration);
+            (await CountP230TablesAsync(context)).Should().Be(2);
+            await context.Database.MigrateAsync();
+        }
+        finally { await fixture.DisposeAsync(); }
     }
 
     private async Task<QualityCheckScopeFixture> CreateScopeAsync(RoadGuardDbContext context)

@@ -66,8 +66,11 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                 var targetHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(
                     targets.OrderBy(target => target.DefectId).Select(target => new
                     {
-                        target.DefectId, target.Version, target.RouteVersionId,
-                        target.SegmentId, target.LinkedReportIds
+                        target.DefectId,
+                        target.Version,
+                        target.RouteVersionId,
+                        target.SegmentId,
+                        target.LinkedReportIds
                     })))).ToLowerInvariant();
                 var offset = 0;
                 if (cursor is not null)

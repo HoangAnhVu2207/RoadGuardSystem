@@ -189,10 +189,17 @@ public sealed class ExportRenderer : IExportRenderer
     private static string Number(decimal? value) => value?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "UNKNOWN";
     private static string MetricName(string code) => code switch
     {
-        "reportsReceived" => "Phản ánh đã nhận", "casesByStatus" => "Hồ sơ theo trạng thái", "defectsByStatus" => "Hư hỏng theo trạng thái",
-        "surveyTasksByStatus" => "Công việc khảo sát theo trạng thái", "legacyUnclassified" => "Dữ liệu cũ chưa phân loại",
-        "baselineCoverageByBand" => "Tỷ lệ segment có baseline theo band", "verifiedSourceBytes" => "Dung lượng nguồn đã xác minh",
-        "repairItemsByStatus" => "Sửa chữa theo trạng thái", "repairAcceptanceRate" => "Tỷ lệ nghiệm thu sửa chữa", "validationMetrics" => "Chỉ số validation từng lần chạy", _ => code
+        "reportsReceived" => "Phản ánh đã nhận",
+        "casesByStatus" => "Hồ sơ theo trạng thái",
+        "defectsByStatus" => "Hư hỏng theo trạng thái",
+        "surveyTasksByStatus" => "Công việc khảo sát theo trạng thái",
+        "legacyUnclassified" => "Dữ liệu cũ chưa phân loại",
+        "baselineCoverageByBand" => "Tỷ lệ segment có baseline theo band",
+        "verifiedSourceBytes" => "Dung lượng nguồn đã xác minh",
+        "repairItemsByStatus" => "Sửa chữa theo trạng thái",
+        "repairAcceptanceRate" => "Tỷ lệ nghiệm thu sửa chữa",
+        "validationMetrics" => "Chỉ số validation từng lần chạy",
+        _ => code
     };
     private sealed class UnicodeFontResolver(byte[] font, string hash) : IFontResolver
     {

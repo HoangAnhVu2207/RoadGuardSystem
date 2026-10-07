@@ -186,8 +186,11 @@ public sealed class AuthService : IAuthService
         if (rotation.Status == RotateRefreshTokenStatus.Success)
         {
             RefreshTokenMaterial returnedMaterial;
-            try { returnedMaterial = rotation.ProtectedCredential is null ? material :
-                new RefreshTokenMaterial(protector.Unprotect(rotation.ProtectedCredential), rotation.NewToken!.TokenHash); }
+            try
+            {
+                returnedMaterial = rotation.ProtectedCredential is null ? material :
+                new RefreshTokenMaterial(protector.Unprotect(rotation.ProtectedCredential), rotation.NewToken!.TokenHash);
+            }
             catch (Exception error) when (error is CryptographicException or FormatException or KeyNotFoundException)
             { return new AuthResult(AuthStatus.RefreshTokenInvalid); }
             if (RefreshTokenGenerator.Hash(returnedMaterial.Plaintext) != rotation.NewToken?.TokenHash)
@@ -224,9 +227,16 @@ public sealed class AuthService : IAuthService
     }
 
     private static bool SessionIsActive(SessionSecurityState session, DateTimeOffset now) =>
-        new UserSession { IssuedAt = session.IssuedAt, ExpiresAt = session.ExpiresAt,
-            RevokedAt = session.RevokedAt, Transport = session.Transport, LastActivityAt = session.LastActivityAt,
-            Lifecycle = session.Lifecycle, IssuedRole = session.IssuedRole }.IsActiveAt(now);
+        new UserSession
+        {
+            IssuedAt = session.IssuedAt,
+            ExpiresAt = session.ExpiresAt,
+            RevokedAt = session.RevokedAt,
+            Transport = session.Transport,
+            LastActivityAt = session.LastActivityAt,
+            Lifecycle = session.Lifecycle,
+            IssuedRole = session.IssuedRole
+        }.IsActiveAt(now);
 
     private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second) =>
         first <= second ? first : second;

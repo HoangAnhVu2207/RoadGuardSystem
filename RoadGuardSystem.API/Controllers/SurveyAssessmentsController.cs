@@ -60,8 +60,16 @@ public sealed class SurveyAssessmentsController(ISurveyAssessmentService service
     private Guid? Correlation() => Guid.TryParse(HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString(), out var id) ? id : null;
     private ObjectResult Error(string code)
     {
-        var status = code switch { "unauthorized" => 401, "access_forbidden" => 403, "not_found" => 404, "precondition_required" => 428,
-            "concurrency_conflict" => 412, "duplicate_request" or "baseline_selection_conflict" => 409, _ => 422 };
+        var status = code switch
+        {
+            "unauthorized" => 401,
+            "access_forbidden" => 403,
+            "not_found" => 404,
+            "precondition_required" => 428,
+            "concurrency_conflict" => 412,
+            "duplicate_request" or "baseline_selection_conflict" => 409,
+            _ => 422
+        };
         var problem = new ProblemDetails { Status = status, Title = code, Detail = "The survey review request could not be completed.", Instance = Request.Path };
         problem.Extensions["code"] = code == "precondition_required" ? "validation_error" : code;
         problem.Extensions["correlationId"] = Correlation()?.ToString() ?? Guid.NewGuid().ToString();

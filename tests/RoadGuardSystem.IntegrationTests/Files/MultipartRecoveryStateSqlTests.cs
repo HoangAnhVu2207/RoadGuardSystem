@@ -164,8 +164,17 @@ public sealed class MultipartRecoveryStateSqlTests(IdentitySqlServerFixture fixt
     {
         await using var db = fixture.CreateRetryingDbContext(); await fixture.SeedRolesAsync(db);
         var storage = new RecoveryStorage(); var actor = Guid.NewGuid();
-        db.Users.Add(new ApplicationUser { Id = actor, UserName = actor.ToString(), NormalizedUserName = actor.ToString().ToUpperInvariant(),
-            DisplayName = "Synthetic project recovery", PasswordHash = "non-login", RoleCode = UserRoleCode.ProjectManager, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = actor,
+            UserName = actor.ToString(),
+            NormalizedUserName = actor.ToString().ToUpperInvariant(),
+            DisplayName = "Synthetic project recovery",
+            PasswordHash = "non-login",
+            RoleCode = UserRoleCode.ProjectManager,
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
         var project = new RoadGuardSystem.BusinessObjects.Projects.Project { Id = Guid.NewGuid(), ProjectCode = actor.ToString(), Name = "Recovery fixture", Status = ProjectStatus.Active, CreatedAt = DateTimeOffset.UtcNow };
         db.Projects.Add(project);
         var member = RoadGuardSystem.BusinessObjects.Projects.ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, actor, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));

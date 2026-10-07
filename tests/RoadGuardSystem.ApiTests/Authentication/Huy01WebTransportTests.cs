@@ -30,7 +30,8 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
 
         var denied = await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password = "Current1!"
         });
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         Assert.Equal("application/problem+json", denied.Content.Headers.ContentType?.MediaType);
@@ -39,7 +40,8 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token);
         var login = await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password = "Current1!"
         });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         Assert.Contains(login.Headers.GetValues("Set-Cookie"), header =>
@@ -88,7 +90,8 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", (await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password = "Current1!"
         })).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
 
@@ -108,7 +111,8 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", (await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password = "Current1!"
         })).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
         DateTimeOffset initialActivity;
@@ -143,7 +147,8 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", (await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password = "Current1!"
         })).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
 
@@ -182,12 +187,14 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", (await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(webName), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(webName),
+            password = "Current1!"
         })).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
         var bearerLogin = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(bearerName), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(bearerName),
+            password = "Current1!"
         });
         Assert.Equal(HttpStatusCode.OK, bearerLogin.StatusCode);
         var bearer = (await bearerLogin.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString();
@@ -209,7 +216,8 @@ public sealed class Huy01WebTransportTests(AuthenticationSqlServerFixture fixtur
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", (await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/web/login", new
         {
-            email = AuthenticationSqlServerFixture.EmailFor(username), password = "Current1!"
+            email = AuthenticationSqlServerFixture.EmailFor(username),
+            password = "Current1!"
         })).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
 

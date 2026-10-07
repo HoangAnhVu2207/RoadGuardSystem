@@ -137,9 +137,11 @@ public sealed class CandidateDecisionService(ICandidateDecisionRepository reposi
     }
     private static CandidateDecisionResult Failure(AnhHuyProducerStatus status) => status switch
     {
-        AnhHuyProducerStatus.Forbidden => new(403, "access_forbidden"), AnhHuyProducerStatus.NotFound => new(404, "not_found"),
+        AnhHuyProducerStatus.Forbidden => new(403, "access_forbidden"),
+        AnhHuyProducerStatus.NotFound => new(404, "not_found"),
         AnhHuyProducerStatus.StaleDisposition or AnhHuyProducerStatus.StaleFile => new(412, "concurrency_conflict"),
-        AnhHuyProducerStatus.StaleGeometry or AnhHuyProducerStatus.StaleSource => new(409, "candidate_stale"), _ => new(409, "source_not_ready")
+        AnhHuyProducerStatus.StaleGeometry or AnhHuyProducerStatus.StaleSource => new(409, "candidate_stale"),
+        _ => new(409, "source_not_ready")
     };
     private static void Throw(AnhHuyProducerStatus status) { var failure = Failure(status); throw new CaseWorkflowException(failure.Status, failure.Code!); }
     private static CandidateDecisionResult Invalid(string field) => new(400, "validation_error", Errors: new Dictionary<string, string[]> { [field] = ["Invalid command field."] });

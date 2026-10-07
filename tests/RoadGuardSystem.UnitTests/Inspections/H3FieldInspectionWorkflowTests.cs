@@ -4,6 +4,7 @@ using Xunit;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.UnitTests.Inspections;
+
 public sealed class H3FieldInspectionWorkflowTests
 {
 
@@ -85,17 +86,17 @@ public sealed class H3FieldInspectionWorkflowTests
     [Fact]
     public void LegacyMeasurementFactoryCannotCreateAreaWithHistoricalLengthUnit()
     {
-        var point=new NetTopologySuite.Geometries.GeometryFactory(new NetTopologySuite.Geometries.PrecisionModel(),4326).CreatePoint(new NetTopologySuite.Geometries.Coordinate(106,10));
-        var act=()=>GroundTruthMeasurement.Create(Guid.NewGuid(),Guid.NewGuid(),"area",Guid.NewGuid(),null,null,MeasurementType.Area,0,"mm",point,"instrument",null,"method","Crew",DateTimeOffset.UtcNow,null,"reason");
+        var point = new NetTopologySuite.Geometries.GeometryFactory(new NetTopologySuite.Geometries.PrecisionModel(), 4326).CreatePoint(new NetTopologySuite.Geometries.Coordinate(106, 10));
+        var act = () => GroundTruthMeasurement.Create(Guid.NewGuid(), Guid.NewGuid(), "area", Guid.NewGuid(), null, null, MeasurementType.Area, 0, "mm", point, "instrument", null, "method", "Crew", DateTimeOffset.UtcNow, null, "reason");
         act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
     public void CapturedAreaZeroRequiresSquareMetresAndLengthCannotUseThem()
     {
-        var row=GroundTruthMeasurement.CreateCaptured(Guid.NewGuid(),Guid.NewGuid(),"area",Guid.NewGuid(),null,Guid.NewGuid(),MeasurementType.Area,0,"KNOWN",null,"AREA","m²",null,"GPS missing","instrument","method","Crew",DateTimeOffset.UtcNow,null,"reason");
-        row.Value.Should().Be(0);row.Dimension.Should().Be("AREA");row.Unit.Should().Be("m²");
-        var act=()=>GroundTruthMeasurement.CreateCaptured(Guid.NewGuid(),Guid.NewGuid(),"length",Guid.NewGuid(),null,Guid.NewGuid(),MeasurementType.DepressionDepth,0,"KNOWN",null,"LENGTH","m²",null,"GPS missing","instrument","method","Crew",DateTimeOffset.UtcNow,null,"reason");
+        var row = GroundTruthMeasurement.CreateCaptured(Guid.NewGuid(), Guid.NewGuid(), "area", Guid.NewGuid(), null, Guid.NewGuid(), MeasurementType.Area, 0, "KNOWN", null, "AREA", "m²", null, "GPS missing", "instrument", "method", "Crew", DateTimeOffset.UtcNow, null, "reason");
+        row.Value.Should().Be(0); row.Dimension.Should().Be("AREA"); row.Unit.Should().Be("m²");
+        var act = () => GroundTruthMeasurement.CreateCaptured(Guid.NewGuid(), Guid.NewGuid(), "length", Guid.NewGuid(), null, Guid.NewGuid(), MeasurementType.DepressionDepth, 0, "KNOWN", null, "LENGTH", "m²", null, "GPS missing", "instrument", "method", "Crew", DateTimeOffset.UtcNow, null, "reason");
         act.Should().Throw<ArgumentException>();
     }
 
@@ -104,8 +105,8 @@ public sealed class H3FieldInspectionWorkflowTests
     [InlineData(double.PositiveInfinity)]
     public void CapturedGpsRejectsNonfiniteCoordinate(double coordinate)
     {
-        var point=new NetTopologySuite.Geometries.GeometryFactory(new NetTopologySuite.Geometries.PrecisionModel(),4326).CreatePoint(new NetTopologySuite.Geometries.Coordinate(106,coordinate));
-        var act=()=>GroundTruthMeasurement.CreateCaptured(Guid.NewGuid(),Guid.NewGuid(),"gps",Guid.NewGuid(),null,Guid.NewGuid(),MeasurementType.DepressionDepth,0,"KNOWN",null,"LENGTH","mm",point,null,"instrument","method","Crew",DateTimeOffset.UtcNow,null,"reason");
+        var point = new NetTopologySuite.Geometries.GeometryFactory(new NetTopologySuite.Geometries.PrecisionModel(), 4326).CreatePoint(new NetTopologySuite.Geometries.Coordinate(106, coordinate));
+        var act = () => GroundTruthMeasurement.CreateCaptured(Guid.NewGuid(), Guid.NewGuid(), "gps", Guid.NewGuid(), null, Guid.NewGuid(), MeasurementType.DepressionDepth, 0, "KNOWN", null, "LENGTH", "mm", point, null, "instrument", "method", "Crew", DateTimeOffset.UtcNow, null, "reason");
         act.Should().Throw<ArgumentException>();
     }
 

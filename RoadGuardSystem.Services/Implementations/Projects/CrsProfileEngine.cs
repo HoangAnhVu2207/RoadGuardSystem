@@ -10,18 +10,18 @@ public static class CrsProfileEngine
         {
             if (string.IsNullOrWhiteSpace(operation.Method) || string.IsNullOrWhiteSpace(operation.Convention) || operation.Direction != "NATIVE_TO_WGS84" || string.IsNullOrWhiteSpace(operation.SourceReference) || operation.Parameters is null || operation.Parameters.Any(x => !double.IsFinite(x))) Fail("Operation identity, direction, parameters and source must be explicit.");
             if (operation.Method == "SAMPLE_AFFINE_TO_WGS84" && (!profile.SampleOnly || operation.Parameters.Length != 6)) Fail("Sample affine operation cannot be used for official real data.");
-            if(operation.PublishedAccuracyMeters is { } accuracy && (!double.IsFinite(accuracy) || accuracy<=0 || string.IsNullOrWhiteSpace(operation.AccuracySource))) Fail("Operation accuracy requires a source.");
+            if (operation.PublishedAccuracyMeters is { } accuracy && (!double.IsFinite(accuracy) || accuracy <= 0 || string.IsNullOrWhiteSpace(operation.AccuracySource))) Fail("Operation accuracy requires a source.");
         }
-        if(profile.Ellipsoid is { } ellipsoid && (!double.IsFinite(ellipsoid.SemiMajorAxisMeters) || ellipsoid.SemiMajorAxisMeters<=0 || !double.IsFinite(ellipsoid.InverseFlattening) || ellipsoid.InverseFlattening<=1 || string.IsNullOrWhiteSpace(ellipsoid.SourceReference))) Fail("Ellipsoid parameters require a source.");
-        if(profile.ProjectionDefinition is { } projection && (projection.Parameters is null || projection.Parameters.Count==0 || projection.Parameters.Any(x=>string.IsNullOrWhiteSpace(x.Key) || !double.IsFinite(x.Value)) || string.IsNullOrWhiteSpace(projection.SourceReference))) Fail("Projection parameters require a source.");
+        if (profile.Ellipsoid is { } ellipsoid && (!double.IsFinite(ellipsoid.SemiMajorAxisMeters) || ellipsoid.SemiMajorAxisMeters <= 0 || !double.IsFinite(ellipsoid.InverseFlattening) || ellipsoid.InverseFlattening <= 1 || string.IsNullOrWhiteSpace(ellipsoid.SourceReference))) Fail("Ellipsoid parameters require a source.");
+        if (profile.ProjectionDefinition is { } projection && (projection.Parameters is null || projection.Parameters.Count == 0 || projection.Parameters.Any(x => string.IsNullOrWhiteSpace(x.Key) || !double.IsFinite(x.Value)) || string.IsNullOrWhiteSpace(projection.SourceReference))) Fail("Projection parameters require a source.");
         if (profile.SourcedToleranceMeters is { } tolerance && (!double.IsFinite(tolerance) || tolerance <= 0 || string.IsNullOrWhiteSpace(profile.ToleranceSource))) Fail("Accuracy tolerance requires a source.");
         if (profile.IndependentControls?.Any(c => c is null || !Finite(c.Native) || !Finite(c.Wgs84) || string.IsNullOrWhiteSpace(c.IndependentSource)) == true) Fail("Controls require independent provenance and finite coordinates.");
     }
     public static GeometryPoint NormalizeSource(GeometryPoint point, CrsProfileInput profile)
     {
         Validate(profile); if (!Finite(point)) Fail("Source coordinate is not finite.");
-        var normalized=profile.AxisOrder == "EN" ? new GeometryPoint(point.X * profile.MetresPerUnit, point.Y * profile.MetresPerUnit) : new GeometryPoint(point.Y * profile.MetresPerUnit, point.X * profile.MetresPerUnit);
-        if(!Finite(normalized)) Fail("Source normalization overflowed.");
+        var normalized = profile.AxisOrder == "EN" ? new GeometryPoint(point.X * profile.MetresPerUnit, point.Y * profile.MetresPerUnit) : new GeometryPoint(point.Y * profile.MetresPerUnit, point.X * profile.MetresPerUnit);
+        if (!Finite(normalized)) Fail("Source normalization overflowed.");
         return normalized;
     }
     // Executable synthetic adapter only. Other pinned operation identities require an actual verified adapter;
@@ -38,8 +38,8 @@ public static class CrsProfileEngine
     public static GeometryDraftReadiness Readiness(GeometryDraftInput input, CrsProfileInput? profile)
     {
         var missing = new List<string>(); var errors = new List<string>();
-        if(!double.IsFinite(input.StationOriginMeters) || !double.IsFinite(input.SurveyWidthMeters)) errors.Add("native_numeric_value_invalid");
-        if(input.WidthProfile?.Any(x=>x is null || !double.IsFinite(x.FromOffsetMeters) || !double.IsFinite(x.ToOffsetMeters) || !double.IsFinite(x.WidthMeters))==true) errors.Add("native_width_invalid");
+        if (!double.IsFinite(input.StationOriginMeters) || !double.IsFinite(input.SurveyWidthMeters)) errors.Add("native_numeric_value_invalid");
+        if (input.WidthProfile?.Any(x => x is null || !double.IsFinite(x.FromOffsetMeters) || !double.IsFinite(x.ToOffsetMeters) || !double.IsFinite(x.WidthMeters)) == true) errors.Add("native_width_invalid");
         if (input.NativeAlignment is null) missing.Add("nativeAlignment");
         if (profile is null) missing.Add("crsProfileRevision");
         if (input.RouteSystemId is null || input.RouteSystemId == Guid.Empty) missing.Add("routeSystemId");
@@ -56,16 +56,16 @@ public static class CrsProfileEngine
             if (input.NativeAlignment is not null)
             {
                 var alignment = NativeAlignment.Create(input.NativeAlignment);
-                if(!double.IsFinite(input.StationOriginMeters+alignment.Length)) Fail("Station range overflowed.");
-                if(input.WidthProfile is {Length:>0})
+                if (!double.IsFinite(input.StationOriginMeters + alignment.Length)) Fail("Station range overflowed.");
+                if (input.WidthProfile is { Length: > 0 })
                 {
-                    double end=0;
-                    foreach(var width in input.WidthProfile)
+                    double end = 0;
+                    foreach (var width in input.WidthProfile)
                     {
-                        if(width is null || !double.IsFinite(width.FromOffsetMeters) || !double.IsFinite(width.ToOffsetMeters) || !double.IsFinite(width.WidthMeters) || width.FromOffsetMeters!=end || width.ToOffsetMeters<=end || width.ToOffsetMeters>alignment.Length || width.WidthMeters<=0 || width.WidthMeters>input.SurveyWidthMeters) Fail("Width intervals must cover canonical length inside survey width.");
-                        end=width.ToOffsetMeters;
+                        if (width is null || !double.IsFinite(width.FromOffsetMeters) || !double.IsFinite(width.ToOffsetMeters) || !double.IsFinite(width.WidthMeters) || width.FromOffsetMeters != end || width.ToOffsetMeters <= end || width.ToOffsetMeters > alignment.Length || width.WidthMeters <= 0 || width.WidthMeters > input.SurveyWidthMeters) Fail("Width intervals must cover canonical length inside survey width.");
+                        end = width.ToOffsetMeters;
                     }
-                    if(Math.Abs(end-alignment.Length)>1e-9*Math.Max(1,alignment.Length)) Fail("Width intervals must cover canonical length.");
+                    if (Math.Abs(end - alignment.Length) > 1e-9 * Math.Max(1, alignment.Length)) Fail("Width intervals must cover canonical length.");
                 }
                 if (input.TessellationToleranceMeters is { } tolerance) alignment.Extract(0, alignment.Length, tolerance);
                 ValidateCalibration(input.ChainageCalibration, alignment.Length);
@@ -86,14 +86,14 @@ public static class CrsProfileEngine
         if (!double.IsFinite(offset) || offset < 0 || offset > length || !double.IsFinite(origin)) Fail("Chainage offset is invalid.");
         if (calibration is null)
         {
-            var station=origin+offset;
-            if(!double.IsFinite(station)) Fail("Station range overflowed.");
+            var station = origin + offset;
+            if (!double.IsFinite(station)) Fail("Station range overflowed.");
             return station;
         }
         var pair = calibration.Controls.Zip(calibration.Controls.Skip(1)).First(p => offset <= p.Second.GeometricOffsetMeters);
-        var fraction=(offset-pair.First.GeometricOffsetMeters)/(pair.Second.GeometricOffsetMeters-pair.First.GeometricOffsetMeters);
-        var result=(1-fraction)*pair.First.StationMeters+fraction*pair.Second.StationMeters;
-        if(!double.IsFinite(result)) Fail("Calibrated station overflowed.");
+        var fraction = (offset - pair.First.GeometricOffsetMeters) / (pair.Second.GeometricOffsetMeters - pair.First.GeometricOffsetMeters);
+        var result = (1 - fraction) * pair.First.StationMeters + fraction * pair.Second.StationMeters;
+        if (!double.IsFinite(result)) Fail("Calibrated station overflowed.");
         return result;
     }
     private static bool Hash(string value) => value is { Length: 64 } && value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');

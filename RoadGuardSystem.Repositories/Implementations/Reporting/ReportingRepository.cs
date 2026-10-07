@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.BusinessObjects.Files;
-using RoadGuardSystem.DTOs.Reporting;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting;
 using RoadGuardSystem.Repositories.Reporting;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Repositories.Implementations.Reporting;
 
-public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepository
+public sealed partial class ReportingRepository(RoadGuardDbContext db) : IReportingRepository
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public async Task<T> ReadConsistentlyAsync<T>(Func<CancellationToken, Task<T>> read, CancellationToken token)
@@ -30,13 +30,15 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
         });
     }
 
-    public async Task<ReportingReadResult> CaptureAsync(Guid project, ReportingFiltersDto filters, CancellationToken token)
+    public async Task<ReportingReadResult> CaptureAsync(Guid project, ReportingFiltersFact filters, CancellationToken token)
     {
         filters = filters with { SegmentIds = filters.SegmentIds ?? [] };
         var filterSegments = filters.SegmentIds!;
         if (!await db.Projects.AsNoTracking().AnyAsync(x => x.Id == project, token)) return new("not_found");
-        var routes = await (from r in db.RoadSectionVersions.AsNoTracking() join s in db.RoadSections.AsNoTracking() on r.RoadSectionId equals s.Id
-            where s.ProjectId == project select new { r.Id, r.IsCurrent }).ToListAsync(token);
+        var routes = await (from r in db.RoadSectionVersions.AsNoTracking()
+                            join s in db.RoadSections.AsNoTracking() on r.RoadSectionId equals s.Id
+                            where s.ProjectId == project
+                            select new { r.Id, r.IsCurrent }).ToListAsync(token);
         var routeIds = routes.Select(x => x.Id).ToArray();
         var sets = await db.RoadSegmentSets.AsNoTracking().Where(x => routeIds.Contains(x.RoadSectionVersionId)).ToListAsync(token);
         var setIds = sets.Select(x => x.Id).ToArray();
@@ -59,10 +61,10 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
             var caseRows = await db.IncidentCases.AsNoTracking().Where(c => c.ProjectId == project)
                 .Select(c => new { c.Id, c.Status, Version = EF.Property<byte[]>(c, "RowVersion") }).ToArrayAsync(token);
             var reportQuery = from r in db.Reports.AsNoTracking()
-                join l in db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().AsNoTracking() on r.Id equals l.ReportId
-                join c in db.IncidentCases.AsNoTracking() on l.CaseId equals c.Id
-                where l.EndedAt == null && c.ProjectId == project
-                select new { r.Id, r.ReceivedAt, Version = EF.Property<byte[]>(r, "RowVersion"), CaseId = c.Id, CaseVersion = EF.Property<byte[]>(c, "RowVersion") };
+                              join l in db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>().AsNoTracking() on r.Id equals l.ReportId
+                              join c in db.IncidentCases.AsNoTracking() on l.CaseId equals c.Id
+                              where l.EndedAt == null && c.ProjectId == project
+                              select new { r.Id, r.ReceivedAt, Version = EF.Property<byte[]>(r, "RowVersion"), CaseId = c.Id, CaseVersion = EF.Property<byte[]>(c, "RowVersion") };
             if (filters.From is { } reportFrom) reportQuery = reportQuery.Where(r => r.ReceivedAt >= reportFrom);
             if (filters.To is { } reportTo) reportQuery = reportQuery.Where(r => r.ReceivedAt < reportTo);
             var reportRows = await reportQuery.ToArrayAsync(token);
@@ -77,44 +79,50 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
             warnings.Add("LEGACY_SPATIAL_SCOPE_UNAVAILABLE");
         var tasks = requests.Where(t => !spatial || scopes.Any(s => s.SurveyRequestId == t.Id && MatchesScope(s.RouteSectionVersionId, s.SegmentSetId, s.SegmentIdsJson, filters, warnings)))
             .Select(t => new ReportingTaskFact(t.Id, TaskStatus(t.Status), t.ParentTaskId, Convert.ToBase64String(t.RowVersion), t.ScopeFormatVersion != "BAND_V1")).ToArray();
-        var datasetRows = await (from d in db.SurveyDataVersions.AsNoTracking() join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
-            join t in db.SurveyRequests.AsNoTracking() on s.SurveyRequestId equals t.Id
-            where s.ProjectId == project && t.ProjectId == project && t.ScopeFormatVersion == "BAND_V1" && d.ScopeManifest != null select d).ToListAsync(token);
+        var datasetRows = await (from d in db.SurveyDataVersions.AsNoTracking()
+                                 join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+                                 join t in db.SurveyRequests.AsNoTracking() on s.SurveyRequestId equals t.Id
+                                 where s.ProjectId == project && t.ProjectId == project && t.ScopeFormatVersion == "BAND_V1" && d.ScopeManifest != null
+                                 select d).ToListAsync(token);
         var datasets = datasetRows.Where(d => MatchesManifest(d.ScopeManifest!, filters, warnings)).ToArray();
         var datasetIds = datasets.Select(d => d.Id).ToArray();
         var sourceIds = new HashSet<Guid>();
         var manifests = new List<SourceFile>();
         foreach (var d in datasets)
         {
-            try { foreach (var f in JsonSerializer.Deserialize<SourceFile[]>(d.SourceManifest, Json) ?? [])
-                { if (f is null || f.FileId == Guid.Empty) warnings.Add("SOURCE_MANIFEST_UNREADABLE"); else { sourceIds.Add(f.FileId); manifests.Add(f); } } }
+            try
+            {
+                foreach (var f in JsonSerializer.Deserialize<SourceFile[]>(d.SourceManifest, Json) ?? [])
+                { if (f is null || f.FileId == Guid.Empty) warnings.Add("SOURCE_MANIFEST_UNREADABLE"); else { sourceIds.Add(f.FileId); manifests.Add(f); } }
+            }
             catch (JsonException) { warnings.Add("SOURCE_MANIFEST_UNREADABLE"); }
         }
         var ids = sourceIds.ToArray();
-        var fileRows = await (from f in db.Files.AsNoTracking() join u in db.UploadSessions.AsNoTracking() on f.Id equals u.FileId
-            where ids.Contains(f.Id) && u.Status == UploadSessionStatus.Verified && (u.Purpose == "SURVEY_VIDEO" || u.Purpose == "TELEMETRY") &&
-                u.ExpectedChecksumSha256 == f.Checksum && u.ExpectedSizeBytes == f.SizeBytes && u.MediaType == f.MimeType && u.OwnerUserId == f.UploadedByUserId &&
-                db.FileScopes.Any(s => s.FileId == f.Id && s.ProjectId == project && s.Purpose == u.Purpose && s.OwnerUserId == u.OwnerUserId)
-            select new { f.Id, f.Checksum, f.SizeBytes, f.MimeType, u.Purpose, u.RowVersion }).ToArrayAsync(token);
+        var fileRows = await (from f in db.Files.AsNoTracking()
+                              join u in db.UploadSessions.AsNoTracking() on f.Id equals u.FileId
+                              where ids.Contains(f.Id) && u.Status == UploadSessionStatus.Verified && (u.Purpose == "SURVEY_VIDEO" || u.Purpose == "TELEMETRY") &&
+                                  u.ExpectedChecksumSha256 == f.Checksum && u.ExpectedSizeBytes == f.SizeBytes && u.MediaType == f.MimeType && u.OwnerUserId == f.UploadedByUserId &&
+                                  db.FileScopes.Any(s => s.FileId == f.Id && s.ProjectId == project && s.Purpose == u.Purpose && s.OwnerUserId == u.OwnerUserId)
+                              select new { f.Id, f.Checksum, f.SizeBytes, f.MimeType, u.Purpose, u.RowVersion }).ToArrayAsync(token);
         var files = fileRows.Where(f => manifests.Where(m => m.FileId == f.Id).All(m => m.ChecksumSha256 == f.Checksum && m.SizeBytes == f.SizeBytes && m.MediaType == f.MimeType && m.Purpose == f.Purpose))
-            .Select(f => new ReportingFileDto(f.Id, Convert.ToBase64String(f.RowVersion), f.Checksum, f.SizeBytes, f.MimeType)).DistinctBy(f => f.FileId).ToArray();
+            .Select(f => new ReportingFileFact(f.Id, Convert.ToBase64String(f.RowVersion), f.Checksum, f.SizeBytes, f.MimeType)).DistinctBy(f => f.FileId).ToArray();
         if (fileRows.Length != files.Length) warnings.Add("SOURCE_MANIFEST_METADATA_MISMATCH");
         if (files.Length != ids.Length) warnings.Add("SOURCE_FILES_NOT_VERIFIED");
         var baselineRows = await (from p in db.Set<BaselineCurrentPointer>().AsNoTracking()
-            join b in db.Set<BaselineSelectionItem>().AsNoTracking() on p.SelectionId equals b.Id
-            join a in db.Set<DatasetAssessment>().AsNoTracking() on b.AssessmentId equals a.Id
-            join i in db.Set<DatasetAssessmentItem>().AsNoTracking() on a.Id equals i.AssessmentId
-            where p.ProjectId == project && datasetIds.Contains(b.DatasetId) && a.DatasetId == b.DatasetId && a.MethodVersion == "pm-evidence-review.v1" &&
-                p.RouteVersionId == b.RouteVersionId && p.SegmentSetId == b.SegmentSetId && p.SegmentId == b.SegmentId && p.TargetBand == b.TargetBand &&
-                i.RouteVersionId == b.RouteVersionId && i.SegmentSetId == b.SegmentSetId && i.SegmentId == b.SegmentId && i.TargetBand == b.TargetBand &&
-                i.PositionStatus == "PASS" && i.QualityStatus == "PASS" && i.CoverageStatus == "PASS"
-            select new { b.Id, b.RouteVersionId, b.SegmentSetId, b.SegmentId, b.TargetBand, b.DatasetId, b.AssessmentId }).ToListAsync(token);
+                                  join b in db.Set<BaselineSelectionItem>().AsNoTracking() on p.SelectionId equals b.Id
+                                  join a in db.Set<DatasetAssessment>().AsNoTracking() on b.AssessmentId equals a.Id
+                                  join i in db.Set<DatasetAssessmentItem>().AsNoTracking() on a.Id equals i.AssessmentId
+                                  where p.ProjectId == project && datasetIds.Contains(b.DatasetId) && a.DatasetId == b.DatasetId && a.MethodVersion == "pm-evidence-review.v1" &&
+                                      p.RouteVersionId == b.RouteVersionId && p.SegmentSetId == b.SegmentSetId && p.SegmentId == b.SegmentId && p.TargetBand == b.TargetBand &&
+                                      i.RouteVersionId == b.RouteVersionId && i.SegmentSetId == b.SegmentSetId && i.SegmentId == b.SegmentId && i.TargetBand == b.TargetBand &&
+                                      i.PositionStatus == "PASS" && i.QualityStatus == "PASS" && i.CoverageStatus == "PASS"
+                                  select new { b.Id, b.RouteVersionId, b.SegmentSetId, b.SegmentId, b.TargetBand, b.DatasetId, b.AssessmentId }).ToListAsync(token);
         var baselines = baselineRows.Where(b => selectedSegments.Any(s => s.RouteVersionId == b.RouteVersionId && s.SegmentSetId == b.SegmentSetId && s.SegmentId == b.SegmentId))
             .Select(b => new ReportingBaselineFact(b.Id, b.RouteVersionId, b.SegmentSetId, b.SegmentId, b.TargetBand, b.DatasetId, b.AssessmentId)).Distinct().ToArray();
         if (baselineRows.Count != baselines.Length) warnings.Add("STALE_OR_OUT_OF_SCOPE_BASELINES_EXCLUDED");
         var validations = spatial ? [] : await db.ValidationRuns.AsNoTracking().Where(v => v.ProjectId == project)
             .Select(v => new { v.Id, v.RowVersion, v.Status, v.Unit, v.Bias, v.Mae, v.Rmse, v.UsedCount, v.ExcludedCount, v.ModelVersionId, v.DatasetSplitId, v.MeasurementType }).ToArrayAsync(token);
-        var validationItems = validations.Select(v => new ReportingItemDto(v.Id, "validationMetrics", "ValidationRun", Convert.ToBase64String(v.RowVersion),
+        var validationItems = validations.Select(v => new ReportingItemFact(v.Id, "validationMetrics", "ValidationRun", Convert.ToBase64String(v.RowVersion),
             Status: v.Status.ToString(), Unit: v.Unit, Bias: v.Bias, Mae: v.Mae, Rmse: v.Rmse, Used: v.UsedCount, Excluded: v.ExcludedCount, ModelVersionId: v.ModelVersionId, SplitId: v.DatasetSplitId, MeasurementType: v.MeasurementType)).ToArray();
         if (spatial) warnings.Add("VALIDATION_GEOMETRY_FILTER_UNSUPPORTED");
         var assessmentRows = await db.Set<DatasetAssessment>().AsNoTracking().Where(a => datasetIds.Contains(a.DatasetId)).Select(a => new { a.Id, a.RowVersion }).ToArrayAsync(token);
@@ -128,9 +136,9 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
         var audits = db.AuditLogs.AsNoTracking().Where(a => taskIds.Contains(a.EntityId) && a.EntityType == "SurveyRequest" ||
             datasetIds.Contains(a.EntityId) && a.EntityType == "SurveyDataVersion" || (assessmentIds.Contains(a.EntityId) || batchIds.Contains(a.EntityId)) && a.EntityType == "SurveyAssessment");
         var timeline = await MapTimeline(audits, filters, token);
-        var sources = datasets.Select(d => new ReportingSourceRefDto("SurveyDataVersion", d.Id, Convert.ToBase64String(d.RowVersion)))
-            .Concat(currentSets.Select(s => new ReportingSourceRefDto("RoadSegmentSet", s.Id, Convert.ToBase64String(s.RowVersion))))
-            .Concat(assessmentRows.Select(a => new ReportingSourceRefDto("DatasetAssessment", a.Id, Convert.ToBase64String(a.RowVersion)))).ToArray();
+        var sources = datasets.Select(d => new ReportingSourceRefFact("SurveyDataVersion", d.Id, Convert.ToBase64String(d.RowVersion)))
+            .Concat(currentSets.Select(s => new ReportingSourceRefFact("RoadSegmentSet", s.Id, Convert.ToBase64String(s.RowVersion))))
+            .Concat(assessmentRows.Select(a => new ReportingSourceRefFact("DatasetAssessment", a.Id, Convert.ToBase64String(a.RowVersion)))).ToArray();
         return new("success", new(tasks, selectedSegments, baselines, files, validationItems, timeline, sources, warnings.ToArray(),
             currentSets.Select(s => new ReportingPublishedSetFact(s.RoadSectionVersionId, s.Id)).ToArray(),
             await ReadIsolationAsync(token) == IsolationLevel.Snapshot ? "SNAPSHOT" : "SERIALIZABLE", intake));
@@ -145,7 +153,7 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
         "BaselineSelection" => await db.Set<BaselineSelection>().AnyAsync(x => x.Id == id && x.ProjectId == project, token),
         _ => false
     };
-    public async Task<ReportingTimelineItemDto[]> TimelineAsync(string type, Guid id, ReportingFiltersDto filters, DateTimeOffset? afterTime, Guid? afterId, int take, CancellationToken token)
+    public async Task<ReportingTimelineItemFact[]> TimelineAsync(string type, Guid id, ReportingFiltersFact filters, DateTimeOffset? afterTime, Guid? afterId, int take, CancellationToken token)
     {
         var storedType = type is "DatasetAssessment" or "BaselineSelection" ? "SurveyAssessment" : type;
         var query = Allowed(db.AuditLogs.AsNoTracking().Where(a => a.EntityType == storedType && a.EntityId == id));
@@ -160,23 +168,26 @@ public sealed class ReportingRepository(RoadGuardDbContext db) : IReportingRepos
             a.EventType == "survey_task_decline" || a.EventType == "survey_task_reassign" || a.EventType == "survey_task_supplement") ||
             a.EntityType == "SurveyDataVersion" && a.EventType == "survey_dataset_submitted" ||
             a.EntityType == "SurveyAssessment" && (a.EventType == "dataset_assessment_created" || a.EventType == "baseline_selected"));
-    private static async Task<ReportingTimelineItemDto[]> MapTimeline(IQueryable<RoadGuardSystem.BusinessObjects.Auditing.AuditLog> query, ReportingFiltersDto filters, CancellationToken token)
+    private static async Task<ReportingTimelineItemFact[]> MapTimeline(IQueryable<RoadGuardSystem.BusinessObjects.Auditing.AuditLog> query, ReportingFiltersFact filters, CancellationToken token)
     {
         query = Allowed(query);
         if (filters.From is { } from) query = query.Where(a => a.OccurredAtUtc >= from);
         if (filters.To is { } to) query = query.Where(a => a.OccurredAtUtc < to);
         return (await query.OrderBy(a => a.OccurredAtUtc).ThenBy(a => a.Id).ToArrayAsync(token)).Select(ToTimeline).ToArray();
     }
-    private static ReportingTimelineItemDto ToTimeline(RoadGuardSystem.BusinessObjects.Auditing.AuditLog a) =>
+    private static ReportingTimelineItemFact ToTimeline(RoadGuardSystem.BusinessObjects.Auditing.AuditLog a) =>
         new(a.Id, a.OccurredAtUtc, null, a.EventType, new(a.EventType == "baseline_selected" ? "BaselineSelection" : a.EventType == "dataset_assessment_created" ? "DatasetAssessment" : a.EntityType, a.EntityId, a.Id.ToString("N")),
             a.EventType switch { "dataset_assessment_created" => "Manual dataset assessment recorded.", "baseline_selected" => "Baseline selection recorded.", "survey_dataset_submitted" => "Dataset submitted.", _ => "Survey task workflow recorded." });
-    private static bool MatchesScope(Guid route, Guid set, string idsJson, ReportingFiltersDto f, HashSet<string> warnings)
+    private static bool MatchesScope(Guid route, Guid set, string idsJson, ReportingFiltersFact f, HashSet<string> warnings)
     {
-        try { return (!f.RouteVersionId.HasValue || route == f.RouteVersionId) && (!f.SegmentSetId.HasValue || set == f.SegmentSetId) &&
-            (f.SegmentIds!.Length == 0 || (JsonSerializer.Deserialize<Guid[]>(idsJson) ?? []).Intersect(f.SegmentIds).Any()); }
+        try
+        {
+            return (!f.RouteVersionId.HasValue || route == f.RouteVersionId) && (!f.SegmentSetId.HasValue || set == f.SegmentSetId) &&
+            (f.SegmentIds!.Length == 0 || (JsonSerializer.Deserialize<Guid[]>(idsJson) ?? []).Intersect(f.SegmentIds).Any());
+        }
         catch (JsonException) { warnings.Add("SCOPE_MANIFEST_UNREADABLE"); return false; }
     }
-    private static bool MatchesManifest(string json, ReportingFiltersDto f, HashSet<string> warnings)
+    private static bool MatchesManifest(string json, ReportingFiltersFact f, HashSet<string> warnings)
     {
         try
         {

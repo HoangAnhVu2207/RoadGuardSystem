@@ -1,6 +1,6 @@
 using FluentAssertions;
 using RoadGuardSystem.aBusinessObjects.Commons;
-using RoadGuardSystem.DTOs.Inspections;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Implementations.Inspections;
@@ -61,9 +61,9 @@ public sealed class H3FieldInspectionServiceTests
     private sealed class Repository : IFieldInspectionWorkflowRepository
     {
         public FieldWorkflowCommand? Command { get; private set; }
-        public Task<FieldWorkflowResult> ExecuteAsync(FieldWorkflowCommand command, Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken)
-        { Command = command; return Task.FromResult(new FieldWorkflowResult(200)); }
-        public Task<FieldWorkflowResult> ApplyInTransactionAsync(FieldWorkflowCommand command, Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken) => ExecuteAsync(command, projectGuard, cancellationToken);
+        public Task<FieldWorkflowResultFact> ExecuteAsync(FieldWorkflowCommand command, Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken)
+        { Command = command; return Task.FromResult(new FieldWorkflowResultFact(200)); }
+        public Task<FieldWorkflowResultFact> ApplyInTransactionAsync(FieldWorkflowCommand command, Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken) => ExecuteAsync(command, projectGuard, cancellationToken);
         public Task<FieldCoreOutcome> ApplyInternalInTransactionAsync(FieldWorkflowCommand command, Func<CancellationToken, Task<bool>> projectGuard, CancellationToken cancellationToken)
             => throw new NotSupportedException("Direct FIELD service fixture does not implement offline admission.");
     }

@@ -83,7 +83,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         var key = Guid.NewGuid().ToString();
         var result = await field.ExecuteAsync(new(state.Source.Project, state.Binding.TaskId, "start",
-            new FieldStartInput(state.FirstStart.OriginId, state.FirstStart.ClaimedAt, state.FirstStart.DeviceId), key,
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(state.FirstStart.OriginId, state.FirstStart.ClaimedAt, state.FirstStart.DeviceId), key,
             "AAAAAAAAAAA=", new(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Crew, "SYNC", false)),
             _ => Task.FromResult(true), default);
         Assert.Equal(403, result.Status); Assert.Equal("offline_admission_required", result.Code);
@@ -96,7 +96,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         await using var transaction = await db.Database.BeginTransactionAsync();
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         var error = await Assert.ThrowsAsync<FieldCoreRejectedException>(() => field.ApplyInTransactionAsync(
-            new(state.Source.Project, state.Binding.TaskId, "start", new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow),
+            new(state.Source.Project, state.Binding.TaskId, "start", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow),
                 null, "AAAAAAAAAAA=", new(state.Source.Pm, UserRoleCode.ProjectManager, state.Source.Pm, "DIRECT", true)),
             _ => Task.FromResult(true), default));
         Assert.Equal(403, error.Result.Status); Assert.Equal("access_forbidden", error.Result.Code);
@@ -111,7 +111,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         var taskVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking().Where(row => row.Id == state.Binding.TaskId)
             .Select(row => row.RowVersion).SingleAsync());
         var nextCrew = action == "reassign" ? state.Source.Crew : (Guid?)null;
-        var input = new FieldTaskActionInput("generic route must not retire repair binding", nextCrew,
+        var input = new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("generic route must not retire repair binding", nextCrew,
             new("NONE", "actual first measurement retained", state.FirstStart.Id, [], nextCrew));
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         var result = await field.ExecuteAsync(new(state.Source.Project, state.Binding.TaskId, action, input,
@@ -210,10 +210,24 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         var dispatcher = new H6NotificationDispatchRepository(db, new FixedClock(now));
         var priorMessages = await db.OutboxMessages.Where(m => m.MessageType == "deadline.breached.v1").Select(m => m.Id).ToArrayAsync();
         var observed = await dispatcher.ObserveClocksAsync(default);
-        var observedSources = await (from b in db.Set<DeadlineBreach>() join c in db.Set<DeadlineClock>() on b.ClockId equals c.Id
-            join m in db.OutboxMessages on b.Id equals m.Id where !priorMessages.Contains(m.Id)
-            select new { clockId = c.Id, c.ProjectId, c.Kind, c.TargetId, c.OriginEventId, c.OriginAt, c.CurrentDueAt, c.CompletedAt,
-                breachId = b.Id, b.DueAt, b.ObservedAt }).ToArrayAsync();
+        var observedSources = await (from b in db.Set<DeadlineBreach>()
+                                     join c in db.Set<DeadlineClock>() on b.ClockId equals c.Id
+                                     join m in db.OutboxMessages on b.Id equals m.Id
+                                     where !priorMessages.Contains(m.Id)
+                                     select new
+                                     {
+                                         clockId = c.Id,
+                                         c.ProjectId,
+                                         c.Kind,
+                                         c.TargetId,
+                                         c.OriginEventId,
+                                         c.OriginAt,
+                                         c.CurrentDueAt,
+                                         c.CompletedAt,
+                                         breachId = b.Id,
+                                         b.DueAt,
+                                         b.ObservedAt
+                                     }).ToArrayAsync();
         output.WriteLine("Global observer admission count={0}; target clock={1}; exact admitted sources={2}", observed, clock.Id,
             JsonSerializer.Serialize(observedSources));
         // This observer scans the shared fixture's global batch, including genuine prior-project breaches.
@@ -283,7 +297,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
             .Where(row => row.Id == state.Binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         var submitted = await field.ExecuteAsync(new(state.Source.Project, state.Binding.TaskId, "submit",
-            new FieldSubmissionInput(Guid.NewGuid(), state.FirstStart.Id, null, [], [], null, "REPAIR_CLAIM", true, null),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionInputFact(Guid.NewGuid(), state.FirstStart.Id, null, [], [], null, "REPAIR_CLAIM", true, null),
             Guid.NewGuid().ToString(), taskVersion,
             new(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Crew, "DIRECT", true)),
             _ => Task.FromResult(true), default);
@@ -402,7 +416,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         var nativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == state.Binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         var supplemented = await field.ExecuteAsync(new(state.Source.Project, state.Binding.TaskId, "submit",
-            new FieldSubmissionInput(Guid.NewGuid(), state.FirstStart.Id, intake.Id, [], [], null, "REPAIR_CLAIM", true, null),
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionInputFact(Guid.NewGuid(), state.FirstStart.Id, intake.Id, [], [], null, "REPAIR_CLAIM", true, null),
             Guid.NewGuid().ToString(), nativeVersion,
             new(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Crew, "DIRECT", true)),
             _ => Task.FromResult(true), default);
@@ -454,7 +468,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         nativeVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking()
             .Where(row => row.Id == state.Binding.TaskId).Select(row => row.RowVersion).SingleAsync());
         var completedEvidence = await field.ExecuteAsync(new(state.Source.Project, state.Binding.TaskId, "submit",
-            new FieldSubmissionInput(Guid.NewGuid(), state.FirstStart.Id, revision.Id,
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionInputFact(Guid.NewGuid(), state.FirstStart.Id, revision.Id,
                 [new("depth", "DepressionDepth", 0, "KNOWN", null, "LENGTH", "mm", null, null,
                     "on road", "depth gauge", "depth measurement")],
                 [new(Guid.NewGuid(), file.Id, "AFTER", new string('c', 64), "image/jpeg", DateTimeOffset.UtcNow,
@@ -811,12 +825,12 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         var native = await db.FieldInspectionTasks.SingleAsync(row => row.Id == bindingView.TaskId);
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         var admission = new FieldAdmissionContext(source.Crew, UserRoleCode.RepairCrew, source.Crew, "DIRECT", true);
-        var accepted = await field.ExecuteAsync(new(source.Project, native.Id, "accept", new FieldTaskActionInput("accept assigned work"),
+        var accepted = await field.ExecuteAsync(new(source.Project, native.Id, "accept", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("accept assigned work"),
             Guid.NewGuid().ToString(), Convert.ToBase64String(native.RowVersion), admission), _ => Task.FromResult(true), default);
         Assert.Equal(201, accepted.Status);
         var acceptedVersion = Convert.ToBase64String(await db.FieldInspectionTasks.AsNoTracking().Where(row => row.Id == native.Id)
             .Select(row => row.RowVersion).SingleAsync());
-        var started = await field.ExecuteAsync(new(source.Project, native.Id, "start", new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow),
+        var started = await field.ExecuteAsync(new(source.Project, native.Id, "start", new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow),
             Guid.NewGuid().ToString(), acceptedVersion, admission), _ => Task.FromResult(true), default);
         Assert.True(started.Status == 201, $"Expected native start 201, actual {started.Status}/{started.Code}.");
         var item = await db.Set<RepairItem>().SingleAsync(row => row.Id == itemView.Id);

@@ -69,8 +69,11 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IMultipartR
             {
                 var page = await client.ListMultipartUploadsAsync(new ListMultipartUploadsRequest
                 {
-                    BucketName = _options.BucketName, Prefix = exactObjectKey, MaxUploads = 1000,
-                    KeyMarker = keyMarker, UploadIdMarker = idMarker
+                    BucketName = _options.BucketName,
+                    Prefix = exactObjectKey,
+                    MaxUploads = 1000,
+                    KeyMarker = keyMarker,
+                    UploadIdMarker = idMarker
                 }, cancellationToken);
                 foreach (var upload in page.MultipartUploads ?? [])
                     if (string.Equals(upload.Key, exactObjectKey, StringComparison.Ordinal)) ids.Add(upload.UploadId);

@@ -124,8 +124,19 @@ public sealed class BusinessDutyRepository(RoadGuardDbContext db, IdempotencyOpe
                     c.Reason ?? "Đã nhận yêu cầu", "activation.duty", eventId,
                     ["acknowledgmentId", "clockId", "responsibleActorId"]));
                 db.OutboxMessages.Add(OutboxMessage.Create(eventId, "business.duty." + c.Action + ".v1", now, row.Id,
-                    JsonSerializer.Serialize(new { schemaVersion = 1, eventId, row.ProjectId, requestId = row.Id,
-                        row.SourceKind, row.SourceId, row.SourceVersion, row.AcknowledgmentId, row.ClockId, row.ResponsibleActorId }, Json)));
+                    JsonSerializer.Serialize(new
+                    {
+                        schemaVersion = 1,
+                        eventId,
+                        row.ProjectId,
+                        requestId = row.Id,
+                        row.SourceKind,
+                        row.SourceId,
+                        row.SourceVersion,
+                        row.AcknowledgmentId,
+                        row.ClockId,
+                        row.ResponsibleActorId
+                    }, Json)));
                 await db.SaveChangesAsync(ct);
                 return (eventId, JsonSerializer.Serialize(View(row), Json));
             }, token, receiptAccessGuard: ct => Guard(c, ct));

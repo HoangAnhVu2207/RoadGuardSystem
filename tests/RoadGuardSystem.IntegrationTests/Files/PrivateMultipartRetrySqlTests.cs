@@ -122,9 +122,17 @@ public sealed class PrivateMultipartRetrySqlTests(IdentitySqlServerFixture fixtu
     {
         await fixture.SeedRolesAsync(db);
         var actor = Guid.NewGuid();
-        db.Users.Add(new ApplicationUser { Id = actor, UserName = actor.ToString(), NormalizedUserName = actor.ToString().ToUpperInvariant(),
-            DisplayName = "Synthetic private multipart fixture", PasswordHash = "non-login-fixture", RoleCode = UserRoleCode.Reporter,
-            Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = actor,
+            UserName = actor.ToString(),
+            NormalizedUserName = actor.ToString().ToUpperInvariant(),
+            DisplayName = "Synthetic private multipart fixture",
+            PasswordHash = "non-login-fixture",
+            RoleCode = UserRoleCode.Reporter,
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
         await db.SaveChangesAsync();
         var result = await new UploadPersistenceService(db, new IdempotencyOperationService(db), storage).CreateAsync(
             new(actor, null, null, "REPORT_PHOTO", "test.jpg", "image/jpeg", 4, new string('a', 64), 8388608,

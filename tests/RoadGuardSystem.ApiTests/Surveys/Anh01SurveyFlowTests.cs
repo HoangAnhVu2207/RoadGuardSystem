@@ -34,19 +34,39 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new SurveyVideoStorage(media, checksum)); });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var created = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = $"ANH-{Guid.NewGuid():N}", name = "DEMO survey evidence",
-            engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = manager.Id,
-            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
+        var created = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            projectCode = $"ANH-{Guid.NewGuid():N}",
+            name = "DEMO survey evidence",
+            engineeringUtmSrid = 32648,
+            startDate = "2026-09-01",
+            endDate = "2027-09-01",
+            primaryProjectManagerUserId = manager.Id,
+            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" },
+            operationId = Guid.NewGuid()
+        });
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await Body(created)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!);
-        var draft = await Command(client, $"/api/v1/projects/{project}/road-geometry-drafts", new { sourceKind = "COORDINATES", sourceCrs = 32648,
-            stationOriginMeters = 0d, changeReason = "DEMO alignment", coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500200d, y = 1100000d } },
-            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 200d, widthMeters = 8d } }, surveyWidthMeters = 12d, roadCode = "DEMO" });
+        var draft = await Command(client, $"/api/v1/projects/{project}/road-geometry-drafts", new
+        {
+            sourceKind = "COORDINATES",
+            sourceCrs = 32648,
+            stationOriginMeters = 0d,
+            changeReason = "DEMO alignment",
+            coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500200d, y = 1100000d } },
+            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 200d, widthMeters = 8d } },
+            surveyWidthMeters = 12d,
+            roadCode = "DEMO"
+        });
         draft.StatusCode.Should().Be(HttpStatusCode.Created);
         await Login(client, supervisor.UserName!);
-        var road = await Command(client, draft.Headers.Location!.OriginalString + "/confirm", new { expectedCurrentVersionId = (Guid?)null,
-            effectiveFrom = "2026-10-02T00:00:00Z", reason = "Supervisor DEMO approval" }, draft.Headers.ETag!.Tag);
+        var road = await Command(client, draft.Headers.Location!.OriginalString + "/confirm", new
+        {
+            expectedCurrentVersionId = (Guid?)null,
+            effectiveFrom = "2026-10-02T00:00:00Z",
+            reason = "Supervisor DEMO approval"
+        }, draft.Headers.ETag!.Tag);
         road.StatusCode.Should().Be(HttpStatusCode.Created);
         var route = (await Body(road)).GetProperty("routeVersionId").GetGuid();
         var section = (await Body(road)).GetProperty("roadSectionId").GetGuid();
@@ -64,8 +84,15 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         {
             db.DroneDevices.Add(DroneDevice.Create(device, $"DEMO-{device:N}", DroneDeviceStatus.Active));
             foreach (var actor in new[] { first.Id, second.Id })
-                db.ProjectMembers.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = project, UserId = actor, RoleCode = UserRoleCode.DroneOperator,
-                    ValidFrom = new DateOnly(2026, 1, 1), Status = ProjectMemberStatus.Active });
+                db.ProjectMembers.Add(new ProjectMember
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = project,
+                    UserId = actor,
+                    RoleCode = UserRoleCode.DroneOperator,
+                    ValidFrom = new DateOnly(2026, 1, 1),
+                    Status = ProjectMemberStatus.Active
+                });
             await db.SaveChangesAsync();
         }
         object Scope(string band) => new { routeVersionId = route, segmentSetId = set, segmentIds = new[] { segment }, targetBand = band };
@@ -75,8 +102,15 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         plan.StatusCode.Should().Be(HttpStatusCode.Created);
         var planId = (await Body(plan)).GetProperty("id").GetGuid();
         (await client.GetAsync(plan.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
-        var taskResponse = await Command(client, $"/api/v1/projects/{project}/survey-tasks", new { scope = scopes, surveyType = "BASELINE", operatorId = first.Id,
-            dueAt = "2026-10-03T08:00:00Z", accessPoint = (object?)null, planId });
+        var taskResponse = await Command(client, $"/api/v1/projects/{project}/survey-tasks", new
+        {
+            scope = scopes,
+            surveyType = "BASELINE",
+            operatorId = first.Id,
+            dueAt = "2026-10-03T08:00:00Z",
+            accessPoint = (object?)null,
+            planId
+        });
         taskResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var task = (await Body(taskResponse)).GetProperty("id").GetGuid();
         await Login(client, first.UserName!);
@@ -88,8 +122,16 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         workBody.GetProperty("geometryRefs")[0].TryGetProperty("targetBand", out _).Should().BeFalse();
         var accepted = await Command(client, $"/api/v1/survey-tasks/{task}/accept", null, taskResponse.Headers.ETag!.Tag);
         accepted.StatusCode.Should().Be(HttpStatusCode.OK);
-        var uploadCreated = await Command(client, "/api/v1/uploads", new { purpose = "SURVEY_VIDEO", projectId = project, targetId = task,
-            fileName = "synthetic.mp4", mediaType = "video/mp4", sizeBytes = media.Length, checksumSha256 = checksum });
+        var uploadCreated = await Command(client, "/api/v1/uploads", new
+        {
+            purpose = "SURVEY_VIDEO",
+            projectId = project,
+            targetId = task,
+            fileName = "synthetic.mp4",
+            mediaType = "video/mp4",
+            sizeBytes = media.Length,
+            checksumSha256 = checksum
+        });
         uploadCreated.StatusCode.Should().Be(HttpStatusCode.Created);
         var upload = (await Body(uploadCreated)).GetProperty("id").GetGuid();
         var video = (await Body(uploadCreated)).GetProperty("fileId").GetGuid();
@@ -101,8 +143,15 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             await verification.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Files.IUploadService>().ProcessOneVerificationAsync();
         var fileMetadata = await client.GetAsync($"/api/v1/files/{video}");
         (await Body(fileMetadata)).GetProperty("status").GetString().Should().Be("VERIFIED");
-        var submit = new { videoFileIds = new[] { video }, telemetryFileIds = Array.Empty<Guid>(), recordedAt = "2026-10-02T08:00:00Z",
-            deviceId = device, scope = scopes, pairs = new[] { new { videoFileId = video, telemetryFileId = (Guid?)null, timeOffsetMilliseconds = 0L } } };
+        var submit = new
+        {
+            videoFileIds = new[] { video },
+            telemetryFileIds = Array.Empty<Guid>(),
+            recordedAt = "2026-10-02T08:00:00Z",
+            deviceId = device,
+            scope = scopes,
+            pairs = new[] { new { videoFileId = video, telemetryFileId = (Guid?)null, timeOffsetMilliseconds = 0L } }
+        };
         var submitted = await Command(client, $"/api/v1/survey-tasks/{task}/datasets", submit, accepted.Headers.ETag!.Tag);
         submitted.StatusCode.Should().Be(HttpStatusCode.Created);
         var dataset = (await Body(submitted)).GetProperty("id").GetGuid();
@@ -110,9 +159,18 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         detail.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(detail)).GetProperty("submittedBy").GetGuid().Should().Be(first.Id);
         await Login(client, manager.UserName!);
-        object Item(string band, string status) => new { routeVersionId = route, segmentSetId = set, segmentId = segment, targetBand = band,
-            positionStatus = status, qualityStatus = status, coverageStatus = status, reason = status == "PASS" ? "PM inspected position, clear image and full band" : "Band not visible",
-            evidence = status == "PASS" ? new[] { new { fileId = video, fromMilliseconds = 0, toMilliseconds = 1000 } } : Array.Empty<object>() };
+        object Item(string band, string status) => new
+        {
+            routeVersionId = route,
+            segmentSetId = set,
+            segmentId = segment,
+            targetBand = band,
+            positionStatus = status,
+            qualityStatus = status,
+            coverageStatus = status,
+            reason = status == "PASS" ? "PM inspected position, clear image and full band" : "Band not visible",
+            evidence = status == "PASS" ? new[] { new { fileId = video, fromMilliseconds = 0, toMilliseconds = 1000 } } : Array.Empty<object>()
+        };
         var assessmentBody = new { methodVersion = "pm-evidence-review.v1", items = new[] { Item("SURFACE", "PASS"), Item("RIGHT_EDGE", "UNKNOWN") } };
         (await Command(client, $"/api/v1/datasets/{dataset}/assessments", new { methodVersion = "unapproved.v1", items = assessmentBody.items }, submitted.Headers.ETag!.Tag))
             .StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
@@ -130,8 +188,16 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         (await client.GetAsync(assessed.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
         var coverage = await Body(await client.GetAsync($"/api/v1/datasets/{dataset}/coverage"));
         coverage.GetProperty("assessmentId").GetGuid().Should().Be(assessment);
-        object Selection(string band, Guid? expected = null) => new { routeVersionId = route, segmentSetId = set, segmentId = segment,
-            targetBand = band, datasetId = dataset, assessmentId = assessment, expectedBaselineSelectionId = expected };
+        object Selection(string band, Guid? expected = null) => new
+        {
+            routeVersionId = route,
+            segmentSetId = set,
+            segmentId = segment,
+            targetBand = band,
+            datasetId = dataset,
+            assessmentId = assessment,
+            expectedBaselineSelectionId = expected
+        };
         var denied = await Command(client, $"/api/v1/projects/{project}/baseline-selections", new { items = new[] { Selection("SURFACE"), Selection("RIGHT_EDGE") }, reason = "Partial baseline" });
         denied.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         await using (var db = sql.CreateDbContext()) { (await db.Set<BaselineSelection>().CountAsync(x => x.ProjectId == project)).Should().Be(0); }
@@ -155,13 +221,24 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         failReview.StatusCode.Should().Be(HttpStatusCode.Created);
         (await client.GetAsync(selected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
         // A15: a new current route must not invalidate already assigned scopes or their supplement child.
-        var replacementDraft = await Command(client, $"/api/v1/projects/{project}/road-sections/{section}/geometry-drafts", new { sourceKind = "COORDINATES", sourceCrs = 32648,
-            stationOriginMeters = 0d, changeReason = "Replace alignment after survey", coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500200d, y = 1100000d } },
-            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 200d, widthMeters = 8d } }, surveyWidthMeters = 12d });
+        var replacementDraft = await Command(client, $"/api/v1/projects/{project}/road-sections/{section}/geometry-drafts", new
+        {
+            sourceKind = "COORDINATES",
+            sourceCrs = 32648,
+            stationOriginMeters = 0d,
+            changeReason = "Replace alignment after survey",
+            coordinates = new[] { new { x = 500000d, y = 1100000d }, new { x = 500200d, y = 1100000d } },
+            widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = 200d, widthMeters = 8d } },
+            surveyWidthMeters = 12d
+        });
         replacementDraft.StatusCode.Should().Be(HttpStatusCode.Created);
         await Login(client, supervisor.UserName!);
-        var replacementRoute = await Command(client, replacementDraft.Headers.Location!.OriginalString + "/confirm", new { expectedCurrentVersionId = route,
-            effectiveFrom = "2026-10-03T00:00:00Z", reason = "Supersede route after assigned task" }, replacementDraft.Headers.ETag!.Tag);
+        var replacementRoute = await Command(client, replacementDraft.Headers.Location!.OriginalString + "/confirm", new
+        {
+            expectedCurrentVersionId = route,
+            effectiveFrom = "2026-10-03T00:00:00Z",
+            reason = "Supersede route after assigned task"
+        }, replacementDraft.Headers.ETag!.Tag);
         replacementRoute.StatusCode.Should().Be(HttpStatusCode.Created);
         await Login(client, manager.UserName!);
         var replacementRouteId = (await Body(replacementRoute)).GetProperty("routeVersionId").GetGuid();
@@ -194,8 +271,14 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var largeVideos = new List<Guid>();
         for (var index = 0; index < 4; index++) largeVideos.Add(await VerifiedSource(project, child, second.Id, "SURVEY_VIDEO", 8_589_934_592L));
         var extraByte = await VerifiedSource(project, child, second.Id, "SURVEY_VIDEO", 1);
-        object LargeSubmission(IEnumerable<Guid> videos, Guid registryDevice) => new { videoFileIds = videos.ToArray(), telemetryFileIds = Array.Empty<Guid>(),
-            recordedAt = "2026-10-02T08:00:00Z", deviceId = registryDevice, scope = new[] { Scope("RIGHT_EDGE") } };
+        object LargeSubmission(IEnumerable<Guid> videos, Guid registryDevice) => new
+        {
+            videoFileIds = videos.ToArray(),
+            telemetryFileIds = Array.Empty<Guid>(),
+            recordedAt = "2026-10-02T08:00:00Z",
+            deviceId = registryDevice,
+            scope = new[] { Scope("RIGHT_EDGE") }
+        };
         var excess = await Command(client, $"/api/v1/survey-tasks/{child}/datasets", LargeSubmission(largeVideos.Append(extraByte), device), childAccepted.Headers.ETag!.Tag);
         excess.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         var unknownDevice = await Command(client, $"/api/v1/survey-tasks/{child}/datasets", LargeSubmission(largeVideos, Guid.NewGuid()), childAccepted.Headers.ETag!.Tag);

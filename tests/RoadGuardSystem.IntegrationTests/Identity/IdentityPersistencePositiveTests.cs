@@ -261,20 +261,20 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
         rotateResult.Status.Should().Be(RotateRefreshTokenStatus.Success);
 
         // Verify token 1 is revoked and token 2 is active
-        await context.Entry(token1).ReloadAsync();
-        token1.RevokedAt.Should().NotBeNull();
-        token1.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
+        var storedToken1 = await context.RefreshTokens.AsNoTracking().SingleAsync(token => token.Id == token1.Id);
+        storedToken1.RevokedAt.Should().NotBeNull();
+        storedToken1.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
         token2.IsActiveAt(DateTimeOffset.UtcNow).Should().BeTrue();
 
         // Revoke family
         await repo.RevokeSessionAndFamilyAsync(session.Id);
 
-        await context.Entry(session).ReloadAsync();
-        session.RevokedAt.Should().NotBeNull();
+        var storedSession = await context.Sessions.AsNoTracking().SingleAsync(row => row.Id == session.Id);
+        storedSession.RevokedAt.Should().NotBeNull();
 
-        await context.Entry(token2).ReloadAsync();
-        token2.RevokedAt.Should().NotBeNull();
-        token2.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
+        var storedToken2 = await context.RefreshTokens.AsNoTracking().SingleAsync(token => token.Id == token2.Id);
+        storedToken2.RevokedAt.Should().NotBeNull();
+        storedToken2.IsActiveAt(DateTimeOffset.UtcNow).Should().BeFalse();
     }
 
     [Fact(DisplayName = "P2-10 Positive: Specialized security logs append and query correctly")]
@@ -592,8 +592,8 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
 
             await using var context = new RoadGuardDbContext(options);
 
-            // Step 1: Migrate to latest
-            await context.Database.MigrateAsync();
+            // Step 1: Apply the identity migration stage under test
+            await context.GetService<IMigrator>().MigrateAsync("20260918185738_EnforceSecurityLogSafeCodes");
 
             var tableCountLatest = await context.Database.SqlQueryRaw<int>(
                 """
@@ -636,8 +636,8 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
 
             identityTableCount.Should().Be(0);
 
-            // Step 3: Reapply latest
-            await context.Database.MigrateAsync();
+            // Step 3: Reapply the identity migration stage before upgrading the full chain
+            await context.GetService<IMigrator>().MigrateAsync("20260918185738_EnforceSecurityLogSafeCodes");
 
             var tableCountReapplied = await context.Database.SqlQueryRaw<int>(
                 """
@@ -651,6 +651,7 @@ public sealed class IdentityPersistencePositiveTests : IClassFixture<IdentitySql
                 .SingleAsync();
 
             tableCountReapplied.Should().Be(10);
+            await context.Database.MigrateAsync();
         }
         finally
         {

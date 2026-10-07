@@ -82,7 +82,8 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
         if (AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes(result.CanonicalResult)) != result.ResultHash)
             throw new AiRequestException(409, "source_not_ready");
         return (JsonSerializer.Deserialize<AiResultV1>(result.CanonicalResult, Json) ?? throw new AiRequestException(409, "source_not_ready"))
-            with { ResultHash = result.ResultHash };
+            with
+        { ResultHash = result.ResultHash };
     }
 
     public async Task<bool> ProcessOneAsync(CancellationToken ct)
@@ -145,11 +146,23 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
                     resultDetections.Add(dto);
                     detections.Add(AIDetection.Create(detectionId, run.ProcessingJobId, run.ModelVersionId, run.RouteVersionId, null,
                         "CRACK", .8m, null, null, JsonSerializer.Serialize(dto, Json)));
-                    proofs.Add(new() { DetectionId = detectionId, RunId = run.Id, ResultId = resultId, SourceVideoFileId = source.FileId,
-                        SourceVideoFileVersion = source.FileVersion, FrameFileId = frameId, FrameFileVersion = durable.Sha256,
+                    proofs.Add(new()
+                    {
+                        DetectionId = detectionId,
+                        RunId = run.Id,
+                        ResultId = resultId,
+                        SourceVideoFileId = source.FileId,
+                        SourceVideoFileVersion = source.FileVersion,
+                        FrameFileId = frameId,
+                        FrameFileVersion = durable.Sha256,
                         DerivationHash = AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes($"{SyntheticAiFixture.VideoHash}:frame=1:{durable.Sha256}")),
-                        TimestampMilliseconds = SyntheticAiFixture.TimestampMilliseconds, SourceDurationMilliseconds = SyntheticAiFixture.DurationMilliseconds,
-                        BoxX = box[0], BoxY = box[1], BoxWidth = box[2], BoxHeight = box[3] });
+                        TimestampMilliseconds = SyntheticAiFixture.TimestampMilliseconds,
+                        SourceDurationMilliseconds = SyntheticAiFixture.DurationMilliseconds,
+                        BoxX = box[0],
+                        BoxY = box[1],
+                        BoxWidth = box[2],
+                        BoxHeight = box[3]
+                    });
                 }
             }
             else if (run.Stage == "DUPLICATE_MATCHING")
@@ -169,8 +182,17 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
             var result = new AiResultV1("anh02.ai.v1", run.Id, run.Stage, "MOCK", run.ProcessingJobId, run.AttemptId,
                 run.ManifestHash, run.ModelVersionId, run.FixtureVersion, "", run.ResultTimestamp!.Value, resultDetections, matches);
             var raw = AiResultCanonicalizer.Encode(result); var resultHash = AiManifestCanonicalizer.Hash(raw);
-            var provenance = new AiResultProvenance { Id = resultId, RunId = run.Id, ProcessingJobId = run.ProcessingJobId, AttemptId = run.AttemptId,
-                ManifestHash = run.ManifestHash, ResultHash = resultHash, CanonicalResult = Encoding.UTF8.GetString(raw), CompletedAt = result.CompletedAt };
+            var provenance = new AiResultProvenance
+            {
+                Id = resultId,
+                RunId = run.Id,
+                ProcessingJobId = run.ProcessingJobId,
+                AttemptId = run.AttemptId,
+                ManifestHash = run.ManifestHash,
+                ResultHash = resultHash,
+                CanonicalResult = Encoding.UTF8.GetString(raw),
+                CompletedAt = result.CompletedAt
+            };
             await repository.CompleteAsync(run.Id, owner, new(provenance, detections, proofs, frames), async token =>
             {
                 var context = await geometry.ResolveGeometryAsync(run.CreatedBy, UserRoleCode.ProjectManager, run.ProjectId, run.RouteVersionId,

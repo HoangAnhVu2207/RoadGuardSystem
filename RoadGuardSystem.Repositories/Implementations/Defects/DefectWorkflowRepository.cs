@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Defects;
-using RoadGuardSystem.DTOs.Defects;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Defects;
 using RoadGuardSystem.Repositories.Cases;
 using RoadGuardSystem.Repositories.Defects;
 using RoadGuardSystem.Repositories.Models.Huy01;
@@ -13,7 +13,7 @@ namespace RoadGuardSystem.Repositories.Implementations.Defects;
 
 public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWorkflowRepository
 {
-    public Task<DefectViewDto?> ReadAsync(Guid project, Guid defect,
+    public Task<DefectViewFact?> ReadAsync(Guid project, Guid defect,
         Func<CancellationToken, Task> guard, CancellationToken token)
         => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -26,7 +26,7 @@ public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWor
             return result;
         });
 
-    public Task<DefectPageDto> ListAsync(Guid project, DefectStatus? status, string? type,
+    public Task<DefectPageFact> ListAsync(Guid project, DefectStatus? status, string? type,
         Guid? segment, int pageSize, Guid? afterId,
         Func<CancellationToken, Task> guard, CancellationToken token)
         => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
@@ -39,18 +39,18 @@ public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWor
             if (segment is Guid segmentId)
             {
                 var ids = await (from link in db.Set<HuyDefectSourceLink>().AsNoTracking()
-                    join decision in db.SourceDecisions.AsNoTracking() on link.DecisionId equals decision.Id
-                    where link.ProjectId == project && link.EndedAt == null &&
-                        decision.Classification != null && decision.Classification.SegmentId == segmentId
-                    select link.DefectId).Distinct().ToArrayAsync(token);
+                                 join decision in db.SourceDecisions.AsNoTracking() on link.DecisionId equals decision.Id
+                                 where link.ProjectId == project && link.EndedAt == null &&
+                                     decision.Classification != null && decision.Classification.SegmentId == segmentId
+                                 select link.DefectId).Distinct().ToArrayAsync(token);
                 query = query.Where(row => ids.Contains(row.Id));
             }
             if (afterId is Guid last) query = query.Where(row => row.Id.CompareTo(last) > 0);
             var rows = await query.OrderBy(row => row.Id).Take(pageSize + 1).ToArrayAsync(token);
-            var items = new List<DefectViewDto>();
+            var items = new List<DefectViewFact>();
             foreach (var row in rows.Take(pageSize)) items.Add(await ProjectAsync(row, token));
             await transaction.CommitAsync(token);
-            return new DefectPageDto(items, rows.Length > pageSize && items.Count > 0
+            return new DefectPageFact(items, rows.Length > pageSize && items.Count > 0
                 ? Convert.ToBase64String(items[^1].Id.ToByteArray()) : null);
         });
 
@@ -70,7 +70,7 @@ public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWor
         if (row != project) throw new CaseWorkflowException(404, "not_found");
     }
 
-    public async Task<DefectViewDto> ApplyAssessmentAsync(Guid actor, Guid project, Guid defect,
+    public async Task<DefectViewFact> ApplyAssessmentAsync(Guid actor, Guid project, Guid defect,
         string expectedVersion, string type, string? cause, DefectSeverity severity,
         IReadOnlyCollection<Guid> evidenceIds, string reason, Guid? correlation, CancellationToken token)
     {
@@ -87,7 +87,7 @@ public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWor
         return await ProjectAsync(row, token);
     }
 
-    public async Task<DefectViewDto> ApplyVerificationAsync(Guid actor, Guid project, Guid defect,
+    public async Task<DefectViewFact> ApplyVerificationAsync(Guid actor, Guid project, Guid defect,
         string expectedVersion, DefectVerificationAction action, IReadOnlyCollection<Guid> evidenceIds,
         IReadOnlyCollection<Guid> verifiedRelatedEvidenceIds, string reason, Guid? correlation,
         CancellationToken token)
@@ -102,19 +102,19 @@ public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWor
         return await ProjectAsync(row, token);
     }
 
-    public async Task<DefectViewDto> ApplyFieldVerificationAsync(Guid actor, Guid project, Guid defect, string expectedVersion,
-        DefectVerificationAction action, RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts source,
+    public async Task<DefectViewFact> ApplyFieldVerificationAsync(Guid actor, Guid project, Guid defect, string expectedVersion,
+        DefectVerificationAction action, RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldVerificationSourceFactsFact source,
         IReadOnlyCollection<Guid> evidenceIds, string reason, Guid? correlation, CancellationToken token)
     {
         var row = await LoadCurrentAsync(project, defect, expectedVersion, token);
-        if(source.DefectId!=defect || row.RoadSectionVersionId!=source.RouteVersionId ||
-            source.Decision!=(action==DefectVerificationAction.Confirm?"CONFIRM":"NO_DEFECT"))
-            throw new CaseWorkflowException(409,"source_not_ready");
+        if (source.DefectId != defect || row.RoadSectionVersionId != source.RouteVersionId ||
+            source.Decision != (action == DefectVerificationAction.Confirm ? "CONFIRM" : "NO_DEFECT"))
+            throw new CaseWorkflowException(409, "source_not_ready");
         DefectVerificationLog log;
-        try { log=row.DecideFromField(action,source.TaskId,source.SubmissionId,source.ContentHash,evidenceIds,source.EvidenceIds,actor,reason); }
-        catch(InvalidOperationException){throw new CaseWorkflowException(409,"invalid_state_transition");}
-        db.DefectVerificationLogs.Add(log);Audit(actor,defect,"defect_verified_field",reason,correlation);
-        await db.SaveChangesAsync(token);return await ProjectAsync(row,token);
+        try { log = row.DecideFromField(action, source.TaskId, source.SubmissionId, source.ContentHash, evidenceIds, source.EvidenceIds, actor, reason); }
+        catch (InvalidOperationException) { throw new CaseWorkflowException(409, "invalid_state_transition"); }
+        db.DefectVerificationLogs.Add(log); Audit(actor, defect, "defect_verified_field", reason, correlation);
+        await db.SaveChangesAsync(token); return await ProjectAsync(row, token);
     }
 
     private async Task<Defect> LoadCurrentAsync(Guid project, Guid defect,
@@ -127,7 +127,7 @@ public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWor
         return row;
     }
 
-    private async Task<DefectViewDto> ProjectAsync(Defect row, CancellationToken token)
+    private async Task<DefectViewFact> ProjectAsync(Defect row, CancellationToken token)
     {
         var version = db.Entry(row).Property<byte[]>("RowVersion").CurrentValue;
         if (version is null || version.Length == 0)

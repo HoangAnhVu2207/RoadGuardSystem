@@ -2,6 +2,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.DTOs.Inspections;
 
 namespace RoadGuardSystem.Services.Inspections;
+
 public interface IFieldInspectionWorkflowService
 {
     Task<FieldWorkflowResult> ExecuteAsync(Guid actor, UserRoleCode role, Guid project, Guid? task,

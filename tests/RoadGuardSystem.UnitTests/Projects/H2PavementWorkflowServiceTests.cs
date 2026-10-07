@@ -1,12 +1,13 @@
 using FluentAssertions;
 using NetTopologySuite.Geometries;
-using RoadGuardSystem.DTOs.Projects;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects;
 using RoadGuardSystem.Repositories.Projects;
 using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Projects;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 namespace RoadGuardSystem.UnitTests.Projects;
+
 public sealed class H2PavementWorkflowServiceTests
 {
     [Theory]
@@ -41,10 +42,10 @@ public sealed class H2PavementWorkflowServiceTests
         public int Calls;
         public async Task<GeometryWorkflowResult> ExecuteAsync(UserRoleCode role, PavementWorkflowCommand command,
             Func<CancellationToken, Task<bool>> scopeGuard,
-            Func<GeometryDraftInput?, LineString, PavementPlanCreateInput, PavementGeometryPreview> plan,
-            Func<PavementGeometryPreview, AsBuiltLayoutInput, PavementGeometryPreview> asBuilt,
-            Func<GeometryDraftInput, int, GeometryPreview> geometryPreview,
-            Func<GeometryMapSnapshot, PavementLayerQuery, string, GeometryMapPage> page, CancellationToken cancellationToken)
+            Func<GeometryDraftInputFact?, LineString, PavementPlanCreateInputFact, PavementGeometryPreviewFact> plan,
+            Func<PavementGeometryPreviewFact, AsBuiltLayoutInputFact, PavementGeometryPreviewFact> asBuilt,
+            Func<GeometryDraftInputFact, int, GeometryPreviewFact> geometryPreview,
+            Func<GeometryMapSnapshotFact, PavementLayerQuery, string, GeometryMapPageFact> page, CancellationToken cancellationToken)
         { Calls++; return new(await scopeGuard(cancellationToken) ? 200 : 403); }
     }
 }

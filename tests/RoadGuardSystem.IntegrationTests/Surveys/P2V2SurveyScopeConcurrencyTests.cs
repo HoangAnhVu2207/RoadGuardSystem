@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.BusinessObjects.Files;
+using RoadGuardSystem.BusinessObjects.Devices;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Surveys;
@@ -128,10 +129,10 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
 
         var result = await repository.SubmitDatasetAsync(new SurveyDatasetSubmissionRequest(
             fixture.OperatorId, fixture.TaskId, [fixture.FileId], [], DateTimeOffset.UtcNow,
-            Guid.NewGuid(), requestedScope, fixture.TaskVersion, $"dataset-scope-{Guid.NewGuid():N}",
+            fixture.DeviceId, requestedScope, fixture.TaskVersion, $"dataset-scope-{Guid.NewGuid():N}",
             new string('a', 64), Guid.NewGuid()));
 
-        result.Status.Should().Be(SurveyDatasetPersistenceStatus.Conflict);
+        result.Status.Should().Be(SurveyDatasetPersistenceStatus.InvalidInput);
         (await context.SurveyDataVersions.CountAsync()).Should().Be(0);
         (await context.SurveyFiles.CountAsync()).Should().Be(0);
     }
@@ -146,10 +147,10 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
 
         var result = await repository.SubmitDatasetAsync(new SurveyDatasetSubmissionRequest(
             fixture.OperatorId, fixture.TaskId, [fixture.FileId], [], DateTimeOffset.UtcNow,
-            Guid.NewGuid(), requestedScope, fixture.TaskVersion, $"dataset-purpose-{Guid.NewGuid():N}",
+            fixture.DeviceId, requestedScope, fixture.TaskVersion, $"dataset-purpose-{Guid.NewGuid():N}",
             new string('b', 64), Guid.NewGuid()));
 
-        result.Status.Should().Be(SurveyDatasetPersistenceStatus.Conflict);
+        result.Status.Should().Be(SurveyDatasetPersistenceStatus.InvalidInput);
         (await context.SurveyDataVersions.CountAsync()).Should().Be(0);
         (await context.SurveyFiles.CountAsync()).Should().Be(0);
     }
@@ -163,7 +164,7 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
         var requestedScope = $"[{{\"routeVersionId\":\"{fixture.RouteVersionId}\",\"segmentSetId\":\"{fixture.SegmentSetId}\",\"segmentIds\":[\"{fixture.SegmentId}\"],\"targetBand\":\"SURFACE\"}}]";
         var request = new SurveyDatasetSubmissionRequest(
             fixture.OperatorId, fixture.TaskId, [fixture.FileId], [], DateTimeOffset.UtcNow,
-            Guid.NewGuid(), requestedScope, fixture.TaskVersion, $"dataset-valid-{Guid.NewGuid():N}",
+            fixture.DeviceId, requestedScope, fixture.TaskVersion, $"dataset-valid-{Guid.NewGuid():N}",
             new string('d', 64), Guid.NewGuid());
 
         var first = await repository.SubmitDatasetAsync(request);
@@ -200,6 +201,7 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
         var segment = RoadSegment.Create(Guid.NewGuid(), segmentSet.Id, route.RouteVersionIds[0], 1);
         var task = SurveyRequest.Create(Guid.NewGuid(), route.ProjectId, route.RoadSectionIds[0], null,
             operatorId, SurveyType.Original, SurveyRequestStatus.Accepted, now, now.AddDays(1), "{}", route.RouteVersionIds[0]);
+        task.SetBandScope();
         var assignment = SurveyAssignment.Create(Guid.NewGuid(), task.Id, operatorId, operatorId,
             now, now, null, null, null, null);
         var scope = SurveyRequestScope.Create(Guid.NewGuid(), task.Id, route.RouteVersionIds[0],
@@ -210,7 +212,17 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
         var fileScope = FileScope.Create(Guid.NewGuid(), file.Id, route.ProjectId, task.Id, operatorId, filePurpose, now);
         var upload = UploadSession.Create(Guid.NewGuid(), file.Id, operatorId, file.StorageUri,
             filePurpose, "video/mp4", 16, checksum, 16, now.AddHours(1));
-        context.AddRange(user, segmentSet, segment, task, assignment, scope, file, fileScope, upload);
+        var device = DroneDevice.Create(Guid.NewGuid(), $"P2V2-{Guid.NewGuid():N}", DroneDeviceStatus.Active);
+        var member = new ProjectMember
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = route.ProjectId,
+            UserId = operatorId,
+            RoleCode = UserRoleCode.DroneOperator,
+            Status = ProjectMemberStatus.Active,
+            ValidFrom = DateOnly.FromDateTime(now.UtcDateTime.AddDays(-1))
+        };
+        context.AddRange(user, segmentSet, segment, task, assignment, scope, file, fileScope, upload, device, member);
         await context.SaveChangesAsync();
         upload.StartUploading("fixture-upload", now);
         await context.SaveChangesAsync();
@@ -219,7 +231,7 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
         upload.MarkVerified();
         await context.SaveChangesAsync();
         return new DatasetFixture(operatorId, task.Id, Convert.ToBase64String(task.RowVersion),
-            route.RouteVersionIds[0], segmentSet.Id, segment.Id, file.Id);
+            route.RouteVersionIds[0], segmentSet.Id, segment.Id, file.Id, device.Id);
     }
 
     private async Task<FixtureData> CreateFixtureAsync(RoadGuardDbContext context, int routeCount)
@@ -258,5 +270,5 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
     private sealed record FixtureData(Guid ProjectId, IReadOnlyList<Guid> RoadSectionIds, IReadOnlyList<Guid> RouteVersionIds);
 
     private sealed record DatasetFixture(Guid OperatorId, Guid TaskId, string TaskVersion,
-        Guid RouteVersionId, Guid SegmentSetId, Guid SegmentId, Guid FileId);
+        Guid RouteVersionId, Guid SegmentSetId, Guid SegmentId, Guid FileId, Guid DeviceId);
 }

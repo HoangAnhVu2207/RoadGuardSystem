@@ -9,7 +9,7 @@ using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
-using RoadGuardSystem.DTOs.Projects;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Integration;
 
@@ -30,10 +30,10 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
     private sealed record SourceCapture(ReporterFileFacts File, Guid ScopeId, Guid? TargetId, DateTimeOffset ScopeCreatedAt, Guid? UploadedByUserId);
     public async Task<GeometryWorkflowResult> ExecuteAsync(UserRoleCode role, PavementWorkflowCommand command,
         Func<CancellationToken, Task<bool>> scopeGuard,
-        Func<GeometryDraftInput?, LineString, PavementPlanCreateInput, PavementGeometryPreview> plan,
-        Func<PavementGeometryPreview, AsBuiltLayoutInput, PavementGeometryPreview> asBuilt,
-        Func<GeometryDraftInput, int, GeometryPreview> geometryPreview,
-        Func<GeometryMapSnapshot, PavementLayerQuery, string, GeometryMapPage> page, CancellationToken cancellationToken)
+        Func<GeometryDraftInputFact?, LineString, PavementPlanCreateInputFact, PavementGeometryPreviewFact> plan,
+        Func<PavementGeometryPreviewFact, AsBuiltLayoutInputFact, PavementGeometryPreviewFact> asBuilt,
+        Func<GeometryDraftInputFact, int, GeometryPreviewFact> geometryPreview,
+        Func<GeometryMapSnapshotFact, PavementLayerQuery, string, GeometryMapPageFact> page, CancellationToken cancellationToken)
     {
         var c = command; var ct = cancellationToken;
         async Task Guard(CancellationToken token)
@@ -47,8 +47,8 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
                 !await scopeGuard(token)) Reject(403, "access_forbidden");
             // Protect resource scope before both new effects and receipt/conflict recovery.
             // Historical receipt access deliberately does not require the old workflow status.
-            if (c.Action == "asbuilt-create" && c.Input is AsBuiltLayoutInput built) await Layout(c.ProjectId, built.SourcePlanId, token);
-            if (c.Action == "publish" && c.Input is GeometryMapPublishInput publication) await Layout(c.ProjectId, publication.LayoutRevisionId, token);
+            if (c.Action == "asbuilt-create" && c.Input is AsBuiltLayoutInputFact built) await Layout(c.ProjectId, built.SourcePlanId, token);
+            if (c.Action == "publish" && c.Input is GeometryMapPublishInputFact publication) await Layout(c.ProjectId, publication.LayoutRevisionId, token);
             if (c.Action == "plan-create")
             {
                 var route = await Route(c.ProjectId, c.RouteVersionId, token);
@@ -57,7 +57,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
             }
             if (c.Action == "impact-decide" && !await db.Set<GeometryLocationImpact>().AnyAsync(x => x.Id == c.ResourceId && x.ProjectId == c.ProjectId, token))
                 Reject(404, "not_found");
-            if (c.Action == "impact-create" && c.Input is GeometryImpactInput impact)
+            if (c.Action == "impact-create" && c.Input is GeometryImpactInputFact impact)
             { await Route(c.ProjectId, impact.PreviousRouteVersionId, token); await Route(c.ProjectId, impact.NewRouteVersionId, token); }
         }
         try
@@ -108,7 +108,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
     }
 
     private async Task<GeometryWorkflowResult> Read(PavementWorkflowCommand c,
-        Func<GeometryMapSnapshot, PavementLayerQuery, string, GeometryMapPage> page, CancellationToken ct)
+        Func<GeometryMapSnapshotFact, PavementLayerQuery, string, GeometryMapPageFact> page, CancellationToken ct)
     {
         if (c.Action == "layout-get") return new(200, Value: View(await Layout(c.ProjectId, c.ResourceId, ct)));
         if (c.Action == "impact-list")
@@ -127,7 +127,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
         }
         var publication = await db.Set<GeometryMapPublication>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == c.ResourceId && x.ProjectId == c.ProjectId, ct)
             ?? throw new Rejected(404, "not_found");
-        var snapshot = Decode<GeometryMapSnapshot>(publication.SnapshotJson);
+        var snapshot = Decode<GeometryMapSnapshotFact>(publication.SnapshotJson);
         if (c.RouteVersionId is { } route && route != publication.RouteVersionId ||
             c.SegmentSetId is { } set && set != publication.SegmentSetId) Reject(409, "geometry_version_mismatch");
         return new(200, Value: c.Action == "manifest" ? snapshot.Manifest
@@ -135,32 +135,47 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
     }
 
     private async Task<(Guid Id, object Value)> Write(PavementWorkflowCommand c,
-        Func<GeometryDraftInput?, LineString, PavementPlanCreateInput, PavementGeometryPreview> plan,
-        Func<PavementGeometryPreview, AsBuiltLayoutInput, PavementGeometryPreview> asBuilt,
-        Func<GeometryDraftInput, int, GeometryPreview> geometryPreview, CancellationToken ct)
+        Func<GeometryDraftInputFact?, LineString, PavementPlanCreateInputFact, PavementGeometryPreviewFact> plan,
+        Func<PavementGeometryPreviewFact, AsBuiltLayoutInputFact, PavementGeometryPreviewFact> asBuilt,
+        Func<GeometryDraftInputFact, int, GeometryPreviewFact> geometryPreview, CancellationToken ct)
     {
         var now = timeProvider.GetUtcNow();
         if (c.Action == "plan-create")
         {
             var (route, set, metadata, native) = await Pins(c.ProjectId, c.RouteVersionId, c.SegmentSetId, ct);
-            var input = c.Input as PavementPlanCreateInput ?? throw new ArgumentException("A plan is required.");
-            var geometry = plan(metadata is null ? null : Decode<GeometryDraftInput>(metadata.InputJson), route.Geometry, input);
-            var definition = new { input, RouteHash = metadata?.GeometryHash ?? Hash(route.Geometry.AsText()),
-                SetHash = set.GeometryHash, SetVersion = Convert.ToBase64String(set.RowVersion), Native = native };
-            var layout = new PavementLayoutRevision { Id = Guid.NewGuid(), ProjectId = c.ProjectId, RouteVersionId = route.Id,
-                SegmentSetId = set.Id, CrsProfileRevisionId = native?.CrsProfileRevisionId,
-                DefinitionJson = JsonSerializer.Serialize(definition), SnapshotJson = JsonSerializer.Serialize(geometry),
-                ContentHash = Hash(new { definition, geometry }), CreatedBy = c.ActorId, CreatedAt = now };
+            var input = c.Input as PavementPlanCreateInputFact ?? throw new ArgumentException("A plan is required.");
+            var geometry = plan(metadata is null ? null : Decode<GeometryDraftInputFact>(metadata.InputJson), route.Geometry, input);
+            var definition = new
+            {
+                input,
+                RouteHash = metadata?.GeometryHash ?? Hash(route.Geometry.AsText()),
+                SetHash = set.GeometryHash,
+                SetVersion = Convert.ToBase64String(set.RowVersion),
+                Native = native
+            };
+            var layout = new PavementLayoutRevision
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = c.ProjectId,
+                RouteVersionId = route.Id,
+                SegmentSetId = set.Id,
+                CrsProfileRevisionId = native?.CrsProfileRevisionId,
+                DefinitionJson = JsonSerializer.Serialize(definition),
+                SnapshotJson = JsonSerializer.Serialize(geometry),
+                ContentHash = Hash(new { definition, geometry }),
+                CreatedBy = c.ActorId,
+                CreatedAt = now
+            };
             db.Add(layout); return (layout.Id, View(layout));
         }
         if (c.Action == "asbuilt-create")
         {
-            var input = c.Input as AsBuiltLayoutInput ?? throw new ArgumentException("As-built evidence is required.");
+            var input = c.Input as AsBuiltLayoutInputFact ?? throw new ArgumentException("As-built evidence is required.");
             var source = await Layout(c.ProjectId, input.SourcePlanId, ct);
             if (source.Kind != "PLANNED") Reject(409, "planned_source_required");
             if (source.ContentHash != c.ExpectedContentHash) Reject(412, "content_hash_mismatch");
             await Pins(c.ProjectId, source.RouteVersionId, source.SegmentSetId, ct);
-            var geometry = asBuilt(Decode<PavementGeometryPreview>(source.SnapshotJson), input);
+            var geometry = asBuilt(Decode<PavementGeometryPreviewFact>(source.SnapshotJson), input);
             var files = new List<SourceCapture>();
             foreach (var fileId in input.Slabs.Where(x => x.SourceFileId.HasValue).Select(x => x.SourceFileId!.Value).Distinct().Order())
             {
@@ -181,19 +196,36 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
                 files.Add(new(file, fileScope.Id, fileScope.TargetId, fileScope.CreatedAt, uploader));
             }
             var definition = new { input, SourcePlanHash = source.ContentHash, SourceFiles = files };
-            var layout = new PavementLayoutRevision { Id = Guid.NewGuid(), ProjectId = c.ProjectId, RouteVersionId = source.RouteVersionId,
-                SegmentSetId = source.SegmentSetId, SourcePlanId = source.Id, CrsProfileRevisionId = source.CrsProfileRevisionId,
-                Kind = "AS_BUILT", DefinitionJson = JsonSerializer.Serialize(definition), SnapshotJson = JsonSerializer.Serialize(geometry),
-                ContentHash = Hash(new { definition, geometry }), CreatedBy = c.ActorId, CreatedAt = now };
+            var layout = new PavementLayoutRevision
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = c.ProjectId,
+                RouteVersionId = source.RouteVersionId,
+                SegmentSetId = source.SegmentSetId,
+                SourcePlanId = source.Id,
+                CrsProfileRevisionId = source.CrsProfileRevisionId,
+                Kind = "AS_BUILT",
+                DefinitionJson = JsonSerializer.Serialize(definition),
+                SnapshotJson = JsonSerializer.Serialize(geometry),
+                ContentHash = Hash(new { definition, geometry }),
+                CreatedBy = c.ActorId,
+                CreatedAt = now
+            };
             db.Add(layout);
             foreach (var file in files)
-                db.Add(new PavementSourceFileReference { Id = Guid.NewGuid(), LayoutRevisionId = layout.Id,
-                    FileId = file.File.FileId, ContentChecksum = file.File.Checksum, CaptureFactsJson = JsonSerializer.Serialize(file) });
+                db.Add(new PavementSourceFileReference
+                {
+                    Id = Guid.NewGuid(),
+                    LayoutRevisionId = layout.Id,
+                    FileId = file.File.FileId,
+                    ContentChecksum = file.File.Checksum,
+                    CaptureFactsJson = JsonSerializer.Serialize(file)
+                });
             return (layout.Id, View(layout));
         }
         if (c.Action == "publish")
         {
-            var input = c.Input as GeometryMapPublishInput ?? throw new ArgumentException("A publication input is required.");
+            var input = c.Input as GeometryMapPublishInputFact ?? throw new ArgumentException("A publication input is required.");
             Reason(input.Reason);
             if (input.PublicationMode == "OFFICIAL") Reject(409, "official_crs_acceptance_pending");
             if (input.PublicationMode != "SAMPLE") Reject(422, "publication_mode_invalid");
@@ -204,36 +236,61 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
             var profile = native is null ? null : await db.Set<CrsProfileRevision>().AsNoTracking().SingleAsync(x => x.Id == native.CrsProfileRevisionId && x.ProjectId == c.ProjectId, ct);
             var id = Guid.NewGuid();
             var snapshot = await Snapshot(id, layout, route, set, metadata, profile, geometryPreview, ct);
-            var publication = new GeometryMapPublication { Id = id, ProjectId = c.ProjectId, RouteVersionId = route.Id,
-                SegmentSetId = set.Id, LayoutRevisionId = layout.Id, CrsProfileRevisionId = layout.CrsProfileRevisionId,
-                ContentHash = snapshot.Manifest.ContentHash, SnapshotJson = JsonSerializer.Serialize(snapshot, PublicJson),
-                PublicationMode = "SAMPLE", PublishedBy = c.ActorId, PublishedAt = now };
+            var publication = new GeometryMapPublication
+            {
+                Id = id,
+                ProjectId = c.ProjectId,
+                RouteVersionId = route.Id,
+                SegmentSetId = set.Id,
+                LayoutRevisionId = layout.Id,
+                CrsProfileRevisionId = layout.CrsProfileRevisionId,
+                ContentHash = snapshot.Manifest.ContentHash,
+                SnapshotJson = JsonSerializer.Serialize(snapshot, PublicJson),
+                PublicationMode = "SAMPLE",
+                PublishedBy = c.ActorId,
+                PublishedAt = now
+            };
             db.Add(publication); return (id, snapshot.Manifest);
         }
         if (c.Action == "impact-create")
         {
-            var input = c.Input as GeometryImpactInput ?? throw new ArgumentException("Impact versions are required."); Reason(input.Reason);
+            var input = c.Input as GeometryImpactInputFact ?? throw new ArgumentException("Impact versions are required."); Reason(input.Reason);
             if (input.PreviousRouteVersionId == input.NewRouteVersionId) Reject(422, "impact_versions_invalid");
             var previous = await Route(c.ProjectId, input.PreviousRouteVersionId, ct);
             var next = await Route(c.ProjectId, input.NewRouteVersionId, ct);
             if (previous.RoadSectionId != next.RoadSectionId) Reject(409, "impact_road_section_mismatch");
             var references = await ImpactReferences(c.ProjectId, input.PreviousRouteVersionId, ct);
-            var impact = new GeometryLocationImpact { Id = Guid.NewGuid(), ProjectId = c.ProjectId,
-                PreviousRouteVersionId = input.PreviousRouteVersionId, NewRouteVersionId = input.NewRouteVersionId,
-                AffectedReferencesJson = JsonSerializer.Serialize(references), RecordedBy = c.ActorId, RecordedAt = now };
+            var impact = new GeometryLocationImpact
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = c.ProjectId,
+                PreviousRouteVersionId = input.PreviousRouteVersionId,
+                NewRouteVersionId = input.NewRouteVersionId,
+                AffectedReferencesJson = JsonSerializer.Serialize(references),
+                RecordedBy = c.ActorId,
+                RecordedAt = now
+            };
             db.Add(impact); return (impact.Id, ImpactView(impact));
         }
         if (c.Action == "impact-decide")
         {
-            var input = c.Input as GeometryImpactDecisionInput ?? throw new ArgumentException("An impact decision is required."); Reason(input.Reason);
+            var input = c.Input as GeometryImpactDecisionInputFact ?? throw new ArgumentException("An impact decision is required."); Reason(input.Reason);
             if (input.Action is not ("VERIFY" or "CONTINUE" or "STOP" or "REASSIGN")) Reject(422, "impact_action_invalid");
             var impact = await db.Set<GeometryLocationImpact>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == c.ResourceId && x.ProjectId == c.ProjectId, ct)
                 ?? throw new Rejected(404, "not_found");
-            var reference = Decode<GeometryAffectedReference[]>(impact.AffectedReferencesJson)
+            var reference = Decode<GeometryAffectedReferenceFact[]>(impact.AffectedReferencesJson)
                 .FirstOrDefault(x => x.Id == input.TaskId && x.Kind is "FIELD_TASK" or "SURVEY_TASK");
             if (reference is null) Reject(409, "task_not_in_impact");
-            var decision = new GeometryLocationImpactDecision { Id = Guid.NewGuid(), ImpactId = impact.Id, TaskId = input.TaskId,
-                Action = input.Action, Reason = input.Reason.Trim(), ActorId = c.ActorId, OccurredAt = now };
+            var decision = new GeometryLocationImpactDecision
+            {
+                Id = Guid.NewGuid(),
+                ImpactId = impact.Id,
+                TaskId = input.TaskId,
+                Action = input.Action,
+                Reason = input.Reason.Trim(),
+                ActorId = c.ActorId,
+                OccurredAt = now
+            };
             db.Add(decision); return (decision.Id, new GeometryImpactDecisionView(decision.Id, impact.Id, input.TaskId, decision.Action, decision.Reason, now));
         }
         throw new ArgumentException("Unsupported pavement operation.");
@@ -245,8 +302,10 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
     {
         if (routeId is null || routeId == Guid.Empty) throw new Rejected(422, "route_version_required");
         await db.RoadSectionVersions.FromSqlInterpolated($"SELECT * FROM [RoadSectionVersions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={routeId}").AsNoTracking().ToListAsync(ct);
-        return await (from route in db.RoadSectionVersions.AsNoTracking() join road in db.RoadSections.AsNoTracking() on route.RoadSectionId equals road.Id
-            where route.Id == routeId && road.ProjectId == project select route).SingleOrDefaultAsync(ct) ?? throw new Rejected(404, "not_found");
+        return await (from route in db.RoadSectionVersions.AsNoTracking()
+                      join road in db.RoadSections.AsNoTracking() on route.RoadSectionId equals road.Id
+                      where route.Id == routeId && road.ProjectId == project
+                      select route).SingleOrDefaultAsync(ct) ?? throw new Rejected(404, "not_found");
     }
     private async Task<(RoadSectionVersion Route, RoadSegmentSet Set, RoadGeometryMetadata? Metadata, NativeRouteVersionFacts? Native)> Pins(
         Guid project, Guid? routeId, Guid? setId, CancellationToken ct)
@@ -262,7 +321,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
             Reject(409, "geometry_version_mismatch");
         if (metadata is not null)
         {
-            var input = Decode<GeometryDraftInput>(metadata.InputJson);
+            var input = Decode<GeometryDraftInputFact>(metadata.InputJson);
             if (input.NativeAlignment is { } alignment &&
                 (native is null || alignment.CrsProfileRevisionId != native.CrsProfileRevisionId || alignment.SpatialSrid != route.Geometry.SRID))
                 Reject(409, "geometry_version_mismatch");
@@ -275,57 +334,59 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
         => await db.Set<PavementLayoutRevision>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.ProjectId == project, ct)
             ?? throw new Rejected(404, "not_found");
     private static PavementLayoutView View(PavementLayoutRevision x) => new(x.Id, x.ProjectId, x.RouteVersionId, x.SegmentSetId,
-        x.SourcePlanId, x.CrsProfileRevisionId, x.Kind, x.ContentHash, Decode<PavementGeometryPreview>(x.SnapshotJson), x.CreatedAt);
+        x.SourcePlanId, x.CrsProfileRevisionId, x.Kind, x.ContentHash, Decode<PavementGeometryPreviewFact>(x.SnapshotJson), x.CreatedAt);
     private static GeometryImpactView ImpactView(GeometryLocationImpact x) => new(x.Id, x.ProjectId, x.PreviousRouteVersionId,
-        x.NewRouteVersionId, Decode<GeometryAffectedReference[]>(x.AffectedReferencesJson), x.RecordedAt);
+        x.NewRouteVersionId, Decode<GeometryAffectedReferenceFact[]>(x.AffectedReferencesJson), x.RecordedAt);
 
-    private async Task<GeometryAffectedReference[]> ImpactReferences(Guid project, Guid route, CancellationToken ct)
+    private async Task<GeometryAffectedReferenceFact[]> ImpactReferences(Guid project, Guid route, CancellationToken ct)
     {
-        var result = new List<GeometryAffectedReference>();
+        var result = new List<GeometryAffectedReferenceFact>();
         var field = await db.FieldInspectionTasks.AsNoTracking().Where(x => x.ProjectId == project && x.RoadSectionVersionId == route).Select(x => new { x.Id, x.SegmentSetId }).ToArrayAsync(ct);
-        result.AddRange(field.Select(x => new GeometryAffectedReference("FIELD_TASK", x.Id, route, x.SegmentSetId,
+        result.AddRange(field.Select(x => new GeometryAffectedReferenceFact("FIELD_TASK", x.Id, route, x.SegmentSetId,
             x.SegmentSetId.HasValue ? "PINNED_REFERENCE" : "INCOMPLETE", x.SegmentSetId.HasValue ? [] : ["LEGACY_SEGMENT_SET_UNPINNED"])));
-        var survey = await (from scope in db.SurveyRequestScopes.AsNoTracking() join task in db.SurveyRequests.AsNoTracking() on scope.SurveyRequestId equals task.Id
-            where task.ProjectId == project && scope.RouteSectionVersionId == route select new { task.Id, scope.SegmentSetId }).Distinct().ToArrayAsync(ct);
-        result.AddRange(survey.Select(x => new GeometryAffectedReference("SURVEY_TASK", x.Id, route, x.SegmentSetId, "READY", [])));
+        var survey = await (from scope in db.SurveyRequestScopes.AsNoTracking()
+                            join task in db.SurveyRequests.AsNoTracking() on scope.SurveyRequestId equals task.Id
+                            where task.ProjectId == project && scope.RouteSectionVersionId == route
+                            select new { task.Id, scope.SegmentSetId }).Distinct().ToArrayAsync(ct);
+        result.AddRange(survey.Select(x => new GeometryAffectedReferenceFact("SURVEY_TASK", x.Id, route, x.SegmentSetId, "READY", [])));
         var defects = await db.Defects.AsNoTracking().Where(x => x.ProjectId == project && x.RoadSectionVersionId == route).Select(x => x.Id).ToArrayAsync(ct);
-        result.AddRange(defects.Select(x => new GeometryAffectedReference("DEFECT", x, route, null, "INCOMPLETE", ["SEGMENT_SET_NOT_PINNED"])));
+        result.AddRange(defects.Select(x => new GeometryAffectedReferenceFact("DEFECT", x, route, null, "INCOMPLETE", ["SEGMENT_SET_NOT_PINNED"])));
         var layouts = await db.Set<PavementLayoutRevision>().AsNoTracking().Where(x => x.ProjectId == project && x.RouteVersionId == route).Select(x => new { x.Id, x.SegmentSetId }).ToArrayAsync(ct);
-        result.AddRange(layouts.Select(x => new GeometryAffectedReference("LAYOUT", x.Id, route, x.SegmentSetId, "PINNED_REFERENCE", [])));
+        result.AddRange(layouts.Select(x => new GeometryAffectedReferenceFact("LAYOUT", x.Id, route, x.SegmentSetId, "PINNED_REFERENCE", [])));
         var maps = await db.Set<GeometryMapPublication>().AsNoTracking().Where(x => x.ProjectId == project && x.RouteVersionId == route).Select(x => new { x.Id, x.SegmentSetId }).ToArrayAsync(ct);
-        result.AddRange(maps.Select(x => new GeometryAffectedReference("MAP", x.Id, route, x.SegmentSetId, "PINNED_REFERENCE", [])));
+        result.AddRange(maps.Select(x => new GeometryAffectedReferenceFact("MAP", x.Id, route, x.SegmentSetId, "PINNED_REFERENCE", [])));
         var branches = await db.Set<NativeRouteVersionFacts>().AsNoTracking().Where(x => x.ProjectId == project && x.ParentRouteVersionId == route).Select(x => x.RoadSectionVersionId).ToArrayAsync(ct);
-        result.AddRange(branches.Select(x => new GeometryAffectedReference("BRANCH", x, route, null, "PINNED_REFERENCE", [])));
+        result.AddRange(branches.Select(x => new GeometryAffectedReferenceFact("BRANCH", x, route, null, "PINNED_REFERENCE", [])));
         return result.DistinctBy(x => (x.Kind, x.Id, x.RouteVersionId, x.SegmentSetId)).OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.Id).ThenBy(x => x.SegmentSetId).ToArray();
     }
 
-    private async Task<GeometryMapSnapshot> Snapshot(Guid id, PavementLayoutRevision layout, RoadSectionVersion route,
+    private async Task<GeometryMapSnapshotFact> Snapshot(Guid id, PavementLayoutRevision layout, RoadSectionVersion route,
         RoadSegmentSet set, RoadGeometryMetadata? metadata, CrsProfileRevision? profile,
-        Func<GeometryDraftInput, int, GeometryPreview> geometryPreview, CancellationToken ct)
+        Func<GeometryDraftInputFact, int, GeometryPreviewFact> geometryPreview, CancellationToken ct)
     {
-        var preview = Decode<PavementGeometryPreview>(layout.SnapshotJson);
-        var features = new List<GeometryMapFeature>();
-        static double[] Bbox(IEnumerable<GeometryPoint> points)
+        var preview = Decode<PavementGeometryPreviewFact>(layout.SnapshotJson);
+        var features = new List<GeometryMapFeatureFact>();
+        static double[] Bbox(IEnumerable<GeometryPointFact> points)
         { var a = points.ToArray(); return [a.Min(x => x.X), a.Min(x => x.Y), a.Max(x => x.X), a.Max(x => x.Y)]; }
-        var routePoints = route.Geometry.Coordinates.Select(x => new GeometryPoint(x.X, x.Y)).ToArray();
+        var routePoints = route.Geometry.Coordinates.Select(x => new GeometryPointFact(x.X, x.Y)).ToArray();
         features.Add(new($"route:{route.Id:N}", "route", new("LineString", routePoints.Select(x => new[] { x.X, x.Y }).ToArray()), Bbox(routePoints), new { route.VersionNo }));
         var segments = await db.RoadSegments.AsNoTracking().Where(x => x.SegmentSetId == set.Id && x.RoadSectionVersionId == route.Id).OrderBy(x => x.Sequence).ToArrayAsync(ct);
         var missingSegments = segments.Length == 0 || segments.Any(x => x.Geometry is null);
         if (!missingSegments)
             foreach (var s in segments)
             {
-                var points = s.Geometry!.Coordinates.Select(x => new GeometryPoint(x.X, x.Y)).ToArray();
+                var points = s.Geometry!.Coordinates.Select(x => new GeometryPointFact(x.X, x.Y)).ToArray();
                 features.Add(new($"segment:{s.Id:N}", "segments", new("LineString", points.Select(x => new[] { x.X, x.Y }).ToArray()), Bbox(points),
                     new { s.Sequence, s.FromOffsetMeters, s.ToOffsetMeters, s.StartStationMeters, s.EndStationMeters }));
             }
         foreach (var slab in preview.Slabs)
             features.Add(new($"slab:{layout.Id:N}:{slab.Key}", "slabs", new("Polygon", new[] { slab.Footprint.Select(x => new[] { x.X, x.Y }).ToArray() }), Bbox(slab.Footprint), slab));
-        var layers = new List<GeometryMapLayer> { new("route", "READY", "LineString", 1, [], route.Geometry.SRID, layout.CrsProfileRevisionId, true),
-            new GeometryMapLayer("segments", missingSegments ? "INCOMPLETE" : "READY", "LineString", missingSegments ? 0 : segments.Length, missingSegments ? ["SEGMENT_GEOMETRY_MISSING"] : []),
-            new GeometryMapLayer("slabs", "READY", "Polygon", preview.Slabs.Length, []),
-            new GeometryMapLayer("wgs84", "UNAVAILABLE", "Geometry", 0, ["OFFICIAL_CRS_ACCEPTANCE_PENDING"], 4326, layout.CrsProfileRevisionId, true) };
-        var planned = layout.Kind == "PLANNED" ? preview : Decode<PavementGeometryPreview>((await Layout(layout.ProjectId, layout.SourcePlanId, ct)).SnapshotJson);
-        void SlabLayer(string key, PavementGeometryPreview? geometry, Guid sourceId)
+        var layers = new List<GeometryMapLayerFact> { new("route", "READY", "LineString", 1, [], route.Geometry.SRID, layout.CrsProfileRevisionId, true),
+            new GeometryMapLayerFact("segments", missingSegments ? "INCOMPLETE" : "READY", "LineString", missingSegments ? 0 : segments.Length, missingSegments ? ["SEGMENT_GEOMETRY_MISSING"] : []),
+            new GeometryMapLayerFact("slabs", "READY", "Polygon", preview.Slabs.Length, []),
+            new GeometryMapLayerFact("wgs84", "UNAVAILABLE", "Geometry", 0, ["OFFICIAL_CRS_ACCEPTANCE_PENDING"], 4326, layout.CrsProfileRevisionId, true) };
+        var planned = layout.Kind == "PLANNED" ? preview : Decode<PavementGeometryPreviewFact>((await Layout(layout.ProjectId, layout.SourcePlanId, ct)).SnapshotJson);
+        void SlabLayer(string key, PavementGeometryPreviewFact? geometry, Guid sourceId)
         {
             foreach (var slab in geometry?.Slabs ?? [])
                 features.Add(new($"{key}:{sourceId:N}:{slab.Key}", key, new("Polygon", new[] { slab.Footprint.Select(x => new[] { x.X, x.Y }).ToArray() }), Bbox(slab.Footprint), slab));
@@ -350,8 +411,8 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
             planned.Plan is null ? ["PLANNED_GRID_MISSING"] : [], route.Geometry.SRID, layout.CrsProfileRevisionId, true));
         if (metadata is not null)
         {
-            var input = Decode<GeometryDraftInput>(metadata.InputJson) with
-            { ResolvedCrsProfile = profile is null ? null : Decode<CrsProfileInput>(profile.PayloadJson) };
+            var input = Decode<GeometryDraftInputFact>(metadata.InputJson) with
+            { ResolvedCrsProfile = profile is null ? null : Decode<CrsProfileInputFact>(profile.PayloadJson) };
             var actual = geometryPreview(input, route.Geometry.SRID);
             AddShape("roadSurface", actual.RoadSurface, route.Geometry.SRID);
             AddShape("surveyArea", actual.SurveyArea, route.Geometry.SRID);
@@ -370,11 +431,11 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
             layers.Add(new(pair.Key, "READY", "Geometry", features.Count(x => x.Layer == pair.Key), [], pair.Srid,
                 pair.Key == "defects" ? layout.CrsProfileRevisionId : null, true));
         }
-        void AddShape(string key, GeometryShape shape, int srid)
+        void AddShape(string key, GeometryShapeFact shape, int srid)
         {
             var coordinates = JsonSerializer.SerializeToElement(shape.Coordinates);
-            var points = new List<GeometryPoint>();
-            static void Visit(JsonElement value, List<GeometryPoint> points)
+            var points = new List<GeometryPointFact>();
+            static void Visit(JsonElement value, List<GeometryPointFact> points)
             {
                 if (value.ValueKind != JsonValueKind.Array) return;
                 var values = value.EnumerateArray().ToArray();
@@ -389,21 +450,33 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
         }
         for (var index = 0; index < layers.Count; index++)
             if (layers[index].SpatialSrid is null) layers[index] = layers[index] with
-                { SpatialSrid = route.Geometry.SRID, CrsProfileRevisionId = layout.CrsProfileRevisionId, SampleOnly = true };
-        var manifest = new GeometryMapManifest(id, layout.ProjectId, route.Id, set.Id, layout.Id, layout.CrsProfileRevisionId,
+            { SpatialSrid = route.Geometry.SRID, CrsProfileRevisionId = layout.CrsProfileRevisionId, SampleOnly = true };
+        var manifest = new GeometryMapManifestFact(id, layout.ProjectId, route.Id, set.Id, layout.Id, layout.CrsProfileRevisionId,
             route.Geometry.SRID, profile?.Status ?? "LEGACY_UNKNOWN", true, preview.DisplayToleranceMeters, "", layers.ToArray());
         var native = await db.Set<NativeRouteVersionFacts>().AsNoTracking().SingleOrDefaultAsync(x => x.RoadSectionVersionId == route.Id, ct);
-        manifest = manifest with { RouteSystemId = native?.RouteSystemId, RoadSectionId = route.RoadSectionId,
+        manifest = manifest with
+        {
+            RouteSystemId = native?.RouteSystemId,
+            RoadSectionId = route.RoadSectionId,
             CanonicalLengthMeters = native?.CanonicalLengthMeters ?? route.Geometry.Length,
             DeclaredLengthMeters = native?.DeclaredLengthMeters,
-            ChainageStatus = native is null ? "LEGACY" : native.CalibrationJson is null ? "GEOMETRIC" : "CALIBRATED" };
-        var hash = Hash(new { manifest, features, LayoutHash = layout.ContentHash, RouteHash = metadata?.GeometryHash,
-            SetVersion = Convert.ToBase64String(set.RowVersion), SetHash = set.GeometryHash, ProfileHash = profile is null ? null : Hash(profile.PayloadJson) });
+            ChainageStatus = native is null ? "LEGACY" : native.CalibrationJson is null ? "GEOMETRIC" : "CALIBRATED"
+        };
+        var hash = Hash(new
+        {
+            manifest,
+            features,
+            LayoutHash = layout.ContentHash,
+            RouteHash = metadata?.GeometryHash,
+            SetVersion = Convert.ToBase64String(set.RowVersion),
+            SetHash = set.GeometryHash,
+            ProfileHash = profile is null ? null : Hash(profile.PayloadJson)
+        });
         return new(manifest with { ContentHash = hash }, features.ToArray());
     }
     private static double[] Envelope(Geometry geometry)
         => [geometry.EnvelopeInternal.MinX, geometry.EnvelopeInternal.MinY, geometry.EnvelopeInternal.MaxX, geometry.EnvelopeInternal.MaxY];
-    private static GeometryShape Shape(Geometry geometry) => geometry switch
+    private static GeometryShapeFact Shape(Geometry geometry) => geometry switch
     {
         Point point => new("Point", new[] { point.X, point.Y }),
         LineString line => new("LineString", line.Coordinates.Select(x => new[] { x.X, x.Y }).ToArray()),

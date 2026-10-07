@@ -1,5 +1,5 @@
 using RoadGuardSystem.BusinessObjects.Processing;
-using RoadGuardSystem.DTOs.Processing;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Candidates;
 
@@ -24,8 +24,8 @@ public sealed class AiRequestException(int status, string code) : Exception(code
 public interface IAnh02AiRepository
 {
     Task AuthorizeAsync(Guid actorId, UserRoleCode role, Guid projectId, bool managerOnly, CancellationToken ct);
-    Task<AiDatasetSourceFacts> ReadSourcesAsync(Guid projectId, CreateAiMockRunRequest request, CancellationToken ct);
-    Task<AiMockRunView> AdmitAsync(Guid actorId, UserRoleCode role, Guid projectId, CreateAiMockRunRequest request,
+    Task<AiDatasetSourceFacts> ReadSourcesAsync(Guid projectId, CreateAiMockRunRequestFact request, CancellationToken ct);
+    Task<AiMockRunViewFact> AdmitAsync(Guid actorId, UserRoleCode role, Guid projectId, CreateAiMockRunRequestFact request,
         string key, string fingerprint, Func<Guid, Guid, Guid, AiDatasetSourceFacts, CancellationToken, Task<AiAdmissionManifest>> createManifest, CancellationToken ct);
     Task<AiMockRun?> GetAsync(Guid projectId, Guid runId, CancellationToken ct);
     Task<AiResultProvenance?> GetResultAsync(Guid runId, CancellationToken ct);

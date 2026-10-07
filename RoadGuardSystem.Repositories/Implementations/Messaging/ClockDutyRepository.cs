@@ -92,14 +92,34 @@ public sealed class ClockDutyRepository(RoadGuardDbContext db, IdempotencyOperat
                     null, JsonSerializer.Serialize(new { row.OriginalDueAt, row.CurrentDueAt, row.AppointedActorId }, Json), c.Reason,
                     "activation.clock", eventId, ["originalDueAt", "currentDueAt", "appointedActorId"]));
                 db.OutboxMessages.Add(OutboxMessage.Create(eventId, "clock." + c.Action + ".v1", now, row.Id,
-                    JsonSerializer.Serialize(new { schemaVersion = 1, eventId, clockId = row.Id, row.ProjectId, row.OriginEventId,
-                        row.OriginalDueAt, row.CurrentDueAt, row.AppointedActorId }, Json)));
+                    JsonSerializer.Serialize(new
+                    {
+                        schemaVersion = 1,
+                        eventId,
+                        clockId = row.Id,
+                        row.ProjectId,
+                        row.OriginEventId,
+                        row.OriginalDueAt,
+                        row.CurrentDueAt,
+                        row.AppointedActorId
+                    }, Json)));
                 await db.SaveChangesAsync(ct);
                 return (eventId, JsonSerializer.Serialize(new
                 {
-                    row.Id, row.ProjectId, row.Kind, row.OriginEventId, row.OriginAt, row.OriginalDueAt, row.CurrentDueAt,
-                    row.AppointedActorId, row.AppointedRole, row.Extensions, row.Breaches, row.Appointments,
-                    numericalLimitPolicy = "PENDING_OWNER_DECISION", additionalOfflineExecution = "NOT_AUTHORIZED",
+                    row.Id,
+                    row.ProjectId,
+                    row.Kind,
+                    row.OriginEventId,
+                    row.OriginAt,
+                    row.OriginalDueAt,
+                    row.CurrentDueAt,
+                    row.AppointedActorId,
+                    row.AppointedRole,
+                    row.Extensions,
+                    row.Breaches,
+                    row.Appointments,
+                    numericalLimitPolicy = "PENDING_OWNER_DECISION",
+                    additionalOfflineExecution = "NOT_AUTHORIZED",
                     version = Convert.ToBase64String(row.RowVersion)
                 }, Json));
             }, token, receiptAccessGuard: ct => Guard(c, ct));

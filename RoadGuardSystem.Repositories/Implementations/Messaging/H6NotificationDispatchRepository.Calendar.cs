@@ -56,8 +56,14 @@ public sealed partial class H6NotificationDispatchRepository
                     {
                         if (await db.Set<WeeklyReviewRecoveryPeriod>().AnyAsync(p => p.ProjectId == project.Key &&
                             p.ScheduledAtUtc == period, cancellationToken)) continue;
-                        var history = new WeeklyReviewRecoveryPeriod { Id = Guid.NewGuid(), ProjectId = project.Key,
-                            ScheduledAtUtc = period, RecoveredAtUtc = now, IsLatestAtRecovery = period == latest };
+                        var history = new WeeklyReviewRecoveryPeriod
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = project.Key,
+                            ScheduledAtUtc = period,
+                            RecoveredAtUtc = now,
+                            IsLatestAtRecovery = period == latest
+                        };
                         db.Add(history); if (period == latest) latestHistory = history;
                     }
                     var groups = new Dictionary<(Guid? Actor, UserRoleCode Role), List<DeadlineClock>>();
@@ -93,13 +99,28 @@ public sealed partial class H6NotificationDispatchRepository
                         if (await db.Set<H6NotificationOccurrenceRow>().AnyAsync(o => o.ProjectId == project.Key &&
                             o.EventType == "review.weekly_pending.v1" && o.ScheduledAtUtc == latest &&
                             db.Set<H6NotificationDeliveryRow>().Any(d => d.OccurrenceId == o.Id && d.RecipientUserId == group.Key.Actor), cancellationToken)) continue;
-                        var digest = new WeeklyReviewDigest { Id = Guid.NewGuid(), ProjectId = project.Key,
-                            RecoveryPeriodId = latestHistory!.Id, ScheduledAtUtc = latest, RecoveredAtUtc = now,
-                            RecipientId = group.Key.Actor, RecipientRole = group.Key.Role,
-                            RecipientKey = group.Key.Actor is Guid actor ? "actor:" + actor.ToString("N") : "pending:" + group.Key.Role };
+                        var digest = new WeeklyReviewDigest
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = project.Key,
+                            RecoveryPeriodId = latestHistory!.Id,
+                            ScheduledAtUtc = latest,
+                            RecoveredAtUtc = now,
+                            RecipientId = group.Key.Actor,
+                            RecipientRole = group.Key.Role,
+                            RecipientKey = group.Key.Actor is Guid actor ? "actor:" + actor.ToString("N") : "pending:" + group.Key.Role
+                        };
                         foreach (var duty in group.Value.DistinctBy(c => c.Id))
-                            digest.Duties.Add(new() { DigestId = digest.Id, ClockId = duty.Id, OriginEventId = duty.OriginEventId,
-                                TargetId = duty.TargetId, Kind = duty.Kind.ToString(), OriginAtUtc = duty.OriginAt, DueAtRecoveryUtc = duty.CurrentDueAt });
+                            digest.Duties.Add(new()
+                            {
+                                DigestId = digest.Id,
+                                ClockId = duty.Id,
+                                OriginEventId = duty.OriginEventId,
+                                TargetId = duty.TargetId,
+                                Kind = duty.Kind.ToString(),
+                                OriginAtUtc = duty.OriginAt,
+                                DueAtRecoveryUtc = duty.CurrentDueAt
+                            });
                         db.Add(digest);
                         var source = new H6StoredEvent(1, digest.Id, "WEEKLY_PENDING", digest.ProjectId, "ReviewDigest",
                             digest.Id, digest.Id, now, digest.Id, digest.RecipientId, latest);
@@ -110,8 +131,15 @@ public sealed partial class H6NotificationDispatchRepository
                 }
                 foreach (var duty in project.Where(c => c.CompletedAt is null))
                     if (!calendars.Any(p => p.ClockId == duty.Id && p.ScheduledAtUtc == next))
-                        db.Add(new H6NotificationCalendarRow { Id = Guid.NewGuid(), ClockId = duty.Id, PlannedAtUtc = now,
-                            ScheduledAtUtc = next, Status = "PLANNED", SchedulerRunId = schedulerRunId });
+                        db.Add(new H6NotificationCalendarRow
+                        {
+                            Id = Guid.NewGuid(),
+                            ClockId = duty.Id,
+                            PlannedAtUtc = now,
+                            ScheduledAtUtc = next,
+                            Status = "PLANNED",
+                            SchedulerRunId = schedulerRunId
+                        });
             }
             await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken);
         });

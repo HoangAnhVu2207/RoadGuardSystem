@@ -25,8 +25,16 @@ public sealed class CasesController : ControllerBase
         if (!Actor(out var actor, out var role)) return Error(401, "auth_unauthorized");
         var service = Service;
         if (service is null) return Error(503, "dependency_unavailable");
-        var parsed = status switch { null => (IncidentCaseStatus?)null, "UNASSIGNED" => IncidentCaseStatus.Unassigned,
-            "OPEN" => IncidentCaseStatus.Open, "AWAITING_EVIDENCE" => IncidentCaseStatus.AwaitingEvidence, "CONCLUDED" => IncidentCaseStatus.Concluded, "LINKED" => IncidentCaseStatus.Linked, _ => (IncidentCaseStatus?)0 };
+        var parsed = status switch
+        {
+            null => (IncidentCaseStatus?)null,
+            "UNASSIGNED" => IncidentCaseStatus.Unassigned,
+            "OPEN" => IncidentCaseStatus.Open,
+            "AWAITING_EVIDENCE" => IncidentCaseStatus.AwaitingEvidence,
+            "CONCLUDED" => IncidentCaseStatus.Concluded,
+            "LINKED" => IncidentCaseStatus.Linked,
+            _ => (IncidentCaseStatus?)0
+        };
         if (status is not null && parsed == 0 || projectId == Guid.Empty) return Error(400, "validation_error", "status");
         return Map(await service.ListAsync(actor, role, projectId, parsed, pageSize, cursor, cancellationToken));
     }
@@ -43,8 +51,13 @@ public sealed class CasesController : ControllerBase
     [HttpPost("{caseId:guid}/triage")]
     public Task<IActionResult> Triage(Guid caseId, CaseTriageDto request, CancellationToken cancellationToken)
         => Execute(caseId, version => new(caseId, version, "triage", request.Reason ?? "", ProjectId: request.ProjectId,
-            Method: request.VerificationMethod switch { "FIELD" => CaseVerificationMethod.Field, "DRONE" => CaseVerificationMethod.Drone,
-                "EXISTING_EVIDENCE" => CaseVerificationMethod.ExistingEvidence, _ => CaseVerificationMethod.Unknown },
+            Method: request.VerificationMethod switch
+            {
+                "FIELD" => CaseVerificationMethod.Field,
+                "DRONE" => CaseVerificationMethod.Drone,
+                "EXISTING_EVIDENCE" => CaseVerificationMethod.ExistingEvidence,
+                _ => CaseVerificationMethod.Unknown
+            },
             RouteVersionId: request.RouteVersionId, SegmentSetId: request.SegmentSetId, GeometryVersion: request.GeometryVersion), cancellationToken);
 
     [HttpPost("{caseId:guid}/report-links")]
@@ -74,8 +87,11 @@ public sealed class CasesController : ControllerBase
         if (!Request.Headers.TryGetValue("If-Match", out var header) || !Request.Headers.TryGetValue("Idempotency-Key", out var key)) return Error(428, "precondition_required");
         var raw = header.ToString();
         string version;
-        try { if (raw.Length < 3 || raw[0] != '"' || raw[^1] != '"') return Error(400, "validation_error", "If-Match");
-            var bytes = Convert.FromBase64String(raw[1..^1]); if (bytes.Length != 8) return Error(400, "validation_error", "If-Match"); version = Convert.ToBase64String(bytes); }
+        try
+        {
+            if (raw.Length < 3 || raw[0] != '"' || raw[^1] != '"') return Error(400, "validation_error", "If-Match");
+            var bytes = Convert.FromBase64String(raw[1..^1]); if (bytes.Length != 8) return Error(400, "validation_error", "If-Match"); version = Convert.ToBase64String(bytes);
+        }
         catch (FormatException) { return Error(400, "validation_error", "If-Match"); }
         var correlation = Guid.TryParse(HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString(), out var value) ? value : (Guid?)null;
         return Map(await service.CommandAsync(actor, role, command(version), key.ToString(), correlation, ct));

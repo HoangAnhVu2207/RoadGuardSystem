@@ -83,8 +83,10 @@ public sealed class DefectWorkflowService(IDefectWorkflowRepository repository,
             await Guard(ct);
             var severity = request.Severity switch
             {
-                "LOW" => DefectSeverity.Low, "MEDIUM" => DefectSeverity.Medium,
-                "HIGH" => DefectSeverity.High, "CRITICAL" => DefectSeverity.Critical,
+                "LOW" => DefectSeverity.Low,
+                "MEDIUM" => DefectSeverity.Medium,
+                "HIGH" => DefectSeverity.High,
+                "CRITICAL" => DefectSeverity.Critical,
                 _ => DefectSeverity.Unknown
             };
             var view = await repository.ApplyAssessmentAsync(actor, project, defect, expected,
@@ -110,27 +112,27 @@ public sealed class DefectWorkflowService(IDefectWorkflowRepository repository,
             !ValidReason(request.Reason) || !ValidEvidence(request.EvidenceIds) ||
             request.EvidenceIds!.Length == 0) return Invalid("verification");
         if (request.VerificationMethod == "DRONE") return Failure(409, "source_not_ready");
-        if(request.VerificationMethod=="FIELD" && (request.FieldTaskId is null || request.FieldTaskId==Guid.Empty ||
-            request.FieldSubmissionId is null || request.FieldSubmissionId==Guid.Empty || request.FieldContentHash is null ||
-            request.FieldContentHash.Length!=64 || !request.FieldContentHash.All(Uri.IsHexDigit)))return Invalid("fieldSource");
-        if(request.VerificationMethod=="EXISTING_EVIDENCE" && (request.FieldTaskId is not null || request.FieldSubmissionId is not null || request.FieldContentHash is not null))return Invalid("fieldSource");
+        if (request.VerificationMethod == "FIELD" && (request.FieldTaskId is null || request.FieldTaskId == Guid.Empty ||
+            request.FieldSubmissionId is null || request.FieldSubmissionId == Guid.Empty || request.FieldContentHash is null ||
+            request.FieldContentHash.Length != 64 || !request.FieldContentHash.All(Uri.IsHexDigit))) return Invalid("fieldSource");
+        if (request.VerificationMethod == "EXISTING_EVIDENCE" && (request.FieldTaskId is not null || request.FieldSubmissionId is not null || request.FieldContentHash is not null)) return Invalid("fieldSource");
         var reason = request.Reason!.Trim();
         var evidence = request.EvidenceIds!;
-        var fingerprint = request.VerificationMethod=="FIELD"
-            ? Fingerprint(new { project, defect, expected, request.Decision, request.VerificationMethod, request.FieldTaskId,request.FieldSubmissionId,request.FieldContentHash,reason,evidence })
+        var fingerprint = request.VerificationMethod == "FIELD"
+            ? Fingerprint(new { project, defect, expected, request.Decision, request.VerificationMethod, request.FieldTaskId, request.FieldSubmissionId, request.FieldContentHash, reason, evidence })
             : Fingerprint(new { project, defect, expected, request.Decision, request.VerificationMethod, reason, evidence });
-        RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts? fieldSource=null;
+        RoadGuardSystem.DTOs.Inspections.FieldVerificationSourceFacts? fieldSource = null;
         async Task<IReadOnlyCollection<Guid>> Guard(CancellationToken ct)
         {
-            if(request.VerificationMethod!="FIELD")return await GuardDefectAsync(actor,role,project,defect,evidence,ct);
-            await GuardProjectAsync(actor,role,project,ct);
-            await repository.LockTargetAsync(project,defect,ct);
-            var resolved=await producer.ResolveFieldSourceAsync(actor,role,project,defect,request.FieldTaskId!.Value,
-                request.FieldSubmissionId!.Value,request.FieldContentHash!,ct);
-            if(resolved.Status!=AnhHuyProducerStatus.Ready)throw new CaseWorkflowException(resolved.Status switch{AnhHuyProducerStatus.Forbidden=>403,AnhHuyProducerStatus.NotFound=>404,_=>409},
-                resolved.Status==AnhHuyProducerStatus.Forbidden?"access_forbidden":resolved.Status==AnhHuyProducerStatus.NotFound?"not_found":"source_not_ready");
-            fieldSource=resolved.Facts!;
-            if(fieldSource.Decision!=(request.Decision=="CONFIRM"?"CONFIRM":"NO_DEFECT") || evidence.Any(x=>!fieldSource.EvidenceIds.Contains(x)))throw new CaseWorkflowException(409,"source_not_ready");
+            if (request.VerificationMethod != "FIELD") return await GuardDefectAsync(actor, role, project, defect, evidence, ct);
+            await GuardProjectAsync(actor, role, project, ct);
+            await repository.LockTargetAsync(project, defect, ct);
+            var resolved = await producer.ResolveFieldSourceAsync(actor, role, project, defect, request.FieldTaskId!.Value,
+                request.FieldSubmissionId!.Value, request.FieldContentHash!, ct);
+            if (resolved.Status != AnhHuyProducerStatus.Ready) throw new CaseWorkflowException(resolved.Status switch { AnhHuyProducerStatus.Forbidden => 403, AnhHuyProducerStatus.NotFound => 404, _ => 409 },
+                resolved.Status == AnhHuyProducerStatus.Forbidden ? "access_forbidden" : resolved.Status == AnhHuyProducerStatus.NotFound ? "not_found" : "source_not_ready");
+            fieldSource = resolved.Facts!;
+            if (fieldSource.Decision != (request.Decision == "CONFIRM" ? "CONFIRM" : "NO_DEFECT") || evidence.Any(x => !fieldSource.EvidenceIds.Contains(x))) throw new CaseWorkflowException(409, "source_not_ready");
             return fieldSource.EvidenceIds;
         }
         var outcome = await Huy01CommandExecution.ExecuteAsync(handler => idempotency.ExecuteAsync(actor,
@@ -139,9 +141,9 @@ public sealed class DefectWorkflowService(IDefectWorkflowRepository repository,
         {
             var verified = await Guard(ct);
             var action = request.Decision == "CONFIRM" ? DefectVerificationAction.Confirm : DefectVerificationAction.Reject;
-            var view = request.VerificationMethod=="FIELD"
-                ? await repository.ApplyFieldVerificationAsync(actor,project,defect,expected,action,fieldSource!,evidence,reason,correlation,ct)
-                : await repository.ApplyVerificationAsync(actor,project,defect,expected,action,evidence,verified,reason,correlation,ct);
+            var view = request.VerificationMethod == "FIELD"
+                ? await repository.ApplyFieldVerificationAsync(actor, project, defect, expected, action, fieldSource!, evidence, reason, correlation, ct)
+                : await repository.ApplyVerificationAsync(actor, project, defect, expected, action, evidence, verified, reason, correlation, ct);
             return (Guid.NewGuid(), JsonSerializer.Serialize(view));
         }, error => error is CaseWorkflowException { Code: "concurrency_conflict" });
         return outcome.Status == IdempotencyOperationStatus.Conflict ? Failure(409, "idempotency_key_reused")

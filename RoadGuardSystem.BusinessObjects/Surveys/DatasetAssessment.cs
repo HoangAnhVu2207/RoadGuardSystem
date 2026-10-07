@@ -29,8 +29,19 @@ public sealed class DatasetAssessmentItem
     public string EvidenceJson { get; private set; } = "[]";
     public static DatasetAssessmentItem Create(Guid assessment, Guid route, Guid set, Guid segment, string band,
         string position, string quality, string coverage, string reason, string evidence) => new()
-    { Id = Guid.NewGuid(), AssessmentId = assessment, RouteVersionId = route, SegmentSetId = set, SegmentId = segment,
-        TargetBand = band, PositionStatus = position, QualityStatus = quality, CoverageStatus = coverage, Reason = reason, EvidenceJson = evidence };
+        {
+            Id = Guid.NewGuid(),
+            AssessmentId = assessment,
+            RouteVersionId = route,
+            SegmentSetId = set,
+            SegmentId = segment,
+            TargetBand = band,
+            PositionStatus = position,
+            QualityStatus = quality,
+            CoverageStatus = coverage,
+            Reason = reason,
+            EvidenceJson = evidence
+        };
 }
 
 public sealed class BaselineSelection
@@ -58,8 +69,16 @@ public sealed class BaselineSelectionItem
     public Guid SegmentId { get; private set; }
     public string TargetBand { get; private set; } = "";
     public static BaselineSelectionItem Create(Guid batch, Guid dataset, Guid assessment, Guid route, Guid set, Guid segment, string band) => new()
-    { Id = Guid.NewGuid(), BaselineSelectionId = batch, DatasetId = dataset, AssessmentId = assessment, RouteVersionId = route,
-        SegmentSetId = set, SegmentId = segment, TargetBand = band };
+    {
+        Id = Guid.NewGuid(),
+        BaselineSelectionId = batch,
+        DatasetId = dataset,
+        AssessmentId = assessment,
+        RouteVersionId = route,
+        SegmentSetId = set,
+        SegmentId = segment,
+        TargetBand = band
+    };
 }
 
 public sealed class BaselineCurrentPointer
@@ -75,6 +94,13 @@ public sealed class BaselineCurrentPointer
     public byte[] RowVersion { get; private set; } = [];
     public void Select(Guid selection) => SelectionId = selection;
     public static BaselineCurrentPointer Create(Guid project, BaselineSelectionItem item) => new()
-    { Id = Guid.NewGuid(), ProjectId = project, RouteVersionId = item.RouteVersionId, SegmentSetId = item.SegmentSetId,
-        SegmentId = item.SegmentId, TargetBand = item.TargetBand, SelectionId = item.Id };
+    {
+        Id = Guid.NewGuid(),
+        ProjectId = project,
+        RouteVersionId = item.RouteVersionId,
+        SegmentSetId = item.SegmentSetId,
+        SegmentId = item.SegmentId,
+        TargetBand = item.TargetBand,
+        SelectionId = item.Id
+    };
 }

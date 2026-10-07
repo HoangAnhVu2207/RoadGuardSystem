@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Retention;
 using RoadGuardSystem.BusinessObjects.Idempotency;
-using RoadGuardSystem.DTOs.Retention;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Retention;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.aBusinessObjects.Commons;
 namespace RoadGuardSystem.Repositories.Retention;
@@ -49,7 +49,7 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
         if (!await SupervisorAsync(actor, token) && !current!.PublicProjectIds.Contains(project)) Reject(404, "not_found");
         return current!;
     }
-    public async Task<RetentionFileView> GetFileAsync(Guid actor, Guid project, Guid file, CancellationToken token)
+    public async Task<RetentionFileViewFact> GetFileAsync(Guid actor, Guid project, Guid file, CancellationToken token)
     {
         await AuthorizeAsync(actor, project, false, token);
         var current = await ScopedInventoryAsync(actor, project, file, token);
@@ -61,11 +61,11 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             current.References.Where(x => supervisor || x.ProjectId == project).ToArray(), current.Warranties.Where(x => supervisor || x.ProjectId == project).ToArray(), reasons,
             control.Holds.Count(x => x.State == "ACTIVE"), control.Item);
     }
-    public async Task<RetentionBasisView> ConfirmBasisAsync(Guid actor, Guid project, Guid file, ConfirmRetentionBasisRequest request, string key, string expected, CancellationToken token)
+    public async Task<RetentionBasisViewFact> ConfirmBasisAsync(Guid actor, Guid project, Guid file, ConfirmRetentionBasisRequestFact request, string key, string expected, CancellationToken token)
     {
         await AuthorizeAsync(actor, project, true, token);
         await ScopedInventoryAsync(actor, project, file, token);
-        return await CommandAsync<RetentionBasisView>(actor, project, "Anh02.RetentionBasis", key, new { project, file, warrantyIds = request.WarrantyIds.Order().ToArray(), request.ExpectedReferenceInventoryVersion, reason = request.Reason.Trim(), expected }, async ct =>
+        return await CommandAsync<RetentionBasisViewFact>(actor, project, "Anh02.RetentionBasis", key, new { project, file, warrantyIds = request.WarrantyIds.Order().ToArray(), request.ExpectedReferenceInventoryVersion, reason = request.Reason.Trim(), expected }, async ct =>
         {
             await AuthorizeAsync(actor, project, true, ct);
             var current = await ScopedInventoryAsync(actor, project, file, ct);
@@ -74,25 +74,37 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             if (request.ExpectedReferenceInventoryVersion != current.Version) Reject(409, "retention_inventory_stale");
             if (!current.Complete) Reject(409, "retention_inventory_incomplete");
             if (!request.WarrantyIds.Order().SequenceEqual(current.Warranties.Select(x => x.Id).Order())) Reject(422, "basis_invalid");
-            var revision = new RetentionBasisRevision { Id = Guid.NewGuid(), FileId = file, Revision = (head?.Revision ?? 0) + 1, InventoryVersion = current.Version, InventoryComplete = true, Classification = current.Classification,
-                WarrantyReferencesJson = JsonSerializer.Serialize(current.Warranties, Json), ConfirmedBy = actor, ConfirmedAt = clock.GetUtcNow(), Reason = request.Reason.Trim(), SupersedesId = head?.RevisionId };
+            var revision = new RetentionBasisRevision
+            {
+                Id = Guid.NewGuid(),
+                FileId = file,
+                Revision = (head?.Revision ?? 0) + 1,
+                InventoryVersion = current.Version,
+                InventoryComplete = true,
+                Classification = current.Classification,
+                WarrantyReferencesJson = JsonSerializer.Serialize(current.Warranties, Json),
+                ConfirmedBy = actor,
+                ConfirmedAt = clock.GetUtcNow(),
+                Reason = request.Reason.Trim(),
+                SupersedesId = head?.RevisionId
+            };
             context.Add(revision);
             if (head is null) { head = new RetentionBasisHead { FileId = file }; context.Add(head); }
             head.RevisionId = revision.Id; head.Revision = revision.Revision;
             Audit(actor, revision.Id, "retention_basis_confirmed", revision.Reason);
             await context.SaveChangesAsync(ct);
-            return (revision.Id, new RetentionBasisView(revision.Id, file, revision.Revision, revision.PolicyVersion, revision.Classification, current.Version, true, current.Warranties, actor, revision.ConfirmedAt, revision.Reason, revision.SupersedesId, RetentionInventoryRepository.Version(head.RowVersion)));
+            return (revision.Id, new RetentionBasisViewFact(revision.Id, file, revision.Revision, revision.PolicyVersion, revision.Classification, current.Version, true, current.Warranties, actor, revision.ConfirmedAt, revision.Reason, revision.SupersedesId, RetentionInventoryRepository.Version(head.RowVersion)));
         }, async ct =>
         {
             await LockFileScopeAsync(file, ct);
             await ScopedInventoryAsync(actor, project, file, ct);
         }, token);
     }
-    public async Task<RetentionHoldView> CreateHoldAsync(Guid actor, CreateRetentionHoldRequest request, string key, CancellationToken token)
+    public async Task<RetentionHoldViewFact> CreateHoldAsync(Guid actor, CreateRetentionHoldRequestFact request, string key, CancellationToken token)
     {
         await AuthorizeAsync(actor, null, true, token);
         await RequireScopeAsync(request.ScopeType, request.ScopeId, token);
-        return await CommandAsync<RetentionHoldView>(actor, null, "Anh02.RetentionHoldCreate", key, new { request.ScopeType, request.ScopeId, reason = request.Reason.Trim() }, async ct =>
+        return await CommandAsync<RetentionHoldViewFact>(actor, null, "Anh02.RetentionHoldCreate", key, new { request.ScopeType, request.ScopeId, reason = request.Reason.Trim() }, async ct =>
         {
             await AuthorizeAsync(actor, null, true, ct); await RequireScopeAsync(request.ScopeType, request.ScopeId, ct);
             var hold = new RetentionHold { Id = Guid.NewGuid(), ScopeType = request.ScopeType, ScopeId = request.ScopeId, CreatedBy = actor, CreatedAt = clock.GetUtcNow(), Reason = request.Reason.Trim() };
@@ -100,7 +112,7 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             return (hold.Id, View(hold));
         }, ct => RequireLockedScopeAsync(request.ScopeType, request.ScopeId, ct), token);
     }
-    public async Task<RetentionHoldView> GetHoldAsync(Guid actor, Guid holdId, CancellationToken token)
+    public async Task<RetentionHoldViewFact> GetHoldAsync(Guid actor, Guid holdId, CancellationToken token)
     {
         var hold = await context.Set<RetentionHold>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == holdId, token);
         if (hold is null) Reject(404, "not_found");
@@ -120,11 +132,11 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
         }
         return View(hold);
     }
-    public async Task<RetentionHoldView> ReleaseHoldAsync(Guid actor, Guid holdId, ReleaseRetentionHoldRequest request, string key, string expected, CancellationToken token)
+    public async Task<RetentionHoldViewFact> ReleaseHoldAsync(Guid actor, Guid holdId, ReleaseRetentionHoldRequestFact request, string key, string expected, CancellationToken token)
     {
         await AuthorizeAsync(actor, null, true, token);
         if (!await context.Set<RetentionHold>().AsNoTracking().AnyAsync(x => x.Id == holdId, token)) Reject(404, "not_found");
-        return await CommandAsync<RetentionHoldView>(actor, null, "Anh02.RetentionHoldRelease", key, new { holdId, reason = request.Reason.Trim(), expected }, async ct =>
+        return await CommandAsync<RetentionHoldViewFact>(actor, null, "Anh02.RetentionHoldRelease", key, new { holdId, reason = request.Reason.Trim(), expected }, async ct =>
         {
             await AuthorizeAsync(actor, null, true, ct);
             var hold = await context.Set<RetentionHold>().SingleOrDefaultAsync(x => x.Id == holdId, ct);
@@ -139,11 +151,11 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             if (!await context.Set<RetentionHold>().FromSqlInterpolated($"SELECT * FROM [RetentionHolds] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={holdId}").AsNoTracking().AnyAsync(ct)) Reject(404, "not_found");
         }, token);
     }
-    public async Task<RetentionEvaluationView> AdmitEvaluationAsync(Guid actor, Guid project, CreateRetentionEvaluationRequest request, string key, CancellationToken token)
+    public async Task<RetentionEvaluationViewFact> AdmitEvaluationAsync(Guid actor, Guid project, CreateRetentionEvaluationRequestFact request, string key, CancellationToken token)
     {
         await AuthorizeAsync(actor, project, false, token);
         if (request.FileIds is { } files) foreach (var file in files) await ScopedInventoryAsync(actor, project, file, token);
-        return await CommandAsync<RetentionEvaluationView>(actor, project, "Anh02.RetentionEvaluate", key, new { project, fileIds = request.FileIds?.Order().ToArray() }, async ct =>
+        return await CommandAsync<RetentionEvaluationViewFact>(actor, project, "Anh02.RetentionEvaluate", key, new { project, fileIds = request.FileIds?.Order().ToArray() }, async ct =>
         {
             await AuthorizeAsync(actor, project, false, ct);
             if (request.FileIds is { } ids) foreach (var file in ids) await ScopedInventoryAsync(actor, project, file, ct);
@@ -159,12 +171,12 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
             }
         }, token);
     }
-    public async Task<RetentionEvaluationView> GetEvaluationAsync(Guid actor, Guid project, Guid id, Guid? afterFile, int pageSize, CancellationToken token)
+    public async Task<RetentionEvaluationViewFact> GetEvaluationAsync(Guid actor, Guid project, Guid id, Guid? afterFile, int pageSize, CancellationToken token)
     {
         await AuthorizeAsync(actor, project, false, token);
         var job = await context.Set<RetentionEvaluation>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.ProjectId == project, token);
         if (job is null) Reject(404, "not_found");
-        var items = new List<RetentionItemView>();
+        var items = new List<RetentionItemViewFact>();
         // Page after applying current visibility; a private file ID must never become a cursor.
         // Bounded batches avoid holding a live SQL reader across other same-context queries.
         var scanAfter = afterFile;
@@ -207,15 +219,25 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
                 if (current is null || !current.References.Any(x => x.ProjectId == job.ProjectId)) continue;
                 var control = await CaptureAsync(current, at, token);
                 var item = control.Item;
-                context.Add(new RetentionEvaluationItem { Id = Guid.NewGuid(), EvaluationId = job.Id, FileId = file, Eligibility = item.Eligibility, ReasonCodesJson = JsonSerializer.Serialize(item.ReasonCodes, Json), EligibleAfter = item.EligibleAfter,
-                    BasisVersion = item.BasisVersion, InventoryVersion = item.InventoryVersion, HoldVersion = item.HoldVersion,
-                    ControlSnapshotJson = JsonSerializer.Serialize(new { PolicyVersion = job.PolicyVersion, EvaluatedAt = at, Inventory = current, Basis = control.Basis, Holds = control.Holds.Select(View).ToArray() }, Json) });
+                context.Add(new RetentionEvaluationItem
+                {
+                    Id = Guid.NewGuid(),
+                    EvaluationId = job.Id,
+                    FileId = file,
+                    Eligibility = item.Eligibility,
+                    ReasonCodesJson = JsonSerializer.Serialize(item.ReasonCodes, Json),
+                    EligibleAfter = item.EligibleAfter,
+                    BasisVersion = item.BasisVersion,
+                    InventoryVersion = item.InventoryVersion,
+                    HoldVersion = item.HoldVersion,
+                    ControlSnapshotJson = JsonSerializer.Serialize(new { PolicyVersion = job.PolicyVersion, EvaluatedAt = at, Inventory = current, Basis = control.Basis, Holds = control.Holds.Select(View).ToArray() }, Json)
+                });
             }
             job.Status = "COMPLETE"; job.EvaluatedAt = at;
             await context.SaveChangesAsync(token); await tx.CommitAsync(token); return true;
         });
     }
-    private async Task<(RetentionItemView Item, RetentionBasisHead? Head, RetentionBasisRevision? Basis, List<RetentionHold> Holds)> CaptureAsync(RetentionInventory current, DateTimeOffset at, CancellationToken token)
+    private async Task<(RetentionItemViewFact Item, RetentionBasisHead? Head, RetentionBasisRevision? Basis, List<RetentionHold> Holds)> CaptureAsync(RetentionInventory current, DateTimeOffset at, CancellationToken token)
     {
         var head = await context.Set<RetentionBasisHead>().AsNoTracking().SingleOrDefaultAsync(x => x.FileId == current.FileId, token);
         var basis = head is null ? null : await context.Set<RetentionBasisRevision>().AsNoTracking().SingleAsync(x => x.Id == head.RevisionId, token);
@@ -279,8 +301,8 @@ public sealed class RetentionRepository(RoadGuardDbContext context, IdempotencyO
     }
     private void History(RetentionHold hold, Guid actor, string reason) => context.Add(new RetentionHoldHistory { Id = Guid.NewGuid(), HoldId = hold.Id, State = hold.State, ActorId = actor, OccurredAt = clock.GetUtcNow(), Reason = reason });
     private void Audit(Guid actor, Guid id, string action, string reason) => context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, clock.GetUtcNow(), action, "Retention", id, null, null, reason, "ANH02", null));
-    private static RetentionHoldView View(RetentionHold x) => new(x.Id, x.ScopeType, x.ScopeId, x.State, x.CreatedBy, x.CreatedAt, x.Reason, x.ReleasedBy, x.ReleasedAt, RetentionInventoryRepository.Version(x.RowVersion));
-    private static RetentionEvaluationView EvaluationView(RetentionEvaluation job, IReadOnlyList<RetentionItemView> items, string? cursor) => new(job.Id, job.ProjectId, job.Status, job.CreatedAt, job.EvaluatedAt, job.PolicyVersion, items, cursor, RetentionInventoryRepository.Version(job.RowVersion));
+    private static RetentionHoldViewFact View(RetentionHold x) => new(x.Id, x.ScopeType, x.ScopeId, x.State, x.CreatedBy, x.CreatedAt, x.Reason, x.ReleasedBy, x.ReleasedAt, RetentionInventoryRepository.Version(x.RowVersion));
+    private static RetentionEvaluationViewFact EvaluationView(RetentionEvaluation job, IReadOnlyList<RetentionItemViewFact> items, string? cursor) => new(job.Id, job.ProjectId, job.Status, job.CreatedAt, job.EvaluatedAt, job.PolicyVersion, items, cursor, RetentionInventoryRepository.Version(job.RowVersion));
     private static DateTimeOffset? Boundary(DateOnly end) { try { return end == default ? null : RetentionEligibilityEvaluator.WarrantyEligibleAfter(end); } catch (ArgumentOutOfRangeException) { return null; } }
     private static T Deserialize<T>(string value) => JsonSerializer.Deserialize<T>(value, Json) ?? throw new InvalidOperationException("Invalid durable retention outcome.");
     private static void Reject(int status, string code) => throw new RetentionRequestException(status, code);

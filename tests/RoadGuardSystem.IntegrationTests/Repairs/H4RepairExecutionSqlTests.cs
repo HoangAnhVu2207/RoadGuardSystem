@@ -4,6 +4,7 @@ using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Repairs;
+using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.DTOs.Inspections;
 using RoadGuardSystem.DTOs.Repairs;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
@@ -132,8 +133,83 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         Assert.False(await db.Set<DeadlineClock>().AnyAsync(row => row.TargetId == state.Binding.TaskId && row.Kind == DeadlineClockKind.ProjectManagerReview));
         Assert.False(await db.Set<FieldInspectionSubmission>().AnyAsync(row => row.TaskId == state.Binding.TaskId));
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task VerifiedNormalFinishBreachUsesCurrentCrewRightsAndReplaysOnce(bool revokeCrewMembership)
+    {
+        await using var db = sql.CreateDbContext(); var state = await AssignedAndStarted(db);
+        var assessed = await Assess(db, state); Assert.Equal(201, assessed.Status);
+        var assessment = Assert.IsType<RepairAssessmentFact>(assessed.Value);
+        var started = await Repo(db).StartExecutionAsync(new(state.Source.Crew, UserRoleCode.RepairCrew,
+            state.Source.Project, state.Package.Id, state.Item.Id, state.Binding.TaskId,
+            new(Guid.NewGuid(), state.FirstStart.Id, DateTimeOffset.UtcNow, assessment.Id),
+            Guid.NewGuid().ToString(), assessed.Version!), default);
+        Assert.Equal(201, started.Status);
+        var start = await db.Set<RepairExecutionStart>().AsNoTracking().SingleAsync(row => row.ItemId == state.Item.Id);
+        var finished = await Repo(db).FinishExecutionAsync(new(state.Source.Crew, UserRoleCode.RepairCrew,
+            state.Source.Project, state.Package.Id, state.Item.Id, state.Binding.TaskId,
+            new(Guid.NewGuid(), start.Id, DateTimeOffset.UtcNow.AddDays(-2)), Guid.NewGuid().ToString(),
+            started.Version!), default);
+        Assert.Equal(201, finished.Status); db.ChangeTracker.Clear();
+        var finish = await db.Set<RepairExecutionFinish>().AsNoTracking().SingleAsync(row => row.ItemId == state.Item.Id);
+        var clock = await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(row => row.TargetId == state.Item.Id &&
+            row.Kind == DeadlineClockKind.FinishedDataSync);
+        Assert.Equal(state.Source.Project, clock.ProjectId);
+        Assert.Equal(finish.Id, clock.OriginEventId);
+        Assert.Equal(finish.VerifiedOriginalAt, clock.OriginAt);
+        Assert.Equal(finish.ServerReceivedAt, finish.VerifiedOriginalAt);
+        Assert.Equal(clock.OriginAt.AddHours(24), clock.OriginalDueAt);
+        Assert.Equal(state.Source.Crew, finish.OriginalActorId);
+        Assert.Equal(state.Binding.Id, finish.BindingId);
+        Assert.Equal(finish.Id, (await db.Set<RepairItem>().AsNoTracking().SingleAsync(row => row.Id == state.Item.Id)).CurrentExecutionFinishId);
+        var now = clock.OriginalDueAt.AddMinutes(1);
+        var dispatcher = new H6NotificationDispatchRepository(db, new FixedClock(now));
+        Assert.Equal(1, await dispatcher.ObserveClocksAsync(default));
+        Assert.Equal(0, await dispatcher.ObserveClocksAsync(default));
+        db.ChangeTracker.Clear();
+        var breach = await db.Set<DeadlineBreach>().AsNoTracking().SingleAsync(row => row.ClockId == clock.Id);
+        Assert.Equal(clock.OriginalDueAt, breach.DueAt);
+        var message = await db.OutboxMessages.SingleAsync(row => row.Id == breach.Id);
+        Assert.Equal("deadline.breached.v1", message.MessageType);
+        var plan = H6NotificationCatalog.Parse(message.Id, message.MessageType, message.OccurredAtUtc, message.PayloadJson);
+        Assert.Equal(clock.Id, plan.Source.SourceId);
+        Assert.Equal(breach.Id, plan.Source.OriginEventId);
+        if (revokeCrewMembership)
+        {
+            var member = await db.ProjectMembers.SingleAsync(row => row.ProjectId == state.Source.Project &&
+                row.UserId == state.Source.Crew);
+            member.Status = ProjectMemberStatus.Ended;
+            await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+            message = await db.OutboxMessages.SingleAsync(row => row.Id == breach.Id);
+        }
+        var fence = Guid.NewGuid();
+        message.AcquireLease("h6:" + fence.ToString("N"), now, TimeSpan.FromMinutes(2), 32);
+        await db.SaveChangesAsync();
+        var claim = new H6Claim(message.Id, message.MessageType, message.OccurredAtUtc,
+            message.PayloadJson, fence, message.LeaseExpiresAtUtc!.Value, message.DeliveryAttemptCount);
+        var result = await dispatcher.DispatchAsync(claim, plan, default);
+        Assert.Equal("COMMITTED", result.Status);
+        Assert.Equal(revokeCrewMembership ? 1 : 2, result.Delivered);
+        Assert.Equal(revokeCrewMembership ? 1 : 0, result.Unresolved);
+        Assert.Equal("COMMITTED", (await dispatcher.DispatchAsync(claim, plan, default)).Status);
+        Assert.Equal(revokeCrewMembership ? 0 : 1, await db.Notifications.CountAsync(row =>
+            row.SourceEntityId == clock.Id && row.RecipientUserId == state.Source.Crew));
+        Assert.Equal(1, await db.Notifications.CountAsync(row =>
+            row.SourceEntityId == clock.Id && row.RecipientUserId == state.Source.Supervisor));
+        Assert.Equal(1, await db.Set<H6NotificationDeliveryRow>().CountAsync(row => row.RecipientUserId == state.Source.Crew));
+    }
     [Fact]
-    public async Task IncompleteFormalFieldIntakePinsOneAttemptAndOriginalPmReviewClock()
+    public Task IncompleteFormalFieldIntakePinsOneAttemptAndOriginalPmReviewClock()
+        => RunNormalReviewChain(false, false);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task AcceptedPmReviewFinalDeadlineBreachUsesCurrentSupervisorAndReplaysOnce(bool revokeSupervisorMembership)
+        => RunNormalReviewChain(true, revokeSupervisorMembership);
+
+    private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership)
     {
         await using var db = sql.CreateDbContext(); var state = await AssignedAndStarted(db);
         var assessed = await Assess(db, state); var assessment = Assert.IsType<RepairAssessmentFact>(assessed.Value);
@@ -374,6 +450,53 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         Assert.Equal(acceptedReviewRecord.At, finalClock.OriginAt);
         Assert.Equal(finalClock.OriginAt.AddHours(48), finalClock.OriginalDueAt);
         Assert.Null(finalClock.CompletedAt);
+        if (observeFinalBreach)
+        {
+            var item = await db.Set<RepairItem>().AsNoTracking().SingleAsync(row => row.Id == state.Item.Id);
+            var obligation = await db.Set<RepairObligation>().AsNoTracking().SingleAsync(row => row.Id == item.ObligationId);
+            var lifecycle = await db.Set<RepairItemLifecycleEvent>().AsNoTracking().SingleAsync(row =>
+                row.ItemId == item.Id && row.Kind == "PM_REVIEWED" && row.ReviewId == acceptedReviewRecord.Id);
+            Assert.Equal(acceptedReviewRecord.Id, item.CurrentReviewId);
+            Assert.Equal(item.Id, obligation.CurrentRepairItemId);
+            Assert.Equal(acceptedReviewRecord.At, lifecycle.At);
+            Assert.Equal(state.Source.Pm, acceptedReviewRecord.ActorId);
+            Assert.Equal("ACCEPT", acceptedReviewRecord.Decision);
+            var observedAt = finalClock.OriginalDueAt.AddMinutes(1);
+            var dispatcher = new H6NotificationDispatchRepository(db, new FixedClock(observedAt));
+            Assert.True(await dispatcher.ObserveClocksAsync(default) > 0);
+            db.ChangeTracker.Clear();
+            var breach = await db.Set<DeadlineBreach>().AsNoTracking().SingleAsync(row => row.ClockId == finalClock.Id);
+            Assert.Equal(finalClock.OriginalDueAt, breach.DueAt);
+            var breachMessage = await db.OutboxMessages.SingleAsync(row => row.Id == breach.Id);
+            Assert.Equal("deadline.breached.v1", breachMessage.MessageType);
+            var plan = H6NotificationCatalog.Parse(breachMessage.Id, breachMessage.MessageType,
+                breachMessage.OccurredAtUtc, breachMessage.PayloadJson);
+            Assert.Equal(finalClock.Id, plan.Source.SourceId);
+            Assert.Equal(breach.Id, plan.Source.OriginEventId);
+            if (revokeSupervisorMembership)
+            {
+                var member = await db.ProjectMembers.SingleAsync(row => row.ProjectId == state.Source.Project &&
+                    row.UserId == state.Source.Supervisor);
+                member.Status = ProjectMemberStatus.Ended;
+                await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+                breachMessage = await db.OutboxMessages.SingleAsync(row => row.Id == breach.Id);
+            }
+            var breachFence = Guid.NewGuid();
+            breachMessage.AcquireLease("h6:" + breachFence.ToString("N"), observedAt, TimeSpan.FromMinutes(2), 32);
+            await db.SaveChangesAsync();
+            var breachClaim = new H6Claim(breachMessage.Id, breachMessage.MessageType, breachMessage.OccurredAtUtc,
+                breachMessage.PayloadJson, breachFence, breachMessage.LeaseExpiresAtUtc!.Value, breachMessage.DeliveryAttemptCount);
+            var result = await dispatcher.DispatchAsync(breachClaim, plan, default);
+            Assert.Equal("COMMITTED", result.Status);
+            Assert.Equal(revokeSupervisorMembership ? 0 : 1, result.Delivered);
+            Assert.Equal(revokeSupervisorMembership ? 1 : 0, result.Unresolved);
+            Assert.Equal("COMMITTED", (await dispatcher.DispatchAsync(breachClaim, plan, default)).Status);
+            Assert.Equal(revokeSupervisorMembership ? 0 : 1, await db.Notifications.CountAsync(row =>
+                row.SourceEntityId == finalClock.Id && row.RecipientUserId == state.Source.Supervisor));
+            Assert.Equal(1, await db.Set<H6NotificationDeliveryRow>().CountAsync(row =>
+                row.OccurrenceId == result.OccurrenceId));
+            return;
+        }
         var finalReviewEvent = await db.Set<RepairItemLifecycleEvent>().AsNoTracking().SingleAsync(row =>
             row.ItemId == state.Item.Id && row.Kind == "PM_REVIEWED");
         var finalReviewOutbox = await db.OutboxMessages.SingleAsync(row => row.Id == finalReviewEvent.Id &&
@@ -614,6 +737,8 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         return new(source, package, item, binding, first);
     }
     private static RepairWorkflowRepository Repo(RoadGuardDbContext db) => new(db, new IdempotencyOperationService(db), TimeProvider.System);
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    { public override DateTimeOffset GetUtcNow() => now; }
     private static string Version<T>(RoadGuardDbContext db, T entity) where T : class
         => Convert.ToBase64String(db.Entry(entity).Property<byte[]>("RowVersion").CurrentValue!);
 }

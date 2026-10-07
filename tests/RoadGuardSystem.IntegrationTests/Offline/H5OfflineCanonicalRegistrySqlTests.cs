@@ -15,10 +15,12 @@ using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Offline;
+using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Reports;
 using RoadGuardSystem.DTOs.Inspections;
 using RoadGuardSystem.DTOs.Offline;
+using RoadGuardSystem.DTOs.Messaging;
 using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Idempotency;
@@ -30,11 +32,13 @@ using RoadGuardSystem.Repositories.Implementations.Defects;
 using RoadGuardSystem.Repositories.Implementations.Offline;
 using RoadGuardSystem.Repositories.Models.Huy01;
 using RoadGuardSystem.Repositories.Offline;
+using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.Repositories.Storage;
 using RoadGuardSystem.Repositories.Projects;
 using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Offline;
+using RoadGuardSystem.Services.Messaging;
 using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Offline;
@@ -526,7 +530,16 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
     }
 
     [Fact]
-    public async Task SignedPackageGrantImportCommitsOneOriginalCrewEffectAndReplaysUnderCurrentRecipient()
+    public Task SignedPackageGrantImportCommitsOneOriginalCrewEffectAndReplaysUnderCurrentRecipient()
+        => RunSignedGrantChain(false, false);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task SignedGrantHandoverBreachUsesActualRecipientAndRevocation(bool revokeRecipientMembership)
+        => RunSignedGrantChain(true, revokeRecipientMembership);
+
+    private async Task RunSignedGrantChain(bool observeHandoverBreach, bool revokeRecipientMembership)
     {
         var scope = await Seed(); await using var db = sql.CreateDbContext();
         var defectVersion = Convert.ToBase64String(await db.Defects.Where(row => row.Id == scope.Defect)
@@ -620,6 +633,61 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         Assert.Equal(grantId, handoverClock.OriginEventId);
         Assert.Equal(grantRow.IssuedAt, handoverClock.OriginAt);
         Assert.Equal(grantRow.ExpiresAt, handoverClock.OriginalDueAt);
+        if (observeHandoverBreach)
+        {
+            Assert.Equal(scope.Project, grantRow.ProjectId);
+            Assert.Equal(recipient.Id, grantRow.RecipientDeviceRegistrationId);
+            Assert.Equal(scope.Pm, grantRow.RecipientActorId);
+            var observedAt = grantRow.ExpiresAt.AddMinutes(1);
+            var dispatcher = new H6NotificationDispatchRepository(db, new FixedClock(observedAt));
+            Assert.Equal(1, await dispatcher.ObserveClocksAsync(default));
+            Assert.Equal(0, await dispatcher.ObserveClocksAsync(default));
+            db.ChangeTracker.Clear();
+            var breach = await db.Set<DeadlineBreach>().AsNoTracking().SingleAsync(row => row.ClockId == handoverClock.Id);
+            Assert.Equal(grantRow.ExpiresAt, breach.DueAt);
+            var message = await db.OutboxMessages.SingleAsync(row => row.Id == breach.Id);
+            Assert.Equal("deadline.breached.v1", message.MessageType);
+            var plan = H6NotificationCatalog.Parse(message.Id, message.MessageType,
+                message.OccurredAtUtc, message.PayloadJson);
+            Assert.Equal(handoverClock.Id, plan.Source.SourceId);
+            Assert.Equal(breach.Id, plan.Source.OriginEventId);
+            if (revokeRecipientMembership)
+            {
+                var member = await db.ProjectMembers.SingleAsync(row => row.ProjectId == scope.Project &&
+                    row.UserId == scope.Pm);
+                member.Status = ProjectMemberStatus.Ended;
+                await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+                message = await db.OutboxMessages.SingleAsync(row => row.Id == breach.Id);
+            }
+            var fence = Guid.NewGuid();
+            message.AcquireLease("h6:" + fence.ToString("N"), observedAt, TimeSpan.FromMinutes(2), 32);
+            await db.SaveChangesAsync();
+            var claim = new H6Claim(message.Id, message.MessageType, message.OccurredAtUtc,
+                message.PayloadJson, fence, message.LeaseExpiresAtUtc!.Value, message.DeliveryAttemptCount);
+            var dispatch = await dispatcher.DispatchAsync(claim, plan, default);
+            Assert.Equal("COMMITTED", dispatch.Status);
+            Assert.Equal(revokeRecipientMembership ? 1 : 2, dispatch.Delivered);
+            Assert.Equal(revokeRecipientMembership ? 1 : 0, dispatch.Unresolved);
+            Assert.Equal("COMMITTED", (await dispatcher.DispatchAsync(claim, plan, default)).Status);
+            Assert.Equal(revokeRecipientMembership ? 0 : 1, await db.Notifications.CountAsync(row =>
+                row.SourceEntityId == handoverClock.Id && row.RecipientUserId == scope.Pm));
+            Assert.Equal(1, await db.Notifications.CountAsync(row =>
+                row.SourceEntityId == handoverClock.Id && row.RecipientUserId == supervisor.Id));
+            Assert.Equal(2, await db.Set<H6NotificationDeliveryRow>().CountAsync(row =>
+                row.OccurrenceId == dispatch.OccurrenceId));
+            Assert.Equal(grantRow.ExpiresAt, (await db.Set<OfflineHandoverGrant>().AsNoTracking()
+                .SingleAsync(row => row.Id == grantId)).ExpiresAt);
+            var revokedAfterBreach = await Run(supervisor.Id, UserRoleCode.Supervisor, "grant-revoke",
+                new OfflineGrantRevokeInput("TEST_ONLY revoke after breach"), "revoke-" + Guid.NewGuid(), grantId);
+            Assert.Equal(201, revokedAfterBreach.Status);
+            await using (var proofTransaction = await db.Database.BeginTransactionAsync())
+            {
+                var stale = await new H6DeadlineNotificationSourceAdapter(db).ResolveAsync(plan, default);
+                Assert.Equal("REJECTED", stale.Status);
+                await proofTransaction.CommitAsync();
+            }
+            return;
+        }
         var importBatchId = Guid.NewGuid();
         var endorsement = OfflineRecipientEndorsement.CanonicalClaim(new(scope.Project, packageId,
             grantId, importBatchId, recipient.Id, attachedHash));

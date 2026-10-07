@@ -149,7 +149,7 @@ public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fi
             row.TaskId == importTask.TaskId)).OriginalActorId);
     }
 
-    private async Task<(Guid Project, Guid Route, Guid Set, Guid Defect, string Version)> SeedAsync(
+    internal async Task<(Guid Project, Guid Route, Guid Set, Guid Defect, string Version)> SeedAsync(
         Guid pm, Guid crew, Guid supervisor, Guid reporter)
     {
         await using var db = fixture.CreateDbContext(); var now = DateTimeOffset.UtcNow;
@@ -260,7 +260,7 @@ public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fi
         return operation with { CorePayloadHash = OfflineWorkflowEngine.FieldCoreHash(operation) };
     }
 
-    private static async Task LoginAsync(HttpClient client, string userName)
+    internal static async Task LoginAsync(HttpClient client, string userName)
     {
         var login = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
@@ -272,7 +272,7 @@ public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fi
             (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
     }
 
-    private static Task<HttpResponseMessage> PostAsync(HttpClient client, string route, object body,
+    internal static Task<HttpResponseMessage> PostAsync(HttpClient client, string route, object body,
         string? version = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, route) { Content = JsonContent.Create(body) };

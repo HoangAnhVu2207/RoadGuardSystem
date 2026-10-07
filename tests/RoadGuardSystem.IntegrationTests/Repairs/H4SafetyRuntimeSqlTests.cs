@@ -88,6 +88,35 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
     }
 
     [Fact]
+    public async Task IndependentApprovedNormalSafetyRemainsAvailableAfterOriginalMeasuringDay()
+    {
+        var source = await Seed(); await using var db = sql.CreateDbContext();
+        var binding = await db.Set<RepairFieldTaskBinding>().SingleAsync(row => row.ItemId == source.Item);
+        var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
+        var admission = new RoadGuardSystem.Repositories.Inspections.FieldAdmissionContext(source.Crew, UserRoleCode.RepairCrew, source.Crew, "DIRECT", true);
+        async Task<string> Version() => Convert.ToBase64String(await db.FieldInspectionTasks.Where(row => row.Id == binding.TaskId).Select(row => row.RowVersion).SingleAsync());
+        Assert.Equal(201, (await field.ExecuteAsync(new(source.Project, binding.TaskId, "accept",
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskActionInputFact("accept safety scope"),
+            Guid.NewGuid().ToString(), await Version(), admission), _ => Task.FromResult(true), default)).Status);
+        Assert.Equal(201, (await field.ExecuteAsync(new(source.Project, binding.TaskId, "start",
+            new RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldStartInputFact(Guid.NewGuid(), DateTimeOffset.UtcNow),
+            Guid.NewGuid().ToString(), await Version(), admission), _ => Task.FromResult(true), default)).Status);
+        var first = await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleAsync(row => row.TaskId == binding.TaskId);
+        var afterDay = first.VerifiedOriginalAt!.Value.AddHours(25);
+        var safety = new RepairSafetyRepository(db, new IdempotencyOperationService(db), new FixedClock(afterDay));
+        var itemVersion = Convert.ToBase64String(await db.RepairItems.Where(row => row.Id == source.Item).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync());
+        var created = await safety.CreateAsync(new(source.Pm, UserRoleCode.ProjectManager, source.Project, source.Package,
+            source.Item, source.Formal, source.Safety, source.Crew, "each shift", "replace if displaced", "remove after repair",
+            "independent approved safety", Guid.NewGuid().ToString(), itemVersion), default);
+        Assert.Equal(201, created.Status); var measure = Assert.IsType<SafetyFact>(created.Value);
+        var installed = await safety.InstallAsync(new(source.Crew, UserRoleCode.RepairCrew, source.Project, source.Package, source.Item,
+            measure.Id, afterDay.AddHours(12), "barrier installed", Guid.NewGuid().ToString(), measure.Version), default);
+        Assert.Equal(201, installed.Status);
+        Assert.False(await db.Set<RepairExecutionStart>().AnyAsync(row => row.ItemId == source.Item));
+        Assert.Equal(first.Id, (await db.RepairObligations.AsNoTracking().SingleAsync(row => row.Id == source.Formal)).OriginalCrewFirstStartId);
+    }
+
+    [Fact]
     public async Task AssignedSafetyOutboxDispatchesCurrentSupervisor()
     {
         var source = await Seed();

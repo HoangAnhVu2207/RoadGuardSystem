@@ -88,15 +88,32 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
                 Deny(409, "assessment_source_conflict");
             if (item.State != RepairItemState.Assigned || item.CurrentExecutionStartId is not null) Deny(409, "invalid_state_transition");
             Guid? eligibilityId = null;
+            DateTimeOffset? offlineFtExpiry = null;
             if (item.Mode == RepairMode.FastTrack)
             {
-                if (offlineRepairContext is not null) Deny(409, "fast_track_offline_authority_not_activated");
                 var obligation = package.Obligations.Single(row => row.Id == item.ObligationId);
                 var responsibleProject = await ObligationResponsibilityScope.ResolveAsync(db, obligation.Id, obligation.ProjectId, ct);
                 var coverage = await RoadCoverageResolver.Resolve(db, responsibleProject, obligation.Scope, clock.GetUtcNow(), ct);
                 var policy = await db.Set<RepairPolicyRevision>().AsNoTracking().Include(row => row.Measurements).Include(row => row.Revocations)
                     .SingleOrDefaultAsync(row => row.Id == binding.PolicyRevisionId, ct);
                 var authorization = await db.Set<RepairExecutionAuthorization>().AsNoTracking().SingleOrDefaultAsync(row => row.Id == binding.AuthorizationId, ct);
+                if (offlineRepairContext is not null)
+                {
+                    // Signed claims prove origin, not UTC. Admit only while the server can establish
+                    // that the immutable original entitlement is still open; late imports cannot backdate it.
+                    var admissionTime = clock.GetUtcNow();
+                    if (authorization?.VerifiedStartedAt is not DateTimeOffset originalStart ||
+                        authorization.ExpiresAt is not DateTimeOffset originalExpiry)
+                        throw new Denied(409, "fast_track_offline_time_unproven");
+                    offlineFtExpiry = originalExpiry;
+                    if (admissionTime >= originalExpiry)
+                        Deny(409, "fast_track_offline_authority_not_activated");
+                    if (admissionTime < originalStart || command.Input.ClaimedAt < originalStart ||
+                        command.Input.ClaimedAt > admissionTime ||
+                        authorization.FirstStartOriginId != assessment.FirstStartId ||
+                        obligation.OriginalCrewFirstStartId != assessment.FirstStartId)
+                        Deny(409, "fast_track_offline_time_source_conflict");
+                }
                 await db.Entry(assessment).Collection(row => row.Measurements).LoadAsync(ct);
                 var missing = await RepairFtEligibility.Missing(db, clock, item, binding, assessment, policy, authorization, coverage, ct);
                 if (missing.Length != 0) Deny(409, coverage.State == "UNKNOWN_OWNER_MAPPING" ? "fast_track_coverage_mapping_unknown" :
@@ -111,6 +128,8 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
             var native = await db.FieldInspectionTasks.SingleAsync(row => row.Id == binding.TaskId, ct);
             if (native.Status != FieldInspectionTaskStatus.InProgress) Deny(409, "field_first_start_required");
             var now = clock.GetUtcNow(); var id = RepairEffectId();
+            if (offlineFtExpiry is DateTimeOffset expiry && now >= expiry)
+                Deny(409, "fast_track_offline_authority_not_activated");
             var admittedTime = RepairExecutionTime(now);
             var start = new RepairExecutionStart(id, command.ProjectId, item.Id, binding.Id, assessment.Id,
                 assessment.FirstStartId, command.ActorId, id, command.Input.OriginId, hash, command.Input.ClaimedAt,
@@ -146,7 +165,7 @@ public sealed partial class RepairWorkflowRepository : IRepairExecutionRepositor
             item.Start(command.ActorId, now); db.Entry(item).Property(row => row.CurrentExecutionStartId).CurrentValue = id;
             Touch(package); AuditProducer(command.ActorId, "repair_execution_start", "RepairItem", item.Id,
                 offlineRepairContext is null ? "Actual normal execution event; client time retained separately" :
-                    "Signed offline normal execution claim; original time remains uncertain", new { start.Id, start.AssessmentId, start.AssessmentContentHash });
+                    "Signed offline execution claim; original time remains uncertain", new { start.Id, start.AssessmentId, start.AssessmentContentHash });
             await db.SaveChangesAsync(ct);
             return (id, new ProducingOutcome<RepairExecutionStartFact>(StartView(start, binding.TaskId), VersionOf(item)));
         }, cancellationToken);

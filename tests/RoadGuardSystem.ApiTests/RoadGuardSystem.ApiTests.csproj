@@ -33,4 +33,8 @@
     <ProjectReference Include="..\..\RoadGuardSystem.API\RoadGuardSystem.eAPI.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\ND01OriginalWindowFixture.cs" Link="Infrastructure\ND01OriginalWindowFixture.cs" />
+  </ItemGroup>
+
 </Project>

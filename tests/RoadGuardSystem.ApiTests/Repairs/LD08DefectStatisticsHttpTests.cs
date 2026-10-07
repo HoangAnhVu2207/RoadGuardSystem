@@ -17,8 +17,8 @@ using RoadGuardSystem.DTOs.Exports;
 using Xunit;
 namespace RoadGuardSystem.ApiTests.Repairs;
 
-[Collection(AuthenticationApiFixture.Name)]
-public sealed class LD08DefectStatisticsHttpTests(AuthenticationSqlServerFixture fixture)
+// Export acceptance leaves durable queued work; isolate it from global workers in other test classes.
+public sealed class LD08DefectStatisticsHttpTests(AuthenticationSqlServerFixture fixture) : IClassFixture<AuthenticationSqlServerFixture>
 {
     [Fact]
     public async Task ProductionDiRecordsExplicitIdentityAndReportExportFreezesSnapshotThroughSupersession()

@@ -14895,6 +14895,262 @@
           "response": []
         }
       ]
+    },
+    {
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\")pm.execution.skipRequest();"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "prerequest"
+        }
+      ],
+      "name": "HUY owner activation LD02-LD04 (disposable opt-in)",
+      "item": [
+        {
+          "id": "2f4b1934-e6ff-48b8-a1e9-5be67c567906",
+          "name": "Receiving requests",
+          "request": {
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/receiving-requests",
+            "description": "Owner-confirmed business action. Use only an isolated disposable project with genuine current producer/source IDs, current authority and exact source ETag. Persist the same operation key across retries. TEST_ONLY acceptance does not establish external or production adoption.",
+            "header": [
+              {
+                "value": "Bearer {{activationActorAccessToken}}",
+                "key": "Authorization"
+              }
+            ],
+            "method": "GET"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "prerequest"
+            }
+          ]
+        },
+        {
+          "id": "f3c3033f-a18a-4901-b965-6eb619c16dc8",
+          "name": "Receiving request state",
+          "request": {
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/receiving-requests/{{activationRequestId}}",
+            "description": "Owner-confirmed business action. Use only an isolated disposable project with genuine current producer/source IDs, current authority and exact source ETag. Persist the same operation key across retries. TEST_ONLY acceptance does not establish external or production adoption.",
+            "header": [
+              {
+                "value": "Bearer {{activationActorAccessToken}}",
+                "key": "Authorization"
+              }
+            ],
+            "method": "GET"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "prerequest"
+            }
+          ]
+        },
+        {
+          "id": "cf7117b6-734d-4fb6-8a57-d190d10f0338",
+          "name": "Business received ACK",
+          "request": {
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/receiving-requests/{{activationRequestId}}/ack",
+            "description": "Owner-confirmed business action. Use only an isolated disposable project with genuine current producer/source IDs, current authority and exact source ETag. Persist the same operation key across retries. TEST_ONLY acceptance does not establish external or production adoption.",
+            "header": [
+              {
+                "value": "Bearer {{activationActorAccessToken}}",
+                "key": "Authorization"
+              },
+              {
+                "value": "application/json",
+                "key": "Content-Type"
+              },
+              {
+                "value": "{{activationOperationKey}}",
+                "key": "Idempotency-Key"
+              },
+              {
+                "value": "\"{{activationVersion}}\"",
+                "key": "If-Match"
+              }
+            ],
+            "body": {
+              "raw": "{\"claimedDeviceAt\":null}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "mode": "raw"
+            },
+            "method": "POST"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "prerequest"
+            }
+          ]
+        },
+        {
+          "id": "94831c3a-b47d-41fe-9ff8-6dfa94a5e5fd",
+          "name": "Escalation substitute",
+          "request": {
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/receiving-requests/{{activationRequestId}}/appointment",
+            "description": "Owner-confirmed business action. Use only an isolated disposable project with genuine current producer/source IDs, current authority and exact source ETag. Persist the same operation key across retries. TEST_ONLY acceptance does not establish external or production adoption.",
+            "header": [
+              {
+                "value": "Bearer {{activationActorAccessToken}}",
+                "key": "Authorization"
+              },
+              {
+                "value": "application/json",
+                "key": "Content-Type"
+              },
+              {
+                "value": "{{activationOperationKey}}",
+                "key": "Idempotency-Key"
+              },
+              {
+                "value": "\"{{activationVersion}}\"",
+                "key": "If-Match"
+              }
+            ],
+            "body": {
+              "raw": "{\"assigneeId\":\"{{activationAssigneeId}}\",\"reason\":\"{{activationReason}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "mode": "raw"
+            },
+            "method": "POST"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "prerequest"
+            }
+          ]
+        },
+        {
+          "id": "44b2a97c-4779-4d91-ba02-41b1cb1ad3a8",
+          "name": "Clock extension",
+          "request": {
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/clocks/{{activationClockId}}/extensions",
+            "description": "Owner-confirmed business action. Use only an isolated disposable project with genuine current producer/source IDs, current authority and exact source ETag. Persist the same operation key across retries. TEST_ONLY acceptance does not establish external or production adoption.",
+            "header": [
+              {
+                "value": "Bearer {{activationActorAccessToken}}",
+                "key": "Authorization"
+              },
+              {
+                "value": "application/json",
+                "key": "Content-Type"
+              },
+              {
+                "value": "{{activationOperationKey}}",
+                "key": "Idempotency-Key"
+              },
+              {
+                "value": "\"{{activationVersion}}\"",
+                "key": "If-Match"
+              }
+            ],
+            "body": {
+              "raw": "{\"newDueAt\":\"{{activationNewDueAt}}\",\"reason\":\"{{activationReason}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "mode": "raw"
+            },
+            "method": "POST"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "prerequest"
+            }
+          ]
+        },
+        {
+          "id": "142c0d79-010c-4ef2-a7f2-14c01e254000",
+          "name": "Review duty appointment",
+          "request": {
+            "url": "{{baseUrl}}/api/v1/projects/{{activationProjectId}}/clocks/{{activationClockId}}/appointments",
+            "description": "Owner-confirmed business action. Use only an isolated disposable project with genuine current producer/source IDs, current authority and exact source ETag. Persist the same operation key across retries. TEST_ONLY acceptance does not establish external or production adoption.",
+            "header": [
+              {
+                "value": "Bearer {{activationActorAccessToken}}",
+                "key": "Authorization"
+              },
+              {
+                "value": "application/json",
+                "key": "Content-Type"
+              },
+              {
+                "value": "{{activationOperationKey}}",
+                "key": "Idempotency-Key"
+              },
+              {
+                "value": "\"{{activationVersion}}\"",
+                "key": "If-Match"
+              }
+            ],
+            "body": {
+              "raw": "{\"assigneeId\":\"{{activationAssigneeId}}\",\"reason\":\"{{activationReason}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "mode": "raw"
+            },
+            "method": "POST"
+          },
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "const needed=[\"activationProjectId\",\"activationActorAccessToken\"];if(pm.variables.get(\"runHuyOwnerActivationDisposable\")!==\"true\"||needed.some(k=>!pm.variables.get(k)))pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "prerequest"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

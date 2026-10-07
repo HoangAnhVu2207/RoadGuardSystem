@@ -3,6 +3,7 @@ using System.Text.Json;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.BusinessObjects.Clocks;
 
 namespace RoadGuardSystem.Repositories.Messaging;
 
@@ -55,10 +56,13 @@ public sealed class H6FieldNotificationSourceAdapter(RoadGuardDbContext db) : IH
         }
         var claim = new NotificationFieldSourceClaim(source.EventId, source.OriginEventId, source.ProjectId,
             source.SourceId, source.Kind, source.OccurredAtUtc, source.SourceRevisionId, source.ResponsibleUserId);
-        return NotificationFieldSourceProof.Verify(claim, task, sourceEvent, assignment, submission, review)
-            ? new("VERIFIED", TaskId: task.Id, AssignmentId: assignment?.Id, ResponsibleUserId: source.ResponsibleUserId,
-                ResponsibleRole: source.Kind == "SUPPLEMENT" ? UserRoleCode.RepairCrew : null)
-            : new("REJECTED", "notification_source_relation_invalid");
+        if (!NotificationFieldSourceProof.Verify(claim, task, sourceEvent, assignment, submission, review))
+            return new("REJECTED", "notification_source_relation_invalid");
+        var appointed = source.Kind == "SUBMITTED" ? await db.Set<DeadlineClock>().Where(c => c.ProjectId == task.ProjectId &&
+            c.TargetId == task.Id && c.Kind == DeadlineClockKind.ProjectManagerReview && c.CompletedAt == null)
+            .Select(c => c.AppointedActorId).SingleOrDefaultAsync(cancellationToken) : null;
+        return new("VERIFIED", TaskId: task.Id, AssignmentId: assignment?.Id, ResponsibleUserId: appointed ?? source.ResponsibleUserId,
+            ResponsibleRole: source.Kind == "SUPPLEMENT" ? UserRoleCode.RepairCrew : appointed != null ? UserRoleCode.ProjectManager : null);
     }
     internal static bool MatchesTransport(OutboxMessage transport, H6DispatchPlan plan)
     {

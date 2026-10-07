@@ -3,6 +3,8 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Inspections;
+using RoadGuardSystem.BusinessObjects.Clocks;
+using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.DTOs.Retention;
 using RoadGuardSystem.Repositories.Retention;
 
@@ -179,6 +181,17 @@ public sealed class Huy02InspectionRetentionContributor(RoadGuardDbContext db) :
             })));
         }
         var repairOffline = await H4H5RetentionSources.ReadAsync(db, fileId, null, token);
+        var linkedSubmissions = links.Select(x => x.SubmissionId).Distinct().ToArray();
+        var receivingSources = await db.Set<BusinessReceivingRequest>().AsNoTracking().Where(r =>
+            r.SourceKind == "FieldReview" && db.Set<FieldInspectionReview>().Any(v => v.Id == r.SourceId && linkedSubmissions.Contains(v.SubmissionId)) ||
+            r.SourceKind == "RepairReview" && db.Set<RepairAttemptReview>().Any(v => v.Id == r.SourceId && linkedSubmissions.Contains(v.SubmissionId)) ||
+            r.SourceKind == "ReviewBreach" && db.Set<DeadlineClock>().Any(c => c.Id == r.ScopeId && linkedSubmissions.Contains(c.OriginEventId)))
+            .Include(r => r.Appointments).ToArrayAsync(token);
+        foreach (var receiving in receivingSources)
+            references.Add(new("BUSINESS_RECEIVING_REQUEST", receiving.Id, receiving.ProjectId,
+                Version(new { receiving.SourceId, receiving.SourceVersion, receiving.ScopeId, receiving.ResponsibleActorId,
+                    receiving.AcknowledgmentId, receiving.AcknowledgedAt, receiving.ClockId, receiving.CompletedAt,
+                    appointments = receiving.Appointments.Select(a => new { a.Id, a.PreviousActorId, a.CurrentActorId, a.EffectiveAt }) })));
         foreach (var source in repairOffline)
         {
             if (source.ActualChecksum is null || source.DeclaredChecksum is not null &&

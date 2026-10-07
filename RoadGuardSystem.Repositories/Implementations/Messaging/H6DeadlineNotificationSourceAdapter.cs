@@ -18,7 +18,10 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
             SourceKind = "DeadlineClock",
             SourceId = clock.Id,
             ProjectId = clock.ProjectId,
-            AssignedUserId = clock.Kind == DeadlineClockKind.FirstSafetyCheck ||
+            AssignedUserId = clock.AppointedActorId ?? (clock.Kind == DeadlineClockKind.CrewSupplement || clock.Kind == DeadlineClockKind.SupervisorEscalation
+                ? db.Set<BusinessReceivingRequest>().Where(r => r.Id == clock.TargetId && r.ClockId == clock.Id &&
+                    r.ProjectId == clock.ProjectId).Select(r => r.ResponsibleActorId).FirstOrDefault()
+                : clock.Kind == DeadlineClockKind.FirstSafetyCheck ||
                 clock.Kind == DeadlineClockKind.DangerAcknowledgment
                 ? db.Set<TemporarySafetyMeasure>().Where(row => row.Id == clock.TargetId &&
                     row.ProjectId == clock.ProjectId).Select(row => (Guid?)row.ResponsibleActorId).FirstOrDefault()
@@ -31,7 +34,7 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
                                 item.ProjectId == clock.ProjectId && item.CurrentBindingId == binding.Id &&
                                 item.SupersededByItemId == null))
                             .Select(binding => (Guid?)binding.CrewId).FirstOrDefault()
-                        : null
+                        : null)
         });
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {
@@ -50,7 +53,32 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
         if (sourceClock is null || !NotificationDeadlineSourceProof.Verify(new(source.ProjectId, source.SourceId,
             source.OriginEventId, revision, source.OccurredAtUtc), sourceClock))
             return new("REJECTED", "notification_source_relation_invalid");
+        return await ResolveDutyAsync(sourceClock, cancellationToken);
+    }
+
+    public async Task<H6SourceResolution> ResolveDutyAsync(DeadlineClock sourceClock, CancellationToken cancellationToken)
+    {
+        var proof = await ResolveOriginalDutyAsync(sourceClock, cancellationToken);
+        if (proof.Status != "VERIFIED" || sourceClock.AppointedActorId is null) return proof;
+        if (!await db.Set<DeadlineDutyAppointment>().AnyAsync(a => a.ClockId == sourceClock.Id &&
+            a.CurrentActorId == sourceClock.AppointedActorId && a.Role == sourceClock.AppointedRole, cancellationToken))
+            return new("REJECTED", "notification_duty_assignment_invalid");
+        return proof with { ResponsibleUserId = sourceClock.AppointedActorId, ResponsibleRole = sourceClock.AppointedRole,
+            ResponsibleIsSupervisor = false };
+    }
+
+    private async Task<H6SourceResolution> ResolveOriginalDutyAsync(DeadlineClock sourceClock, CancellationToken cancellationToken)
+    {
         // A registered clock alone supplies no duty. Each kind proves its actual producer chain.
+        if (sourceClock.Kind is DeadlineClockKind.CrewSupplement or DeadlineClockKind.SupervisorEscalation)
+        {
+            var request = await db.Set<BusinessReceivingRequest>().AsNoTracking().SingleOrDefaultAsync(r =>
+                r.Id == sourceClock.TargetId && r.ProjectId == sourceClock.ProjectId && r.ClockId == sourceClock.Id &&
+                r.AcknowledgmentId == sourceClock.OriginEventId && r.AcknowledgedAt == sourceClock.OriginAt, cancellationToken);
+            if (request is null || !await BusinessDutyRepository.SourceCurrent(db, request, cancellationToken))
+                return new("REJECTED", "notification_source_relation_invalid");
+            return new("VERIFIED", ResponsibleUserId: request.ResponsibleActorId, ResponsibleRole: request.ResponsibleRole);
+        }
         if (sourceClock.Kind == DeadlineClockKind.SupervisorInitialApproval)
         {
             var item = await db.RepairItems.AsNoTracking().SingleOrDefaultAsync(row => row.Id == sourceClock.TargetId, cancellationToken);

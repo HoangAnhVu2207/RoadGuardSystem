@@ -35,7 +35,7 @@ public sealed class H3FieldInspectionWorkflowTests
     {
         var review = FieldInspectionReview.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             Guid.NewGuid(), "SUPPLEMENT", "AFTER missing", DateTimeOffset.UtcNow);
-        review.ReceiptActivation.Should().Be("AWAITING_OWNER_RECEIPT_PROTOCOL");
+        review.ReceiptActivation.Should().Be("BUSINESS_ACK_REQUIRED");
     }
 
     [Fact]

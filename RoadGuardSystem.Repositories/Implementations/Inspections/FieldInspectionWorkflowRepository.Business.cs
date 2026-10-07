@@ -77,7 +77,10 @@ public sealed partial class FieldInspectionWorkflowRepository
                 var handoverFacts = await HandoverFactsAsync(task, action, token);
                 assignment?.End(now, Reason(action)); task.Reassign();
                 var replacement = FieldInspectionAssignment.Create(Guid.NewGuid(), task.Id, next, c.Admission.CallerId, now, null, FieldInspectionAssignmentStatus.Active, null);
-                db.FieldInspectionAssignments.Add(replacement); Emit(c, task, replacement, "REASSIGNED", Reason(action), now, facts: handoverFacts); break;
+                db.FieldInspectionAssignments.Add(replacement);
+                await RoadGuardSystem.Repositories.Messaging.BusinessRequestProducer.ReassignSupplements(db, c.ProjectId,
+                    task.Id, next, c.Admission.CallerId, Reason(action), now, token);
+                Emit(c, task, replacement, "REASSIGNED", Reason(action), now, facts: handoverFacts); break;
             case "start": return await StartAsync(c, task, assignment!, token);
             case "submit": return await SubmitAsync(c, task, assignment!, token);
             case "review": return await ReviewAsync(c, task, token);

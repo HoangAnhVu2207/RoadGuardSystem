@@ -96,6 +96,7 @@ public sealed partial class FieldInspectionWorkflowRepository
         db.Set<FieldInspectionLocationProof>().Add(FieldInspectionLocationProof.Create(Guid.NewGuid(), c.ProjectId, task.Id, id,
             proof?.Kind ?? "UNKNOWN", JsonSerializer.Serialize(proof is null ? new { reason = "No location proof declared" } : (object)proof, Json)));
         if (latest is null) db.Set<DeadlineClock>().Add(DeadlineClock.Create(Guid.NewGuid(), c.ProjectId, DeadlineClockKind.ProjectManagerReview, task.Id, id, now));
+        await RoadGuardSystem.Repositories.Messaging.BusinessRequestProducer.CompleteSupplements(db, c.ProjectId, task.Id, now, token);
         task.Transition(FieldInspectionTaskStatus.Submitted); Emit(c, task, assignment, "SUBMITTED", "Immutable FIELD intake", now, id);
         return new(201, Value: row);
     }
@@ -263,6 +264,13 @@ public sealed partial class FieldInspectionWorkflowRepository
         }
         var now = clock.GetUtcNow(); var review = FieldInspectionReview.Create(Guid.NewGuid(), c.ProjectId, task.Id, row.Id, c.Admission.CallerId, input.Decision, input.Reason, now);
         db.Set<FieldInspectionReview>().Add(review);
+        if (input.Decision == "SUPPLEMENT")
+        {
+            var assigned = await CurrentAssignmentAsync(task.Id, token);
+            if (assigned is null) Deny(409, "current_assignment_missing");
+            RoadGuardSystem.Repositories.Messaging.BusinessRequestProducer.Supplement(db, c.ProjectId,
+                "FieldReview", review.Id, task.Id, assigned.AssignedToUserId, now);
+        }
         task.Transition(input.Decision == "SUPPLEMENT" ? FieldInspectionTaskStatus.SupplementRequired : FieldInspectionTaskStatus.Completed);
         if (input.Decision != "SUPPLEMENT")
         {

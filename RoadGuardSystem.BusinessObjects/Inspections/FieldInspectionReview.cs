@@ -20,6 +20,6 @@ public sealed class FieldInspectionReview
             throw new ArgumentException("A bounded actor review decision is required.");
         return new FieldInspectionReview { Id=id,ProjectId=project,TaskId=task,SubmissionId=submission,ActorId=actor,
             Decision=decision,Reason=reason.Trim(),OccurredAt=at.ToUniversalTime(),
-            ReceiptActivation=decision == "SUPPLEMENT" ? "AWAITING_OWNER_RECEIPT_PROTOCOL" : "NOT_APPLICABLE" };
+            ReceiptActivation=decision == "SUPPLEMENT" ? "BUSINESS_ACK_REQUIRED" : "NOT_APPLICABLE" };
     }
 }

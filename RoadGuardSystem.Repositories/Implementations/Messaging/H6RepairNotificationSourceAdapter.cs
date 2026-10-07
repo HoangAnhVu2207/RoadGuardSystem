@@ -29,6 +29,19 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
         });
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
     {
+        var proof = await ResolveCoreAsync(plan, cancellationToken);
+        if (proof.Status != "VERIFIED") return proof;
+        var duty = await db.Set<DeadlineClock>().AsNoTracking().Where(c => c.ProjectId == plan.Source.ProjectId &&
+            c.AppointedActorId != null && c.CompletedAt == null &&
+            (plan.MessageType == "review.supervisor_required.v1" && c.TargetId == plan.Source.SourceId &&
+                (c.Kind == DeadlineClockKind.SupervisorInitialApproval || c.Kind == DeadlineClockKind.SupervisorFinalConfirmation) ||
+             plan.MessageType == "repair.work.submitted.v1" && c.TargetId == proof.TaskId && c.Kind == DeadlineClockKind.ProjectManagerReview))
+            .SingleOrDefaultAsync(cancellationToken);
+        return duty is null ? proof : proof with { ResponsibleUserId = duty.AppointedActorId,
+            ResponsibleRole = duty.AppointedRole, ResponsibleIsSupervisor = false };
+    }
+    private async Task<H6SourceResolution> ResolveCoreAsync(H6DispatchPlan plan, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(plan);
         if (db.Database.CurrentTransaction is null) throw new InvalidOperationException("Source proof requires the caller's transaction.");
         if (!Supports(plan.Source.SourceKind)) return new("REJECTED", "notification_source_kind_invalid");

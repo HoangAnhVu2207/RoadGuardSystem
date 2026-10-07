@@ -159,6 +159,9 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
             else if (a.CallerRole == UserRoleCode.RepairCrew && !await db.FieldInspectionAssignments.AnyAsync(x => x.FieldInspectionTaskId == taskId && x.AssignedToUserId == a.CallerId && x.Status == FieldInspectionAssignmentStatus.Active && x.EndedAt == null, token)) Deny(403, "access_forbidden");
             if (c.Input is FieldLocationImpactActionInput impact) await ImpactAsync(c, task, impact, token);
             if (c.Input is FieldReviewInput review && !await db.Set<FieldInspectionSubmission>().AnyAsync(x => x.Id == review.SubmissionId && x.TaskId == taskId, token)) Deny(404, "not_found");
+            if (c.Action == "review" && await db.Set<DeadlineClock>().AnyAsync(x => x.ProjectId == c.ProjectId &&
+                x.TargetId == taskId && x.Kind == DeadlineClockKind.ProjectManagerReview && x.AppointedActorId != null &&
+                x.AppointedActorId != a.CallerId, token)) Deny(403, "current_review_assignee_required");
             if (c.Input is FieldEvidenceReuseInput) await ReuseAsync(c, task, token, true);
             if (c.Input is FieldSubmissionInput submission)
             {

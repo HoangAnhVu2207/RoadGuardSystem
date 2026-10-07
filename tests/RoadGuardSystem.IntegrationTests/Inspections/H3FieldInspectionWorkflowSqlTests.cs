@@ -2,6 +2,8 @@ using System.Text.Json;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Data.SqlClient;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -45,6 +47,329 @@ public sealed class H3FieldInspectionWorkflowSqlTests(IdentitySqlServerFixture s
 {
     private static readonly JsonSerializerOptions Json=new(JsonSerializerDefaults.Web);
     [Fact]
+    public async Task Populated_receiving_upgrade_preserves_real_intake_and_backfills_only_unacknowledged_request()
+    {
+        var isolated = new IdentitySqlServerFixture(); await isolated.InitializeAsync();
+        try
+        {
+            var helper = new H3FieldInspectionWorkflowSqlTests(isolated);
+            var s = await helper.Seed(); await using var db = isolated.CreateDbContext();
+            var task = (await helper.Create(db, s, 4)).GetProperty("id").GetGuid(); await helper.Accept(db, s, task);
+            var start = (await helper.Start(db, s, task)).GetProperty("id").GetGuid();
+            var intake = (await helper.Submit(db, s, task, Input(start, null, true, null))).GetProperty("id").GetGuid();
+            var original = await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(x => x.TargetId == task);
+            var migration = db.GetService<IMigrator>();
+            await migration.MigrateAsync("20261006163740_H4SafetySourceAdmission");
+            db.ChangeTracker.Clear();
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE FieldInspectionTasks SET Status=5 WHERE Id={task}");
+            var source = FieldInspectionReview.Create(Guid.NewGuid(), s.Project, task, intake, s.Pm, "SUPPLEMENT", "Historical actual supplement request", DateTimeOffset.UtcNow);
+            db.Add(source); db.Entry(source).Property(x => x.ReceiptActivation).CurrentValue = "AWAITING_OWNER_RECEIPT_PROTOCOL";
+            await db.SaveChangesAsync();
+            await migration.MigrateAsync(); db.ChangeTracker.Clear();
+            var request = await db.Set<BusinessReceivingRequest>().SingleAsync(x => x.ScopeId == task);
+            Assert.Equal(source.Id, request.SourceId); Assert.Equal(source.OccurredAt, request.RequestedAt);
+            Assert.Equal(s.Crew, request.ResponsibleActorId); Assert.Null(request.AcknowledgedAt); Assert.Null(request.ClockId);
+            Assert.Equal("AWAITING_OWNER_RECEIPT_PROTOCOL", (await db.Set<FieldInspectionReview>().SingleAsync(x => x.Id == source.Id)).ReceiptActivation);
+            var preserved = await db.Set<DeadlineClock>().SingleAsync(x => x.Id == original.Id);
+            Assert.Equal(original.OriginEventId, preserved.OriginEventId); Assert.Equal(original.OriginalDueAt, preserved.OriginalDueAt);
+            Assert.False(db.Database.HasPendingModelChanges());
+            await Assert.ThrowsAsync<SqlException>(() => migration.MigrateAsync("20261006163740_H4SafetySourceAdmission"));
+            Assert.True(await db.Set<BusinessReceivingRequest>().AnyAsync(x => x.Id == request.Id));
+            await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE BusinessReceivingRequests SET SourceVersion='rewritten' WHERE Id={request.Id}"));
+        }
+        finally { await isolated.DisposeAsync(); }
+    }
+    [Theory]
+    [InlineData(false, "extend")]
+    [InlineData(true, "extend")]
+    [InlineData(false, "appoint")]
+    [InlineData(true, "appoint")]
+    public async Task Production_extension_rollback_and_concurrency_preserve_one_original_clock(bool concurrency, string action)
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = (await Create(db, s, 4)).GetProperty("id").GetGuid(); await Accept(db, s, task);
+        var start = (await Start(db, s, task)).GetProperty("id").GetGuid(); await Submit(db, s, task, Input(start, null, true, null));
+        var supervisor = new ApplicationUser { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(), DisplayName = "TEST_ONLY extension Supervisor",
+            PasswordHash = "fixture", RoleCode = UserRoleCode.Supervisor, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow };
+        db.AddRange(supervisor, new ProjectMember { Id = Guid.NewGuid(), ProjectId = s.Project, UserId = supervisor.Id,
+            RoleCode = UserRoleCode.Supervisor, ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active });
+        await db.SaveChangesAsync(); var clock = await db.Set<DeadlineClock>().SingleAsync(x => x.TargetId == task);
+        var command = new RoadGuardSystem.Repositories.Messaging.ClockDutyCommand(supervisor.Id, UserRoleCode.Supervisor, s.Project,
+            clock.Id, action, Guid.NewGuid().ToString(), Convert.ToBase64String(clock.RowVersion), "Actual authorized clock decision",
+            action == "extend" ? clock.OriginalDueAt.AddHours(4) : null, action == "appoint" ? s.Pm : null);
+        async Task<RoadGuardSystem.Repositories.Messaging.BusinessDutyResult> Extend(string key)
+        {
+            await using var context = sql.CreateDbContext();
+            return await new RoadGuardSystem.Repositories.Messaging.ClockDutyRepository(context, new IdempotencyOperationService(context),
+                TimeProvider.System).ExecuteAsync(command with { Key = key }, default);
+        }
+        if (concurrency)
+        {
+            var outcomes = await Task.WhenAll(Extend(command.Key), Extend(Guid.NewGuid().ToString()));
+            Assert.Contains(outcomes, x => x.Status == 201); Assert.Contains(outcomes, x => x.Status == 409);
+        }
+        else
+        {
+            await using var faulty = sql.CreateDbContext(new FailDutyReceipt());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => new RoadGuardSystem.Repositories.Messaging.ClockDutyRepository(faulty,
+                new IdempotencyOperationService(faulty), TimeProvider.System).ExecuteAsync(command, default));
+        }
+        db.ChangeTracker.Clear(); var persisted = await db.Set<DeadlineClock>().Include(x => x.Extensions).Include(x => x.Appointments).SingleAsync(x => x.Id == clock.Id);
+        Assert.Equal(clock.OriginalDueAt, persisted.OriginalDueAt);
+        Assert.Equal(concurrency && action == "extend" ? clock.OriginalDueAt.AddHours(4) : clock.OriginalDueAt, persisted.CurrentDueAt);
+        Assert.Equal(concurrency && action == "extend" ? 1 : 0, persisted.Extensions.Count);
+        Assert.Equal(concurrency && action == "appoint" ? 1 : 0, persisted.Appointments.Count);
+        Assert.Equal(concurrency && action == "appoint" ? s.Pm : (Guid?)null, persisted.AppointedActorId);
+        Assert.Equal(concurrency ? 1 : 0, await db.AuditLogs.CountAsync(x => x.EntityId == clock.Id && x.EventType == "clock_" + action));
+        Assert.Equal(concurrency ? 1 : 0, await db.IdempotencyRecords.CountAsync(x => x.ActorUserId == supervisor.Id && x.Operation == "activation.clock." + action + ".v1"));
+        Assert.Equal(concurrency ? 1 : 0, await db.OutboxMessages.CountAsync(x => x.MessageType == "clock." + action + ".v1" && x.PayloadJson.Contains(clock.Id.ToString())));
+        foreach (var prohibited in new[] { DeadlineClockKind.DangerAcknowledgment, DeadlineClockKind.FirstSafetyCheck,
+            DeadlineClockKind.DeviceHandover, DeadlineClockKind.FastTrackExecution })
+        {
+            var fixtureClock = DeadlineClock.Create(Guid.NewGuid(), s.Project, prohibited, Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow);
+            db.Add(fixtureClock); await db.SaveChangesAsync();
+            var denied = await new RoadGuardSystem.Repositories.Messaging.ClockDutyRepository(db, new IdempotencyOperationService(db), TimeProvider.System)
+                .ExecuteAsync(command with { ClockId = fixtureClock.Id, ExpectedVersion = Convert.ToBase64String(fixtureClock.RowVersion), Key = Guid.NewGuid().ToString() }, default);
+            Assert.Equal(409, denied.Status); Assert.Equal("clock_extension_prohibited", denied.Code);
+        }
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Concurrent_business_ack_persists_one_first_ack_and_one_clock(bool sameKey)
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = (await Create(db, s, 4)).GetProperty("id").GetGuid(); await Accept(db, s, task);
+        var start = (await Start(db, s, task)).GetProperty("id").GetGuid();
+        var submission = (await Submit(db, s, task, Input(start, null, true, null))).GetProperty("id").GetGuid();
+        Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, task, "review",
+            new FieldReviewInput(submission, "SUPPLEMENT", "Concurrent actual request"))).Status);
+        db.ChangeTracker.Clear(); var request = await db.Set<BusinessReceivingRequest>().SingleAsync(x => x.ScopeId == task);
+        var command = new RoadGuardSystem.Repositories.Messaging.BusinessDutyCommand(s.Crew, UserRoleCode.RepairCrew, s.Project,
+            request.Id, "ack", Guid.NewGuid().ToString(), Convert.ToBase64String(request.RowVersion), null, null, null);
+        async Task<RoadGuardSystem.Repositories.Messaging.BusinessDutyResult> Ack(string key)
+        {
+            await using var context = sql.CreateDbContext();
+            return await new RoadGuardSystem.Repositories.Messaging.BusinessDutyRepository(context, new IdempotencyOperationService(context),
+                TimeProvider.System).ExecuteAsync(command with { Key = key }, default);
+        }
+        var results = await Task.WhenAll(Ack(command.Key), Ack(sameKey ? command.Key : Guid.NewGuid().ToString()));
+        Assert.Contains(results, x => x.Status == 201);
+        Assert.Contains(results, x => x.Status == (sameKey ? 200 : 409));
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        Assert.Equal(1, await db.Set<DeadlineClock>().CountAsync(x => x.TargetId == request.Id));
+        Assert.Equal(1, await db.AuditLogs.CountAsync(x => x.EntityId == request.Id && x.EventType == "business_request_received"));
+        Assert.Equal(1, await db.IdempotencyRecords.CountAsync(x => x.ActorUserId == s.Crew && x.Operation == "activation.duty.ack.v1"));
+        Assert.Equal(request.AcknowledgedAt!.Value.AddHours(48), request.Clock!.CurrentDueAt);
+    }
+
+    [Fact]
+    public async Task Business_ack_receipt_failure_rolls_back_ack_clock_outbox_and_audit()
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = (await Create(db, s, 4)).GetProperty("id").GetGuid(); await Accept(db, s, task);
+        var start = (await Start(db, s, task)).GetProperty("id").GetGuid();
+        var submission = (await Submit(db, s, task, Input(start, null, true, null))).GetProperty("id").GetGuid();
+        Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, task, "review",
+            new FieldReviewInput(submission, "SUPPLEMENT", "Actual request for rollback"))).Status);
+        db.ChangeTracker.Clear(); var request = await db.Set<BusinessReceivingRequest>().SingleAsync(x => x.ScopeId == task);
+        await using (var faulty = sql.CreateDbContext(new FailDutyReceipt()))
+        {
+            var command = new RoadGuardSystem.Repositories.Messaging.BusinessDutyCommand(s.Crew, UserRoleCode.RepairCrew,
+                s.Project, request.Id, "ack", Guid.NewGuid().ToString(), Convert.ToBase64String(request.RowVersion), null, null, null);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => new RoadGuardSystem.Repositories.Messaging.BusinessDutyRepository(faulty,
+                new IdempotencyOperationService(faulty), TimeProvider.System).ExecuteAsync(command, default));
+        }
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().SingleAsync(x => x.Id == request.Id);
+        Assert.Null(request.AcknowledgedAt); Assert.Null(request.ClockId);
+        Assert.False(await db.Set<DeadlineClock>().AnyAsync(x => x.TargetId == request.Id));
+        Assert.False(await db.AuditLogs.AnyAsync(x => x.EntityId == request.Id));
+        Assert.False(await db.OutboxMessages.AnyAsync(x => x.MessageType == "business.duty.ack.v1" && x.PayloadJson.Contains(request.Id.ToString())));
+        Assert.False(await db.IdempotencyRecords.AnyAsync(x => x.ActorUserId == s.Crew && x.Operation == "activation.duty.ack.v1"));
+    }
+    private sealed class FailDutyReceipt : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
+            InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (eventData.Context!.ChangeTracker.Entries<IdempotencyRecord>().Any(x => x.State == EntityState.Added &&
+                x.Entity.Operation.StartsWith("activation.", StringComparison.Ordinal)))
+                throw new InvalidOperationException("Injected activation receipt failure before commit.");
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Genuine_review_breach_produces_Supervisor_request_then_server_ack_starts_24h(bool appointAfterAck)
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = (await Create(db, s, 4)).GetProperty("id").GetGuid(); await Accept(db, s, task);
+        var start = (await Start(db, s, task)).GetProperty("id").GetGuid(); await Submit(db, s, task, Input(start, null, true, null));
+        var supervisor = new ApplicationUser { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(), DisplayName = "TEST_ONLY escalation Supervisor",
+            PasswordHash = "fixture", RoleCode = UserRoleCode.Supervisor, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow };
+        db.AddRange(supervisor, new ProjectMember { Id = Guid.NewGuid(), ProjectId = s.Project, UserId = supervisor.Id,
+            RoleCode = UserRoleCode.Supervisor, ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active });
+        await db.SaveChangesAsync(); var review = await db.Set<DeadlineClock>().SingleAsync(x => x.TargetId == task);
+        var time = new FixedDutyTime(review.OriginalDueAt.AddMinutes(1));
+        var dispatcher = new RoadGuardSystem.Repositories.Messaging.H6NotificationDispatchRepository(db, time);
+        await dispatcher.ObserveClocksAsync(default); db.ChangeTracker.Clear();
+        var request = await db.Set<BusinessReceivingRequest>().SingleAsync(x => x.ScopeId == review.Id);
+        Assert.Equal(DeadlineClockKind.SupervisorEscalation, request.Kind); Assert.Null(request.ClockId);
+        Assert.Equal(supervisor.Id, request.ResponsibleActorId);
+        Assert.True(await db.Set<DeadlineBreach>().AnyAsync(x => x.Id == request.SourceId && x.ClockId == review.Id));
+        var repository = new RoadGuardSystem.Repositories.Messaging.BusinessDutyRepository(db, new IdempotencyOperationService(db), time);
+        var command = new RoadGuardSystem.Repositories.Messaging.BusinessDutyCommand(supervisor.Id, UserRoleCode.Supervisor,
+            s.Project, request.Id, "ack", Guid.NewGuid().ToString(), Convert.ToBase64String(request.RowVersion), null, null, null);
+        if (appointAfterAck)
+        {
+            Assert.Equal(201, (await repository.ExecuteAsync(command, default)).Status);
+            Assert.Equal(200, (await repository.ExecuteAsync(command, default)).Status);
+        }
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        if (appointAfterAck) { Assert.Equal(time.GetUtcNow(), request.AcknowledgedAt); Assert.Equal(time.GetUtcNow().AddHours(24), request.Clock!.OriginalDueAt); }
+        else Assert.Null(request.ClockId);
+        var replacement = new ApplicationUser { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(), DisplayName = "TEST_ONLY substitute Supervisor",
+            PasswordHash = "fixture", RoleCode = UserRoleCode.Supervisor, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow };
+        db.AddRange(replacement, new ProjectMember { Id = Guid.NewGuid(), ProjectId = s.Project, UserId = replacement.Id,
+            RoleCode = UserRoleCode.Supervisor, ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active });
+        await db.SaveChangesAsync();
+        var appointment = command with { Action = "appoint", Key = Guid.NewGuid().ToString(), ExpectedVersion = Convert.ToBase64String(request.RowVersion),
+            AssigneeId = replacement.Id, Reason = "Current eligible Supervisor substitutes immediately" };
+        Assert.Equal(403, (await repository.ExecuteAsync(appointment with { ActorId = s.Pm, Role = UserRoleCode.ProjectManager }, default)).Status);
+        Assert.Equal(201, (await repository.ExecuteAsync(appointment, default)).Status);
+        Assert.Equal(403, (await repository.ExecuteAsync(command, default)).Status);
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        var next = command with { ActorId = replacement.Id, Key = Guid.NewGuid().ToString(), ExpectedVersion = Convert.ToBase64String(request.RowVersion) };
+        Assert.Equal(201, (await repository.ExecuteAsync(next, default)).Status);
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        Assert.Equal(time.GetUtcNow().AddHours(24), (await db.Set<DeadlineClock>().SingleAsync(x => x.TargetId == request.Id)).OriginalDueAt);
+        var extension = new RoadGuardSystem.Repositories.Messaging.ClockDutyCommand(supervisor.Id, UserRoleCode.Supervisor,
+            s.Project, request.ClockId!.Value, "extend", Guid.NewGuid().ToString(), Convert.ToBase64String(request.Clock!.RowVersion),
+            "Supervisor escalation duty needs more time", time.GetUtcNow().AddHours(25), null);
+        Assert.Equal(201, (await new RoadGuardSystem.Repositories.Messaging.ClockDutyRepository(db, new IdempotencyOperationService(db), time)
+            .ExecuteAsync(extension, default)).Status);
+        await dispatcher.ObserveClocksAsync(default);
+        Assert.Equal(1, await db.Set<BusinessReceivingRequest>().CountAsync(x => x.ScopeId == review.Id));
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Genuine_task_reassignment_before_or_after_ack_never_resets_receiving_clock(bool acknowledgeFirst)
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = (await Create(db, s, 4)).GetProperty("id").GetGuid(); await Accept(db, s, task);
+        var start = (await Start(db, s, task)).GetProperty("id").GetGuid();
+        var submission = (await Submit(db, s, task, Input(start, null, true, null))).GetProperty("id").GetGuid();
+        Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, task, "review",
+            new FieldReviewInput(submission, "SUPPLEMENT", "Actual supplement"))).Status);
+        db.ChangeTracker.Clear(); var request = await db.Set<BusinessReceivingRequest>().SingleAsync(x => x.ScopeId == task);
+        var repository = new RoadGuardSystem.Repositories.Messaging.BusinessDutyRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
+        var command = new RoadGuardSystem.Repositories.Messaging.BusinessDutyCommand(s.Crew, UserRoleCode.RepairCrew, s.Project, request.Id,
+            "ack", Guid.NewGuid().ToString(), Convert.ToBase64String(request.RowVersion), null, null, null);
+        if (acknowledgeFirst) Assert.Equal(201, (await repository.ExecuteAsync(command, default)).Status);
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        var oldDue = request.Clock?.OriginalDueAt; var oldAck = request.AcknowledgedAt;
+        Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, task, "reassign",
+            new FieldTaskActionInput("Legitimate current Crew replacement", s.OtherCrew,
+                new FieldHandoverInput("CAPTURED_INTAKE", "Prior actual intake and unfinished supplement", start, [submission], s.OtherCrew)))).Status);
+        Assert.Equal(403, (await repository.ExecuteAsync(command, default)).Status);
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).Include(x => x.Appointments).SingleAsync(x => x.Id == request.Id);
+        Assert.Equal(s.OtherCrew, request.ResponsibleActorId); Assert.Single(request.Appointments);
+        var next = command with { ActorId = s.OtherCrew, Key = Guid.NewGuid().ToString(), ExpectedVersion = Convert.ToBase64String(request.RowVersion) };
+        Assert.Equal(201, (await repository.ExecuteAsync(next, default)).Status);
+        db.ChangeTracker.Clear(); request = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        Assert.NotNull(request.AcknowledgedAt);
+        if (acknowledgeFirst) { Assert.Equal(oldAck, request.AcknowledgedAt); Assert.Equal(oldDue, request.Clock!.OriginalDueAt); }
+        else Assert.Equal(s.OtherCrew, request.AcknowledgedBy);
+        Assert.Equal(1, await db.Set<DeadlineClock>().CountAsync(x => x.TargetId == request.Id));
+    }
+    [Fact]
+    public async Task Production_extension_and_review_substitute_require_current_Supervisor_and_preserve_original_due()
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = (await Create(db, s, 4)).GetProperty("id").GetGuid();
+        await Accept(db, s, task); var origin = (await Start(db, s, task)).GetProperty("id").GetGuid();
+        await Submit(db, s, task, Input(origin, null, true, null));
+        var supervisor = new ApplicationUser { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(), DisplayName = "TEST_ONLY Supervisor",
+            PasswordHash = "fixture", RoleCode = UserRoleCode.Supervisor, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow };
+        db.AddRange(supervisor, new ProjectMember { Id = Guid.NewGuid(), ProjectId = s.Project, UserId = supervisor.Id,
+            RoleCode = UserRoleCode.Supervisor, ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active });
+        await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+        var clock = await db.Set<DeadlineClock>().SingleAsync(x => x.TargetId == task);
+        var due = clock.OriginalDueAt; var now = due.AddMinutes(1);
+        var repository = new RoadGuardSystem.Repositories.Messaging.ClockDutyRepository(db, new IdempotencyOperationService(db), new FixedDutyTime(now));
+        var command = new RoadGuardSystem.Repositories.Messaging.ClockDutyCommand(supervisor.Id, UserRoleCode.Supervisor,
+            s.Project, clock.Id, "extend", Guid.NewGuid().ToString(), Convert.ToBase64String(clock.RowVersion), "Actual review needs more time",
+            due.AddHours(4), null);
+        Assert.Equal(403, (await repository.ExecuteAsync(command with { ActorId = s.Pm, Role = UserRoleCode.ProjectManager }, default)).Status);
+        Assert.Equal(201, (await repository.ExecuteAsync(command, default)).Status);
+        Assert.Equal(200, (await repository.ExecuteAsync(command, default)).Status);
+        db.ChangeTracker.Clear(); clock = await db.Set<DeadlineClock>().Include(x => x.Extensions).Include(x => x.Breaches).SingleAsync(x => x.Id == clock.Id);
+        Assert.Equal(due, clock.OriginalDueAt); Assert.Equal(due.AddHours(4), clock.CurrentDueAt);
+        Assert.Single(clock.Extensions); Assert.Single(clock.Breaches);
+        var substitute = new ApplicationUser { Id = Guid.NewGuid(), UserName = Guid.NewGuid().ToString(), DisplayName = "TEST_ONLY substitute PM",
+            PasswordHash = "fixture", RoleCode = UserRoleCode.ProjectManager, Status = UserStatus.Active, CreatedAt = DateTimeOffset.UtcNow };
+        db.AddRange(substitute, new ProjectMember { Id = Guid.NewGuid(), ProjectId = s.Project, UserId = substitute.Id,
+            RoleCode = UserRoleCode.ProjectManager, ValidFrom = new(2000, 1, 1), Status = ProjectMemberStatus.Active });
+        await db.SaveChangesAsync();
+        var appointment = command with { Action = "appoint", Key = Guid.NewGuid().ToString(), ExpectedVersion = Convert.ToBase64String(clock.RowVersion),
+            AssigneeId = substitute.Id, NewDueAt = null, Reason = "Current review duty assignment" };
+        Assert.Equal(201, (await repository.ExecuteAsync(appointment, default)).Status);
+        db.ChangeTracker.Clear(); clock = await db.Set<DeadlineClock>().Include(x => x.Appointments).SingleAsync(x => x.Id == clock.Id);
+        Assert.Equal(substitute.Id, clock.AppointedActorId); Assert.Single(clock.Appointments); Assert.Equal(due.AddHours(4), clock.CurrentDueAt);
+        var intakeId = await db.FieldInspectionSubmissions.Where(x => x.TaskId == task).Select(x => x.Id).SingleAsync();
+        Assert.Equal(403, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, task, "review",
+            new FieldReviewInput(intakeId, "SUPPLEMENT", "Replaced PM cannot review"))).Status);
+        Assert.Equal(201, (await Cmd(db, s, substitute.Id, UserRoleCode.ProjectManager, task, "review",
+            new FieldReviewInput(intakeId, "SUPPLEMENT", "Current appointed PM requests actual evidence"))).Status);
+        Assert.Equal(409, (await repository.ExecuteAsync(command with { Key = Guid.NewGuid().ToString() }, default)).Status);
+        var member = await db.ProjectMembers.SingleAsync(x => x.ProjectId == s.Project && x.UserId == supervisor.Id);
+        member.Status = ProjectMemberStatus.Ended; await db.SaveChangesAsync();
+        Assert.Equal(403, (await repository.ExecuteAsync(command, default)).Status);
+    }
+    private sealed class FixedDutyTime(DateTimeOffset now) : TimeProvider { public override DateTimeOffset GetUtcNow() => now; }
+    [Fact]
+    public async Task Genuine_supplement_request_ack_and_reassignment_preserve_first_clock()
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = (await Create(db, s, 4)).GetProperty("id").GetGuid();
+        await Accept(db, s, task); var origin = (await Start(db, s, task)).GetProperty("id").GetGuid();
+        var submission = (await Submit(db, s, task, Input(origin, null, true, null))).GetProperty("id").GetGuid();
+        Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, task, "review",
+            new FieldReviewInput(submission, "SUPPLEMENT", "Actual missing evidence"))).Status);
+        db.ChangeTracker.Clear();
+        var request = await db.Set<BusinessReceivingRequest>().AsNoTracking().SingleAsync(x => x.ScopeId == task);
+        Assert.Null(request.ClockId); Assert.Null(request.AcknowledgedAt);
+        var repository = new RoadGuardSystem.Repositories.Messaging.BusinessDutyRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
+        var version = Convert.ToBase64String(request.RowVersion);
+        var command = new RoadGuardSystem.Repositories.Messaging.BusinessDutyCommand(s.Crew, UserRoleCode.RepairCrew,
+            s.Project, request.Id, "ack", Guid.NewGuid().ToString(), version, null, null, DateTimeOffset.UtcNow.AddDays(-1));
+        Assert.Equal(403, (await repository.ExecuteAsync(command with { ActorId = s.Pm, Role = UserRoleCode.ProjectManager }, default)).Status);
+        var ack = await repository.ExecuteAsync(command, default); Assert.Equal(201, ack.Status);
+        Assert.Equal(200, (await repository.ExecuteAsync(command, default)).Status);
+        db.ChangeTracker.Clear();
+        var durable = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        Assert.NotNull(durable.AcknowledgedAt); Assert.Equal(durable.AcknowledgedAt!.Value.AddHours(48), durable.Clock!.OriginalDueAt);
+        Assert.True(durable.ClaimedDeviceAt < durable.AcknowledgedAt);
+        var originalDue = durable.Clock.OriginalDueAt;
+        var extension = new RoadGuardSystem.Repositories.Messaging.ClockDutyCommand(s.Pm, UserRoleCode.ProjectManager, s.Project,
+            durable.Clock.Id, "extend", Guid.NewGuid().ToString(), Convert.ToBase64String(durable.Clock.RowVersion),
+            "Current PM extends actual Crew supplement", originalDue.AddHours(2), null);
+        Assert.Equal(201, (await new RoadGuardSystem.Repositories.Messaging.ClockDutyRepository(db, new IdempotencyOperationService(db), TimeProvider.System)
+            .ExecuteAsync(extension, default)).Status);
+        Assert.Equal(1, await db.Set<DeadlineClock>().CountAsync(x => x.TargetId == request.Id));
+        Assert.Equal(1, await db.IdempotencyRecords.CountAsync(x => x.Operation == "activation.duty.ack.v1" && x.ActorUserId == s.Crew));
+        Assert.Equal(1, await db.AuditLogs.CountAsync(x => x.EntityId == request.Id && x.EventType == "business_request_received"));
+        var read = await repository.ReadAsync(s.Crew, UserRoleCode.RepairCrew, s.Project, request.Id, default);
+        Assert.Equal(200, read.Status);
+        var file = await File(db, s, task); await Submit(db, s, task, Input(origin, submission, false, file));
+        db.ChangeTracker.Clear(); durable = await db.Set<BusinessReceivingRequest>().Include(x => x.Clock).SingleAsync(x => x.Id == request.Id);
+        Assert.NotNull(durable.CompletedAt); Assert.NotNull(durable.Clock!.CompletedAt); Assert.Equal(originalDue, durable.Clock.OriginalDueAt);
+        Assert.Equal(409, (await repository.ExecuteAsync(command with { Key = Guid.NewGuid().ToString() }, default)).Status);
+    }
+    [Fact]
     public async Task Reporter_noSurvey_unknown_intake_supplement_zero_AREA_and_real_FIELD_consumer_preserve_original_clock()
     {
         var s=await Seed();await using var db=sql.CreateDbContext();var task=await Create(db,s,4);
@@ -56,7 +381,7 @@ public sealed class H3FieldInspectionWorkflowSqlTests(IdentitySqlServerFixture s
         Assert.Equal(first.GetProperty("serverReceivedAt").GetDateTimeOffset().AddHours(24),due);
         Assert.Equal(409,(await Cmd(db,s,s.Pm,UserRoleCode.ProjectManager,id,"review",new FieldReviewInput(firstId,"CONFIRM","cannot invent readiness"))).Status);
         var supplement=await Cmd(db,s,s.Pm,UserRoleCode.ProjectManager,id,"review",new FieldReviewInput(firstId,"SUPPLEMENT","need actual measurements"));
-        Assert.Equal(201,supplement.Status);Assert.Equal("AWAITING_OWNER_RECEIPT_PROTOCOL",AsJson(supplement).GetProperty("receiptActivation").GetString());
+        Assert.Equal(201,supplement.Status);Assert.Equal("BUSINESS_ACK_REQUIRED",AsJson(supplement).GetProperty("receiptActivation").GetString());
         var file=await File(db,s,id);var second=await Submit(db,s,id,Input(origin,firstId,false,file));var secondId=second.GetProperty("id").GetGuid();
         Assert.Equal(firstId,second.GetProperty("rootId").GetGuid());Assert.Equal(2,second.GetProperty("revision").GetInt32());Assert.Equal("READY",second.GetProperty("readiness").GetString());
         Assert.Equal(due,(await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(x=>x.TargetId==id)).OriginalDueAt);

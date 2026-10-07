@@ -54,7 +54,7 @@ public sealed class H6NotificationOperationsSqlTests(IdentitySqlServerFixture sq
             [new H6DeadlineNotificationSourceAdapter(db)]);
         var view = Assert.Single((await repository.ClocksPageAsync(seed.Manager, UserRoleCode.ProjectManager, clock.ProjectId, null, 20, default)).Items);
         Assert.Equal(clock.Id, view.Id); Assert.Equal(clock.OriginalDueAt, view.OriginalDueAt); Assert.Equal(clock.OriginEventId, view.OriginEventId);
-        Assert.Contains("RECEIVED_PROTOCOL_PENDING", view.PendingCapabilities);
+        Assert.Contains("EXTENSION_NUMERICAL_LIMIT_POLICY_PENDING", view.PendingCapabilities);
         await db.ProjectMembers.Where(row => row.UserId == seed.Manager && row.ProjectId == clock.ProjectId)
             .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
         Assert.Empty((await repository.ClocksPageAsync(seed.Manager, UserRoleCode.ProjectManager, clock.ProjectId, null, 20, default)).Items);

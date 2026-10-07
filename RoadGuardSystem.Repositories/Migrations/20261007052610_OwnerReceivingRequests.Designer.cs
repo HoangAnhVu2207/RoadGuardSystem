@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.Repositories;
@@ -12,9 +13,11 @@ using RoadGuardSystem.Repositories;
 namespace RoadGuardSystem.cRepositories.Migrations
 {
     [DbContext(typeof(RoadGuardDbContext))]
-    partial class RoadGuardDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007052610_OwnerReceivingRequests")]
+    partial class OwnerReceivingRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -556,14 +559,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasIndex("SourceKind", "SourceId", "Kind")
                         .IsUnique();
 
-                    b.ToTable("BusinessReceivingRequests", null, t =>
-                        {
-                            t.HasTrigger("TR_BusinessReceivingRequests_SourceAck");
-
-                            t.HasCheckConstraint("CK_BusinessReceivingRequests_Ack", "([AcknowledgedAt] IS NULL AND [AcknowledgmentId] IS NULL AND [AcknowledgedBy] IS NULL AND [ClockId] IS NULL AND [ClaimedDeviceAt] IS NULL) OR ([AcknowledgedAt] IS NOT NULL AND [AcknowledgmentId] IS NOT NULL AND [AcknowledgedBy] IS NOT NULL AND [ClockId] IS NOT NULL AND [AcknowledgedAt]>=[RequestedAt])");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                    b.ToTable("BusinessReceivingRequests", null, t => { t.HasTrigger("TR_BusinessReceivingRequests_SourceAck"); t.HasCheckConstraint("CK_BusinessReceivingRequests_Ack", "([AcknowledgedAt] IS NULL AND [AcknowledgmentId] IS NULL AND [AcknowledgedBy] IS NULL AND [ClockId] IS NULL AND [ClaimedDeviceAt] IS NULL) OR ([AcknowledgedAt] IS NOT NULL AND [AcknowledgmentId] IS NOT NULL AND [AcknowledgedBy] IS NOT NULL AND [ClockId] IS NOT NULL AND [AcknowledgedAt]>=[RequestedAt])"); });
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Clocks.DeadlineBreach", b =>
@@ -609,12 +605,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid?>("AcknowledgmentEventId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("AppointedActorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte?>("AppointedRole")
-                        .HasColumnType("tinyint");
-
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -649,8 +639,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasIndex("AcknowledgedByUserId");
 
-                    b.HasIndex("AppointedActorId");
-
                     b.HasIndex("OriginEventId");
 
                     b.HasIndex("Kind", "TargetId")
@@ -667,50 +655,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                             t.HasCheckConstraint("CK_DeadlineClocks_Kind", "[Kind] BETWEEN 1 AND 10");
 
                             t.HasCheckConstraint("CK_DeadlineClocks_Times", "([OriginalDueAt]>[OriginAt] OR ([Kind]=10 AND [OriginalDueAt]=[OriginAt])) AND [CurrentDueAt]>=[OriginalDueAt] AND ([CompletedAt] IS NULL OR [CompletedAt]>=[OriginAt])");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Clocks.DeadlineDutyAppointment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ClockId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CurrentActorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("DecisionActorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("EffectiveAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("PreviousActorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<byte>("Role")
-                        .HasColumnType("tinyint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClockId");
-
-                    b.HasIndex("CurrentActorId");
-
-                    b.HasIndex("DecisionActorId");
-
-                    b.ToTable("DeadlineDutyAppointments", null, t =>
-                        {
-                            t.HasTrigger("TR_DeadlineDutyAppointments_Immutable");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -10208,35 +10152,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("AcknowledgedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("AppointedActorId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
                         .WithMany()
                         .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Clocks.DeadlineDutyAppointment", b =>
-                {
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Clocks.DeadlineClock", null)
-                        .WithMany("Appointments")
-                        .HasForeignKey("ClockId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("CurrentActorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("DecisionActorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -14865,8 +14783,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Clocks.DeadlineClock", b =>
                 {
-                    b.Navigation("Appointments");
-
                     b.Navigation("Breaches");
 
                     b.Navigation("Extensions");

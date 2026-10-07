@@ -32,5 +32,10 @@ public sealed record H6ClockBreachFact(Guid Id, DateTimeOffset DueAt, DateTimeOf
 public sealed record H6ClockFact(Guid Id, Guid ProjectId, string Kind, Guid TargetId, Guid OriginEventId,
     DateTimeOffset OriginAt, DateTimeOffset OriginalDueAt, DateTimeOffset CurrentDueAt, bool Overdue,
     DateTimeOffset? CompletedAt, DateTimeOffset? AcknowledgedAt, string Version,
-    H6ClockExtensionFact[] Extensions, H6ClockBreachFact[] Breaches, string[] PendingCapabilities);
+    H6ClockExtensionFact[] Extensions, H6ClockBreachFact[] Breaches, string[] PendingCapabilities)
+{
+    public Guid? AppointedActorId { get; init; }
+    public string? AppointedRole { get; init; }
+    public object[] Appointments { get; init; } = [];
+}
 public sealed record H6ClockPageFact(string Status, H6ClockFact[] Items, H6ClockCursorFact? Continuation = null);

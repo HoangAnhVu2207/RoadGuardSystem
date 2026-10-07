@@ -1,3 +1,5 @@
+using RoadGuardSystem.aBusinessObjects.Commons;
+
 namespace RoadGuardSystem.BusinessObjects.Clocks;
 
 public enum DeadlineClockKind : byte
@@ -22,11 +24,31 @@ public sealed class DeadlineClock
     public Guid? AcknowledgedByUserId { get; private set; }
     public Guid? AcknowledgmentEventId { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
+    public Guid? AppointedActorId { get; private set; }
+    public UserRoleCode? AppointedRole { get; private set; }
+    public IReadOnlyCollection<DeadlineDutyAppointment> Appointments => _appointments;
+    private readonly List<DeadlineDutyAppointment> _appointments = [];
     public IReadOnlyCollection<DeadlineExtension> Extensions => _extensions;
     public IReadOnlyCollection<DeadlineBreach> Breaches => _breaches;
     private readonly List<DeadlineExtension> _extensions = [];
     private readonly List<DeadlineBreach> _breaches = [];
     private DeadlineClock() { }
+
+    public void Appoint(Guid id, Guid assignee, UserRoleCode role, Guid decisionActor, string reason, DateTimeOffset at, Guid? previousActor = null)
+    {
+        var required = Kind switch
+        {
+            DeadlineClockKind.ProjectManagerReview => UserRoleCode.ProjectManager,
+            DeadlineClockKind.SupervisorInitialApproval or DeadlineClockKind.SupervisorFinalConfirmation => UserRoleCode.Supervisor,
+            _ => UserRoleCode.Unknown
+        };
+        if (required == UserRoleCode.Unknown || role != required || string.IsNullOrWhiteSpace(reason) || reason.Length > 2000)
+            throw new ArgumentException("Appointment must use the existing review duty role.");
+        RequireId(id); RequireId(assignee); RequireId(decisionActor);
+        if (CompletedAt is not null || at < OriginAt) throw new InvalidOperationException("Review duty is no longer appointable.");
+        _appointments.Add(new(id, Id, AppointedActorId ?? previousActor, assignee, role, decisionActor, reason.Trim(), at.ToUniversalTime()));
+        AppointedActorId = assignee; AppointedRole = role;
+    }
 
     public static DeadlineClock Create(Guid id, Guid projectId, DeadlineClockKind kind, Guid targetId, Guid originEventId, DateTimeOffset originAt)
     {
@@ -151,4 +173,20 @@ public sealed class DeadlineBreach
     public Guid ClockId { get; internal set; }
     public DateTimeOffset DueAt { get; internal set; }
     public DateTimeOffset ObservedAt { get; internal set; }
+}
+
+public sealed class DeadlineDutyAppointment
+{
+    public Guid Id { get; private set; }
+    public Guid ClockId { get; private set; }
+    public Guid? PreviousActorId { get; private set; }
+    public Guid CurrentActorId { get; private set; }
+    public UserRoleCode Role { get; private set; }
+    public Guid DecisionActorId { get; private set; }
+    public string Reason { get; private set; } = "";
+    public DateTimeOffset EffectiveAt { get; private set; }
+    private DeadlineDutyAppointment() { }
+    internal DeadlineDutyAppointment(Guid id, Guid clock, Guid? previous, Guid next, UserRoleCode role,
+        Guid actor, string reason, DateTimeOffset at)
+    { Id = id; ClockId = clock; PreviousActorId = previous; CurrentActorId = next; Role = role; DecisionActorId = actor; Reason = reason; EffectiveAt = at; }
 }

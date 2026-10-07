@@ -44,14 +44,16 @@ public sealed partial class H6NotificationDispatchRepository
         else if (envelope.RecipientStrategy == NotificationRecipientStrategy.ProjectManager)
         {
             var managers = await members.Where(row => row.RoleCode == UserRoleCode.ProjectManager && row.IsPrimary).Select(row => row.UserId).Distinct().ToArrayAsync(token);
-            results.Add(RecipientFor(managers.Length == 1 ? managers[0] : null, UserRoleCode.ProjectManager, "ProjectManager"));
+            results.Add(RecipientFor(proof.ResponsibleUserId ?? (managers.Length == 1 ? managers[0] : null), UserRoleCode.ProjectManager, "ProjectManager"));
         }
         else if (!proof.ResponsibleIsSupervisor && envelope.RecipientStrategy is (NotificationRecipientStrategy.ResponsibleActorAndSupervisor or NotificationRecipientStrategy.ResponsibleReviewer or NotificationRecipientStrategy.ExplicitResponsibleActors))
             results.Add(RecipientFor(proof.ResponsibleUserId, proof.ResponsibleRole, envelope.RecipientStrategy.ToString()));
         if (envelope.RecipientStrategy is NotificationRecipientStrategy.Supervisor or NotificationRecipientStrategy.ResponsibleActorAndSupervisor ||
             envelope.RecipientStrategy == NotificationRecipientStrategy.ResponsibleReviewer && proof.ResponsibleIsSupervisor)
         {
-            var supervisors = await members.Where(row => row.RoleCode == UserRoleCode.Supervisor).Select(row => row.UserId).Distinct().ToArrayAsync(token);
+            var supervisors = envelope.RecipientStrategy == NotificationRecipientStrategy.Supervisor && proof.ResponsibleUserId is Guid appointed
+                ? new[] { appointed }
+                : await members.Where(row => row.RoleCode == UserRoleCode.Supervisor).Select(row => row.UserId).Distinct().ToArrayAsync(token);
             if (supervisors.Length == 0) results.Add(RecipientFor(null, UserRoleCode.Supervisor, "Supervisor"));
             else foreach (var supervisor in supervisors) results.Add(RecipientFor(supervisor, UserRoleCode.Supervisor, "Supervisor"));
         }

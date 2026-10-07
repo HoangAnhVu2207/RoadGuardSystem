@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Messaging;
+using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Repositories.Messaging;
 
@@ -37,9 +38,28 @@ public sealed partial class H6NotificationDispatchRepository
                         "DeadlineClock", sourceClock.Id, breach.Id, breach.ObservedAt, breach.Id);
                     db.OutboxMessages.Add(OutboxMessage.Create(breach.Id, "deadline.breached.v1", breach.ObservedAt,
                         sourceClock.Id, JsonSerializer.Serialize(source, ClockJson)));
+                    if (sourceClock.Kind == DeadlineClockKind.ProjectManagerReview && sourceClock.CompletedAt is null &&
+                        await db.FieldInspectionSubmissions.AnyAsync(s => s.Id == sourceClock.OriginEventId &&
+                            s.RootId == s.Id && s.ProjectId == sourceClock.ProjectId && s.TaskId == sourceClock.TargetId &&
+                            s.ServerReceivedAt == sourceClock.OriginAt, cancellationToken) &&
+                        !await db.Set<BusinessReceivingRequest>().AnyAsync(r => r.SourceKind == "ReviewBreach" && r.SourceId == breach.Id, cancellationToken))
+                    {
+                        var day = DateOnly.FromDateTime(now.UtcDateTime);
+                        var supervisors = await db.ProjectMembers.Where(m => m.ProjectId == sourceClock.ProjectId &&
+                            m.RoleCode == UserRoleCode.Supervisor && m.Status == ProjectMemberStatus.Active &&
+                            m.ValidFrom <= day && (m.ValidTo == null || m.ValidTo >= day))
+                            .Select(m => m.UserId).Distinct().Take(2).ToArrayAsync(cancellationToken);
+                        db.Add(BusinessReceivingRequest.Create(Guid.NewGuid(), sourceClock.ProjectId,
+                            DeadlineClockKind.SupervisorEscalation, "ReviewBreach", breach.Id, breach.Id.ToString("N"),
+                            sourceClock.Id, supervisors.Length == 1 ? supervisors[0] : null, UserRoleCode.Supervisor, breach.ObservedAt));
+                    }
                     admitted++;
                 }
             }
+            var settled = await db.Set<BusinessReceivingRequest>().Where(r => r.SourceKind == "ReviewBreach" &&
+                r.CompletedAt == null && db.Set<DeadlineClock>().Any(c => c.Id == r.ScopeId && c.CompletedAt != null))
+                .Include(r => r.Clock).ThenInclude(c => c!.Breaches).ToArrayAsync(cancellationToken);
+            foreach (var request in settled) request.Complete(now);
             await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken);
         });
         return admitted;

@@ -33,7 +33,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
     public Task<RepairWorkflowResult> ConfirmFinalAsync(RepairFinalConfirmCommand command,
         CancellationToken cancellationToken)
         => ProduceAsync(command.ActorId, command.Role, command.Role, command.ProjectId, command.Key,
-            FinalConfirmOperation, command, ct => GuardFinalResource(command.ProjectId, command.PackageId,
+            FinalConfirmOperation, command, ct => GuardFinalResource(command.ActorId, command.ProjectId, command.PackageId,
                 command.ItemId, command.Role, ct), async ct =>
             {
                 if (string.IsNullOrWhiteSpace(command.Input.Reason) || command.Input.Reason.Length > 2000)
@@ -90,7 +90,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
     public Task<RepairWorkflowResult> ReviewAttemptAsync(RepairAttemptReviewCommand command,
         CancellationToken cancellationToken)
         => ProduceAsync(command.ActorId, command.Role, UserRoleCode.ProjectManager, command.ProjectId, command.Key,
-            AttemptReviewOperation, command, ct => GuardReviewResource(command.ProjectId, command.PackageId,
+            AttemptReviewOperation, command, ct => GuardReviewResource(command.ActorId, command.ProjectId, command.PackageId,
                 command.ItemId, command.TaskId, ct), async ct =>
             {
                 if (command.Input.Decision is not ("SUPPLEMENT" or "ACCEPT") || string.IsNullOrWhiteSpace(command.Input.Reason) ||
@@ -212,6 +212,8 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     FieldInspectionTaskStatus.SupplementRequired);
                 if (command.Input.Decision == "SUPPLEMENT")
                 {
+                    BusinessRequestProducer.Supplement(db, command.ProjectId, "RepairReview", review.Id,
+                        binding.TaskId, binding.CrewId, now);
                     var rework = new RepairItemLifecycleEvent(Guid.NewGuid(), command.ProjectId,
                         item.DefectId, item.ObligationId, item.Id, item.Mode, "REWORK", command.ActorId,
                         command.Role, command.Input.Reason, now, binding.Id, link.AttemptId,
@@ -704,22 +706,30 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
         if (!await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")
             .AsNoTracking().AnyAsync(row => row.ProjectId == project && EF.Property<Guid?>(row, "PackageId") == package, token)) Deny(404, "not_found");
     }
-    private async Task GuardReviewResource(Guid project, Guid package, Guid item, Guid task, CancellationToken token)
+    private async Task GuardReviewResource(Guid actor, Guid project, Guid package, Guid item, Guid task, CancellationToken token)
     {
         await GuardItemResource(project, package, item, token);
+        await GuardDutyAssignee(actor, project, task, DeadlineClockKind.ProjectManagerReview, token);
         var bindingId = await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == item)
             .Select(row => row.CurrentBindingId).SingleAsync(token);
         if (bindingId is null || !await db.Set<RepairFieldTaskBinding>().AsNoTracking().AnyAsync(row =>
             row.Id == bindingId && row.ProjectId == project && row.ItemId == item && row.TaskId == task, token))
             Deny(403, "repair_binding_not_current");
     }
-    private async Task GuardFinalResource(Guid project, Guid package, Guid item, UserRoleCode role, CancellationToken token)
+    private async Task GuardFinalResource(Guid actor, Guid project, Guid package, Guid item, UserRoleCode role, CancellationToken token)
     {
         await GuardItemResource(project, package, item, token);
+        await GuardDutyAssignee(actor, project, item, DeadlineClockKind.SupervisorFinalConfirmation, token);
         var mode = await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == item)
             .Select(row => row.Mode).SingleAsync(token);
         if (role != (mode == RepairMode.Normal ? UserRoleCode.Supervisor : UserRoleCode.ProjectManager))
             Deny(403, "access_forbidden");
+    }
+
+    private async Task GuardDutyAssignee(Guid actor, Guid project, Guid target, DeadlineClockKind kind, CancellationToken token)
+    {
+        if (await db.Set<DeadlineClock>().AnyAsync(x => x.ProjectId == project && x.TargetId == target && x.Kind == kind &&
+            x.AppointedActorId != null && x.AppointedActorId != actor, token)) Deny(403, "current_review_assignee_required");
     }
 
     private async Task GuardStoredProduction(Guid actor, Guid project, string operation, Guid operationId, CancellationToken token)
@@ -757,14 +767,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
         {
             var mode = await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == item)
                 .Select(row => row.Mode).SingleAsync(token);
-            await GuardFinalResource(project, package.Value, item.Value,
+            await GuardFinalResource(actor, project, package.Value, item.Value,
                 mode == RepairMode.Normal ? UserRoleCode.Supervisor : UserRoleCode.ProjectManager, token);
         }
         if (operation == AttemptReviewOperation)
         {
             var review = await db.Set<RepairAttemptReview>().AsNoTracking().SingleAsync(row => row.Id == operationId, token);
             var binding = await db.Set<RepairFieldTaskBinding>().AsNoTracking().SingleAsync(row => row.Id == review.BindingId, token);
-            await GuardReviewResource(project, package.Value, item.Value, binding.TaskId, token);
+            await GuardReviewResource(actor, project, package.Value, item.Value, binding.TaskId, token);
         }
         if (operation is AttemptSubmitOperation or AttemptSupplementOperation)
         {
@@ -802,6 +812,8 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
             async Task Guard(CancellationToken ct)
             {
                 await CurrentProducerAuthority(actor, role, required, project, ct); await target(ct);
+                if (operation == ApproveOperation && command is RepairItemApprovalCommand approval)
+                    await GuardDutyAssignee(actor, project, approval.ItemId, DeadlineClockKind.SupervisorInitialApproval, ct);
                 var stored = await db.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(row => row.ActorUserId == actor &&
                     row.ProjectId == project && row.Operation == operation && row.IdempotencyKey == key, ct);
                 if (stored is not null) await GuardStoredProduction(actor, project, operation, stored.OperationId, ct);

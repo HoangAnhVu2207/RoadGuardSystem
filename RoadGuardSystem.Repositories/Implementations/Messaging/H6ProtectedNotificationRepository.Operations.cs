@@ -37,7 +37,7 @@ public sealed partial class H6ProtectedNotificationRepository
                     row.CurrentDueAt == cursor.AfterDueAtUtc && row.Id.CompareTo(cursor.AfterClockId) > 0);
             }
             var rows = await query.OrderBy(row => row.CurrentDueAt).ThenBy(row => row.Id).Take(limit + 1)
-                .Include(row => row.Extensions).Include(row => row.Breaches).AsSplitQuery().ToArrayAsync(token);
+                .Include(row => row.Extensions).Include(row => row.Breaches).Include(row => row.Appointments).AsSplitQuery().ToArrayAsync(token);
             var more = rows.Length > limit; var selected = rows.Take(limit).ToArray();
             var items = selected.Select(row => new H6ClockFact(row.Id, row.ProjectId, row.Kind.ToString(), row.TargetId, row.OriginEventId,
                 row.OriginAt, row.OriginalDueAt, row.CurrentDueAt, row.IsOverdueAt(now), row.CompletedAt, row.AcknowledgedAt,
@@ -46,7 +46,12 @@ public sealed partial class H6ProtectedNotificationRepository
                         extension.PreviousDueAt, extension.NewDueAt, extension.Reason, extension.PreviousDeadlineBreached)).ToArray(),
                 row.Breaches.OrderBy(breach => breach.DueAt).ThenBy(breach => breach.Id)
                     .Select(breach => new H6ClockBreachFact(breach.Id, breach.DueAt, breach.ObservedAt)).ToArray(),
-                ["RECEIVED_PROTOCOL_PENDING", "EXTENSION_AUTHORITY_PENDING", "SUBSTITUTE_AUTHORITY_PENDING", "WEEKLY_CATCHUP_POLICY_PENDING"])).ToArray();
+                ["EXTENSION_NUMERICAL_LIMIT_POLICY_PENDING", "ADDITIONAL_FT_OFFLINE_AUTHORIZATION_PENDING", "WEEKLY_CATCHUP_POLICY_PENDING"])
+            {
+                AppointedActorId = row.AppointedActorId, AppointedRole = row.AppointedRole?.ToString(),
+                Appointments = row.Appointments.OrderBy(a => a.EffectiveAt).Select(a => (object)new
+                { a.Id, a.PreviousActorId, a.CurrentActorId, role = a.Role.ToString(), a.DecisionActorId, a.Reason, a.EffectiveAt }).ToArray()
+            }).ToArray();
             var last = more ? selected[^1] : null;
             return new H6ClockPageFact("READY", items, last is null ? null : new(actorId, projectId, role.ToString(), last.CurrentDueAt, last.Id));
         }, () => new H6ClockPageFact("DENIED", []), cancellationToken, authenticatedRole);

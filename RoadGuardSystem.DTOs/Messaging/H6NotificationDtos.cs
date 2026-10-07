@@ -28,7 +28,12 @@ public sealed record H6OutboxClaim(Guid Id, string MessageType, DateTimeOffset O
 public sealed record H6ClockView(Guid Id, Guid ProjectId, string Kind, Guid TargetId, Guid OriginEventId,
     DateTimeOffset OriginAt, DateTimeOffset OriginalDueAt, DateTimeOffset CurrentDueAt, bool Overdue,
     DateTimeOffset? CompletedAt, DateTimeOffset? AcknowledgedAt, string Version,
-    H6ClockExtensionView[] Extensions, H6ClockBreachView[] Breaches, string[] PendingCapabilities);
+    H6ClockExtensionView[] Extensions, H6ClockBreachView[] Breaches, string[] PendingCapabilities)
+{
+    public Guid? AppointedActorId { get; init; }
+    public string? AppointedRole { get; init; }
+    public object[] Appointments { get; init; } = [];
+}
 public sealed record H6ClockExtensionView(Guid Id, Guid ActorId, DateTimeOffset At, DateTimeOffset PreviousDueAt,
     DateTimeOffset NewDueAt, string Reason, bool PreviousDeadlineBreached);
 public sealed record H6ClockBreachView(Guid Id, DateTimeOffset DueAt, DateTimeOffset ObservedAt);

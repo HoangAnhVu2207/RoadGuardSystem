@@ -28,11 +28,54 @@ using RoadGuardSystem.Services.Exports;
 using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Services.Messaging;
 using Xunit;
+using Xunit.Abstractions;
+using System.Text.Json;
 
 namespace RoadGuardSystem.IntegrationTests.Repairs;
 
-public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IClassFixture<IdentitySqlServerFixture>
+public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITestOutputHelper output) : IClassFixture<IdentitySqlServerFixture>
 {
+    [Fact]
+    public async Task Current_Supervisor_extends_actual_initial_approval_duty()
+    {
+        await using var db = sql.CreateDbContext();
+        await AssignedAndStarted(db, extendInitial: true);
+    }
+    [Fact]
+    public Task Current_Supervisor_extends_actual_final_confirmation_duty()
+        => RunNormalReviewChain(false, false, extendFinal: true);
+    [Fact]
+    public async Task Current_PM_extends_genuine_result_sync_without_extending_execution_rights()
+    {
+        await using var db = sql.CreateDbContext(); var state = await AssignedAndStarted(db);
+        var assessed = await Assess(db, state); Assert.Equal(201, assessed.Status);
+        var assessment = Assert.IsType<RepairAssessmentFact>(assessed.Value);
+        var started = await Repo(db).StartExecutionAsync(new(state.Source.Crew, UserRoleCode.RepairCrew,
+            state.Source.Project, state.Package.Id, state.Item.Id, state.Binding.TaskId,
+            new(Guid.NewGuid(), state.FirstStart.Id, DateTimeOffset.UtcNow, assessment.Id), Guid.NewGuid().ToString(), assessed.Version!), default);
+        Assert.Equal(201, started.Status);
+        var start = await db.Set<RepairExecutionStart>().SingleAsync(x => x.ItemId == state.Item.Id);
+        Assert.Equal(201, (await Repo(db).FinishExecutionAsync(new(state.Source.Crew, UserRoleCode.RepairCrew,
+            state.Source.Project, state.Package.Id, state.Item.Id, state.Binding.TaskId,
+            new(Guid.NewGuid(), start.Id, DateTimeOffset.UtcNow), Guid.NewGuid().ToString(), started.Version!), default)).Status);
+        db.ChangeTracker.Clear(); var source = await db.Set<DeadlineClock>().SingleAsync(x => x.TargetId == state.Item.Id && x.Kind == DeadlineClockKind.FinishedDataSync);
+        var time = new FixedClock(source.OriginalDueAt.AddMinutes(1));
+        var repository = new ClockDutyRepository(db, new IdempotencyOperationService(db), time);
+        var command = new ClockDutyCommand(state.Source.Pm, UserRoleCode.ProjectManager, state.Source.Project, source.Id,
+            "extend", Guid.NewGuid().ToString(), Convert.ToBase64String(source.RowVersion), "Actual evidence synchronization extension",
+            source.OriginalDueAt.AddHours(4), null);
+        Assert.Equal(403, (await repository.ExecuteAsync(command with { ActorId = state.Source.Supervisor, Role = UserRoleCode.Supervisor }, default)).Status);
+        Assert.Equal(201, (await repository.ExecuteAsync(command, default)).Status);
+        Assert.Equal(200, (await repository.ExecuteAsync(command, default)).Status);
+        db.ChangeTracker.Clear(); var extended = await db.Set<DeadlineClock>().Include(x => x.Extensions).Include(x => x.Breaches).SingleAsync(x => x.Id == source.Id);
+        Assert.Equal(source.OriginalDueAt, extended.OriginalDueAt); Assert.Single(extended.Extensions); Assert.Single(extended.Breaches);
+        Assert.Equal(source.OriginalDueAt.AddHours(4), extended.CurrentDueAt);
+        Assert.Equal(1, await db.Set<RepairExecutionStart>().CountAsync(x => x.ItemId == state.Item.Id));
+        Assert.Equal(1, await db.Set<RepairExecutionFinish>().CountAsync(x => x.ItemId == state.Item.Id));
+        await db.ProjectMembers.Where(x => x.ProjectId == state.Source.Project && x.UserId == state.Source.Pm)
+            .ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        Assert.Equal(403, (await repository.ExecuteAsync(command, default)).Status);
+    }
     [Fact]
     public async Task BareSameActorSyncCannotReplayAFieldOriginWithoutPersistedSignedAdmission()
     {
@@ -165,7 +208,20 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         Assert.Equal(finish.Id, (await db.Set<RepairItem>().AsNoTracking().SingleAsync(row => row.Id == state.Item.Id)).CurrentExecutionFinishId);
         var now = clock.OriginalDueAt.AddMinutes(1);
         var dispatcher = new H6NotificationDispatchRepository(db, new FixedClock(now));
-        Assert.Equal(1, await dispatcher.ObserveClocksAsync(default));
+        var priorMessages = await db.OutboxMessages.Where(m => m.MessageType == "deadline.breached.v1").Select(m => m.Id).ToArrayAsync();
+        var observed = await dispatcher.ObserveClocksAsync(default);
+        var observedSources = await (from b in db.Set<DeadlineBreach>() join c in db.Set<DeadlineClock>() on b.ClockId equals c.Id
+            join m in db.OutboxMessages on b.Id equals m.Id where !priorMessages.Contains(m.Id)
+            select new { clockId = c.Id, c.ProjectId, c.Kind, c.TargetId, c.OriginEventId, c.OriginAt, c.CurrentDueAt, c.CompletedAt,
+                breachId = b.Id, b.DueAt, b.ObservedAt }).ToArrayAsync();
+        output.WriteLine("Global observer admission count={0}; target clock={1}; exact admitted sources={2}", observed, clock.Id,
+            JsonSerializer.Serialize(observedSources));
+        // This observer scans the shared fixture's global batch, including genuine prior-project breaches.
+        Assert.Equal(observedSources.Length, observed);
+        var targetAdmission = Assert.Single(observedSources.Where(source => source.clockId == clock.Id));
+        Assert.Equal(state.Source.Project, targetAdmission.ProjectId);
+        Assert.Equal(finish.Id, targetAdmission.OriginEventId);
+        Assert.Equal(clock.OriginalDueAt, targetAdmission.DueAt);
         Assert.Equal(0, await dispatcher.ObserveClocksAsync(default));
         db.ChangeTracker.Clear();
         var breach = await db.Set<DeadlineBreach>().AsNoTracking().SingleAsync(row => row.ClockId == clock.Id);
@@ -209,7 +265,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
     public Task AcceptedPmReviewFinalDeadlineBreachUsesCurrentSupervisorAndReplaysOnce(bool revokeSupervisorMembership)
         => RunNormalReviewChain(true, revokeSupervisorMembership);
 
-    private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership)
+    private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership, bool extendFinal = false)
     {
         await using var db = sql.CreateDbContext(); var state = await AssignedAndStarted(db);
         var assessed = await Assess(db, state); var assessment = Assert.IsType<RepairAssessmentFact>(assessed.Value);
@@ -322,6 +378,17 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
             row.RecipientUserId == state.Source.Crew));
         Assert.Equal(0, await db.Set<DeadlineClock>().CountAsync(row => row.ProjectId == state.Source.Project &&
             row.Kind == DeadlineClockKind.CrewSupplement && row.TargetId == state.Item.Id));
+        var receiving = await db.Set<BusinessReceivingRequest>().AsNoTracking().SingleAsync(row =>
+            row.ProjectId == state.Source.Project && row.ScopeId == state.Binding.TaskId && row.SourceKind == "RepairReview");
+        Assert.Null(receiving.AcknowledgedAt); Assert.Null(receiving.ClockId);
+        var receivingCommand = new BusinessDutyCommand(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Project,
+            receiving.Id, "ack", Guid.NewGuid().ToString(), Convert.ToBase64String(receiving.RowVersion), null, null, null);
+        var duties = new BusinessDutyRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
+        Assert.Equal(201, (await duties.ExecuteAsync(receivingCommand, default)).Status);
+        Assert.Equal(200, (await duties.ExecuteAsync(receivingCommand, default)).Status);
+        db.ChangeTracker.Clear();
+        receiving = await db.Set<BusinessReceivingRequest>().AsNoTracking().Include(row => row.Clock).SingleAsync(row => row.Id == receiving.Id);
+        Assert.Equal(receiving.AcknowledgedAt!.Value.AddHours(48), receiving.Clock!.OriginalDueAt);
         db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).ReviewAttemptAsync(reviewCommand, default)).Status);
         Assert.Equal(403, (await Repo(db).ReviewAttemptAsync(reviewCommand with
@@ -450,6 +517,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         Assert.Equal(acceptedReviewRecord.At, finalClock.OriginAt);
         Assert.Equal(finalClock.OriginAt.AddHours(48), finalClock.OriginalDueAt);
         Assert.Null(finalClock.CompletedAt);
+        if (extendFinal) await VerifySupervisorExtension(db, state.Source, finalClock);
         if (observeFinalBreach)
         {
             var item = await db.Set<RepairItem>().AsNoTracking().SingleAsync(row => row.Id == state.Item.Id);
@@ -698,9 +766,26 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         Assert.False(await db.Set<DeadlineClock>().AnyAsync(row => row.TargetId == state.Item.Id && row.Kind == DeadlineClockKind.FinishedDataSync));
     }
 
+    private static async Task VerifySupervisorExtension(RoadGuardSystem.Repositories.RoadGuardDbContext db,
+        H4GenuineRepairSource.Source source, DeadlineClock duty)
+    {
+        var repository = new ClockDutyRepository(db, new IdempotencyOperationService(db),
+            new FixedClock(duty.OriginalDueAt.AddMinutes(1)));
+        var command = new ClockDutyCommand(source.Supervisor, UserRoleCode.Supervisor, source.Project, duty.Id,
+            "extend", Guid.NewGuid().ToString(), Convert.ToBase64String(duty.RowVersion), "Actual Supervisor duty extension",
+            duty.OriginalDueAt.AddHours(3), null);
+        Assert.Equal(403, (await repository.ExecuteAsync(command with { ActorId = source.Pm, Role = UserRoleCode.ProjectManager }, default)).Status);
+        Assert.Equal(201, (await repository.ExecuteAsync(command, default)).Status);
+        Assert.Equal(200, (await repository.ExecuteAsync(command, default)).Status);
+        db.ChangeTracker.Clear();
+        var persisted = await db.Set<DeadlineClock>().Include(c => c.Extensions).Include(c => c.Breaches).SingleAsync(c => c.Id == duty.Id);
+        Assert.Equal(duty.OriginEventId, persisted.OriginEventId); Assert.Equal(duty.OriginalDueAt, persisted.OriginalDueAt);
+        Assert.Equal(duty.OriginalDueAt.AddHours(3), persisted.CurrentDueAt);
+        Assert.Single(persisted.Extensions); Assert.Single(persisted.Breaches);
+    }
     private sealed record Ready(H4GenuineRepairSource.Source Source, RepairPackage Package, RepairItem Item,
         RepairFieldTaskBinding Binding, FieldTaskStartOrigin FirstStart);
-    private async Task<Ready> AssignedAndStarted(RoadGuardDbContext db)
+    private async Task<Ready> AssignedAndStarted(RoadGuardDbContext db, bool extendInitial = false)
     {
         var source = await H4GenuineRepairSource.Seed(db, sql); var repo = Repo(db);
         var defectVersion = Convert.ToBase64String(await db.Defects.Where(row => row.Id == source.Defect)
@@ -714,6 +799,9 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql) : IC
         var proposed = await repo.ProposeItemAsync(new(source.Pm, UserRoleCode.ProjectManager, source.Project, package.Id,
             new(package.Obligations[0].Id, "NORMAL", "actual repair plan", "checklist-v1", "proposal"), Guid.NewGuid().ToString(), created.Version!), default);
         Assert.Equal(201, proposed.Status); var itemView = Assert.IsType<RepairItemFact>(proposed.Value);
+        if (extendInitial)
+            await VerifySupervisorExtension(db, source, await db.Set<DeadlineClock>().SingleAsync(c =>
+                c.TargetId == itemView.Id && c.Kind == DeadlineClockKind.SupervisorInitialApproval));
         var approved = await repo.ApproveItemAsync(new(source.Supervisor, UserRoleCode.Supervisor, source.Project, package.Id,
             itemView.Id, new("approve actual plan"), Guid.NewGuid().ToString(), proposed.Version!), default); Assert.Equal(201, approved.Status);
         var assigned = await repo.AssignItemAsync(new(source.Pm, UserRoleCode.ProjectManager, source.Project, package.Id, itemView.Id,

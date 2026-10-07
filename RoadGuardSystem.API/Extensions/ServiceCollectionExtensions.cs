@@ -127,6 +127,10 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<ValidationRunWorker>();
         services.AddScoped<RoadGuardSystem.Services.Messaging.H6NotificationDispatchService>();
         services.AddScoped<RoadGuardSystem.Services.Messaging.H6NotificationReadService>();
+        services.AddScoped<RoadGuardSystem.Repositories.Messaging.IBusinessDutyRepository, RoadGuardSystem.Repositories.Messaging.BusinessDutyRepository>();
+        services.AddScoped<RoadGuardSystem.Services.Messaging.BusinessDutyService>();
+        services.AddScoped<RoadGuardSystem.Repositories.Messaging.IClockDutyRepository, RoadGuardSystem.Repositories.Messaging.ClockDutyRepository>();
+        services.AddScoped<RoadGuardSystem.Services.Messaging.ClockDutyService>();
         services.AddHostedService<RoadGuardSystem.API.Workers.H6NotificationWorker>();
         services.AddScoped<IAuthorizationHandler, ProjectAccessAuthorizationHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProjectAuthorizationMiddlewareResultHandler>();

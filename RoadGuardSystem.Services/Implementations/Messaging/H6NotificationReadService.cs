@@ -29,7 +29,8 @@ public sealed class H6NotificationReadService(IH6NotificationOperationsRepositor
             row.Extensions.Select(extension => new H6ClockExtensionView(extension.Id, extension.ActorId, extension.At,
                 extension.PreviousDueAt, extension.NewDueAt, extension.Reason, extension.PreviousDeadlineBreached)).ToArray(),
             row.Breaches.Select(breach => new H6ClockBreachView(breach.Id, breach.DueAt, breach.ObservedAt)).ToArray(),
-            row.PendingCapabilities)).ToArray();
+            row.PendingCapabilities)
+        { AppointedActorId = row.AppointedActorId, AppointedRole = row.AppointedRole, Appointments = row.Appointments }).ToArray();
         var next = fact.Continuation;
         return new(fact.Status, views, next is null ? null : new(next.ActorId, next.ProjectId, next.Role,
             next.AfterDueAtUtc, next.AfterClockId));

@@ -7,7 +7,7 @@ using RoadGuardSystem.BusinessObjects.Projects;
 namespace RoadGuardSystem.Repositories.Configurations;
 
 public sealed class DeadlineClockConfiguration : IEntityTypeConfiguration<DeadlineClock>,
-    IEntityTypeConfiguration<DeadlineExtension>, IEntityTypeConfiguration<DeadlineBreach>
+    IEntityTypeConfiguration<DeadlineExtension>, IEntityTypeConfiguration<DeadlineBreach>, IEntityTypeConfiguration<DeadlineDutyAppointment>
 {
     public void Configure(EntityTypeBuilder<DeadlineClock> builder)
     {
@@ -22,6 +22,10 @@ public sealed class DeadlineClockConfiguration : IEntityTypeConfiguration<Deadli
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Kind).HasConversion<byte>().HasColumnType("tinyint");
         builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.Property(x => x.AppointedRole).HasConversion<byte?>();
+        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.AppointedActorId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(x => x.Appointments).WithOne().HasForeignKey(x => x.ClockId).OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(x => x.Appointments).HasField("_appointments").UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.HasIndex(x => new { x.Kind, x.TargetId }).IsUnique();
         builder.HasIndex(x => new { x.ProjectId, x.CompletedAt, x.CurrentDueAt });
         builder.HasIndex(x => x.OriginEventId);
@@ -57,5 +61,13 @@ public sealed class DeadlineClockConfiguration : IEntityTypeConfiguration<Deadli
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.HasIndex(x => new { x.ClockId, x.DueAt }).IsUnique();
+    }
+    public void Configure(EntityTypeBuilder<DeadlineDutyAppointment> builder)
+    {
+        builder.ToTable("DeadlineDutyAppointments", t => t.HasTrigger("TR_DeadlineDutyAppointments_Immutable"));
+        builder.HasKey(x => x.Id); builder.Property(x => x.Id).ValueGeneratedNever();
+        builder.Property(x => x.Role).HasConversion<byte>(); builder.Property(x => x.Reason).HasMaxLength(2000);
+        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.CurrentActorId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.DecisionActorId).OnDelete(DeleteBehavior.Restrict);
     }
 }

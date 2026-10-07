@@ -70,7 +70,61 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         var bad=new{originId=Guid.NewGuid(),startOriginId=start,measurements=new object?[]{null},captureType="MEASUREMENT"};Assert.Equal(HttpStatusCode.BadRequest,(await Post(client,path+"/submissions",bad,version:await Version(client,path))).StatusCode);
         var intake=await Post(client,path+"/submissions",intakeBody,version:await Version(client,path));Assert.Equal(HttpStatusCode.Created,intake.StatusCode);var first=await intake.Content.ReadFromJsonAsync<JsonElement>();Assert.Equal("INCOMPLETE",first.GetProperty("readiness").GetString());
         await Login(client,pm.UserName!);Assert.Equal(HttpStatusCode.Conflict,(await Post(client,path+"/reviews",new{submissionId=first.GetProperty("id").GetGuid(),decision="CONFIRM",reason="insufficient"},version:await Version(client,path))).StatusCode);
-        var supplement=await Post(client,path+"/reviews",new{submissionId=first.GetProperty("id").GetGuid(),decision="SUPPLEMENT",reason="need actual capture"},version:await Version(client,path));Assert.Equal(HttpStatusCode.Created,supplement.StatusCode);Assert.Equal("AWAITING_OWNER_RECEIPT_PROTOCOL",(await supplement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("receiptActivation").GetString());
+        var supplement=await Post(client,path+"/reviews",new{submissionId=first.GetProperty("id").GetGuid(),decision="SUPPLEMENT",reason="need actual capture"},version:await Version(client,path));Assert.Equal(HttpStatusCode.Created,supplement.StatusCode);Assert.Equal("BUSINESS_ACK_REQUIRED",(await supplement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("receiptActivation").GetString());
+        Guid receivingId;
+        await using (var sourceDb = sql.CreateDbContext())
+        {
+            var receiving = await sourceDb.Set<BusinessReceivingRequest>().AsNoTracking().SingleAsync(r => r.ScopeId == id);
+            receivingId = receiving.Id; Assert.Null(receiving.ClockId); Assert.Null(receiving.AcknowledgedAt);
+        }
+        var receivingPath = $"/api/v1/projects/{scope.Project}/receiving-requests/{receivingId}";
+        var supervisor = await sql.CreateUserAsync($"activation-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        Guid reviewClockId; string reviewClockVersion; DateTimeOffset reviewOriginalDue;
+        await using (var scopeDb = sql.CreateDbContext())
+        {
+            scopeDb.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = scope.Project, UserId = supervisor.Id,
+                RoleCode = UserRoleCode.Supervisor, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) });
+            await scopeDb.SaveChangesAsync();
+            var reviewClock = await scopeDb.Set<DeadlineClock>().AsNoTracking().SingleAsync(c => c.TargetId == id && c.Kind == DeadlineClockKind.ProjectManagerReview);
+            reviewClockId = reviewClock.Id; reviewClockVersion = Convert.ToBase64String(reviewClock.RowVersion); reviewOriginalDue = reviewClock.OriginalDueAt;
+        }
+        var clockPath = $"/api/v1/projects/{scope.Project}/clocks/{reviewClockId}";
+        Assert.Equal(HttpStatusCode.Forbidden, (await Post(client, clockPath + "/extensions",
+            new { newDueAt = reviewOriginalDue.AddHours(4), reason = "PM cannot extend own review" }, version: reviewClockVersion)).StatusCode);
+        await Login(client, supervisor.UserName!);
+        var extensionKey = Guid.NewGuid().ToString();
+        var extended = await Post(client, clockPath + "/extensions", new { newDueAt = reviewOriginalDue.AddHours(4), reason = "Current Supervisor review extension" }, extensionKey, reviewClockVersion);
+        Assert.Equal(HttpStatusCode.Created, extended.StatusCode);
+        var extendedJson = await extended.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(reviewOriginalDue, extendedJson.GetProperty("originalDueAt").GetDateTimeOffset());
+        Assert.Equal(reviewOriginalDue.AddHours(4), extendedJson.GetProperty("currentDueAt").GetDateTimeOffset());
+        Assert.Equal("PENDING_OWNER_DECISION", extendedJson.GetProperty("numericalLimitPolicy").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, clockPath + "/extensions",
+            new { newDueAt = reviewOriginalDue.AddHours(4), reason = "Current Supervisor review extension" }, extensionKey, reviewClockVersion)).StatusCode);
+        var appointmentVersion = extendedJson.GetProperty("version").GetString();
+        Assert.Equal(HttpStatusCode.Forbidden, (await Post(client, clockPath + "/appointments",
+            new { assigneeId = crew.Id, reason = "Wrong duty role" }, version: appointmentVersion)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await Post(client, clockPath + "/appointments",
+            new { assigneeId = pm.Id, reason = "Current project PM review duty" }, version: appointmentVersion)).StatusCode);
+        await Login(client, crew.UserName!);
+        var waiting = await client.GetAsync(receivingPath); Assert.Equal(HttpStatusCode.OK, waiting.StatusCode);
+        var waitingJson = await waiting.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Chưa xác nhận nhận", waitingJson.GetProperty("receivingState").GetString());
+        Assert.Equal(JsonValueKind.Null, waitingJson.GetProperty("originalDueAt").ValueKind);
+        var receivingVersion = waitingJson.GetProperty("version").GetString(); var receivingKey = Guid.NewGuid().ToString();
+        var deviceTime = DateTimeOffset.UtcNow.AddDays(-1);
+        var received = await Post(client, receivingPath + "/ack", new { claimedDeviceAt = deviceTime }, receivingKey, receivingVersion);
+        Assert.Equal(HttpStatusCode.Created, received.StatusCode);
+        var receivedJson = await received.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Đã nhận yêu cầu", receivedJson.GetProperty("receivingState").GetString());
+        Assert.Equal(receivedJson.GetProperty("acknowledgedAt").GetDateTimeOffset().AddHours(48), receivedJson.GetProperty("originalDueAt").GetDateTimeOffset());
+        Assert.Equal(deviceTime, receivedJson.GetProperty("claimedDeviceAt").GetDateTimeOffset());
+        var receivedAgain = await Post(client, receivingPath + "/ack", new { claimedDeviceAt = deviceTime }, receivingKey, receivingVersion);
+        Assert.Equal(HttpStatusCode.OK, receivedAgain.StatusCode);
+        Assert.Equal(receivedJson.GetRawText(), (await receivedAgain.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
+        await Login(client, other.UserName!);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(receivingPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await Post(client, receivingPath + "/ack", new { claimedDeviceAt = deviceTime }, version: receivingVersion)).StatusCode);
         await Login(client,crew.UserName!);var uploadBody=new{projectId=scope.Project,targetId=id,purpose="MEASUREMENT",fileName="capture.jpg",mediaType="image/jpeg",sizeBytes=4,checksumSha256=PhotoStorage.Hash};
         var upload=await Post(client,"/api/v1/uploads",uploadBody);Assert.Equal(HttpStatusCode.Created,upload.StatusCode);var uploadJson=await upload.Content.ReadFromJsonAsync<JsonElement>();var uploadId=uploadJson.GetProperty("id").GetGuid();var file=uploadJson.GetProperty("fileId").GetGuid();
         Assert.Equal(HttpStatusCode.OK,(await Post(client,$"/api/v1/uploads/{uploadId}/part-urls",new{partNumbers=new[]{1}})).StatusCode);

@@ -330,6 +330,11 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
             await new PostmanUserSeedStep().SeedAsync(context);
             var first = await RoadGuardSystem.Seeder.DevelopmentScenarios.SeedAsync(context);
             var project = await context.Projects.SingleAsync(x => x.ProjectCode == RoadGuardSystem.Seeder.DevelopmentScenarios.ProjectCode);
+            context.ChangeTracker.Clear();
+            var repeat = await RoadGuardSystem.Seeder.DevelopmentScenarios.SeedAsync(context);
+            repeat.ProjectId.Should().Be(first.ProjectId);
+            repeat.Tables.Select(x => (x.Table, x.Count)).Should().BeEquivalentTo(
+                first.Tables.Select(x => (x.Table, x.Count)));
             var update = await new RoadGuardSystem.Services.Projects.ProjectUpdateService(
                 new RoadGuardSystem.Repositories.Projects.ProjectUpdatePersistenceService(context))
                 .UpdateAsync(PostmanUserSeedStep.SupervisorUserId, RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Supervisor,
@@ -338,6 +343,7 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
             update.Status.Should().Be(RoadGuardSystem.Services.Projects.ProjectUpdateStatus.Success);
             context.ChangeTracker.Clear();
             var second = await RoadGuardSystem.Seeder.DevelopmentScenarios.SeedAsync(context);
+            second.ProjectId.Should().Be(first.ProjectId);
             (await context.Projects.AsNoTracking().SingleAsync(x => x.Id == project.Id)).Name.Should().Be("Owner edited development project");
             second.Tables.Select(x => x.Table).Should().BeEquivalentTo(first.Tables.Select(x => x.Table));
             second.Tables.Should().OnlyContain(x => x.Count > 0 || !string.IsNullOrWhiteSpace(x.EmptyReason));

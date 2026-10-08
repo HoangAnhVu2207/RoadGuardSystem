@@ -136,8 +136,11 @@ public static class DevelopmentScenarios
                     {
                         await Run("set-create", new SegmentDefinition(100), section: section!.Id, route: route.Id);
                         set = await db.RoadSegmentSets.SingleAsync(x => x.RoadSectionVersionId == route.Id, ct);
+                        db.ChangeTracker.Clear();
                         await Run("publish", new SegmentPublishInput(null, "Synthetic dev/test sample publication"), section: section.Id,
                             route: route.Id, set: set.Id, version: Convert.ToBase64String(set.RowVersion));
+                        db.ChangeTracker.Clear();
+                        set = await db.RoadSegmentSets.AsNoTracking().SingleAsync(x => x.Id == set.Id, ct);
                     }
                     if (set.Status == "PUBLISHED")
                     {
@@ -558,7 +561,9 @@ public static class DevelopmentScenarios
                     PostmanUserSeedStep.RepairCrewUserId, clock.GetUtcNow().AddDays(7), CrsProfileRevisionId: route.CrsProfileRevisionId),
                 "rg-ci-01/field/create", null, ct);
             if (created.Status >= 400) gaps.Add($"FIELD task producer: {created.Status}/{created.Code}");
-            else if (created.Value is RoadGuardSystem.DTOs.Inspections.FieldTaskView createdTask)
+            else if (created.Value is JsonElement payload && payload.ValueKind == JsonValueKind.Object &&
+                payload.Deserialize<RoadGuardSystem.DTOs.Inspections.FieldTaskView>(ReadJson) is { } createdTask &&
+                createdTask.Id != Guid.Empty && !string.IsNullOrWhiteSpace(createdTask.Version))
             {
                 var accepted = await field.ExecuteAsync(PostmanUserSeedStep.RepairCrewUserId, UserRoleCode.RepairCrew,
                     project, createdTask.Id, "accept", new RoadGuardSystem.DTOs.Inspections.FieldTaskActionInput("Synthetic crew acceptance"),
@@ -568,6 +573,11 @@ public static class DevelopmentScenarios
                 {
                     var current = await field.ExecuteAsync(PostmanUserSeedStep.RepairCrewUserId, UserRoleCode.RepairCrew,
                         project, createdTask.Id, "get", null, null, null, ct);
+                    if (current.Status >= 400 || string.IsNullOrWhiteSpace(current.Version))
+                    {
+                        gaps.Add($"FIELD start version read: {current.Status}/{current.Code}");
+                        return;
+                    }
                     var started = await field.ExecuteAsync(PostmanUserSeedStep.RepairCrewUserId, UserRoleCode.RepairCrew,
                         project, createdTask.Id, "start", new RoadGuardSystem.DTOs.Inspections.FieldStartInput(
                             Guid.Parse("8305e20c-0785-4012-a490-baf002852c03"), clock.GetUtcNow()),
@@ -575,6 +585,7 @@ public static class DevelopmentScenarios
                     if (started.Status >= 400) gaps.Add($"FIELD start producer: {started.Status}/{started.Code}");
                 }
             }
+            else gaps.Add("FIELD task producer returned an unexpected success payload; accept/start not attempted.");
             return;
         }
         var fresh = await cases.ReadAsync(pm, UserRoleCode.ProjectManager, incident.Id, ct);

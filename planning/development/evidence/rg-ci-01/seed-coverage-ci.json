@@ -1,7 +1,7 @@
 {
   "Evidence": "SYNTHETIC_DEV_TEST; SQL_PRODUCER_EXECUTION_ONLY; NOT_VERIFIED_REAL",
-  "ProjectId": "91e44aba-e013-4412-8711-61576ca4f302",
-  "ReferenceTime": "2026-10-08T18:50:23.9094391+00:00",
+  "ProjectId": "c82f6b94-36eb-449c-a650-e7e4d6f424d3",
+  "ReferenceTime": "2026-10-08T18:50:06.72018+00:00",
   "Accounts": [
     {
       "SupervisorUserId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a01",
@@ -241,7 +241,7 @@
     },
     {
       "Table": "dbo.AuditLogs",
-      "Count": 38,
+      "Count": 13,
       "Producer": "Existing audited/idempotent business services and IdempotencyOperationService",
       "EmptyReason": null,
       "Group": "audit-idempotency",
@@ -348,9 +348,9 @@
     },
     {
       "Table": "dbo.CandidateSourceHeads",
-      "Count": 2,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -366,9 +366,9 @@
     },
     {
       "Table": "dbo.CaseConclusionDefects",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -381,9 +381,9 @@
     },
     {
       "Table": "dbo.CaseConclusionEvidence",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -399,9 +399,9 @@
     },
     {
       "Table": "dbo.CaseConclusions",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -414,9 +414,9 @@
     },
     {
       "Table": "dbo.CasePublicationDefects",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -429,9 +429,9 @@
     },
     {
       "Table": "dbo.CasePublicationEvidence",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -450,9 +450,9 @@
     },
     {
       "Table": "dbo.CasePublicationRecipients",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -468,9 +468,9 @@
     },
     {
       "Table": "dbo.CasePublications",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -519,9 +519,9 @@
     },
     {
       "Table": "dbo.CaseReportLinks",
-      "Count": 3,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -684,9 +684,9 @@
     },
     {
       "Table": "dbo.Defects",
-      "Count": 2,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -709,9 +709,9 @@
     },
     {
       "Table": "dbo.DefectSourceLinks",
-      "Count": 2,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -773,9 +773,9 @@
     },
     {
       "Table": "dbo.DefectVerificationLogs",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -821,9 +821,9 @@
     },
     {
       "Table": "dbo.FieldInspectionAssignments",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IFieldInspectionWorkflowService.ExecuteAsync actions create/accept/start/submit/review/reuse/impact",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Replace legacy task fixture with operational LifecycleVersion=2 through create, pinning reporter KeepNew source, route/set/layout/map/profile. Separate assigned/accepted/submitted/reviewed graphs. Real minimal evidence bytes and current origin/location validators required; empty downstream with concrete prerequisite failure if map/source absent.",
       "Group": "field",
       "DependencyOrder": 90,
       "Prerequisites": [
@@ -906,9 +906,9 @@
     },
     {
       "Table": "dbo.FieldInspectionOperationOrigins",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IFieldInspectionWorkflowService.ExecuteAsync actions create/accept/start/submit/review/reuse/impact",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Replace legacy task fixture with operational LifecycleVersion=2 through create, pinning reporter KeepNew source, route/set/layout/map/profile. Separate assigned/accepted/submitted/reviewed graphs. Real minimal evidence bytes and current origin/location validators required; empty downstream with concrete prerequisite failure if map/source absent.",
       "Group": "field",
       "DependencyOrder": 90,
       "Prerequisites": [
@@ -1003,9 +1003,9 @@
     },
     {
       "Table": "dbo.FieldInspectionTaskEvents",
-      "Count": 3,
+      "Count": 0,
       "Producer": "IFieldInspectionWorkflowService.ExecuteAsync actions create/accept/start/submit/review/reuse/impact",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Replace legacy task fixture with operational LifecycleVersion=2 through create, pinning reporter KeepNew source, route/set/layout/map/profile. Separate assigned/accepted/submitted/reviewed graphs. Real minimal evidence bytes and current origin/location validators required; empty downstream with concrete prerequisite failure if map/source absent.",
       "Group": "field",
       "DependencyOrder": 90,
       "Prerequisites": [
@@ -1026,9 +1026,9 @@
     },
     {
       "Table": "dbo.FieldInspectionTasks",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IFieldInspectionWorkflowService.ExecuteAsync actions create/accept/start/submit/review/reuse/impact",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Replace legacy task fixture with operational LifecycleVersion=2 through create, pinning reporter KeepNew source, route/set/layout/map/profile. Separate assigned/accepted/submitted/reviewed graphs. Real minimal evidence bytes and current origin/location validators required; empty downstream with concrete prerequisite failure if map/source absent.",
       "Group": "field",
       "DependencyOrder": 90,
       "Prerequisites": [
@@ -1056,9 +1056,9 @@
     },
     {
       "Table": "dbo.FieldTaskStartOrigins",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IFieldInspectionWorkflowService.ExecuteAsync actions create/accept/start/submit/review/reuse/impact",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Replace legacy task fixture with operational LifecycleVersion=2 through create, pinning reporter KeepNew source, route/set/layout/map/profile. Separate assigned/accepted/submitted/reviewed graphs. Real minimal evidence bytes and current origin/location validators required; empty downstream with concrete prerequisite failure if map/source absent.",
       "Group": "field",
       "DependencyOrder": 90,
       "Prerequisites": [
@@ -1086,9 +1086,9 @@
     },
     {
       "Table": "dbo.Files",
-      "Count": 5,
+      "Count": 0,
       "Producer": "IReporterEvidenceService or IUploadService -\u003E IUploadObjectStorage -\u003E CompleteAsync -\u003E IUploadService.ProcessOneVerificationAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
       "Group": "storage",
       "DependencyOrder": 50,
       "Prerequisites": [
@@ -1107,9 +1107,9 @@
     },
     {
       "Table": "dbo.FileScopes",
-      "Count": 5,
+      "Count": 0,
       "Producer": "IReporterEvidenceService or IUploadService -\u003E IUploadObjectStorage -\u003E CompleteAsync -\u003E IUploadService.ProcessOneVerificationAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
       "Group": "storage",
       "DependencyOrder": 50,
       "Prerequisites": [
@@ -1224,9 +1224,9 @@
     },
     {
       "Table": "dbo.H6NotificationAudits",
-      "Count": 3,
+      "Count": 0,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
-      "EmptyReason": null,
+      "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty. Scenario: Produce events through actual business command; explicitly dispatch only local in-app work; mark one generated notification read using actual version. Clocks and duty rows arise from genuine transitions, not arbitrary deadline timestamps. Leave leases/delivery attempts/consumer receipts empty unless legitimate dispatch occurs, and never use real recipients.",
       "Group": "messaging-clock",
       "DependencyOrder": 120,
       "Prerequisites": [
@@ -1260,9 +1260,9 @@
     },
     {
       "Table": "dbo.H6NotificationDeliveries",
-      "Count": 1,
+      "Count": 0,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
-      "EmptyReason": null,
+      "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty. Scenario: Produce events through actual business command; explicitly dispatch only local in-app work; mark one generated notification read using actual version. Clocks and duty rows arise from genuine transitions, not arbitrary deadline timestamps. Leave leases/delivery attempts/consumer receipts empty unless legitimate dispatch occurs, and never use real recipients.",
       "Group": "messaging-clock",
       "DependencyOrder": 120,
       "Prerequisites": [
@@ -1278,9 +1278,9 @@
     },
     {
       "Table": "dbo.H6NotificationDeliveryAttempts",
-      "Count": 1,
+      "Count": 0,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
-      "EmptyReason": null,
+      "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty. Scenario: Produce events through actual business command; explicitly dispatch only local in-app work; mark one generated notification read using actual version. Clocks and duty rows arise from genuine transitions, not arbitrary deadline timestamps. Leave leases/delivery attempts/consumer receipts empty unless legitimate dispatch occurs, and never use real recipients.",
       "Group": "messaging-clock",
       "DependencyOrder": 120,
       "Prerequisites": [
@@ -1293,9 +1293,9 @@
     },
     {
       "Table": "dbo.H6NotificationEventReceipts",
-      "Count": 3,
+      "Count": 0,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
-      "EmptyReason": null,
+      "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty. Scenario: Produce events through actual business command; explicitly dispatch only local in-app work; mark one generated notification read using actual version. Clocks and duty rows arise from genuine transitions, not arbitrary deadline timestamps. Leave leases/delivery attempts/consumer receipts empty unless legitimate dispatch occurs, and never use real recipients.",
       "Group": "messaging-clock",
       "DependencyOrder": 120,
       "Prerequisites": [
@@ -1308,9 +1308,9 @@
     },
     {
       "Table": "dbo.H6NotificationOccurrences",
-      "Count": 1,
+      "Count": 0,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Produce events through actual business command; explicitly dispatch only local in-app work; mark one generated notification read using actual version. Clocks and duty rows arise from genuine transitions, not arbitrary deadline timestamps. Leave leases/delivery attempts/consumer receipts empty unless legitimate dispatch occurs, and never use real recipients.",
       "Group": "messaging-clock",
       "DependencyOrder": 120,
       "Prerequisites": [
@@ -1326,9 +1326,9 @@
     },
     {
       "Table": "dbo.H6NotificationScopes",
-      "Count": 1,
+      "Count": 0,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Produce events through actual business command; explicitly dispatch only local in-app work; mark one generated notification read using actual version. Clocks and duty rows arise from genuine transitions, not arbitrary deadline timestamps. Leave leases/delivery attempts/consumer receipts empty unless legitimate dispatch occurs, and never use real recipients.",
       "Group": "messaging-clock",
       "DependencyOrder": 120,
       "Prerequisites": [
@@ -1367,7 +1367,7 @@
     },
     {
       "Table": "dbo.IdempotencyRecords",
-      "Count": 44,
+      "Count": 13,
       "Producer": "Existing audited/idempotent business services and IdempotencyOperationService",
       "EmptyReason": null,
       "Group": "audit-idempotency",
@@ -1386,9 +1386,9 @@
     },
     {
       "Table": "dbo.IncidentCases",
-      "Count": 3,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -1486,9 +1486,9 @@
     },
     {
       "Table": "dbo.Notifications",
-      "Count": 1,
+      "Count": 0,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Produce events through actual business command; explicitly dispatch only local in-app work; mark one generated notification read using actual version. Clocks and duty rows arise from genuine transitions, not arbitrary deadline timestamps. Leave leases/delivery attempts/consumer receipts empty unless legitimate dispatch occurs, and never use real recipients.",
       "Group": "messaging-clock",
       "DependencyOrder": 120,
       "Prerequisites": [
@@ -1794,9 +1794,9 @@
     },
     {
       "Table": "dbo.OfflineTaskSnapshots",
-      "Count": 1,
+      "Count": 0,
       "Producer": "IOfflineWorkflowService.ExecuteAsync device-register/snapshot-create/package-export/grant-issue/import/sync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Device registration and task snapshot are feasible after valid task. Generate genuine dev/test asymmetric keys and current signed/encrypted contracts with OfflineContractMapping algorithms; keep private keys outside report/DB fixtures. If signing, encryption or valid task prerequisite unavailable, leave package/grant/admission/origin tables empty with producer instructions; no fake grants or admissions.",
       "Group": "offline",
       "DependencyOrder": 110,
       "Prerequisites": [
@@ -1815,7 +1815,7 @@
     },
     {
       "Table": "dbo.OutboxMessages",
-      "Count": 5,
+      "Count": 2,
       "Producer": "Supported business command emitters -\u003E outbox consumers/H6NotificationDispatchRepository; INotificationService.MarkReadAsync; ClockDutyRepository/BusinessDutyRepository",
       "EmptyReason": null,
       "Group": "messaging-clock",
@@ -2817,9 +2817,9 @@
     },
     {
       "Table": "dbo.ReportOriginalEvidence",
-      "Count": 3,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -2834,9 +2834,9 @@
     },
     {
       "Table": "dbo.Reports",
-      "Count": 3,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -3183,9 +3183,9 @@
     },
     {
       "Table": "dbo.SourceDecisions",
-      "Count": 2,
+      "Count": 0,
       "Producer": "IReporterReportService.CreateAsync -\u003E IReporterLifecycleService.SupplementAsync -\u003E ICaseWorkflowService.CommandAsync -\u003E ICandidateDecisionService.DecideAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
       "Group": "report-case",
       "DependencyOrder": 60,
       "Prerequisites": [
@@ -3281,9 +3281,9 @@
     },
     {
       "Table": "dbo.SurveyDataVersions",
-      "Count": 1,
+      "Count": 0,
       "Producer": "ISurveyV2Service.CreatePlanAsync/CreateTaskAsync/AcceptTaskAsync/SubmitDatasetAsync; ISurveyAssessmentService.CreateAsync/SelectAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Separate planned, accepted, submitted dataset and assessed/baseline graphs. Create plan/task with future reference-time dates and immutable geometry pins; use actual verified files and flight data. Postpone distinct plan; supplement distinct task. Never assign SurveyStatus.Completed directly.",
       "Group": "survey",
       "DependencyOrder": 70,
       "Prerequisites": [
@@ -3302,9 +3302,9 @@
     },
     {
       "Table": "dbo.SurveyFiles",
-      "Count": 2,
+      "Count": 0,
       "Producer": "ISurveyV2Service.CreatePlanAsync/CreateTaskAsync/AcceptTaskAsync/SubmitDatasetAsync; ISurveyAssessmentService.CreateAsync/SelectAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Separate planned, accepted, submitted dataset and assessed/baseline graphs. Create plan/task with future reference-time dates and immutable geometry pins; use actual verified files and flight data. Postpone distinct plan; supplement distinct task. Never assign SurveyStatus.Completed directly.",
       "Group": "survey",
       "DependencyOrder": 70,
       "Prerequisites": [
@@ -3417,9 +3417,9 @@
     },
     {
       "Table": "dbo.Surveys",
-      "Count": 1,
+      "Count": 0,
       "Producer": "ISurveyV2Service.CreatePlanAsync/CreateTaskAsync/AcceptTaskAsync/SubmitDatasetAsync; ISurveyAssessmentService.CreateAsync/SelectAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Separate planned, accepted, submitted dataset and assessed/baseline graphs. Create plan/task with future reference-time dates and immutable geometry pins; use actual verified files and flight data. Postpone distinct plan; supplement distinct task. Never assign SurveyStatus.Completed directly.",
       "Group": "survey",
       "DependencyOrder": 70,
       "Prerequisites": [
@@ -3491,9 +3491,9 @@
     },
     {
       "Table": "dbo.UploadMultipartSweeps",
-      "Count": 5,
+      "Count": 0,
       "Producer": "IReporterEvidenceService or IUploadService -\u003E IUploadObjectStorage -\u003E CompleteAsync -\u003E IUploadService.ProcessOneVerificationAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty. Scenario: Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
       "Group": "storage",
       "DependencyOrder": 50,
       "Prerequisites": [
@@ -3505,9 +3505,9 @@
     },
     {
       "Table": "dbo.UploadParts",
-      "Count": 5,
+      "Count": 0,
       "Producer": "IReporterEvidenceService or IUploadService -\u003E IUploadObjectStorage -\u003E CompleteAsync -\u003E IUploadService.ProcessOneVerificationAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
       "Group": "storage",
       "DependencyOrder": 50,
       "Prerequisites": [
@@ -3519,9 +3519,9 @@
     },
     {
       "Table": "dbo.UploadSessions",
-      "Count": 5,
+      "Count": 0,
       "Producer": "IReporterEvidenceService or IUploadService -\u003E IUploadObjectStorage -\u003E CompleteAsync -\u003E IUploadService.ProcessOneVerificationAsync",
-      "EmptyReason": null,
+      "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites. Scenario: Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
       "Group": "storage",
       "DependencyOrder": 50,
       "Prerequisites": [
@@ -3650,93 +3650,33 @@
     }
   ],
   "Gaps": [
+    "Storage config absent: reports/datasets/FIELD/repair require genuine uploaded bytes and verified provenance; not fabricated.",
     "Offline crypto/package/sync records require genuine signed device payloads; no signatures, grants or admission receipts fabricated.",
     "Real AI inference is absent from this synthetic seed; current marked mock remains a separately configured producer."
   ],
   "Scenarios": [
     {
-      "Id": "91e44aba-e013-4412-8711-61576ca4f302",
+      "Id": "c82f6b94-36eb-449c-a650-e7e4d6f424d3",
       "Kind": "PROJECT",
       "State": "Active",
       "Actions": "Supervisor CreateProject -\u003E genuine handover/warranty/PM membership; existing mutable state preserved",
       "Evidence": "SYNTHETIC_DEV_TEST"
     },
     {
-      "Id": "23ae6bd4-1317-4eec-8f1b-e70329e9eb3c",
+      "Id": "a2014b82-a4aa-452f-babf-43e0078ff12c",
       "Kind": "ROAD",
       "Code": "RG-CI-01-SAMPLE-ROAD",
       "Actions": "PM profile/system/draft -\u003E Supervisor confirm -\u003E PM segment-set generate/publish",
       "Limitation": "SampleOnly native CRS; no construction authority"
     },
     {
-      "Id": "d1aa8f97-ddbd-4a4d-80a5-6edbff5eb2e8",
+      "Id": "2e6ede50-0729-4876-9809-aa7b37697dba",
       "Kind": "SURVEY_TASK",
-      "State": "Submitted",
+      "State": "NewAssigned",
       "Produced": "PM CreatePlanAsync/CreateTaskAsync",
       "NextRequest": "Assigned DRONE_OPERATOR GetTaskAsync -\u003E AcceptTaskAsync using current Version -\u003E UploadService SURVEY_VIDEO/TELEMETRY -\u003E SubmitDatasetAsync",
       "ActorId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a03",
-      "Version": "AAAAAAAAB/Q="
-    },
-    {
-      "Id": "ea6b4a5f-1450-4fa5-ac56-43bcf5a171c8",
-      "Kind": "REPORT",
-      "Description": "RG-CI-01 synthetic reporter graph 1",
-      "CaseId": "638c02d9-d6eb-4a28-8629-aef55f0a3a8f",
-      "Produced": "ReporterEvidenceService multipart uploaded bytes -\u003E actual verifier -\u003E ReporterReportService.CreateAsync",
-      "ActorId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a05",
-      "Limitation": "Synthetic manual dev/test facts; no real observation"
-    },
-    {
-      "Id": "c009e5ad-a374-46ae-bba3-445d5163467c",
-      "Kind": "REPORT",
-      "Description": "RG-CI-01 synthetic reporter graph 3",
-      "CaseId": "8314fff7-6590-4168-a863-484001bd961b",
-      "Produced": "ReporterEvidenceService multipart uploaded bytes -\u003E actual verifier -\u003E ReporterReportService.CreateAsync",
-      "ActorId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a05",
-      "Limitation": "Synthetic manual dev/test facts; no real observation"
-    },
-    {
-      "Id": "992cb21c-2f5c-4b08-b532-6cf4e2ba3973",
-      "Kind": "REPORT",
-      "Description": "RG-CI-01 synthetic reporter graph 2",
-      "CaseId": "34068ec5-6603-43ad-ad9f-145fb4ba56ce",
-      "Produced": "ReporterEvidenceService multipart uploaded bytes -\u003E actual verifier -\u003E ReporterReportService.CreateAsync",
-      "ActorId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a05",
-      "Limitation": "Synthetic manual dev/test facts; no real observation"
-    },
-    {
-      "Id": "34068ec5-6603-43ad-ad9f-145fb4ba56ce",
-      "Kind": "CASE",
-      "State": "Open",
-      "ConclusionIds": [],
-      "PublicationIds": [],
-      "ObservedStages": "triaged",
-      "ActorId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02",
-      "NextRequest": "Read current case; conclude only when current source prerequisites permit; publish with current Version"
-    },
-    {
-      "Id": "8314fff7-6590-4168-a863-484001bd961b",
-      "Kind": "CASE",
-      "State": "Concluded",
-      "ConclusionIds": [
-        "39240201-40ea-4a50-95d5-bce95b1e5006"
-      ],
-      "PublicationIds": [
-        "a11c4e09-3e24-479d-86dd-e432d6de9acb"
-      ],
-      "ObservedStages": "triaged;concluded;published",
-      "ActorId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02",
-      "NextRequest": "None; existing publication preserved"
-    },
-    {
-      "Id": "426bbb21-a97e-432f-9282-be1fcf82f536",
-      "Kind": "FIELD_TASK",
-      "State": "InProgress",
-      "DefectId": "13fe078c-021a-4a70-bc5c-ee44a3c2ec11",
-      "Produced": "FieldInspectionWorkflowService create; current State records actual completed transitions",
-      "ActorId": "4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a04",
-      "NextRequest": "Assigned REPAIR_CREW get -\u003E accept/start/submit where current state permits; PM review requires authentic submission readiness",
-      "Limitation": "Synthetic task; no fabricated verified FIELD result"
+      "Version": "AAAAAAAAB\u002BE="
     }
   ]
 }

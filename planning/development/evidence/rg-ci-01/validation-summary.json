@@ -60,10 +60,15 @@
   },
   "seedTableCount": 192,
   "seedGlobalGapCount": 2,
-  "seedRerun": "same project and 192 table counts across initial and post-login pairs",
+  "seedGlobalGapCountCiNoStorage": 3,
+  "seedPopulatedStorageBacked": 69,
+  "seedEmptyStorageBacked": 123,
+  "seedPopulatedCiNoStorage": 32,
+  "seedEmptyCiNoStorage": 160,
+  "seedRerun": "fresh CI and storage-backed Development CLI pairs: same project and all 192 table counts; zero differences",
   "apiSeedSmoke": "five seeded logins HTTP 200; staff project reads HTTP 200; Reporter HTTP 403",
   "localMaxSqlLaneTestStepSeconds": 202,
-  "hostedStatus": "PENDING_OWNER_PUSH",
+  "hostedStatus": "FAILURE at 9afa7da6b6f9b5cf31811ba22e75ccd80dba97b7, run 37824166393: lane-4 Seeder two-run count gate; follow-up exact-SHA run pending push",
   "hostedTiming": "UNMEASURED",
   "baselineRevalidationAfterWhitespaceRestore": "2/2 PASS; exact SQL catalog equivalent, zero differences"
 }

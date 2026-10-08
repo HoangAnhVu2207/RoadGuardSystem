@@ -157,6 +157,14 @@ public sealed class Huy02NotificationAuthorityTests(IdentitySqlServerFixture fix
         Assert.Equal(NotificationMarkReadPersistenceStatus.Replayed, replay.Status);
         Assert.NotNull(replay.Notification);
         Assert.Equal(winner.Result.Notification.RowVersion, replay.Notification.RowVersion);
+        if (!sameKey)
+        {
+            var loser = results.Select((result, index) => (Key: keys[index], Result: result))
+                .Single(x => x.Result.Status == NotificationMarkReadPersistenceStatus.StaleConcurrency);
+            var staleReplay = await ReadAsync(loser.Key);
+            Assert.Equal(NotificationMarkReadPersistenceStatus.StaleConcurrency, staleReplay.Status);
+            Assert.Null(staleReplay.Notification);
+        }
         Assert.Equal(readAt, (await verify.Notifications.AsNoTracking().SingleAsync(x => x.Id == notification)).ReadAt);
     }
 

@@ -11,15 +11,19 @@ namespace RoadGuardSystem.Repositories.Seeding;
 /// </summary>
 public sealed class PostmanUserSeedStep : ISeedStep
 {
+    private readonly string? _developmentPassword;
+    public PostmanUserSeedStep(string? developmentPassword = null) => _developmentPassword = developmentPassword;
     public static readonly Guid SupervisorUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a01");
     public static readonly Guid ProjectManagerUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a02");
     public static readonly Guid OperatorUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a03");
     public static readonly Guid RepairCrewUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a04");
+    public static readonly Guid ReporterUserId = Guid.Parse("4c3d3e4d-3f6a-4b13-b4d5-6ef7e47d1a05");
 
     public const string SupervisorEmail = "supervisor.postman@example.test";
     public const string ProjectManagerEmail = "pm.postman@example.test";
     public const string OperatorEmail = "operator.postman@example.test";
     public const string RepairCrewEmail = "crew.postman@example.test";
+    public const string ReporterEmail = "reporter.postman@example.test";
     public const string NormalizedProjectManagerEmail = "PM.POSTMAN@EXAMPLE.TEST";
     public const string NormalizedOperatorEmail = "OPERATOR.POSTMAN@EXAMPLE.TEST";
     public const string NormalizedRepairCrewEmail = "CREW.POSTMAN@EXAMPLE.TEST";
@@ -31,7 +35,8 @@ public sealed class PostmanUserSeedStep : ISeedStep
         new(SupervisorUserId, SupervisorEmail, "Postman Supervisor", UserRoleCode.Supervisor, SupervisorPassword),
         new(ProjectManagerUserId, ProjectManagerEmail, "Postman Project Manager", UserRoleCode.ProjectManager, StandardPassword),
         new(OperatorUserId, OperatorEmail, "Postman Drone Operator", UserRoleCode.DroneOperator, StandardPassword),
-        new(RepairCrewUserId, RepairCrewEmail, "Postman Repair Crew", UserRoleCode.RepairCrew, StandardPassword)
+        new(RepairCrewUserId, RepairCrewEmail, "Postman Repair Crew", UserRoleCode.RepairCrew, StandardPassword),
+        new(ReporterUserId, ReporterEmail, "Postman Reporter", UserRoleCode.Reporter, StandardPassword)
     ];
 
     public int Order => 30;
@@ -46,6 +51,7 @@ public sealed class PostmanUserSeedStep : ISeedStep
 
         foreach (var fixture in Users)
         {
+            var password = _developmentPassword ?? fixture.Password;
             var normalizedEmail = fixture.Email.ToUpperInvariant();
             var existing = await context.Users.SingleOrDefaultAsync(
                     user => user.Email == fixture.Email || user.NormalizedEmail == normalizedEmail,
@@ -53,9 +59,9 @@ public sealed class PostmanUserSeedStep : ISeedStep
             if (existing is not null)
             {
                 if (!string.IsNullOrWhiteSpace(existing.PasswordHash) &&
-                    hasher.VerifyHashedPassword(existing, existing.PasswordHash, fixture.Password) == PasswordVerificationResult.SuccessRehashNeeded)
+                    hasher.VerifyHashedPassword(existing, existing.PasswordHash, password) == PasswordVerificationResult.SuccessRehashNeeded)
                 {
-                    existing.PasswordHash = hasher.HashPassword(existing, fixture.Password);
+                    existing.PasswordHash = hasher.HashPassword(existing, password);
                     await context.SaveChangesAsync(cancellationToken);
                 }
 
@@ -77,7 +83,7 @@ public sealed class PostmanUserSeedStep : ISeedStep
                 SecurityStamp = Guid.NewGuid().ToString("N"),
                 CreatedAt = DateTimeOffset.UtcNow
             };
-            user.PasswordHash = hasher.HashPassword(user, fixture.Password);
+            user.PasswordHash = hasher.HashPassword(user, password);
             context.Users.Add(user);
 
             try

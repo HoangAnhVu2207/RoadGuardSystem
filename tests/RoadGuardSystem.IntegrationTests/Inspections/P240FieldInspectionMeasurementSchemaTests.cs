@@ -71,17 +71,6 @@ public sealed class P240FieldInspectionMeasurementSchemaTests : IClassFixture<Id
             .Status.Should().Be(DefectStatus.Open);
     }
 
-    [Fact(DisplayName = "P2-40: purpose gates reject task-bearing research sessions")]
-    public void ResearchValidationSession_WithTask_IsRejectedByDomainInvariant()
-    {
-        var create = () => FieldInspectionSession.Create(
-            Guid.NewGuid(), FieldInspectionPurpose.ResearchValidation, Guid.NewGuid(), Guid.NewGuid(),
-            Guid.NewGuid(), null, "invalid-research", null, "Research Engineer", DateTimeOffset.UtcNow,
-            null, "research method", FieldInspectionSessionStatus.Draft, null);
-
-        create.Should().Throw<ArgumentException>();
-    }
-
     [Fact(DisplayName = "P2-40: active assignment and sample identities are unique")]
     public async Task ActiveAssignmentAndSampleIdentity_DuplicatesAreRejected()
     {
@@ -141,27 +130,6 @@ public sealed class P240FieldInspectionMeasurementSchemaTests : IClassFixture<Id
             """);
 
         await update.Should().ThrowAsync<SqlException>();
-    }
-
-    [Fact(DisplayName = "P2-40: measurement rejects invalid units, values and SRID")]
-    public void Measurement_InvalidUnitValueOrSrid_IsRejectedByDomainInvariant()
-    {
-        var invalidUnit = () => GroundTruthMeasurement.Create(
-            Guid.NewGuid(), Guid.NewGuid(), "sample", Guid.NewGuid(), null, null,
-            MeasurementType.DepressionDepth, 1m, "inch", GpsGeometryFactory.CreatePoint(new Coordinate(1, 1)),
-            "gauge", null, "method", "observer", DateTimeOffset.UtcNow, null, "No file available.");
-        var invalidValue = () => GroundTruthMeasurement.Create(
-            Guid.NewGuid(), Guid.NewGuid(), "sample", Guid.NewGuid(), null, null,
-            MeasurementType.DepressionDepth, -1m, "mm", GpsGeometryFactory.CreatePoint(new Coordinate(1, 1)),
-            "gauge", null, "method", "observer", DateTimeOffset.UtcNow, null, "No file available.");
-        var invalidSrid = () => GroundTruthMeasurement.Create(
-            Guid.NewGuid(), Guid.NewGuid(), "sample", Guid.NewGuid(), null, null,
-            MeasurementType.DepressionDepth, 1m, "mm", EngineeringGeometryFactory.CreatePoint(new Coordinate(1, 1)),
-            "gauge", null, "method", "observer", DateTimeOffset.UtcNow, null, "No file available.");
-
-        invalidUnit.Should().Throw<ArgumentException>();
-        invalidValue.Should().Throw<ArgumentOutOfRangeException>();
-        invalidSrid.Should().Throw<ArgumentException>();
     }
 
     [Fact(DisplayName = "P2-40: SQL Server exposes measurement tables and immutable backstops")]

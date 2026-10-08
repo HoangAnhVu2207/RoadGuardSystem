@@ -319,6 +319,36 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
         }
     }
 
+    [Fact]
+    public async Task DevelopmentSeed_PreservesSupportedProjectUpdate_AndAssessesEveryTable()
+    {
+        var isolated = await CreateIsolatedDatabaseAsync();
+        try
+        {
+            await using var context = new RoadGuardDbContext(CreateOptions(isolated.ConnectionString));
+            await new IdentityRoleSeedStep().SeedAsync(context);
+            await new PostmanUserSeedStep().SeedAsync(context);
+            var first = await RoadGuardSystem.Seeder.DevelopmentScenarios.SeedAsync(context);
+            var project = await context.Projects.SingleAsync(x => x.ProjectCode == RoadGuardSystem.Seeder.DevelopmentScenarios.ProjectCode);
+            var update = await new RoadGuardSystem.Services.Projects.ProjectUpdateService(
+                new RoadGuardSystem.Repositories.Projects.ProjectUpdatePersistenceService(context))
+                .UpdateAsync(PostmanUserSeedStep.SupervisorUserId, RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Supervisor,
+                    project.Id, new("Owner edited development project", project.Description, project.EngineeringUtmSrid,
+                        project.StartDate, project.EndDate, Convert.ToBase64String(project.RowVersion), Guid.NewGuid(), null));
+            update.Status.Should().Be(RoadGuardSystem.Services.Projects.ProjectUpdateStatus.Success);
+            context.ChangeTracker.Clear();
+            var second = await RoadGuardSystem.Seeder.DevelopmentScenarios.SeedAsync(context);
+            (await context.Projects.AsNoTracking().SingleAsync(x => x.Id == project.Id)).Name.Should().Be("Owner edited development project");
+            second.Tables.Select(x => x.Table).Should().BeEquivalentTo(first.Tables.Select(x => x.Table));
+            second.Tables.Should().OnlyContain(x => x.Count > 0 || !string.IsNullOrWhiteSpace(x.EmptyReason));
+            (await context.Users.CountAsync(x => x.RoleCode == RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Reporter)).Should().Be(1);
+        }
+        finally
+        {
+            await isolated.DisposeAsync();
+        }
+    }
+
     private static DbContextOptions<RoadGuardDbContext> CreateOptions(string connectionString) =>
         new DbContextOptionsBuilder<RoadGuardDbContext>()
             .UseSqlServer(connectionString, sql => sql.UseNetTopologySuite())

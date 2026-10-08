@@ -212,44 +212,6 @@ public sealed class FileRepositorySqlTests : IClassFixture<IdentitySqlServerFixt
         Directory.EnumerateFiles(Path.Combine(_root, "objects")).Should().ContainSingle();
     }
 
-    [Fact]
-    public async Task MigrationLifecycle_FromP210_DowngradesAndReappliesFileSchema()
-    {
-        var fixture = new SqlServerTestFixture();
-        await fixture.InitializeAsync();
-        try
-        {
-            await using (var probe = fixture.CreateDbContext())
-            {
-                await probe.Database.EnsureDeletedAsync();
-            }
-
-            var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
-                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite())
-                .Options;
-            await using var context = new RoadGuardDbContext(options);
-            var migrator = context.GetService<IMigrator>();
-            const string previous = "20260918185738_EnforceSecurityLogSafeCodes";
-
-            await migrator.MigrateAsync(previous);
-            (await FileSchemaObjectCountAsync(context)).Should().Be(0);
-
-            await migrator.MigrateAsync("20260919085118_AddImmutableFileStorageBoundary");
-            (await FileSchemaObjectCountAsync(context)).Should().Be(4);
-
-            await migrator.MigrateAsync(previous);
-            (await FileSchemaObjectCountAsync(context)).Should().Be(0);
-
-            await migrator.MigrateAsync("20260919085118_AddImmutableFileStorageBoundary");
-            (await FileSchemaObjectCountAsync(context)).Should().Be(4);
-            await context.Database.MigrateAsync();
-        }
-        finally
-        {
-            await fixture.DisposeAsync();
-        }
-    }
-
     private FileRepository CreateRepository(RoadGuardDbContext context)
     {
         var contentStore = new LocalFileContentStore(StorageOptions());

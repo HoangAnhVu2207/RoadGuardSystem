@@ -1,0 +1,34 @@
+{
+  "evidence": "CURRENT_VERIFIED",
+  "runtime": "isolated RG-CI-01 SQL/MinIO task database and temporary API on loopback 5199",
+  "health": 200,
+  "login_and_project_work_package": [
+    {
+      "role": "SUPERVISOR",
+      "login": 200,
+      "project_work_package": 200
+    },
+    {
+      "role": "PM",
+      "login": 200,
+      "project_work_package": 200
+    },
+    {
+      "role": "DRONE_OPERATOR",
+      "login": 200,
+      "project_work_package": 200
+    },
+    {
+      "role": "REPAIR_CREW",
+      "login": 200,
+      "project_work_package": 200
+    },
+    {
+      "role": "REPORTER",
+      "login": 200,
+      "project_work_package": 403
+    }
+  ],
+  "interpretation": "Reporter has no active ProjectMember; staff have current task-owned memberships. No password, JWT, refresh token or response body recorded.",
+  "api_process_stopped": true
+}

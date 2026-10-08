@@ -1,4 +1,12 @@
-# Current data baseline (RF-06A)
+# Current data baseline (RG-CI-01)
+
+RG-CI-01 replaces the historical migration chain with one direct `BaselineCurrentSchema` for NEW isolated dev/test databases only. The owner waived historical upgrade/downgrade acceptance for this task. Existing shared/team and preserved Swagger databases must not be reset or migrated onto this replacement history. See the [RG-CI-01 checklist and handoff](../../../planning/development/RG-CI-01.md) for final SQL equivalence, source fingerprint and validation results; completion is not established by this documentation change.
+
+The machine-readable [inventory](current-schema.inventory.json) is refreshed by the current extractor. The RF-06A narrative, generated ERD/dictionary/trigger documents and evidence below are HISTORICAL snapshots, not current acceptance evidence. Git history at `fc70d4714921185d9b0d93e766835aed654102d2` preserves the superseded migration sources.
+
+Normal integration fixtures now honor `ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING` when explicitly configured, validate connectivity without fallback, and create/drop only their own GUID-named databases. Without that setting they use fixture-owned Testcontainers. Keep credentials in private process environment; never put them in commands or reports. Reproduce current capture with the filtered `Rf06aSchemaInventoryTests` command below, using task-owned SQL only.
+
+## Historical RF-06A checkpoint
 
 **CURRENT_VERIFIED for this checkout only:** local branch `anh`, HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1`, with dirty source. The [inventory](current-schema.inventory.json) includes SHA-256 hashes for every surveyed BusinessObjects/Repositories `.cs` input, so HEAD alone is not its fingerprint. EF Core SQL Server 8.0.17 and Testcontainers SQL Server 2019-CU18 applied all 37 migrations to a fresh, owned database, ending at `20260929125522_P2ValidationMeasurementProvenance`. The SQL catalog was read after migration and the database/container disposed. This does **not** establish deployed or shared-environment schema.
 
@@ -37,7 +45,7 @@ Raw catalog definition text is retained as returned by the SQL client, without t
 
 ## Reproduce and update
 
-1. From this checkout, with Docker available, run `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --nologo -v q -clp:ErrorsOnly --filter FullyQualifiedName~Rf06aSchemaInventoryTests`. The test ignores inherited shared SQL settings, starts its own Testcontainers SQL Server and GUID database, applies existing migrations, extracts model/snapshot/catalog, writes inventory and disposes its resources. It does not seed application data.
+1. From this checkout, run `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --nologo -v q -clp:ErrorsOnly --filter FullyQualifiedName~Rf06aSchemaInventoryTests`. The current fixture uses explicit test SQL configuration or Testcontainers, creates a GUID database, applies the current baseline, extracts model/snapshot/catalog, writes inventory and disposes its owned resources. It does not seed application data.
 2. Run `pwsh -NoProfile -File tests/Tooling/Write-Rf06aSchemaDocs.ps1` to regenerate dictionary and diagrams; then rerun with `-Check` for byte-stable output. Inspect the source-hash and schema diff before accepting regeneration. Do not change model/snapshot/SQL facts merely to get a green check.
 3. Render the eight Mermaid charts with `npx --yes @mermaid-js/mermaid-cli -i docs/backend/data/current-erd.md -o <temporary-output>.md -a <temporary-assets-directory>`. Render output stays outside the repository. Check diagram labels/cardinality and [difference register](current-differences.md) manually.
 4. For a future persistence task, update the module mapping/purpose in `Write-Rf06aSchemaDocs.ps1` when tables are added/removed, rerun isolated migration/catalog comparison, review generated docs and source hashes, then record the new branch/commit/dirty fingerprint and findings. RF-07 reads project-road tables and persistence notes as **current baseline**. RF-09 uses them as input for a separately approved target ERD and migration/backfill plan.

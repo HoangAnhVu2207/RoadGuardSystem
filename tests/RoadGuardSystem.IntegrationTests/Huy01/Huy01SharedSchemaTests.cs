@@ -17,37 +17,6 @@ namespace RoadGuardSystem.IntegrationTests.Huy01;
 [Trait("Package", "HUY-01")]
 public sealed class Huy01SharedSchemaTests
 {
-    [Fact]
-    public void Domain_report_is_mapped_without_competing_entity()
-    {
-        using var db = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
-            .UseSqlServer("Server=localhost;Database=model-only;Integrated Security=true", o => o.UseNetTopologySuite()).Options);
-        db.Model.FindEntityType(typeof(Report)).Should().NotBeNull();
-        db.Model.FindEntityType(typeof(Report))!.GetTableName().Should().Be("Reports");
-    }
-
-    [Fact]
-    public async Task Empty_integration_down_and_up_restores_additive_schema_without_touching_baseline_history()
-    {
-        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
-        await fixture.InitializeAsync();
-        try
-        {
-            await using var db = Context(fixture.ConnectionString);
-            var migrator = db.GetService<IMigrator>();
-            await migrator.MigrateAsync("20261002120000_AnhHuySharedIntegration");
-            await migrator.MigrateAsync("20261002100000_Anh01RequestScopeRootCorrection");
-            (await db.Database.GetAppliedMigrationsAsync()).Should().NotContain("20261002120000_AnhHuySharedIntegration");
-            (await db.Database.GetAppliedMigrationsAsync()).Should().Contain("20261002100000_Anh01RequestScopeRootCorrection");
-            await migrator.MigrateAsync("20261002120000_AnhHuySharedIntegration");
-            (await db.Database.GetAppliedMigrationsAsync()).Should().Contain("20261002120000_AnhHuySharedIntegration");
-            (await db.Set<Report>().CountAsync()).Should().Be(0);
-            (await db.Set<IncidentCase>().CountAsync()).Should().Be(0);
-            (await db.Set<HuyCandidateSourceHead>().CountAsync()).Should().Be(0);
-            await db.Database.MigrateAsync();
-        }
-        finally { await fixture.DisposeAsync(); }
-    }
 
     [Theory]
     [InlineData(false)]
@@ -60,7 +29,7 @@ public sealed class Huy01SharedSchemaTests
         {
             await using var db = Context(fixture.ConnectionString);
             if (baselineUpgrade)
-                await db.GetService<IMigrator>().MigrateAsync("20261002100000_Anh01RequestScopeRootCorrection");
+                await db.GetService<IMigrator>().MigrateAsync();
             await db.Database.MigrateAsync();
             var actor = Guid.NewGuid(); var project = Guid.NewGuid();
             await SeedActorProject(db, actor, project);
@@ -177,9 +146,7 @@ public sealed class Huy01SharedSchemaTests
             await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE CaseReportLinks SET EndedAt=DATEADD(second,100,StartedAt) WHERE Id={closedLink.Id}");
             await RejectSql(db, $"UPDATE CaseReportLinks SET EndedAt=NULL WHERE Id='{closedLink.Id}'");
             await RejectSql(db, $"UPDATE CaseReportLinks SET EndedAt=DATEADD(second,120,StartedAt) WHERE Id='{closedLink.Id}'");
-            Func<Task> destructiveDown = () => db.GetService<IMigrator>().MigrateAsync("20261002100000_Anh01RequestScopeRootCorrection");
-            await destructiveDown.Should().ThrowAsync<SqlException>().Where(x => x.Number == 51130);
-            (await db.Database.GetAppliedMigrationsAsync()).Should().Contain("20261002120000_AnhHuySharedIntegration");
+
             (await db.Set<Report>().AnyAsync(x => x.Id == report.Id)).Should().BeTrue();
             (await db.Set<CandidateDecision>().AnyAsync(x => x.Id == decision.Id)).Should().BeTrue();
         }

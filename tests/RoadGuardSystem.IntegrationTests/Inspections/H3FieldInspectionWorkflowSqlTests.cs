@@ -60,21 +60,20 @@ public sealed class H3FieldInspectionWorkflowSqlTests(IdentitySqlServerFixture s
             var intake = (await helper.Submit(db, s, task, Input(start, null, true, null))).GetProperty("id").GetGuid();
             var original = await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(x => x.TargetId == task);
             var migration = db.GetService<IMigrator>();
-            await migration.MigrateAsync("20261006163740_H4SafetySourceAdmission");
+            await migration.MigrateAsync();
             db.ChangeTracker.Clear();
-            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE FieldInspectionTasks SET Status=5 WHERE Id={task}");
-            var source = FieldInspectionReview.Create(Guid.NewGuid(), s.Project, task, intake, s.Pm, "SUPPLEMENT", "Historical actual supplement request", DateTimeOffset.UtcNow);
-            db.Add(source); db.Entry(source).Property(x => x.ReceiptActivation).CurrentValue = "AWAITING_OWNER_RECEIPT_PROTOCOL";
-            await db.SaveChangesAsync();
-            await migration.MigrateAsync(); db.ChangeTracker.Clear();
+            Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, task, "review",
+                new FieldReviewInput(intake, "SUPPLEMENT", "Actual current supplement request"))).Status);
+            db.ChangeTracker.Clear();
+            var source = await db.Set<FieldInspectionReview>().SingleAsync(x => x.TaskId == task);
             var request = await db.Set<BusinessReceivingRequest>().SingleAsync(x => x.ScopeId == task);
             Assert.Equal(source.Id, request.SourceId); Assert.Equal(source.OccurredAt, request.RequestedAt);
             Assert.Equal(s.Crew, request.ResponsibleActorId); Assert.Null(request.AcknowledgedAt); Assert.Null(request.ClockId);
-            Assert.Equal("AWAITING_OWNER_RECEIPT_PROTOCOL", (await db.Set<FieldInspectionReview>().SingleAsync(x => x.Id == source.Id)).ReceiptActivation);
+
             var preserved = await db.Set<DeadlineClock>().SingleAsync(x => x.Id == original.Id);
             Assert.Equal(original.OriginEventId, preserved.OriginEventId); Assert.Equal(original.OriginalDueAt, preserved.OriginalDueAt);
             Assert.False(db.Database.HasPendingModelChanges());
-            await Assert.ThrowsAsync<SqlException>(() => migration.MigrateAsync("20261006163740_H4SafetySourceAdmission"));
+
             Assert.True(await db.Set<BusinessReceivingRequest>().AnyAsync(x => x.Id == request.Id));
             await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE BusinessReceivingRequests SET SourceVersion='rewritten' WHERE Id={request.Id}"));
         }

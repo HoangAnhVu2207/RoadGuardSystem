@@ -1,0 +1,9 @@
+{
+  "status": "CURRENT_VERIFIED_EQUIVALENT",
+  "expectedSource": "old-chain-schema.inventory.json.gz",
+  "expectedMigrationCount": 69,
+  "currentMigrationCount": 1,
+  "expectedDifference": "Only __EFMigrationsHistory entries change; business catalog must be equivalent.",
+  "differences": [],
+  "currentSource": "../../../../docs/backend/data/current-schema.inventory.json"
+}

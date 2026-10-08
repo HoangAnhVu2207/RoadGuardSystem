@@ -139,7 +139,8 @@ public sealed class Huy02NotificationAuthorityTests(IdentitySqlServerFixture fix
             return await new NotificationPersistenceService(db, new IdempotencyOperationService(db))
                 .MarkReadAsync(actor, notification, key, new string('a', 64), version);
         }
-        var results = await Task.WhenAll(ReadAsync("race"), ReadAsync(sameKey ? "race" : "competitor"));
+        var keys = new[] { "race", sameKey ? "race" : "competitor" };
+        var results = await Task.WhenAll(keys.Select(ReadAsync));
         Assert.Single(results.Where(x => x.Status == NotificationMarkReadPersistenceStatus.Success));
         Assert.Single(results.Where(x => x.Status == (sameKey
             ? NotificationMarkReadPersistenceStatus.Replayed : NotificationMarkReadPersistenceStatus.StaleConcurrency)));
@@ -149,9 +150,13 @@ public sealed class Huy02NotificationAuthorityTests(IdentitySqlServerFixture fix
         Assert.Empty(await verify.OutboxMessages.Where(x => x.CorrelationId == notification).ToArrayAsync());
         var readAt = (await verify.Notifications.AsNoTracking().SingleAsync(x => x.Id == notification)).ReadAt;
         Assert.NotNull(readAt);
-        var replay = await ReadAsync("race");
-        Assert.Equal(results.Single(x => x.Status == NotificationMarkReadPersistenceStatus.Success).Notification!.RowVersion,
-            replay.Notification!.RowVersion);
+        var winner = results.Select((result, index) => (Key: keys[index], Result: result))
+            .Single(x => x.Result.Status == NotificationMarkReadPersistenceStatus.Success);
+        Assert.NotNull(winner.Result.Notification);
+        var replay = await ReadAsync(winner.Key);
+        Assert.Equal(NotificationMarkReadPersistenceStatus.Replayed, replay.Status);
+        Assert.NotNull(replay.Notification);
+        Assert.Equal(winner.Result.Notification.RowVersion, replay.Notification.RowVersion);
         Assert.Equal(readAt, (await verify.Notifications.AsNoTracking().SingleAsync(x => x.Id == notification)).ReadAt);
     }
 

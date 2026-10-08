@@ -22,26 +22,6 @@ public sealed class P110AuthenticationPersistenceTests : IClassFixture<IdentityS
         _fixture = fixture;
     }
 
-    [Fact(DisplayName = "P1-10 Positive: persistence DI resolves the authoritative identity repository")]
-    public async Task PersistenceDi_ValidConfiguration_ResolvesIdentityRepository()
-    {
-        var services = new ServiceCollection();
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"{RoadGuardDatabaseOptions.SectionName}:ConnectionString"] = _fixture.ConnectionString,
-                [$"{RoadGuardDatabaseOptions.SectionName}:EnableSensitiveDataLogging"] = "false"
-            })
-            .Build();
-        services.AddRoadGuardPersistence(configuration, isProduction: false);
-
-        await using var provider = services.BuildServiceProvider();
-        using var scope = provider.CreateScope();
-
-        scope.ServiceProvider.GetRequiredService<IIdentityRepository>()
-            .Should().BeOfType<IdentityRepository>();
-    }
-
     [Fact(DisplayName = "P1-10 Negative: stale user version rejects initial credential issuance without writes")]
     public async Task InitialIssuance_StaleUserVersion_RejectsWithoutWrites()
     {

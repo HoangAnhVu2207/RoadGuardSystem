@@ -958,13 +958,7 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             (await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync(
                 $"UPDATE [TrainingLabels] SET [CurrentRevision]=[CurrentRevision]+2 WHERE [Id]={labelId}")))
                 .Number.Should().Be(51001);
-            // Exercise this migration's actual guard without downgrading unrelated
-            // later migrations in the shared disposable fixture.
-            var assembly = db.GetService<IMigrationsAssembly>();
-            var migration = assembly.CreateMigration(assembly.Migrations["20261003190000_Huy01TrainingLabels"], db.Database.ProviderName!);
-            var guard = Assert.IsType<Microsoft.EntityFrameworkCore.Migrations.Operations.SqlOperation>(migration.DownOperations[0]);
-            (await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlRawAsync(guard.Sql)))
-                .Number.Should().Be(51000);
+
         }
         using (var retentionScope = factory.Services.CreateScope())
         {

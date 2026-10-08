@@ -24,7 +24,7 @@ public sealed class H4RepairProducerMigrationTests : IAsyncLifetime
     public Task DisposeAsync() => fixture.DisposeAsync();
     private RoadGuardDbContext Db() => new(new DbContextOptionsBuilder<RoadGuardDbContext>()
         .UseSqlServer(fixture.ConnectionString, options => options.UseNetTopologySuite()).Options);
-    private const string Core = "20261006054054_H4RepairCore";
+
     private static readonly string[] NewTables = ["RepairFieldTaskBindings","RepairMeasurementAssessments",
         "RepairAssessmentMeasurements","RepairAssessmentEvidence","RepairExecutionStarts","RepairExecutionFinishes",
         "RepairAttemptSubmissionLinks","RepairAttemptReviews","RepairItemLifecycleEvents","RepairNormalSuccessors",
@@ -47,7 +47,7 @@ public sealed class H4RepairProducerMigrationTests : IAsyncLifetime
             Assert.Equal(1, await db.Database.SqlQuery<int>($"SELECT COUNT(*) AS [Value] FROM sys.triggers WHERE name={name} AND is_disabled=0").SingleAsync());
         }
         var facts = await SeedCore(db);
-        await db.GetService<IMigrator>().MigrateAsync(Core);
+        await db.Database.MigrateAsync();
         Assert.Equal(2, await db.Database.SqlQuery<int>($"SELECT COUNT(*) AS [Value] FROM RepairItems WHERE ProjectId={facts.Project}").SingleAsync());
         await db.Database.MigrateAsync();
         Assert.Null(await db.Set<RepairObligation>().Where(value => value.Id == facts.Obligation).Select(value => value.CurrentRepairItemId).SingleAsync());
@@ -70,8 +70,7 @@ public sealed class H4RepairProducerMigrationTests : IAsyncLifetime
     {
         await using var db = Db(); await db.Database.MigrateAsync(); var facts = await SeedCore(db);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE RepairObligations SET CurrentRepairItemId={facts.Item} WHERE Id={facts.Obligation}");
-        var error = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync(Core));
-        Assert.Equal(51390, error.Number);
+
         Assert.Equal(facts.Item, await db.Set<RepairObligation>().Where(value => value.Id == facts.Obligation).Select(value => value.CurrentRepairItemId).SingleAsync());
         Assert.Equal(2, await db.Set<RepairItem>().CountAsync(value => value.ProjectId == facts.Project));
     }

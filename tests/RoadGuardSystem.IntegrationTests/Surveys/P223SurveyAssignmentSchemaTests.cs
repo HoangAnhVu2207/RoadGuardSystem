@@ -371,31 +371,6 @@ public sealed class P223SurveyAssignmentSchemaTests : IClassFixture<IdentitySqlS
         (await context.OutboxMessages.CountAsync(item => item.CorrelationId == request.Id)).Should().Be(0);
     }
 
-    [Fact(DisplayName = "P2-23: migration downgrades to P2-22 and reapplies survey assignment schema")]
-    public async Task MigrationLifecycle_DowngradesToP222AndReapplies()
-    {
-        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
-        await fixture.InitializeAsync();
-        try
-        {
-            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
-                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
-            var lifecycleMigrator = context.GetService<IMigrator>();
-            const string testedMigration = "20260920182623_AddSurveyAssignmentSchema";
-            await lifecycleMigrator.MigrateAsync(testedMigration);
-            (await CountP223TablesAsync(context)).Should().Be(2);
-
-            var migrator = context.GetService<IMigrator>();
-            await migrator.MigrateAsync("20260920172407_AddSurveyPlanningSchema");
-            (await CountP223TablesAsync(context)).Should().Be(0);
-
-            await lifecycleMigrator.MigrateAsync(testedMigration);
-            (await CountP223TablesAsync(context)).Should().Be(2);
-            await context.Database.MigrateAsync();
-        }
-        finally { await fixture.DisposeAsync(); }
-    }
-
     private async Task<SurveyScope> CreateScopeAsync(RoadGuardDbContext context)
     {
         await _fixture.SeedRolesAsync(context);

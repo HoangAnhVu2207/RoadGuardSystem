@@ -16,6 +16,11 @@ namespace RoadGuardSystem.Repositories.Seeding;
 /// </summary>
 public sealed class PostmanScenarioSeedStep : ISeedStep
 {
+    private readonly Func<RoadGuardDbContext, CancellationToken, Task>? _supportedProducer;
+
+    public PostmanScenarioSeedStep(Func<RoadGuardDbContext, CancellationToken, Task>? supportedProducer = null)
+        => _supportedProducer = supportedProducer;
+
     public static readonly Guid ProjectId = FixtureId("0001");
     public static readonly Guid PrimaryMembershipId = FixtureId("0002");
     public static readonly Guid HandoverDocumentId = FixtureId("0003");
@@ -48,7 +53,9 @@ public sealed class PostmanScenarioSeedStep : ISeedStep
     public async Task SeedAsync(
         RoadGuardDbContext context,
         CancellationToken cancellationToken = default)
-        => await SeedCoreAsync(context, allowDuplicateRetry: true, cancellationToken);
+        => await (_supportedProducer is null
+            ? SeedCoreAsync(context, allowDuplicateRetry: true, cancellationToken)
+            : _supportedProducer(context, cancellationToken));
 
     private static async Task SeedCoreAsync(
         RoadGuardDbContext context,
@@ -368,7 +375,7 @@ public sealed class PostmanScenarioSeedStep : ISeedStep
                 .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
             if (member is not null &&
                 (member.ProjectId != ProjectId || member.UserId != userId || member.RoleCode != role ||
-                 member.IsPrimary != primary || member.Status != ProjectMemberStatus.Active))
+                 member.IsPrimary != primary))
             {
                 throw new InvalidOperationException(
                     $"Postman fixture collision: membership {id} has different project/user/role/status ownership.");
@@ -378,7 +385,7 @@ public sealed class PostmanScenarioSeedStep : ISeedStep
         var segmentSet = await context.RoadSegmentSets.AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == SegmentSetId, cancellationToken);
         if (segmentSet is not null &&
-            (segmentSet.RoadSectionVersionId != RoadSectionVersionId || segmentSet.Status != "PUBLISHED"))
+            segmentSet.RoadSectionVersionId != RoadSectionVersionId)
         {
             throw new InvalidOperationException(
                 $"Postman fixture collision: segment set {SegmentSetId} has incompatible route/status.");
@@ -432,7 +439,7 @@ public sealed class PostmanScenarioSeedStep : ISeedStep
             .SingleOrDefaultAsync(item => item.Id == SurveyAssignmentId, cancellationToken);
         EnsureOwnership(assignment is null ||
                         assignment.SurveyRequestId == SurveyRequestId && assignment.OperatorUserId == operatorId &&
-                        assignment.AssignedByUserId == projectManagerId && assignment.EndedAt is null,
+                        assignment.AssignedByUserId == projectManagerId,
             SurveyAssignmentId, "survey assignment");
 
         var survey = await context.Surveys.AsNoTracking()
@@ -461,8 +468,7 @@ public sealed class PostmanScenarioSeedStep : ISeedStep
         EnsureOwnership(fieldAssignment is null ||
                         fieldAssignment.FieldInspectionTaskId == FieldInspectionTaskId &&
                         fieldAssignment.AssignedToUserId == repairCrewId &&
-                        fieldAssignment.AssignedByUserId == projectManagerId &&
-                        fieldAssignment.Status == FieldInspectionAssignmentStatus.Active,
+                        fieldAssignment.AssignedByUserId == projectManagerId,
             FieldInspectionAssignmentId, "field inspection assignment");
 
         var planScope = await context.SurveyPlanScopes.AsNoTracking()

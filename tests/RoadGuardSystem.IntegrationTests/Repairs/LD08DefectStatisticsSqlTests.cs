@@ -75,7 +75,7 @@ public sealed class LD08DefectStatisticsSqlTests(IdentitySqlServerFixture sql) :
         Assert.Equal(12, Assert.Single(captured.Summary.Metrics.Where(row => row.Code == "sourcedAllocatedQuantity")).Value);
         Assert.Equal(statistics, ((RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingCaptureFact)captured).DefectStatistics);
         var blocked = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE DefectStatisticsSources SET Reason='changed' WHERE Id={old.Id}")); Assert.Equal(51800, blocked.Number);
-        blocked = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync("20261007131646_OwnerRoadCoverageActivation")); Assert.Equal(51890, blocked.Number);
+
         await db.ProjectMembers.Where(row => row.ProjectId == state.Source.Project && row.UserId == state.Source.Pm).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
         Assert.Equal(403, (await repo.ConfirmAsync(command, default)).Status);
         Assert.Equal(403, (await repo.ReadAsync(state.Source.Pm, UserRoleCode.ProjectManager, state.Source.Project, new(), default)).Status);
@@ -108,7 +108,7 @@ public sealed class LD08DefectStatisticsSqlTests(IdentitySqlServerFixture sql) :
     {
         await using var isolated = new IdentitySqlServerFixture(); await isolated.InitializeAsync();
         await using var db = isolated.CreateDbContext(); var state = await Seed(db);
-        await db.GetService<IMigrator>().MigrateAsync("20261007131646_OwnerRoadCoverageActivation"); await db.Database.MigrateAsync();
+        await db.GetService<IMigrator>().MigrateAsync(); await db.Database.MigrateAsync();
         Assert.True(await db.Defects.AnyAsync(row => row.Id == state.Source.Defect)); Assert.True(await db.GroundTruthMeasurements.AnyAsync(row => row.Id == state.Area));
         var repo = new DefectStatisticsRepository(db, TimeProvider.System); var read = (await repo.ReadAsync(state.Source.Pm, UserRoleCode.ProjectManager, state.Source.Project, new(), default)).Value!;
         var scope = read.Scopes.Single(row => row.DefectId == state.Source.Defect); var area = read.Measurements.Single(row => row.Id == state.Area);

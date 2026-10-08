@@ -28,3 +28,7 @@ planning/refactor/reports/*-evidence/** -text
 tests/Tooling/Write-Rf06aSchemaDocs.ps1 text eol=lf
 # This generated page embeds the original SQL catalog definition line endings.
 docs/backend/data/current-triggers.md -text
+
+# The direct baseline preserves historical SQL trigger definitions byte-for-byte.
+# Whitespace on blank lines inside its raw SQL literals is part of that catalog evidence.
+RoadGuardSystem.Repositories/Migrations/20261008171739_BaselineCurrentSchema.cs whitespace=-blank-at-eol

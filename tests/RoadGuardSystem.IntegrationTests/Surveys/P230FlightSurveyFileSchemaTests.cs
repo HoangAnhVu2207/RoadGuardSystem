@@ -133,31 +133,6 @@ public sealed class P230FlightSurveyFileSchemaTests : IClassFixture<IdentitySqlS
         await moveFlight.Should().ThrowAsync<SqlException>();
     }
 
-    [Fact(DisplayName = "P2-30: flight and survey file migration downgrades and reapplies")]
-    public async Task MigrationLifecycle_DowngradesToP223AndReapplies()
-    {
-        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
-        await fixture.InitializeAsync();
-        try
-        {
-            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
-                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
-            var lifecycleMigrator = context.GetService<IMigrator>();
-            const string testedMigration = "20260921125553_AddP230FlightSurveyFileSchema";
-            await lifecycleMigrator.MigrateAsync(testedMigration);
-            (await CountP230TablesAsync(context)).Should().Be(2);
-
-            var migrator = context.GetService<IMigrator>();
-            await migrator.MigrateAsync("20260920182623_AddSurveyAssignmentSchema");
-            (await CountP230TablesAsync(context)).Should().Be(0);
-
-            await lifecycleMigrator.MigrateAsync(testedMigration);
-            (await CountP230TablesAsync(context)).Should().Be(2);
-            await context.Database.MigrateAsync();
-        }
-        finally { await fixture.DisposeAsync(); }
-    }
-
     private async Task<FlightSurveyFileScope> CreateScopeAsync(RoadGuardDbContext context)
     {
         await _fixture.SeedRolesAsync(context);

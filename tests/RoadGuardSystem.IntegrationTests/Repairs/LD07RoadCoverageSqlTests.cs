@@ -101,8 +101,7 @@ public sealed class LD07RoadCoverageSqlTests(IdentitySqlServerFixture sql) : ICl
         Assert.Contains((await retention.ReadAsync(state.SourceFile, default)).References, row => row.Kind == "ROAD_COVERAGE_MAPPING" && row.Id == mapping.Id);
         var immutable = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE RoadCoverageMappings SET Reason='rewrite' WHERE Id={mapping.Id}"));
         Assert.Equal(51700, immutable.Number);
-        var downgrade = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync("20261007115552_OwnerLifecycleActivation"));
-        Assert.Equal(51790, downgrade.Number);
+
         await db.ProjectMembers.Where(row => row.ProjectId == state.Source.Project && row.UserId == state.Source.Supervisor)
             .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
         Assert.Equal(403, (await repository.ConfirmAsync(command, default)).Status);
@@ -114,7 +113,7 @@ public sealed class LD07RoadCoverageSqlTests(IdentitySqlServerFixture sql) : ICl
         await using var isolated = new IdentitySqlServerFixture();
         await isolated.InitializeAsync();
         await using var db = isolated.CreateDbContext(); var state = await Seed(db);
-        await db.GetService<IMigrator>().MigrateAsync("20261007115552_OwnerLifecycleActivation");
+        await db.GetService<IMigrator>().MigrateAsync();
         Assert.True(await db.RepairItems.AsNoTracking().AnyAsync(row => row.Id == state.Item));
         Assert.True(await db.Files.AsNoTracking().AnyAsync(row => row.Id == state.SourceFile));
         Assert.True(await db.Set<RepairExecutionAuthorization>().AsNoTracking().AnyAsync(row => row.Id == state.Binding.AuthorizationId && row.FirstStartOriginId == state.FirstStart.Id));

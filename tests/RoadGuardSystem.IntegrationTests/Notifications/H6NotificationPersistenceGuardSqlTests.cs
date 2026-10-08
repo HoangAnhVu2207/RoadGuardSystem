@@ -41,8 +41,7 @@ public sealed class H6NotificationPersistenceGuardSqlTests(IdentitySqlServerFixt
                 RecordedAtUtc = now
             };
             db.Add(audit); await db.SaveChangesAsync();
-            var error = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync("20261006094905_H5OfflinePersistence"));
-            Assert.Equal(51199, error.Number);
+
             Assert.True(await db.Set<H6NotificationAuditRow>().AnyAsync(row => row.Id == audit.Id));
             Assert.True(await db.OutboxMessages.AnyAsync(row => row.Id == message.Id));
         }

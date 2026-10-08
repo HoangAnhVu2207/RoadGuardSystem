@@ -15,6 +15,10 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
@@ -45,6 +49,7 @@ jobs:
       - run: python planning/refactor/rf05/checks/verify_repository_readiness.py --root .
       - run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
       - run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
+      - run: pwsh -File tests/CI/Verify-TestResults.Tests.ps1
       - run: pwsh -File tests/Security/Verify-DependencySecurity.ps1
       - run: dotnet restore RoadGuardSystem.slnx
       - run: dotnet format --verify-no-changes --no-restore
@@ -62,12 +67,19 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
-      - run: dotnet restore RoadGuardSystem.slnx
-      - run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+      - run: dotnet restore tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj
+      - run: dotnet build tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --no-incremental
       - if: ${{ github.event_name != 'schedule' && inputs.collect_coverage != true }}
-        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --nologo -v q
+        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --nologo -v q --logger "trx;LogFileName=unit.trx" --results-directory TestResults/UnitTests
       - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
-        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --results-directory TestResults/UnitTests
+        run: dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --logger "trx;LogFileName=unit.trx" --results-directory TestResults/UnitTests
+      - run: pwsh -File tests/CI/Verify-TestResults.ps1 -ResultsPath TestResults/UnitTests
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-results
+          path: TestResults/UnitTests/**/*.trx
+          if-no-files-found: error
       - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
         uses: actions/upload-artifact@v4
         with:
@@ -88,21 +100,32 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
       - run: docker pull ${{ env.SQL_IMAGE }}
-      - run: dotnet restore RoadGuardSystem.slnx
-      - run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+      - run: dotnet restore tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj
+      - run: dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --no-incremental
       - if: ${{ github.event_name != 'schedule' && inputs.collect_coverage != true }}
-        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q
+        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --logger "trx;LogFileName=api.trx" --results-directory TestResults/ApiTests
       - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
-        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --results-directory TestResults/ApiTests
+        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --logger "trx;LogFileName=api.trx" --results-directory TestResults/ApiTests
+      - run: pwsh -File tests/CI/Verify-TestResults.ps1 -ResultsPath TestResults/ApiTests -AllowMinioSmokeSkip
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-results
+          path: TestResults/ApiTests/**/*.trx
+          if-no-files-found: error
       - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
         uses: actions/upload-artifact@v4
         with:
           name: api-coverage
           path: TestResults/ApiTests/**/coverage.cobertura.xml
 
-  integration:
-    name: SQL integration tests
+  integration_lane:
+    name: SQL integration lane ${{ matrix.lane }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -167,8 +190,8 @@ jobs:
 
           docker logs roadguard-ci-sqlserver
           throw 'SQL Server readiness timeout after 3 minutes.'
-      - run: dotnet restore RoadGuardSystem.slnx
-      - run: dotnet build RoadGuardSystem.slnx --no-restore --no-incremental
+      - run: dotnet restore tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj
+      - run: dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --no-incremental
       - name: Run integration tests
         shell: pwsh
         run: |
@@ -179,12 +202,17 @@ jobs:
           }
           $password = $credential.Substring('MSSQL_SA_PASSWORD='.Length)
           $env:ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True;"
-          if ("${{ github.event_name }}" -eq "schedule" -or "${{ inputs.collect_coverage }}" -eq "true") {
-            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v n --collect:"XPlat Code Coverage" --results-directory TestResults/IntegrationTests
-          } else {
-            dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --nologo -v n
-          }
+          $collectCoverage = ("${{ github.event_name }}" -eq "schedule" -or "${{ inputs.collect_coverage }}" -eq "true")
+          & ./tests/CI/Invoke-SqlLane.ps1 -Lane ${{ matrix.lane }} -ResultsPath TestResults/IntegrationTests -CollectCoverage:$collectCoverage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-results-lane-${{ matrix.lane }}
+          path: TestResults/IntegrationTests/**/*.trx
+          if-no-files-found: error
       - name: Validate Seeder entry point
+        if: matrix.lane == 4
         shell: pwsh
         run: |
           $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
@@ -198,6 +226,9 @@ jobs:
           $connectionString = "Server=localhost,1433;Database=$databaseName;User Id=sa;Password=$password;TrustServerCertificate=True;"
           $env:ROADGUARD_MIGRATION_CONNECTION_STRING = $connectionString
           $env:ROADGUARD_CONNECTION_STRING = $connectionString
+          $env:ROADGUARD_SEED_PROFILE = 'Development'
+          $env:ROADGUARD_SEED_PASSWORD = $password
+          $env:ROADGUARD_SEED_MANIFEST_PATH = Join-Path $env:RUNNER_TEMP 'rgci-seed-manifest.json'
 
           $toolPath = Join-Path $env:RUNNER_TEMP 'roadguard-dotnet-tools'
           dotnet tool install dotnet-ef --tool-path $toolPath --version 8.0.17
@@ -211,7 +242,7 @@ jobs:
             --context RoadGuardDbContext `
             --no-build
           if ($LASTEXITCODE -ne 0) {
-            throw 'The candidate model differs from its additive migration snapshot.'
+            throw 'The candidate model differs from its baseline migration snapshot.'
           }
           & $dotnetEf database update `
             --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj `
@@ -226,14 +257,32 @@ jobs:
             exit $LASTEXITCODE
           }
 
+          $firstManifest = Get-Content -LiteralPath $env:ROADGUARD_SEED_MANIFEST_PATH -Raw | ConvertFrom-Json
+
           dotnet run --project tools/RoadGuardSystem.Seeder --no-build
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
+          $secondManifest = Get-Content -LiteralPath $env:ROADGUARD_SEED_MANIFEST_PATH -Raw | ConvertFrom-Json
+          if ($firstManifest.ProjectId -ne $secondManifest.ProjectId -or $secondManifest.Tables.Count -eq 0) {
+            throw 'Seeder manifest identity or all-table assessment is missing.'
+          }
+          $before = @($firstManifest.Tables | Sort-Object Table | ForEach-Object { "$($_.Table):$($_.Count)" })
+          $after = @($secondManifest.Tables | Sort-Object Table | ForEach-Object { "$($_.Table):$($_.Count)" })
+          if (@(Compare-Object $before $after).Count -ne 0) {
+            throw 'Repeated Seeder execution changed table counts.'
+          }
+      - name: Upload synthetic seed manifest
+        if: ${{ always() && matrix.lane == 4 }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-seed-manifest
+          path: ${{ runner.temp }}/rgci-seed-manifest.json
+          if-no-files-found: warn
       - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
         uses: actions/upload-artifact@v4
         with:
-          name: integration-coverage
+          name: integration-coverage-lane-${{ matrix.lane }}
           path: TestResults/IntegrationTests/**/coverage.cobertura.xml
       - name: Cleanup SQL Server container and credential
         if: always()
@@ -245,3 +294,25 @@ jobs:
             Remove-Item -LiteralPath $credentialPath -Force
           }
           exit 0
+
+  integration:
+    name: SQL integration tests
+    runs-on: ubuntu-latest
+    needs: [integration_lane]
+    if: always()
+    steps:
+      - name: Require all SQL lanes
+        shell: pwsh
+        run: |
+          if ("${{ needs.integration_lane.result }}" -ne "success") {
+            throw "One or more SQL lanes failed, were cancelled, or were skipped."
+          }
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: integration-results-lane-*
+          path: TestResults/SqlLanes
+          merge-multiple: true
+      - name: Reconcile SQL identities
+        shell: pwsh
+        run: ./tests/CI/Verify-SqlLanes.ps1 -ResultsPath TestResults/SqlLanes

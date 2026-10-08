@@ -134,39 +134,6 @@ public sealed class P221RoadWarrantySchemaTests : IClassFixture<IdentitySqlServe
         await missingSourceFile.Should().ThrowAsync<DbUpdateException>();
     }
 
-    [Fact(DisplayName = "P2-21: migration downgrades to P2-07 and reapplies road and warranty schema")]
-    public async Task MigrationLifecycle_DowngradesToP207AndReapplies()
-    {
-        var fixture = new SqlServerTestFixture();
-        await fixture.InitializeAsync();
-        try
-        {
-            await using (var baseline = fixture.CreateDbContext())
-            {
-                await baseline.Database.EnsureDeletedAsync();
-            }
-
-            var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
-                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite())
-                .Options;
-            await using var context = new RoadGuardDbContext(options);
-            await context.GetService<IMigrator>().MigrateAsync("20260920154542_AddRoadSectionVersionAndWarrantySchema");
-            (await CountP221TablesAsync(context)).Should().Be(3);
-
-            var migrator = context.GetService<IMigrator>();
-            await migrator.MigrateAsync("20260920140643_AddNotificationPersistenceBoundary");
-            (await CountP221TablesAsync(context)).Should().Be(0);
-
-            await context.GetService<IMigrator>().MigrateAsync("20260920154542_AddRoadSectionVersionAndWarrantySchema");
-            (await CountP221TablesAsync(context)).Should().Be(3);
-            await context.Database.MigrateAsync();
-        }
-        finally
-        {
-            await fixture.DisposeAsync();
-        }
-    }
-
     private async Task<(Project Project, RoadSection Section, RoadSectionVersion Version)> CreateRoadAsync(
         RoadGuardDbContext context,
         string code)

@@ -22,6 +22,6 @@ public sealed class V2AuthenticationPersistenceContractTests
         context.Model.FindEntityType(typeof(PasswordRecoveryRequest))!
             .GetTableName().Should().Be("PasswordRecoveryRequests");
         context.Database.GetMigrations()
-            .Should().Contain("20260927153000_AddPasswordRecoveryRequests");
+            .Should().Contain("20261008171739_BaselineCurrentSchema");
     }
 }

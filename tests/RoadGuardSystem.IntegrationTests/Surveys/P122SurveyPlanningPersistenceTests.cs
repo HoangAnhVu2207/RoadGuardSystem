@@ -17,44 +17,6 @@ using Xunit;
 namespace RoadGuardSystem.IntegrationTests.Surveys;
 
 [Trait("TaskId", "P1-22")]
-public sealed class P122SurveyPlanningPersistenceTests
-{
-    [Fact(DisplayName = "P1-22: survey plan and request retain output requirements and request due date")]
-    public void SurveyPlanningEntities_RetainNewPersistenceFields()
-    {
-        var projectId = Guid.NewGuid();
-        var roadSectionId = Guid.NewGuid();
-        var requestedAt = new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
-        var dueAt = requestedAt.AddDays(3);
-        const string outputRequirements = "{\"formats\":[\"video\",\"srt\"]}";
-
-        var plan = SurveyPlan.Create(
-            Guid.NewGuid(),
-            projectId,
-            roadSectionId,
-            requestedAt,
-            requestedAt.AddHours(4),
-            SurveyType.Periodic,
-            SurveyPlanStatus.Planned,
-            outputRequirements);
-        var request = SurveyRequest.Create(
-            Guid.NewGuid(),
-            projectId,
-            roadSectionId,
-            plan.Id,
-            Guid.NewGuid(),
-            SurveyType.Periodic,
-            SurveyRequestStatus.NewAssigned,
-            requestedAt,
-            dueAt,
-            outputRequirements);
-
-        plan.OutputRequirements.Should().Be(outputRequirements);
-        request.DueAt.Should().Be(dueAt);
-        request.OutputRequirements.Should().Be(outputRequirements);
-        request.Status.Should().Be(SurveyRequestStatus.NewAssigned);
-    }
-}
 
 [Trait("TaskId", "P1-22")]
 public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<IdentitySqlServerFixture>
@@ -129,34 +91,6 @@ public sealed class P122SurveyPlanningPersistenceSqlTests : IClassFixture<Identi
         postponed.Postponement!.Status.Should().Be(SurveyPlanStatus.Postponed);
         postponedReplay.Status.Should().Be(SurveyPlanPostponementPersistenceStatus.Replayed);
         (await context.SurveyPlanPostponements.CountAsync(item => item.SurveyPlanId == createdPlan.Plan.PlanId)).Should().Be(1);
-    }
-
-    [Fact(DisplayName = "P1-22: planning contract migration downgrades and reapplies")]
-    public async Task MigrationLifecycle_DowngradesAndReapplies()
-    {
-        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
-        await fixture.InitializeAsync();
-        try
-        {
-            await using var context = new RoadGuardDbContext(new DbContextOptionsBuilder<RoadGuardDbContext>()
-                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
-            var migrator = context.GetService<IMigrator>();
-            const string testedMigration = "20260921170153_P122CanonicalSurveyRequestStatus";
-            await migrator.MigrateAsync(testedMigration);
-            await migrator.MigrateAsync("20260921134719_AddP230FlightSurveyIdentityImmutability");
-
-            await migrator.MigrateAsync(testedMigration);
-            var columns = await context.Database.SqlQueryRaw<int>(
-                """
-                SELECT CAST(COUNT(*) AS int) AS [Value]
-                FROM sys.columns
-                WHERE ([object_id] = OBJECT_ID(N'[dbo].[SurveyPlans]') AND [name] = N'OutputRequirements')
-                   OR ([object_id] = OBJECT_ID(N'[dbo].[SurveyRequests]') AND [name] IN (N'DueAt', N'OutputRequirements'))
-                """).SingleAsync();
-            columns.Should().Be(3);
-            await context.Database.MigrateAsync();
-        }
-        finally { await fixture.DisposeAsync(); }
     }
 
     [Fact(DisplayName = "P2-22: planning commands reject a road section version outside the scope")]

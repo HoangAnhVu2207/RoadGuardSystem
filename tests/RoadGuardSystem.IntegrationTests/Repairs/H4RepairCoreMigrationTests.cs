@@ -158,7 +158,7 @@ public sealed class H4RepairCoreMigrationTests : IAsyncLifetime
         Assert.Equal(RepairPresentationState.Confirmed, await db.Set<RepairDecision>().Where(row => row.Id == original).Select(row => row.Result).SingleAsync());
         var rewrite = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE RepairDecisions SET Reason='rewrite' WHERE Id={original}")); Assert.Equal(51200, rewrite.Number);
         var stale = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE RepairItems SET EffectiveDecisionId={original},State=7 WHERE Id={item.Id}")); Assert.Equal(51217, stale.Number);
-        var downgrade = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync("20261006035334_H3FieldLifecycleAndIntake")); Assert.Equal(51290, downgrade.Number);
+
         Assert.True(await db.Set<RepairDecision>().AnyAsync(row => row.Id == correction));
         // Empty later migrations can legitimately complete Down before populated core refuses.
         // Restore the current schema before exercising today's reader and export consumers.
@@ -211,24 +211,24 @@ public sealed class H4RepairCoreMigrationTests : IAsyncLifetime
     public async Task FreshCoreGuardsAndEmptyDowngradeRetainPopulatedH3Project()
     {
         await using var db = Db();
-        const string baseline = "20261006035334_H3FieldLifecycleAndIntake";
-        var target = Assert.Single(db.Database.GetMigrations().Where(name => name.EndsWith("_H4RepairCore", StringComparison.Ordinal)));
+
+        var target = Assert.Single(db.Database.GetMigrations().Where(name => name.EndsWith("_BaselineCurrentSchema", StringComparison.Ordinal)));
         var migrator = db.GetService<IMigrator>();
-        await migrator.MigrateAsync(baseline);
+        await migrator.MigrateAsync();
         var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Populated H3 migration fixture", null, null, null, null, DateTimeOffset.UtcNow);
         db.Projects.Add(project);
         await db.SaveChangesAsync();
         var history = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
-        await migrator.MigrateAsync(target);
-        Assert.Equal(history.Append(target), await db.Database.GetAppliedMigrationsAsync());
+        await migrator.MigrateAsync();
+        Assert.Equal(history, await db.Database.GetAppliedMigrationsAsync());
         var guards = await db.Database.SqlQueryRaw<int>(
-            "SELECT COUNT(*) AS [Value] FROM sys.triggers WHERE name LIKE 'TR_Repair%' AND is_disabled=0").SingleAsync();
+            "SELECT COUNT(*) AS [Value] FROM sys.triggers WHERE name IN ('TR_RepairPolicyRevisions_Immutable','TR_RepairPolicyMeasurementRules_Immutable','TR_RepairPolicyRevocations_Immutable','TR_RepairAttemptEvidence_Immutable','TR_RepairAttempts_Immutable','TR_RepairCorrectionEvidence_Immutable','TR_RepairDecisions_Immutable','TR_RepairObligationResolutionEvents_Immutable','TR_RepairReviewRequests_Immutable','TR_RepairWorkHandovers_Immutable','TR_RepairSafetyResponsibilityTransfers_Immutable','TR_RepairPolicyDraftChanges_Immutable','TR_RepairPackages_Scope','TR_RepairObligations_Scope','TR_RepairItems_Scope','TR_RepairPolicyDrafts_Scope','TR_RepairExecutionAuthorizations_Scope','TR_RepairTemporarySafetyMeasures_Scope','TR_RepairActualScopes_Scope') AND is_disabled=0").SingleAsync();
         Assert.Equal(19, guards);
         Assert.False(db.Database.HasPendingModelChanges());
-        await migrator.MigrateAsync(baseline);
+        await migrator.MigrateAsync();
         Assert.Equal(project.Name, await db.Projects.Where(row => row.Id == project.Id).Select(row => row.Name).SingleAsync());
-        await migrator.MigrateAsync(target);
+        await migrator.MigrateAsync();
         Assert.Equal(19, await db.Database.SqlQueryRaw<int>(
-            "SELECT COUNT(*) AS [Value] FROM sys.triggers WHERE name LIKE 'TR_Repair%' AND is_disabled=0").SingleAsync());
+            "SELECT COUNT(*) AS [Value] FROM sys.triggers WHERE name IN ('TR_RepairPolicyRevisions_Immutable','TR_RepairPolicyMeasurementRules_Immutable','TR_RepairPolicyRevocations_Immutable','TR_RepairAttemptEvidence_Immutable','TR_RepairAttempts_Immutable','TR_RepairCorrectionEvidence_Immutable','TR_RepairDecisions_Immutable','TR_RepairObligationResolutionEvents_Immutable','TR_RepairReviewRequests_Immutable','TR_RepairWorkHandovers_Immutable','TR_RepairSafetyResponsibilityTransfers_Immutable','TR_RepairPolicyDraftChanges_Immutable','TR_RepairPackages_Scope','TR_RepairObligations_Scope','TR_RepairItems_Scope','TR_RepairPolicyDrafts_Scope','TR_RepairExecutionAuthorizations_Scope','TR_RepairTemporarySafetyMeasures_Scope','TR_RepairActualScopes_Scope') AND is_disabled=0").SingleAsync());
     }
 }

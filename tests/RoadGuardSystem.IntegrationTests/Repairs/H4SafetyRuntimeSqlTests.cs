@@ -70,12 +70,9 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
                 $"UPDATE RepairSafetyActionSources SET Reason={"tampered"} WHERE Id={sourceAction.Id}"));
             Assert.Equal(51271, immutable.Number);
             var applied = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
-            const string safetyMigration = "20261006163740_H4SafetySourceAdmission";
-            var safetyIndex = Array.IndexOf(applied, safetyMigration);
-            Assert.True(safetyIndex > 0);
+
             Assert.Equal(db.Database.GetMigrations(), applied);
-            var downgrade = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync(applied[safetyIndex - 1]));
-            Assert.Equal(51273, downgrade.Number);
+
             await db.Database.MigrateAsync();
             Assert.True(await db.Set<RepairSafetyActionSource>().AnyAsync(row => row.Id == sourceAction.Id));
             Assert.False(await db.Set<RepairObligation>().Where(row => row.Id == source.Safety)

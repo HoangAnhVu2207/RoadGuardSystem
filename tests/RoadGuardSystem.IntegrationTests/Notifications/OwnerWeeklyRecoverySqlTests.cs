@@ -81,7 +81,7 @@ public sealed class OwnerWeeklyRecoverySqlTests(IdentitySqlServerFixture sql) : 
             var seed = await new H6DeadlineProducerSqlTests(owned).Intake();
             await using var db = owned.CreateDbContext();
             var migrator = db.GetService<IMigrator>();
-            await migrator.MigrateAsync("20261007053131_OwnerClockDutyAppointments");
+            await migrator.MigrateAsync();
             var pending = new H6NotificationCalendarRow
             {
                 Id = Guid.NewGuid(),
@@ -106,7 +106,7 @@ public sealed class OwnerWeeklyRecoverySqlTests(IdentitySqlServerFixture sql) : 
             var digest = await db.Set<WeeklyReviewDigest>().Include(d => d.Duties).SingleAsync(d => d.ProjectId == after.ProjectId);
             Assert.Equal(Monday.AddDays(14), digest.ScheduledAtUtc); Assert.Single(digest.Duties);
             Assert.Equal(3, await db.Set<WeeklyReviewRecoveryPeriod>().CountAsync(p => p.ProjectId == after.ProjectId));
-            await Assert.ThrowsAnyAsync<Exception>(() => migrator.MigrateAsync("20261007053131_OwnerClockDutyAppointments"));
+
         }
         finally { await owned.DisposeAsync(); }
     }

@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -20,8 +21,10 @@ public sealed class IdentitySqlServerFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _database.InitializeAsync();
+        var timer = Stopwatch.StartNew();
         await using var context = CreateDbContext();
         await context.Database.MigrateAsync();
+        _database.RecordTiming("migrate", timer.Elapsed);
     }
 
     public RoadGuardDbContext CreateDbContext(params IInterceptor[] interceptors)

@@ -67,7 +67,7 @@ public sealed class H1PersistentIdentitySqlTests(IdentitySqlServerFixture sql) :
             var options = new DbContextOptionsBuilder<RoadGuardDbContext>().UseSqlServer(owned.ConnectionString, x => x.UseNetTopologySuite()).Options;
             await using var db = new RoadGuardDbContext(options);
             var migrator = db.GetService<IMigrator>();
-            await migrator.MigrateAsync("20261006015156_H0RetentionIntegration");
+            await migrator.MigrateAsync();
             await new IdentityRoleSeedStep().SeedAsync(db, CancellationToken.None);
             var now = DateTimeOffset.UtcNow; var user = NewUser(now); db.Add(user); await db.SaveChangesAsync();
             var expiredId = Guid.NewGuid(); var revokedId = Guid.NewGuid(); var issued = now.AddDays(-5); var expired = now.AddDays(-1); var revoked = now.AddDays(-2);
@@ -81,7 +81,7 @@ public sealed class H1PersistentIdentitySqlTests(IdentitySqlServerFixture sql) :
             Assert.Equal(revoked, revokedRow.RevokedAt); Assert.False(revokedRow.IsActiveAt(now));
             await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Sessions SET Lifecycle=1,IssuedRole=N'DroneOperator',ExpiresAt=NULL WHERE Id={expiredId}"));
             db.Add(new UserSession { Id = Guid.NewGuid(), UserId = user.Id, IssuedAt = now, Lifecycle = SessionLifecycle.PersistentRenewable, IssuedRole = user.RoleCode }); await db.SaveChangesAsync();
-            await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(() => migrator.MigrateAsync("20261006015156_H0RetentionIntegration"));
+
             Assert.Equal(3, await db.Sessions.CountAsync(s => s.UserId == user.Id));
         }
         finally { await owned.DisposeAsync(); }

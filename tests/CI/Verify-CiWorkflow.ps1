@@ -686,11 +686,18 @@ foreach ($token in $pipelineTokens) {
 
 $integrationMatch = [regex]::Match(
     $ciContent,
-    '(?ms)^ {2}integration:\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)')
+    '(?ms)^ {2}integration_lane:\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)')
 if (-not $integrationMatch.Success) {
-    $errors += "CI workflow must define an integration job for the managed SQL lifecycle."
+    $errors += "CI workflow must define isolated integration lanes for the managed SQL lifecycle."
 } else {
     $integrationBody = $integrationMatch.Groups['body'].Value
+    if ($integrationBody -notmatch 'Invoke-SqlLane\.ps1' -or
+        $integrationBody -notmatch '(?ms)if:\s*always\(\).*?name:\s*integration-results-lane-.*?if-no-files-found:\s*error') {
+        $errors += 'Each SQL lane must execute its assigned tests and always upload TRX.'
+    }
+    if ($integrationBody -notmatch 'dotnet build tests/RoadGuardSystem\.IntegrationTests/RoadGuardSystem\.IntegrationTests\.csproj') {
+        $errors += 'Build the integration project and its Seeder dependency rather than unrelated solution projects.'
+    }
     $integrationTokens = @(
         "Generate ephemeral SQL credential",
         "Start SQL Server container",
@@ -712,6 +719,21 @@ if (-not $integrationMatch.Success) {
             $lastIndex = $currentIndex
         }
     }
+}
+
+$aggregateMatch = [regex]::Match(
+    $ciContent,
+    '(?ms)^ {2}integration:\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)')
+if (-not $aggregateMatch.Success -or
+    $aggregateMatch.Groups['body'].Value -notmatch 'needs:\s*\[integration_lane\]' -or
+    $aggregateMatch.Groups['body'].Value -notmatch 'Verify-SqlLanes\.ps1' -or
+    $aggregateMatch.Groups['body'].Value -notmatch 'needs\.integration_lane\.result.*success') {
+    $errors += 'The required SQL integration tests check must fail on unsuccessful lanes and reconcile executed identities.'
+}
+
+if ($ciContent -notmatch 'group:\s*\$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}' -or
+    $ciContent -notmatch 'cancel-in-progress:\s*true') {
+    $errors += 'Cancel obsolete runs only within the same workflow and branch/PR context.'
 }
 
 # 7. Coverage collection verification across all test suites

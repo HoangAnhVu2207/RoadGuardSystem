@@ -1,0 +1,69 @@
+{
+  "evidence": "CURRENT_VERIFIED local only",
+  "baseHead": "fc70d4714921185d9b0d93e766835aed654102d2",
+  "schemaEquivalent": "CURRENT_VERIFIED_EQUIVALENT",
+  "schemaDifferences": 0,
+  "sqlLanes": [
+    {
+      "lane": 1,
+      "total": 123,
+      "passed": 123,
+      "failed": 0,
+      "executed": 123,
+      "identityCount": 123,
+      "identitiesSha256": "6385424760b5c80b1a294c0affa7b7af8eb372822b8444bbe586bf56c251c70e"
+    },
+    {
+      "lane": 2,
+      "total": 130,
+      "passed": 130,
+      "failed": 0,
+      "executed": 130,
+      "identityCount": 130,
+      "identitiesSha256": "88be1274ff98eb948849e8985a2863243e44c18c19d6561ebaec92a38721841b"
+    },
+    {
+      "lane": 3,
+      "total": 215,
+      "passed": 215,
+      "failed": 0,
+      "executed": 215,
+      "identityCount": 215,
+      "identitiesSha256": "29e39edac7a4ff954c1d2249c4f7e5bb9088617c5791edb9dbba5c7175918f44"
+    },
+    {
+      "lane": 4,
+      "total": 190,
+      "passed": 190,
+      "failed": 0,
+      "executed": 190,
+      "identityCount": 190,
+      "identitiesSha256": "92f7b206e4aa701279695ff7829fedca9f9ad92740c5fe744cbc420b07c0e05d"
+    }
+  ],
+  "sqlUnionGate": "PASS: 658 unique executed identities, zero duplicate/missing/unexpected",
+  "unit": {
+    "total": 966,
+    "passed": 966,
+    "failed": 0,
+    "executed": 966,
+    "identityCount": 966,
+    "identitiesSha256": "ea15a8fbddfbb58f93593277d8470f9d1d7c8dc5e6a1ce56fbe56c5584ff4b92"
+  },
+  "api": {
+    "total": 406,
+    "passed": 406,
+    "failed": 0,
+    "executed": 406,
+    "identityCount": 406,
+    "identitiesSha256": "c9f7e3ea830e92a69703f70513065adaf3d6c75ded43dbffcb7433f08c1df52c"
+  },
+  "seedTableCount": 192,
+  "seedGlobalGapCount": 2,
+  "seedRerun": "same project and 192 table counts across initial and post-login pairs",
+  "apiSeedSmoke": "five seeded logins HTTP 200; staff project reads HTTP 200; Reporter HTTP 403",
+  "localMaxSqlLaneTestStepSeconds": 202,
+  "hostedStatus": "PENDING_OWNER_PUSH",
+  "hostedTiming": "UNMEASURED",
+  "baselineRevalidationAfterWhitespaceRestore": "2/2 PASS; exact SQL catalog equivalent, zero differences"
+}

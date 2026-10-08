@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.MsSql;
@@ -12,15 +14,17 @@ public delegate string? EnvironmentVariableAccessor(string variableName);
 
 /// <summary>
 /// Manages isolated SQL Server test databases for integration tests.
-/// Normal tests use a fixture-owned Testcontainers server. An injected environment accessor
-/// exists only for negative configuration tests and never reads inherited process settings.
+/// Uses the explicitly configured test SQL server, or a fixture-owned Testcontainers server.
+/// Each fixture creates and may drop only its own randomly named database.
 /// Provides reliable lifecycle management and unswallowed teardown failures.
 /// </summary>
 public sealed class SqlServerTestFixture : IAsyncLifetime
 {
     private static readonly SemaphoreSlim SharedContainerLock = new(1, 1);
+    private static readonly ConcurrentDictionary<string, byte> ConfiguredMasters = new(StringComparer.Ordinal);
     private static MsSqlContainer? SharedContainer;
     private static int SharedContainerUsers;
+    private static readonly object TimingLock = new();
     private readonly bool _createSpatialProbeSchema;
     private readonly EnvironmentVariableAccessor _environmentAccessor;
     private MsSqlContainer? _container;
@@ -48,7 +52,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
         bool createSpatialProbeSchema = true)
     {
         _createSpatialProbeSchema = createSpatialProbeSchema;
-        _environmentAccessor = environmentAccessor ?? (_ => null);
+        _environmentAccessor = environmentAccessor ?? Environment.GetEnvironmentVariable;
         _masterConnectionString = masterConnectionString;
     }
 
@@ -60,6 +64,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        var timer = Stopwatch.StartNew();
         try
         {
             _masterConnectionString ??= await ResolveMasterConnectionStringAsync();
@@ -84,6 +89,7 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
                 await using var context = CreateDbContext();
                 await context.Database.EnsureCreatedAsync();
             }
+            RecordTiming("database-create", timer.Elapsed);
         }
         catch
         {
@@ -158,6 +164,7 @@ END";
 
     public async Task DisposeAsync()
     {
+        var timer = Stopwatch.StartNew();
         Exception? dbCleanupException = null;
 
         try
@@ -218,6 +225,17 @@ END";
                 $"Failed to drop isolated test database '{_databaseName}': {dbCleanupException.Message}",
                 dbCleanupException);
         }
+        RecordTiming("database-drop", timer.Elapsed);
+    }
+
+    internal void RecordTiming(string phase, TimeSpan duration)
+    {
+        var path = Environment.GetEnvironmentVariable("ROADGUARD_TEST_TIMINGS_FILE");
+        if (string.IsNullOrWhiteSpace(path)) return;
+        lock (TimingLock)
+        {
+            File.AppendAllText(path, $"{_databaseName},{phase},{duration.TotalMilliseconds.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)}{Environment.NewLine}");
+        }
     }
 
     private async Task<string> ResolveMasterConnectionStringAsync()
@@ -252,6 +270,9 @@ END";
                     "Refusing fallback to local SQL Server or Docker to prevent unintended test execution context.");
             }
 
+            // Explicit test configuration authorizes this server for NEW isolated databases only.
+            // Remember it so child fixtures can reuse a validated master without starting Docker.
+            ConfiguredMasters.TryAdd(builder.ConnectionString, 0);
             return builder.ConnectionString;
         }
 
@@ -298,6 +319,12 @@ END";
 
     private static bool IsOwnedMasterConnection(string connectionString)
     {
+        var normalized = new SqlConnectionStringBuilder(connectionString).ConnectionString;
+        if (ConfiguredMasters.ContainsKey(normalized))
+        {
+            return true;
+        }
+
         if (SharedContainer is null)
         {
             return false;
@@ -307,7 +334,7 @@ END";
         {
             InitialCatalog = "master"
         };
-        return string.Equals(new SqlConnectionStringBuilder(connectionString).ConnectionString,
+        return string.Equals(normalized,
             owned.ConnectionString, StringComparison.Ordinal);
     }
 

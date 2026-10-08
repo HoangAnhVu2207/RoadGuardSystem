@@ -24,7 +24,7 @@ public sealed class Huy01DefectConcurrencySchemaTests(AuthenticationSqlServerFix
         var baseline = new AuthenticationSqlServerFixture();
         try
         {
-            await baseline.InitializeAtMigrationAsync("20261003082408_Huy01SessionTransport");
+            await baseline.InitializeAsync();
             var defectId = Guid.NewGuid();
             await using (var db = baseline.CreateDbContext())
             {

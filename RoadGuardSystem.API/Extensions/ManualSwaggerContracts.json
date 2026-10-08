@@ -19430,7 +19430,7 @@
     "instructions": "AiCallback policy uses AI service credentials, not PM credentials. Supply legitimate job attempt/manifest/model/mode and verified raw-result file/checksum in the same project. Detection IDs are GUID strings; timestamp >=0, confidence [0,1], bbox exactly 4 values within [0,1] and contained within image.",
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "Submit a processing result. Requires an AI service bearer token with AI_SERVICE role."
+    "uiDescription": "Submit a processing result. Requires an AI service bearer token with client_type=AI_SERVICE."
   },
   {
     "id": "SWG-125",

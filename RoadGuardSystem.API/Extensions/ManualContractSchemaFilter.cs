@@ -38,6 +38,7 @@ public sealed class ManualContractSchemaFilter : ISchemaFilter
         if (rule.TryGetProperty("enum", out var enumeration) && enumeration.ValueKind == JsonValueKind.Array)
             schema.Enum = enumeration.EnumerateArray().Select(Value).ToList();
         if (rule.TryGetProperty("pattern", out var pattern) && pattern.ValueKind == JsonValueKind.String) schema.Pattern = pattern.GetString();
+        if (rule.TryGetProperty("format", out var format) && format.ValueKind == JsonValueKind.String) schema.Format = format.GetString();
         if (rule.TryGetProperty("nullable", out var nullable) && nullable.ValueKind is JsonValueKind.True or JsonValueKind.False) schema.Nullable = nullable.GetBoolean();
         if (rule.TryGetProperty("minimum", out var min) && min.ValueKind == JsonValueKind.Number) schema.Minimum = min.GetDecimal();
         if (rule.TryGetProperty("maximum", out var max) && max.ValueKind == JsonValueKind.Number) schema.Maximum = max.GetDecimal();
@@ -47,13 +48,26 @@ public sealed class ManualContractSchemaFilter : ISchemaFilter
         if (rule.TryGetProperty("maxLength", out var maxLength) && maxLength.ValueKind == JsonValueKind.Number) schema.MaxLength = maxLength.GetInt32();
         if (rule.TryGetProperty("minItems", out var minItems) && minItems.ValueKind == JsonValueKind.Number) schema.MinItems = minItems.GetInt32();
         if (rule.TryGetProperty("maxItems", out var maxItems) && maxItems.ValueKind == JsonValueKind.Number) schema.MaxItems = maxItems.GetInt32();
+        if (schema.Items is not null)
+        {
+            if (rule.TryGetProperty("itemMinimum", out var itemMin) && itemMin.ValueKind == JsonValueKind.Number) schema.Items.Minimum = itemMin.GetDecimal();
+            if (rule.TryGetProperty("itemMaximum", out var itemMax) && itemMax.ValueKind == JsonValueKind.Number) schema.Items.Maximum = itemMax.GetDecimal();
+        }
+        if (rule.TryGetProperty("crossElementConstraints", out var cross) && cross.ValueKind == JsonValueKind.Array)
+        {
+            var constraints = new OpenApiArray();
+            foreach (var item in cross.EnumerateArray()) constraints.Add(new OpenApiString(item.GetString()));
+            schema.Extensions["x-roadguard-cross-element-constraints"] = constraints;
+        }
     }
 
     private static IOpenApiAny Value(JsonElement item) => item.ValueKind switch
     {
         JsonValueKind.String => new OpenApiString(item.GetString()),
         JsonValueKind.Number => item.TryGetInt32(out var number) ? new OpenApiInteger(number) : new OpenApiDouble(item.GetDouble()),
-        JsonValueKind.True => new OpenApiBoolean(true), JsonValueKind.False => new OpenApiBoolean(false), _ => new OpenApiNull()
+        JsonValueKind.True => new OpenApiBoolean(true),
+        JsonValueKind.False => new OpenApiBoolean(false),
+        _ => new OpenApiNull()
     };
 
     internal static OpenApiSchema Shape(JsonElement shape, OperationFilterContext context)

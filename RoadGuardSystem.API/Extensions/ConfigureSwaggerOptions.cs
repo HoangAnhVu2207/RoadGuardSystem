@@ -31,7 +31,7 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         options.OperationFilter<AuthorizeOperationFilter>();
         options.OperationFilter<ManualContractOperationFilter>();
         options.SchemaFilter<ManualContractSchemaFilter>();
-        options.AddSecurityDefinition("AiServiceBearer", new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", Description = "Dedicated AI callback credential with AI_SERVICE role. Ordinary user JWTs are rejected." });
+        options.AddSecurityDefinition("AiServiceBearer", new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", Description = "Dedicated AI callback credential with client_type=AI_SERVICE. Ordinary user JWTs are rejected." });
         AddCookie(options, "WebSession", "__Host-RoadGuardSession", "Browser-managed Secure HttpOnly session cookie, obtained by web login. Swagger Authorize cannot set HttpOnly cookies.");
         AddCookie(options, "WebRenewal", "__Host-RoadGuardRenewal", "Browser-managed protected renewal cookie, obtained by web login; do not copy or expose it.");
         AddCookie(options, "AntiforgeryCookie", "__Host-RoadGuardCsrf", "Browser-managed antiforgery cookie from GET /api/v1/auth/web/csrf; paired with X-CSRF-TOKEN.");

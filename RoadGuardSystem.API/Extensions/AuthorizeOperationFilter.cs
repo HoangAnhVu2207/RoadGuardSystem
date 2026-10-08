@@ -32,7 +32,7 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
         if (authorizations.Any(x => x.Policy == "AiCallback"))
         {
             operation.Security = [Requirement("AiServiceBearer")];
-            operation.Description = "Submit a processing result. Authentication: AI service bearer token with AI_SERVICE role.";
+            operation.Description = "Submit a processing result. Authentication: AI service bearer token with client_type=AI_SERVICE.";
             return;
         }
         if (authorizations.Any(x => x.AuthenticationSchemes == WebCookieConfiguration.Scheme))
@@ -64,8 +64,14 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
     private static void AddCsrf(OpenApiOperation operation, bool required)
     {
         operation.Parameters ??= new List<OpenApiParameter>();
-        operation.Parameters.Add(new OpenApiParameter { Name = "X-CSRF-TOKEN", In = ParameterLocation.Header,
-            Required = required, Description = "CSRF token from the bootstrap endpoint for this browser session. Required for cookie authentication on unsafe requests.",
-            Schema = new OpenApiSchema { Type = "string" }, Extensions = { ["x-requirement"] = new OpenApiString(required ? "required" : "conditional: cookie authentication only") } });
+        operation.Parameters.Add(new OpenApiParameter
+        {
+            Name = "X-CSRF-TOKEN",
+            In = ParameterLocation.Header,
+            Required = required,
+            Description = "CSRF token from the bootstrap endpoint for this browser session. Required for cookie authentication on unsafe requests.",
+            Schema = new OpenApiSchema { Type = "string" },
+            Extensions = { ["x-requirement"] = new OpenApiString(required ? "required" : "conditional: cookie authentication only") }
+        });
     }
 }

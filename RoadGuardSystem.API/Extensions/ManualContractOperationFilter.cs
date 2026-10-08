@@ -29,8 +29,14 @@ public sealed class ManualContractOperationFilter : IOperationFilter
         operation.Extensions["x-contract-evidence"] = new OpenApiString("CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate.");
         operation.Description = Text(contract, "uiDescription");
         operation.Parameters ??= new List<OpenApiParameter>();
-        operation.Parameters.Add(new OpenApiParameter { Name = "X-Correlation-ID", In = ParameterLocation.Header, Required = false,
-            Description = "Optional UUID for request tracing. The server generates one when omitted or invalid.", Schema = new OpenApiSchema { Type = "string", Format = "uuid" } });
+        operation.Parameters.Add(new OpenApiParameter
+        {
+            Name = "X-Correlation-ID",
+            In = ParameterLocation.Header,
+            Required = false,
+            Description = "Optional UUID for request tracing. The server generates one when omitted or invalid.",
+            Schema = new OpenApiSchema { Type = "string", Format = "uuid" }
+        });
         foreach (var header in contract.GetProperty("headers").EnumerateArray())
         {
             var name = header.GetProperty("name").GetString()!;
@@ -99,8 +105,11 @@ public sealed class ManualContractOperationFilter : IOperationFilter
     private static void AddPlatformResponse(OpenApiOperation operation, OperationFilterContext context, string status, string description)
     {
         if (!operation.Responses.ContainsKey(status))
-            operation.Responses[status] = new OpenApiResponse { Description = description,
-                Content = { ["application/problem+json"] = new OpenApiMediaType { Schema = context.SchemaGenerator.GenerateSchema(typeof(ProblemDetails), context.SchemaRepository) } } };
+            operation.Responses[status] = new OpenApiResponse
+            {
+                Description = description,
+                Content = { ["application/problem+json"] = new OpenApiMediaType { Schema = context.SchemaGenerator.GenerateSchema(typeof(ProblemDetails), context.SchemaRepository) } }
+            };
     }
 
     private static OpenApiSchema ResponseSchema(string? name, OperationFilterContext context)

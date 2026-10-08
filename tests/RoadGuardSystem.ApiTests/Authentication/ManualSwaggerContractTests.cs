@@ -18,17 +18,17 @@ public sealed class ManualSwaggerContractTests
         triage.GetProperty("responses").GetProperty("200").GetProperty("headers").GetProperty("ETag").GetProperty("description")
             .GetString().Should().Contain("Base64 rowversion").And.NotContain("content-hash");
         foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject())
-        foreach (var method in path.Value.EnumerateObject())
-        {
-            if (!method.Value.TryGetProperty("x-roadguard-api-id", out _)) continue;
-            var description = method.Value.GetProperty("description").GetString()!;
-            description.Length.Should().BeLessThanOrEqualTo(320, path.Name);
-            foreach (var forbidden in new[] { "source review", "stable inventory", "UNKNOWN", "unadvertisedErrorCandidates", "family candidates", "rebootstrap", "repository audit", "manual evidence ledger" })
-                description.Should().NotContain(forbidden, path.Name);
-            foreach (var parameter in method.Value.GetProperty("parameters").EnumerateArray())
-                if (parameter.TryGetProperty("description", out var text))
-                    text.GetString()!.Length.Should().BeLessThanOrEqualTo(250, path.Name + " parameter description");
-        }
+            foreach (var method in path.Value.EnumerateObject())
+            {
+                if (!method.Value.TryGetProperty("x-roadguard-api-id", out _)) continue;
+                var description = method.Value.GetProperty("description").GetString()!;
+                description.Length.Should().BeLessThanOrEqualTo(320, path.Name);
+                foreach (var forbidden in new[] { "source review", "stable inventory", "UNKNOWN", "unadvertisedErrorCandidates", "family candidates", "rebootstrap", "repository audit", "manual evidence ledger" })
+                    description.Should().NotContain(forbidden, path.Name);
+                foreach (var parameter in method.Value.GetProperty("parameters").EnumerateArray())
+                    if (parameter.TryGetProperty("description", out var text))
+                        text.GetString()!.Length.Should().BeLessThanOrEqualTo(250, path.Name + " parameter description");
+            }
     }
     [Fact]
     public async Task SourceValidatedRequestPropertiesAndQueryConstraintsAreExposed()
@@ -154,5 +154,129 @@ public sealed class ManualSwaggerContractTests
         auth.Any(x => x.TryGetProperty("WebSession", out _) && x.TryGetProperty("CsrfToken", out _)).Should().BeTrue();
         var csrf = triage.GetProperty("parameters").EnumerateArray().Single(x => x.GetProperty("name").GetString() == "X-CSRF-TOKEN");
         (csrf.TryGetProperty("required", out var requiredCsrf) && requiredCsrf.GetBoolean()).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RequiredSourceValidatedFieldsAreNonNullableThroughoutTheRequestGraph()
+    {
+        using var document = await Document();
+        using var expected = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Contracts", "swagger-schema-expectations.json")));
+        var requiredSourceFields = expected.RootElement.GetProperty("properties").EnumerateArray()
+            .Where(x => x.TryGetProperty("required", out var required) && required.ValueKind == JsonValueKind.True &&
+                x.GetProperty("baseline").TryGetProperty("nullable", out var nullable) && nullable.ValueKind == JsonValueKind.True)
+            .Select(x => x.GetProperty("dto").GetString()!.Split('.')[^1] + "." + x.GetProperty("property").GetString())
+            .ToHashSet(StringComparer.Ordinal);
+        requiredSourceFields.Should().HaveCount(53);
+        var paths = document.RootElement.GetProperty("paths");
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var affected = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var path in paths.EnumerateObject())
+            foreach (var method in path.Value.EnumerateObject())
+            {
+                if (!method.Value.TryGetProperty("x-roadguard-api-id", out var id) ||
+                    !method.Value.TryGetProperty("requestBody", out var body)) continue;
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var media in body.GetProperty("content").EnumerateObject())
+                    Visit(media.Value.GetProperty("schema"), id.GetString()!, seen);
+            }
+
+        affected.Should().BeEquivalentTo(new[]
+        {
+            "SWG-121", "SWG-123", "SWG-124", "SWG-125", "SWG-132", "SWG-133", "SWG-136", "SWG-137", "SWG-138",
+            "SWG-170", "SWG-171", "SWG-200", "SWG-201", "SWG-202", "SWG-203", "SWG-204", "SWG-205", "SWG-211",
+            "SWG-214", "SWG-215", "SWG-216", "SWG-217", "SWG-223", "SWG-225", "SWG-226", "SWG-227"
+        });
+
+        void Visit(JsonElement shape, string id, HashSet<string> seen)
+        {
+            var name = shape.TryGetProperty("$ref", out var reference) ? reference.GetString()!.Split('/')[^1] : null;
+            if (name is not null)
+            {
+                if (!seen.Add(name)) return;
+                shape = schemas.GetProperty(name);
+            }
+            if (shape.TryGetProperty("required", out var required) && shape.TryGetProperty("properties", out var properties))
+                foreach (var property in required.EnumerateArray())
+                {
+                    var value = properties.GetProperty(property.GetString()!);
+                    if (!requiredSourceFields.Contains((name ?? "inline") + "." + property.GetString())) continue;
+                    affected.Add(id);
+                    (value.TryGetProperty("nullable", out var nullable) && nullable.GetBoolean())
+                        .Should().BeFalse(id + " " + (name ?? "inline") + "." + property.GetString());
+                }
+            if (shape.TryGetProperty("properties", out var nested))
+                foreach (var property in nested.EnumerateObject()) Visit(property.Value, id, seen);
+            if (shape.TryGetProperty("items", out var items)) Visit(items, id, seen);
+            foreach (var composition in new[] { "allOf", "oneOf", "anyOf" })
+                if (shape.TryGetProperty(composition, out var alternatives))
+                    foreach (var item in alternatives.EnumerateArray()) Visit(item, id, seen);
+        }
+    }
+
+    [Fact]
+    public async Task AiCallbackPublishesOnlySourceValidatedConstraintsAndClaim()
+    {
+        using var document = await Document();
+        var callback = document.RootElement.GetProperty("paths").GetProperty("/api/v1/internal/processing-jobs/{jobId}/results").GetProperty("post");
+        callback.GetProperty("description").GetString().Should().Contain("client_type=AI_SERVICE").And.NotContain("AI_SERVICE role");
+        document.RootElement.GetProperty("components").GetProperty("securitySchemes").GetProperty("AiServiceBearer")
+            .GetProperty("description").GetString().Should().Contain("client_type=AI_SERVICE");
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var detection = schemas.GetProperty("AiDetectionDto").GetProperty("properties");
+        detection.GetProperty("detectionId").GetProperty("format").GetString().Should().Be("uuid");
+        detection.GetProperty("timestampMs").GetProperty("minimum").GetDecimal().Should().Be(0);
+        detection.GetProperty("confidence").GetProperty("minimum").GetDecimal().Should().Be(0);
+        detection.GetProperty("confidence").GetProperty("maximum").GetDecimal().Should().Be(1);
+        var bbox = detection.GetProperty("bbox");
+        bbox.GetProperty("minItems").GetInt32().Should().Be(4);
+        bbox.GetProperty("maxItems").GetInt32().Should().Be(4);
+        bbox.GetProperty("items").GetProperty("minimum").GetDecimal().Should().Be(0);
+        bbox.GetProperty("items").GetProperty("maximum").GetDecimal().Should().Be(1);
+        bbox.GetProperty("description").GetString().Should().Contain("x + width <= 1").And.Contain("y + height <= 1");
+    }
+
+    [Fact]
+    public async Task ProductionInventoryAndEvidenceExcerptsMatchCurrentSource()
+    {
+        using var expected = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Contracts", "swagger-source-expectations.json")));
+        using var document = await Document();
+        var rows = expected.RootElement.EnumerateArray().ToArray();
+        rows.GroupBy(x => x.GetProperty("owner").GetString()).ToDictionary(x => x.Key!, x => x.Count())
+            .Should().BeEquivalentTo(new Dictionary<string, int>
+            {
+                ["HUY"] = 121,
+                ["ANH"] = 93,
+                ["SHARED_SETUP"] = 19,
+                ["SPECIAL_EXTERNAL_OR_NONMANUAL"] = 4
+            });
+        var live = document.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(path => path.Value.EnumerateObject()
+                .Where(method => method.Value.TryGetProperty("x-roadguard-api-id", out _))
+                .Select(method => (Route: path.Name, Method: method.Name.ToUpperInvariant(), Id: method.Value.GetProperty("x-roadguard-api-id").GetString()!)))
+            .ToArray();
+        live.Should().HaveCount(237);
+        live.Select(x => x.Id).Distinct().Should().HaveCount(237);
+        live.Select(x => (x.Route, x.Method, x.Id))
+            .Should().BeEquivalentTo(rows.Select(x => (Route: x.GetProperty("route").GetString()!, Method: x.GetProperty("method").GetString()!, Id: x.GetProperty("id").GetString()!)));
+
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (!File.Exists(Path.Combine(root.FullName, "RoadGuardSystem.slnx")))
+            root = root.Parent ?? throw new InvalidOperationException("Repository source root not found");
+        var sourceCache = new Dictionary<string, string>(StringComparer.Ordinal);
+        var checkedExcerpts = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in rows)
+            foreach (var source in row.GetProperty("sources").EnumerateArray())
+            {
+                var file = source.GetProperty("file").GetString()!;
+                var excerpt = source.GetProperty("evidence").GetString()!;
+                if (!checkedExcerpts.Add(file + "\0" + excerpt)) continue;
+                if (!sourceCache.TryGetValue(file, out var actual))
+                {
+                    actual = File.ReadAllText(Path.Combine(root.FullName, file)).Replace("\r\n", "\n", StringComparison.Ordinal);
+                    sourceCache.Add(file, actual);
+                }
+                actual.Should().Contain(excerpt, row.GetProperty("id").GetString() + " source " + file);
+            }
+        checkedExcerpts.Should().HaveCountGreaterThan(2500);
     }
 }

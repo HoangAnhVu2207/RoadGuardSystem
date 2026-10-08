@@ -29,6 +29,13 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
             Description = "RoadGuard JWT access token."
         });
         options.OperationFilter<AuthorizeOperationFilter>();
+        options.OperationFilter<ManualContractOperationFilter>();
+        options.SchemaFilter<ManualContractSchemaFilter>();
+        options.AddSecurityDefinition("AiServiceBearer", new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", Description = "Dedicated AI callback credential with AI_SERVICE role. Ordinary user JWTs are rejected." });
+        AddCookie(options, "WebSession", "__Host-RoadGuardSession", "Browser-managed Secure HttpOnly session cookie, obtained by web login. Swagger Authorize cannot set HttpOnly cookies.");
+        AddCookie(options, "WebRenewal", "__Host-RoadGuardRenewal", "Browser-managed protected renewal cookie, obtained by web login; do not copy or expose it.");
+        AddCookie(options, "AntiforgeryCookie", "__Host-RoadGuardCsrf", "Browser-managed antiforgery cookie from GET /api/v1/auth/web/csrf; paired with X-CSRF-TOKEN.");
+        options.AddSecurityDefinition("CsrfToken", new OpenApiSecurityScheme { Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Header, Name = "X-CSRF-TOKEN", Description = "Copy the actual requestToken from GET /api/v1/auth/web/csrf in the same browser. Required for cookie-authenticated unsafe requests." });
 
         var descriptions = _provider.ApiVersionDescriptions;
         if (descriptions.Count == 0)
@@ -63,6 +70,9 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
             }
         }
     }
+
+    private static void AddCookie(SwaggerGenOptions options, string id, string name, string description) =>
+        options.AddSecurityDefinition(id, new OpenApiSecurityScheme { Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Cookie, Name = name, Description = description });
 
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
     {

@@ -65,6 +65,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
+        options.ConfigObject.AdditionalItems["withCredentials"] = true;
         var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
         var descriptions = provider.ApiVersionDescriptions;
         if (descriptions.Count == 0)

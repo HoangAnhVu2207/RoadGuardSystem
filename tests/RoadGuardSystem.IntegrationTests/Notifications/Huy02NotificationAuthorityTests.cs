@@ -139,9 +139,17 @@ public sealed class Huy02NotificationAuthorityTests(IdentitySqlServerFixture fix
             return await new NotificationPersistenceService(db, new IdempotencyOperationService(db))
                 .MarkReadAsync(actor, notification, key, new string('a', 64), version);
         }
-        var results = await Task.WhenAll(ReadAsync("race"), ReadAsync(sameKey ? "race" : "competitor"));
-        Assert.Single(results.Where(x => x.Status == NotificationMarkReadPersistenceStatus.Success));
-        Assert.Single(results.Where(x => x.Status == (sameKey
+        var secondKey = sameKey ? "race" : "competitor";
+        var attempts = new[]
+        {
+            (Key: "race", Task: ReadAsync("race")),
+            (Key: secondKey, Task: ReadAsync(secondKey))
+        };
+        var results = await Task.WhenAll(attempts.Select(x => x.Task));
+        var outcomes = attempts.Select((attempt, index) => (attempt.Key, Result: results[index])).ToArray();
+        var winner = Assert.Single(outcomes.Where(x => x.Result.Status == NotificationMarkReadPersistenceStatus.Success));
+        Assert.NotNull(winner.Result.Notification);
+        Assert.Single(outcomes.Where(x => x.Result.Status == (sameKey
             ? NotificationMarkReadPersistenceStatus.Replayed : NotificationMarkReadPersistenceStatus.StaleConcurrency)));
         await using var verify = fixture.CreateDbContext();
         Assert.Equal(sameKey ? 1 : 2, await verify.IdempotencyRecords.CountAsync(x => x.ActorUserId == actor));
@@ -149,9 +157,17 @@ public sealed class Huy02NotificationAuthorityTests(IdentitySqlServerFixture fix
         Assert.Empty(await verify.OutboxMessages.Where(x => x.CorrelationId == notification).ToArrayAsync());
         var readAt = (await verify.Notifications.AsNoTracking().SingleAsync(x => x.Id == notification)).ReadAt;
         Assert.NotNull(readAt);
-        var replay = await ReadAsync("race");
-        Assert.Equal(results.Single(x => x.Status == NotificationMarkReadPersistenceStatus.Success).Notification!.RowVersion,
-            replay.Notification!.RowVersion);
+        var replay = await ReadAsync(winner.Key);
+        Assert.Equal(NotificationMarkReadPersistenceStatus.Replayed, replay.Status);
+        Assert.NotNull(replay.Notification);
+        Assert.Equal(winner.Result.Notification.RowVersion, replay.Notification.RowVersion);
+        if (!sameKey)
+        {
+            var loser = Assert.Single(outcomes.Where(x => x.Result.Status == NotificationMarkReadPersistenceStatus.StaleConcurrency));
+            var staleReplay = await ReadAsync(loser.Key);
+            Assert.Equal(NotificationMarkReadPersistenceStatus.StaleConcurrency, staleReplay.Status);
+            Assert.Null(staleReplay.Notification);
+        }
         Assert.Equal(readAt, (await verify.Notifications.AsNoTracking().SingleAsync(x => x.Id == notification)).ReadAt);
     }
 

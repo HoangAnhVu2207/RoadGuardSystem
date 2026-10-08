@@ -19,7 +19,7 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
         if (webLogin || webRenew)
         {
             operation.Security = [Requirement(webRenew ? ["WebRenewal", "CsrfToken", "AntiforgeryCookie"] : ["CsrfToken", "AntiforgeryCookie"])];
-            AddCsrf(operation, true);
+            AddCsrf(operation);
             operation.Description = webRenew ? "Renew the browser session using its renewal cookie and CSRF token. No body or Authorization header." : "Sign in to a browser session. Supply the CSRF token from the bootstrap endpoint.";
             return;
         }
@@ -38,7 +38,7 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
         if (authorizations.Any(x => x.AuthenticationSchemes == WebCookieConfiguration.Scheme))
         {
             operation.Security = [Requirement(webLogout ? ["WebSession", "CsrfToken", "AntiforgeryCookie"] : ["WebSession"])];
-            if (webLogout) AddCsrf(operation, true);
+            if (webLogout) AddCsrf(operation);
             return;
         }
         operation.Security = [Requirement("Bearer")];
@@ -49,7 +49,6 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
             var unsafeMethod = !HttpMethods.IsGet(context.ApiDescription.HttpMethod ?? "") &&
                 !HttpMethods.IsHead(context.ApiDescription.HttpMethod ?? "") && !HttpMethods.IsOptions(context.ApiDescription.HttpMethod ?? "");
             operation.Security.Add(Requirement(unsafeMethod ? ["WebSession", "CsrfToken", "AntiforgeryCookie"] : ["WebSession"]));
-            if (unsafeMethod) AddCsrf(operation, false);
         }
     }
 
@@ -61,17 +60,17 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
         return result;
     }
 
-    private static void AddCsrf(OpenApiOperation operation, bool required)
+    private static void AddCsrf(OpenApiOperation operation)
     {
         operation.Parameters ??= new List<OpenApiParameter>();
         operation.Parameters.Add(new OpenApiParameter
         {
             Name = "X-CSRF-TOKEN",
             In = ParameterLocation.Header,
-            Required = required,
+            Required = true,
             Description = "CSRF token from the bootstrap endpoint for this browser session. Required for cookie authentication on unsafe requests.",
             Schema = new OpenApiSchema { Type = "string" },
-            Extensions = { ["x-requirement"] = new OpenApiString(required ? "required" : "conditional: cookie authentication only") }
+            Extensions = { ["x-requirement"] = new OpenApiString("required") }
         });
     }
 }

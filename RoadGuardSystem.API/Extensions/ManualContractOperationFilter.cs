@@ -32,6 +32,7 @@ public sealed class ManualContractOperationFilter : IOperationFilter
         foreach (var header in contract.GetProperty("headers").EnumerateArray())
         {
             var name = header.GetProperty("name").GetString()!;
+            if (name == "X-CSRF-TOKEN" && operation.Security.Any(x => x.Keys.Any(k => k.Reference?.Id == "Bearer"))) continue;
             var parameter = operation.Parameters.FirstOrDefault(x => x.In == ParameterLocation.Header && string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
             if (parameter is null) { parameter = new OpenApiParameter { Name = name, In = ParameterLocation.Header }; operation.Parameters.Add(parameter); }
             parameter.Required = header.GetProperty("required").GetBoolean();
@@ -85,7 +86,7 @@ public sealed class ManualContractOperationFilter : IOperationFilter
             AddPlatformResponse(operation, context, "401", "Authentication challenge: missing, expired or invalid credential/session.");
             AddPlatformResponse(operation, context, "403", "Authorization policy or current authority denies this request.");
         }
-        if (operation.Parameters.Any(x => x.Name == "X-CSRF-TOKEN"))
+        if (operation.Security.Any(x => x.Keys.Any(k => k.Reference?.Id == "CsrfToken")))
         {
             AddPlatformResponse(operation, context, "403", "Cookie unsafe request with missing/invalid antiforgery pair: csrf_failed.");
             operation.Responses["403"].Description += " Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.";

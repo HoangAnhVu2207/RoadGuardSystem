@@ -11,6 +11,44 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task OnlyRequiredCookieFlowsExposeCsrfAsAManualInput()
+    {
+        using var document = await Document();
+        var visible = new List<string>();
+        foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject())
+            foreach (var method in path.Value.EnumerateObject())
+            {
+                var operation = method.Value;
+                if (!operation.TryGetProperty("x-roadguard-api-id", out _)) continue;
+                var parameters = operation.TryGetProperty("parameters", out var inputs) ? inputs.EnumerateArray().ToArray() : Array.Empty<JsonElement>();
+                var csrf = parameters.Where(p => p.GetProperty("in").GetString() == "header" && p.GetProperty("name").GetString() == "X-CSRF-TOKEN").ToArray();
+                var security = operation.TryGetProperty("security", out var schemes) ? schemes.EnumerateArray().ToArray() : Array.Empty<JsonElement>();
+                var bearer = security.Any(s => s.TryGetProperty("Bearer", out _));
+                if (bearer)
+                {
+                    csrf.Should().BeEmpty(path.Name);
+                    if (method.Name is not ("get" or "head" or "options"))
+                        foreach (var cookie in security.Where(s => s.TryGetProperty("WebSession", out _)))
+                        {
+                            cookie.TryGetProperty("CsrfToken", out _).Should().BeTrue(path.Name);
+                            cookie.TryGetProperty("AntiforgeryCookie", out _).Should().BeTrue(path.Name);
+                        }
+                }
+                if (csrf.Length == 0) continue;
+                csrf.Should().ContainSingle(path.Name);
+                csrf[0].GetProperty("required").GetBoolean().Should().BeTrue(path.Name);
+                security.Any(s => s.TryGetProperty("CsrfToken", out _) && s.TryGetProperty("AntiforgeryCookie", out _)).Should().BeTrue(path.Name);
+                visible.Add(method.Name.ToUpperInvariant() + " " + path.Name);
+            }
+        visible.Should().BeEquivalentTo(new[]
+        {
+            "POST /api/v1/auth/web/login",
+            "POST /api/v1/auth/web/renew",
+            "POST /api/v1/auth/web/logout"
+        });
+    }
+
+    [Fact]
     public async Task CorrelationIdIsDocumentedOnlyAsAResponseHeader()
     {
         using var document = await Document();
@@ -99,7 +137,12 @@ public sealed class ManualSwaggerContractTests
             op.GetProperty("x-roadguard-api-id").GetString().Should().Be(id);
             var parameters = op.TryGetProperty("parameters", out var inputs) ? inputs.EnumerateArray().ToArray() : Array.Empty<JsonElement>();
             parameters.Select(x => x.GetProperty("in").GetString() + ":" + x.GetProperty("name").GetString()).Distinct().Should().HaveCount(parameters.Length, id);
-            foreach (var header in row.GetProperty("headers").EnumerateArray())
+            var bearer = op.TryGetProperty("security", out var security) && security.EnumerateArray().Any(s => s.TryGetProperty("Bearer", out _));
+            var visibleHeaders = row.GetProperty("headers").EnumerateArray()
+                .Where(h => !(bearer && h.GetProperty("name").GetString() == "X-CSRF-TOKEN")).ToArray();
+            parameters.Where(p => p.GetProperty("in").GetString() == "header").Select(p => p.GetProperty("name").GetString())
+                .Should().BeEquivalentTo(visibleHeaders.Select(h => h.GetProperty("name").GetString()), id + " only source-defined manual headers");
+            foreach (var header in visibleHeaders)
             {
                 var name = header.GetProperty("name").GetString();
                 var p = parameters.Single(x => x.GetProperty("in").GetString() == "header" && x.GetProperty("name").GetString() == name);
@@ -139,6 +182,7 @@ public sealed class ManualSwaggerContractTests
         using var document = await Document();
         var op = document.RootElement.GetProperty("paths").GetProperty("/api/v1/cases/{caseId}/triage").GetProperty("post");
         var parameters = op.GetProperty("parameters").EnumerateArray().ToArray();
+        parameters.Select(p => p.GetProperty("name").GetString()).Should().BeEquivalentTo(new[] { "caseId", "If-Match", "Idempotency-Key" });
         foreach (var name in new[] { "caseId", "If-Match", "Idempotency-Key" })
             parameters.Should().ContainSingle(p => p.GetProperty("name").GetString() == name && p.GetProperty("required").GetBoolean());
         op.GetProperty("requestBody").GetProperty("required").GetBoolean().Should().BeTrue();
@@ -177,8 +221,8 @@ public sealed class ManualSwaggerContractTests
         var auth = triage.GetProperty("security").EnumerateArray().ToArray();
         auth.Any(x => x.TryGetProperty("Bearer", out _)).Should().BeTrue();
         auth.Any(x => x.TryGetProperty("WebSession", out _) && x.TryGetProperty("CsrfToken", out _)).Should().BeTrue();
-        var csrf = triage.GetProperty("parameters").EnumerateArray().Single(x => x.GetProperty("name").GetString() == "X-CSRF-TOKEN");
-        (csrf.TryGetProperty("required", out var requiredCsrf) && requiredCsrf.GetBoolean()).Should().BeFalse();
+        triage.GetProperty("parameters").EnumerateArray().Should().NotContain(x => x.GetProperty("name").GetString() == "X-CSRF-TOKEN");
+        triage.GetProperty("responses").GetProperty("403").GetProperty("description").GetString().Should().Contain("csrf_failed");
     }
 
     [Fact]

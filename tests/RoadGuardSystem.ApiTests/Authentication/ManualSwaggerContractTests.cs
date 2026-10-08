@@ -11,6 +11,30 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task CorrelationIdIsDocumentedOnlyAsAResponseHeader()
+    {
+        using var document = await Document();
+        var operations = document.RootElement.GetProperty("paths").EnumerateObject()
+            .SelectMany(path => path.Value.EnumerateObject())
+            .Where(method => method.Value.TryGetProperty("x-roadguard-api-id", out _))
+            .Select(method => method.Value).ToArray();
+        operations.Should().HaveCount(237);
+        foreach (var operation in operations)
+        {
+            var id = operation.GetProperty("x-roadguard-api-id").GetString();
+            if (operation.TryGetProperty("parameters", out var parameters))
+                parameters.EnumerateArray().Should().NotContain(parameter =>
+                    parameter.GetProperty("in").GetString() == "header" &&
+                    string.Equals(parameter.GetProperty("name").GetString(), "X-Correlation-ID", StringComparison.OrdinalIgnoreCase), id);
+            foreach (var response in operation.GetProperty("responses").EnumerateObject())
+            {
+                var header = response.Value.GetProperty("headers").GetProperty("X-Correlation-ID");
+                header.GetProperty("schema").GetProperty("format").GetString().Should().Be("uuid", id + " " + response.Name);
+            }
+        }
+    }
+
+    [Fact]
     public async Task VisibleDescriptionsStayConciseWithoutAuditNarrative()
     {
         using var document = await Document();
@@ -25,9 +49,10 @@ public sealed class ManualSwaggerContractTests
                 description.Length.Should().BeLessThanOrEqualTo(320, path.Name);
                 foreach (var forbidden in new[] { "source review", "stable inventory", "UNKNOWN", "unadvertisedErrorCandidates", "family candidates", "rebootstrap", "repository audit", "manual evidence ledger" })
                     description.Should().NotContain(forbidden, path.Name);
-                foreach (var parameter in method.Value.GetProperty("parameters").EnumerateArray())
-                    if (parameter.TryGetProperty("description", out var text))
-                        text.GetString()!.Length.Should().BeLessThanOrEqualTo(250, path.Name + " parameter description");
+                if (method.Value.TryGetProperty("parameters", out var parameters))
+                    foreach (var parameter in parameters.EnumerateArray())
+                        if (parameter.TryGetProperty("description", out var text))
+                            text.GetString()!.Length.Should().BeLessThanOrEqualTo(250, path.Name + " parameter description");
             }
     }
     [Fact]
@@ -72,7 +97,7 @@ public sealed class ManualSwaggerContractTests
             var id = row.GetProperty("id").GetString();
             var op = paths.GetProperty(row.GetProperty("route").GetString()!).GetProperty(row.GetProperty("method").GetString()!.ToLowerInvariant());
             op.GetProperty("x-roadguard-api-id").GetString().Should().Be(id);
-            var parameters = op.GetProperty("parameters").EnumerateArray().ToArray();
+            var parameters = op.TryGetProperty("parameters", out var inputs) ? inputs.EnumerateArray().ToArray() : Array.Empty<JsonElement>();
             parameters.Select(x => x.GetProperty("in").GetString() + ":" + x.GetProperty("name").GetString()).Distinct().Should().HaveCount(parameters.Length, id);
             foreach (var header in row.GetProperty("headers").EnumerateArray())
             {

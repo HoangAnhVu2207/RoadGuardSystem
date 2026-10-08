@@ -29,14 +29,6 @@ public sealed class ManualContractOperationFilter : IOperationFilter
         operation.Extensions["x-contract-evidence"] = new OpenApiString("CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate.");
         operation.Description = Text(contract, "uiDescription");
         operation.Parameters ??= new List<OpenApiParameter>();
-        operation.Parameters.Add(new OpenApiParameter
-        {
-            Name = "X-Correlation-ID",
-            In = ParameterLocation.Header,
-            Required = false,
-            Description = "Optional UUID for request tracing. The server generates one when omitted or invalid.",
-            Schema = new OpenApiSchema { Type = "string", Format = "uuid" }
-        });
         foreach (var header in contract.GetProperty("headers").EnumerateArray())
         {
             var name = header.GetProperty("name").GetString()!;

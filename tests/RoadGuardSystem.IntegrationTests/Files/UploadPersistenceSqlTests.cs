@@ -11,6 +11,7 @@ using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Implementations.Files;
 using RoadGuardSystem.Repositories.Storage;
+using RoadGuardSystem.Services.Files;
 using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Files;
@@ -125,7 +126,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
     }
 
     [Fact]
-    public async Task VerificationCursor_SkipsMoreThanOneBatchOfRetryableFailures_ThenRetriesAfterRecovery()
+    public async Task VerificationRound_SkipsMoreThanOneBatchOfRetryableFailures_ThenRetriesAfterRecovery()
     {
         await using var context = _fixture.CreateDbContext();
         var user = await AddUserAsync(context);
@@ -133,9 +134,10 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
         var checksum = new string('a', 64);
         var storage = new DeterministicUploadStorage(new(16, checksum, "application/pdf"));
         var repository = new UploadPersistenceService(context, new IdempotencyOperationService(context), storage);
+        var round = new UploadVerificationRound();
         var uploads = new List<UploadSessionPersistenceView>();
 
-        for (var index = 0; index < 22; index++)
+        for (var index = 0; index < 23; index++)
         {
             var created = await repository.CreateAsync(new UploadCreatePersistenceRequest(
                 user.Id, project.Id, null, "DOCUMENT", $"fair-{index}.pdf", "application/pdf", 16,
@@ -153,19 +155,73 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
                 checksum, $"fair-complete-{Guid.NewGuid():N}", new string('d', 64), Guid.NewGuid()));
             completed.Status.Should().Be(UploadPersistenceStatus.Success);
             uploads.Add(upload);
-            if (index < 21) storage.FailingObjectKeys.Add($"uploads/{upload.FileId:N}");
+            if (index < 22) storage.FailingObjectKeys.Add($"uploads/{upload.FileId:N}");
         }
 
-        for (var offset = 0; offset < 21; offset++)
-            (await repository.VerifyNextAsync(offset)).Should().Be(UploadPersistenceStatus.StorageUnavailable);
+        for (var index = 0; index < 22; index++)
+            (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.StorageUnavailable);
 
-        (await repository.VerifyNextAsync(21)).Should().Be(UploadPersistenceStatus.Success);
-        (await repository.GetFileMetadataAsync(uploads[21].FileId))!.Status.Should().Be("VERIFIED");
+        (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.Success);
+        (await repository.GetFileMetadataAsync(uploads[22].FileId))!.Status.Should().Be("VERIFIED");
         (await repository.GetSessionAsync(uploads[0].Id))!.Status.Should().Be("VERIFYING");
 
         storage.FailingObjectKeys.Clear();
-        (await repository.VerifyNextAsync(0)).Should().Be(UploadPersistenceStatus.Success);
+        (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.Success);
         (await repository.GetFileMetadataAsync(uploads[0].FileId))!.Status.Should().Be("VERIFIED");
+    }
+
+    [Fact]
+    public async Task VerificationRound_DrainingSuccessesAndNewArrivalsDoesNotSkipOlderSessions()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var user = await AddUserAsync(context);
+        var project = await AddProjectAsync(context, user);
+        var checksum = new string('a', 64);
+        var storage = new DeterministicUploadStorage(new(16, checksum, "application/pdf"));
+        var repository = new UploadPersistenceService(context, new IdempotencyOperationService(context), storage);
+        var round = new UploadVerificationRound();
+        var uploads = new List<UploadSessionPersistenceView>();
+
+        async Task AddUpload(int index)
+        {
+            var created = await repository.CreateAsync(new UploadCreatePersistenceRequest(
+                user.Id, project.Id, null, "DOCUMENT", $"drain-{index}.pdf", "application/pdf", 16,
+                checksum, 8 * 1024 * 1024, DateTimeOffset.UtcNow.AddHours(1).AddMinutes(index),
+                $"drain-create-{Guid.NewGuid():N}", new string('b', 64), Guid.NewGuid()));
+            created.Status.Should().Be(UploadPersistenceStatus.Success);
+            var upload = created.Session!;
+            (await repository.GetPartUrlsAsync(user.Id, project.Id, upload.Id, [1],
+                $"drain-parts-{Guid.NewGuid():N}", new string('c', 64), DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddMinutes(15))).Status.Should().Be(UploadPersistenceStatus.Success);
+            var version = (await repository.GetSessionAsync(upload.Id))!.Version;
+            (await repository.CompleteAsync(new UploadCompletePersistenceRequest(
+                user.Id, project.Id, upload.Id, version, [new CompletedStoragePart(1, "etag-1")],
+                checksum, $"drain-complete-{Guid.NewGuid():N}", new string('d', 64), Guid.NewGuid()))).Status
+                .Should().Be(UploadPersistenceStatus.Success);
+            uploads.Add(upload);
+        }
+
+        for (var index = 0; index < 5; index++) await AddUpload(index);
+        var initialOrder = await repository.GetVerifyingIdsAsync();
+        (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.Success);
+        (await repository.GetSessionAsync(initialOrder[0]))!.Status.Should().Be("VERIFIED");
+        await AddUpload(5);
+        await AddUpload(6);
+        (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.Success);
+        (await repository.GetSessionAsync(initialOrder[1]))!.Status.Should().Be("VERIFIED");
+        for (var index = 2; index < 5; index++)
+        {
+            (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.Success);
+            (await repository.GetSessionAsync(initialOrder[index]))!.Status.Should().Be("VERIFIED");
+        }
+        var arrivals = new[] { uploads[5].Id, uploads[6].Id };
+        foreach (var arrival in arrivals)
+            (await repository.GetSessionAsync(arrival))!.Status.Should().Be("VERIFYING");
+        var nextRoundIds = await repository.GetVerifyingIdsAsync();
+        (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.Success);
+        (await repository.GetSessionAsync(nextRoundIds[0]))!.Status.Should().Be("VERIFIED");
+        (await round.ProcessOneAsync(repository)).Should().Be(UploadPersistenceStatus.Success);
+        (await repository.GetSessionAsync(nextRoundIds[1]))!.Status.Should().Be("VERIFIED");
     }
 
     [Fact]

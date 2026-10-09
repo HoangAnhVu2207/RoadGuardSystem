@@ -443,18 +443,31 @@ public sealed partial class UploadPersistenceService : IUploadRepository
     public Task<Stream> OpenFileAsync(string objectKey, CancellationToken cancellationToken = default)
         => _storage.OpenReadAsync(objectKey, cancellationToken);
 
-    public Task<UploadPersistenceStatus> VerifyNextAsync(CancellationToken cancellationToken = default)
-        => VerifyNextAsync(0, cancellationToken);
-
-    public async Task<UploadPersistenceStatus> VerifyNextAsync(int offset, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Guid>> GetVerifyingIdsAsync(CancellationToken cancellationToken = default)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        var session = await _context.UploadSessions
+        return await _context.UploadSessions
             .Where(candidate => candidate.Status == UploadSessionStatus.Verifying)
             .OrderBy(candidate => candidate.ExpiresAt)
             .ThenBy(candidate => candidate.Id)
-            .Skip(offset)
+            .Select(candidate => candidate.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<UploadPersistenceStatus> VerifyNextAsync(CancellationToken cancellationToken = default)
+    {
+        var id = await _context.UploadSessions
+            .Where(candidate => candidate.Status == UploadSessionStatus.Verifying)
+            .OrderBy(candidate => candidate.ExpiresAt)
+            .ThenBy(candidate => candidate.Id)
+            .Select(candidate => candidate.Id)
             .FirstOrDefaultAsync(cancellationToken);
+        return id == Guid.Empty ? UploadPersistenceStatus.NotFound : await VerifyAsync(id, cancellationToken);
+    }
+
+    public async Task<UploadPersistenceStatus> VerifyAsync(Guid uploadId, CancellationToken cancellationToken = default)
+    {
+        var session = await _context.UploadSessions
+            .FirstOrDefaultAsync(candidate => candidate.Id == uploadId && candidate.Status == UploadSessionStatus.Verifying, cancellationToken);
         if (session is null)
         {
             return UploadPersistenceStatus.NotFound;

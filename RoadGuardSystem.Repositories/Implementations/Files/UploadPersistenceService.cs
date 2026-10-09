@@ -443,11 +443,18 @@ public sealed partial class UploadPersistenceService : IUploadRepository
     public Task<Stream> OpenFileAsync(string objectKey, CancellationToken cancellationToken = default)
         => _storage.OpenReadAsync(objectKey, cancellationToken);
 
-    public async Task<UploadPersistenceStatus> VerifyNextAsync(CancellationToken cancellationToken = default)
+    public Task<UploadPersistenceStatus> VerifyNextAsync(CancellationToken cancellationToken = default)
+        => VerifyNextAsync(0, cancellationToken);
+
+    public async Task<UploadPersistenceStatus> VerifyNextAsync(int offset, CancellationToken cancellationToken = default)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
         var session = await _context.UploadSessions
+            .Where(candidate => candidate.Status == UploadSessionStatus.Verifying)
             .OrderBy(candidate => candidate.ExpiresAt)
-            .FirstOrDefaultAsync(candidate => candidate.Status == UploadSessionStatus.Verifying, cancellationToken);
+            .ThenBy(candidate => candidate.Id)
+            .Skip(offset)
+            .FirstOrDefaultAsync(cancellationToken);
         if (session is null)
         {
             return UploadPersistenceStatus.NotFound;

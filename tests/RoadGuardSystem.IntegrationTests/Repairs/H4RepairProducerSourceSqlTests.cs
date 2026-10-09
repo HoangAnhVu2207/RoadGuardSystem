@@ -38,6 +38,93 @@ public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql)
         Assert.False(await db.Set<RepairMeasurementAssessment>().AnyAsync(row => row.ItemId == produced.Item.Id));
     }
 
+    [Theory]
+    [InlineData(RepairMode.Normal, "NORMAL")]
+    [InlineData(RepairMode.FastTrack, "CONDITIONAL_FT")]
+    public async Task VerifiedReporterDefectAllowsOnlyBoundPostRepairTaskModes(RepairMode mode, string expected)
+    {
+        await using var db = sql.CreateDbContext(); var scope = await Seed(db);
+        var defect = await db.Defects.SingleAsync(row => row.Id == scope.Defect);
+        db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Verified;
+        await db.SaveChangesAsync();
+
+        var produced = await NativeTask(db, scope, mode);
+
+        db.ChangeTracker.Clear();
+        var task = await db.FieldInspectionTasks.SingleAsync(row => row.Id == produced.Task.Id);
+        Assert.Equal(expected, task.TaskMode);
+        Assert.Equal(FieldInspectionPurpose.PostRepair, task.Purpose);
+        Assert.Equal(produced.Item.Id, task.RepairItemId);
+    }
+
+    [Fact]
+    public async Task VerifiedReporterDefectStillRejectsUnboundMeasureOnlyTask()
+    {
+        await using var db = sql.CreateDbContext(); var scope = await Seed(db);
+        var defect = await db.Defects.SingleAsync(row => row.Id == scope.Defect);
+        db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Verified;
+        await db.SaveChangesAsync();
+        var task = FieldInspectionTask.CreateOperational(Guid.NewGuid(), "verified-unbound-" + Guid.NewGuid().ToString("N"),
+            scope.Project, scope.Defect, null, "REPORTER", scope.Route, scope.Set, null, null,
+            FieldInspectionPurpose.PostRepair, 1, "{}", null, DateTimeOffset.UtcNow.AddDays(1), scope.Pm);
+        db.Add(task);
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+
+        Assert.Equal(51133, Assert.IsType<Microsoft.Data.SqlClient.SqlException>(exception.InnerException).Number);
+    }
+
+    [Fact]
+    public async Task VerifiedReporterDefectStillRejectsBoundRepairTaskWithNonPostRepairPurpose()
+    {
+        await using var db = sql.CreateDbContext(); var scope = await Seed(db);
+        var defect = await db.Defects.SingleAsync(row => row.Id == scope.Defect);
+        db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Verified;
+        await db.SaveChangesAsync();
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() =>
+            NativeTask(db, scope, RepairMode.Normal, FieldInspectionPurpose.Verification));
+
+        Assert.Equal(51133, Assert.IsType<Microsoft.Data.SqlClient.SqlException>(exception.InnerException).Number);
+    }
+
+    [Fact]
+    public async Task VerifiedReporterDefectRejectsTaskPinnedToAnotherDefectsRepairItem()
+    {
+        await using var db = sql.CreateDbContext(); var scope = await Seed(db);
+        var defect = await db.Defects.SingleAsync(row => row.Id == scope.Defect);
+        db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Verified;
+        await db.SaveChangesAsync();
+        var valid = await NativeTask(db, scope, RepairMode.Normal);
+
+        var otherDefect = Defect.Create(Guid.NewGuid(), scope.Project, scope.Route, null,
+            defect.DefectTypeCode, null, DefectSeverity.Low, DefectStatus.Open,
+            new GeometryFactory(new PrecisionModel(), 32648).CreatePoint(new Coordinate(1, 0)), DateTimeOffset.UtcNow);
+        db.Add(otherDefect);
+        await db.SaveChangesAsync();
+        var now = DateTimeOffset.UtcNow;
+        var otherObligation = RepairObligation.Create(Guid.NewGuid(), scope.Project, otherDefect.Id,
+            RepairObligationKind.FormalRepair, true,
+            RepairActualScope.Create(Guid.NewGuid(), scope.Road, "source-route:" + scope.Route, "actual road", 1, 2, 0, 1));
+        var otherPackage = RepairPackage.Create(Guid.NewGuid(), scope.Project, otherDefect.Id, [otherObligation]);
+        var otherItem = RepairItem.ProposeWithPlan(Guid.NewGuid(), otherObligation, RepairMode.Normal,
+            scope.Pm, UserRoleCode.ProjectManager, now, new("actual proposed plan", "checklist-v1"));
+        otherItem.Approve(scope.Supervisor, UserRoleCode.Supervisor, now);
+        otherItem.Assign(scope.Crew, scope.Pm, UserRoleCode.ProjectManager, now);
+        otherPackage.AddItem(otherItem);
+        db.Add(otherPackage);
+        await db.SaveChangesAsync();
+
+        var forged = FieldInspectionTask.CreateRepair(Guid.NewGuid(), "wrong-defect-" + Guid.NewGuid().ToString("N"),
+            valid.Item, null, "REPORTER", scope.Route, scope.Set, null, null,
+            FieldInspectionPurpose.PostRepair, 1, "{}", null, now.AddDays(1), scope.Pm);
+        db.Add(forged);
+        db.Entry(forged).Property(row => row.RepairItemId).CurrentValue = otherItem.Id;
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+        Assert.Equal(51321, Assert.IsType<Microsoft.Data.SqlClient.SqlException>(exception.InnerException).Number);
+    }
+
     [Fact]
     public async Task ActualNormalBindingAllowsExplicitPreExecutionSessionWithoutFormalIntakeOrCompletedRepair()
     {
@@ -75,7 +162,8 @@ public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql)
         Assert.False(await db.Set<FieldInspectionSubmission>().AnyAsync(row => row.TaskId == produced.Task.Id));
     }
 
-    private static async Task<(RepairItem Item, FieldInspectionTask Task)> NativeTask(RoadGuardDbContext db, Source scope, RepairMode mode)
+    private static async Task<(RepairItem Item, FieldInspectionTask Task)> NativeTask(RoadGuardDbContext db, Source scope,
+        RepairMode mode, FieldInspectionPurpose purpose = FieldInspectionPurpose.PostRepair)
     {
         var now = DateTimeOffset.UtcNow;
         var obligation = RepairObligation.Create(Guid.NewGuid(), scope.Project, scope.Defect, RepairObligationKind.FormalRepair,
@@ -87,7 +175,7 @@ public sealed class H4RepairProducerSourceSqlTests(IdentitySqlServerFixture sql)
         item.Assign(scope.Crew, scope.Pm, UserRoleCode.ProjectManager, now); package.AddItem(item);
         db.Add(package); await db.SaveChangesAsync();
         var task = FieldInspectionTask.CreateRepair(Guid.NewGuid(), "repair-" + Guid.NewGuid().ToString("N"), item,
-            null, "REPORTER", scope.Route, scope.Set, null, null, FieldInspectionPurpose.PostRepair, 1, "{}", null,
+            null, "REPORTER", scope.Route, scope.Set, null, null, purpose, 1, "{}", null,
             now.AddDays(1), scope.Pm);
         db.Add(task); await db.SaveChangesAsync(); return (item, task);
     }

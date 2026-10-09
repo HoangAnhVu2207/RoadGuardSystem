@@ -21,12 +21,15 @@ public sealed class UploadVerificationWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(PollInterval);
+        var offset = 0;
         do
         {
             try
             {
                 using var scope = _scopeFactory.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<IUploadService>().ProcessOneVerificationAsync(stoppingToken);
+                var found = await scope.ServiceProvider.GetRequiredService<IUploadService>()
+                    .ProcessOneVerificationAtOffsetAsync(offset, stoppingToken);
+                offset = found && offset < int.MaxValue ? offset + 1 : 0;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

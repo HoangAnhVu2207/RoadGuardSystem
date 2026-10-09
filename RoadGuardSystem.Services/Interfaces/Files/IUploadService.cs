@@ -14,4 +14,5 @@ public interface IUploadService
     Task<UploadServiceResult> GetFileMetadataAsync(Guid actorUserId, UserRoleCode role, Guid fileId, CancellationToken cancellationToken = default);
     Task<UploadServiceResult> DownloadAsync(Guid actorUserId, UserRoleCode role, Guid fileId, CancellationToken cancellationToken = default);
     Task ProcessOneVerificationAsync(CancellationToken cancellationToken = default);
+    Task<bool> ProcessOneVerificationAtOffsetAsync(int offset, CancellationToken cancellationToken = default);
 }

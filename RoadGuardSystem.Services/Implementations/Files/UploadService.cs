@@ -223,6 +223,9 @@ public sealed class UploadService : IUploadService
         await _repository.VerifyNextAsync(cancellationToken);
     }
 
+    public async Task<bool> ProcessOneVerificationAtOffsetAsync(int offset, CancellationToken cancellationToken = default)
+        => await _repository.VerifyNextAsync(offset, cancellationToken) != UploadPersistenceStatus.NotFound;
+
     private async Task<bool> CanReadFileAsync(Guid actor, UserRoleCode role, FileMetadataPersistenceView file, CancellationToken token)
         => await _repository.IsCurrentOfflineFileActorAsync(actor, role, file.Id, token) || await CanAccessAssetAsync(actor, role, file.ProjectId, file.Purpose, file.TargetId, false, token) ||
             (file.ProjectId is Guid project && IsFieldPurpose(file.Purpose) && await _repository.IsCurrentLegacyFieldFileReaderAsync(actor, role, project, file.Id, file.Purpose!, token));

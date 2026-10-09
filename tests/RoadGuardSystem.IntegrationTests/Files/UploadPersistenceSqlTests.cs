@@ -125,6 +125,50 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
     }
 
     [Fact]
+    public async Task VerificationCursor_SkipsMoreThanOneBatchOfRetryableFailures_ThenRetriesAfterRecovery()
+    {
+        await using var context = _fixture.CreateDbContext();
+        var user = await AddUserAsync(context);
+        var project = await AddProjectAsync(context, user);
+        var checksum = new string('a', 64);
+        var storage = new DeterministicUploadStorage(new(16, checksum, "application/pdf"));
+        var repository = new UploadPersistenceService(context, new IdempotencyOperationService(context), storage);
+        var uploads = new List<UploadSessionPersistenceView>();
+
+        for (var index = 0; index < 22; index++)
+        {
+            var created = await repository.CreateAsync(new UploadCreatePersistenceRequest(
+                user.Id, project.Id, null, "DOCUMENT", $"fair-{index}.pdf", "application/pdf", 16,
+                checksum, 8 * 1024 * 1024, DateTimeOffset.UtcNow.AddHours(1).AddMinutes(index),
+                $"fair-create-{Guid.NewGuid():N}", new string('b', 64), Guid.NewGuid()));
+            created.Status.Should().Be(UploadPersistenceStatus.Success);
+            var upload = created.Session!;
+            var urls = await repository.GetPartUrlsAsync(user.Id, project.Id, upload.Id, [1],
+                $"fair-parts-{Guid.NewGuid():N}", new string('c', 64), DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddMinutes(15));
+            urls.Status.Should().Be(UploadPersistenceStatus.Success);
+            var version = (await repository.GetSessionAsync(upload.Id))!.Version;
+            var completed = await repository.CompleteAsync(new UploadCompletePersistenceRequest(
+                user.Id, project.Id, upload.Id, version, [new CompletedStoragePart(1, "etag-1")],
+                checksum, $"fair-complete-{Guid.NewGuid():N}", new string('d', 64), Guid.NewGuid()));
+            completed.Status.Should().Be(UploadPersistenceStatus.Success);
+            uploads.Add(upload);
+            if (index < 21) storage.FailingObjectKeys.Add($"uploads/{upload.FileId:N}");
+        }
+
+        for (var offset = 0; offset < 21; offset++)
+            (await repository.VerifyNextAsync(offset)).Should().Be(UploadPersistenceStatus.StorageUnavailable);
+
+        (await repository.VerifyNextAsync(21)).Should().Be(UploadPersistenceStatus.Success);
+        (await repository.GetFileMetadataAsync(uploads[21].FileId))!.Status.Should().Be("VERIFIED");
+        (await repository.GetSessionAsync(uploads[0].Id))!.Status.Should().Be("VERIFYING");
+
+        storage.FailingObjectKeys.Clear();
+        (await repository.VerifyNextAsync(0)).Should().Be(UploadPersistenceStatus.Success);
+        (await repository.GetFileMetadataAsync(uploads[0].FileId))!.Status.Should().Be("VERIFIED");
+    }
+
+    [Fact]
     public async Task Anh01_LargeMetadata_ResumeAndExpiredReceipt_DoNotCreateAnotherMultipart()
     {
         await using var context = _fixture.CreateDbContext();
@@ -243,6 +287,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
         public int CompleteCalls { get; private set; }
         public int InitiateCalls { get; private set; }
         public bool FailReadOnce { get; set; }
+        public HashSet<string> FailingObjectKeys { get; } = [];
 
         public Task<string> InitiateAsync(string objectKey, string mediaType, CancellationToken cancellationToken = default)
         {
@@ -266,6 +311,8 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
             CancellationToken cancellationToken = default)
         {
             CompleteCalls++;
+            if (FailingObjectKeys.Contains(objectKey))
+                throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Transient verification read outage");
             if (FailReadOnce)
             {
                 FailReadOnce = false;

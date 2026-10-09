@@ -16,4 +16,5 @@ public interface IUploadRepository
     Task<FileMetadataPersistenceView?> GetFileMetadataAsync(Guid fileId, CancellationToken cancellationToken = default);
     Task<Stream> OpenFileAsync(string objectKey, CancellationToken cancellationToken = default);
     Task<UploadPersistenceStatus> VerifyNextAsync(CancellationToken cancellationToken = default);
+    Task<UploadPersistenceStatus> VerifyNextAsync(int offset, CancellationToken cancellationToken = default);
 }

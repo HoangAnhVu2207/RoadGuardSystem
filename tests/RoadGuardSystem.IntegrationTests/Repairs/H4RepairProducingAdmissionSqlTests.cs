@@ -100,6 +100,73 @@ public sealed class H4RepairProducingAdmissionSqlTests(IdentitySqlServerFixture 
         Assert.Equal(source.Crew, (await db.FieldInspectionAssignments.SingleAsync(row => row.Id == binding.AssignmentId)).AssignedToUserId);
     }
 
+    [Fact]
+    public async Task ActualCurrentPmAssignsApprovedNormalItemWhenGenuineReporterDefectIsVerified()
+    {
+        await using var db = sql.CreateDbContext(); var source = await H4GenuineRepairSource.Seed(db, sql);
+        var defect = await db.Defects.SingleAsync(row => row.Id == source.Defect);
+        db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Verified;
+        await db.SaveChangesAsync();
+        var (package, item) = await StagedProposal(db, source, true);
+        var defectVersion = Convert.ToBase64String(await db.Defects.Where(row => row.Id == source.Defect)
+            .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync());
+        var task = new RepairFieldTaskData(source.Defect, defectVersion, null, "REPORTER", source.Route, source.Set,
+            null, null, "POST_REPAIR", 1, "{}", null, source.Crew, DateTimeOffset.UtcNow.AddDays(1));
+
+        var result = await Repo(db).AssignItemAsync(new(source.Pm, UserRoleCode.ProjectManager, source.Project, package.Id,
+            item.Id, new(task, null, "actual verified-defect assignment"), Guid.NewGuid().ToString(), Version(db, item)), default);
+
+        Assert.Equal(201, result.Status);
+        var view = Assert.IsType<RepairTaskBindingFact>(result.Value);
+        db.ChangeTracker.Clear();
+        var native = await db.FieldInspectionTasks.SingleAsync(row => row.Id == view.TaskId);
+        Assert.Equal("NORMAL", native.TaskMode);
+        Assert.Equal(FieldInspectionPurpose.PostRepair, native.Purpose);
+        Assert.Equal(item.Id, native.RepairItemId);
+    }
+
+    [Fact]
+    public async Task RejectedReporterDefectCannotCreateRepairBinding()
+    {
+        await using var db = sql.CreateDbContext(); var source = await H4GenuineRepairSource.Seed(db, sql);
+        var (package, item) = await StagedProposal(db, source, true);
+        var defect = await db.Defects.SingleAsync(row => row.Id == source.Defect);
+        db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Rejected;
+        await db.SaveChangesAsync();
+        var defectVersion = Convert.ToBase64String(await db.Defects.Where(row => row.Id == source.Defect)
+            .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync());
+        var task = new RepairFieldTaskData(source.Defect, defectVersion, null, "REPORTER", source.Route, source.Set,
+            null, null, "POST_REPAIR", 1, "{}", null, source.Crew, DateTimeOffset.UtcNow.AddDays(1));
+
+        var result = await Repo(db).AssignItemAsync(new(source.Pm, UserRoleCode.ProjectManager, source.Project, package.Id,
+            item.Id, new(task, null, "rejected defect must fail"), Guid.NewGuid().ToString(), Version(db, item)), default);
+
+        Assert.Equal(409, result.Status);
+        Assert.Equal("repair_anchor_not_ready", result.Code);
+        Assert.False(await db.Set<RepairFieldTaskBinding>().AnyAsync(row => row.ItemId == item.Id));
+    }
+
+    [Fact]
+    public async Task StaleRepairItemVersionCannotCreateVerifiedDefectBinding()
+    {
+        await using var db = sql.CreateDbContext(); var source = await H4GenuineRepairSource.Seed(db, sql);
+        var defect = await db.Defects.SingleAsync(row => row.Id == source.Defect);
+        db.Entry(defect).Property(row => row.Status).CurrentValue = DefectStatus.Verified;
+        await db.SaveChangesAsync();
+        var (package, item) = await StagedProposal(db, source, true);
+        var defectVersion = Convert.ToBase64String(await db.Defects.Where(row => row.Id == source.Defect)
+            .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync());
+        var task = new RepairFieldTaskData(source.Defect, defectVersion, null, "REPORTER", source.Route, source.Set,
+            null, null, "POST_REPAIR", 1, "{}", null, source.Crew, DateTimeOffset.UtcNow.AddDays(1));
+
+        var result = await Repo(db).AssignItemAsync(new(source.Pm, UserRoleCode.ProjectManager, source.Project, package.Id,
+            item.Id, new(task, null, "stale assignment must fail"), Guid.NewGuid().ToString(), Convert.ToBase64String(new byte[8])), default);
+
+        Assert.Equal(409, result.Status);
+        Assert.Equal("concurrency_conflict", result.Code);
+        Assert.False(await db.Set<RepairFieldTaskBinding>().AnyAsync(row => row.ItemId == item.Id));
+    }
+
     private static RepairWorkflowRepository Repo(RoadGuardDbContext db) => new(db, new IdempotencyOperationService(db), TimeProvider.System);
     private static string Version<T>(RoadGuardDbContext db, T entity) where T : class
         => Convert.ToBase64String(db.Entry(entity).Property<byte[]>("RowVersion").CurrentValue!);

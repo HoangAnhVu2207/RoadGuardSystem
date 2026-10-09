@@ -22,11 +22,12 @@ using System.Text.Json;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace RoadGuardSystem.ApiTests.Inspections;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFixture sql)
+public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFixture sql, ITestOutputHelper output)
 {
     private sealed class WeeklyTestClock(DateTimeOffset now) : TimeProvider
     { public override DateTimeOffset GetUtcNow() => now; }
@@ -63,6 +64,78 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         var body = new { defectId = scope.Defect, defectVersion = scope.Version, surveyId = (Guid?)null, sourceKind = "REPORTER", routeVersionId = scope.Route, segmentSetId = scope.Set, purpose = "PRE_MEASUREMENT", requiredMeasurementType = 4, measurementScope = "{}", instructions = "measure only", assignedToUserId = crew.Id, dueAt = DateTimeOffset.UtcNow.AddDays(1) };
         var key = Guid.NewGuid().ToString(); var response = await Post(client, root, body, key); Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var task = await response.Content.ReadFromJsonAsync<JsonElement>(); var id = task.GetProperty("id").GetGuid(); var path = root + "/" + id;
+        Guid roadSection;
+        await using (var geometryDb = sql.CreateDbContext())
+            roadSection = (await geometryDb.RoadSectionVersions.AsNoTracking().SingleAsync(row => row.Id == scope.Route)).RoadSectionId;
+        var replacementLength = Math.Sqrt(401d);
+        var draftResponse = await Post(client, $"/api/v1/projects/{scope.Project}/road-sections/{roadSection}/geometry-drafts",
+            new
+            {
+                sourceKind = "COORDINATES",
+                sourceCrs = 32648,
+                stationOriginMeters = 0d,
+                changeReason = "TEST_ONLY changed alignment",
+                coordinates = new[] { new { x = 0d, y = 0d }, new { x = 20d, y = 1d } },
+                widthProfile = new[] { new { fromOffsetMeters = 0d, toOffsetMeters = replacementLength, widthMeters = 7d } },
+                surveyWidthMeters = 9d,
+                roadCode = "TEST_ONLY_FIELD"
+            });
+        Assert.True(draftResponse.StatusCode == HttpStatusCode.Created, await draftResponse.Content.ReadAsStringAsync());
+        var draftId = (await draftResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var impactSupervisor = await sql.CreateUserAsync($"impact-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        await using (var memberDb = sql.CreateDbContext())
+        {
+            memberDb.Add(new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = scope.Project,
+                UserId = impactSupervisor.Id,
+                RoleCode = UserRoleCode.Supervisor,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new(2000, 1, 1)
+            });
+            await memberDb.SaveChangesAsync();
+        }
+        await Login(client, impactSupervisor.UserName!);
+        var confirmResponse = await Post(client, $"/api/v1/projects/{scope.Project}/road-geometry-drafts/{draftId}/confirm",
+            new
+            {
+                expectedCurrentVersionId = scope.Route,
+                effectiveFrom = DateTimeOffset.UtcNow,
+                reason = "TEST_ONLY Supervisor confirms changed route"
+            }, version: draftResponse.Headers.ETag!.Tag.Trim('"'));
+        Assert.Equal(HttpStatusCode.Created, confirmResponse.StatusCode);
+        var replacementRoute = (await confirmResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("routeVersionId").GetGuid();
+        await Login(client, pm.UserName!);
+        var impactResponse = await client.GetAsync($"/api/v1/projects/{scope.Project}/geometry-location-impacts?previousRouteVersionId={scope.Route}&newRouteVersionId={replacementRoute}");
+        Assert.Equal(HttpStatusCode.OK, impactResponse.StatusCode);
+        var impactId = (await impactResponse.Content.ReadFromJsonAsync<JsonElement>()).EnumerateArray().Single().GetProperty("id").GetGuid();
+        var impactDecision = await Post(client, path + "/location-impact-decisions",
+            new { impactId, action = "CONTINUE", reason = "TEST_ONLY retain and verify original route pin" },
+            version: task.GetProperty("version").GetString());
+        Assert.Equal(HttpStatusCode.Created, impactDecision.StatusCode);
+        var impactDecisionId = (await impactDecision.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        output.WriteLine(JsonSerializer.Serialize(new
+        {
+            proof = "SWG-055",
+            environment = "TEST_HOST_E2E",
+            status = 201,
+            actorId = pm.Id,
+            role = "ProjectManager",
+            projectId = scope.Project,
+            taskId = id,
+            previousRouteVersionId = scope.Route,
+            newRouteVersionId = replacementRoute,
+            impactId,
+            impactDecisionId,
+            request = new { impactId, action = "CONTINUE", reason = "TEST_ONLY retain and verify original route pin" }
+        }));
+        await using (var impactDb = sql.CreateDbContext())
+        {
+            var persisted = await impactDb.Set<GeometryLocationImpactDecision>().AsNoTracking().SingleAsync(row => row.Id == impactDecisionId);
+            Assert.Equal(impactId, persisted.ImpactId); Assert.Equal(id, persisted.TaskId);
+            Assert.Equal(scope.Route, (await impactDb.FieldInspectionTasks.AsNoTracking().SingleAsync(row => row.Id == id)).RoadSectionVersionId);
+        }
         Assert.Equal("MEASURE_ONLY", task.GetProperty("mode").GetString()); Assert.Equal(JsonValueKind.Null, task.GetProperty("surveyId").ValueKind); Assert.EndsWith(id.ToString(), response.Headers.Location!.ToString()); Assert.Equal("\"" + task.GetProperty("version").GetString() + "\"", response.Headers.ETag!.Tag);
         var replay = await Post(client, root, body, key); Assert.Equal(HttpStatusCode.OK, replay.StatusCode); Assert.Equal(task.GetRawText(), (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
         var malformed = new HttpRequestMessage(HttpMethod.Post, root) { Content = JsonContent.Create(body) }; malformed.Headers.Add("Idempotency-Key", new[] { "one", "two" }); Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(malformed)).StatusCode);
@@ -77,10 +150,12 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         var supplement = await Post(client, path + "/reviews", new { submissionId = first.GetProperty("id").GetGuid(), decision = "SUPPLEMENT", reason = "need actual capture" }, version: await Version(client, path)); Assert.Equal(HttpStatusCode.Created, supplement.StatusCode); Assert.Equal("BUSINESS_ACK_REQUIRED", (await supplement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("receiptActivation").GetString());
         Guid receivingId;
         Guid weeklyDigestId;
+        Guid weeklyClockId;
         await using (var weeklyDb = sql.CreateDbContext())
         {
             var actualReview = await weeklyDb.Set<DeadlineClock>().AsNoTracking().SingleAsync(c =>
                 c.TargetId == id && c.Kind == DeadlineClockKind.ProjectManagerReview);
+            weeklyClockId = actualReview.Id;
             var recovery = NotificationCalendarPolicy.NextWeeklyReview(actualReview.OriginAt).AddDays(14).AddMinutes(2);
             await new RoadGuardSystem.Repositories.Messaging.H6NotificationDispatchRepository(weeklyDb, new WeeklyTestClock(recovery))
                 .ObserveCalendarAsync(Guid.NewGuid(), null, default);
@@ -92,6 +167,20 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         var weeklyJson = await weeklyResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Single(weeklyJson.GetProperty("pendingAtRecovery").EnumerateArray());
         Assert.Equal(3, weeklyJson.GetProperty("recoveryPeriods").GetArrayLength());
+        output.WriteLine(JsonSerializer.Serialize(new
+        {
+            proof = "SWG-082",
+            environment = "TEST_HOST_E2E",
+            status = 200,
+            actorId = pm.Id,
+            role = "ProjectManager",
+            projectId = scope.Project,
+            digestId = weeklyDigestId,
+            producer = "H6NotificationDispatchRepository.ObserveCalendarAsync",
+            pendingDutyClockId = weeklyClockId,
+            recoveryPeriods = 3,
+            pendingAtRecovery = 1
+        }));
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/weekly-digests/{weeklyDigestId}")).StatusCode);
         await Login(client, crew.UserName!); Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(weeklyPath)).StatusCode);
         await Login(client, pm.UserName!);
@@ -102,6 +191,7 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         }
         var receivingPath = $"/api/v1/projects/{scope.Project}/receiving-requests/{receivingId}";
         var supervisor = await sql.CreateUserAsync($"activation-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var receivingSupervisor = await sql.CreateUserAsync($"activation-receiving-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         Guid reviewClockId; string reviewClockVersion; DateTimeOffset reviewOriginalDue;
         await using (var scopeDb = sql.CreateDbContext())
         {
@@ -114,14 +204,66 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
                 Status = ProjectMemberStatus.Active,
                 ValidFrom = new(2000, 1, 1)
             });
+            scopeDb.Add(new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = scope.Project,
+                UserId = receivingSupervisor.Id,
+                RoleCode = UserRoleCode.Supervisor,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new(2000, 1, 1)
+            });
             await scopeDb.SaveChangesAsync();
             var reviewClock = await scopeDb.Set<DeadlineClock>().AsNoTracking().SingleAsync(c => c.TargetId == id && c.Kind == DeadlineClockKind.ProjectManagerReview);
             reviewClockId = reviewClock.Id; reviewClockVersion = Convert.ToBase64String(reviewClock.RowVersion); reviewOriginalDue = reviewClock.OriginalDueAt;
+            Assert.True(await new RoadGuardSystem.Repositories.Messaging.H6NotificationDispatchRepository(
+                scopeDb, new WeeklyTestClock(reviewOriginalDue.AddMinutes(1))).ObserveClocksAsync(default) > 0);
+        }
+        Guid breachRequestId;
+        await using (var sourceDb = sql.CreateDbContext())
+        {
+            var breach = await sourceDb.Set<BusinessReceivingRequest>().AsNoTracking()
+                .SingleAsync(row => row.SourceKind == "ReviewBreach" && row.ScopeId == reviewClockId);
+            breachRequestId = breach.Id;
+            Assert.Equal(DeadlineClockKind.SupervisorEscalation, breach.Kind);
         }
         var clockPath = $"/api/v1/projects/{scope.Project}/clocks/{reviewClockId}";
         Assert.Equal(HttpStatusCode.Forbidden, (await Post(client, clockPath + "/extensions",
             new { newDueAt = reviewOriginalDue.AddHours(4), reason = "PM cannot extend own review" }, version: reviewClockVersion)).StatusCode);
         await Login(client, supervisor.UserName!);
+        var breachPath = $"/api/v1/projects/{scope.Project}/receiving-requests/{breachRequestId}";
+        await using var futureFactory = new AuthenticationWebApplicationFactory(sql.ConnectionString,
+            configureTestServices: services => services.Replace(ServiceDescriptor.Singleton<TimeProvider>(
+                new WeeklyTestClock(reviewOriginalDue.AddMinutes(2)))));
+        using var futureClient = futureFactory.CreateClient();
+        futureClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
+        var breachRead = await futureClient.GetAsync(breachPath); Assert.Equal(HttpStatusCode.OK, breachRead.StatusCode);
+        var breachVersion = (await breachRead.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("version").GetString();
+        var appointed = await Post(futureClient, breachPath + "/appointment",
+            new { assigneeId = receivingSupervisor.Id, reason = "TEST_ONLY current escalation supervisor" }, version: breachVersion);
+        Assert.Equal(HttpStatusCode.Created, appointed.StatusCode);
+        var appointedView = await appointed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(receivingSupervisor.Id, appointedView.GetProperty("responsibleActorId").GetGuid());
+        await using (var verifyDb = sql.CreateDbContext())
+            Assert.Equal(receivingSupervisor.Id, (await verifyDb.Set<BusinessReceivingRequest>().AsNoTracking()
+                .SingleAsync(row => row.Id == breachRequestId)).ResponsibleActorId);
+        output.WriteLine(JsonSerializer.Serialize(new
+        {
+            proof = "SWG-017",
+            environment = "TEST_HOST_E2E",
+            status = 201,
+            actorId = supervisor.Id,
+            role = "Supervisor",
+            projectId = scope.Project,
+            taskId = id,
+            reviewClockId,
+            receivingRequestId = breachRequestId,
+            assigneeId = receivingSupervisor.Id,
+            producer = "H6NotificationDispatchRepository.ObserveClocksAsync",
+            sourceKind = "ReviewBreach",
+            request = new { assigneeId = receivingSupervisor.Id, reason = "TEST_ONLY current escalation supervisor" },
+            persistedResponsibleActor = receivingSupervisor.Id
+        }));
         var extensionKey = Guid.NewGuid().ToString();
         var extended = await Post(client, clockPath + "/extensions", new { newDueAt = reviewOriginalDue.AddHours(4), reason = "Current Supervisor review extension" }, extensionKey, reviewClockVersion);
         Assert.Equal(HttpStatusCode.Created, extended.StatusCode);
@@ -186,7 +328,7 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
     private static Task<HttpResponseMessage> Post(HttpClient client, string path, object body, string? key = null, string? version = null) { var r = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(body) }; r.Headers.Add("Idempotency-Key", key ?? Guid.NewGuid().ToString()); if (version is not null) r.Headers.Add("If-Match", "\"" + version + "\""); return client.SendAsync(r); }
     private async Task<(Guid Project, Guid Route, Guid Set, Guid Defect, string Version)> Seed(Guid pm, Guid crew, Guid other, Guid reporter)
     {
-        await using var db = sql.CreateDbContext(); var now = DateTimeOffset.UtcNow; var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "FIELD HTTP", null, null, null, null, now); var road = RoadSection.Create(Guid.NewGuid(), project.Id, "fixture"); var line = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new(0, 0), new(20, 0)]); var route = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, line, now, "fixture"); var set = RoadSegmentSet.Create(Guid.NewGuid(), route.Id); var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1); segment.SetGeometry(0, 20, 0, line); var type = DefectType.Create("F" + Guid.NewGuid().ToString("N"), "FIELD");
+        await using var db = sql.CreateDbContext(); var now = DateTimeOffset.UtcNow; var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "FIELD HTTP", null, 32648, null, null, now); var road = RoadSection.Create(Guid.NewGuid(), project.Id, "fixture"); var line = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new(0, 0), new(20, 0)]); var route = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, line, now, "fixture"); var set = RoadSegmentSet.Create(Guid.NewGuid(), route.Id); var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1); segment.SetGeometry(0, 20, 0, line); var type = DefectType.Create("F" + Guid.NewGuid().ToString("N"), "FIELD");
         db.AddRange(project, road, route, set, segment, type, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm, new(2000, 1, 1)), new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = crew, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) }, new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = other, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) }); await db.SaveChangesAsync();
         var file = StoredFile.Create(Guid.NewGuid(), "reporter/private-" + Guid.NewGuid().ToString("N"), "source.jpg", "image/jpeg", 4, new string('b', 64), reporter, now, null); db.AddRange(file, FileScope.CreatePrivate(Guid.NewGuid(), file.Id, reporter, now)); await db.SaveChangesAsync(); var report = Report.Create(Guid.NewGuid(), reporter, "genuine noSurvey source", now, [VerifiedEvidenceReference.Create(Guid.NewGuid(), file.Id, "fixture-version", reporter)]); var incident = IncidentCase.CreateUnassigned(Guid.NewGuid(), report.Id, now); incident.Triage(project.Id, CaseVerificationMethod.ExistingEvidence, "retained source", now); db.AddRange(report, incident); db.Set<HuyCaseReportLink>().Add(new() { Id = Guid.NewGuid(), CaseId = incident.Id, ReportId = report.Id, StartedAt = now }); await db.SaveChangesAsync();
         var facts = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(CandidateSourceKind.Report, report.Id, "fixture-source"), project.Id, "fixture-geometry"); var accepted = await new CandidateDecisionRepository(db).SaveAcceptedAsync(pm, facts, CandidateDecisionKind.KeepNew, CandidateClassification.Create(route.Id, type.Code, null, DefectSeverity.Low, null), null, null, null, "PM keep-new", null, default);

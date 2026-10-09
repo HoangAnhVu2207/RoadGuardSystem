@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Xunit.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -17,7 +18,7 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Repairs;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fixture)
+public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fixture, ITestOutputHelper output)
 {
     [Fact]
     public async Task ProductionDiRequiresSupervisorExactSourceScopeVersionAndCurrentAuthorityBeforeReplay()
@@ -78,6 +79,23 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         await db.ProjectMembers.Where(row => row.Id == member.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, path, input, key, initial.Headers.ETag.ToString())).StatusCode);
         Assert.Single(await db.Set<RoadCoverageMapping>().Where(row => row.ProjectId == project.Id).ToArrayAsync());
+        output.WriteLine(JsonSerializer.Serialize(new
+        {
+            proof = "SWG-194",
+            environment = "TEST_HOST_E2E",
+            status = 201,
+            actorId = supervisor.Id,
+            role = "Supervisor",
+            projectId = project.Id,
+            obligationId = obligation.Id,
+            handoverId = handover.Id,
+            sourceFileId = file.Id,
+            mappingId = mapping.Id,
+            producer = "TEST_ONLY isolated SQL handover, verified upload and file scope prerequisite",
+            request = input,
+            persistedMappings = 1,
+            provenance = "TEST_ONLY"
+        }));
     }
 
     [Fact]

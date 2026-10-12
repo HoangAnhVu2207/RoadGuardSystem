@@ -18,13 +18,16 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class UsersController : ControllerBase
 {
     private readonly IIdentityV2Service _identityService;
+    private readonly RoadGuardSystem.Services.Staff.IStaffReadService _staffReadService;
 
-    public UsersController(IIdentityV2Service identityService)
+    public UsersController(IIdentityV2Service identityService, RoadGuardSystem.Services.Staff.IStaffReadService staffReadService)
     {
         _identityService = identityService;
+        _staffReadService = staffReadService;
     }
 
     [HttpGet("{userId:guid}")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> Get(Guid userId, CancellationToken cancellationToken)
     {
         if (!TryGetActorId(out var actorUserId))
@@ -32,14 +35,21 @@ public sealed class UsersController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _identityService.GetAccountAsync(actorUserId, userId, cancellationToken);
-        if (result.Status == IdentityV2Status.Success && result.Actor is not null)
+        if (!RoadGuardSystem.API.Authorization.ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out var actorRole))
+            return Unauthorized();
+        var result = await _staffReadService.AccountAsync(actorUserId, actorRole, userId, cancellationToken);
+        if (result.Status == RoadGuardSystem.Services.Staff.StaffReadStatus.Success && result.Value is not null)
         {
-            Response.Headers.ETag = $"\"{Convert.ToBase64String(result.Actor.RowVersion)}\"";
-            return Ok(ToResponse(result.Actor));
+            Response.Headers.ETag = $"\"{result.Value.Version}\"";
+            return Ok(result.Value);
         }
 
-        return Map(result);
+        return result.Status switch
+        {
+            RoadGuardSystem.Services.Staff.StaffReadStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            RoadGuardSystem.Services.Staff.StaffReadStatus.NotFound => ProblemResponse(404, ApiErrorCodes.IdentityUserNotFound, "Not found"),
+            _ => ProblemResponse(400, ApiErrorCodes.ValidationError, "Bad request")
+        };
     }
 
     [HttpPatch("{userId:guid}")]

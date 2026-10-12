@@ -1,0 +1,118 @@
+{
+  "info": {
+    "name": "RoadGuard — TÙY CHỌN đổi PM chính (có ghi dữ liệu)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection riêng, không nằm trong folder GET/manual chạy mặc định. Chỉ chạy khi bạn chủ động muốn đổi PM. Chạy GET primary-PM lấy version, GET users chọn PM ACTIVE khác currentPrimaryPmUserId; EffectiveFrom tự dùng ngày UTC hiện tại. Service hiện có yêu cầu ngày này lớn hơn ValidFrom của PM chính; nếu vừa đổi PM hôm nay, không đổi tiếp cùng ngày. PUT giữ nguyên contract/state/concurrency hiện có. Sau 409, đọc lại primary-PM và kiểm lại lựa chọn trước khi retry; không chạy lặp tự động."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "supervisorToken",
+      "value": ""
+    },
+    {
+      "key": "projectId",
+      "value": ""
+    },
+    {
+      "key": "selectedPmUserId",
+      "value": ""
+    },
+    {
+      "key": "currentPrimaryPmUserId",
+      "value": ""
+    },
+    {
+      "key": "currentPrimaryMembershipVersion",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "CHỈ CHẠY CHỦ ĐỘNG — PUT đổi PM chính hiện có",
+      "request": {
+        "method": "PUT",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{supervisorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/primary-project-manager",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"primaryProjectManagerUserId\": \"{{selectedPmUserId}}\",\n  \"effectiveFrom\": \"{{pmEffectiveFrom}}\",\n  \"reason\": \"Đổi PM chính theo yêu cầu chủ động\",\n  \"expectedCurrentMembershipRowVersion\": \"{{currentPrimaryMembershipVersion}}\",\n  \"operationId\": \"{{$guid}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "protocolProfileBehavior": {
+        "disableCookies": true
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "for (const key of ['projectId','selectedPmUserId','currentPrimaryMembershipVersion']) { if (!pm.variables.get(key)) throw new Error('Chạy các GET để lấy '+key+' trước.'); }",
+              "if (pm.variables.get('selectedPmUserId') === pm.variables.get('currentPrimaryPmUserId')) throw new Error('Chọn PM khác PM chính hiện tại bằng request 03.');",
+              "pm.variables.set('pmEffectiveFrom', new Date().toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.expect(pm.response.code).to.eql(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Đọc lại sau PUT",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{supervisorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/primary-project-manager"
+      },
+      "protocolProfileBehavior": {
+        "disableCookies": true
+      }
+    }
+  ]
+}

@@ -111,6 +111,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<IProjectMembershipRepository, ProjectMembershipReadModel>();
         services.AddScoped<IProjectWorkPackageRepository, ProjectWorkPackageReadModel>();
         services.AddScoped<IProjectListRepository, ProjectListReadModel>();
+        services.AddScoped<RoadGuardSystem.Repositories.Staff.IStaffReadRepository, RoadGuardSystem.Repositories.Staff.StaffReadRepository>();
         services.AddScoped<IProjectCreationRepository, ProjectCreationPersistenceService>();
         services.AddScoped<IProjectUpdateRepository, ProjectUpdatePersistenceService>();
         services.AddScoped<IPrimaryProjectManagerRepository, PrimaryProjectManagerPersistenceService>();

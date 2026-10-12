@@ -1,24 +1,15 @@
-# RoadGuard product draft: not active
+# Product authority và phạm vi hiện hành
 
-**RF-04 draft, 2026-09-30.** This directory does not replace `docs/RoadGuard_Project_Scope.md`, V2 requirements or active contracts. Branch `anh`, local source HEAD `2efc8a5775f834c7f0fe37cc0ce703011649e1f1`; the checkout includes pre-existing survey and planning edits. Read [RF-04 report](../../planning/refactor/reports/RF-04.md) before promoting any statement.
+**ACTIVE · DOCUMENTATION_UPDATED · DOC-AUDIT-01**, 2026-10-12. Quyết định nghiệp vụ và kết quả implementation là hai nguồn khác nhau; passing test không tự chấp nhận nghiệp vụ.
 
-## Scope and authority
-
-RoadGuard records project/road context, field survey evidence, Reporter input, defect review, measurement, repair and handover. The backend manages identity, durable evidence and orchestration. Web, Android and AI implementation are delivered by other teams under **TARGET_CONFIRMED decision 44**; backend still owns its adapters, contracts, fixtures and integration. This scope comes from [decision 44](../../planning/refactor/02-decision-register.md) and historical [project scope](../RoadGuard_Project_Scope.md), not from a deployed end-to-end proof.
-
-`confirmed-decisions.md` transfers the complete 32-44 interpretation from the source [decision register](../../planning/refactor/02-decision-register.md). `requirements.md` summarizes product rule ownership and acceptance intent; `workflows.md` records source-linked conceptual transitions; `data-and-quality.md` defines data meaning and NFR evidence. Historical FR/BR, US, PF and NFR full text lives in the four `historical-*.md` pages with per-item review gates. Wire methods and schemas live only in `contracts/` after separate approval. `docs/backend/` describes implementation facts and proposed technical boundaries. None of these draft pages silently elevates older material to Accepted.
-
-Evidence labels used throughout: **CURRENT_VERIFIED** (checked source or command, with limits), **TARGET_CONFIRMED** (owner reconfirmed requirement), **PROPOSED** (design needing approval), **UNKNOWN** (missing authority/evidence), **HISTORICAL** (older source). An Accepted requirement does not show implementation or test success.
-
-## Actor boundary
-
-| Actor | Draft responsibility and authority | Source/status |
+| Nguồn | Phạm vi áp dụng |
 |---|---|
-| Supervisor | Project creation/oversight, road confirmation, receives temporary safety notice; final mixed-case authority remains to reconcile with workflow source. | HISTORICAL `03_To_Be_Process.md` PF-01..; TARGET_CONFIRMED 35A notice. |
-| Project Manager (PM) | Project-scoped planning, candidate and label review, survey/repair decisions; cannot turn a proposed threshold into policy. | TARGET_CONFIRMED 32A, 33A, 34A, 35A; detailed roles HISTORICAL. |
-| Repair Crew | Measure and perform assigned allowed work; offline authority rechecked at sync. | HISTORICAL FR-17..23; TARGET_CONFIRMED 42A/43A pilot scope. |
-| Drone Operator | Receives survey scope and submits source video/SRT; drone flight control stays outside backend. | HISTORICAL FR-26..30; TARGET_CONFIRMED 44 boundary. |
-| Reporter | Registers with OTP, reports evidence and sees only an approved privacy projection of own reports. | CURRENT_VERIFIED registration source; privacy projection UNKNOWN (Q-RF02-07). |
-| AI service | Supplies candidate results/provenance; cannot approve PM labels or merge defects. | TARGET_CONFIRMED 34A/44; protocol UNKNOWN (Q-RF02-06). |
+| [Confirmed decisions 32–44](confirmed-decisions.md) | Giữ nguyên bản owner reconfirmed; các qualifier, privacy, lifetime, retention và external ownership không bị audit viết lại. |
+| [HUY-FINAL-INTEGRATION](../../planning/development/HUY-FINAL-INTEGRATION.md) | Assigned R01–R30, clocks/persistent login/correction/lifecycle; latest ND01/activation supersede các checkpoint cũ đúng phạm vi. Không áp curing/material/traffic-opening từ V2 lịch sử. |
+| [GET Projects](../../planning/development/GET-PROJECTS.md), [Supervisor global](../../planning/development/SUPERVISOR-GLOBAL-PROJECT-AUTHORITY.md), [Staff/Membership Read](../../planning/development/STAFF-MEMBERSHIP-READ.md) | Additive owner-approved local scopes, đã có trong hai commit baseline. Supervisor-global không mở PM-only commands. |
+| [Requirements](requirements.md), [workflows](workflows.md), [data/quality](data-and-quality.md) | Derived current guide; không bổ sung quyết định mới. Implementation/execution evidence nằm trong audit. |
+| [Historical FR/BR](historical-fr-br.md), [US](historical-us.md), [PF](historical-pf.md), [NFR](historical-nfr.md), V2 R3 | Review material; chỉ accepted excerpts có authority mới áp dụng. Các schema/route chưa adopted vẫn PROPOSED. |
 
-The draft [operation crosswalk](../../planning/refactor/04-operation-crosswalk.md) separates 57 observed controller actions and 133 proposed OpenAPI operations. It is not a promise to implement all operations or retire any current route.
+Web: Supervisor/PM/Reporter. Android: Crew/Operator và mobile scope. BE: ASP.NET Core, Services/Repositories, SQL/object storage, current rights và durable workflows. FastAPI: nhóm AI bên ngoài; video drone detection không thay physical measurement của Crew. Không hồi sinh photogrammetry/DSM/3D/depth scope.
+
+Reporter sở hữu report/private evidence; publication chỉ cấp projection/evidence cho recipient tương ứng. Supervisor được thao tác Supervisor trên tất cả dự án, PM theo effective membership và task actors theo assignment. Notification luôn recipient-scoped. Đọc [backend hiện hành](../backend/README.md), [ma trận](../audit/DOC-AUDIT-01-MATRIX.md) và [GAP](../audit/DOC-AUDIT-01-OPEN-GAPS.md) để biết phần đã có, partial, pending E2E và chưa xác minh.

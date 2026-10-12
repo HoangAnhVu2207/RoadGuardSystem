@@ -1,5 +1,7 @@
 # RoadGuard — 6. Sequence Diagram và Transaction Boundaries
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Sequences bên dưới là thiết kế/history; current transaction/receipt/source-proof flows nằm trong audit. Registered event không chứng minh producer; FT-final notification còn G04; live FastAPI/Android chưa E2E. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** TECH-R3-2026-09-26-v1 • **Trạng thái:** thiết kế đề xuất dựa trên bộ RoadGuard R3. Chưa có repository, ERD hiện hành, OpenAPI thực tế hoặc môi trường chạy để đối chiếu. Không khẳng định endpoint/code/transaction dưới đây đã được triển khai.
 
 **Ưu tiên nguồn:** [decision register V2](../../../../planning/V2/V2-3_DECISION_REGISTER.md) áp dụng D01-D28 và 32-44; nhãn OPEN lịch sử chỉ còn hiệu lực cho gate được register giữ lại. Chi tiết wire/state mới vẫn cần review; không tự sửa enum số, chuyển DB, nâng framework hoặc đổi runtime/Done từ thiết kế này.

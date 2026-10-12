@@ -1,5 +1,7 @@
 # ROADGUARD — MÔ TẢ CHI TIẾT DỰ ÁN
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Current architecture Web/Android↔ASP.NET Core↔FastAPI; SQL và configured object storage. AI video detection/candidates, Crew physical measurement. Orthomosaic/DSM/3D/AI-depth và curing/material/traffic-opening management trong nguồn cũ không thuộc current assigned scope. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Mã tài liệu:** RG-PROJECT-DESCRIPTION-2026-09-26-R1  
 **Thời điểm tổng hợp:** 26/09/2026, theo cuộc trao đổi đến 15:30, giờ Việt Nam.  
 **Mục đích:** mô tả sản phẩm, vai trò, dữ liệu và luồng nghiệp vụ trước khi chỉnh UseCase.  

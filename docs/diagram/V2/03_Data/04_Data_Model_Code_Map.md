@@ -1,5 +1,7 @@
 # V2 data model to code map
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Bảng28/09 bên dưới là HISTORICAL, các migration IDs cũ đã squashed cho NEW isolated DB theo RG-CI-01. Report/case/policy/repair/offline/provenance/retention không còn blanket missing. Current physical data và source map xem audit. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Audit date:** 2026-09-28. **Purpose:** current-source evidence versus documented target. This is not a migration plan or deployment report.
 
 ## Verified current map

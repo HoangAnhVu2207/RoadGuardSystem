@@ -1,5 +1,7 @@
 # Current data baseline (RG-CI-01)
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE index; RF-06A body HISTORICAL** — Fresh current baseline: [audited dictionary/ERD mapping](audited-data-model.md) từ owned SQL tại `f0c8762`: 191 tables, 1,940 columns, 662 FK constraints, 693 indexes, 229 checks, 189 triggers; 2 migrations, latest20261009043010. Các “current-*” RF-06A generated files/inventory bên dưới được giữ như HISTORICAL snapshots, không regenerate/ghi đè. Các số57 tables/37 migrations không là schema hiện tại. Shared/deployed SQL không được truy vấn.
+
 RG-CI-01 replaces the historical migration chain with one direct `BaselineCurrentSchema` for NEW isolated dev/test databases only. The owner waived historical upgrade/downgrade acceptance for this task. Existing shared/team and preserved Swagger databases must not be reset or migrated onto this replacement history. See the [RG-CI-01 checklist and handoff](../../../planning/development/RG-CI-01.md) for final SQL equivalence, source fingerprint and validation results; completion is not established by this documentation change.
 
 The machine-readable [inventory](current-schema.inventory.json) is refreshed by the current extractor. The RF-06A narrative, generated ERD/dictionary/trigger documents and evidence below are HISTORICAL snapshots, not current acceptance evidence. Git history at `fc70d4714921185d9b0d93e766835aed654102d2` preserves the superseded migration sources.

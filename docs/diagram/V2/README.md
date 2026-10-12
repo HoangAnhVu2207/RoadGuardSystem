@@ -1,5 +1,7 @@
 # RoadGuard — Hướng dẫn tài liệu cho Backend, Frontend và QA
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Đây là V2 R3 proposal/reference, không là canonical runtime contract. Current entrypoints là backend/audit/local contracts. Supervisor-global không cần membership cho Supervisor actions; PM/Crew/Operator rules và recipient notifications còn nguyên. Current evidence: [audit matrix](../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../backend/data/audited-data-model.md), [API inventory](../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản bộ tài liệu:** R3 + BA/Tech Supplement v1 + FE-R3-v1  
 **Ngày sắp xếp:** 27/09/2026
 **Bản rà soát:** REVIEW-01, contract0.1.1-draft-review1  

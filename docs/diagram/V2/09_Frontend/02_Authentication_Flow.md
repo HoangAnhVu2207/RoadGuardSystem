@@ -1,5 +1,7 @@
 # RoadGuard — 02. Authentication Flow
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Current web CSRF/login/session/renew/logout và Android bearer/refresh có implementation. Cookie chỉ exact adopted methods/selector; Authorization precedence và current account/session vẫn bắt buộc. Supervisor-global không grant PM-only. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** FE-R3-v1 • **Ngày:** 27/09/2026 • **Trạng thái:** đặc tả đề xuất để FE/BE/QA review, chưa xác nhận triển khai.
 
 ## 1. Phạm vi và hợp đồng hiện có

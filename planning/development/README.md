@@ -1,5 +1,7 @@
 # RoadGuard development workflow
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE index; older planning body HISTORICAL** — Routing hiện hành ở HEAD `f0c8762`: HUY-FINAL-INTEGRATION cùng latest ND01/activation; GET-PROJECTS, SUPERVISOR-GLOBAL-PROJECT-AUTHORITY và STAFF-MEMBERSHIP-READ là assigned/additive scopes đã triển khai. ANH-01 cung cấp source interfaces đã tích hợp. Bốn package PROPOSED và exclusion/RF-11 paragraphs bên dưới là bối cảnh lịch sử, không phủ nhận các assigned implementation này. [DOC-AUDIT-01](../../docs/audit/DOC-AUDIT-01-REPORT.md) kiểm source/execution riêng, không chấp nhận wire/schema chỉ từ package table.
+
 Reference baseline: `21223aa1d18f510d012f9f25081b8c4bcf87b7a8` (RF-11). Check actual HEAD/dirty paths before each task; preserve later progress. RF tasks/reports remain historical checkpoints and evidence. This plan supersedes the old draft [development plan](../refactor/11-development-plan.md) for development routing; it does not reopen RF remediation or claim release/deployment acceptance.
 
 ChatGPT provides technical direction, writes the spec and reviews the GitHub diff. Codex delivers the whole assigned package, two concise self-review passes, fixes and focused verification. Owner resolves missing business, public compatibility and data policy. Steps within an assigned spec need no repeated approval. A package assignment does not approve an undesigned endpoint, wire contract or schema.

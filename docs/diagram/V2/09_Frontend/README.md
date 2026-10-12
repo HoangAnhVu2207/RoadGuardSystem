@@ -1,5 +1,7 @@
 # RoadGuard — Bộ tài liệu FE và Offline R3 v1
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — FE package/types/fixtures là proposal snapshot, không runtime API authority. Current241 operations, method cookie eligibility và staff response đã có source. Lock mismatch chưa cho codegen adoption. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Ngày:** 27/09/2026. **Trạng thái:** đặc tả để review/triển khai, không xác nhận phần mềm đã chạy hoặc được nghiệm thu.
 
 Gói bổ sung đặt vào `RoadGuard_Docs/09_Frontend/`. Giữ nguyên thư mục contracts/config/fixtures để các liên kết hoạt động. Có thể đọc độc lập vì đã kèm snapshot OpenAPI nguồn.

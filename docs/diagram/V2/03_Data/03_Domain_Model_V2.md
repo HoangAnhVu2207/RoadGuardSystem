@@ -1,5 +1,7 @@
 # RoadGuard V2 domain model
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Rows nói Report/Case/Repair chỉ target là historical28/09; current aggregates/immutable chains đã triển khai. Curing/traffic release superseded R01. Current domain source/evidence trong audit matrix/data mapping. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Status:** `TARGET_DOCUMENTED`; current runtime facts are marked `CURRENT_VERIFIED`; proposed concepts are not code.
 
 ## Aggregate boundaries

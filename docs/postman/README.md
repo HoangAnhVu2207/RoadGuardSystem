@@ -1,5 +1,7 @@
 # Chạy thử RoadGuard API bằng Postman
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE usage index; old environment observations HISTORICAL** — Collections là manual test assets, không là fresh runtime certification. Current GET Projects/staff bearer-cookie workflows: [staff guide](Staff-Membership-Read-Guide.md). [Audit](../audit/DOC-AUDIT-01-REPORT.md) ghi fresh SQL/HTTP và Swagger; các tình trạng localhost, seed account/login failure và prior results bên dưới là HISTORICAL, không được kiểm lại trong task này. Không reset/seed tài khoản để khớp hướng dẫn cũ.
+
 ## HUY final H0 integration (06/10/2026)
 
 The appended `HUY final H0 - retention integration - opted-in` folder selectively preserves seven Anh retention requests and identifiers. Enable `anh02Enabled` only against an isolated local project. Inventory/basis, holds and evaluation never perform physical deletion; unavailable repair inventory still blocks basis. Existing Huy folders are preserved. Collection JSON validation and BE tests are separate from a live Postman run. Cookie inspection/inbox methods, CSRF and bearer precedence are recorded in [local contract](../../contracts/http/huy-final.local-contract.md).

@@ -1,5 +1,7 @@
 # ROADGUARD — PROCESS FLOW / TO-BE PROCESS
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Current report/case/repair/offline APIs đã tồn tại; xem current workflows. FIELD/DRONE pre-Defect final conclusion còn gated; FT-final information thiếu producer. R01 loại curing/traffic opening khỏi current flow. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** FLOW-2026-09-26-R1. **Phạm vi:** quy trình nghiệp vụ mục tiêu trước triển khai; đồng bộ UseCase R3, User Stories R3, FRD/SRS, Business Rules và Data Dictionary R3. **Ký pháp:** flowchart Mermaid, không tuyên bố đây là BPMN 2.0 thực thi được. Nhãn nút ghi tác nhân; hệ thống chỉ gợi ý, kiểm điều kiện, lưu và thông báo.
 
 CHỐT là quyết định người dùng. KẾ THỪA là quy tắc nền còn giữ. ĐỀ XUẤT/TBD không được coi đã duyệt. Các tên trạng thái ở sơ đồ biểu đạt nghiệp vụ; enum API cần đối chiếu Data Dictionary và code trước migration. Không cập nhật trạng thái Done backend bằng tài liệu này.

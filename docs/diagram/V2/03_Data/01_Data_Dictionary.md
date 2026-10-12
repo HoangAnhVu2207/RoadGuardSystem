@@ -1,5 +1,6 @@
 # RoadGuard — Data Requirements / Data Dictionary — R3
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — DD là logical proposal; fresh physical dictionary có191 tables/1940 columns/2 migrations. Report/case/repair/offline/policy/provenance/hold entities đã có dưới tên code thực tế. Không tạo CompanyPolicy/Curing/TrafficRelease chỉ để khớp draft. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
 
 > **Bản cập nhật 26/09/2026 — DD-R3.** Sửa trực tiếp từ Data Dictionary đã cung cấp; giữ phần không liên quan. Đây là thiết kế dữ liệu mục tiêu, **chưa xác nhận backend đã triển khai**. Các ghi chú **THAY THẾ / THÊM / GIỮ / BỎ QUY TẮC CŨ** nằm tại phần bị ảnh hưởng; bảng §11 tổng hợp trước → sau, lý do và P1/P2. P1 là contract/domain/service; P2 là entity/mapping/migration/repository. Không đồng nhất P1/P2 với Sprint 1/2.
 >

@@ -1,5 +1,7 @@
 # ROADGUARD — BUSINESS RULES DOCUMENT
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Latest assigned R01–R30/ND01 và Supervisor-global supersede old membership, policy approval, curing/material/traffic-opening hoặc reset-window claims. PM publishes versioned FT policy; Supervisor normal approvals, PM FT final; Crew measures. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** BRD-2026-09-26-R1. **Loại:** tài liệu quy tắc nghiệp vụ, không phải Business Requirements Document.  
 **Căn cứ:** quyết định chủ dự án đến 26/09/2026, UseCase R2 và tài liệu nền; các ghi chú R3 đồng bộ với bộ này.  
 **Trạng thái:** yêu cầu mục tiêu; không phải xác nhận triển khai backend.

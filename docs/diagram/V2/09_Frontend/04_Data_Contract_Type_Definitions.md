@@ -1,5 +1,7 @@
 # RoadGuard — 04. Data Contract / Type Definition
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Generated FE types/schemas từ draft không bao phủ current241 runtime operations. Không regenerate/auto-lock trong docs audit; mapping Staff/account contacts/roster privacy cần consumer adoption. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** FE-R3-v1 • **Ngày:** 27/09/2026 • **Trạng thái:** đặc tả đề xuất để FE/BE/QA review, chưa xác nhận triển khai.
 
 ## 1. Deliverables máy đọc

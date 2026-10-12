@@ -1,5 +1,7 @@
 # Đặc tả use case RoadGuard / CÁT TƯỜNG
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Các UC là proposal/history, không chứng nhận implementation. Current actor chains, IDs/versions/recovery trong audit matrix và workflows; không đồng nhất case/defect/repair state enums. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 > Phạm vi bàn giao BE — 18/09/2026: đợt hiện tại phát triển backend ASP.NET Core; Android/Web thuộc FE, AI thật và thu thập số đo thực địa là tích hợp bên ngoài ở giai đoạn sau. Backend vẫn triển khai đầy đủ workflow bắt buộc, adapter AI giả lập xác định và chức năng Research Validation nhập/ghép/tính sai số/xuất báo cáo bằng dữ liệu kiểm thử hoặc dữ liệu ngoài đã có. Nghiệm thu phần mềm BE không tuyên bố độ chính xác AI hay kết quả thực nghiệm từ dữ liệu giả. Các yêu cầu sản phẩm/nghiên cứu đầy đủ bên dưới vẫn được giữ để truy vết. Xem [ADR 003](../../../adr/003-backend-delivery-and-ai-boundary.md).
 
 Phiên bản **UC-2026-09-26-R3** — cập nhật trực tiếp từ R2 theo quyết định ngày 26/09/2026. Chỉ sửa tài liệu, chưa xác nhận backend đã có luồng mới.

@@ -1,5 +1,7 @@
 # RoadGuard Backend Structure
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE** — ACTIVE architecture conventions với implementation anchors tại `f0c8762`; convention không chứng minh mọi legacy file tuân thủ tuyệt đối. [Matrix](../audit/DOC-AUDIT-01-MATRIX.md) và fresh focused boundary tests ghi bằng chứng. Accepted business/policy authority theo latest assigned spec, không theo target DD lịch sử.
+
 ## Accepted Flow
 
 RoadGuard uses the accepted N-layer flow:
@@ -20,7 +22,7 @@ ADR 001 defines the project-reference graph. ADR 004 amends its implementation c
 
 Repositories never choose authorization, workflow outcomes, business calculations, or HTTP errors. Services never use EF Core, `RoadGuardDbContext`, `HttpContext`, or MVC result types. Controllers never access repositories or `RoadGuardDbContext`.
 
-The target product adds a `REPORTER` role and incident-report/case workflow without changing the accepted `Controller -> IService -> IRepository` boundary. AI is an external integration boundary behind a Service-owned adapter contract: BE stores immutable input manifests/results and orchestrates asynchronous jobs; the AI service does not decide Defect, repair approval, `Verified`, or `Closed`.
+The current backend implements the `REPORTER` role and incident-report/case workflow without changing the accepted `Controller -> IService -> IRepository` boundary. AI is an external integration boundary behind a Service-owned adapter contract: BE stores immutable input manifests/results and orchestrates asynchronous jobs; the AI service does not decide Defect, repair approval, `Verified`, or `Closed`.
 
 Segment geometry and target bands are versioned facts. A `RoadSegmentSet` belongs to one `RoadSectionVersion`; PM may create a 100 m or other split/merge draft, but published sets are immutable. Survey coverage is evaluated separately for `SURFACE`, `LEFT_EDGE`, and `RIGHT_EDGE`; raw aircraft GPS, projected route station, camera footprint, and defect location must not be collapsed into one coordinate.
 
@@ -52,7 +54,7 @@ This is the verified direct `ProjectReference` matrix, not a claim that every pe
 
 `BusinessObjects` and `DTOs` are organized domain-first today. `BusinessObjects` has entity folders including `Projects`, `Identity`, `Surveys`, `Warranties`, `Auditing`, and `Messaging`, plus `Common/Enums.cs` and `Common/Extensions/` for enum extensions. `DTOs` has `Authentication`, `Identity`, `Projects`, `Warranties`, and `Commons`.
 
-`Repositories` and `Services` are currently mostly flat within domain folders. For example, `RoadGuardSystem.Repositories/Projects/ProjectCreationPersistenceService.cs` and `RoadGuardSystem.Repositories/Projects/ProjectWorkPackageReadModel.cs` live directly in `Projects/`. Both projects contain empty root-level `Interfaces/` and `Implementations/` directories at the time of writing; neither has populated `Interfaces/<Domain>/` or `Implementations/<Domain>/` folders. `Services` has no `Mappers/` directory at the time of writing.
+`Repositories` and `Services` are currently mostly flat within domain folders. For example, `RoadGuardSystem.Repositories/Projects/ProjectCreationPersistenceService.cs` and `RoadGuardSystem.Repositories/Projects/ProjectWorkPackageReadModel.cs` live directly in `Projects/`. This flat-layout description is HISTORICAL. At audited HEAD both Repositories and Services also have populated `Interfaces/<Domain>/` and `Implementations/<Domain>/` folders, including Staff, Projects, Repairs, Offline and Messaging. Follow the owning feature’s observed path; this audit does not move files or approve a general relocation.
 
 `API` remains organized by host concern: `Authentication`, `Authorization`, `Constants`, `Controllers`, `Extensions`, `Middlewares`, and `Properties`. It does not use `Interfaces/` or `Implementations/` directories.
 

@@ -1,5 +1,7 @@
 # Nhân sự và phân công — hướng dẫn Postman
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE** — API/source kiểm lại tại `f0c8762`; fresh auth/directory/HTTP counts xem [audit report](../audit/DOC-AUDIT-01-REPORT.md). Account detail contact chỉ Supervisor; roster/primary không contact. Source đã commit, gói review trước là historical evidence; chưa chạy Postman thủ công hoặc xác nhận backend đang phục vụ port local.
+
 Import lại `RoadGuard-ANH-Manual.postman_collection.json` trong Downloads/testing để thấy folder **Nhân sự và phân công**. Chín folder cũ được giữ nguyên; environment hiện có không bị sửa. Nếu chỉ cần nhóm đọc mới, import `RoadGuard-Staff-Membership-Read.postman_collection.json` (repo canonical cùng tên). Postman không tự reload file sau cập nhật; Bruno có thể import collection JSON này.
 
 1. Chọn environment local/staging hiện có, kiểm `baseUrl`, chạy **H00 Login bearer Supervisor** (và PM nếu muốn test scope PM). Không điền body cho các GET mới.

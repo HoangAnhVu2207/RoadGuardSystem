@@ -1,5 +1,7 @@
 # RoadGuard — 3. API Specification (OpenAPI)
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Current runtime Swagger đã capture241 operations tại f0c8762, không phải133 draft operations. Body bên dưới và YAML vẫn PROPOSED, chưa wire adoption. Current error/headers/paging khác theo operation; Staff limit20, không tự áp global25. FE lock đang mismatch (G06), không auto update. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** TECH-R3-2026-09-26-v1 • **Trạng thái:** thiết kế đề xuất dựa trên bộ RoadGuard R3. Chưa có repository, ERD hiện hành, OpenAPI thực tế hoặc môi trường chạy để đối chiếu. Không khẳng định endpoint/code/transaction dưới đây đã được triển khai.
 
 **Ưu tiên nguồn:** [decision register](../../../../planning/V2/V2-3_DECISION_REGISTER.md) áp dụng D01-D28/32-44; business approval không tự phê duyệt wire schema hoặc runtime. Không tự sửa enum số, chuyển DB, nâng framework hoặc đổi trạng thái Done.

@@ -1,10 +1,12 @@
 # RoadGuard — 09. App offline và đồng bộ dữ liệu
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — OfflineWorkflowController v1 đã có device/snapshot/signed sync/package/grant/import/artifacts/recovery. Finite operation kinds hiện FIELD_ACCEPT/FIELD_START/FIELD_SUBMISSION/REPAIR_ASSESSMENT/REPAIR_EXECUTION_START/REPAIR_EXECUTION_FINISH; durable result COMMITTED khác legacy INSPECTION_SUBMIT/DUPLICATE examples. Android queue/kill/reboot/decrypt vẫn pending E2E. Latest ND01 original24h path đã hỗ trợ đủ proof; extra-after-expiry deferred. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** FE-R3-v1 • **Ngày:** 27/09/2026 • **Trạng thái:** đặc tả đề xuất để FE/BE/QA review, chưa xác nhận triển khai.
 
 ## 1. Phạm vi, điều đã chốt và nhãn thiết kế
 
-Đây là đặc tả triển khai chi tiết cho FR-22, liên quan FR-01/17/18/21/26/27, Data Dictionary §9.5. Tác nghiệp offline không tự hết hạn; token vẫn có hạn. D05/D06/42A đã chốt authority cho handover/conflict/rescue và bảo toàn actor/source; acknowledgement/intake/rescue wire schema, security và E2E tests chưa hoàn tất.
+Đây là đặc tả triển khai chi tiết cho FR-22, liên quan FR-01/17/18/21/26/27, Data Dictionary §9.5. Task/evidence không tự purge; token vẫn có hạn. Quyền bắt đầu FT chịu immutable original24h và current prerequisites, retention không gia hạn cửa sổ thi công. D05/D06/42A đã chốt authority cho handover/conflict/rescue và bảo toàn actor/source; acknowledgement/intake/rescue wire schema, security và E2E tests chưa hoàn tất.
 
 **Đề xuất trong tài liệu này:** cấu trúc local DB, state machine, worker, budget, cơ chế unlock, giao diện Sync Center và recovery. **Contract gap:** baseline chưa đủ cho mọi nhánh offline end-to-end; xem §10–12 và tài liệu12. Không gọi tính năng đã sẵn sàng chỉ vì có màn hình capture offline.
 
@@ -14,7 +16,7 @@
 |---|---|---|
 | Xem nhiệm vụ/policy/evidence đã tải đủ | Có, nhãn snapshot | Cache đọc có nhãn stale; không hứa task pack đầy đủ |
 | Capture ảnh, số đo, notes theo task | Local durable save | Nháp form nếu được duyệt scope; không thay app hiện trường |
-| Fast Track đủ task/policy/snapshot | Ghi nhận cục bộ theo quyền đã giao; không TTL | Không cam kết sửa offline trên web |
+| Fast Track đủ task/policy/snapshot | Ghi nhận cục bộ theo quyền đã giao; không TTL tự purge task/evidence; quyền bắt đầu FT vẫn chịu immutable original24h và current prerequisites | Không cam kết sửa offline trên web |
 | Nhận nhiệm vụ mới/đổi đội/chính sách | Cần server online | Cần online |
 | Duyệt/nghiệm thu/đóng/công bố | Cần server online, đúng actor | Cần online |
 | Reporter đăng ký/OTP/gửi phản ánh | Login/gửi server online; nháp nếu scope bổ sung | Có thể giữ nháp, chưa gửi |
@@ -51,7 +53,7 @@ Không để raw token trong các store trên. Khóa mã hóa local tách creden
 3. Với từng file cần dùng, GET metadata và content có quyền, ghi temp file, kiểm byte count/hash, chuyển file private store. Snapshot metadata một mình không chứng minh ảnh đã tải.
 4. Tải geometry/map assets cần thiết theo license/provider; thiếu map không chặn nhập số đo nếu nghiệp vụ cho phép nhưng phải báo không dẫn đường được. Thiếu evidence/policy bắt buộc thì task chưa ready cho sửa.
 5. Trong transaction local, đánh dấu readiness theo từng khả năng: `metadataReady`, `requiredEvidenceReady`, `policyReady`, `mapReady`; chỉ “Sẵn sàng tác nghiệp offline” khi tập bắt buộc của task đủ. Không yêu cầu mapReady cho mọi task nếu không cần map.
-6. Hiển thị phiên bản snapshot/thời điểm tải/dung lượng và checklist kiểm offline bằng chế độ máy bay. Đồng bộ lại trước xuất phát nếu có mạng, nhưng không tự cài hạn hết quyền tác nghiệp.
+6. Hiển thị phiên bản snapshot/thời điểm tải/dung lượng và checklist kiểm offline bằng chế độ máy bay. Đồng bộ lại trước xuất phát nếu có mạng, nhưng không tự purge task/evidence. Quyền bắt đầu FT vẫn chịu immutable original24h và current prerequisites; retention không kéo dài cửa sổ thi công.
 
 Baseline chưa có repair-assignment/survey-task snapshot trọn gói. Không lấy InspectionTask DTO giả làm SurveyTask. Thiết kế package tương ứng cần FE-GAP-07, gồm assignment, destination, route/corridor/model/parser refs và quyền; map endpoint riêng cũng chưa đầy đủ.
 
@@ -153,7 +155,7 @@ Local lưu evaluation record (input values/units, evidence refs, policy/hash, re
 
 **Đường sync khả thi có điều kiện khi snapshot không đổi:** upload VERIFIED → INSPECTION_SUBMIT → có server sessionId → POST `/inspection-tasks/{taskId}/evaluations` với sessionId/policyVersionId (key/If-Match theo operation) → server Evaluation ELIGIBLE → materialize REPAIR_START (hoặc startRepairAttempt) → server attemptId → REPAIR_SUBMIT. Mỗi phase phải kiểm phiên bản và quyết định hiện hành.
 
-**Khoảng trống không thể né:** v1 chưa truyền snapshotId/assignmentVersion/local evaluation/physical-work-already-done và provenance đầy đủ trong sync operation; server evaluation sau reconnect không thể đại diện chắc chắn quyền tại lúc tác nghiệp. Nếu PM đổi task/policy/đội hoặc kết quả lệch, **không cố tạo evaluation mới để hợp thức hóa sửa cũ**. Giữ CONFLICT, chuyển PM theo Q04. Release Fast Track offline end-to-end bị gate FE-GAP-05/07/09/14 đến khi BE có contract tiếp nhận bằng chứng thực tế và conflict resolution đã duyệt.
+**HISTORICAL — legacy draft contract:** nhận định v1 chưa truyền snapshotId/assignmentVersion/provenance dưới đây chỉ áp bản draft cũ. Current `OfflineOperationInput` đã có snapshot, assignment, resource selectors và time provenance; đối chiếu DTO/source trong ma trận hiện hành. Actual-client/local-evaluator adoption vẫn cần xác minh; server evaluation sau reconnect không thể đại diện chắc chắn quyền tại lúc tác nghiệp. Nếu PM đổi task/policy/đội hoặc kết quả lệch, **không cố tạo evaluation mới để hợp thức hóa sửa cũ**. Giữ CONFLICT, chuyển PM theo Q04. Release Fast Track offline end-to-end bị gate FE-GAP-05/07/09/14 đến khi BE có contract tiếp nhận bằng chứng thực tế và conflict resolution đã duyệt.
 
 Sau sync thành công, PM kiểm/đóng Fast Track và hệ thống báo Supervisor. Crew upload xong không gọi ACCEPTED; Supervisor không được thêm bước duyệt sửa Fast Track trước thi công.
 
@@ -198,7 +200,7 @@ User xóa cache: tách cache tái tải được khỏi evidence pending; clear-
 
 “Đã đồng bộ hết” chỉ khi không còn pending/unknown/conflict/rejected cần xử lý trong partition và tất cả file bắt buộc của command đã VERIFIED. Dashboard Sync Center vẫn tách số đã gửi, chờ xác minh, conflict và failed. lastSuccessfulSync không thay lastAttemptAt; tài khoản khác/môi trường khác có mốc riêng.
 
-Metrics đề xuất: queue oldest age, counts by state, sync latency, dedup count, upload byte retry, conflict ratio, local write failures. Log IDs đã authorize, không ảnh/GPS/raw body/URL/token. Tuổi hàng đợi dùng cảnh báo vận hành, **không TTL làm hết quyền Fast Track**. Các test restart/network/clock/partial/revocation ở tài liệu11 là gate bắt buộc trước rollout hiện trường.
+Metrics đề xuất: queue oldest age, counts by state, sync latency, dedup count, upload byte retry, conflict ratio, local write failures. Log IDs đã authorize, không ảnh/GPS/raw body/URL/token. Tuổi hàng đợi dùng cảnh báo vận hành, **không TTL tự purge task/evidence; quyền bắt đầu FT vẫn chịu immutable original24h và current prerequisites làm hết quyền Fast Track**. Các test restart/network/clock/partial/revocation ở tài liệu11 là gate bắt buộc trước rollout hiện trường.
 
 ## REVIEW-01 — bổ sung
 

@@ -1,5 +1,7 @@
 # RoadGuard — 8. Error Handling Convention
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Runtime dùng ProblemDetails/code/correlationId và business result mapping theo controller, không tự đổi sang draft envelope. 409/412/428 và version-in-body/If-Match khác theo route; API inventory có current source headers. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** TECH-R3-2026-09-26-v1 • **Trạng thái:** thiết kế đề xuất dựa trên bộ RoadGuard R3. Chưa có repository, ERD hiện hành, OpenAPI thực tế hoặc môi trường chạy để đối chiếu. Không khẳng định endpoint/code/transaction dưới đây đã được triển khai.
 
 **Ưu tiên nguồn:** [decision register](../../../../planning/V2/V2-3_DECISION_REGISTER.md) áp dụng D01-D28/32-44; business approval không tự phê duyệt error wire schema hoặc runtime. Không tự sửa enum số, chuyển DB, nâng framework hoặc đổi trạng thái Done.

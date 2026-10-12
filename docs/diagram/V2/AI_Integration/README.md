@@ -1,5 +1,7 @@
 # RoadGuard AI service integration contract
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — FastAPI handoff bên dưới vẫn PROPOSED. BE có compatibility ProcessingV2 callback và separate ANH02 SYNTHETIC/MOCK provenance worker. Legacy callback chưa latest-attempt fence/fingerprint binding đầy đủ; synthetic result không chứng nhận live model/video quality. AI detection không thay physical measurement Crew. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Status:** `PROPOSED_DELTA_NOT_ENABLED`  
 **Version:** `ai-contract-2.0-draft`  
 **Owner boundary:** AI engineer owns the FastAPI implementation and model workers. RoadGuard BE owns business authorization, job/attempt identity, file verification, manifest provenance, persistence, and acceptance/publication decisions.

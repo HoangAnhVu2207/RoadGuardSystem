@@ -1,5 +1,7 @@
 # RoadGuard V2 logical ERD
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Sơ đồ phía dưới là logical/historical snapshot28/09, không current physical ERD. Fresh FK mapping trong audited-data-model; Report/Case/Repair/Offline đã có. Authority theo confirmed decisions/latest assigned spec, không V2 register cũ tự phê duyệt schema. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Status:** `TARGET_DOCUMENTED` with `CURRENT_VERIFIED` anchors and `PROPOSED_DELTA`; logical design only. This file is not a deployed schema, EF snapshot, migration or runtime contract.
 
 ## Authority and status rules

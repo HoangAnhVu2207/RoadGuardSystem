@@ -1,5 +1,7 @@
 # RoadGuard — 05. Pagination / Filtering / Sorting
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Current paging khác từng endpoint. Staff users/members default20/limit1..100 và cursor bound actor/scope/project/history/filter. GET Projects default20/limit1..100 nhưng cursor là CreatedAt+Id position, current scope reapplied; không gọi nó signed/filter-bound. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** FE-R3-v1 • **Ngày:** 27/09/2026 • **Trạng thái:** đặc tả đề xuất để FE/BE/QA review, chưa xác nhận triển khai.
 
 ## 1. Baseline hiện có: cursor pagination

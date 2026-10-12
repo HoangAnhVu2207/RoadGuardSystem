@@ -1,5 +1,7 @@
 # RoadGuard documentation map
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE index; RF body HISTORICAL** — Điểm bắt đầu hiện hành: [audit report](audit/DOC-AUDIT-01-REPORT.md), [backend](backend/README.md), [product authority](product/README.md) và [document/source-of-truth index](audit/DOC-AUDIT-01-DOCUMENT-INDEX.md). Phần “Current sources (RF-11)” bên dưới là checkpoint HISTORICAL ngày02/10, không là trạng thái HEAD mới. Không dùng target-only/57 actions từ đó để kết luận implementation hiện tại.
+
 ## Current sources (RF-11, 2026-10-02)
 
 - [Product index](product/README.md) and [confirmed 32-44 decisions](product/confirmed-decisions.md): owner-confirmed requirements; wire/schema adoption is separate.

@@ -1,5 +1,7 @@
 # Huy final release candidate runbook
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE runbook; checkpoint evidence HISTORICAL** — Procedure vẫn ACTIVE; prior CI/checkpoint numbers bên dưới là HISTORICAL và không áp HEAD `f0c8762`. ND01 original-window path đã triển khai khi đủ proof; chỉ additional-after-expiry deferred. LD06 lifecycle/LD07 coverage/LD08 statistics đã có source, còn real source/formula/environment gates. Supervisor authority global trên đúng Supervisor branch; không cần membership. Cookie support phải xem exact route metadata/selector trong [API inventory](../audit/DOC-AUDIT-01-API.md). Không có deployment/hosted-CI/benchmark certification từ audit.
+
 Status: IN_PROGRESS preparation under [HUY-FINAL-INTEGRATION](../../planning/development/HUY-FINAL-INTEGRATION.md). This is an operator procedure, not evidence of deployment, benchmark or recovery success. Final candidate SHA, hosted CI run and actual environment must be filled after H0–H7 verification. No production migration, deployment or main/develop merge is authorized by this document.
 
 ## Candidate and evidence

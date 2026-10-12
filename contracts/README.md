@@ -1,5 +1,7 @@
 # Contract transition index (RF-04 draft, inactive)
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE index; legacy body HISTORICAL** — Current wire discovery và adoption xem [API inventory](../docs/audit/DOC-AUDIT-01-API.md) và [source-of-truth index](../docs/audit/DOC-AUDIT-01-DOCUMENT-INDEX.md). Local Huy/Anh contracts áp dụng đúng scopes đã assigned; phần RF-04 bên dưới là HISTORICAL comparison, không phải số operation/auth/storage hiện tại. V2 YAML/FE snapshot chưa là production contract; hash lock mismatch được ghi G06, không tự cập nhật lock.
+
 Current owner-assigned final integration adoption is tracked in [HUY final local contract](http/huy-final.local-contract.md); only its implemented, evidenced package surfaces are active locally.
 
 Current additive development adoption is recorded separately in

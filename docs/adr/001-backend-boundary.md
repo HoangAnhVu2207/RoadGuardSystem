@@ -1,5 +1,7 @@
 # ADR 001: Backend Architecture Boundaries, Layer Responsibilities, and Runtime Baseline
 
+> **DOC-AUDIT-01 · 2026-10-12 · ACTIVE reference with historical sections** — Accepted architecture excerpts vẫn là reference đúng phạm vi; lịch giao P1/P2/V2 và present-tense implementation cũ bên dưới là HISTORICAL. Latest assigned HUY-FINAL/persistent login, cookie method eligibility, Supervisor-global và Staff Read supersede conflicting old auth/membership/layout statements. Physical schema theo fresh owned SQL; logical DD không tự chấp nhận schema. [Authority map](../audit/DOC-AUDIT-01-DOCUMENT-INDEX.md).
+
 ## Status
 
 Accepted (2026-09-17)

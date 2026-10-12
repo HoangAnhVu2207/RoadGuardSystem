@@ -1,5 +1,7 @@
 # V2 logical state machines
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — Logical states phía dưới không phải wire enums hoặc current acceptance. Case conclusion/publication, Defect close, repair effective correction/obligation, project completion/closure/warranty tách biệt. R01 bỏ curing/traffic-opening management. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Status:** `TARGET_DOCUMENTED`; names are logical until mapped to current enums/contracts. Current enum/source evidence remains in the code map and must not be renamed by this document.
 
 | Machine | States | Key transitions and authority |

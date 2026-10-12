@@ -1,5 +1,7 @@
 # ROADGUARD — FUNCTIONAL REQUIREMENTS DOCUMENT / SOFTWARE REQUIREMENTS SPECIFICATION
 
+> **DOC-AUDIT-01 · 2026-10-12 · PROPOSED body; current reconciliation ACTIVE** — FR/BR/UC trong R3 là HISTORICAL requirement references trừ accepted excerpts được confirmed32–44/latest R01–R30/specs dẫn nguồn. Không coi cả bộ là authority để thêm endpoint hoặc schema. Current evidence: [audit matrix](../../../audit/DOC-AUDIT-01-MATRIX.md), [data mapping](../../../backend/data/audited-data-model.md), [API inventory](../../../audit/DOC-AUDIT-01-API.md). Phần gốc được giữ để truy vết, chỉ áp dụng khi không mâu thuẫn nguồn mới.
+
 **Phiên bản:** FRD-SRS-2026-09-26-R1 — bản đặc tả mục tiêu để rà soát.  
 **Ngày nghiên cứu công nghệ:** 26/09/2026. **Không xác nhận đã triển khai hoặc benchmark.**
 

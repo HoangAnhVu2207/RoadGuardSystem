@@ -1,3 +1,5 @@
+> **October 2026 alignment:** This page contains the RF-04 historical checkout and plan, **not** the current implementation inventory. See [runtime alignment audit (2026-10-12)](runtime-alignment-2026-10-12.md) for source-observed Report/Case, processing, repair and offline routes on `develop`. Its historical statements such as '17 controllers / 57 actions', 'target actions absent' and 'offline primitives only' must not be reused as present-tense claims.
+
 # RoadGuard backend draft: source facts and proposed boundaries
 
 [Current isolated SQL data baseline](data/README.md) (RF-06A) maps model, snapshot, migrated catalog, ERD and dictionary. It is current-checkout evidence, not a target or deployed-schema assertion.

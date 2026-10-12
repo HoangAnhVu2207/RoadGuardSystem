@@ -1,3 +1,5 @@
+> **Current source status, 2026-10-12:** This R3/V2 package is a design and proposal snapshot. Several Report/Case, repair and offline endpoints now exist in the `develop` backend. For concrete source evidence, CI limits and unverified integration gates, consult [backend runtime alignment](../../backend/runtime-alignment-2026-10-12.md). Do not infer either 'not implemented' or 'production ready' solely from this package's historical FE-GAP and proposed OpenAPI labels.
+
 # RoadGuard — Hướng dẫn tài liệu cho Backend, Frontend và QA
 
 **Phiên bản bộ tài liệu:** R3 + BA/Tech Supplement v1 + FE-R3-v1  

@@ -1,3 +1,5 @@
+> **Historical snapshot (2026-09-28):** The `CURRENT_VERIFIED` labels below refer **only** to the 2026-09-28 audited source, not the 2026-10-12 `develop` checkout. The repository now contains `20261008171739_BaselineCurrentSchema.cs` for **new isolated dev/test databases**. See [current data baseline](../../../backend/data/README.md) and [2026-10-12 runtime alignment](../../../backend/runtime-alignment-2026-10-12.md). Do not use the old missing-DbSet rows as evidence that Report/Case, repair or offline implementation is still absent.
+
 # V2 data model to code map
 
 **Audit date:** 2026-09-28. **Purpose:** current-source evidence versus documented target. This is not a migration plan or deployment report.

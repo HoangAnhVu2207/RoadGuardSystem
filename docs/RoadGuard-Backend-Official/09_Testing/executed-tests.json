@@ -1,0 +1,577 @@
+{
+  "sourceBaseline": "cdeb1ca1037744d06995058af13d0582f6273c0a",
+  "command": "dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --no-restore --filter FullyQualifiedName~StaffMembershipReadHttpTests|FullyQualifiedName~ProjectListTests|FullyQualifiedName~SupervisorGlobalAuthorityHttpTests|FullyQualifiedName~V2AccountFlowTests|FullyQualifiedName~ManualSwaggerContractTests|FullyQualifiedName~AuthenticationOpenApiTests --results-directory <external>/results --logger trx;LogFileName=api-contracts.trx",
+  "counts": {
+    "total": "92",
+    "executed": "92",
+    "passed": "91",
+    "failed": "1",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "trxSha256": "6ad57bc6ec7734ce05c22b574cb84fea05a4ae70605295067c8c70590377b3e5",
+  "results": [
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: Rejected, visible: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "DefaultLimitAndClientSelectorsCannotWidenScope",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.DefaultLimitAndClientSelectorsCannotWidenScope"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: Cancelled, visible: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "PmNonPrimaryMembershipIsVisibleAndReassignmentUsesCurrentMembership",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.PmNonPrimaryMembershipIsVisibleAndReassignmentUsesCurrentMembership"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "SupervisorDirectoryExcludesReporterByDefaultAndContactDetailStaysPrivate",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.SupervisorDirectoryExcludesReporterByDefaultAndContactDetailStaysPrivate"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "InvalidQueryUsesProblemResponse",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.InvalidQueryUsesProblemResponse(query: \"status=INVALID\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "InvalidPrimaryNeverFallsBackToStaleAccountOrMembership",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.InvalidPrimaryNeverFallsBackToStaleAccountOrMembership(condition: \"future\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.SupervisorGlobalAuthorityHttpTests",
+      "method": "GlobalSupervisorInboxStillReadsOnlyOwnRecipientAndDoesNotBroadcast",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.SupervisorGlobalAuthorityHttpTests.GlobalSupervisorInboxStillReadsOnlyOwnRecipientAndDoesNotBroadcast"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "InvalidQueryUsesProblemResponse",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.InvalidQueryUsesProblemResponse(query: \"status=2\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "InvalidPrimaryNeverFallsBackToStaleAccountOrMembership",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.InvalidPrimaryNeverFallsBackToStaleAccountOrMembership(condition: \"role-mismatch\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: SupplementRequired, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "SourceValidatedRequestPropertiesAndQueryConstraintsAreExposed",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.SourceValidatedRequestPropertiesAndQueryConstraintsAreExposed"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "PaginationFiltersBeforeLimitDoesNotDuplicateOrExposeHiddenProjects",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.PaginationFiltersBeforeLimitDoesNotDuplicateOrExposeHiddenProjects(role: DroneOperator)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "SupervisorListsAllMatchingProjectsIncludingClosedWithoutMembership",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.SupervisorListsAllMatchingProjectsIncludingClosedWithoutMembership"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "CursorPagingIsStableFilterBoundAndValidatedBeforeSqlPaging",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.CursorPagingIsStableFilterBoundAndValidatedBeforeSqlPaging"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "MembershipChangesAfterLoginApplyToEveryRequest",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.MembershipChangesAfterLoginApplyToEveryRequest(role: ProjectManager)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: NewAssigned, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: SupplementRequired, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests",
+      "method": "ResetPasswordV2_UsesProvidedSecretWithoutEchoAndRevokesSessions",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests.ResetPasswordV2_UsesProvidedSecretWithoutEchoAndRevokesSessions"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "InvalidQueryUsesProblemResponse",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.InvalidQueryUsesProblemResponse(query: \"limit=0\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: InProgress, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "TaskAndMembershipAreBothRequired",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.TaskAndMembershipAreBothRequired(role: RepairCrew, membership: False, task: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "ExistingPmReassignmentImmediatelyChangesListAndPrimaryProjection",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.ExistingPmReassignmentImmediatelyChangesListAndPrimaryProjection"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: Submitted, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "DeclinedAssignmentCannotGrantScope",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.DeclinedAssignmentCannotGrantScope(role: RepairCrew)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask(condition: \"item-cancelled\", visible: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "CookieOnlyAndAiCallbackNeverAdvertiseHumanBearer",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.CookieOnlyAndAiCallbackNeverAdvertiseHumanBearer"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "SearchMatchesNameAndLiteralWildcardAndOversizedInputsAreRejected",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.SearchMatchesNameAndLiteralWildcardAndOversizedInputsAreRejected"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "AiCallbackPublishesOnlySourceValidatedConstraintsAndClaim",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.AiCallbackPublishesOnlySourceValidatedConstraintsAndClaim"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.SupervisorGlobalAuthorityHttpTests",
+      "method": "ActualWebLoginCookieAndBearerListProjectsWithoutMembershipAndNoAuthIsDenied",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.SupervisorGlobalAuthorityHttpTests.ActualWebLoginCookieAndBearerListProjectsWithoutMembershipAndNoAuthIsDenied"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "MembershipDateBoundaryUsesTimeProviderUtcAndBusinessRowsRemainUnchanged",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.MembershipDateBoundaryUsesTimeProviderUtcAndBusinessRowsRemainUnchanged"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "ReassignedHistoryCannotGrantScopeButAnotherCurrentTaskCan",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.ReassignedHistoryCannotGrantScopeButAnotherCurrentTaskCan(role: DroneOperator)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask(condition: \"crew-replaced\", visible: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "InvalidQueryUsesProblemResponse",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.InvalidQueryUsesProblemResponse(query: \"limit=abc\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "OnlyRequiredCookieFlowsExposeCsrfAsAManualInput",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.OnlyRequiredCookieFlowsExposeCsrfAsAManualInput"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: Accepted, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: Reassigned, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "PaginationFiltersBeforeLimitDoesNotDuplicateOrExposeHiddenProjects",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.PaginationFiltersBeforeLimitDoesNotDuplicateOrExposeHiddenProjects(role: ProjectManager)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "UnsupportedRolesCannotReadDirectoryOrContact",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.UnsupportedRolesCannotReadDirectoryOrContact(role: Reporter)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask(condition: \"current\", visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "PreviewAndBodylessAuthRetainTheirActualNegativeControls",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.PreviewAndBodylessAuthRetainTheirActualNegativeControls"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "EveryProductionOperationMatchesIndependentSourceAudit",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.EveryProductionOperationMatchesIndependentSourceAudit"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "UnsupportedRolesCannotReadDirectoryOrContact",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.UnsupportedRolesCannotReadDirectoryOrContact(role: RepairCrew)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: Accepted, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "DirectoryIncludesNonActiveStaffAndCurrentRoleRevocationDeniesOldSession",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.DirectoryIncludesNonActiveStaffAndCurrentRoleRevocationDeniesOldSession"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: Postponed, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: Submitted, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "PaginationFiltersBeforeLimitDoesNotDuplicateOrExposeHiddenProjects",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.PaginationFiltersBeforeLimitDoesNotDuplicateOrExposeHiddenProjects(role: RepairCrew)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: Completed, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "PrimaryPmReadVersionDrivesExistingReassignmentAndStalePutConflicts",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.PrimaryPmReadVersionDrivesExistingReassignmentAndStalePutConflicts"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "ProductionInventoryAndEvidenceExcerptsMatchCurrentSource",
+      "outcome": "Failed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.ProductionInventoryAndEvidenceExcerptsMatchCurrentSource"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests",
+      "method": "UpdateMe_WithMatchingEtag_PersistsDisplayNameAndReplays",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests.UpdateMe_WithMatchingEtag_PersistsDisplayNameAndReplays"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "InvalidQueryUsesProblemResponse",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.InvalidQueryUsesProblemResponse(query: \"cursor=broken\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.NativeRepairRequiresCurrentItemBindingEvenWithCompletedTask(condition: \"binding-ended\", visible: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "UnsupportedRolesCannotReadDirectoryOrContact",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.UnsupportedRolesCannotReadDirectoryOrContact(role: ProjectManager)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests",
+      "method": "GetMe_ReturnsActorProjectionForCurrentUser",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests.GetMe_ReturnsActorProjectionForCurrentUser"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests",
+      "method": "GetAccount_SupervisorReturnsActorAndEtag_NonSupervisorIsForbidden",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests.GetAccount_SupervisorReturnsActorAndEtag_NonSupervisorIsForbidden"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "RequiredSourceValidatedFieldsAreNonNullableThroughoutTheRequestGraph",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.RequiredSourceValidatedFieldsAreNonNullableThroughoutTheRequestGraph"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "ReassignedHistoryCannotGrantScopeButAnotherCurrentTaskCan",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.ReassignedHistoryCannotGrantScopeButAnotherCurrentTaskCan(role: RepairCrew)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "CaseTriageExposesAllRequiredManualInputsAndProducedVersion",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.CaseTriageExposesAllRequiredManualInputsAndProducedVersion"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "CorrelationIdIsDocumentedOnlyAsAResponseHeader",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.CorrelationIdIsDocumentedOnlyAsAResponseHeader"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "TaskAndMembershipAreBothRequired",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.TaskAndMembershipAreBothRequired(role: RepairCrew, membership: True, task: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "SupervisorCanDiscoverProjectsCreatedByDifferentSupervisors",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.SupervisorCanDiscoverProjectsCreatedByDifferentSupervisors"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "TaskAndMembershipAreBothRequired",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.TaskAndMembershipAreBothRequired(role: DroneOperator, membership: True, task: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "InvalidQueryUsesProblemResponse",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.InvalidQueryUsesProblemResponse(query: \"limit=101\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "TaskAndMembershipAreBothRequired",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.TaskAndMembershipAreBothRequired(role: DroneOperator, membership: False, task: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "InvalidQueryUsesProblemResponse",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.InvalidQueryUsesProblemResponse(query: \"cursor=MHwwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDA\"···)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: Cancelled, visible: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.AuthenticationOpenApiTests",
+      "method": "OpenApi_AuthenticationContracts_DoNotExposePersistenceEntitiesOrSecureAnonymousRoutes",
+      "outcome": "Passed",
+      "testName": "V2-P1-001..005: OpenAPI exposes all five authentication contracts"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "AccountAndSessionChangesAreEnforcedBeforeList",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.AccountAndSessionChangesAreEnforcedBeforeList(change: \"suspended\", expected: Unauthorized)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.SupervisorGlobalAuthorityHttpTests",
+      "method": "SupervisorReadsForeignProjectSurfacesButCannotExecutePmCommandAndSuspensionDeniesSession",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.SupervisorGlobalAuthorityHttpTests.SupervisorReadsForeignProjectSurfacesButCannotExecutePmCommandAndSuspensionDeniesSession"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "InvalidPrimaryNeverFallsBackToStaleAccountOrMembership",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.InvalidPrimaryNeverFallsBackToStaleAccountOrMembership(condition: \"suspended\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "InvalidPrimaryNeverFallsBackToStaleAccountOrMembership",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.InvalidPrimaryNeverFallsBackToStaleAccountOrMembership(condition: \"ended\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: Completed, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "OperatorCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.OperatorCurrentAssignmentTaskStatesIncludeCompleted(status: Rejected, visible: False)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "MembershipChangesAfterLoginApplyToEveryRequest",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.MembershipChangesAfterLoginApplyToEveryRequest(role: DroneOperator)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "ScopedPmUsesActualCookieForProjectReadsWithoutContactOrHistoryAccess",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.ScopedPmUsesActualCookieForProjectReadsWithoutContactOrHistoryAccess"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "UnsupportedRolesCannotReadDirectoryOrContact",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.UnsupportedRolesCannotReadDirectoryOrContact(role: DroneOperator)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "AccountAndSessionChangesAreEnforcedBeforeList",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.AccountAndSessionChangesAreEnforcedBeforeList(change: \"revoked\", expected: Unauthorized)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "RosterFiltersCurrentFactsAndHistoryPreservesMembershipIdentityAndVersions",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.RosterFiltersCurrentFactsAndHistoryPreservesMembershipIdentityAndVersions"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "InvalidPrimaryNeverFallsBackToStaleAccountOrMembership",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.InvalidPrimaryNeverFallsBackToStaleAccountOrMembership(condition: \"expired\")"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "AccountAndSessionChangesAreEnforcedBeforeList",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.AccountAndSessionChangesAreEnforcedBeforeList(change: \"role-changed\", expected: Unauthorized)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "DeclinedAssignmentCannotGrantScope",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.DeclinedAssignmentCannotGrantScope(role: DroneOperator)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "RealWebCookieAndBearerSupportAllReadsAndRevokedSessionsFail",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.RealWebCookieAndBearerSupportAllReadsAndRevokedSessionsFail"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests",
+      "method": "PmScopeUsesCurrentEffectiveMembershipAndCurrentAccountOnEveryRequest",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.StaffMembershipReadHttpTests.PmScopeUsesCurrentEffectiveMembershipAndCurrentAccountOnEveryRequest"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests",
+      "method": "UpdateAccount_WithMatchingEtag_ChangesRoleAndStatusAndRevokesSessions",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Identity.V2AccountFlowTests.UpdateAccount_WithMatchingEtag_ChangesRoleAndStatusAndRevokesSessions"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: InProgress, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "AnonymousReporterAndEmptyAllowedScopeFollowExistingPipeline",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.AnonymousReporterAndEmptyAllowedScopeFollowExistingPipeline"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "CrewCurrentAssignmentTaskStatesIncludeCompleted",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.CrewCurrentAssignmentTaskStatesIncludeCompleted(status: NewAssigned, visible: True)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "MembershipChangesAfterLoginApplyToEveryRequest",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.MembershipChangesAfterLoginApplyToEveryRequest(role: RepairCrew)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Projects.ProjectListTests",
+      "method": "AccountAndSessionChangesAreEnforcedBeforeList",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Projects.ProjectListTests.AccountAndSessionChangesAreEnforcedBeforeList(change: \"forced-password\", expected: Forbidden)"
+    },
+    {
+      "class": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests",
+      "method": "VisibleDescriptionsStayConciseWithoutAuditNarrative",
+      "outcome": "Passed",
+      "testName": "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.VisibleDescriptionsStayConciseWithoutAuditNarrative"
+    }
+  ]
+}

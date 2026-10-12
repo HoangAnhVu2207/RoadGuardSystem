@@ -1,0 +1,75 @@
+{
+  "baseline": "cdeb1ca1037744d06995058af13d0582f6273c0a",
+  "qualityGates": {
+    "QG-01": "PASS",
+    "QG-02": "PASS",
+    "QG-03": "PASS",
+    "QG-04": "PASS",
+    "QG-05": "PASS",
+    "QG-06": "PASS",
+    "QG-07": "PASS",
+    "QG-08": "PASS",
+    "QG-09": "PASS",
+    "QG-10": "PASS",
+    "QG-11": "PASS"
+  },
+  "scope": "Documentation coverage/structural source traceability, not every business path executed",
+  "files": 70,
+  "markdownFiles": 59,
+  "jsonFiles": 8,
+  "requiredFiles": 59,
+  "localLinksChecked": 17703,
+  "linkErrors": [],
+  "openapiValidator": "openapi-spec-validator0.7.2/OpenAPIV30SpecValidator",
+  "openapiOperations": 241,
+  "openapiSchemas": 357,
+  "operationIdsAbsent": 241,
+  "operationIdsDuplicate": 0,
+  "entities": 196,
+  "tables": 191,
+  "columns": 1940,
+  "foreignKeys": "662 CLR relationship declarations;657 fresh EF-relational +5 migration SQL-only physical definitions",
+  "sourceFingerprintsVerified": 1334,
+  "sourceUntouched": true,
+  "build": {
+    "status": "PASS",
+    "errors": 0,
+    "warnings": 222,
+    "analyzers": "enabled"
+  },
+  "freshTests": {
+    "total": 92,
+    "passed": 91,
+    "failed": 1,
+    "skipped": 0,
+    "status": "FAIL",
+    "reason": "ManualSwaggerContractTests stale SWG014 source excerpt"
+  },
+  "historicalAuditTests": {
+    "total": 381,
+    "passed": 380,
+    "failed": 1,
+    "status": "HISTORICAL source identity revalidated; not fresh"
+  },
+  "LIVE_SQL_VERIFIED": "NOT_RUN",
+  "externalE2E": "NOT_RUN",
+  "externalURLsHeadingAnchorsAndMermaidRender": "NOT_RUN",
+  "peerReview": "Internal source review performed, no external ChatGPT/GitHub review",
+  "relationalModel": {
+    "tables": 191,
+    "columns": 1940,
+    "foreignKeys": 657,
+    "keys": 219,
+    "indexes": 692,
+    "checks": 229
+  },
+  "migrationDerivedPhysicalModel": {
+    "foreignKeys": 662,
+    "keys": 219,
+    "indexes": 693,
+    "checks": 229,
+    "triggers": 189,
+    "status": "Source plus historical isolated SQL evidence revalidated; LIVE_SQL_VERIFIED NOT_RUN"
+  },
+  "credentialScan": "No private keys/JWT/connection credentials; regex matches inspected as schema/property/source expressions"
+}

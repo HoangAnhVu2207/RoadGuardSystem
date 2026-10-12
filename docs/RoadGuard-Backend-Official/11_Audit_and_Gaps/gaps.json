@@ -1,0 +1,152 @@
+[
+  {
+    "id": "G01",
+    "priority": "P1",
+    "evidence": "CURRENT_VERIFIED source limitation",
+    "flow": "Matching vị trí/accuracy/image",
+    "source": "PR-33A; `CandidateMatchingService.cs:88–90` luôn truyền distance=null và metricGpsAvailable=false; matcher chỉ scope/neighbor/history hiện tại.",
+    "status": "PARTIALLY_IMPLEMENTED",
+    "minimalProposal": "Không khẳng định matching GPS/accuracy/image đã hoàn thiện. Bounded follow-up nối facts/method được chấp nhận và test đủ/missing GPS; không tự đặt threshold/recall.",
+    "owner": "Anh + owner matching facts"
+  },
+  {
+    "id": "G02",
+    "priority": "P1",
+    "evidence": "CURRENT_VERIFIED source limitation; exploit NOT_VERIFIED",
+    "flow": "Compatibility AI callback",
+    "source": "`ProcessingV2PersistenceService.cs:117–148`: check attempt thuộc job, manifest/model/mode/raw file nhưng không active/latest fence; project receipt fingerprint chỉ detections+checksum, thiếu job/attempt/manifest/model/mode. PR44/assigned boundary không chấp nhận live provider từ mock.",
+    "status": "PARTIALLY_IMPLEMENTED",
+    "minimalProposal": "Tách ANH02 mock fence khỏi legacy path. Owner-approved provider/callback compatibility design và late/out-of-order/key-target tests trước live integration; không sửa wire/source trong audit.",
+    "owner": "Anh + external AI/owner compatibility"
+  },
+  {
+    "id": "G03",
+    "priority": "P1",
+    "evidence": "PROPOSED risk; NOT reproduced",
+    "flow": "Reporter download authority-change race",
+    "source": "`ReporterEvidenceService.cs:160–183` kiểm metadata/current owner trước await storage.OpenFileAsync, trả stream không post-open authority/pin recheck. R29 current protected access; FIELD newer flow rechecks.",
+    "status": "NOT_VERIFIED",
+    "minimalProposal": "Targeted delayed-open race verification trước kết luận bug; nếu tái hiện, bounded recheck/dispose fix. Existing owner/privacy tests không chứng minh cửa sổ race.",
+    "owner": "Huy + privacy/security review"
+  },
+  {
+    "id": "G04",
+    "priority": "P2",
+    "evidence": "CURRENT_VERIFIED source gap",
+    "flow": "R03 FT-final Supervisor information",
+    "source": "`RepairWorkflowRepository.Producing.cs:33–88` ConfirmFinalAsync chỉ decision/obligation/audit/save; `RepairWork.cs:346–356` không producer. H6 adapter259–260 returns PENDING_PRODUCER. Catalog đăng ký không là fan-out.",
+    "status": "PARTIALLY_IMPLEMENTED",
+    "minimalProposal": "Đề xuất Huy bổ sung transaction-bound final-decision producer + immutable source adapter proof + đúng recipient/dedup/rollback/replay tests. Không thêm Supervisor FT approval hoặc broadcast mọi Supervisor.",
+    "owner": "Huy notification producer"
+  },
+  {
+    "id": "G05",
+    "priority": "P2",
+    "evidence": "TARGET_CONFIRMED localized feature gate",
+    "flow": "FIELD/DRONE pre-Defect case conclusion",
+    "source": "`CaseWorkflowRepository.cs:150–152` source_not_ready cho FIELD/DRONE final conclusion; HUY R10:689–694 tách task pre-Defect chưa assigned; ExistingEvidence/NeedsEvidence và publication đã có.",
+    "status": "PARTIALLY_IMPLEMENTED",
+    "minimalProposal": "Docs ghi đúng phạm vi đã giải quyết; chỉ assigned producer follow-up mới hoàn thiện nhánh này. Không tạo Defect/Survey giả để pass.",
+    "owner": "Owner + assigned case/task producer"
+  },
+  {
+    "id": "G06",
+    "priority": "P1",
+    "evidence": "CURRENT_VERIFIED static check FAIL",
+    "flow": "V2/FE contract lock drift",
+    "source": "YAML=FE snapshot hash ada7f48f522c0c0dbdace21f483224a00fc4c76264a9a61d12f3e2211ecce665; lock dd991f20c9a27a564bf37c06bba63776424b770f3abfa54ec2bef9d1a1e678bd. check_contracts.py và validate_package.py exit1.",
+    "status": "CONTRACT_PROPOSED",
+    "minimalProposal": "Review source/snapshot/consumer delta trước approved lock update. Không auto-lock/generate wire để làm xanh audit. Draft chưa được adopted thành241-operation runtime contract.",
+    "owner": "FE/contract owner"
+  },
+  {
+    "id": "G07",
+    "priority": "P2",
+    "evidence": "CURRENT_VERIFIED focused test FAIL",
+    "flow": "Swagger evidence excerpts stale",
+    "source": "ManualSwaggerContractTests.ProductionInventoryAndEvidenceExcerptsMatchCurrentSource FAIL. Independent static scan 11 stale/2533 unique excerpts, trong9 files sau changes Supervisor/global/account. Route expectations237 vẫn subset đúng, actual production241.",
+    "status": "NOT_VERIFIED",
+    "minimalProposal": "Bounded test/embedded evidence maintenance cần source-scope assignment; docs audit không sửa tests/API source JSON. Ghi fail tách khỏi passing auth/directory tests.",
+    "owner": "Backend Swagger evidence maintainer"
+  },
+  {
+    "id": "G08",
+    "priority": "P2",
+    "evidence": "CURRENT_VERIFIED link scan",
+    "flow": "Legacy/proposed references không resolve",
+    "source": "Full document link scan thấy references cũ trỏ files đã di chuyển/không có; inventory CSV ghi từng file và missing target. New audit links phải resolve.",
+    "status": "HISTORICAL",
+    "minimalProposal": "Không sửa preserved snapshots. ACTIVE entrypoints dẫn nguồn mới; refs trong PROPOSED body phải resolve/được review trước consumer adoption. Full historical-link scan giữ FAIL được giải thích.",
+    "owner": "Documentation owner (historical refs)"
+  },
+  {
+    "id": "G09",
+    "priority": "P2",
+    "evidence": "CURRENT_VERIFIED outside editable scope",
+    "flow": "Module guidance stale",
+    "source": "`.agents/modules/README.md` reporter/repair/offline rows vẫn nói absence/RF-only routing, trái current controllers.",
+    "status": "HISTORICAL",
+    "minimalProposal": "Ghi stale guidance, active docs dẫn source mới. Đề xuất cập nhật module map ở owner-assigned guidance scope sau; task này chỉ docs/contracts/planning, không đổi AGENTS/rules.",
+    "owner": "Owner/repository guidance maintainer"
+  },
+  {
+    "id": "E01",
+    "priority": "P1",
+    "evidence": "PENDING_ENVIRONMENT_E2E",
+    "flow": "Live FastAPI/video/model/provider",
+    "source": "BE↔FastAPI protocol/adoption, real model video detections/late callbacks, artifacts/model provenance chưa có live execution. Synthetic worker test chỉ BE/mock.",
+    "status": "PENDING_ENVIRONMENT_E2E",
+    "minimalProposal": "Giữ feature trong scope; integration fixtures + actual provider/consumer acceptance theo PR44. Không xóa AI khỏi scope hoặc claim measured accuracy.",
+    "owner": "External FastAPI + BE integration owner"
+  },
+  {
+    "id": "E02",
+    "priority": "P1",
+    "evidence": "PENDING_ENVIRONMENT_E2E",
+    "flow": "Android offline/restart/keys",
+    "source": "Actual device durable queue qua kill/reboot/update/storage-full/camera failure/background/network, decrypt/import, key custody và no deletion before durable ACK chưa chạy.",
+    "status": "PENDING_ENVIRONMENT_E2E",
+    "minimalProposal": "Android owner chạy interoperability/device scenarios theo R20–R22/R29/R30/PR42A/43A; BE receipts và crypto fixture không thay thế.",
+    "owner": "External Android + BE offline owner"
+  },
+  {
+    "id": "E03",
+    "priority": "P1",
+    "evidence": "PENDING_ENVIRONMENT_E2E",
+    "flow": "Real storage/email/browser/proxy",
+    "source": "Live MinIO multipart/8GiB transfer/resume/checksum, real email OTP và actual browser cookie/TLS/proxy/keyring/replica restart chưa chạy.",
+    "status": "PENDING_ENVIRONMENT_E2E",
+    "minimalProposal": "Test isolated production-like integration sau khi được môi trường; không sửa seed/sharedDB hoặc gọi real mail để chứng minh trong audit.",
+    "owner": "Operations + storage/email/Web owner"
+  },
+  {
+    "id": "E04",
+    "priority": "P1",
+    "evidence": "TARGET_CONFIRMED localized source/accuracy gates",
+    "flow": "Official GIS/coverage/warranty/statistics facts",
+    "source": "H2 official CRS/control points/tolerance, executable mapped handover/coverage/warranty sources và public-period formulas/real source acceptance vẫn localized gates trong HUY spec. Source commands/readers đã có, sampleOnly/TEST_ONLY không là acceptance.",
+    "status": "NOT_VERIFIED",
+    "minimalProposal": "Owner/source provider bổ sung đúng authoritative facts và independent accuracy/coverage/formula acceptance. Không đoán số hoặc loại geometry/coverage khỏi scope.",
+    "owner": "Owner/GIS/source-data authority"
+  },
+  {
+    "id": "E05",
+    "priority": "P1",
+    "evidence": "Approved targets; NOT_VERIFIED",
+    "flow": "Performance/RPO/RTO/deployed operations",
+    "source": "PR40 50 concurrent/p95≤2s/RPO≤15min/RTO≤4h chưa benchmark/restore drill tại baseline; worker topology/deployment chưa được kiểm.",
+    "status": "NOT_VERIFIED",
+    "minimalProposal": "Representative workload + timed consistent SQL/object/keyring restore + operational smoke. Local build/tests không chứng nhận SLO/release.",
+    "owner": "Operations/QA performance and recovery"
+  },
+  {
+    "id": "G10",
+    "priority": "P2",
+    "evidence": "CURRENT_VERIFIED internal mismatch; business acceptance UNKNOWN",
+    "flow": "Survey supplementary dataset state",
+    "source": "SurveyRequest.MarkSupplementRequired:129–137 and MarkSubmitted:140–148 permit SupplementRequired, but SurveyV2PersistenceService.Dataset.SubmitDatasetAsync:54–58 accepts only Accepted/InProgress before MarkSubmitted:135. No owner decision establishes the missing branch as accepted requirement.",
+    "status": "NEEDS_BUSINESS_DECISION",
+    "minimalProposal": "Owner/Anh clarify supported supplemental lifecycle; then minimal repository admission/state/tests change if authorized. No Backend change in documentation task.",
+    "owner": "Owner + Anh survey"
+  }
+]

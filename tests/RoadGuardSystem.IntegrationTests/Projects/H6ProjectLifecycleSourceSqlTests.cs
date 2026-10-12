@@ -32,6 +32,7 @@ public sealed class H6ProjectLifecycleSourceSqlTests(IdentitySqlServerFixture sq
     {
         var source = await Seed(); await using var db = sql.CreateDbContext();
         var closure = await ControlledClosure(db, source);
+        await db.ProjectMembers.Where(row => row.UserId == source.Actor).ExecuteDeleteAsync();
         var repository = new ProjectLifecycleRepository(db, TimeProvider.System);
         var original = await repository.ReadAsync(source.Actor, source.Project, default); Assert.NotNull(original);
         var command = new ProjectRenewedHandlingCommand(source.Actor, UserRoleCode.Supervisor, source.Project,
@@ -46,8 +47,8 @@ public sealed class H6ProjectLifecycleSourceSqlTests(IdentitySqlServerFixture sq
         var replay = await repository.RenewAsync(command, default); Assert.Equal(200, replay.Status); Assert.Equal(created.Value.Version, replay.Value!.Version);
         var conflict = await repository.RenewAsync(command with { Input = command.Input with { Reason = "different reason" } }, default);
         Assert.Equal(409, conflict.Status); Assert.Equal("idempotency_key_reused", conflict.Code);
-        await db.ProjectMembers.Where(row => row.UserId == source.Actor && row.ProjectId == source.Project)
-            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
+        await db.Users.Where(row => row.Id == source.Actor)
+            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, UserStatus.Suspended));
         Assert.Equal(403, (await repository.RenewAsync(command, default)).Status);
         Assert.Equal(403, (await repository.RenewAsync(command with { Input = command.Input with { Reason = "another reason" } }, default)).Status);
         Assert.Equal(2, await db.Set<ProjectLifecycleHistoryRecord>().CountAsync(row => row.ProjectId == source.Project));
@@ -144,13 +145,13 @@ public sealed class H6ProjectLifecycleSourceSqlTests(IdentitySqlServerFixture sq
     }
 
     [Fact]
-    public async Task CurrentReadAuthorityIsRecheckedAfterMembershipRevocation()
+    public async Task CurrentReadAuthorityIsRecheckedAfterAccountSuspension()
     {
         var source = await Seed(); await using var db = sql.CreateDbContext();
         var repository = new ProjectLifecycleRepository(db, TimeProvider.System);
         Assert.NotNull(await repository.ReadAsync(source.Actor, source.Project, default));
-        await db.ProjectMembers.Where(row => row.UserId == source.Actor && row.ProjectId == source.Project)
-            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
+        await db.Users.Where(row => row.Id == source.Actor)
+            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, UserStatus.Suspended));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => repository.ReadAsync(source.Actor, source.Project, default));
     }
 

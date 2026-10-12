@@ -88,8 +88,8 @@ public sealed class H6ProjectLifecycleHttpTests(AuthenticationSqlServerFixture f
         var denial = await client.PostAsJsonAsync(path + "/renewed-handling-scope", new RenewedHandlingScopeInput(closure.Id, "renewed", "scope", "candidate basis"));
         Assert.Equal(HttpStatusCode.Conflict, denial.StatusCode);
         Assert.Equal("operational_closure_source_unavailable", (await denial.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
-        await db.ProjectMembers.Where(row => row.Id == member.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path)).StatusCode);
+        await db.Users.Where(row => row.Id == actor.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, UserStatus.Suspended));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(path)).StatusCode);
         Assert.Single(await db.Set<ProjectLifecycleHistoryRecord>().Where(row => row.ProjectId == project.Id).ToArrayAsync());
         Assert.False(await db.IdempotencyRecords.AnyAsync(row => row.ActorUserId == actor.Id));
     }

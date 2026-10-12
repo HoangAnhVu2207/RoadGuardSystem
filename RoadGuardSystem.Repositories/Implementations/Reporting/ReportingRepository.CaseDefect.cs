@@ -21,12 +21,13 @@ public sealed partial class ReportingRepository
         if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor))
             throw new UnauthorizedAccessException("Only project PM or Supervisor dossier readers are supported.");
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var authorized = await db.Users.AsNoTracking().AnyAsync(u =>
+        var authorized = await db.Projects.AsNoTracking().AnyAsync(p => p.Id == projectId, cancellationToken)
+            && await db.Users.AsNoTracking().AnyAsync(u =>
             u.Id == actorId && u.Status == UserStatus.Active && u.RoleCode == role && !u.MustChangePassword &&
             db.Roles.Any(r => r.Code == u.RoleCode && r.IsActive), cancellationToken)
-            && await db.ProjectMembers.AsNoTracking().AnyAsync(m => m.UserId == actorId && m.ProjectId == projectId &&
+            && (role == UserRoleCode.Supervisor || await db.ProjectMembers.AsNoTracking().AnyAsync(m => m.UserId == actorId && m.ProjectId == projectId &&
                 m.RoleCode == role && m.Status == ProjectMemberStatus.Active && m.ValidFrom <= today &&
-                (m.ValidTo == null || m.ValidTo >= today), cancellationToken);
+                (m.ValidTo == null || m.ValidTo >= today), cancellationToken));
         if (!authorized) throw new UnauthorizedAccessException("The actor is not authorized for this project.");
 
         var casesQuery = db.IncidentCases.AsNoTracking().Where(c => c.ProjectId == projectId);

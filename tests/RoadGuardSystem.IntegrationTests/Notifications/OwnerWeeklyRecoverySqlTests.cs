@@ -48,7 +48,8 @@ public sealed class OwnerWeeklyRecoverySqlTests(IdentitySqlServerFixture sql) : 
         var duty = await db.Set<DeadlineClock>().SingleAsync(c => c.Id == seed.Clock);
         await db.ProjectMembers.Where(m => m.ProjectId == duty.ProjectId && m.UserId == seed.Manager)
             .ExecuteUpdateAsync(m => m.SetProperty(x => x.Status, ProjectMemberStatus.Ended));
-        var time = new FixedClock(Monday.AddMinutes(2));
+        // Intake uses the real server clock; recover after its next weekly boundary.
+        var time = new FixedClock(NotificationCalendarPolicy.NextWeeklyReview(duty.OriginAt).AddMinutes(2));
         var dispatcher = new H6NotificationDispatchRepository(db, time);
         await dispatcher.ObserveCalendarAsync(Guid.NewGuid(), null, default);
         var digest = await db.Set<WeeklyReviewDigest>().SingleAsync(d => d.ProjectId == duty.ProjectId);
@@ -189,6 +190,10 @@ public sealed class OwnerWeeklyRecoverySqlTests(IdentitySqlServerFixture sql) : 
         Assert.Equal(1, await dispatch.RetryUnresolvedAsync(default)); Assert.Equal(0, await dispatch.RetryUnresolvedAsync(default));
         Assert.Single(await db.Notifications.Where(n => n.SourceEntityId == digest.Id).ToArrayAsync());
         var read = new H6ProtectedNotificationRepository(db, new IdempotencyOperationService(db), recoveryTime, [new H6WeeklyReviewSourceAdapter(db, recoveryTime)]);
+        await db.ProjectMembers.Where(m => m.UserId == source.Supervisor).ExecuteDeleteAsync();
+        var notificationId = await db.Notifications.Where(n => n.SourceEntityId == digest.Id).Select(n => n.Id).SingleAsync();
+        Assert.NotNull(await read.GetAsync(source.Supervisor, notificationId));
+        Assert.Null(await read.GetAsync(source.Pm, notificationId));
         var persisted = await read.WeeklyDigestAsync(source.Supervisor, UserRoleCode.Supervisor, source.Project, digest.Id, default);
         Assert.NotNull(persisted); Assert.Equal(2, persisted.PendingAtRecovery.Length); Assert.Equal(4, persisted.RecoveryPeriods.Length);
         Assert.Null(await read.WeeklyDigestAsync(source.Pm, UserRoleCode.ProjectManager, source.Project, digest.Id, default));

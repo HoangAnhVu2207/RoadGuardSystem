@@ -23,9 +23,10 @@ public sealed class CurrentRepairFactsRepository(RoadGuardDbContext db, TimeProv
         var role = await db.Users.AsNoTracking().Where(user => user.Id == actor && user.Status == UserStatus.Active && !user.MustChangePassword &&
             (user.RoleCode == UserRoleCode.ProjectManager || user.RoleCode == UserRoleCode.Supervisor) &&
             db.Roles.Any(value => value.Code == user.RoleCode && value.IsActive)).Select(user => (UserRoleCode?)user.RoleCode).SingleOrDefaultAsync(token);
-        if (actor == Guid.Empty || project == Guid.Empty || role is null || !await db.ProjectMembers.AsNoTracking().AnyAsync(member =>
+        if (actor == Guid.Empty || project == Guid.Empty || role is null ||
+            !await db.Projects.AsNoTracking().AnyAsync(row => row.Id == project, token) || (role != UserRoleCode.Supervisor && !await db.ProjectMembers.AsNoTracking().AnyAsync(member =>
             member.UserId == actor && member.ProjectId == project && member.RoleCode == role && member.Status == ProjectMemberStatus.Active &&
-            member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), token))
+            member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), token)))
             throw new UnauthorizedAccessException("Current project repair reporting authority is required.");
         // Only explicit current source associations can filter repair stock by segment.
         Guid[]? allocatedObligations = null;

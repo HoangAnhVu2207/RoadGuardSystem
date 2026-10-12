@@ -35,7 +35,13 @@ public sealed class H6WeeklyReviewSourceAdapter(RoadGuardDbContext db, TimeProvi
                 AssignedProjectId = d.ProjectId,
                 ProjectId = d.ProjectId,
                 AssignedUserId = n.RecipientUserId,
-                ProjectAuthorityVerified = d.Duties.All(duty => db.ProjectMembers.Any(member =>
+                ProjectAuthorityVerified = db.Projects.Any(project => project.Id == d.ProjectId) &&
+                    db.Users.Any(user => user.Id == n.RecipientUserId &&
+                        (d.RecipientRole == UserRoleCode.Supervisor && user.RoleCode == UserRoleCode.Supervisor ||
+                         d.RecipientRole == UserRoleCode.ProjectManager && user.RoleCode == UserRoleCode.ProjectManager) &&
+                        user.Status == UserStatus.Active && !user.MustChangePassword &&
+                        db.Roles.Any(role => role.Code == user.RoleCode && role.IsActive)) &&
+                    (d.RecipientRole == UserRoleCode.Supervisor || d.Duties.All(duty => db.ProjectMembers.Any(member =>
                     member.UserId == n.RecipientUserId &&
                     (d.RecipientRole == UserRoleCode.Supervisor && member.RoleCode == UserRoleCode.Supervisor ||
                      d.RecipientRole == UserRoleCode.ProjectManager && member.RoleCode == UserRoleCode.ProjectManager) &&
@@ -45,7 +51,7 @@ public sealed class H6WeeklyReviewSourceAdapter(RoadGuardDbContext db, TimeProvi
                     member.ProjectId == ((from owner in db.Set<ObligationResponsibility>()
                                           where owner.OriginProjectId == d.ProjectId && db.RepairItems.Any(item => item.ObligationId == owner.ObligationId &&
                                               (item.Id == duty.TargetId || db.Set<RepairFieldTaskBinding>().Any(binding => binding.ItemId == item.Id && binding.TaskId == duty.TargetId)))
-                                          select (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? d.ProjectId)))
+                                          select (Guid?)owner.CurrentProjectId).FirstOrDefault() ?? d.ProjectId))))
             }));
 
     public async Task<H6SourceResolution> ResolveAsync(H6DispatchPlan plan, CancellationToken cancellationToken)

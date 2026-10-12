@@ -95,6 +95,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddScoped<IProjectScopeGuard, ProjectScopeGuard>();
         services.AddScoped<IProjectWorkPackageService, ProjectWorkPackageService>();
+        services.AddScoped<IProjectListService, ProjectListService>();
         services.AddScoped<IProjectCreationService, ProjectCreationService>();
         services.AddScoped<IProjectUpdateService, ProjectUpdateService>();
         services.AddScoped<IPrimaryProjectManagerService, PrimaryProjectManagerService>();

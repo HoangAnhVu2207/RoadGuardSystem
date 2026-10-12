@@ -45,6 +45,11 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
             Assert.Equal(source.Crew, measure.ResponsibleActorId);
             Assert.Equal(source.Safety, measure.SafetyObligationId);
             Assert.Null(measure.InstalledAt);
+            await db.ProjectMembers.Where(row => row.UserId == source.Supervisor).ExecuteDeleteAsync();
+            Assert.Equal(200, (await repository.ReadAsync(source.Supervisor, UserRoleCode.Supervisor,
+                source.Project, source.Package, source.Item, measure.Id, default)).Status);
+            Assert.Equal(404, (await repository.ReadAsync(source.Supervisor, UserRoleCode.Supervisor,
+                Guid.NewGuid(), source.Package, source.Item, measure.Id, default)).Status);
             Assert.Equal(measure.Id, Assert.IsType<SafetyFact>((await repository.CreateAsync(command, default)).Value).Id);
             Assert.Equal(1, await db.Set<RepairSafetyMonitoring>().CountAsync(row => row.SafetyObligationId == source.Safety));
             var assigned = await db.Set<RepairSafetyActionSource>().SingleAsync(row => row.MeasureId == measure.Id &&

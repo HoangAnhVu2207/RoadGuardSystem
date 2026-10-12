@@ -12,7 +12,7 @@ public sealed partial class H6ProtectedNotificationRepository
     private IQueryable<Notification> Visible(Guid actor, UserRoleCode role)
     {
         var day = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-        var projects = db.ProjectMembers.Where(member => member.UserId == actor && member.RoleCode == role &&
+        var projects = role == UserRoleCode.Supervisor ? db.Projects.Select(project => project.Id) : db.ProjectMembers.Where(member => member.UserId == actor && member.RoleCode == role &&
             member.Status == ProjectMemberStatus.Active && member.ValidFrom <= day && (!member.ValidTo.HasValue || member.ValidTo >= day))
             .Select(member => member.ProjectId);
         var generic = role is UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.DroneOperator;

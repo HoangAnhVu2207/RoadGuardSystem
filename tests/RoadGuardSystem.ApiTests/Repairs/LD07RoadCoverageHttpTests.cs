@@ -58,6 +58,7 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
         using var client = factory.CreateClient(); using var pmClient = factory.CreateClient();
         await Login(client, supervisor.Email!); await Login(pmClient, pm.Email!);
+        await db.ProjectMembers.Where(row => row.UserId == supervisor.Id).ExecuteDeleteAsync();
         var path = $"/api/v1/projects/{project.Id}/road-coverage";
         var initial = await client.GetAsync(path); Assert.Equal(HttpStatusCode.OK, initial.StatusCode);
         var view = (await initial.Content.ReadFromJsonAsync<RoadCoverageReadFact>())!;
@@ -67,7 +68,7 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
             sourcePin.Kind, file.Id, sourcePin.Version, now.AddMinutes(-1), now.AddDays(1), "TEST_ONLY", "TEST_ONLY exact source-linked HTTP confirmation");
         Assert.Equal(HttpStatusCode.PreconditionRequired, (await client.PostAsJsonAsync(path, input)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(pmClient, path, input, Guid.NewGuid().ToString(), initial.Headers.ETag!.ToString())).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/road-coverage")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/road-coverage")).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Send(client, path, input with { HandoverVersion = new string('0', 64) }, Guid.NewGuid().ToString(), initial.Headers.ETag!.ToString())).StatusCode);
         var key = Guid.NewGuid().ToString();
         var confirmed = await Send(client, path, input, key, initial.Headers.ETag!.ToString()); Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
@@ -76,8 +77,8 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         Assert.Equal(HttpStatusCode.OK, (await Send(client, path, input, key, initial.Headers.ETag.ToString())).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Send(client, path, input with { Reason = "changed" }, key, initial.Headers.ETag.ToString())).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Send(client, path, input, Guid.NewGuid().ToString(), initial.Headers.ETag.ToString())).StatusCode);
-        await db.ProjectMembers.Where(row => row.Id == member.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
-        Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, path, input, key, initial.Headers.ETag.ToString())).StatusCode);
+        await db.Users.Where(row => row.Id == supervisor.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, UserStatus.Suspended));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Send(client, path, input, key, initial.Headers.ETag.ToString())).StatusCode);
         Assert.Single(await db.Set<RoadCoverageMapping>().Where(row => row.ProjectId == project.Id).ToArrayAsync());
         output.WriteLine(JsonSerializer.Serialize(new
         {

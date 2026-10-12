@@ -44,8 +44,9 @@ public sealed partial class H6ProtectedNotificationRepository
         {
             var now = clock.GetUtcNow().ToUniversalTime(); var day = DateOnly.FromDateTime(now.UtcDateTime);
             if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) ||
-                !await db.ProjectMembers.AnyAsync(member => member.ProjectId == projectId && member.UserId == actorId && member.RoleCode == role &&
-                    member.Status == ProjectMemberStatus.Active && member.ValidFrom <= day && (!member.ValidTo.HasValue || member.ValidTo >= day), token))
+                !await db.Projects.AsNoTracking().AnyAsync(project => project.Id == projectId, token) ||
+                (role != UserRoleCode.Supervisor && !await db.ProjectMembers.AnyAsync(member => member.ProjectId == projectId && member.UserId == actorId && member.RoleCode == role &&
+                    member.Status == ProjectMemberStatus.Active && member.ValidFrom <= day && (!member.ValidTo.HasValue || member.ValidTo >= day), token)))
                 return new H6ClockPageFact("DENIED", []);
             var query = db.Set<DeadlineClock>().AsNoTracking().Where(row => row.ProjectId == projectId);
             if (cursor is not null)

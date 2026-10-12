@@ -167,6 +167,73 @@ public sealed class H4RepairProducingAdmissionSqlTests(IdentitySqlServerFixture 
         Assert.False(await db.Set<RepairFieldTaskBinding>().AnyAsync(row => row.ItemId == item.Id));
     }
 
+    [Fact]
+    public async Task GlobalSupervisorWithoutMembershipReadsApprovesAndRetainsResourceStateAndReplayGuards()
+    {
+        await using var db = sql.CreateDbContext(); var source = await H4GenuineRepairSource.Seed(db, sql);
+        var (package, item) = await StagedProposal(db, source, false);
+        var proposalVersion = Version(db, item);
+        await db.ProjectMembers.Where(x => x.UserId == source.Supervisor).ExecuteDeleteAsync();
+        db.ChangeTracker.Clear();
+        var repo = Repo(db);
+        Assert.Equal(200, (await repo.ReadItemAsync(source.Supervisor, UserRoleCode.Supervisor,
+            source.Project, package.Id, item.Id, false, default)).Status);
+        Assert.Equal(404, (await repo.ReadItemAsync(source.Supervisor, UserRoleCode.Supervisor,
+            Guid.NewGuid(), package.Id, item.Id, false, default)).Status);
+        var command = new RepairItemApprovalCommand(source.Supervisor, UserRoleCode.Supervisor, source.Project,
+            package.Id, item.Id, new("global Supervisor approval"), Guid.NewGuid().ToString(), proposalVersion);
+        Assert.Equal(404, (await repo.ApproveItemAsync(command with { PackageId = Guid.NewGuid() }, default)).Status);
+        Assert.Equal(409, (await repo.ApproveItemAsync(command with { ExpectedItemVersion = Convert.ToBase64String(new byte[8]) }, default)).Status);
+        Assert.Equal(201, (await repo.ApproveItemAsync(command, default)).Status);
+        Assert.Equal(200, (await repo.ApproveItemAsync(command, default)).Status);
+        var head = Convert.ToBase64String(await db.RepairItems.AsNoTracking().Where(x => x.Id == item.Id)
+            .Select(x => EF.Property<byte[]>(x, "RowVersion")).SingleAsync());
+        Assert.Equal(409, (await repo.ApproveItemAsync(command with { Key = Guid.NewGuid().ToString(), ExpectedItemVersion = head }, default)).Status);
+        Assert.Equal(403, (await repo.CreatePackageAsync(new(source.Supervisor, UserRoleCode.Supervisor, source.Project,
+            await PackageInput(db, source), Guid.NewGuid().ToString(), head), default)).Status);
+        Assert.False(await db.ProjectMembers.AnyAsync(x => x.UserId == source.Supervisor));
+        await db.Users.Where(x => x.Id == source.Supervisor).ExecuteUpdateAsync(x => x.SetProperty(u => u.Status, UserStatus.Suspended));
+        Assert.Equal(403, (await repo.ApproveItemAsync(command, default)).Status);
+        Assert.Equal(403, (await repo.ApproveItemAsync(command with { Input = new("changed payload") }, default)).Status);
+    }
+
+    [Fact]
+    public async Task GlobalSupervisorRelatedReadsWorkWithoutMembershipWhilePmStillNeedsMembership()
+    {
+        await using var db = sql.CreateDbContext(); var source = await H4GenuineRepairSource.Seed(db, sql);
+        var (package, item) = await StagedProposal(db, source, false);
+        await db.ProjectMembers.Where(x => x.UserId == source.Supervisor).ExecuteDeleteAsync();
+        db.ChangeTracker.Clear();
+        Assert.Equal(200, (await new RoadCoverageRepository(db, TimeProvider.System)
+            .ReadAsync(source.Supervisor, UserRoleCode.Supervisor, source.Project, default)).Status);
+        Assert.NotNull(await new RoadGuardSystem.Repositories.Projects.ProjectLifecycleRepository(db, TimeProvider.System)
+            .ReadAsync(source.Supervisor, source.Project, default));
+        var filters = new RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingFiltersFact();
+        Assert.Equal(200, (await new RoadGuardSystem.Repositories.Implementations.Reporting.DefectStatisticsRepository(db, TimeProvider.System)
+            .ReadAsync(source.Supervisor, UserRoleCode.Supervisor, source.Project, filters, default)).Status);
+        Assert.NotNull(await new RoadGuardSystem.Repositories.Implementations.Reporting.ReportingRepository(db)
+            .CaptureCaseDefectAsync(source.Supervisor, UserRoleCode.Supervisor, source.Project, filters));
+        Assert.NotNull(await new RoadGuardSystem.Repositories.Implementations.Reporting.CurrentRepairFactsRepository(db, TimeProvider.System)
+            .CaptureAsync(source.Supervisor, source.Project, new(), default));
+        Assert.Equal(409, (await new RepairEligibilityRepository(db, TimeProvider.System).ReadAsync(
+            new(source.Supervisor, UserRoleCode.Supervisor, source.Project, package.Id, item.Id), default)).Status);
+        Assert.Equal(404, (await new RepairSafetyRepository(db, new IdempotencyOperationService(db), TimeProvider.System)
+            .ReadAsync(source.Supervisor, UserRoleCode.Supervisor, source.Project, package.Id, item.Id, Guid.NewGuid(), default)).Status);
+        var exports = new RoadGuardSystem.Repositories.Exports.ExportRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
+        var exportQuery = new RoadGuardSystem.Repositories.Exports.ExportSourceAuthorityQuery(source.Project,
+            [new("RepairItem", item.Id)], true, null);
+        Assert.True(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project, exportQuery, default));
+        Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, Guid.NewGuid(), exportQuery, default));
+        Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project,
+            exportQuery with { RepairSources = [new("RepairItem", Guid.NewGuid())] }, default));
+        await db.ProjectMembers.Where(x => x.UserId == source.Pm).ExecuteDeleteAsync();
+        Assert.Equal(403, (await Repo(db).ReadItemAsync(source.Pm, UserRoleCode.ProjectManager,
+            source.Project, package.Id, item.Id, false, default)).Status);
+        Assert.Equal(403, (await new RoadCoverageRepository(db, TimeProvider.System)
+            .ReadAsync(source.Pm, UserRoleCode.ProjectManager, source.Project, default)).Status);
+        Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Pm, source.Project, exportQuery, default));
+    }
+
     private static RepairWorkflowRepository Repo(RoadGuardDbContext db) => new(db, new IdempotencyOperationService(db), TimeProvider.System);
     private static string Version<T>(RoadGuardDbContext db, T entity) where T : class
         => Convert.ToBase64String(db.Entry(entity).Property<byte[]>("RowVersion").CurrentValue!);

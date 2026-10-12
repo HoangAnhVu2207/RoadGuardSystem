@@ -20,9 +20,9 @@ public sealed class RepairEligibilityRepository(RoadGuardDbContext db, TimeProvi
             var day = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
             if (query.Role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.RepairCrew) ||
                 !await new AnhHuyFactsRepository(db).IsCurrentActorAsync(query.ActorId, query.Role, token) ||
-                !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == query.ProjectId && row.UserId == query.ActorId &&
+                (query.Role != UserRoleCode.Supervisor && !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == query.ProjectId && row.UserId == query.ActorId &&
                     row.RoleCode == query.Role && row.Status == ProjectMemberStatus.Active && row.ValidFrom <= day &&
-                    (row.ValidTo == null || row.ValidTo >= day), token)) return new RepairEligibilityReadResult(403, "access_forbidden");
+                    (row.ValidTo == null || row.ValidTo >= day), token))) return new RepairEligibilityReadResult(403, "access_forbidden");
             var item = await db.Set<RepairItem>().AsNoTracking().SingleOrDefaultAsync(row => row.Id == query.ItemId &&
                 EF.Property<Guid?>(row, "PackageId") == query.PackageId, token);
             if (item is null) return new RepairEligibilityReadResult(404, "not_found");

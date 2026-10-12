@@ -1,0 +1,145 @@
+{
+  "info": {
+    "name": "RoadGuard — Supervisor Projects auth checks",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "GET hiện có, không body. Chọn baseUrl của backend local. Bearer: login hiện có và đặt supervisorToken. Cookie: gọi web csrf rồi web login hiện có với tài khoản do bạn nhập, cùng HTTPS origin; giữ cookie jar bật, không gửi Authorization. Không ghi credentials/cookie/token vào collection. __Host cookies yêu cầu HTTPS; xác nhận Postman gửi cookie trên request. No-auth tắt cookie jar."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "supervisorToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "GET Projects — bearer / web cookie",
+      "description": "GET hiện có, không body. Chọn baseUrl của backend local. Bearer: login hiện có và đặt supervisorToken. Cookie: gọi web csrf rồi web login hiện có với tài khoản do bạn nhập, cùng HTTPS origin; giữ cookie jar bật, không gửi Authorization. Không ghi credentials/cookie/token vào collection. __Host cookies yêu cầu HTTPS; xác nhận Postman gửi cookie trên request. No-auth tắt cookie jar.",
+      "item": [
+        {
+          "name": "Bearer — Supervisor",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supervisorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects",
+            "description": "GET hiện có, không body. Chọn baseUrl của backend local. Bearer: login hiện có và đặt supervisorToken. Cookie: gọi web csrf rồi web login hiện có với tài khoản do bạn nhập, cùng HTTPS origin; giữ cookie jar bật, không gửi Authorization. Không ghi credentials/cookie/token vào collection. __Host cookies yêu cầu HTTPS; xác nhận Postman gửi cookie trên request. No-auth tắt cookie jar."
+          },
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Project page', () => { const p=pm.response.json(); pm.expect(p.items).to.be.an('array'); pm.expect(p).to.have.property('nextCursor'); pm.expect(p).to.have.property('asOf'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Web cookie — không bearer",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects",
+            "description": "GET hiện có, không body. Chọn baseUrl của backend local. Bearer: login hiện có và đặt supervisorToken. Cookie: gọi web csrf rồi web login hiện có với tài khoản do bạn nhập, cùng HTTPS origin; giữ cookie jar bật, không gửi Authorization. Không ghi credentials/cookie/token vào collection. __Host cookies yêu cầu HTTPS; xác nhận Postman gửi cookie trên request. No-auth tắt cookie jar."
+          },
+          "protocolProfileBehavior": {
+            "disableCookies": false
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.headers.remove('Authorization');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Project page', () => { const p=pm.response.json(); pm.expect(p.items).to.be.an('array'); pm.expect(p).to.have.property('nextCursor'); pm.expect(p).to.have.property('asOf'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "No auth — không bearer/cookie",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects",
+            "description": "GET hiện có, không body. Chọn baseUrl của backend local. Bearer: login hiện có và đặt supervisorToken. Cookie: gọi web csrf rồi web login hiện có với tài khoản do bạn nhập, cùng HTTPS origin; giữ cookie jar bật, không gửi Authorization. Không ghi credentials/cookie/token vào collection. __Host cookies yêu cầu HTTPS; xác nhận Postman gửi cookie trên request. No-auth tắt cookie jar."
+          },
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.headers.remove('Authorization');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.expect(pm.response.code).to.eql(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

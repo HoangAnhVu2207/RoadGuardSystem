@@ -25,9 +25,11 @@ public sealed class DefectStatisticsRepository(RoadGuardDbContext db, TimeProvid
         var day = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
         if (actor == Guid.Empty || project == Guid.Empty || role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) ||
             write && role != UserRoleCode.ProjectManager || !await new AnhHuyFactsRepository(db).IsCurrentActorAsync(actor, role, token) ||
-            !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.UserId == actor && row.RoleCode == role &&
-                row.Status == ProjectMemberStatus.Active && row.ValidFrom <= day && (row.ValidTo == null || row.ValidTo >= day), token))
+            (role != UserRoleCode.Supervisor && !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.UserId == actor && row.RoleCode == role &&
+                row.Status == ProjectMemberStatus.Active && row.ValidFrom <= day && (row.ValidTo == null || row.ValidTo >= day), token)))
             throw new Rejected(403, "access_forbidden");
+        if (!await db.Projects.AsNoTracking().AnyAsync(row => row.Id == project, token))
+            throw new Rejected(404, "not_found");
     }
     public async Task<DefectStatisticsResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, ReportingFiltersFact filters, CancellationToken token)
     {

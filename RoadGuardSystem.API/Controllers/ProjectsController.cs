@@ -21,15 +21,46 @@ public sealed class ProjectsController : ControllerBase
     private readonly IProjectCreationService _service;
     private readonly IProjectUpdateService _updateService;
     private readonly IPrimaryProjectManagerService _primaryProjectManagerService;
+    private readonly IProjectListService _listService;
 
     public ProjectsController(
         IProjectCreationService service,
         IProjectUpdateService updateService,
-        IPrimaryProjectManagerService primaryProjectManagerService)
+        IPrimaryProjectManagerService primaryProjectManagerService,
+        IProjectListService listService)
     {
         _service = service;
         _updateService = updateService;
         _primaryProjectManagerService = primaryProjectManagerService;
+        _listService = listService;
+    }
+
+    [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [HttpGet]
+    [ProducesResponseType<ProjectListResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
+    public async Task<IActionResult> List(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        [FromQuery] string? cursor,
+        [FromQuery] int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actorUserId) ||
+            !ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out var actorRole))
+            return ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized");
+
+        var result = await _listService.ListAsync(actorUserId, actorRole, search, status, cursor, limit, cancellationToken);
+        return result.Status switch
+        {
+            ProjectListStatus.Success => Ok(result.Page),
+            ProjectListStatus.Forbidden => ProblemResponse(StatusCodes.Status403Forbidden, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            ProjectListStatus.InvalidInput => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Invalid request"),
+            _ => ProblemResponse(StatusCodes.Status401Unauthorized, ApiErrorCodes.Unauthorized, "Unauthorized")
+        };
     }
 
     [Authorize]

@@ -64,7 +64,7 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
                     if (now < item.EffectiveDecision!.At) Deny(409, "decision_time_source_conflict");
                     var prior = item.EffectiveDecision;
                     var priorStatus = defect.Status;
-                    var authority = new RepairCorrectionAuthority(member, item.Id, command.ActorId, command.Role, command.ProjectId == item.ProjectId ? "CURRENT_PROJECT_MEMBERSHIP" : "CURRENT_RECEIVING_PROJECT_MEMBERSHIP");
+                    var authority = new RepairCorrectionAuthority(member, item.Id, command.ActorId, command.Role, command.Role == UserRoleCode.Supervisor ? "CURRENT_SUPERVISOR_ROLE" : command.ProjectId == item.ProjectId ? "CURRENT_PROJECT_MEMBERSHIP" : "CURRENT_RECEIVING_PROJECT_MEMBERSHIP");
                     var decision = RepairCorrectionEffects.Apply(item, obligation, Guid.NewGuid(), prior.Id,
                         command.ActorId, command.Role, command.Input.Reason, now, authority, result, basis);
 
@@ -101,11 +101,12 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
                         obligationResolved = obligation.IsResolved,
                         defectStatus = defect.Status.ToString(),
                         closureBasis = invalidated ? "UNKNOWN_LEGACY_SOURCE" : "UNCHANGED",
-                        projectMembershipId = member
+                        projectMembershipId = member,
+                        authoritySource = authority.SourceLabel
                     }, Json);
                     db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), command.ActorId, now, "repair_decision_corrected",
                         "RepairItem", item.Id, before, after, command.Input.Reason, "h4.repair", decision.Id,
-                        ["effectiveDecisionId", "result", "obligationResolved", "defectStatus", "closureBasis", "projectMembershipId"]));
+                        ["effectiveDecisionId", "result", "obligationResolved", "defectStatus", "closureBasis", "projectMembershipId", "authoritySource"]));
                     db.OutboxMessages.Add(OutboxMessage.Create(decision.Id, "repair.decision.corrected.v1", now, null,
                         JsonSerializer.Serialize(new RepairCorrectionOutboxEvent(1, decision.Id, decision.Id,
                             item.ProjectId, "CORRECTED", "RepairWork", item.Id, decision.Id, now,
@@ -129,7 +130,7 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
         catch (DbUpdateConcurrencyException) { db.ChangeTracker.Clear(); return new(409, "concurrency_conflict"); }
     }
 
-    private async Task<Guid> GuardCommandAsync(RepairCorrectionCommand command, CancellationToken token)
+    private async Task<Guid?> GuardCommandAsync(RepairCorrectionCommand command, CancellationToken token)
     {
         var member = await GuardAsync(command.ActorId, command.Role, command.ProjectId,
             command.PackageId, command.ItemId, true, token);
@@ -201,17 +202,17 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
         row.FileVersion, row.Hash, row.Purpose switch { RepairEvidencePurpose.Before => "BEFORE", RepairEvidencePurpose.After => "AFTER", RepairEvidencePurpose.Safety => "SAFETY", _ => "UNKNOWN" },
         row.Verified, row.SourceKind, row.SourceId, row.CapturedAt, row.ReuseDecisionId, row.ReusedSource);
 
-    private async Task<Guid> GuardAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item,
+    private async Task<Guid?> GuardAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item,
         bool correction, CancellationToken token)
     {
         if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)) Deny(403, "access_forbidden");
         await Anh02ReceiptAuthority.LockAsync(db, actor, project, token);
         if (!await new AnhHuyFactsRepository(db).IsCurrentActorAsync(actor, role, token)) Deny(403, "access_forbidden");
         var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-        var member = await db.ProjectMembers.AsNoTracking().Where(row => row.ProjectId == project && row.UserId == actor &&
+        Guid? member = role == UserRoleCode.Supervisor ? null : await db.ProjectMembers.AsNoTracking().Where(row => row.ProjectId == project && row.UserId == actor &&
             row.RoleCode == role && row.Status == ProjectMemberStatus.Active && row.ValidFrom <= today &&
             (row.ValidTo == null || row.ValidTo >= today)).OrderBy(row => row.Id).Select(row => (Guid?)row.Id).FirstOrDefaultAsync(token);
-        if (member is null) Deny(403, "access_forbidden");
+        if (role != UserRoleCode.Supervisor && member is null) Deny(403, "access_forbidden");
         var scope = await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")
             .AsNoTracking().Select(row => new { row.ProjectId, row.ObligationId, row.Mode, PackageId = EF.Property<Guid?>(row, "PackageId") }).SingleOrDefaultAsync(token);
         if (scope is null || scope.PackageId != package ||
@@ -219,7 +220,7 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
         if (await ObligationResponsibilityScope.ResolveAsync(db, scope.ObligationId, scope.ProjectId, token) != project) Deny(404, "not_found");
         if (correction && role != (scope.Mode == RepairMode.Normal ? UserRoleCode.Supervisor : UserRoleCode.ProjectManager)) Deny(403, "access_forbidden");
         // No ProjectActive or DefectOpen predicate: current correction authority is independent of the invalidated close basis.
-        return member.Value;
+        return member;
     }
 
     private async Task<IReadOnlyList<RepairEvidenceReference>> EvidenceAsync(RepairCorrectionCommand command, RepairItem item, CancellationToken token)

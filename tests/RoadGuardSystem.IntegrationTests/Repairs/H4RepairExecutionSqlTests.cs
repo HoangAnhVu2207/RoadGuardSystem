@@ -279,13 +279,17 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
     public Task AcceptedPmReviewFinalDeadlineBreachUsesCurrentSupervisorAndReplaysOnce(bool revokeSupervisorMembership)
         => RunNormalReviewChain(true, revokeSupervisorMembership);
 
+    [Fact]
+    public Task GlobalSupervisorWithoutMembershipConfirmsNormalRepairAndCorrectsWithDurableReplay()
+        => RunNormalReviewChain(false, false, globalSupervisor: true);
+
     internal Task WithSuccessfulRepair(Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task> action)
         => RunNormalReviewChain(false, false, confirmedFixture: action);
 
     internal Task WithPendingReview(Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task> action)
         => RunNormalReviewChain(false, false, pendingReviewFixture: action);
 
-    private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership, bool extendFinal = false,
+    private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership, bool extendFinal = false, bool globalSupervisor = false,
         Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task>? confirmedFixture = null,
         Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task>? pendingReviewFixture = null)
     {
@@ -610,6 +614,11 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         Assert.Equal(1, await db.Notifications.CountAsync(row => row.SourceEntityId == state.Item.Id &&
             row.RecipientUserId == state.Source.Supervisor));
         db.ChangeTracker.Clear();
+        if (globalSupervisor)
+        {
+            await db.ProjectMembers.Where(x => x.UserId == state.Source.Supervisor).ExecuteDeleteAsync();
+            db.ChangeTracker.Clear();
+        }
         var finalCommand = new RepairFinalConfirmCommand(state.Source.Supervisor, UserRoleCode.Supervisor,
             state.Source.Project, state.Package.Id, state.Item.Id,
             new("verified normal repair"), Guid.NewGuid().ToString(),
@@ -723,8 +732,7 @@ public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITes
         Assert.Equal(intake.ContentHash, (await db.Set<FieldInspectionSubmission>().AsNoTracking()
             .SingleAsync(row => row.Id == intake.Id)).ContentHash);
         Assert.Equal(1, await db.Set<RepairAttempt>().CountAsync(row => row.ItemId == state.Item.Id));
-        (await db.ProjectMembers.SingleAsync(row => row.ProjectId == state.Source.Project &&
-            row.UserId == state.Source.Supervisor)).Status = ProjectMemberStatus.Ended;
+        (await db.Users.SingleAsync(row => row.Id == state.Source.Supervisor)).Status = UserStatus.Suspended;
         await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         Assert.Equal(403, (await Repo(db).ConfirmFinalAsync(finalCommand, default)).Status);
         Assert.Equal(403, (await Repo(db).CorrectAsync(correctionCommand, default)).Status);

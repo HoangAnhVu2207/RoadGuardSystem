@@ -240,9 +240,9 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
         await Anh02ReceiptAuthority.LockAsync(db, actor, project, ct);
         var day = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
         if (!await new AnhHuyFactsRepository(db).IsCurrentActorAsync(actor, role, ct) ||
-            !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.UserId == actor &&
+            (role != UserRoleCode.Supervisor && !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.UserId == actor &&
                 row.RoleCode == role && row.Status == ProjectMemberStatus.Active && row.ValidFrom <= day &&
-                (row.ValidTo == null || row.ValidTo >= day), ct)) Deny(403, "access_forbidden");
+                (row.ValidTo == null || row.ValidTo >= day), ct))) Deny(403, "access_forbidden");
         var scope = await db.Set<RepairPackage>().FromSqlInterpolated($"SELECT * FROM [RepairPackages] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={package}")
             .AsNoTracking().SingleOrDefaultAsync(ct);
         var work = await db.Set<RepairItem>().FromSqlInterpolated($"SELECT * FROM [RepairItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={item}")

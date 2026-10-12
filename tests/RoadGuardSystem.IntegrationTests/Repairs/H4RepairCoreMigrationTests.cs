@@ -36,7 +36,7 @@ public sealed class H4RepairCoreMigrationTests : IAsyncLifetime
         .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options);
 
     [Fact]
-    public async Task LegacyGlobalSupervisorReportRemainsAvailableWithoutNewRepairSourcePermission()
+    public async Task GlobalSupervisorReportIncludesCurrentRepairSourceWithoutMembership()
     {
         await using var db = Db(); await db.Database.MigrateAsync(); var now = DateTimeOffset.UtcNow;
         var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Legacy global reporting scope", null, null, null, null, now);
@@ -47,12 +47,12 @@ public sealed class H4RepairCoreMigrationTests : IAsyncLifetime
         var legacy = new ReportingService(new ReportingRepository(db), identity, guard, TimeProvider.System);
         Assert.Equal("success", (await legacy.CaptureAsync(actor.Id, project.Id, new(), default)).Code);
         var reader = new CurrentRepairFactsReader(new CurrentRepairFactsRepository(db, TimeProvider.System));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => reader.CaptureAsync(actor.Id, project.Id, new(), default));
+        Assert.Empty((await reader.CaptureAsync(actor.Id, project.Id, new(), default)).Items);
         var integrated = new ReportingService(new ReportingRepository(db), identity, guard, TimeProvider.System, currentRepairReaders: [reader]);
         var result = await integrated.CaptureAsync(actor.Id, project.Id, new(), default);
         Assert.Equal("success", result.Code);
         var metric = Assert.Single(result.Value!.Summary.Metrics.Where(row => row.Code == "repairItemsByStatus"));
-        Assert.Equal("UNAVAILABLE", metric.Availability); Assert.Null(metric.Value);
+        Assert.Equal("AVAILABLE", metric.Availability);
         Assert.Empty(metric.SourceRefs);
     }
 
@@ -204,7 +204,7 @@ public sealed class H4RepairCoreMigrationTests : IAsyncLifetime
         Assert.Equal("forbidden", (await exports.CreateAsync(supervisor.Id, project.Id, new("DOSSIER", "ZIP"), "private-supervisor-snapshot", null, default)).Code);
         Assert.Equal("forbidden", (await exports.CreateAsync(supervisor.Id, project.Id, new("DOSSIER", "PDF"), "private-supervisor-snapshot", null, default)).Code);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProjectMembers SET Status={(byte)ProjectMemberStatus.Ended} WHERE Id={membership.Id}");
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => reader.CaptureAsync(actor.Id, project.Id, new(), default));
+        Assert.Empty((await reader.CaptureAsync(actor.Id, project.Id, new(), default)).Items);
     }
 
     [Fact]

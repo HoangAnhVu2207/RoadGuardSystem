@@ -56,11 +56,13 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GlobalSupervisorWithoutProjectMembershipCannotCorrectNormalDecision()
+    public async Task GlobalSupervisorWithoutProjectMembershipCorrectsNormalDecision()
     {
         await using var db = Db(); var facts = await Seed(db, RepairMode.Normal, UserRoleCode.Supervisor, membership: false);
-        Assert.Equal(403, (await Repository(db).CorrectAsync(Command(facts), CancellationToken.None)).Status);
-        Assert.False(await db.IdempotencyRecords.AnyAsync(row => row.ProjectId == facts.Project));
+        Assert.Equal(201, (await Repository(db).CorrectAsync(Command(facts), CancellationToken.None)).Status);
+        Assert.False(await db.ProjectMembers.AnyAsync(row => row.ProjectId == facts.Project && row.UserId == facts.Actor));
+        var audit = await db.AuditLogs.SingleAsync(row => row.EntityId == facts.Item && row.EventType == "repair_decision_corrected");
+        Assert.Contains("CURRENT_SUPERVISOR_ROLE", audit.AfterSnapshot!);
     }
 
     [Fact]
@@ -68,8 +70,8 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
     {
         await using var db = Db(); var facts = await Seed(db, RepairMode.Normal, UserRoleCode.Supervisor);
         var repository = Repository(db); Assert.Equal(201, (await repository.CorrectAsync(Command(facts), CancellationToken.None)).Status);
-        db.ChangeTracker.Clear(); var member = await db.ProjectMembers.SingleAsync(row => row.Id == facts.Membership);
-        member.Status = ProjectMemberStatus.Ended; await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+        db.ChangeTracker.Clear(); var actor = await db.Users.SingleAsync(row => row.Id == facts.Actor);
+        actor.Status = UserStatus.Suspended; await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         var replay = await repository.CorrectAsync(Command(facts), CancellationToken.None);
         var conflict = await repository.CorrectAsync(Command(facts) with { Input = Input(facts) with { Reason = "changed payload" } }, CancellationToken.None);
         Assert.Equal(403, replay.Status); Assert.Null(replay.Value); Assert.Equal(403, conflict.Status); Assert.Null(conflict.Value);
@@ -199,8 +201,8 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
         Facts facts; await using (var setup = Db()) facts = await Seed(setup, RepairMode.Normal, UserRoleCode.Supervisor);
         var fault = new FailFirstCorrectionAcknowledgement(async () =>
         {
-            await using var revoke = Db(); var member = await revoke.ProjectMembers.SingleAsync(row => row.Id == facts.Membership);
-            member.Status = ProjectMemberStatus.Ended; await revoke.SaveChangesAsync();
+            await using var revoke = Db(); var actor = await revoke.Users.SingleAsync(row => row.Id == facts.Actor);
+            actor.Status = UserStatus.Suspended; await revoke.SaveChangesAsync();
         });
         await using var db = Db(fault); var result = await Repository(db).CorrectAsync(Command(facts), CancellationToken.None);
         Assert.Equal(403, result.Status); Assert.Null(result.Value);
@@ -213,7 +215,7 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
     [InlineData(true)]
     public async Task ExpiredOrFutureMembershipCannotCorrectEvenWithMatchingRole(bool future)
     {
-        await using var db = Db(); var facts = await Seed(db, RepairMode.Normal, UserRoleCode.Supervisor);
+        await using var db = Db(); var facts = await Seed(db, RepairMode.FastTrack, UserRoleCode.ProjectManager);
         var member = await db.ProjectMembers.SingleAsync(row => row.Id == facts.Membership);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         if (future) member.ValidFrom = today.AddDays(1); else member.ValidTo = today.AddDays(-1);

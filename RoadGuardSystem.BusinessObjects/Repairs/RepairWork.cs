@@ -137,8 +137,8 @@ public sealed record RepairDecision(Guid Id, Guid ItemId, Guid ObligationId, Gui
     public bool Accepted => Result == RepairPresentationState.Confirmed;
 }
 /// <summary>Caller-resolved current project authority facts. Confirmed role is PM for FT, Supervisor for normal.
-/// Matching supplied facts cannot override that role rule; the repository rechecks existing membership/assignment under locks.</summary>
-public sealed record RepairCorrectionAuthority(Guid ProjectMembershipId, Guid ItemId, Guid ActorId, UserRoleCode Role, string SourceLabel);
+/// Matching supplied facts cannot override that role rule; the repository rechecks current Supervisor role or PM membership under locks.</summary>
+public sealed record RepairCorrectionAuthority(Guid? ProjectMembershipId, Guid ItemId, Guid ActorId, UserRoleCode Role, string SourceLabel);
 public sealed record RepairRecurrenceLink(Guid NewDefectId, Guid PreviousDefectId, Guid PreviousAcceptanceId, Guid ActorId, string Reason, DateTimeOffset At);
 public sealed class RepairAttempt
 {
@@ -363,7 +363,9 @@ public sealed class RepairItem
         RepairGuards.Id(id); RepairGuards.Id(supersedes); RepairGuards.EnumValue(result); ArgumentNullException.ThrowIfNull(basis);
         RepairGuards.Actor(actor, role, Mode == RepairMode.Normal ? UserRoleCode.Supervisor : UserRoleCode.ProjectManager);
         if (SupersededByItemId is not null || State is not (RepairItemState.Confirmed or RepairItemState.CorrectionRequired) ||
-            authority is null || authority.ProjectMembershipId == Guid.Empty || authority.ItemId != Id || authority.ActorId != actor ||
+            authority is null || (authority.ProjectMembershipId is null
+                ? role != UserRoleCode.Supervisor || authority.SourceLabel != "CURRENT_SUPERVISOR_ROLE"
+                : authority.ProjectMembershipId == Guid.Empty) || authority.ItemId != Id || authority.ActorId != actor ||
             authority.Role != role || string.IsNullOrWhiteSpace(authority.SourceLabel) || EffectiveDecision?.Id != supersedes ||
             _decisions.Any(decision => decision.Id == id))
             throw new InvalidOperationException("Correction requires current scoped authority and the unique effective decision head.");

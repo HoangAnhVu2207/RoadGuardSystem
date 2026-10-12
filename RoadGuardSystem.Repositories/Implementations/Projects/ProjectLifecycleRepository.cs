@@ -98,9 +98,9 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
         var role = await db.Users.AsNoTracking().Where(row => row.Id == actor && row.Status == UserStatus.Active && !row.MustChangePassword &&
             (row.RoleCode == UserRoleCode.ProjectManager || row.RoleCode == UserRoleCode.Supervisor) &&
             db.Roles.Any(value => value.Code == row.RoleCode && value.IsActive)).Select(row => (UserRoleCode?)row.RoleCode).SingleOrDefaultAsync(token);
-        if (actor == Guid.Empty || project == Guid.Empty || role is null || !await db.ProjectMembers.AsNoTracking().AnyAsync(row =>
+        if (actor == Guid.Empty || project == Guid.Empty || role is null || (role != UserRoleCode.Supervisor && !await db.ProjectMembers.AsNoTracking().AnyAsync(row =>
             row.ProjectId == project && row.UserId == actor && row.RoleCode == role && row.Status == ProjectMemberStatus.Active &&
-            row.ValidFrom <= day && (row.ValidTo == null || row.ValidTo >= day), token))
+            row.ValidFrom <= day && (row.ValidTo == null || row.ValidTo >= day), token)))
             throw new UnauthorizedAccessException("Current project lifecycle source authority is required.");
         var projectVersion = await db.Projects.AsNoTracking().Where(row => row.Id == project)
             .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleOrDefaultAsync(token);

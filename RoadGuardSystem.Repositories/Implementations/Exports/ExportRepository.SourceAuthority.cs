@@ -17,13 +17,14 @@ public sealed partial class ExportRepository
         // Legacy general reports keep their existing scope; private source inventory is independently protected.
         if (!privateRepair && caseFacts is null) return true;
         var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
-        if (!await _db.Users.AsNoTracking().AnyAsync(user => user.Id == actorId &&
+        if (!await _db.Projects.AsNoTracking().AnyAsync(project => project.Id == projectId, ct) ||
+            !await _db.Users.AsNoTracking().AnyAsync(user => user.Id == actorId &&
             user.Status == UserStatus.Active && !user.MustChangePassword &&
             (user.RoleCode == UserRoleCode.ProjectManager || user.RoleCode == UserRoleCode.Supervisor) &&
             _db.Roles.Any(role => role.Code == user.RoleCode && role.IsActive) &&
-            _db.ProjectMembers.Any(member => member.UserId == actorId && member.ProjectId == projectId &&
+            (user.RoleCode == UserRoleCode.Supervisor || _db.ProjectMembers.Any(member => member.UserId == actorId && member.ProjectId == projectId &&
                 member.RoleCode == user.RoleCode && member.Status == ProjectMemberStatus.Active &&
-                member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today)), ct)) return false;
+                member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today))), ct)) return false;
         foreach (var source in repairRefs.DistinctBy(source => (source.Kind, source.Id)))
         {
             if (source.Id == Guid.Empty) return false;

@@ -102,8 +102,8 @@ public sealed class LD07RoadCoverageSqlTests(IdentitySqlServerFixture sql) : ICl
         var immutable = await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE RoadCoverageMappings SET Reason='rewrite' WHERE Id={mapping.Id}"));
         Assert.Equal(51700, immutable.Number);
 
-        await db.ProjectMembers.Where(row => row.ProjectId == state.Source.Project && row.UserId == state.Source.Supervisor)
-            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
+        await db.Users.Where(row => row.Id == state.Source.Supervisor)
+            .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, UserStatus.Suspended));
         Assert.Equal(403, (await repository.ConfirmAsync(command, default)).Status);
     }
 

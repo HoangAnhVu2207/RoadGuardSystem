@@ -689,7 +689,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
         await Anh02ReceiptAuthority.LockAsync(db, actor, project, token);
         if (!await new AnhHuyFactsRepository(db).IsCurrentActorAsync(actor, role, token)) Deny(403, "access_forbidden");
         var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-        if (!await db.ProjectMembers.AnyAsync(row => row.ProjectId == project && row.UserId == actor && row.RoleCode == role &&
+        if (role != UserRoleCode.Supervisor && !await db.ProjectMembers.AnyAsync(row => row.ProjectId == project && row.UserId == actor && row.RoleCode == role &&
             row.Status == ProjectMemberStatus.Active && row.ValidFrom <= today && (row.ValidTo == null || row.ValidTo >= today), token))
             Deny(403, "access_forbidden");
     }

@@ -24,9 +24,11 @@ public sealed class RoadCoverageRepository(RoadGuardDbContext db, TimeProvider c
         var day = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
         if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) || write && role != UserRoleCode.Supervisor ||
             !await new AnhHuyFactsRepository(db).IsCurrentActorAsync(actor, role, token) ||
-            !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.UserId == actor &&
+            (role != UserRoleCode.Supervisor && !await db.ProjectMembers.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.UserId == actor &&
                 row.RoleCode == role && row.Status == ProjectMemberStatus.Active && row.ValidFrom <= day &&
-                (row.ValidTo == null || row.ValidTo >= day), token)) throw new Rejected(403, "access_forbidden");
+                (row.ValidTo == null || row.ValidTo >= day), token))) throw new Rejected(403, "access_forbidden");
+        if (!await db.Projects.AsNoTracking().AnyAsync(row => row.Id == project, token))
+            throw new Rejected(404, "not_found");
     }
     public async Task<RoadCoverageResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, CancellationToken token)
     {

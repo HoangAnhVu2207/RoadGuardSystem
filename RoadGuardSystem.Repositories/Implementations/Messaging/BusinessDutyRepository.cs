@@ -27,8 +27,9 @@ public sealed class BusinessDutyRepository(RoadGuardDbContext db, IdempotencyOpe
         await Anh02ReceiptAuthority.LockAsync(db, actor, project, token);
         var day = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
         return await new AnhHuyFactsRepository(db).IsCurrentActorAsync(actor, role, token) &&
-            await db.ProjectMembers.AnyAsync(x => x.ProjectId == project && x.UserId == actor && x.RoleCode == role &&
-                x.Status == ProjectMemberStatus.Active && x.ValidFrom <= day && (x.ValidTo == null || x.ValidTo >= day), token);
+            await db.Projects.AsNoTracking().AnyAsync(x => x.Id == project, token) &&
+            (role == UserRoleCode.Supervisor || await db.ProjectMembers.AnyAsync(x => x.ProjectId == project && x.UserId == actor && x.RoleCode == role &&
+                x.Status == ProjectMemberStatus.Active && x.ValidFrom <= day && (x.ValidTo == null || x.ValidTo >= day), token));
     }
 
     private async Task<BusinessReceivingRequest> Load(Guid project, Guid request, CancellationToken token)

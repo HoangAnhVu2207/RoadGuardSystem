@@ -17,7 +17,8 @@ namespace RoadGuardSystem.IntegrationTests.Notifications;
 
 public sealed class H6WeeklyCalendarSqlTests(IdentitySqlServerFixture sql) : IClassFixture<IdentitySqlServerFixture>
 {
-    private static readonly DateTimeOffset Monday = new(2026, 10, 12, 2, 0, 0, TimeSpan.Zero);
+    // Keep the calendar boundary ahead of the fixture's real UTC origin.
+    private static DateTimeOffset Monday => NotificationCalendarPolicy.NextWeeklyReview(DateTimeOffset.UtcNow);
 
     [Fact]
     public async Task PreplannedSameRunCallbackCommitsOneReviewOccurrenceAndCurrentManagerDelivery()

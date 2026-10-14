@@ -47,13 +47,10 @@ public sealed partial class ExportRepository : IExportRepository
                 if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)
                     || !await _db.Roles.AsNoTracking().AnyAsync(r => r.Code == user.RoleCode && r.IsActive, token))
                     throw new CaptureException("forbidden");
-                if (user.RoleCode == UserRoleCode.ProjectManager)
-                {
-                    var member = await new RoadGuardSystem.Repositories.Projects.ProjectMembershipReadModel(_db).FindByUserAndProjectAsync(actorId, projectId, token);
-                    var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
-                    if (member is null || member.RoleCode != user.RoleCode || member.Status != ProjectMemberStatus.Active
-                        || member.ValidFrom > today || member.ValidTo < today) throw new CaptureException("forbidden");
-                }
+                var member = await new RoadGuardSystem.Repositories.Projects.ProjectMembershipReadModel(_db).FindByUserAndProjectAsync(actorId, projectId, token);
+                var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
+                if (member is null || member.RoleCode != user.RoleCode || member.Status != ProjectMemberStatus.Active
+                    || member.ValidFrom > today || member.ValidTo < today) throw new CaptureException("forbidden");
                 // The canonical stored export, including conflict/recovery paths, owns source authority.
                 var originalId = await _db.Set<RoadGuardSystem.BusinessObjects.Idempotency.IdempotencyRecord>().AsNoTracking()
                     .Where(record => record.ActorUserId == actorId && record.ProjectId == projectId &&

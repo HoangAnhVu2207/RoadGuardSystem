@@ -21,7 +21,7 @@ namespace RoadGuardSystem.IntegrationTests.Notifications;
 
 public sealed class OwnerWeeklyRecoverySqlTests(IdentitySqlServerFixture sql) : IClassFixture<IdentitySqlServerFixture>
 {
-    private static readonly DateTimeOffset Monday = new(2026, 10, 12, 2, 0, 0, TimeSpan.Zero);
+    private static DateTimeOffset Monday => NotificationCalendarPolicy.NextWeeklyReview(DateTimeOffset.UtcNow);
     [Fact]
     public async Task Completed_source_records_only_periods_when_review_was_pending_and_emits_no_digest()
     {

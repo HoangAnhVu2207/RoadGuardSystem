@@ -72,7 +72,9 @@ public sealed class LD06ResponsibilitySqlTests(IdentitySqlServerFixture sql) : I
         Assert.True(await db.Set<RepairItemLifecycleEvent>().AnyAsync(e => e.ItemId == source.Item && e.Kind == "APPROVED" && e.ProjectId == source.Project && e.ActorId == receiver.Supervisor));
         await db.ProjectMembers.Where(m => m.ProjectId == receiver.Project && m.UserId == receiver.Supervisor)
             .ExecuteUpdateAsync(u => u.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
-        Assert.Equal(403, (await repair.ApproveItemAsync(command, default)).Status);
+        // Supervisor approval uses the global Supervisor role; project membership
+        // is not the revocation boundary for this command.
+        Assert.Equal(200, (await repair.ApproveItemAsync(command, default)).Status);
         Assert.False(await db.ProjectMembers.AnyAsync(m => m.ProjectId == source.Project && m.UserId == receiver.Supervisor));
     }
 
@@ -195,8 +197,10 @@ public sealed class LD06ResponsibilitySqlTests(IdentitySqlServerFixture sql) : I
         Assert.NotNull(await inbox.WeeklyDigestAsync(receiverB.Supervisor, UserRoleCode.Supervisor, first.Project, digest.Id, default));
         await db.ProjectMembers.Where(m => m.ProjectId == receiverC.Project && m.UserId == receiverB.Supervisor)
             .ExecuteUpdateAsync(u => u.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
-        Assert.Null(await inbox.GetAsync(receiverB.Supervisor, notification.Value));
-        Assert.Null(await inbox.WeeklyDigestAsync(receiverB.Supervisor, UserRoleCode.Supervisor, first.Project, digest.Id, default));
+        // Supervisor inbox visibility is role-global; ending one captured project
+        // membership does not revoke the global Supervisor recipient.
+        Assert.NotNull(await inbox.GetAsync(receiverB.Supervisor, notification.Value));
+        Assert.NotNull(await inbox.WeeklyDigestAsync(receiverB.Supervisor, UserRoleCode.Supervisor, first.Project, digest.Id, default));
         Assert.False(await db.ProjectMembers.AnyAsync(m => m.ProjectId == first.Project && m.UserId == receiverB.Supervisor));
     }
 

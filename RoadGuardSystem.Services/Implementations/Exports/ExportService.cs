@@ -34,6 +34,8 @@ public sealed class ExportService : IExportService
     {
         var user = await _identity.GetUserSecurityStateAsync(actor, ct);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) || !await _identity.IsRoleActiveAsync(user.RoleCode, ct)) return null;
+        // Export snapshots contain private project evidence; export access is
+        // project-scoped even when reporting permits a global Supervisor.
         return await _scope.AuthorizeAsync(actor, user.RoleCode, project, ct) is null ? null : user.RoleCode;
     }
     public async Task<ExportResult<ExportJobViewDto>> CreateAsync(Guid actorId, Guid projectId, CreateExportRequestDto request, string key, Guid? correlationId, CancellationToken ct)

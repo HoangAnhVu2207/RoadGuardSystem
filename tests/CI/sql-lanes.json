@@ -560,7 +560,7 @@
         "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.AuditFailureRollsBackRenewedHistoryAndReceiptWithoutRewritingOriginalSource",
         "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.CandidateClosureCannotActivateConfirmedRenewedScope",
         "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.CandidateHistoryIsImmutableEvenThoughItGrantsNoBusinessEffect",
-        "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.CurrentReadAuthorityIsRecheckedAfterMembershipRevocation",
+        "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.CurrentReadAuthorityIsRecheckedAfterAccountSuspension",
         "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.LegacyClosedProjectAndEmptyInventoryDoNotManufactureVerifiedLifecycleFacts",
         "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.RenewedHandlingUsesConfirmedRoleButCannotInventAnOperationalClosure(wrongRole: False)",
         "RoadGuardSystem.IntegrationTests.Projects.H6ProjectLifecycleSourceSqlTests.RenewedHandlingUsesConfirmedRoleButCannotInventAnOperationalClosure(wrongRole: True)",

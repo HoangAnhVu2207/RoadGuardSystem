@@ -1,6 +1,10 @@
 # Document control and change history
 
-**Current scope Phase 2B · Phase 2A PASS for documentation scope · owner-authorized docs-only execution/push on 15/10/2026.** [Canonical entrance](../README.md).
+**Current scope Phase 2C · Phase 2B PASS for documentation scope · owner-authorized docs-only execution/push on 15/10/2026.** [Canonical entrance](../README.md).
+
+## Phase 2C authorization and scope
+
+Owner authorized the full Backend API contract package at approved baseline `36c3a1d273f17dd29b816136ae0182a821fd79e4` on `huy-review`. Root Codex is the sole writer; allowed additions are the eleven Markdown files under `04_API-Contracts/` plus necessary canonical README/governance03–05 navigation/status/crosswalk updates. Backend source, schema, migrations, tests, OpenAPI, contract locks, prior phases and old docs remain unchanged. Independent JEV review is pending; stop after this push.
 
 ## Phase 2B authorization and scope
 
@@ -24,6 +28,7 @@ Allowed additions: canonical README; governance01–05; actor/client matrix; too
 
 | Date / phase | Authority / baseline | Scope / outcome |
 |---|---|---|
+|15/10/2026 Phase2C | Owner Phase2B documentation PASS; local/origin approved base `36c3a1d273f17dd29b816136ae0182a821fd79e4`, initial fetch0/0 | Full API contract catalog/guides/review; source/OpenAPI/locks unchanged; independent JEV pending, Phase3 NOT_STARTED |
 |15/10/2026 Phase2B | Owner Phase2A documentation PASS; local/origin approved base `1b577d703cda203c6066eba98ff005341739849e`, initial fetch0/0 | Seven backend/data chapters + review; necessary links/status only; independent JEV pending, Phase2C NOT_STARTED |
 |14/10/2026 Phase0 | Implementation6fdd98d; report commitccf0e70128b857d796a057b0aa30dc6bde4d20c9 | Six audit reports pushed; old/source preserved;0P0confirmed/5P1/7P2checkpoint;16PASS/1FAIL focused tests |
 |14/10/2026 Phase2A | Owner Phase1 PASS/Phase2A authorization; approved local/origin base `d91c2e82f1c6feb3a7dcffc4573902314927ae94` | 10 canonical business workflows + index/review; necessary canonical links only; independent review pending, Phase2B NOT_STARTED |

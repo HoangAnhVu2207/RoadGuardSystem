@@ -1,10 +1,10 @@
 # Source registry and migration crosswalk
 
-**Canonical source registry · Phase 2A documentation PASS / Phase 2B technical import · existing files preserved.** [Canonical entrance](../README.md), [full Phase0 file-level crosswalk](../../audit/HHWS-DOCS-REBUILD-01/04_DOCS_MIGRATION_MATRIX.md).
+**Canonical source registry · Phase 2C API contract import · existing files preserved.** [Canonical entrance](../README.md), [full Phase0 file-level crosswalk](../../audit/HHWS-DOCS-REBUILD-01/04_DOCS_MIGRATION_MATRIX.md).
 
 ## Import and deprecation notices
 
-Canonical governance is active as the new entrance for this rebuild. Detailed legacy chapters remain source references. Phase 2A now supplies business narratives; Phase 2B technical chapters now provide backend/data references; API and consumer rewrites remain separately gated. Only exact stale claims are superseded: Reporter primary Web, Kotlin-only Mobile stack and old product naming in product prose. Technical RoadGuard identifiers and `/auth/android/*` wire stay intact.
+Canonical governance is active as the new entrance for this rebuild. Detailed legacy chapters remain source references. Phase 2A supplies business narratives; Phase 2B technical chapters provide backend/data references; Phase 2C supplies source-backed API contracts. Consumer rewrites remain separately gated. Only exact stale claims are superseded: Reporter primary Web, Kotlin-only Mobile stack and old product naming in product prose. Technical RoadGuard identifiers and `/auth/android/*` wire stay intact.
 
 Backend Official is not blanket deprecated:70source-reference files remain available. Phase0 hash revalidation/source discovery supports reading its implementation locators; its embedded runtime claims retain their date/SHA and are not Phase1 test results. Historical V2/RF/FE draft assertions remain comparison material; local contract adoption must be explicit.
 
@@ -35,7 +35,7 @@ No source file moved/deleted, no contract lock changed and no old README content
 | Document precedence/change/mapping | [Control](04_Document-Control-and-Change-History.md), this registry | Phase1 PASS; Phase2A authorized, no archive changes |
 | Business workflows | [Canonical workflows](../02_Business-Workflows/README.md), [review/evidence](../02_Business-Workflows/PHASE2A_REVIEW_REPORT.md) | Phase2A PASS for documentation scope |
 | Backend/data | [Technical chapters/review](../03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) and existing source metadata | Phase2B written; independent JEV PENDING |
-| API contracts | Current controller/DTO/OpenAPI and Phase0 inventory | Phase2C NOT_STARTED; no wire/lock edits |
+| API contracts | [Phase2C API catalog and guides](../04_API-Contracts/README.md), current controller/DTO/OpenAPI and Phase0 inventory | Phase2C written for independent JEV; no wire/lock edits |
 | Web and Expo consumer handoff | Matrix/status and existing sources | Phase3 screens/API/native feasibility NOT_STARTED |
 | FastAPI/provider/model handoff | Existing AI boundary and Phase0 gaps | Phase4 cookbook/protocol proposal NOT_STARTED |
 | Testing/ops/migration QA/archive | Current evidence and old-source pointers | Phase5 migration validation NOT_STARTED; keep original paths |

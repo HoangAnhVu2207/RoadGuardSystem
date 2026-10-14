@@ -1,6 +1,8 @@
 # Implementation and verification status
 
-**Phase 2B source revalidation; runtime results below remain Phase 0 evidence, not rerun.** [Evidence legend](01_Authority-and-Source-of-Truth.md#evidence-and-status-legend).
+**Phase 2C API contract source revalidation; runtime results below remain Phase 0 evidence, not rerun.** [Evidence legend](01_Authority-and-Source-of-Truth.md#evidence-and-status-legend).
+
+Phase 2C adds the source-backed API contract catalog and references under [04_API-Contracts](../04_API-Contracts/README.md). It records 241 operations, 223 unique paths, 47 controllers and 357 schemas; disconnected discovery is not live HTTP/E2E acceptance. Independent JEV review is pending; Phase 3 has not started.
 
 ## Baselines and counts
 

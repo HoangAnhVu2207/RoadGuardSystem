@@ -1,6 +1,6 @@
 # Implementation and verification status
 
-**Phase 2A source revalidation; runtime results below remain Phase 0 evidence, not rerun.** [Evidence legend](01_Authority-and-Source-of-Truth.md#evidence-and-status-legend).
+**Phase 2B source revalidation; runtime results below remain Phase 0 evidence, not rerun.** [Evidence legend](01_Authority-and-Source-of-Truth.md#evidence-and-status-legend).
 
 ## Baselines and counts
 
@@ -57,4 +57,10 @@ Phase1 executes doc link/anchor/reference/scope/hash checks only. Existing sourc
 
 ## Phase 2A gate
 
+**Historical delivery checkpoint at 14/10/2026; current owner decision is in the Phase 2B gate below.**
+
 Business workflows được viết trong phạm vi owner đã duyệt; independent JEV review **PENDING**. P1-01..P1-05 và P2-06/P2-07 vẫn mở; các finding quản trị/API/test P2-01..P2-05 giữ disposition checkpoint, không tự đóng. Backend/data/API rewrite Phase 2B và consumer implementation chưa thực hiện.
+
+## Phase 2B gate
+
+Owner accepted Phase 2A for documentation scope at `1b577d703cda203c6066eba98ff005341739849e`. [Backend/Data technical chapters and review](../03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) add source/EF/DI/security/storage/jobs/offline/configuration descriptions. Independent JEV PENDING; runtime business/native/external tests NOT_RUN. P1-01..P1-05/P2-06/P2-07 and existing P2-01..P2-05/test/contract debt remain open. No Phase 2C. Earlier Phase 2A review-pending gate above is its historical delivery checkpoint, superseded for documentation scope by this owner decision.

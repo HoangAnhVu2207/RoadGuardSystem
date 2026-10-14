@@ -1,8 +1,12 @@
 # Document control and change history
 
-**Current scope Phase 2A · Phase 1 PASS · owner-authorized docs-only execution/push on 14/10/2026.** [Canonical entrance](../README.md).
+**Current scope Phase 2B · Phase 2A PASS for documentation scope · owner-authorized docs-only execution/push on 15/10/2026.** [Canonical entrance](../README.md).
 
-## Phase 2A authorization and scope
+## Phase 2B authorization and scope
+
+Owner authorized seven Backend/Data chapters plus PHASE2B_REVIEW_REPORT at approved baseline `1b577d703cda203c6066eba98ff005341739849e` on `huy-review`. Root Codex single writer; allowed additions only `03_Backend-and-Data/` eight Markdown files and necessary canonical README/governance03–05 navigation/status/crosswalk updates. Source/schema/database/migrations/tests/OpenAPI/locks/Phase2A/old docs and seven pre-existing untracked inputs unchanged. [Phase 2B report](../03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) records actual static checks and NOT_RUN runtime evidence. Independent review PENDING; no Phase2C.
+
+## Phase 2A authorization and scope — historical checkpoint
 
 Owner authorized Phase 2A after Phase 1 PASS, pinned baseline `d91c2e82f1c6feb3a7dcffc4573902314927ae94`, branch `huy-review`. Root Codex is the sole writer for 10 business workflow pages, workflow index and review report under `02_Business-Workflows/`; necessary navigation/status/control/source-registry changes affect only canonical README and governance03–05. Production source, schema, migrations, OpenAPI, tests, contract locks, old docs and the seven pre-existing untracked inputs remain outside scope. No Phase 2B/UI/provider implementation or automatic next phase.
 
@@ -20,6 +24,7 @@ Allowed additions: canonical README; governance01–05; actor/client matrix; too
 
 | Date / phase | Authority / baseline | Scope / outcome |
 |---|---|---|
+|15/10/2026 Phase2B | Owner Phase2A documentation PASS; local/origin approved base `1b577d703cda203c6066eba98ff005341739849e`, initial fetch0/0 | Seven backend/data chapters + review; necessary links/status only; independent JEV pending, Phase2C NOT_STARTED |
 |14/10/2026 Phase0 | Implementation6fdd98d; report commitccf0e70128b857d796a057b0aa30dc6bde4d20c9 | Six audit reports pushed; old/source preserved;0P0confirmed/5P1/7P2checkpoint;16PASS/1FAIL focused tests |
 |14/10/2026 Phase2A | Owner Phase1 PASS/Phase2A authorization; approved local/origin base `d91c2e82f1c6feb3a7dcffc4573902314927ae94` | 10 canonical business workflows + index/review; necessary canonical links only; independent review pending, Phase2B NOT_STARTED |
 |14/10/2026 Phase1 | User instruction after Phase0; starting local/origin/huy-reviewccf0e70128b857d796a057b0aa30dc6bde4d20c9, fetch ahead/behind0/0 | Establish canonical governance/source registry/matrix/crosswalk/checker; old doc destinations not moved; waiting owner review before Phase2 |
@@ -59,4 +64,4 @@ Self-review1: authority/client/scope/glossary, owner qualifiers vs source/runtim
 
 ## Stop and next gate
 
-Phase 1 was accepted by owner. Push Phase 2A, then **STOP** for independent JEV review. Backend/data/API Phase 2B, Web/Mobile and FastAPI chapters remain NOT_STARTED; none are automatically authorized by this push. The Phase 1 verification paragraphs above retain their original scope and are not Phase 2A test results.
+Phase 2A was accepted for documentation scope by owner. Push Phase 2B, then **STOP** for independent JEV review. API Phase 2C, Web/Mobile and FastAPI implementation remain NOT_STARTED; none are automatically authorized by this push. The Phase 1 verification paragraphs above retain their original scope and are not Phase 2A test results.

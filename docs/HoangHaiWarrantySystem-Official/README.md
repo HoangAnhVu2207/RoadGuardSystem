@@ -1,8 +1,8 @@
 # HoangHaiWarrantySystem — Official documentation
 
-**Điểm vào canonical · Phase 1 PASS · Phase 2A business workflows chờ independent JEV review · 14/10/2026.**
+**Điểm vào canonical · Phase 2A PASS (documentation scope) · Phase 2B chờ independent JEV review · 15/10/2026.**
 
-Đây là điểm truy cập chính cho việc phát triển bộ tài liệu HoangHaiWarrantySystem. Phase 1 thiết lập authority, phạm vi, glossary, actor/client matrix và source registry. Phase 2A bổ sung 10 business workflows được đối chiếu quyết định và current source; không phải acceptance của Web/Expo/provider runtime. Các chương Backend, Web, Mobile và FastAPI đầy đủ chưa được viết lại; người đọc dùng các tài liệu nguồn được dẫn ở crosswalk và kiểm giới hạn xác minh của từng nguồn.
+Đây là điểm truy cập chính cho việc phát triển bộ tài liệu HoangHaiWarrantySystem. Phase 1 thiết lập authority, phạm vi, glossary, actor/client matrix và source registry. Phase 2A bổ sung 10 business workflows được đối chiếu quyết định và current source; không phải acceptance của Web/Expo/provider runtime. Phase 2B bổ sung kiến trúc/backend-data/security/storage/jobs/offline/configuration dựa trên source; API rewrite, Web, Mobile và FastAPI provider chưa thực hiện; người đọc dùng các tài liệu nguồn được dẫn ở crosswalk và kiểm giới hạn xác minh của từng nguồn.
 
 Tên sản phẩm là **HoangHaiWarrantySystem**. `RoadGuardSystem` trong namespace, repository, database, route và artifact là **legacy technical identifier** được giữ nguyên. Mobile dùng **React Native + Expo**; tên API `/api/v1/auth/android/*` vẫn là wire hiện hữu, không được tự đổi thành `/auth/mobile/*`. iOS production readiness chưa được xác minh.
 
@@ -13,10 +13,11 @@ Tên sản phẩm là **HoangHaiWarrantySystem**. `RoadGuardSystem` trong namesp
 | Nguồn nào quyết định hành vi, cách xử lý mâu thuẫn, glossary | [Authority and source of truth](00_Governance/01_Authority-and-Source-of-Truth.md) |
 | Product naming, MVP, quyết định đã chốt và deferred scope | [Product decisions and scope](00_Governance/02_Product-Decisions-and-Scope.md) |
 | Phần đã thấy trong source, test thực chạy và gates chưa đóng | [Implementation and verification status](00_Governance/03_Implementation-and-Verification-Status.md) |
-| Scope Phase 1, ownership, thay đổi và review gate | [Document control and change history](00_Governance/04_Document-Control-and-Change-History.md) |
+| Scope từng phase, ownership, thay đổi và review gate | [Document control and change history](00_Governance/04_Document-Control-and-Change-History.md) |
 | Tài liệu cũ dẫn về đâu; nguồn API/workflow/operations | [Source registry and migration crosswalk](00_Governance/05_Source-Registry-and-Migration-Crosswalk.md) |
 | Supervisor/PM Web, Reporter/Operator/Crew Mobile và quyền theo nguồn | [Actor/client/permission matrix](01_Product-and-Roles/02_Actor-Client-Permission-Matrix.md) |
 | Business workflows: intake/candidates/survey/FIELD/NORMAL/FT/offline/operations | [Canonical business workflows](02_Business-Workflows/README.md), [Phase 2A review report](02_Business-Workflows/PHASE2A_REVIEW_REPORT.md) |
+| Backend và database | [Architecture](03_Backend-and-Data/01_ASPNET-Architecture.md), [data model](03_Backend-and-Data/02_Domain-and-Data-Model.md), [security](03_Backend-and-Data/03_Authentication-Authorization-and-Security.md), [storage](03_Backend-and-Data/04_File-Storage-and-Upload.md), [jobs/integration](03_Backend-and-Data/05_Background-Jobs-and-Integration-Boundaries.md), [offline](03_Backend-and-Data/06_Offline-Backend-Architecture.md), [configuration](03_Backend-and-Data/07_Backend-Configuration-and-Deployment-Boundaries.md), [Phase 2B review](03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) |
 
 ## Quy tắc sử dụng
 
@@ -31,8 +32,9 @@ Tên sản phẩm là **HoangHaiWarrantySystem**. `RoadGuardSystem` trong namesp
 |---|---|---|
 | `00_Governance`, actor/client matrix | Phase 1 PASS theo owner | Các trang ở trên |
 | `01_Product-and-Roles` overview/requirements/MVP chi tiết | Chưa viết lại | [Product source](../product/README.md), áp quyết định mới của Phase 1 khi client wording cũ mâu thuẫn |
-| `02_Business-Workflows` | Phase 2A source-backed docs, independent review pending | [10 workflows và evidence](02_Business-Workflows/README.md) |
-| `03_Backend-and-Data`, `04_API-Contracts` | Phase 2B chưa bắt đầu | [Backend Official](../RoadGuard-Backend-Official/README.md), [full source inventory](../audit/HHWS-DOCS-REBUILD-01/01_SOURCE_AND_DOCS_INVENTORY.md) |
+| `02_Business-Workflows` | Phase 2A PASS for documentation scope | [10 workflows và evidence](02_Business-Workflows/README.md) |
+| `03_Backend-and-Data` | Phase 2B viết xong để independent review; runtime acceptance riêng | [Review/coverage](03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) |
+| `04_API-Contracts` | Phase 2C chưa bắt đầu | [Backend Official](../RoadGuard-Backend-Official/README.md), [full source inventory](../audit/HHWS-DOCS-REBUILD-01/01_SOURCE_AND_DOCS_INVENTORY.md) |
 | `05_Web`, `06_Mobile-Expo` | Phase 3 chưa bắt đầu | [Actor/client matrix](01_Product-and-Roles/02_Actor-Client-Permission-Matrix.md), [consumer/source limits](00_Governance/03_Implementation-and-Verification-Status.md) |
 | `07_AI-FastAPI` | Phase 4 chưa bắt đầu | [Existing AI boundary](../RoadGuard-Backend-Official/06_Integrations/02_BE_FastAPI_Integration_Boundary.md), [Phase 0 integration gaps](../audit/HHWS-DOCS-REBUILD-01/03_BUSINESS_AND_PLATFORM_CONFLICTS.md) |
 | `08_Testing-and-Operations`, `99_Archive` | Phase 5 chưa bắt đầu; không di chuyển archive | [Evidence/gaps](00_Governance/03_Implementation-and-Verification-Status.md), [crosswalk](00_Governance/05_Source-Registry-and-Migration-Crosswalk.md) |
@@ -49,4 +51,4 @@ python docs/HoangHaiWarrantySystem-Official/tools/check_links.py
 
 Tool kiểm inline/reference Markdown links, local target existence, local Markdown heading anchors và target trong repository. External URL, deployed API, quyền truy cập và runtime E2E không nằm trong kết quả này. Giới hạn parser và evidence nằm trong [change control](00_Governance/04_Document-Control-and-Change-History.md#verification-and-review).
 
-**STOP sau Phase 2A push.** Chờ independent JEV review business workflows; Phase 2B và các chương Web/Mobile/FastAPI chưa được thực hiện.
+**STOP sau Phase 2B push.** Chờ independent JEV review Backend/Data; Phase 2C và implementation Web/Expo/FastAPI chưa được thực hiện.

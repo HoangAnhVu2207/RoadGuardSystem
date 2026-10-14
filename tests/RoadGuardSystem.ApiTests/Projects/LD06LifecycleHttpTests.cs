@@ -65,9 +65,9 @@ public sealed class LD06LifecycleHttpTests(AuthenticationSqlServerFixture fixtur
         Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
         Assert.Equal("CONFIRMED", (await confirmed.Content.ReadFromJsonAsync<ProjectLifecycleViewDto>())!.ConstructionCompletion);
         await db.ProjectMembers.Where(row => row.Id == membership.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
-         // Supervisor authority is global by the current lifecycle policy; ending
-         // the project membership does not revoke the global role.
-         Assert.Equal(HttpStatusCode.OK, (await supClient.PostAsJsonAsync(path + "/construction-confirmations", confirmation)).StatusCode);
+        // Supervisor authority is global by the current lifecycle policy; ending
+        // the project membership does not revoke the global role.
+        Assert.Equal(HttpStatusCode.OK, (await supClient.PostAsJsonAsync(path + "/construction-confirmations", confirmation)).StatusCode);
         Assert.Equal(2, await db.Set<LD06LifecycleAction>().CountAsync(row => row.ProjectId == project.Id));
         var retention = new Huy02InspectionRetentionContributor(db);
         Assert.Contains(file.Id, await retention.KnownProjectFilesAsync(project.Id, default));

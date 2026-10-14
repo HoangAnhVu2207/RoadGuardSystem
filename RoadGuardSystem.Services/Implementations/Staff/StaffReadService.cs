@@ -78,18 +78,35 @@ public sealed class StaffReadService(IStaffReadRepository repository, TimeProvid
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static bool TryRole(string? value, out UserRoleCode? role)
     {
-        role = value switch { null => null, "SUPERVISOR" => UserRoleCode.Supervisor, "PM" => UserRoleCode.ProjectManager,
-            "OPERATOR" => UserRoleCode.DroneOperator, "CREW" => UserRoleCode.RepairCrew, "REPORTER" => UserRoleCode.Reporter, _ => UserRoleCode.Unknown };
+        role = value switch
+        {
+            null => null,
+            "SUPERVISOR" => UserRoleCode.Supervisor,
+            "PM" => UserRoleCode.ProjectManager,
+            "OPERATOR" => UserRoleCode.DroneOperator,
+            "CREW" => UserRoleCode.RepairCrew,
+            "REPORTER" => UserRoleCode.Reporter,
+            _ => UserRoleCode.Unknown
+        };
         return role != UserRoleCode.Unknown;
     }
     private static bool TryStatus(string? value, out UserStatus? status)
     {
-        status = value switch { null => null, "ACTIVE" => UserStatus.Active, "SUSPENDED" => UserStatus.Suspended, "PENDING" => UserStatus.Pending, _ => UserStatus.Unknown };
+        status = value switch
+        {
+            null => null,
+            "ACTIVE" => UserStatus.Active,
+            "SUSPENDED" => UserStatus.Suspended,
+            "PENDING" => UserStatus.Pending,
+            _ => UserStatus.Unknown
+        };
         return status != UserStatus.Unknown;
     }
     private static string RoleCode(UserRoleCode role) => role switch
     {
-        UserRoleCode.DroneOperator => "OPERATOR", UserRoleCode.RepairCrew => "CREW", _ => role.ToDbCode()
+        UserRoleCode.DroneOperator => "OPERATOR",
+        UserRoleCode.RepairCrew => "CREW",
+        _ => role.ToDbCode()
     };
     private static string Binding(Guid actor, string scope, string? search, string? role, string? status) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new { actor, scope, search, role, status }))));

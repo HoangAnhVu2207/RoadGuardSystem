@@ -204,7 +204,8 @@ public sealed class H4RepairCoreMigrationTests : IAsyncLifetime
         Assert.Equal("forbidden", (await exports.CreateAsync(supervisor.Id, project.Id, new("DOSSIER", "ZIP"), "private-supervisor-snapshot", null, default)).Code);
         Assert.Equal("forbidden", (await exports.CreateAsync(supervisor.Id, project.Id, new("DOSSIER", "PDF"), "private-supervisor-snapshot", null, default)).Code);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProjectMembers SET Status={(byte)ProjectMemberStatus.Ended} WHERE Id={membership.Id}");
-        Assert.Empty((await reader.CaptureAsync(actor.Id, project.Id, new(), default)).Items);
+        // CurrentRepairFactsRepository fails closed when the actor loses current project authority.
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => reader.CaptureAsync(actor.Id, project.Id, new(), default));
     }
 
     [Fact]

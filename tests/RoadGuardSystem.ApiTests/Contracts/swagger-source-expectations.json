@@ -24989,7 +24989,7 @@
         "file": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.SourceAuthority.cs",
         "line": 1,
         "symbol": "ExportRepository",
-        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
+        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> HasCurrentProjectMembershipAsync(Guid actorId, Guid projectId, CancellationToken ct)\n    {\n        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);\n        return await _db.ProjectMembers.AsNoTracking().AnyAsync(member => member.UserId == actorId &&\n            member.ProjectId == projectId && member.Status == ProjectMemberStatus.Active &&\n            member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), ct);\n    }\n\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
         "label": "CURRENT_VERIFIED"
       },
       {
@@ -25218,7 +25218,7 @@
         "file": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.SourceAuthority.cs",
         "line": 1,
         "symbol": "ExportRepository",
-        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
+        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> HasCurrentProjectMembershipAsync(Guid actorId, Guid projectId, CancellationToken ct)\n    {\n        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);\n        return await _db.ProjectMembers.AsNoTracking().AnyAsync(member => member.UserId == actorId &&\n            member.ProjectId == projectId && member.Status == ProjectMemberStatus.Active &&\n            member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), ct);\n    }\n\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
         "label": "CURRENT_VERIFIED"
       },
       {
@@ -25357,7 +25357,7 @@
         "file": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.SourceAuthority.cs",
         "line": 1,
         "symbol": "ExportRepository",
-        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
+        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> HasCurrentProjectMembershipAsync(Guid actorId, Guid projectId, CancellationToken ct)\n    {\n        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);\n        return await _db.ProjectMembers.AsNoTracking().AnyAsync(member => member.UserId == actorId &&\n            member.ProjectId == projectId && member.Status == ProjectMemberStatus.Active &&\n            member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), ct);\n    }\n\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
         "label": "CURRENT_VERIFIED"
       },
       {
@@ -25496,7 +25496,7 @@
         "file": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.SourceAuthority.cs",
         "line": 1,
         "symbol": "ExportRepository",
-        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
+        "evidence": "using Microsoft.EntityFrameworkCore;\nusing RoadGuardSystem.aBusinessObjects.Commons;\nusing RoadGuardSystem.BusinessObjects.Repairs;\n\nnamespace RoadGuardSystem.Repositories.Exports;\n\npublic sealed partial class ExportRepository\n{\n    public async Task<bool> HasCurrentProjectMembershipAsync(Guid actorId, Guid projectId, CancellationToken ct)\n    {\n        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);\n        return await _db.ProjectMembers.AsNoTracking().AnyAsync(member => member.UserId == actorId &&\n            member.ProjectId == projectId && member.Status == ProjectMemberStatus.Active &&\n            member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), ct);\n    }\n\n    public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,\n        ExportSourceAuthorityQuery query, CancellationToken ct)\n    {\n        ArgumentNullException.ThrowIfNull(query);",
         "label": "CURRENT_VERIFIED"
       },
       {

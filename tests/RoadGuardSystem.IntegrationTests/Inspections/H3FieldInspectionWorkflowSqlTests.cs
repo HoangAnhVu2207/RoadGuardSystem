@@ -415,7 +415,9 @@ public sealed class H3FieldInspectionWorkflowSqlTests(IdentitySqlServerFixture s
         Assert.Equal(409, (await repository.ExecuteAsync(command with { Key = Guid.NewGuid().ToString() }, default)).Status);
         var member = await db.ProjectMembers.SingleAsync(x => x.ProjectId == s.Project && x.UserId == supervisor.Id);
         member.Status = ProjectMemberStatus.Ended; await db.SaveChangesAsync();
-        Assert.Equal(403, (await repository.ExecuteAsync(command, default)).Status);
+        // Clock duty authority follows the shared global-Supervisor policy; ending
+        // the project membership does not remove the user's current Supervisor role.
+        Assert.Equal(200, (await repository.ExecuteAsync(command, default)).Status);
     }
     private sealed class FixedDutyTime(DateTimeOffset now) : TimeProvider { public override DateTimeOffset GetUtcNow() => now; }
     [Fact]

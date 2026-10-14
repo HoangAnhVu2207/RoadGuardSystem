@@ -25,4 +25,5 @@ public interface IExportRepository
     Task<StoredFile?> GetSourceFileAsync(Guid fileId, CancellationToken ct);
     Task<bool> CanReadSurveySourcesAsync(Guid projectId, Guid[] fileIds, CancellationToken ct);
     Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId, ExportSourceAuthorityQuery query, CancellationToken ct);
+    Task<bool> HasCurrentProjectMembershipAsync(Guid actorId, Guid projectId, CancellationToken ct);
 }

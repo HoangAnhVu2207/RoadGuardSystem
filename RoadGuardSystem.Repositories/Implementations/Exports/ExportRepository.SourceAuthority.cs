@@ -6,6 +6,14 @@ namespace RoadGuardSystem.Repositories.Exports;
 
 public sealed partial class ExportRepository
 {
+    public async Task<bool> HasCurrentProjectMembershipAsync(Guid actorId, Guid projectId, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
+        return await _db.ProjectMembers.AsNoTracking().AnyAsync(member => member.UserId == actorId &&
+            member.ProjectId == projectId && member.Status == ProjectMemberStatus.Active &&
+            member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), ct);
+    }
+
     public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,
         ExportSourceAuthorityQuery query, CancellationToken ct)
     {

@@ -1,6 +1,6 @@
 # Implementation and verification status
 
-**Phase 1 source revalidation; runtime results below remain Phase 0 evidence, not rerun.** [Evidence legend](01_Authority-and-Source-of-Truth.md#evidence-and-status-legend).
+**Phase 2A source revalidation; runtime results below remain Phase 0 evidence, not rerun.** [Evidence legend](01_Authority-and-Source-of-Truth.md#evidence-and-status-legend).
 
 ## Baselines and counts
 
@@ -13,6 +13,8 @@
 Phase0 observed **47controllers, 241versioned controller operations,223paths,357OpenAPI schemas**; GET `/health` operational entry counted separately.236action declarations+5Geometry aliases explain241operations. Source corpus1314current C# files,1987production type declarations and201static DI entries; declaration counts include partials/helpers/interfaces, not unique runtime services. Isolated EF model196entity types/191tables/1945property mappings/1940distinct columns; no deployed DB verification.
 
 Full API/schema generation matched existing static OpenAPI at Phase0 SHA. No actual API payload/endpoint is invented by governance. [Full API inventory](../../audit/HHWS-DOCS-REBUILD-01/02_FULL_API_INVENTORY.md), [source/EF inventory](../../audit/HHWS-DOCS-REBUILD-01/01_SOURCE_AND_DOCS_INVENTORY.md) remain detailed evidence, not copied schemas in Phase1 prose.
+
+Phase 1 đã được owner PASS tại `d91c2e82f1c6feb3a7dcffc4573902314927ae94`. [Phase 2A business workflows](../02_Business-Workflows/README.md) đối chiếu 47 controllers/241 operations và giữ open findings bên dưới. [Review report](../02_Business-Workflows/PHASE2A_REVIEW_REPORT.md) ghi kiểm tra tài liệu/source hashes và runtime NOT_RUN. Viết narrative không đóng GAP hoặc nghiệm thu implementation.
 
 ## Workflow status
 
@@ -30,7 +32,7 @@ Full API/schema generation matched existing static OpenAPI at Phase0 SHA. No act
 
 Phase0 counted **0confirmedP0 /5P1 /7P2**, including gaps, risk, doc/contract debt and external gates. Counts are preserved as Phase0 checkpoint, not a new exhaustive defect scan in Phase1. [Detailed evidence and recommendations](../../audit/HHWS-DOCS-REBUILD-01/03_BUSINESS_AND_PLATFORM_CONFLICTS.md).
 
-| Finding | Priority / status | Scope in Phase1 |
+| Finding | Priority / status | Scope carried into Phase2A |
 |---|---|---|
 | Real AI provider boundary/protocol/adoption | P1/PARTIAL | Retain gap and source locator, no new FastAPI endpoint design |
 | Compatibility callback latest-attempt/receipt binding | P1/PARTIAL; exploit NOT_VERIFIED | Retain bounded BE+AI follow-up; no source repair |
@@ -52,3 +54,7 @@ Phase0 current-task focused API/OpenAPI/platform tests: **16PASS/1FAIL/0SKIP**, 
 Earlier Reporter96unit PASS was HISTORICAL for the push task, not runtime evidence added by Phase1. SQL integration/business workflows NOT_RUN because Docker Linux daemon unavailable at Phase0; actual Web/Expo/FastAPI/MinIO/SMTP/GIS/deployment/SLO/backup acceptance remains NOT_VERIFIED. No runtime tests are rerun merely to relabel a docs-only change as BE acceptance.
 
 Phase1 executes doc link/anchor/reference/scope/hash checks only. Existing source runtime debt is outside scope. [Change log and review record](04_Document-Control-and-Change-History.md#verification-and-review) record actual checks; owner/ChatGPT external review is separate from Codex self-review.
+
+## Phase 2A gate
+
+Business workflows được viết trong phạm vi owner đã duyệt; independent JEV review **PENDING**. P1-01..P1-05 và P2-06/P2-07 vẫn mở; các finding quản trị/API/test P2-01..P2-05 giữ disposition checkpoint, không tự đóng. Backend/data/API rewrite Phase 2B và consumer implementation chưa thực hiện.

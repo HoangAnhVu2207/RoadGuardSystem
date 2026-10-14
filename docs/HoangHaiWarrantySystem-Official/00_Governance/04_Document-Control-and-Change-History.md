@@ -1,8 +1,14 @@
 # Document control and change history
 
-**Phase1 only · owner-authorized execution/push on14/10/2026.** [Canonical entrance](../README.md).
+**Current scope Phase 2A · Phase 1 PASS · owner-authorized docs-only execution/push on 14/10/2026.** [Canonical entrance](../README.md).
 
-## Authorization and allowed files
+## Phase 2A authorization and scope
+
+Owner authorized Phase 2A after Phase 1 PASS, pinned baseline `d91c2e82f1c6feb3a7dcffc4573902314927ae94`, branch `huy-review`. Root Codex is the sole writer for 10 business workflow pages, workflow index and review report under `02_Business-Workflows/`; necessary navigation/status/control/source-registry changes affect only canonical README and governance03–05. Production source, schema, migrations, OpenAPI, tests, contract locks, old docs and the seven pre-existing untracked inputs remain outside scope. No Phase 2B/UI/provider implementation or automatic next phase.
+
+[Phase 2A review report](../02_Business-Workflows/PHASE2A_REVIEW_REPORT.md) records source/API coverage, JEV carry-forward, docs checks, self-review and runtime NOT_RUN. New source pin is byte-identical to the Phase 0 inventory after hash check; it is not new runtime acceptance.
+
+## Phase 1 authorization and allowed files — historical checkpoint
 
 Owner message after successful Phase0 push instructs Codex to run Phase1 and push to `huy-review`, then wait for canonical review before full Backend/Web/Mobile/FastAPI rewrite. This authorizes governance/single entrance/precedence/glossary/client matrix/source registry/crosswalk/link checker. It does not authorize Phase2–5, implementation fixes, generated OpenAPI changes, migrations, lock updates or old-document deletion.
 
@@ -15,6 +21,7 @@ Allowed additions: canonical README; governance01–05; actor/client matrix; too
 | Date / phase | Authority / baseline | Scope / outcome |
 |---|---|---|
 |14/10/2026 Phase0 | Implementation6fdd98d; report commitccf0e70128b857d796a057b0aa30dc6bde4d20c9 | Six audit reports pushed; old/source preserved;0P0confirmed/5P1/7P2checkpoint;16PASS/1FAIL focused tests |
+|14/10/2026 Phase2A | Owner Phase1 PASS/Phase2A authorization; approved local/origin base `d91c2e82f1c6feb3a7dcffc4573902314927ae94` | 10 canonical business workflows + index/review; necessary canonical links only; independent review pending, Phase2B NOT_STARTED |
 |14/10/2026 Phase1 | User instruction after Phase0; starting local/origin/huy-reviewccf0e70128b857d796a057b0aa30dc6bde4d20c9, fetch ahead/behind0/0 | Establish canonical governance/source registry/matrix/crosswalk/checker; old doc destinations not moved; waiting owner review before Phase2 |
 
 Canonical pages use this baseline/date rather than embedding their own delivery SHA circularly. Final commit/push SHA and remote equality are reported in delivery. No force push/merge/rebase/reset. Commit content limited to allowed files. A record of source SHA is not proof of hosted CI or production deployment.
@@ -52,4 +59,4 @@ Self-review1: authority/client/scope/glossary, owner qualifiers vs source/runtim
 
 ## Stop and next gate
 
-Push this Phase1 package, then **STOP**. Owner reviews canonical governance before approving Phase2. Later Backend/workflow/API, Web/Mobile and FastAPI chapters remain NOT_STARTED; none are automatically authorized by Phase1 push.
+Phase 1 was accepted by owner. Push Phase 2A, then **STOP** for independent JEV review. Backend/data/API Phase 2B, Web/Mobile and FastAPI chapters remain NOT_STARTED; none are automatically authorized by this push. The Phase 1 verification paragraphs above retain their original scope and are not Phase 2A test results.

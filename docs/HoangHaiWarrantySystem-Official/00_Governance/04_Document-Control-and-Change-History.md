@@ -1,6 +1,10 @@
 # Document control and change history
 
-**Current scope Phase 3A · Phase 2C PASS for documentation scope · owner-authorized docs-only execution/push on 15/10/2026.** [Canonical entrance](../README.md).
+**Current scope Phase 3A-C01 · Phase 3A PASS for documentation scope · owner-authorized docs-only correction/push on 15/10/2026.** [Canonical entrance](../README.md).
+
+## Phase 3A-C01 correction scope
+
+Owner-authorized correction at baseline `e79cad9098ecfc3f3921ff60d330f978aa7c29ee` scans all 23 Web screens and every Screen–API reference, corrects role mismatches, records Bearer-only Web transport gaps and adds `05_Web/tools/validate_phase3a_c01.py`. No Backend authorization, API/DTO/OpenAPI, Web/Expo source, migration or test changes are allowed. Independent JEV review remains pending; stop after C01.
 
 ## Phase 3A authorization and scope
 

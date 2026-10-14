@@ -11,6 +11,11 @@ from pathlib import Path
 GROUPS = ("fr", "br", "us", "pf", "nfr")
 
 
+def source_sha256(path):
+    """Hash source bytes with canonical LF newlines across checkout platforms."""
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def compare_requirement_ids(recorded, fresh, mapped):
     ids = [row["id"] for row in recorded]
     source_ids = [row["id"] for row in fresh]
@@ -37,11 +42,11 @@ def verify(root):
     fresh = [row for spec in SOURCES.values() for row in sections(*spec)] + nfr_rows()
     delta = compare_requirement_ids(recorded, fresh, SOURCE_TASK)
     expected = apply_readiness(copy.deepcopy(fresh), root, required[2], required[3])
-    if cross["input_sha256"].get("planning/refactor/tools/build_rf04_sources.py") != hashlib.sha256(required[1].read_bytes()).hexdigest():
+    if cross["input_sha256"].get("planning/refactor/tools/build_rf04_sources.py") != source_sha256(required[1]):
         raise ValueError("generator fingerprint stale")
     for rel, expected_hash in cross["input_sha256"].items():
         path = root / rel
-        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected_hash:
+        if not path.is_file() or source_sha256(path) != expected_hash:
             raise ValueError(f"source fingerprint stale: {rel}")
     by_id = {row["id"]: row for row in recorded}
     for row in expected:

@@ -36,7 +36,8 @@ No source file moved/deleted, no contract lock changed and no old README content
 | Business workflows | [Canonical workflows](../02_Business-Workflows/README.md), [review/evidence](../02_Business-Workflows/PHASE2A_REVIEW_REPORT.md) | Phase2A PASS for documentation scope |
 | Backend/data | [Technical chapters/review](../03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) and existing source metadata | Phase2B written; independent JEV PENDING |
 | API contracts | [Phase2C API catalog and guides](../04_API-Contracts/README.md), current controller/DTO/OpenAPI and Phase0 inventory | Phase2C written for independent JEV; no wire/lock edits |
-| Web Supervisor/PM consumer handoff | [05_Web canonical handoff](../05_Web/README.md), [C01 correction/report](../05_Web/PHASE3A_C01_REVIEW_REPORT.md), [C02 WebAuth correction/report](../05_Web/PHASE3A_C02_REVIEW_REPORT.md), Phase 2C API contracts and actor/workflow sources | Phase3A-C01 corrected role/transport mappings; browser E2E NOT_VERIFIED; Expo remains Phase3B |
+| Web Supervisor/PM consumer handoff | [05_Web canonical handoff](../05_Web/README.md), [C01 correction/report](../05_Web/PHASE3A_C01_REVIEW_REPORT.md), [C02 WebAuth correction/report](../05_Web/PHASE3A_C02_REVIEW_REPORT.md), Phase 2C API contracts and actor/workflow sources | Phase3A-C01/C02 corrected role/transport mappings; browser E2E NOT_VERIFIED |
+| Reporter Mobile Expo consumer handoff | [06_Mobile-Expo/Reporter](../06_Mobile-Expo/Reporter/README.md), [Phase3B report](../06_Mobile-Expo/Reporter/PHASE3B_REVIEW_REPORT.md), Phase 2C API contracts and Reporter source | Online Reporter flow documented; native Expo, provider and E2E remain NOT_VERIFIED; Phase3C not started |
 | FastAPI/provider/model handoff | Existing AI boundary and Phase0 gaps | Phase4 cookbook/protocol proposal NOT_STARTED |
 | Testing/ops/migration QA/archive | Current evidence and old-source pointers | Phase5 migration validation NOT_STARTED; keep original paths |
 

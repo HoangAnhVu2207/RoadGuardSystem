@@ -2,6 +2,10 @@
 
 **Current scope Phase 3A-C02 · docs-only WebAuth correction · owner-authorized push on 15/10/2026.** [Canonical entrance](../README.md).
 
+## Phase 3B documentation scope
+
+Owner-authorized Phase 3B at baseline `d5c935bfe00b82ffb9474f222cdc79d329387f39` adds the Reporter React Native + Expo handoff under `06_Mobile-Expo/Reporter/` and necessary canonical navigation/status links. No Backend/API/OpenAPI/DB/tests/Web/Expo source is changed; native/provider/E2E acceptance remains NOT_VERIFIED. Stop after Phase 3B independent JEV review.
+
 ## Phase 3A-C02 correction scope
 
 Owner-authorized C02 correction at baseline `b20d455f0e24a101987fc462337885a4dfc0f2d9` rechecks all 51 C01 `TRANSPORT_BLOCKED` mappings against direct WebAuth controller, named scheme, selector and CSRF source. It corrects only documentation matrices, the rerunnable validator and scoped API-contract errata; no Backend/API/OpenAPI/Web/Expo runtime is changed. The C02 report records 6 anonymous-bootstrap mappings, 4 explicit WebCookie mappings and 43 remaining Bearer-only mappings (40 unique endpoints); stop after independent JEV review.

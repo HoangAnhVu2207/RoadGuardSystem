@@ -52,6 +52,7 @@ public sealed class H7ExportStorageAuthorityTests
         var repository = Proxy<IExportRepository>((method, args) => method.Name switch
         {
             nameof(IExportRepository.GetAsync) => Task.FromResult<ExportPersistenceView?>(new(job, snapshot, null)),
+            nameof(IExportRepository.HasCurrentProjectMembershipAsync) => Task.FromResult(true),
             nameof(IExportRepository.CanReadSnapshotSourcesAsync) => CheckAuthority((ExportSourceAuthorityQuery)args![2]!),
             _ => throw new InvalidOperationException("Unexpected repository call: " + method.Name)
         });
@@ -119,6 +120,7 @@ public sealed class H7ExportStorageAuthorityTests
             nameof(IExportRepository.ClaimAsync) => Task.FromResult<ExportClaim?>(claim),
             nameof(IExportRepository.RenewAsync) => Task.FromResult(true),
             nameof(IExportRepository.CanReadSnapshotSourcesAsync) => Task.FromResult(sourceAuthority),
+            nameof(IExportRepository.HasCurrentProjectMembershipAsync) => Task.FromResult(true),
             nameof(IExportRepository.CanReadSurveySourcesAsync) => Task.FromResult(true),
             nameof(IExportRepository.GetSourceFileAsync) => Task.FromResult<StoredFile?>(source),
             nameof(IExportRepository.CompleteAsync) => Complete((Func<CancellationToken, Task<bool>>)args![2]!),

@@ -4,6 +4,8 @@
 
 Phase 2C adds the source-backed API contract catalog and references under [04_API-Contracts](../04_API-Contracts/README.md). It records 241 operations, 223 unique paths, 47 controllers and 357 schemas; disconnected discovery is not live HTTP/E2E acceptance. Independent JEV review is pending; Phase 3 has not started.
 
+Phase 3A adds the Web Supervisor/PM handoff under [05_Web](../05_Web/README.md): 10 Supervisor screens, 13 PM screens and 14 future acceptance scenarios. Screen composition, MapLibre integration and browser state handling are `PROPOSED_WEB_UI`; no Web repository was supplied and browser E2E remains `NOT_VERIFIED_WEB_E2E`. Phase 3B/3C Mobile/Expo implementation is not started.
+
 ## Baselines and counts
 
 | Baseline | Evidence scope |

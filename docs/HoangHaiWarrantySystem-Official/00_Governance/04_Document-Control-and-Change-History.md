@@ -1,6 +1,10 @@
 # Document control and change history
 
-**Current scope Phase 2C · Phase 2B PASS for documentation scope · owner-authorized docs-only execution/push on 15/10/2026.** [Canonical entrance](../README.md).
+**Current scope Phase 3A · Phase 2C PASS for documentation scope · owner-authorized docs-only execution/push on 15/10/2026.** [Canonical entrance](../README.md).
+
+## Phase 3A authorization and scope
+
+Owner authorized the Web Supervisor/Project Manager integration handoff at baseline `c2b5945d57800fb0e557151bdbf83b60639adcb8` on `huy-review`. Allowed additions are the nine Markdown files under `05_Web/` plus necessary canonical README/governance03–05 navigation/status/crosswalk updates. No Web source, React/TypeScript, Backend source, API/DTO/OpenAPI, migrations or tests are changed. Supervisor/PM remain Web; Reporter/Operator/Crew remain Mobile Expo. Independent JEV review is pending; stop after Phase 3A.
 
 ## Phase 2C authorization and scope
 
@@ -29,6 +33,7 @@ Allowed additions: canonical README; governance01–05; actor/client matrix; too
 | Date / phase | Authority / baseline | Scope / outcome |
 |---|---|---|
 |15/10/2026 Phase2C | Owner Phase2B documentation PASS; local/origin approved base `36c3a1d273f17dd29b816136ae0182a821fd79e4`, initial fetch0/0 | Full API contract catalog/guides/review; source/OpenAPI/locks unchanged; independent JEV pending, Phase3 NOT_STARTED |
+|15/10/2026 Phase3A | Owner Phase2C documentation PASS; local/origin approved base `c2b5945d57800fb0e557151bdbf83b60639adcb8`, initial fetch0/0 | Web Supervisor/PM handoff, matrices, flows, GIS, errors and acceptance checklist; Web/E2E NOT_VERIFIED, Phase3B/3C NOT_STARTED |
 |15/10/2026 Phase2B | Owner Phase2A documentation PASS; local/origin approved base `1b577d703cda203c6066eba98ff005341739849e`, initial fetch0/0 | Seven backend/data chapters + review; necessary links/status only; independent JEV pending, Phase2C NOT_STARTED |
 |14/10/2026 Phase0 | Implementation6fdd98d; report commitccf0e70128b857d796a057b0aa30dc6bde4d20c9 | Six audit reports pushed; old/source preserved;0P0confirmed/5P1/7P2checkpoint;16PASS/1FAIL focused tests |
 |14/10/2026 Phase2A | Owner Phase1 PASS/Phase2A authorization; approved local/origin base `d91c2e82f1c6feb3a7dcffc4573902314927ae94` | 10 canonical business workflows + index/review; necessary canonical links only; independent review pending, Phase2B NOT_STARTED |

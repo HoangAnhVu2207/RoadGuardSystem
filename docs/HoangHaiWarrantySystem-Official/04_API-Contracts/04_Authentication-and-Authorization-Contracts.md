@@ -6,6 +6,10 @@
 
 `CURRENT_VERIFIED` = source/static contract discovery, không HTTP/E2E/deployment PASS. `CURRENT_IMPLEMENTED` trong phần AI là phân nhóm contract BE đã có, không nhãn real provider acceptance. `TARGET_CONFIRMED` client/business theo [owner decisions](../../product/confirmed-decisions.md), [latest HUY](../../../planning/development/HUY-FINAL-INTEGRATION.md) và owner Phase2C authorization; precedence theo [governance](../00_Governance/01_Authority-and-Source-of-Truth.md). `PROPOSED`, `NOT_VERIFIED`, `HISTORICAL` giữ phạm vi. Product HoangHaiWarrantySystem; technical RoadGuardSystem/routes giữ nguyên.
 
+## Phase 3A-C02 scoped WebAuth errata
+
+The Phase 2C catalog generic `Cookie eligibility metadata=false` wording must not override direct controller evidence for WebAuth. API-013 Csrf, API-014 Login and API-016 Renew are `[AllowAnonymous]` bootstrap endpoints; API-015 Logout and API-017 Session explicitly use `WebCookieConfiguration.Scheme` (`RoadGuardWeb`). This correction is scoped to WebAuth classification only; routes, DTOs, OpenAPI and production code are unchanged. Other endpoints remain Bearer-only unless metadata or the source legacy selector admits the request.
+
 ## Current source schemes and authority
 
 Human default RoadGuardUser policy selector chooses bearer when Authorization exists, otherwise eligible cookie RoadGuardWeb with session cookie. Cookie eligibility is metadata plus exact legacy predicates, not all API paths or a product-client permission. AI callback uses AiServiceBearer/AiCallback policy, audience roadguard-be-ai, issuer/lifetime/kid signing key + nonempty subject/exact client_type AI_SERVICE. Human PM token isn't AI identity. No provider token provisioning endpoint invented.

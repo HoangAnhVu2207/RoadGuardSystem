@@ -1,6 +1,10 @@
 # Document control and change history
 
-**Current scope Phase 3A-C01 · Phase 3A PASS for documentation scope · owner-authorized docs-only correction/push on 15/10/2026.** [Canonical entrance](../README.md).
+**Current scope Phase 3A-C02 · docs-only WebAuth correction · owner-authorized push on 15/10/2026.** [Canonical entrance](../README.md).
+
+## Phase 3A-C02 correction scope
+
+Owner-authorized C02 correction at baseline `b20d455f0e24a101987fc462337885a4dfc0f2d9` rechecks all 51 C01 `TRANSPORT_BLOCKED` mappings against direct WebAuth controller, named scheme, selector and CSRF source. It corrects only documentation matrices, the rerunnable validator and scoped API-contract errata; no Backend/API/OpenAPI/Web/Expo runtime is changed. The C02 report records 6 anonymous-bootstrap mappings, 4 explicit WebCookie mappings and 43 remaining Bearer-only mappings (40 unique endpoints); stop after independent JEV review.
 
 ## Phase 3A-C01 correction scope
 

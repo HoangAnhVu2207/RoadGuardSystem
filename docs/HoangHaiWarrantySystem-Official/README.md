@@ -1,6 +1,6 @@
 # HoangHaiWarrantySystem — Official documentation
 
-**Điểm vào canonical · Phase 2B PASS (documentation scope) · Phase 2C API contracts chờ independent JEV review · 15/10/2026.**
+**Điểm vào canonical · Phase 3A-C02 docs-only correction chờ independent JEV review · 15/10/2026.**
 
 Đây là điểm truy cập chính cho việc phát triển bộ tài liệu HoangHaiWarrantySystem. Phase 1 thiết lập authority, phạm vi, glossary, actor/client matrix và source registry. Phase 2A bổ sung 10 business workflows; Phase 2B bổ sung kiến trúc/backend-data/security/storage/jobs/offline/configuration; Phase 2C bổ sung API contracts đầy đủ từ source/OpenAPI. Các phase này không phải acceptance của Web/Expo/provider runtime; Phase 3 chưa bắt đầu.
 
@@ -19,7 +19,7 @@ Tên sản phẩm là **HoangHaiWarrantySystem**. `RoadGuardSystem` trong namesp
 | Business workflows: intake/candidates/survey/FIELD/NORMAL/FT/offline/operations | [Canonical business workflows](02_Business-Workflows/README.md), [Phase 2A review report](02_Business-Workflows/PHASE2A_REVIEW_REPORT.md) |
 | Backend và database | [Architecture](03_Backend-and-Data/01_ASPNET-Architecture.md), [data model](03_Backend-and-Data/02_Domain-and-Data-Model.md), [security](03_Backend-and-Data/03_Authentication-Authorization-and-Security.md), [storage](03_Backend-and-Data/04_File-Storage-and-Upload.md), [jobs/integration](03_Backend-and-Data/05_Background-Jobs-and-Integration-Boundaries.md), [offline](03_Backend-and-Data/06_Offline-Backend-Architecture.md), [configuration](03_Backend-and-Data/07_Backend-Configuration-and-Deployment-Boundaries.md), [Phase 2B review](03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) |
 | API contracts cho Web, Mobile Expo và AI | [API entrance](04_API-Contracts/README.md), [full catalog](04_API-Contracts/02_Full-API-Catalog.md), [Phase 2C review](04_API-Contracts/PHASE2C_REVIEW_REPORT.md) |
-| Web Supervisor/PM handoff | [Web entrance](05_Web/README.md), [Supervisor matrix](05_Web/02_Supervisor-Screen-API-Matrix.md), [PM matrix](05_Web/03_PM-Screen-API-Matrix.md), [Phase 3A review](05_Web/PHASE3A_REVIEW_REPORT.md), [C01 correction](05_Web/PHASE3A_C01_REVIEW_REPORT.md) |
+| Web Supervisor/PM handoff | [Web entrance](05_Web/README.md), [Supervisor matrix](05_Web/02_Supervisor-Screen-API-Matrix.md), [PM matrix](05_Web/03_PM-Screen-API-Matrix.md), [Phase 3A review](05_Web/PHASE3A_REVIEW_REPORT.md), [C01 correction](05_Web/PHASE3A_C01_REVIEW_REPORT.md), [C02 WebAuth correction](05_Web/PHASE3A_C02_REVIEW_REPORT.md) |
 
 ## Quy tắc sử dụng
 

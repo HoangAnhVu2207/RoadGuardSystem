@@ -6,7 +6,7 @@ Phase 2C adds the source-backed API contract catalog and references under [04_AP
 
 Phase 3A adds the Web Supervisor/PM handoff under [05_Web](../05_Web/README.md): 10 Supervisor screens, 13 PM screens and 14 future acceptance scenarios. Screen composition, MapLibre integration and browser state handling are `PROPOSED_WEB_UI`; no Web repository was supplied and browser E2E remains `NOT_VERIFIED_WEB_E2E`. Phase 3B/3C Mobile/Expo implementation is not started.
 
-Phase 3A-C01 corrected role/transport mappings from the Phase 3A baseline: 23 screens and 253 baseline Screen–API mappings were scanned; wrong-role references were removed from active matrices and actor-compatible Bearer-only operations remain explicit integration gaps. The rerunnable validator is `05_Web/tools/validate_phase3a_c01.py`; no Backend permission or contract changes were made.
+Phase 3A-C01 corrected role/transport mappings from the Phase 3A baseline: 23 screens and 253 baseline Screen–API mappings were scanned; wrong-role references were removed from active matrices and actor-compatible Bearer-only operations remain explicit integration gaps. Phase 3A-C02 then rechecked all 51 former transport-blocked mappings against WebAuthController/WebCookieConfiguration source: 6 anonymous-bootstrap mappings, 4 explicit WebCookie mappings, and 43 remaining Bearer-only mappings; no source-uncertain mapping remained. The rerunnable validator is `05_Web/tools/validate_phase3a_c01.py`; no Backend permission or contract changes were made. See [C02 report](../05_Web/PHASE3A_C02_REVIEW_REPORT.md).
 
 ## Baselines and counts
 

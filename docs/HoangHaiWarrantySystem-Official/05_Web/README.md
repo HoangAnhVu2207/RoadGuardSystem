@@ -15,6 +15,7 @@ This package defines the proposed browser information architecture and API integ
 7. [Acceptance checklist](07_Web-Integration-Acceptance-Checklist.md)
 8. [Phase 3A review](PHASE3A_REVIEW_REPORT.md)
 9. [Phase 3A-C01 role/transport correction](PHASE3A_C01_REVIEW_REPORT.md)
+10. [Phase 3A-C02 WebAuth transport correction](PHASE3A_C02_REVIEW_REPORT.md)
 
 ## Evidence and limits
 
@@ -28,4 +29,4 @@ Coverage uses current source counts (47 controllers, 241 operations, 223 paths, 
 For every screen, FE must bind fields from the response DTO and request fields from the request DTO exactly as catalogued. “DTO fields” means the named schema properties in the catalog; no unlisted field, enum, status or local authority is assumed. `CURRENT_IMPLEMENTED_BE` means source-backed route/guard; `PROPOSED_WEB_UI` means UI composition; `NOT_VERIFIED_WEB_E2E` means no Web client runtime was supplied.
 
 
-**C01 correction:** the screen matrices include a source-derived role/transport adjudication appendix and a rerunnable [validator](tools/validate_phase3a_c01.py). Wrong-role references are removed from active screen commands; actor-compatible Bearer-only references remain visible as Backend integration gaps. **STOP after C01;** Phase 3B/3C and React/TypeScript implementation are not started.
+**C01 correction:** the screen matrices include a source-derived role/transport adjudication appendix and a rerunnable [validator](tools/validate_phase3a_c01.py). Wrong-role references are removed from active screen commands; actor-compatible Bearer-only references remain visible as Backend integration gaps. **C02 correction:** direct WebAuth source evidence reclassifies anonymous bootstrap and explicit RoadGuardWeb endpoints; remaining Bearer-only transport gaps are listed in the [C02 report](PHASE3A_C02_REVIEW_REPORT.md). **STOP after C02;** Phase 3B/3C and React/TypeScript implementation are not started.

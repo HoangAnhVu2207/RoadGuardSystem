@@ -7,6 +7,9 @@
 - Changed fixed historical weekly test boundaries to `NotificationCalendarPolicy.NextWeeklyReview(DateTimeOffset.UtcNow)`.
 - Required current project membership for export snapshot admission/replay in `RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.cs`.
 - Aligned three test expectations with the source-confirmed global Supervisor policy and documented why inline.
+- Added the repository proxy method handling required by unit test doubles and pinned `System.Security.Cryptography.Pkcs` to `8.0.2` to resolve the CI advisory.
+- Corrected whitespace violations and refreshed the SQL lane identity manifest for renamed/new tests.
+- Changed the H4 reader fixture to assert the source's fail-closed `UnauthorizedAccessException` after membership end; this does not weaken production authorization.
 
 ## Checks executed
 
@@ -19,3 +22,13 @@
 | API focused tests | NOT_RUN locally; SQL/Docker unavailable |
 | SQL integration lanes 1–4 | NOT_RUN locally; SQL/Docker unavailable |
 | Full CI | NOT_RUN locally; remote workflow required |
+
+## Remote CI evidence
+
+| Run | Result |
+|---|---|
+| `38634499556` (`114f6fb`) | FAIL: API transient SQL deadlock; SQL identity manifest stale; individual SQL lanes passed |
+| `38635768303` (`56e3281`) | FAIL: API PASS; all SQL lanes PASS; aggregate identity gate found one lane-3 renamed test |
+| `38636706816` (`694ecf6`) | PARTIAL: Unit PASS, Verify source contracts PASS, SQL aggregate and lanes 1–4 PASS, API 481/482 passed with one H3 FIELD task-scoped download failure |
+
+The final remote workflow was executed; it is not claimed as full PASS because the H3 HTTP failure remains.

@@ -4,6 +4,8 @@
 
 Audited GitHub Actions runs `38617481283`, `38619380656`, and `38624372563` on `huy-review`. The three runs reproduce the same failure groups. TRX artifacts were downloaded from run `38624372563` under `C:\Temp\hhws-ci-recovery\38624372563`; no test result was inferred without a failing assertion and stack trace.
 
+Follow-up runs `38634499556`, `38635768303`, and `38636706816` were also inspected. The first follow-up exposed stale SQL identity evidence and a transient API deadlock; after correction, the final run passes every verification and SQL job, with one API failure remaining.
+
 ## Findings
 
 | Test / file | Expected / actual | Judgment | Root cause and smallest correction |
@@ -17,6 +19,9 @@ Audited GitHub Actions runs `38617481283`, `38619380656`, and `38624372563` on `
 | `LD06ResponsibilitySqlTests.PendingIssue...` / `...:75` | `Forbidden` / `OK` | SOURCE-CONFIRMED TEST DRIFT | `RepairWorkflowRepository.cs:207-218` explicitly exempts Supervisor from project membership for read/approval authority; global Supervisor coverage exists in H4 tests. Expectation now records replay `200`. |
 | `LD06ResponsibilitySqlTests.WeeklyDigest...` / `...:198` | null / notification visible | SOURCE-CONFIRMED TEST DRIFT | `H6WeeklyReviewSourceAdapter.cs:42-51` makes Supervisor digest visibility role-global. The test now preserves visibility after one captured membership ends. |
 | `H4RepairCoreMigrationTests.DecisionHeadsCorrectionRollbackImmutableHistoryAndPopulatedDowngrade` / `...:193` | `forbidden` / `success` | FIXED PRODUCTION AUTHORIZATION | Export snapshots are private project evidence. `ExportRepository` previously required membership only for PM; it now requires current membership for PM and Supervisor. |
+| `Verify-SqlLanes.ps1` / `tests/CI/sql-lanes.json` | lane identity count/name mismatch | FIXED STALE EVIDENCE | Current test symbols had been renamed/added without refreshing the identity manifest. The manifest now records the current lane identities; count, duplicate and union checks remain enabled. |
+| `ND01OriginalWindowHttpTests.ActualBearerSignedSyncCommitsEligibleOriginalWindowFtExactlyOnce` / `...ND01OriginalWindowHttpTests.cs` | test failed with SQL deadlock victim | TRANSIENT/ENVIRONMENT | Run `38634499556` captured a SQL Server deadlock in `IdempotencyOperationService`; the same API lane passed in final run `38636706816`. No assertion or authorization expectation was changed. |
+| `H3FieldInspectionWorkflowHttpTests... (genericDownload: False)` / `...H3FieldInspectionWorkflowHttpTests.cs` | expected `200`, actual `500` | NOT_RESOLVED | Final run `38636706816` still fails this task-scoped evidence download. Generic download passes; TRX has no server exception/body. Requires server-side diagnostic logging and a focused SQL-backed reproduction before a production fix. |
 
 ## Security and authorization impact
 

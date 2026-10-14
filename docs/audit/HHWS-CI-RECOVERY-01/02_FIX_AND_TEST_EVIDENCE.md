@@ -30,5 +30,6 @@
 | `38634499556` (`114f6fb`) | FAIL: API transient SQL deadlock; SQL identity manifest stale; individual SQL lanes passed |
 | `38635768303` (`56e3281`) | FAIL: API PASS; all SQL lanes PASS; aggregate identity gate found one lane-3 renamed test |
 | `38636706816` (`694ecf6`) | PARTIAL: Unit PASS, Verify source contracts PASS, SQL aggregate and lanes 1–4 PASS, API 481/482 passed with one H3 FIELD task-scoped download failure |
+| `38637687674` (`79dd5e0`) | PASS: API, Unit, Verify source contracts, SQL lanes 1–4 and SQL aggregate all passed |
 
-The final remote workflow was executed; it is not claimed as full PASS because the H3 HTTP failure remains.
+The latest remote workflow is PASS. The prior H3 failure remains recorded as an intermittent stability gap because no root-cause server evidence was captured.

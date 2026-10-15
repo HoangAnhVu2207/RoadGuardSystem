@@ -121,13 +121,13 @@ public sealed partial class H6NotificationDispatchRepository
             if (proof.ResponsibilityProjectIds is { Length: > 0 } projects)
             {
                 foreach (var scope in projects.Distinct().Order())
-                    if (expectedRole is not UserRoleCode role || !await BusinessDutyRepository.CurrentAuthority(db, clock, actor, role, scope, token))
+                    if (expectedRole is not UserRoleCode role || !await BusinessDutyRepository.CurrentAuthority(db, clock, actor, role, scope, token, readOnly: true))
                         return "notification_membership_lost";
                 projectId = projects[0];
             }
             else projectId = proof.ResponsibilityProjectId ?? projectId;
         }
-        await Anh02ReceiptAuthority.LockAsync(db, actor, projectId, token);
+        await Anh02ReceiptAuthority.LockAsync(db, actor, projectId, token, readOnly: true);
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(row => row.Id == actor, token);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword) return "notification_user_inactive";
         if (expectedRole.HasValue && user.RoleCode != expectedRole || user.RoleCode == UserRoleCode.Unknown ||

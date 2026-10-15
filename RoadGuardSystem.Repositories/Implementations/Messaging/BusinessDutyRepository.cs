@@ -22,9 +22,9 @@ public sealed class BusinessDutyRepository(RoadGuardDbContext db, IdempotencyOpe
     private static void Deny(int status, string code) => throw new Denied(status, code);
 
     internal static async Task<bool> CurrentAuthority(RoadGuardDbContext db, TimeProvider time,
-        Guid actor, UserRoleCode role, Guid project, CancellationToken token)
+        Guid actor, UserRoleCode role, Guid project, CancellationToken token, bool readOnly = false)
     {
-        await Anh02ReceiptAuthority.LockAsync(db, actor, project, token);
+        await Anh02ReceiptAuthority.LockAsync(db, actor, project, token, readOnly);
         var day = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
         return await new AnhHuyFactsRepository(db).IsCurrentActorAsync(actor, role, token) &&
             await db.Projects.AsNoTracking().AnyAsync(x => x.Id == project, token) &&

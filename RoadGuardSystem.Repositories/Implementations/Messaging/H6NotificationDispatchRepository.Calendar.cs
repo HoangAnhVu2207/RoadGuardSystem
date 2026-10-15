@@ -87,7 +87,7 @@ public sealed partial class H6NotificationDispatchRepository
                         foreach (var recipient in recipients)
                         {
                             var eligible = recipient is Guid actor && await BusinessDutyRepository.CurrentAuthority(db, clock,
-                                actor, role, proof.ResponsibilityProjectId ?? project.Key, cancellationToken) ? recipient : null;
+                                actor, role, proof.ResponsibilityProjectId ?? project.Key, cancellationToken, readOnly: true) ? recipient : null;
                             var key = (eligible, role);
                             if (!groups.TryGetValue(key, out var duties)) groups[key] = duties = [];
                             duties.Add(duty);

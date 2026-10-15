@@ -49,7 +49,7 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
             .SingleOrDefaultAsync(cancellationToken);
         if (duty?.AppointedActorId is Guid appointed && effective != item.ProjectId &&
             (duty.AppointedRole is not UserRoleCode appointedRole ||
-             !await BusinessDutyRepository.CurrentAuthority(db, TimeProvider.System, appointed, appointedRole, effective, cancellationToken)))
+             !await BusinessDutyRepository.CurrentAuthority(db, TimeProvider.System, appointed, appointedRole, effective, cancellationToken, readOnly: true)))
             return proof with { ResponsibleUserId = null, ResponsibleRole = null };
         return duty is null ? proof : proof with
         {

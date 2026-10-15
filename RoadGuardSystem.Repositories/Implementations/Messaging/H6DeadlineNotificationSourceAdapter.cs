@@ -79,7 +79,7 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
             a.CurrentActorId == sourceClock.AppointedActorId && a.Role == sourceClock.AppointedRole, cancellationToken))
             return new("REJECTED", "notification_duty_assignment_invalid");
         if (effective != sourceClock.ProjectId && (sourceClock.AppointedRole is not UserRoleCode role ||
-            !await BusinessDutyRepository.CurrentAuthority(db, time, sourceClock.AppointedActorId.Value, role, effective, cancellationToken)))
+            !await BusinessDutyRepository.CurrentAuthority(db, time, sourceClock.AppointedActorId.Value, role, effective, cancellationToken, readOnly: true)))
             return proof; // The immutable old appointment cannot retain transferred operational duty.
         return proof with
         {

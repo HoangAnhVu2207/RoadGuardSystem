@@ -1,10 +1,23 @@
 # Phase 5 review report
 
-**Baseline/source pin:** `d1e529a5d1b6a95fa18d9448f7d75468463390df` · branch `huy-review` · 15/10/2026. Independent JEV **PENDING**. No Phase 6 or GAP implementation.
+**Original audit baseline/source pin:** `d1e529a5d1b6a95fa18d9448f7d75468463390df` · branch `huy-review` · 15/10/2026. Independent JEV: **PASS — Documentation Audit**, as supplied in the owner's final-verification task. Closure verification baseline/HEAD: `6daf4fe098495622d7294d998d485227cb9fbcee`. Overall closure **CONDITIONAL** because exact-SHA API CI failed. No Phase 6 or GAP implementation.
+
+## Final verification and closure addendum
+
+The owner-supplied independent JEV verdict accepts the documentation audit only; it is distinct from the two Codex self-review passes and does not accept Backend/client/provider behavior. The final [closure report](PHASE5_CLOSURE_REPORT.md) records fresh validation and the exact-SHA CI failure. Earlier baseline success and initial-review PENDING labels below are historical execution context, superseded by this addendum for closure status.
+
+| Final evidence label | Result and boundary |
+|---|---|
+| `DOCUMENTATION_VERIFIED` | PASS — Documentation Audit; all five requested documentation/diff checks passed again; 241 API operations, 52 screens, 10 workflows and 15 retained open tracking entries |
+| `BACKEND_CI_VERIFIED` | Exact run checked, **PARTIAL / overall FAIL**: run 38691928986, attempt 1, SHA `6daf4fe098495622d7294d998d485227cb9fbcee`; API tests FAIL, seven other jobs PASS. This label means observed CI evidence, not a green Backend verdict |
+| `INTEGRATION_NOT_VERIFIED` | Real Web/Expo/provider/deployment and operational acceptance remain unexecuted in this task |
+| `MVP_BLOCKED` | Complete real-client/provider E2E demonstration is not accepted; 15 existing tracking records and the observed CI blockers remain open |
+
+API TRX reports 482 total, 479 passed, 2 failed; CLI reports 1 skipped. The ND01 original-window scenario failed during fixture FIELD accept with a SQL deadlock, before the signed-sync HTTP assertions. H3 FIELD `genericDownload: False` expected HTTP 200 on same-key clock-extension replay and received HTTP 500. The latter's underlying server cause is NOT_VERIFIED; no shared cause or authorization bypass is inferred. No Backend/test repair or CI rerun was performed. Final status is **CONDITIONAL**, not `CLOSED — DOCUMENTATION PASS` while exact-SHA CI fails.
 
 ## Judgment and coverage
 
-Documentation audit delivered for review; full real-client/real-provider MVP **BLOCKED**. [Readiness](06_MVP-Demo-Readiness-Matrix.md) separates source, client/provider evidence and E2E. Backend CI success is not Web/Expo/YOLO/Production acceptance.
+Documentation audit accepted as **PASS — Documentation Audit** by the owner-supplied independent JEV decision; final closure remains **CONDITIONAL**. Full real-client/real-provider MVP **BLOCKED**. [Readiness](06_MVP-Demo-Readiness-Matrix.md) separates source, client/provider evidence and E2E. Backend CI success is not Web/Expo/YOLO/Production acceptance.
 
 - 81 baseline canonical Markdown files + 6 Phase 0 reports = **87 input documents**; nine new Phase 5 reports bring canonical Markdown to **90**. The file-level baseline SHA-256 inventory is [here](01_Canonical-Documentation-Inventory.md).
 - **47 controllers, 241 operations, 223 paths, 357 schemas** match source literal routes / stored OpenAPI / catalog and crosswalk. Health is separate; five geometry aliases explain 236 actions vs 241 operations.
@@ -61,6 +74,6 @@ The link checker now caches heading parsing by target for one invocation; comple
 ## Two self-review passes
 
 1. **Acceptance/source review:** re-read actor/platform and source guard differences, FIELD ParentSubmissionId vs repair supplement, API-038 existing list, current export membership drift, callback synthetic/wire distinction and offline custody/role/wire. Corrected unauthorized Crew reads/appointment and isolated P5-G02 as NOT_VERIFIED rather than asserting missing functionality. Rechecked current controller names/symbols in the new ledgers. Existing P1/P2 records remain open.
-2. **Final scope/consumer review:** checked inventory counts, 241-operation and 52-screen ledgers, ten workflow navigation, source baseline/CI attribution, historical test labels, no invented E2E totals and no reopened product decisions. Removed a redundant unreachable validator branch, fixed the current README table/status, and checked documentation-only paths, unrelated untracked preservation and safe delivery scope. Final validators are rerun after these corrections. This is Codex self-review; independent JEV is PENDING.
+2. **Final scope/consumer review:** checked inventory counts, 241-operation and 52-screen ledgers, ten workflow navigation, source baseline/CI attribution, historical test labels, no invented E2E totals and no reopened product decisions. Removed a redundant unreachable validator branch, fixed the current README table/status, and checked documentation-only paths, unrelated untracked preservation and safe delivery scope. Final validators were rerun after these corrections. This was Codex self-review; independent JEV was PENDING at initial delivery and is now owner-reported PASS for documentation only.
 
 Delivery scope: nine Phase5 reports, one new documentation validator and targeted canonical corrections/tooling only. No backend implementation is changed and none of the open tracking entries is accepted as resolved by these checks.

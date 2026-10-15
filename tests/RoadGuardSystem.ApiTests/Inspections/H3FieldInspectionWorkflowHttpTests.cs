@@ -58,7 +58,8 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         var reporter = await sql.CreateUserAsync($"field-source-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
         var scope = await Seed(pm.Id, crew.Id, other.Id, reporter.Id);
         var storage = new PhotoStorage();
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services => { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage); });
+        using var logs = new InMemoryLogProvider();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs, configureTestServices: services => { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage); });
         using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") }); await Login(client, pm.UserName!);
         var root = $"/api/v1/projects/{scope.Project}/field-inspection-tasks";
         var body = new { defectId = scope.Defect, defectVersion = scope.Version, surveyId = (Guid?)null, sourceKind = "REPORTER", routeVersionId = scope.Route, segmentSetId = scope.Set, purpose = "PRE_MEASUREMENT", requiredMeasurementType = 4, measurementScope = "{}", instructions = "measure only", assignedToUserId = crew.Id, dueAt = DateTimeOffset.UtcNow.AddDays(1) };
@@ -271,8 +272,15 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         Assert.Equal(reviewOriginalDue, extendedJson.GetProperty("originalDueAt").GetDateTimeOffset());
         Assert.Equal(reviewOriginalDue.AddHours(4), extendedJson.GetProperty("currentDueAt").GetDateTimeOffset());
         Assert.Equal("PENDING_OWNER_DECISION", extendedJson.GetProperty("numericalLimitPolicy").GetString());
-        Assert.Equal(HttpStatusCode.OK, (await Post(client, clockPath + "/extensions",
-            new { newDueAt = reviewOriginalDue.AddHours(4), reason = "Current Supervisor review extension" }, extensionKey, reviewClockVersion)).StatusCode);
+        using var extensionReplay = await Post(client, clockPath + "/extensions",
+            new { newDueAt = reviewOriginalDue.AddHours(4), reason = "Current Supervisor review extension" }, extensionKey, reviewClockVersion);
+        if (extensionReplay.StatusCode != HttpStatusCode.OK)
+        {
+            try { output.WriteLine(await sql.ReadDeadlockDiagnosticsAsync()); }
+            catch (Exception diagnosticsError) { output.WriteLine($"Deadlock diagnostics unavailable: {diagnosticsError.GetType().Name}"); }
+        }
+        Assert.True(extensionReplay.StatusCode == HttpStatusCode.OK,
+            $"Clock extension replay: {(int)extensionReplay.StatusCode}; body={await extensionReplay.Content.ReadAsStringAsync()}; server logs={logs.CombinedEntries}");
         var appointmentVersion = extendedJson.GetProperty("version").GetString();
         Assert.Equal(HttpStatusCode.Forbidden, (await Post(client, clockPath + "/appointments",
             new { assigneeId = crew.Id, reason = "Wrong duty role" }, version: appointmentVersion)).StatusCode);

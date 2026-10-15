@@ -110,6 +110,26 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
     internal static bool IsOwnedConnectionString(string connectionString) =>
         OwnedConnections.ContainsKey(connectionString);
 
+    internal async Task<string> ReadDeadlockDiagnosticsAsync()
+    {
+        EnsureOwnedDatabase();
+        await using var connection = new SqlConnection(_masterConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            DECLARE @path nvarchar(4000) = (
+                SELECT CAST(t.target_data AS xml).value('(EventFileTarget/File/@name)[1]', 'nvarchar(4000)')
+                FROM sys.dm_xe_session_targets t JOIN sys.dm_xe_sessions s ON s.address=t.event_session_address
+                WHERE s.name='system_health' AND t.target_name='event_file');
+            SELECT TOP (5) event_data FROM sys.fn_xe_file_target_read_file(@path, NULL, NULL, NULL)
+            WHERE object_name='xml_deadlock_report' ORDER BY file_offset DESC;
+            """;
+        var events = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync()) events.Add(reader.GetString(0));
+        return events.Count == 0 ? "No retained system_health deadlock events." : string.Join(Environment.NewLine, events);
+    }
+
     public async Task DisposeAsync()
     {
         OwnedConnections.TryRemove(ConnectionString, out _);

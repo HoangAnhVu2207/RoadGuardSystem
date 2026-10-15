@@ -10,11 +10,12 @@ using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.Repositories.Offline;
 using RoadGuardSystem.TestFixtures;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace RoadGuardSystem.ApiTests.Offline;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class ND01OriginalWindowHttpTests(AuthenticationSqlServerFixture fixture)
+public sealed class ND01OriginalWindowHttpTests(AuthenticationSqlServerFixture fixture, ITestOutputHelper output)
 {
     [Fact]
     public async Task ActualBearerSignedSyncCommitsEligibleOriginalWindowFtExactlyOnce()
@@ -26,8 +27,18 @@ public sealed class ND01OriginalWindowHttpTests(AuthenticationSqlServerFixture f
         var source = await new H5OfflinePositiveHttpTests(fixture).SeedAsync(pm.Id, crew.Id, supervisor.Id, reporter.Id);
         await using var db = fixture.CreateDbContext();
         var road = await db.RoadSectionVersions.Where(row => row.Id == source.Route).Select(row => row.RoadSectionId).SingleAsync();
-        var state = await ND01OriginalWindowFixture.Prepare(db,
-            new(pm.Id, crew.Id, supervisor.Id, source.Project, road, source.Route, source.Set, source.Defect));
+        ND01OriginalWindowFixture.State state;
+        try
+        {
+            state = await ND01OriginalWindowFixture.Prepare(db,
+                new(pm.Id, crew.Id, supervisor.Id, source.Project, road, source.Route, source.Set, source.Defect));
+        }
+        catch
+        {
+            try { output.WriteLine(await fixture.ReadDeadlockDiagnosticsAsync()); }
+            catch (Exception diagnosticsError) { output.WriteLine($"Deadlock diagnostics unavailable: {diagnosticsError.GetType().Name}"); }
+            throw;
+        }
         using var keys = state.Keys;
         await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
         using var scope = factory.Services.CreateScope();

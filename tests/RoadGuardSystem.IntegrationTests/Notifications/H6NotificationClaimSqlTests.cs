@@ -68,8 +68,45 @@ public sealed class H6NotificationClaimSqlTests(IdentitySqlServerFixture sql) : 
         await using var left = sql.CreateDbContext(); await using var right = sql.CreateDbContext();
         var claims = await Task.WhenAll(new H6NotificationDispatchRepository(left, TimeProvider.System).ClaimAsync(["field.task.submitted.v1"], default),
             new H6NotificationDispatchRepository(right, TimeProvider.System).ClaimAsync(["field.task.submitted.v1"], default));
+        // READPAST may skip eligible rows locked by a competing SELECT.
+        // A null poll is not a lease: after both transactions finish,
+        // exactly one further poll must recover the remaining message.
+        Assert.Contains(claims, claim => claim is not null);
+        if (claims[0] is null)
+            claims[0] = await new H6NotificationDispatchRepository(left, TimeProvider.System).ClaimAsync(["field.task.submitted.v1"], default);
+        if (claims[1] is null)
+            claims[1] = await new H6NotificationDispatchRepository(right, TimeProvider.System).ClaimAsync(["field.task.submitted.v1"], default);
         Assert.All(claims, claim => Assert.NotNull(claim)); Assert.NotEqual(claims[0]!.Id, claims[1]!.Id); Assert.NotEqual(claims[0]!.Fence, claims[1]!.Fence);
+        Assert.Equal(new[] { first.Id, second.Id }.Order(), claims.Select(claim => claim!.Id).Order());
+        foreach (var claim in claims)
+        {
+            var stored = await seed.OutboxMessages.AsNoTracking().SingleAsync(row => row.Id == claim!.Id);
+            Assert.Equal("h6:" + claim!.Fence.ToString("N"), stored.LeaseOwner);
+            Assert.Equal(1, stored.DeliveryAttemptCount);
+            Assert.Equal(claim.LeaseExpiresAtUtc, stored.LeaseExpiresAtUtc);
+        }
         Assert.Equal(2, await seed.OutboxMessages.CountAsync(row => (row.Id == first.Id || row.Id == second.Id) && row.DeliveryStatus == OutboxDeliveryStatus.Leased));
+        Assert.Null(await new H6NotificationDispatchRepository(left, TimeProvider.System).ClaimAsync(["field.task.submitted.v1"], default));
+    }
+    [Fact]
+    public async Task LockedQueueReturnsIdleThenRecoversWithoutDuplicateLease()
+    {
+        await using var seed = sql.CreateDbContext();
+        var message = OutboxMessage.Create(Guid.NewGuid(), "field.task.submitted.v1", DateTimeOffset.UtcNow.AddMinutes(-1), null, "{}");
+        seed.Add(message); await seed.SaveChangesAsync();
+        await using var locked = sql.CreateDbContext();
+        await using var worker = sql.CreateDbContext();
+        await using (var transaction = await locked.Database.BeginTransactionAsync())
+        {
+            await locked.OutboxMessages.FromSqlInterpolated($"SELECT * FROM [OutboxMessages] WITH (UPDLOCK,ROWLOCK) WHERE [Id]={message.Id}").SingleAsync();
+            Assert.Null(await new H6NotificationDispatchRepository(worker, TimeProvider.System).ClaimAsync([message.MessageType], default));
+            await transaction.RollbackAsync();
+        }
+        var claim = await new H6NotificationDispatchRepository(worker, TimeProvider.System).ClaimAsync([message.MessageType], default);
+        Assert.NotNull(claim); Assert.Equal(message.Id, claim.Id); Assert.Equal(1, claim.Attempt);
+        Assert.Null(await new H6NotificationDispatchRepository(worker, TimeProvider.System).ClaimAsync([message.MessageType], default));
+        var stored = await seed.OutboxMessages.AsNoTracking().SingleAsync(row => row.Id == message.Id);
+        Assert.Equal("h6:" + claim.Fence.ToString("N"), stored.LeaseOwner);
     }
     [Fact]
     public async Task ExpiredLeaseReclaimsSameSourceMessageWithNewFenceAndAttempt()

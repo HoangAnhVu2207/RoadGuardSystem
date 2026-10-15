@@ -734,6 +734,7 @@
         "RoadGuardSystem.IntegrationTests.Notifications.H6NotificationClaimSqlTests.DiagnosticPendingProducerRemainsRecoverableAfterGenericAttemptCapWithoutResettingHistory",
         "RoadGuardSystem.IntegrationTests.Notifications.H6NotificationClaimSqlTests.ExactFiniteClaimDoesNotLeaseProcessingOrUnknownEvents",
         "RoadGuardSystem.IntegrationTests.Notifications.H6NotificationClaimSqlTests.ExpiredLeaseReclaimsSameSourceMessageWithNewFenceAndAttempt",
+        "RoadGuardSystem.IntegrationTests.Notifications.H6NotificationClaimSqlTests.LockedQueueReturnsIdleThenRecoversWithoutDuplicateLease",
         "RoadGuardSystem.IntegrationTests.Notifications.H6NotificationClaimSqlTests.SqlPaddingCannotTurnAnUnregisteredMessageTypeIntoARegisteredType",
         "RoadGuardSystem.IntegrationTests.Notifications.H6NotificationRetrySqlTests.RetryRechecksCurrentAssignmentAndCreatesAtMostOnePinnedRecipientEffect(endedAssignment: False)",
         "RoadGuardSystem.IntegrationTests.Notifications.H6NotificationRetrySqlTests.RetryRechecksCurrentAssignmentAndCreatesAtMostOnePinnedRecipientEffect(endedAssignment: True)",

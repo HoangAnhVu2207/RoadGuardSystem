@@ -166,3 +166,34 @@ The only API skip is `RoadGuardSystem.ApiTests.Files.UploadApiTests.UploadEndpoi
 ## Git preservation
 
 At entry and before delivery, `huy-review` HEAD and `origin/huy-review` equaled baseline (ahead/behind 0/0 after fetch). Preexisting untracked paths were preserved and excluded from staging: `docs/audit/HHWS-00-REPO-AND-DOCS-INVENTORY.md`, `HHWS-01-FULL-API-INVENTORY.md`, `HHWS-02-CONFLICT-AND-GAP-MATRIX.md`, `HHWS-03-DOCS-MIGRATION-CROSSWALK.md`, `HHWS-04-REBUILD-DECISIONS-NEEDED.md`, `RG-REPORTER-ANDROID-AUDIT-01.md`, and `docs/frontend/`. No reset, history rewrite, force push or cross-branch merge.
+
+## Exact source-fix GitHub CI evidence
+
+Run [38707582788](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788), attempt **1**, exact commit **`77777bb5d144cf12e3a8f264c00b2726a5511ae7`**, conclusion **SUCCESS**. `gh run watch --exit-status` returned 0. Run JSON, full job logs and downloaded TRX artifacts are retained under the evidence directory. This verifies the production/test fix commit; the later evidence-only commit does not change source, tests, manifests or workflow.
+
+| Job | Conclusion |
+|---|---|
+| [Verify source contracts](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116330715920) | SUCCESS |
+| [SQL integration lane 2](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116330716058) | SUCCESS |
+| [Unit tests](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116330716285) | SUCCESS |
+| [SQL integration lane 4](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116330716309) | SUCCESS |
+| [API tests](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116330716340) | SUCCESS |
+| [SQL integration lane 1](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116330716368) | SUCCESS |
+| [SQL integration lane 3](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116330716430) | SUCCESS |
+| [SQL integration tests](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/38707582788/job/116332744511) | SUCCESS |
+
+TRX outcomes are counted from actual `UnitTestResult` entries, including the optional MinIO `NotExecuted` result.
+
+| Artifact / TRX | Passed | Failed | Not executed | SHA-256 |
+|---|---:|---:|---:|---|
+| `ci-38707582788-artifacts\api-results\api.trx` | 481 | 0 | 1 | `18f7bdbde9485e28f22c60928f00b2ff617a3a6ccdc6cfac33cb18d4fe3714df` |
+| `ci-38707582788-artifacts\integration-results-lane-1\integration-lane-1.trx` | 130 | 0 | 0 | `a39037865675ee54377a9874693eaa4893cece899034e5ffa08a5f6c75befbbd` |
+| `ci-38707582788-artifacts\integration-results-lane-2\integration-lane-2.trx` | 135 | 0 | 0 | `f0c161970054cb52af5f3a3e790442fda58998019cc83c77b883762ee7dd8f8c` |
+| `ci-38707582788-artifacts\integration-results-lane-3\integration-lane-3.trx` | 215 | 0 | 0 | `ce430ed26701e328ebcc8752af062f0a5b03fa410d8e0637fb005955420a237a` |
+| `ci-38707582788-artifacts\integration-results-lane-4\integration-lane-4.trx` | 197 | 0 | 0 | `410f540fef6c712fcf41427f91c11e24f08d588cbb617b1ae3d4fc92604f8280` |
+| `ci-38707582788-artifacts\unit-results\unit.trx` | 966 | 0 | 0 | `2f449127ee902c392bbf0471a841b3017ab24b163dc852eafecdb4197f0c3f73` |
+
+Totals: **Unit 966 PASS; API 481 PASS / 1 optional MinIO SKIP; SQL 130 + 135 + 215 + 197 = 677 PASS**, with 677 unique SQL identities. Five new deterministic cases and the existing H6 concurrent-worker claim regression are PASS in CI. Source contracts and SQL aggregate SUCCESS. No disabled jobs, changed expectations or retry-until-green.
+
+- `ci-38707582788.json` SHA-256: `3b468e8442c953abd5a7098fdac9d5b667fcef02ddbe7f0c0593e2f1505ba7f9`.
+- `ci-38707582788.log` SHA-256: `f187c6ccaf666ceeb22f190100077dd6e78a45e25068ab95945a1422e72e0121`.

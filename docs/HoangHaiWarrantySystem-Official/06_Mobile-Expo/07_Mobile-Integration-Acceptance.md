@@ -11,7 +11,7 @@ These are acceptance scenarios for a real React Native + Expo Android/iOS build.
 | M-05 | Crew FIELD accept/start | API-078/080/081/093, immutable origin and assignment guard | `NOT_VERIFIED_EXPO_E2E` |
 | M-06 | Crew physical measurement | Dimensions originate from Crew form/evidence, never AI bbox | `TARGET_CONFIRMED`, native test NOT_RUN |
 | M-07 | Crew evidence upload | BEFORE/AFTER/MEASUREMENT purpose, verified polling and retry | `NOT_VERIFIED_EXPO_E2E` |
-| M-08 | PM supplement → Crew resubmit | API-159 requires current version/K and preserves lineage | `NOT_VERIFIED_EXPO_E2E` |
+| M-08 | PM supplement → Crew resubmit | FIELD: PM API-092 → Crew API-095 with latest ParentSubmissionId, K/task version; repair: PM API-158 → Crew API-159 with repair attempt/version | `NOT_VERIFIED_EXPO_E2E` |
 | M-09 | NORMAL authority | Supervisor approval and final cannot be executed by Crew | `CURRENT_IMPLEMENTED_BE`, E2E NOT_RUN |
 | M-10 | Fast Track authority | eligibility/policy/coverage gates; PM final; Supervisor information boundary | `CURRENT_IMPLEMENTED_BE`, P2-06 open |
 | M-11 | Device enrollment | API-116/118, key custody and revoke fail closed | `NOT_VERIFIED_EXPO_E2E` |

@@ -76,6 +76,10 @@ Symbol/line dưới đây tại `1b577d703cda203c6066eba98ff005341739849e`. Part
 - [IdempotencyOperationService.ExecuteSerializableAsync](../../../RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs#L45): method source.
 - [IdempotencyOperationService.ExecuteSerializableAsync](../../../RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs#L60): method source.
 - [ReporterEvidenceService.DownloadAsync](../../../RoadGuardSystem.Services/Implementations/Files/ReporterEvidenceService.cs#L174): method source.
-- [ExportService.ContentAsync](../../../RoadGuardSystem.Services/Implementations/Exports/ExportService.cs#L132): method source.
+- [ExportService.ContentAsync](../../../RoadGuardSystem.Services/Implementations/Exports/ExportService.cs#L136): method source.
 
 Business/SQL/HTTP/native/external tests Phase 2B **NOT_RUN** (docs-only). Fresh static link/reference/hash/diff checks nằm trong [review report](PHASE2B_REVIEW_REPORT.md). Test source/checkpoint cũ chỉ `HISTORICAL` theo revision, không runtime PASS mới. Independent JEV **PENDING**.
+
+## Phase 5 current-source clarification
+
+At `d1e529a5d1b6a95fa18d9448f7d75468463390df`, export access (API-074–077) requires current effective project membership even for Supervisor. `ExportService.AuthorizeAsync` L33–42 calls `HasCurrentProjectMembershipAsync`; `ExportRepository.AdmitAsync` enforces membership role/status/dates during capture/replay. Global reporting authority does not grant private export access. This restriction was introduced after the Phase 2 source pin (commits `e59027b`, `c093ba6`); earlier source evidence is historical for this guard. No runtime check is rerun by this documentation correction.

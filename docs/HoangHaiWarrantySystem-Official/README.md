@@ -1,8 +1,8 @@
 # HoangHaiWarrantySystem — Official documentation
 
-**Điểm vào canonical · Phase 3A-C02 docs-only correction chờ independent JEV review · 15/10/2026.**
+**Điểm vào canonical · Phase 5 documentation QA chờ independent JEV review · 15/10/2026.**
 
-Đây là điểm truy cập chính cho việc phát triển bộ tài liệu HoangHaiWarrantySystem. Phase 1 thiết lập authority, phạm vi, glossary, actor/client matrix và source registry. Phase 2A bổ sung 10 business workflows; Phase 2B bổ sung kiến trúc/backend-data/security/storage/jobs/offline/configuration; Phase 2C bổ sung API contracts đầy đủ từ source/OpenAPI. Các phase này không phải acceptance của Web/Expo/provider runtime; Phase 3 chưa bắt đầu.
+Đây là điểm truy cập chính cho việc phát triển bộ tài liệu HoangHaiWarrantySystem. Phase 1 thiết lập authority, phạm vi, glossary, actor/client matrix và source registry. Phase 2A bổ sung 10 business workflows; Phase 2B bổ sung kiến trúc/backend-data/security/storage/jobs/offline/configuration; Phase 2C bổ sung API contracts đầy đủ từ source/OpenAPI. Các phase này không phải acceptance của Web/Expo/provider runtime; Phase 3 Web/Expo và Phase 4 AI handoff đã được giao trong phạm vi tài liệu; Phase 5 kiểm toán được liên kết bên dưới.
 
 Tên sản phẩm là **HoangHaiWarrantySystem**. `RoadGuardSystem` trong namespace, repository, database, route và artifact là **legacy technical identifier** được giữ nguyên. Mobile dùng **React Native + Expo**; tên API `/api/v1/auth/android/*` vẫn là wire hiện hữu, không được tự đổi thành `/auth/mobile/*`. iOS production readiness chưa được xác minh.
 
@@ -21,6 +21,9 @@ Tên sản phẩm là **HoangHaiWarrantySystem**. `RoadGuardSystem` trong namesp
 | API contracts cho Web, Mobile Expo và AI | [API entrance](04_API-Contracts/README.md), [full catalog](04_API-Contracts/02_Full-API-Catalog.md), [Phase 2C review](04_API-Contracts/PHASE2C_REVIEW_REPORT.md) |
 | Web Supervisor/PM handoff | [Web entrance](05_Web/README.md), [Supervisor matrix](05_Web/02_Supervisor-Screen-API-Matrix.md), [PM matrix](05_Web/03_PM-Screen-API-Matrix.md), [Phase 3A review](05_Web/PHASE3A_REVIEW_REPORT.md), [C01 correction](05_Web/PHASE3A_C01_REVIEW_REPORT.md), [C02 WebAuth correction](05_Web/PHASE3A_C02_REVIEW_REPORT.md) |
 | Reporter Mobile Expo handoff | [Reporter entrance](06_Mobile-Expo/Reporter/README.md), [screen/API matrix](06_Mobile-Expo/Reporter/01_Reporter-Screen-API-Matrix.md), [Phase 3B review](06_Mobile-Expo/Reporter/PHASE3B_REVIEW_REPORT.md) |
+| Operator/Crew Mobile Expo | [Operator](06_Mobile-Expo/Operator/README.md), [Crew](06_Mobile-Expo/Crew/README.md), [C01](06_Mobile-Expo/PHASE3C_C01_REVIEW_REPORT.md) |
+| FastAPI/YOLO handoff | [AI entrance](07_AI-FastAPI/README.md) |
+| Final documentation QA / MVP readiness | [Phase 5](08_Testing-and-Operations/Phase5/README.md), [review](08_Testing-and-Operations/Phase5/PHASE5_REVIEW_REPORT.md) |
 
 ## Quy tắc sử dụng
 
@@ -36,12 +39,12 @@ Tên sản phẩm là **HoangHaiWarrantySystem**. `RoadGuardSystem` trong namesp
 | `00_Governance`, actor/client matrix | Phase 1 PASS theo owner | Các trang ở trên |
 | `01_Product-and-Roles` overview/requirements/MVP chi tiết | Chưa viết lại | [Product source](../product/README.md), áp quyết định mới của Phase 1 khi client wording cũ mâu thuẫn |
 | `02_Business-Workflows` | Phase 2A PASS for documentation scope | [10 workflows và evidence](02_Business-Workflows/README.md) |
-| `03_Backend-and-Data` | Phase 2B viết xong để independent review; runtime acceptance riêng | [Review/coverage](03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) |
-| `04_API-Contracts` | Phase 2C viết xong để independent JEV review; source/OpenAPI/locks không đổi | [API entrance](04_API-Contracts/README.md), [Phase 2C review](04_API-Contracts/PHASE2C_REVIEW_REPORT.md) |
-| `05_Web` | Phase 3A viết xong để independent JEV review; React/TypeScript chưa viết | [Web handoff](05_Web/README.md), [acceptance checklist](05_Web/07_Web-Integration-Acceptance-Checklist.md) |
-| `06_Mobile-Expo` | Phase 3B Reporter handoff viết xong để independent JEV review; không có Mobile source/E2E | [Reporter Expo handoff](06_Mobile-Expo/Reporter/README.md), [Phase 3B review](06_Mobile-Expo/Reporter/PHASE3B_REVIEW_REPORT.md) |
-| `07_AI-FastAPI` | Phase 4 chưa bắt đầu | [Existing AI boundary](../RoadGuard-Backend-Official/06_Integrations/02_BE_FastAPI_Integration_Boundary.md), [Phase 0 integration gaps](../audit/HHWS-DOCS-REBUILD-01/03_BUSINESS_AND_PLATFORM_CONFLICTS.md) |
-| `08_Testing-and-Operations`, `99_Archive` | Phase 5 chưa bắt đầu; không di chuyển archive | [Evidence/gaps](00_Governance/03_Implementation-and-Verification-Status.md), [crosswalk](00_Governance/05_Source-Registry-and-Migration-Crosswalk.md) |
+| `03_Backend-and-Data` | Phase 2B đã giao; owner cho phép Phase 2C tiếp theo; runtime acceptance riêng | [Review/coverage](03_Backend-and-Data/PHASE2B_REVIEW_REPORT.md) |
+| `04_API-Contracts` | Phase 2C PASS for documentation scope theo owner; runtime acceptance riêng | [API entrance](04_API-Contracts/README.md), [Phase 2C review](04_API-Contracts/PHASE2C_REVIEW_REPORT.md) |
+| `05_Web` | Phase 3A-C02 PASS for documentation correction theo owner; Web E2E NOT_VERIFIED | [Web handoff](05_Web/README.md), [acceptance checklist](05_Web/07_Web-Integration-Acceptance-Checklist.md) |
+| `06_Mobile-Expo` | Phase 3B Reporter và Phase 3C Operator/Crew handoff đã viết; Mobile/E2E NOT_VERIFIED | [Reporter Expo handoff](06_Mobile-Expo/Reporter/README.md), [Phase 3B review](06_Mobile-Expo/Reporter/PHASE3B_REVIEW_REPORT.md) |
+| `07_AI-FastAPI` | Phase 4 handoff đã viết; provider/E2E NOT_VERIFIED | [Existing AI boundary](../RoadGuard-Backend-Official/06_Integrations/02_BE_FastAPI_Integration_Boundary.md), [Phase 0 integration gaps](../audit/HHWS-DOCS-REBUILD-01/03_BUSINESS_AND_PLATFORM_CONFLICTS.md) |
+| `08_Testing-and-Operations`, `99_Archive` | Phase 5 QA giao để independent review; không di chuyển archive | [Evidence/gaps](00_Governance/03_Implementation-and-Verification-Status.md), [crosswalk](00_Governance/05_Source-Registry-and-Migration-Crosswalk.md) |
 
 Đường dẫn chương tương lai chỉ là kế hoạch trong code notation; không có link tới file chưa tồn tại và không tạo placeholder giả như tài liệu đã hoàn thành.
 
@@ -55,4 +58,4 @@ python docs/HoangHaiWarrantySystem-Official/tools/check_links.py
 
 Tool kiểm inline/reference Markdown links, local target existence, local Markdown heading anchors và target trong repository. External URL, deployed API, quyền truy cập và runtime E2E không nằm trong kết quả này. Giới hạn parser và evidence nằm trong [change control](00_Governance/04_Document-Control-and-Change-History.md#verification-and-review).
 
-**STOP sau Phase 3A push.** Chờ independent JEV review Web handoff; Phase 3B/3C Mobile/Expo và Phase 4 FastAPI chưa bắt đầu.
+**STOP sau Phase 5 push.** Chờ independent JEV review; không tự triển khai GAP hoặc Phase 6.

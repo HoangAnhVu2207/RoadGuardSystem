@@ -11,7 +11,7 @@ Baseline: `398124bcbe04696c55292864634d08cb14b75229`; scope is Operator/Crew doc
 
 ## Evidence and mapping changes
 
-The mapping review used the Phase 2C catalog/crosswalk plus source controllers named by those entries: `FieldInspectionWorkflowController`, `RepairExecutionController`, `SurveyTasksController`, `UploadsController` and `OfflineWorkflowController`. The catalog confirms API-092/095/096 for PM review and Crew FIELD submission/read, API-157/158/159 for repair attempt/review/supplement, API-225–236 for Operator task/upload, and API-113–130 for the scoped offline contract. Role is taken from the catalog/source admission; it is not inferred from endpoint names.
+The mapping review used the Phase 2C catalog/crosswalk plus source controllers named by those entries: `FieldInspectionWorkflowController`, `RepairExecutionController`, `SurveyV2Controller`, `UploadsController` and `OfflineWorkflowController`. The catalog confirms API-092/095/096 for PM review and Crew FIELD submission/read, API-157/158/159 for repair attempt/review/supplement, API-225–236 for Operator task/upload, and API-113–130 for the scoped offline contract. Role is taken from the catalog/source admission; it is not inferred from endpoint names.
 
 Changes in this correction:
 
@@ -32,3 +32,5 @@ Native camera/secure storage/SQLCipher or file encryption, durable offline queue
 - Source-reference and scope review: **PASS** for documentation scope.
 - Backend/API/SQL tests: **NOT_RUN**.
 - Android/Expo/native/E2E tests: **NOT_RUN**.
+
+Phase 5 source-locator correction: the survey controller is `SurveyV2Controller`; the earlier `SurveyTasksController` name did not resolve. Original phase checks remain historical; see the Phase 5 audit for expanded role/method/source checks.

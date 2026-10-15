@@ -93,7 +93,7 @@ Các DTO ở bảng API, domain/entity cùng orchestrator/durable seam dưới �
 - [DeadlineClock](../../../RoadGuardSystem.BusinessObjects/Clocks/DeadlineClock.cs#L12): source declaration.
 - [CasePublication](../../../RoadGuardSystem.BusinessObjects/Cases/CasePublication.cs#L3): source declaration.
 - [BusinessDutyRepository.ExecuteAsync](../../../RoadGuardSystem.Repositories/Implementations/Messaging/BusinessDutyRepository.cs#L110): producing/guard method locator.
-- [ExportService.ContentAsync](../../../RoadGuardSystem.Services/Implementations/Exports/ExportService.cs#L132): producing/guard method locator.
+- [ExportService.ContentAsync](../../../RoadGuardSystem.Services/Implementations/Exports/ExportService.cs#L136): producing/guard method locator.
 - [RetentionRepository.AdmitEvaluationAsync](../../../RoadGuardSystem.Repositories/Implementations/Retention/RetentionRepository.cs#L154): producing/guard method locator.
 - [RetentionRepository.ProcessOneAsync](../../../RoadGuardSystem.Repositories/Implementations/Retention/RetentionRepository.cs#L204): producing/guard method locator.
 - [ReportingService.CaptureAsync](../../../RoadGuardSystem.Services/Implementations/Reporting/ReportingService.cs#L15): producing/guard method locator.
@@ -127,3 +127,7 @@ Representative source files được chọn theo module; full static testRefs gi
 - [H6NotificationPersistenceGuardSqlTests.cs:17](../../../tests/RoadGuardSystem.IntegrationTests/Notifications/H6NotificationPersistenceGuardSqlTests.cs#L17): test source, `NOT_RUN`.
 - [H7ExportStorageAuthorityTests.cs:24](../../../tests/RoadGuardSystem.UnitTests/Reporting/H7ExportStorageAuthorityTests.cs#L24): test source, `NOT_RUN`.
 - [Huy02InspectionRetentionTests.cs:139](../../../tests/RoadGuardSystem.ApiTests/Inspections/Huy02InspectionRetentionTests.cs#L139): test source, `NOT_RUN`.
+
+## Phase 5 current-source clarification
+
+At `d1e529a5d1b6a95fa18d9448f7d75468463390df`, export access (API-074–077) requires current effective project membership even for Supervisor. `ExportService.AuthorizeAsync` L33–42 calls `HasCurrentProjectMembershipAsync`; `ExportRepository.AdmitAsync` enforces membership role/status/dates during capture/replay. Global reporting authority does not grant private export access. This restriction was introduced after the Phase 2 source pin (commits `e59027b`, `c093ba6`); earlier source evidence is historical for this guard. No runtime check is rerun by this documentation correction.

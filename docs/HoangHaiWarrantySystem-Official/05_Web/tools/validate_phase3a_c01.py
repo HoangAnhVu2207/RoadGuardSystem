@@ -20,7 +20,15 @@ for m in re.finditer(r'^### (API-\d+)\n(.*?)(?=^### API-|\Z)',text,re.M|re.S):
     role=re.search(r'- \*\*Actor/role/scope:\*\* ([^\.\n]+)',body)
     auth=re.search(r'- \*\*Authentication/security declaration:\*\* (.*)',body)
     if not (route and role and auth): fail(f'{ident} missing catalog metadata')
-    entries[ident]={'route':route.group(1),'role':role.group(1),'cookie':('Cookie eligibility metadata=true' in auth.group(1) or 'legacy selector=true' in auth.group(1))}
+    locator=re.search(r'\[\w+\.(\w+)\]\(\.\./\.\./\.\./(RoadGuardSystem.API/Controllers/[^#]+)#L\d+\)',body)
+    if not locator: fail(f'{ident} missing controller action source')
+    source=(ROOT/locator.group(2)).read_text(encoding='utf-8')
+    declaration=re.search(r'public\s+(?:async\s+)?[\w<>?]+\s+'+re.escape(locator.group(1))+r'\s*\(',source)
+    if not declaration: fail(f'{ident} source action missing')
+    header=re.split(r'public (?:sealed )?class',source,maxsplit=1)[0]
+    attributes=source[:declaration.start()].rsplit('}',1)[-1]
+    metadata='WebCookieEligible' in header or 'WebCookieEligible' in attributes
+    entries[ident]={'route':route.group(1),'role':role.group(1),'cookie':('Cookie eligibility metadata=true' in auth.group(1) or 'legacy selector=true' in auth.group(1)), 'source_metadata':metadata}
 
 def source_transport(ident, entry):
     """Classify transport from the WebAuth source and cookie selector source."""
@@ -34,12 +42,11 @@ def source_transport(ident, entry):
         if not re.search(r'\[Authorize\(AuthenticationSchemes = WebCookieConfiguration\.Scheme\)\][\s\S]{0,220}public async Task<IActionResult> '+method+r'\b', WEB_AUTH):
             fail(f'{ident} source no longer shows explicit WebCookie scheme {method}')
         return 'WEB_COOKIE_EXPLICIT'
-    if entry['cookie']:
-        if 'IsCookieEligibleRequest' not in WEB_CONFIG or 'IsCookieEligiblePath' not in WEB_CONFIG:
-            fail(f'{ident} catalog cookie metadata lacks selector source')
+    source_cookie=entry['source_metadata'] or selector_matches(entry['route'])
+    if source_cookie != entry['cookie']:
+        fail(f'{ident} catalog cookie metadata contradicts controller metadata/method-path selector')
+    if source_cookie:
         return 'WEB_COOKIE_SELECTOR'
-    if selector_matches(entry['route']):
-        fail(f'{ident} source selector admits {entry["route"]} but catalog says Bearer-only')
     return 'BEARER_ONLY'
 
 def selector_matches(route):
@@ -81,7 +88,6 @@ for sid,ident,route,role,transport,status,reason,actor in rows:
     if status != expected: errors.append(f'{sid}/{ident}: {status} expected {expected}')
     if route != e['route']: errors.append(f'{sid}/{ident}: route mismatch')
     if status=='TRANSPORT_BLOCKED' and 'Bearer' not in transport and 'transport' not in reason.lower(): errors.append(f'{sid}/{ident}: blocked without transport reason')
-    if status=='WRONG_ROLE_REMOVED' and status=='READY_BY_SOURCE': errors.append(f'{sid}/{ident}: contradictory role status')
 for sid,ident,actor in main:
     e=entries.get(ident)
     if not e: errors.append(f'{sid}/{ident}: unknown API in active matrix'); continue
@@ -97,4 +103,14 @@ if source_transport('API-015',entries['API-015']) != 'WEB_COOKIE_EXPLICIT' or so
 if source_transport('API-050',entries['API-050']) != 'BEARER_ONLY': fail('Bearer-only regression API-050')
 result={'screens':len(set(x[0] for x in rows)),'mappings':len(rows),'valid':c['READY_BY_SOURCE'],'anonymous_bootstrap':transport_counts['ANONYMOUS_BOOTSTRAP'],'web_cookie_explicit':transport_counts['WEB_COOKIE_EXPLICIT'],'web_cookie_selector':transport_counts['WEB_COOKIE_SELECTOR'],'wrong_role':c['WRONG_ROLE_REMOVED'],'transport_blocked':c['TRANSPORT_BLOCKED'],'bearer_only':transport_counts['BEARER_ONLY'],'source_uncertain':transport_counts['SOURCE_UNCERTAIN'],'active_mappings':len(main)}
 print(json.dumps(result,ensure_ascii=False))
+if '--self-test' in sys.argv:
+    import contextlib, io
+    for ident in ('API-050','API-078'):
+        contradicted=dict(entries[ident],cookie=not entries[ident]['cookie'])
+        rejected=False
+        with contextlib.redirect_stdout(io.StringIO()):
+            try: source_transport(ident,contradicted)
+            except SystemExit as ex: rejected=ex.code==1
+        if not rejected: fail(f'{ident} metadata contradiction regression was accepted')
+    print('PASS: Bearer-only and metadata-cookie catalog contradictions rejected; WebAuth bootstrap/explicit regressions checked')
 print('PASS: catalog IDs, actor authorization, cookie eligibility, route equality and active-matrix role safety')

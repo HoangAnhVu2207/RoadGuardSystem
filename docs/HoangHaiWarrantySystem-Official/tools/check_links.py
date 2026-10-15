@@ -5,6 +5,7 @@ import json
 import re
 import unicodedata
 from urllib.parse import unquote, urlsplit
+from functools import lru_cache
 
 
 def markdown_content(text):
@@ -22,6 +23,12 @@ def heading_ids(text):
         counts[slug] = occurrence + 1
         result.add(slug if occurrence == 0 else f"{slug}-{occurrence}")
     return result
+
+
+@lru_cache(maxsize=None)
+def headings_at(destination):
+    """One file read/heading parse per target in a checker invocation."""
+    return heading_ids(destination.read_text(encoding="utf-8-sig"))
 
 
 def audit_text(text, origin, repo):
@@ -56,12 +63,13 @@ def audit_text(text, origin, repo):
             continue
         if parsed.fragment and destination.suffix.lower() == ".md":
             fragment = unquote(parsed.fragment)
-            if fragment not in heading_ids(destination.read_text(encoding="utf-8-sig")):
+            if fragment not in headings_at(destination):
                 errors.append(f"{origin.name}: missing heading: {target}")
     return errors, {"local_links": local, "external_links_not_checked": external}
 
 
 def main():
+    headings_at.cache_clear()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docs-dir", type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args()

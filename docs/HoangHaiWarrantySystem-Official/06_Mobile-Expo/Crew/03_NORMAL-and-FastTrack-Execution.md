@@ -2,7 +2,7 @@
 
 ## NORMAL
 
-PM proposes package/item (API-139/140), Supervisor approves (API-142), PM assigns Crew (API-143), Crew checks eligibility (API-146), starts and executes with API-161/157/160, requests review (API-150), PM reviews, then Supervisor performs final confirmation (API-147). A Crew client may read current item and submit assigned evidence; it cannot approve, assign, review as PM or final-confirm as Supervisor.
+PM proposes package/item (API-139/140), Supervisor approves (API-142), PM assigns Crew (API-143), Crew checks eligibility (API-146), starts and executes with API-161/157/160, requests review (API-150), PM reviews, then Supervisor performs final confirmation (API-147). Crew cannot approve, assign, review as PM or final-confirm as Supervisor. API-141 item detail and API-148 history are PM/Supervisor guarded in `RepairWorkflowRepository.ReadItemAsync/GuardAsync`; they are not Crew read APIs. The eligibility ETag is a representation hash, not the item rowversion for repair commands. Establishing the complete Crew read/bootstrap path remains P5-G02 in the [Phase 5 traceability audit](../../08_Testing-and-Operations/Phase5/04_Workflow-and-Evidence-Traceability.md).
 
 ## Fast Track
 

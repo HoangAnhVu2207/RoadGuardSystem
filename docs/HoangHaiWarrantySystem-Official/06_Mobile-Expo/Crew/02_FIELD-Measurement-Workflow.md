@@ -8,9 +8,9 @@ FIELD is a formal inspection and provenance workflow, not a repair approval. PM 
 2. Accept or reject with API-081/091. Rejection preserves history; it does not reassign itself.
 3. Start with API-093. The original/first-start origin is server-owned and must not be reset by a supplement or clock change.
 4. Measure the physical defect in the field. Record dimensions and method as the request DTO requires. AI bbox/confidence/frame/timestamp is evidence context only and cannot populate physical dimensions.
-5. Capture BEFORE/AFTER/MEASUREMENT evidence using API-233/236/235 and poll API-234 to `VERIFIED`. Link only verified, task-scoped files to API-095/156/157 as permitted.
-6. Submit typed assessment/formal evidence. PM reviews via API-092/158 and may request supplement; Crew app uses API-159 with a new exact K and current version.
-7. Finish execution only through API-160 after current eligibility and evidence guards pass. A submission or measurement does not itself approve or complete a repair.
+5. Capture evidence for the FIELD submission using API-233/236/235 and poll API-234 to `VERIFIED`. Attach verified, task-scoped evidence through API-095 (`FieldSubmissionInput`); purpose and measurement validation remain server authority.
+6. PM reviews through API-092. When the FIELD task is `SupplementRequired`, Crew resubmits through API-095 with `ParentSubmissionId` equal to the latest submission, a new K and current task version. Read the submission through API-096. Preserve the first-start origin.
+7. FIELD review does not finish a repair. Repair assessment/attempt/supplement/finish (API-156/157/159/160) belong to the separate [repair workflow](03_NORMAL-and-FastTrack-Execution.md), with its own item, assignment and version guards.
 
 ## Failure boundaries
 

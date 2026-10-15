@@ -5798,6 +5798,8 @@
 - **Test locators / execution:** [H1PersistentIdentityTests.cs:70](../../../tests/RoadGuardSystem.ApiTests/Authentication/H1PersistentIdentityTests.cs#L70) ; [Huy01AndroidTransportTests.cs:59](../../../tests/RoadGuardSystem.ApiTests/Authentication/Huy01AndroidTransportTests.cs#L59) — source candidates, backend tests **NOT_RUN** in Phase2C; neither coverage nor E2E PASS from presence.
 - **Implementation status:** `CURRENT_VERIFIED` source contract; consumer/native/provider/deployment `NOT_VERIFIED`. Existing P1/P2 gates remain; document-only differences in review report.
 
+- **Phase 5 current-source erratum:** current `ExportService.AuthorizeAsync` L33–42 requires effective project membership for Supervisor as well as PM. Capture/replay also checks matching membership role/status/dates. Global reporting permission is insufficient for exports; source pin `d1e529a5d1b6a95fa18d9448f7d75468463390df` supersedes the older guard excerpt.
+
 ### API-075
 
 **`GET /api/v1/projects/{projectId}/exports/{exportId}`**
@@ -5822,6 +5824,8 @@
 - **Source validation excerpts:** `if (await AuthorizeAsync(actorId, projectId, ct) is null) return new("forbidden");` ; `if (data is null) return new("not_found");` ; `if (job is null) return null;` ; `if (job.ArtifactId.HasValue) file = await (from a in _db.Set<GeneratedArtifact>() join f in _db.Set<StoredFile>() on a.FileId equals f.Id where a.Id == job.ArtifactId select f).AsNoTracking().SingleOrDefaultAsync(ct);`. Partial source statements, not runnable examples; follow complete linked method.
 - **Test locators / execution:** [H1PersistentIdentityTests.cs:70](../../../tests/RoadGuardSystem.ApiTests/Authentication/H1PersistentIdentityTests.cs#L70) ; [Huy01AndroidTransportTests.cs:59](../../../tests/RoadGuardSystem.ApiTests/Authentication/Huy01AndroidTransportTests.cs#L59) — source candidates, backend tests **NOT_RUN** in Phase2C; neither coverage nor E2E PASS from presence.
 - **Implementation status:** `CURRENT_VERIFIED` source contract; consumer/native/provider/deployment `NOT_VERIFIED`. Existing P1/P2 gates remain; document-only differences in review report.
+
+- **Phase 5 current-source erratum:** current `ExportService.AuthorizeAsync` L33–42 requires effective project membership for Supervisor as well as PM. Capture/replay also checks matching membership role/status/dates. Global reporting permission is insufficient for exports; source pin `d1e529a5d1b6a95fa18d9448f7d75468463390df` supersedes the older guard excerpt.
 
 ### API-076
 
@@ -5848,6 +5852,8 @@
 - **Test locators / execution:** [H1PersistentIdentityTests.cs:70](../../../tests/RoadGuardSystem.ApiTests/Authentication/H1PersistentIdentityTests.cs#L70) ; [Huy01AndroidTransportTests.cs:59](../../../tests/RoadGuardSystem.ApiTests/Authentication/Huy01AndroidTransportTests.cs#L59) — source candidates, backend tests **NOT_RUN** in Phase2C; neither coverage nor E2E PASS from presence.
 - **Implementation status:** `CURRENT_VERIFIED` source contract; consumer/native/provider/deployment `NOT_VERIFIED`. Existing P1/P2 gates remain; document-only differences in review report.
 
+- **Phase 5 current-source erratum:** current `ExportService.AuthorizeAsync` L33–42 requires effective project membership for Supervisor as well as PM. Capture/replay also checks matching membership role/status/dates. Global reporting permission is insufficient for exports; source pin `d1e529a5d1b6a95fa18d9448f7d75468463390df` supersedes the older guard excerpt.
+
 ### API-077
 
 **`GET /api/v1/projects/{projectId}/exports/{exportId}/manifest`**
@@ -5872,6 +5878,8 @@
 - **Source validation excerpts:** `if (await AuthorizeAsync(actorId, projectId, ct) is null) return new("forbidden");` ; `if (data is null) return new("not_found");` ; `if (job is null) return null;` ; `if (job.ArtifactId.HasValue) file = await (from a in _db.Set<GeneratedArtifact>() join f in _db.Set<StoredFile>() on a.FileId equals f.Id where a.Id == job.ArtifactId select f).AsNoTracking().SingleOrDefaultAsync(ct);`. Partial source statements, not runnable examples; follow complete linked method.
 - **Test locators / execution:** [H1PersistentIdentityTests.cs:70](../../../tests/RoadGuardSystem.ApiTests/Authentication/H1PersistentIdentityTests.cs#L70) ; [Huy01AndroidTransportTests.cs:59](../../../tests/RoadGuardSystem.ApiTests/Authentication/Huy01AndroidTransportTests.cs#L59) — source candidates, backend tests **NOT_RUN** in Phase2C; neither coverage nor E2E PASS from presence.
 - **Implementation status:** `CURRENT_VERIFIED` source contract; consumer/native/provider/deployment `NOT_VERIFIED`. Existing P1/P2 gates remain; document-only differences in review report.
+
+- **Phase 5 current-source erratum:** current `ExportService.AuthorizeAsync` L33–42 requires effective project membership for Supervisor as well as PM. Capture/replay also checks matching membership role/status/dates. Global reporting permission is insufficient for exports; source pin `d1e529a5d1b6a95fa18d9448f7d75468463390df` supersedes the older guard excerpt.
 
 ### API-135
 
@@ -5957,8 +5965,8 @@
 **`POST /api/v1/projects/{projectId}/receiving-requests/{requestId}/appointment`**
 
 - **Purpose/lifecycle:** Current responsible actor/role/request/version for ACK. List/read PM/Supervisor or own current recipient. Appointment Supervisor (Crew supplement PM branch returns use_task_reassignment); first server ACK immutable, no clock reset.
-- **Actor/role/scope:** Supervisor, PM, Crew. Resource IDs/path/body identify scope; current source admission above is required, not UUID possession.
-- **Primary product consumers:** Web Supervisor, Web PM, Mobile Expo Crew. Transport availability is not a new role grant.
+- **Actor/role/scope:** Supervisor, PM. Resource IDs/path/body identify scope; current source admission above is required, not UUID possession.
+- **Primary product consumers:** Web Supervisor, Web PM. Transport availability is not a new role grant.
 - **Controller/source/SHA:** [BusinessDutyController.Appoint](../../../RoadGuardSystem.API/Controllers/BusinessDutyController.cs#L35); `36c3a1d273f17dd29b816136ae0182a821fd79e4`.
 - **Authentication/security declaration:** Authorize; bearer or eligible web cookie (metadata or legacy whitelist); `[{"Bearer":[]},{"WebSession":[],"CsrfToken":[],"AntiforgeryCookie":[]}]`. Cookie eligibility metadata=true, legacy selector=false.
 - **Path/query/header parameters:** each declared parameter below; schema required flag != all business prerequisites.
@@ -5978,6 +5986,8 @@
 - **Source validation excerpts:** `if (actor == Guid.Empty &#124;&#124; project == Guid.Empty &#124;&#124; request == Guid.Empty &#124;&#124; string.IsNullOrWhiteSpace(key) &#124;&#124;` ; `try { if (Convert.FromBase64String(version).Length != 8) return Task.FromResult(new BusinessDutyResult(400, "validation_error")); }` ; `if (string.IsNullOrWhiteSpace(c.Key) &#124;&#124; c.Key.Length > 200 &#124;&#124; string.IsNullOrWhiteSpace(c.ExpectedVersion) &#124;&#124;` ; `if (await db.IdempotencyRecords.AnyAsync(x => x.ActorUserId == c.ActorId && x.ProjectId == c.ProjectId &&`. Partial source statements, not runnable examples; follow complete linked method.
 - **Test locators / execution:** [Huy01CaseSqlTests.cs:32](../../../tests/RoadGuardSystem.ApiTests/Cases/Huy01CaseSqlTests.cs#L32) ; [Huy01CaseSqlTests.cs:82](../../../tests/RoadGuardSystem.ApiTests/Cases/Huy01CaseSqlTests.cs#L82) — source candidates, backend tests **NOT_RUN** in Phase2C; neither coverage nor E2E PASS from presence.
 - **Implementation status:** `CURRENT_VERIFIED` source contract; consumer/native/provider/deployment `NOT_VERIFIED`. Existing P1/P2 gates remain; document-only differences in review report.
+
+- **Phase 5 erratum (P5-G01, documentation corrected):** `BusinessDutyRepository.Guard` L86–108 denies Crew appointment. Supervisor is required except the CrewSupplement PM branch, which returns `409 use_task_reassignment`; this is not a successful PM appointment path. API-137 ACK retains its separate current-recipient guard.
 
 ### API-168
 

@@ -20,7 +20,7 @@ Operator is not granted offline signed sync. Crew offline operations require dev
 
 ## Evidence
 
-Primary sources: `RoadGuardSystem.API/Controllers/SurveyTasksController.cs`, `FieldInspectionWorkflowController.cs`, `UploadsController.cs`, `OfflineWorkflowController.cs`, `RepairPackagesController.cs`, `RepairSafetyController.cs`; corresponding `RoadGuardSystem.Services` and `RoadGuardSystem.Repositories` implementations; DTOs under `RoadGuardSystem.DTOs`; Phase 2A workflows 05/06/07/08/09; Phase 2B security/storage/offline chapters; Phase 2C contracts and crosswalk.
+Primary sources: `RoadGuardSystem.API/Controllers/SurveyV2Controller.cs`, `FieldInspectionWorkflowController.cs`, `UploadsController.cs`, `OfflineWorkflowController.cs`, `RepairPackagesController.cs`, `RepairSafetyController.cs`; corresponding `RoadGuardSystem.Services` and `RoadGuardSystem.Repositories` implementations; DTOs under `RoadGuardSystem.DTOs`; Phase 2A workflows 05/06/07/08/09; Phase 2B security/storage/offline chapters; Phase 2C contracts and crosswalk.
 
 Backend API tests can establish source/runtime behavior in their lane, but they do not prove Expo rendering, camera permissions, OS key custody, native encrypted storage, background sync, DJI integration or real physical measurement accuracy. Those remain `NOT_VERIFIED_EXPO_E2E` and must be tested on a real build.
 
@@ -44,3 +44,5 @@ Backend API tests can establish source/runtime behavior in their lane, but they 
 | DJI/native/background sync/SQLCipher/Keystore | NOT_RUN / NOT_VERIFIED |
 
 **Judgment: PARTIAL for integration readiness.** Documentation is complete for the assigned scope; real Expo implementation and device acceptance remain pending.
+
+Phase 5 source-locator correction: the survey controller is `SurveyV2Controller`; the earlier `SurveyTasksController` name did not resolve. Original phase checks remain historical; see the Phase 5 audit for expanded role/method/source checks.

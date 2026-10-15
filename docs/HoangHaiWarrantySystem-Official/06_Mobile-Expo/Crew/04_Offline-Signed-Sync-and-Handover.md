@@ -1,6 +1,6 @@
 # Offline signed sync and handover
 
-Offline is a Crew-only supported Backend boundary in the current crosswalk. Operator and Reporter do not receive signed sync enrollment merely because they use Mobile Expo.
+This is the Crew Mobile execution boundary. Backend offline operations also admit PM and, for grant/package preparation operations, Supervisor under separate guards. Operator and Reporter do not receive signed sync enrollment merely because they use Mobile Expo.
 
 ## Enrollment and snapshot
 
@@ -10,7 +10,7 @@ PM/Crew uses API-116 to register a device and API-118 to revoke it; API-127 crea
 
 Use the exact Phase 2C wire: P-256 ECDSA, SPKI public key, IEEE P1363 64-byte signature, canonical Web JSON options, descriptor order by `OriginId.ToString("N")`, lowercase SHA-256 hashes and the declared manifest/source registration IDs. Claim digest and encrypted package signature are different formats. Do not use JSON.stringify, DER signatures, client timestamps or altered field order as substitutes.
 
-API-130 accepts the signed sync envelope; API-113–115 expose artifact/batch reads; API-122 imports an encrypted package; API-125 exports and API-126 prepares a package; API-129 reconciles starts; API-119/121 Supervisor manages grants. Per-item outcomes include `COMMITTED`, `REPLAYED`, `PENDING_DEPENDENCY`, `STALE_SNAPSHOT`, `CONFLICT`; HTTP 200 is not an all-items ACK.
+API-130 accepts the signed sync envelope; API-113 creates an artifact, API-114/115 read artifacts/batches; API-122 imports an encrypted package; API-125 exports. API-126 package preparation and API-119/121 grant commands are Supervisor control-plane operations, not Crew commands. API-129 reconciles starts. Per-item outcomes include `COMMITTED`, `REPLAYED`, `PENDING_DEPENDENCY`, `STALE_SNAPSHOT`, `CONFLICT`; HTTP 200 is not an all-items ACK.
 
 ## Handover
 

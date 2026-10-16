@@ -13,3 +13,5 @@ Self-review 1: checked original-project authority, current membership/assignment
 Self-review 2: checked HTTP-derived runner versions, cache invalidation, unknown outcomes, catalog/schema difference and delivery scope. Fixed stale Swagger excerpt and formatting findings; no approval or final policy changed. External independent JEV remains pending.
 
 See [current contract and evidence](../../docs/HoangHaiWarrantySystem-Official/06_Mobile-Expo/Crew/C04_Crew-Repair-Bootstrap.md). Final command outputs and delivery SHA are in the external C04 review package.
+
+CI follow-up: run38832370348 passed all test jobs/SQL lanes but aggregate rejected lane4 count because five new bootstrap test identities were missing from sql-lanes.json. Added only the five exact observed successful TRX identities; no filter/assertion/gate weakening. Local four-lane identity reconciliation rerun before follow-up push. Final exact-SHA CI is required.

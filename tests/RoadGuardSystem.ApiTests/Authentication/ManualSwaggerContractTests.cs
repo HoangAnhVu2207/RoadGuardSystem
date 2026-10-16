@@ -11,6 +11,22 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task CrewTaskBootstrapDocumentsSeparateItemVersionWithoutChangingTaskVersion()
+    {
+        using var document = await Document();
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var task = schemas.GetProperty("FieldTaskViewFact").GetProperty("properties");
+        task.GetProperty("version").GetProperty("type").GetString().Should().Be("string");
+        task.GetProperty("repairContext").GetRawText().Should().Contain("CrewRepairContextFact");
+        var context = schemas.GetProperty("CrewRepairContextFact").GetProperty("properties");
+        context.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo(new[]
+        {
+            "packageId", "itemId", "bindingId", "mode", "status", "itemVersion", "repairPlan", "checklistVersion"
+        });
+        context.GetProperty("itemVersion").GetProperty("type").GetString().Should().Be("string");
+    }
+
+    [Fact]
     public async Task OnlyRequiredCookieFlowsExposeCsrfAsAManualInput()
     {
         using var document = await Document();

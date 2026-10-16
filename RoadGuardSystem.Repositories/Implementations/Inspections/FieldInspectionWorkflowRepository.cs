@@ -191,7 +191,13 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
             var origin = await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleOrDefaultAsync(x => x.TaskId == task.Id, token);
             if (origin is null) Deny(404, "not_found"); return await FinalizeResultAsync(c, new(200, Value: origin), token);
         }
-        if (c.Action == "get") return new(200, Value: await ViewAsync(task, token), Version: Convert.ToBase64String(task.RowVersion));
+        if (c.Action == "get")
+        {
+            var view = await ViewAsync(task, token);
+            if (c.Admission.CallerRole == UserRoleCode.RepairCrew)
+                view = view with { RepairContext = await CrewRepairContextAsync(c, task, token) };
+            return new(200, Value: view, Version: Convert.ToBase64String(task.RowVersion));
+        }
         if (c.Action == "history") return new(200, Value: new
         {
             assignments = await db.FieldInspectionAssignments.AsNoTracking().Where(x => x.FieldInspectionTaskId == task.Id).OrderBy(x => x.AssignedAt).Select(x => new { x.Id, x.AssignedToUserId, x.AssignedByUserId, x.AssignedAt, x.EndedAt, x.Status, x.Reason }).ToArrayAsync(token),

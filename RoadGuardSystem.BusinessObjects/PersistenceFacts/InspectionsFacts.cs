@@ -44,7 +44,11 @@ public sealed record FieldTaskViewFact(Guid Id, Guid ProjectId, Guid DefectId, G
     Guid RouteVersionId, Guid? SegmentSetId, Guid? LayoutRevisionId, string? SlabId, string Purpose,
     string Mode, string Status, Guid? AssignmentId, Guid? AssignedToUserId, string Version,
     Guid? FirstStartOriginId, Guid? LatestSubmissionId, Guid? MapPublicationId, Guid? CrsProfileRevisionId,
-    byte RequiredMeasurementType = 0, string? MeasurementScope = null, string? Instructions = null, DateTimeOffset? DueAt = null);
+    byte RequiredMeasurementType = 0, string? MeasurementScope = null, string? Instructions = null, DateTimeOffset? DueAt = null,
+    CrewRepairContextFact? RepairContext = null);
+
+public sealed record CrewRepairContextFact(Guid PackageId, Guid ItemId, Guid BindingId, string Mode,
+    string Status, string ItemVersion, string RepairPlan, string ChecklistVersion);
 
 public sealed record FieldVerificationSourceFactsFact(Guid TaskId, Guid DefectId, Guid SubmissionId, string ContentHash,
     string Decision, Guid[] EvidenceIds, Guid RouteVersionId, Guid? SegmentSetId, Guid? LayoutRevisionId);

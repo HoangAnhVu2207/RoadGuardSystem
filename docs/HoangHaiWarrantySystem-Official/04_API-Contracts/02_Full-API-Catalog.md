@@ -3770,6 +3770,8 @@
 - **Test locators / execution:** [Huy01CaseSqlTests.cs:32](../../../tests/RoadGuardSystem.ApiTests/Cases/Huy01CaseSqlTests.cs#L32) ; [Huy01CaseSqlTests.cs:82](../../../tests/RoadGuardSystem.ApiTests/Cases/Huy01CaseSqlTests.cs#L82) — source candidates, backend tests **NOT_RUN** in Phase2C; neither coverage nor E2E PASS from presence.
 - **Implementation status:** `CURRENT_VERIFIED` source contract; consumer/native/provider/deployment `NOT_VERIFIED`. Existing P1/P2 gates remain; document-only differences in review report.
 
+- **C04 scoped additive amendment:** Assigned current NORMAL Crew task GET includes nullable `repairContext` with `packageId`, `itemId`, `bindingId`, `mode`, `status`, `itemVersion`, `repairPlan`, `checklistVersion`. Outer `version`/ETag remain FIELD task concurrency; repair commands use quoted `repairContext.itemVersion`. PM/Supervisor, list and non-NORMAL responses do not receive this context. Existing API-141/148 role guards remain unchanged. [Current source and verification](../06_Mobile-Expo/Crew/C04_Crew-Repair-Bootstrap.md). Historical schema artifact is not the amended runtime schema.
+
 ### API-081
 
 **`POST /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}/accept`**

@@ -33,7 +33,7 @@ using System.Text.Json;
 
 namespace RoadGuardSystem.IntegrationTests.Repairs;
 
-public sealed class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITestOutputHelper output) : IClassFixture<IdentitySqlServerFixture>
+public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITestOutputHelper output) : IClassFixture<IdentitySqlServerFixture>
 {
     [Fact]
     public async Task Current_Supervisor_extends_actual_initial_approval_duty()

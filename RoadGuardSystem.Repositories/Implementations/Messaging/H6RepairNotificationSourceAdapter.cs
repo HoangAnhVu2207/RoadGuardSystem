@@ -63,6 +63,44 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
         ArgumentNullException.ThrowIfNull(plan);
         if (db.Database.CurrentTransaction is null) throw new InvalidOperationException("Source proof requires the caller's transaction.");
         if (!Supports(plan.Source.SourceKind)) return new("REJECTED", "notification_source_kind_invalid");
+        if (plan.Source.NotificationAssignmentSnapshot is { } assignmentProof)
+        {
+            if (!assignmentProof.IsValid() || plan.Source.FastTrackReview is not null || assignmentProof.CapturedAt != plan.Source.OccurredAtUtc ||
+                plan.MessageType is not ("repair.work.submitted.v1" or "repair.work.fast_track_confirmed.v1") ||
+                !await db.RepairItems.AnyAsync(x => x.Id == plan.Source.SourceId && x.ProjectId == plan.Source.ProjectId && x.Mode == RepairMode.FastTrack, cancellationToken))
+                return new("REJECTED", "notification_source_relation_invalid");
+            if (assignmentProof.AssignmentId is Guid generation && !await db.Set<NotificationSupervisorGeneration>().AnyAsync(x =>
+                x.Id == generation && x.ItemId == plan.Source.SourceId && x.ProjectId == plan.Source.ProjectId &&
+                x.SupervisorId == assignmentProof.SupervisorId && x.Version == assignmentProof.AssignmentVersion, cancellationToken))
+                return new("REJECTED", "notification_source_relation_invalid");
+        }
+        if (plan.MessageType == "repair.work.fast_track_confirmed.v1" && plan.Source.NotificationAssignmentSnapshot is not null)
+        {
+            var transport = await db.OutboxMessages.AsNoTracking().SingleOrDefaultAsync(x => x.Id == plan.Source.EventId, cancellationToken);
+            var final = plan.Source.FastTrackFinal;
+            if (transport is null || !H6FieldNotificationSourceAdapter.MatchesTransport(transport, plan) || final is null ||
+                plan.Source.Kind != "FAST_TRACK_CONFIRMED" || plan.Source.EventId != plan.Source.OriginEventId ||
+                plan.Source.SourceRevisionId != plan.Source.OriginEventId || plan.Source.ResponsibleUserId is not null ||
+                plan.Source.NotificationAssignmentSnapshot.ProjectManagerIds.Length != 0)
+                return new("REJECTED", "notification_source_relation_invalid");
+            var valid = await (from finalDecision in db.Set<RepairDecision>()
+                               join item in db.RepairItems on finalDecision.ItemId equals item.Id
+                               join review in db.Set<RepairAttemptReview>() on final.ReviewId equals review.Id
+                               join intake in db.Set<RepairAttemptSubmissionLink>() on final.IntakeLinkId equals intake.Id
+                               join attempt in db.Set<RepairAttempt>() on final.AttemptId equals attempt.Id
+                               where finalDecision.Id == plan.Source.OriginEventId && finalDecision.SupersedesDecisionId == null &&
+                                   finalDecision.Mode == RepairMode.FastTrack && finalDecision.Result == RepairPresentationState.Confirmed &&
+                                   finalDecision.Role == UserRoleCode.ProjectManager && finalDecision.At == plan.Source.OccurredAtUtc &&
+                                   item.Id == plan.Source.SourceId && item.ProjectId == plan.Source.ProjectId && item.Mode == finalDecision.Mode &&
+                                   EF.Property<Guid?>(item, "PackageId") == final.PackageId && finalDecision.ObligationId == item.ObligationId && finalDecision.DefectId == item.DefectId &&
+                                   review.ItemId == item.Id && review.ProjectId == item.ProjectId && review.AttemptId == attempt.Id &&
+                                   review.IntakeLinkId == intake.Id && review.SubmissionId == intake.SubmissionId && review.Decision == "ACCEPT" &&
+                                   review.EvidenceSufficient && review.ExecutionAuthority == RepairFactState.Confirmed && review.Role == UserRoleCode.ProjectManager &&
+                                   review.At <= finalDecision.At && intake.ItemId == item.Id && intake.ProjectId == item.ProjectId && intake.AttemptId == attempt.Id &&
+                                   attempt.ItemId == item.Id && attempt.ProjectId == item.ProjectId && attempt.DefectId == item.DefectId && attempt.ObligationId == item.ObligationId
+                               select finalDecision.Id).AnyAsync(cancellationToken);
+            return valid ? new("VERIFIED") : new("REJECTED", "notification_source_relation_invalid");
+        }
         if (plan.MessageType == "repair.work.submitted.v1")
         {
             var transport = await db.OutboxMessages.FromSqlInterpolated($"SELECT * FROM [OutboxMessages] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={plan.Source.EventId}")
@@ -73,6 +111,8 @@ public sealed class H6RepairNotificationSourceAdapter(RoadGuardDbContext db) : I
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
             var source = await db.Set<RepairItemLifecycleEvent>().FromSqlInterpolated($"SELECT * FROM [RepairItemLifecycleEvents] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={plan.Source.OriginEventId}")
                 .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+            if (plan.Source.FastTrackReview is { } snapshot && (item?.Mode != RepairMode.FastTrack || !snapshot.IsValid()))
+                return new("REJECTED", "notification_source_relation_invalid");
             if (item is null || source is null || source.AttemptId is not Guid attemptId ||
                 source.SubmissionId is not Guid submissionId || source.BindingId is not Guid bindingId)
                 return new("REJECTED", "notification_source_relation_invalid");

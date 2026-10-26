@@ -1,0 +1,152 @@
+{
+  "task": "RG-BE-FE-FINAL-HANDOFF-MASTER-34",
+  "head": "dd94aa697c411bb11d305973580055216f65ba73",
+  "release": "FE_INTEGRATION_PREVIEW",
+  "independentReview": "NOT_PERFORMED",
+  "runtime": "Fresh isolated extracted V2 stack and sequential owned SQL/MinIO batches executed; final addendum supersedes pre-runtime snapshot",
+  "runner": "DENY_ALL",
+  "python": {
+    "knowledgePass": 136,
+    "operationsPass": 59,
+    "fail": 0
+  },
+  "source": [
+    {
+      "path": "RoadGuardSystem.Services/Implementations/Processing/Anh02/SyntheticAiFixture.cs",
+      "sha256": "05804aea7f89e03f030e5e6f1ee20622375c437446ca6e37329e0a0a32349f67"
+    },
+    {
+      "path": "RoadGuardSystem.Services/Implementations/Processing/Anh02/Anh02AiService.cs",
+      "sha256": "e5ab5901707dd661213328d9091a4202afce2dba03544ffeba11625741614e8d"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Processing/Anh02AiRepository.cs",
+      "sha256": "ac6812c12e95c62b696be531378a863cc429fe3ab9664da241cca80c615bfc99"
+    },
+    {
+      "path": "RoadGuardSystem.API/Extensions/HandoffBootstrap.cs",
+      "sha256": "00525bafed03400582c5614d0a1dc90c0a150078895a19e4b075284c8c60824f"
+    },
+    {
+      "path": "deploy/fe-handoff/demo_ai.py",
+      "sha256": "a83275b7a22a0a093f9005a6666e1b11299ae13ed48bc80416c14efacd670218"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Files/UploadPersistenceService.cs",
+      "sha256": "f0b743225af7227407023e386da00da86f14488b9110b88c4d68208f0fda273c"
+    },
+    {
+      "path": "RoadGuardSystem.Services/Implementations/Files/UploadService.cs",
+      "sha256": "a04c0839fa4cc19f135efc87f1509963dadd33a23f2825a81963a5fdb23f4e52"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/Processing/Anh02AiHttpTests.cs",
+      "sha256": "a69becbf6631b99e1bb808c6951b2668590e3911f2a91cf5dde52a1b5f618cfc"
+    },
+    {
+      "path": "RoadGuardSystem.API/Controllers/UploadsController.cs",
+      "sha256": "487e9a38ffab9d8ef9d422c78103c23877a049a8344199426f77cc689c5000ca"
+    },
+    {
+      "path": "RoadGuardSystem.API/Extensions/ManualSwaggerContracts.json",
+      "sha256": "8a873e35389e45951a4602f9aaa197c8c33764e6ea78cb70f8b36e42335e6fa3"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/Authentication/ManualSwaggerContractTests.cs",
+      "sha256": "d4f5694a8b1f60b20f6d3323605b2e9ca112b33d20c6129482837b836c332a3b"
+    }
+  ],
+  "assertions": [
+    {
+      "rule": "Development synthetic two-class/two-timestamp shape, legacy compatibility",
+      "test": "Task34SyntheticMultiframeTests",
+      "run": "task34-focused-unit.trx",
+      "postcondition": "Historical V2 frame provenance verified; old generic content404 superseded by owner-approved AI frame addendum and fresh runtime evidence"
+    },
+    {
+      "rule": "Public presign address does not alter internal endpoint",
+      "test": "HandoffPresignTests",
+      "run": "task34-focused-unit.trx",
+      "postcondition": "offline URL signature only, no remote object request"
+    },
+    {
+      "rule": "Swagger inventory/DTO/source consistency",
+      "test": "ManualSwaggerContractTests",
+      "run": "task34-contract-green.trx",
+      "postcondition": "in-process contract assertions; no business endpoint runtime claim"
+    }
+  ],
+  "gates": [
+    "G02-G06 public contracts",
+    "A1/B2/C1 pending parameters",
+    "Owner-approved Git publication",
+    "Operator certificate trust and actual FE UI E2E NOT_RUN"
+  ],
+  "historicalRed": "First contract run found stale excerpts; original logs retained separately. TDD compile RED retained; no final failure hidden.",
+  "runtimeEvidence": [
+    "task34-owned-sql.trx",
+    "task34-workflows.trx",
+    "task34-export-minio.trx",
+    "rg-task34-final-results.json",
+    "candidate-results.json",
+    "minio-frame-results.json",
+    "rg-task34-final-otp-results.json",
+    "rg-task34-final-persistence-after-results.json"
+  ],
+  "previousTask34Results": {
+    "Passed": 75,
+    "Failed": 0,
+    "NotExecuted": 0,
+    "Aborted": 0
+  },
+  "dotnetContinuation": {
+    "Passed": 23,
+    "Failed": 0,
+    "Skipped": 0,
+    "Aborted": 0
+  },
+  "pythonContinuation": {
+    "Passed": 10,
+    "Failed": 0,
+    "scope": "test_handoff*.py only; previous195 not rerun"
+  },
+  "continuation": {
+    "browser": "9 actual Edge HTTPS network assertions PASS; isolated certificate bypass only",
+    "schemas": "241 exact method/path bindings; request/response schema export, not new runtime coverage",
+    "runtimeEvidence": [
+      "continuation-cors.trx",
+      "continuation-web-security.trx",
+      "browser-results.json",
+      "swagger-reconciliation.json"
+    ],
+    "sourceChange": "Development-only strict loopback origins override; no business policy or AI frame contract change"
+  },
+  "aiFrameApproved": {
+    "ownerDecision": "Reuse existing files metadata/content routes; current AI result/project authority; no new signed URL",
+    "dotnetUnique": {
+      "pass": 11,
+      "fail": 0,
+      "skip": 0,
+      "abort": 0
+    },
+    "historicalRed": "Metadata expected200 actual404 before fix; retained separately",
+    "evidence": [
+      "red.trx",
+      "green-memory-store.trx",
+      "green-minio.trx",
+      "continuation-web-security.trx"
+    ],
+    "coveragePromotion": false,
+    "runner": "DENY_ALL"
+  },
+  "closureContinuation": {
+    "status": "PARTIAL; owner decisions pending",
+    "source": "G02-G06-OWNER-DECISIONS.md",
+    "rule": "Private reads must recheck authority; no-store avoids cached bearer content reuse",
+    "test": "Real_synthetic_upload_manifest_worker_provenance_replay_and_revocation; PrivateFileReadDocumentsOpaqueVersionAndNoStoreWithoutNewRoutes",
+    "runtime": "closure-continuation evidence; original RED retained separately",
+    "sqlPostcondition": "Disposable owned SQL and MinIO only; no fake UploadSession; denial remains before body exposure",
+    "runner": "DENY_ALL",
+    "fullContractPromotions": 0
+  }
+}

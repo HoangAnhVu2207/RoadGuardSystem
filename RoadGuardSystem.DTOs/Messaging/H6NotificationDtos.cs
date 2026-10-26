@@ -12,7 +12,9 @@ public sealed record WeeklyDigestView(Guid Id, Guid ProjectId, Guid? RecipientId
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record H6NotificationEventDto(int SchemaVersion, Guid EventId, string Kind, Guid ProjectId,
     string SourceKind, Guid SourceId, Guid OriginEventId, DateTimeOffset OccurredAtUtc,
-    Guid? SourceRevisionId = null, Guid? ResponsibleUserId = null, DateTimeOffset? ScheduledAtUtc = null);
+    Guid? SourceRevisionId = null, Guid? ResponsibleUserId = null, DateTimeOffset? ScheduledAtUtc = null,
+    FastTrackReviewSnapshot? FastTrackReview = null,
+    NotificationAssignmentSnapshot? NotificationAssignmentSnapshot = null, FastTrackFinalSource? FastTrackFinal = null);
 public sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId, Guid? OccurrenceId,
     string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion);
 public sealed record H6DispatchResult(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,

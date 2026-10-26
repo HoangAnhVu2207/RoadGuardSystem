@@ -62,7 +62,10 @@ public sealed class ReportsController : ControllerBase
         if (lifecycle is null) return ProblemResponse(503, "dependency_unavailable", "Report lifecycle is not configured");
         var result = await lifecycle.DownloadAsync(actor, role, reportId, evidenceId, cancellationToken);
         if (result.Status == UploadServiceStatus.Success && result.Content is not null)
+        {
+            Response.Headers.ETag = $"\"{result.File!.Version}\"";
             return File(result.Content, result.File!.MediaType);
+        }
         return result.Status switch
         {
             UploadServiceStatus.Forbidden => ProblemResponse(403, "access_forbidden", "Forbidden"),

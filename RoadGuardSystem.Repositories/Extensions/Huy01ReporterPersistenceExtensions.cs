@@ -17,6 +17,7 @@ public static class Huy01ReporterPersistenceExtensions
     {
         services.AddHuy01ReporterIntakePersistence();
         services.TryAddScoped<IReporterLifecycleRepository, ReporterLifecycleRepository>();
+        services.TryAddScoped<RoadGuardSystem.Repositories.Cases.IPublicPublicationRepository, RoadGuardSystem.Repositories.Implementations.Cases.PublicPublicationRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Cases.ICaseWorkflowRepository, RoadGuardSystem.Repositories.Implementations.Cases.CaseWorkflowRepository>();
         return services;
     }

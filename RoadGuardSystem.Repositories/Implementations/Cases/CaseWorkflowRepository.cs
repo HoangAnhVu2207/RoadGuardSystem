@@ -210,6 +210,14 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
         return incident;
     }
 
+    internal async Task ValidatePublicSourceAsync(IncidentCase incident, Guid defect, IReadOnlyList<Guid> evidence, CancellationToken ct)
+    {
+        await ResolveDefectsAsync(incident, [defect], ct);
+        var sources = await ResolveEvidenceAsync(incident, evidence, ct);
+        foreach (var source in sources)
+            if (!(await RelatedDefectsAsync(source.ReportId, ct)).Contains(defect)) Fail(409, "source_not_ready");
+    }
+
     private async Task<ReportEvidence[]> ResolveEvidenceAsync(IncidentCase incident, IReadOnlyList<Guid> ids, CancellationToken ct)
     {
         var reports = await db.Reports.AsNoTracking().Include(r => r.Supplements).ThenInclude(s => s.Evidence).Where(r => incident.ActiveReportIds.Contains(r.Id)).ToArrayAsync(ct);

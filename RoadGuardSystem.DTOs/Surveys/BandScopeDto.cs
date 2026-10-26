@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
 
 namespace RoadGuardSystem.DTOs.Surveys;
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record BandScopeDto(
     Guid RouteVersionId,
     Guid SegmentSetId,

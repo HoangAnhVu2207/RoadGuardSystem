@@ -8,7 +8,9 @@ namespace RoadGuardSystem.Repositories.Messaging;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record H6StoredEvent(int SchemaVersion, Guid EventId, string Kind, Guid ProjectId,
     string SourceKind, Guid SourceId, Guid OriginEventId, DateTimeOffset OccurredAtUtc,
-    Guid? SourceRevisionId = null, Guid? ResponsibleUserId = null, DateTimeOffset? ScheduledAtUtc = null);
+    Guid? SourceRevisionId = null, Guid? ResponsibleUserId = null, DateTimeOffset? ScheduledAtUtc = null,
+    FastTrackReviewSnapshot? FastTrackReview = null,
+    NotificationAssignmentSnapshot? NotificationAssignmentSnapshot = null, FastTrackFinalSource? FastTrackFinal = null);
 public sealed record H6StoredCorrectionFacts(Guid ObligationId, Guid SupersedesDecisionId, string Result);
 public sealed record H6DispatchPlan(H6StoredEvent Source, NotificationEventEnvelope? Envelope,
     string MessageType, string Title, string Body, bool AuditOnly, H6StoredCorrectionFacts? AuditFacts = null);

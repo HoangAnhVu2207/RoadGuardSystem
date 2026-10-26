@@ -24,7 +24,7 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IMultipartR
     public MinioUploadObjectStorage(IOptions<MinioStorageOptions> options, Func<IAmazonS3> clientFactory)
         : this(options) => _clientFactory = clientFactory;
 
-    private IAmazonS3 CreateClient(bool initiation = false)
+    private IAmazonS3 CreateClient(bool initiation = false, bool presigning = false)
     {
         if (_clientFactory is not null) return _clientFactory();
         ValidateOptions(_options);
@@ -32,7 +32,8 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IMultipartR
             new BasicAWSCredentials(_options.AccessKey, _options.SecretKey),
             new AmazonS3Config
             {
-                ServiceURL = NormalizeEndpoint(_options.Endpoint, _options.UseSsl),
+                ServiceURL = NormalizeEndpoint(presigning && !string.IsNullOrWhiteSpace(_options.PublicEndpoint)
+                    ? _options.PublicEndpoint : _options.Endpoint, _options.UseSsl),
                 ForcePathStyle = true,
                 AuthenticationRegion = "us-east-1",
                 MaxErrorRetry = initiation ? 0 : 2
@@ -132,7 +133,7 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IMultipartR
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            using var client = CreateClient();
+            using var client = CreateClient(presigning: true);
             var result = new List<PresignedUploadPart>(partNumbers.Count);
             foreach (var partNumber in partNumbers)
             {

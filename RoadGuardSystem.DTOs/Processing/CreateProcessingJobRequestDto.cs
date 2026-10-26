@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
 using RoadGuardSystem.DTOs.Surveys;
 
 namespace RoadGuardSystem.DTOs.Processing;
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CreateProcessingJobRequestDto(
     Guid DatasetId,
     BandScopeDto Scope,

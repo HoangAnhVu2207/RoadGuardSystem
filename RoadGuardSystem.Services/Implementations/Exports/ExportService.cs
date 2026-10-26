@@ -57,6 +57,7 @@ public sealed class ExportService : IExportService
         if (!await CanReadSnapshotSourcesAsync(actorId, projectId, ExportSerialization.Read(result.Export.Snapshot), ct)) return new("forbidden");
         return new("success", View(result.Export));
     }
+    public async Task<bool> CanListAsync(Guid actorId, Guid projectId, CancellationToken ct) => await AuthorizeAsync(actorId, projectId, ct) is not null;
     public static CreateExportRequestDto? Normalize(CreateExportRequestDto? request)
     {
         if (request is null) return null;

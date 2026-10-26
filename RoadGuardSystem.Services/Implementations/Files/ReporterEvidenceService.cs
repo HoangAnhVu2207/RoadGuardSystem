@@ -89,16 +89,14 @@ public sealed class ReporterEvidenceService : IReporterEvidenceService
         string idempotencyKey,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(idempotencyKey) || request?.PartNumbers is null) return new(UploadServiceStatus.InvalidInput);
+        if (!ValidOptions() || string.IsNullOrWhiteSpace(idempotencyKey) || request?.PartNumbers is null) return new(UploadServiceStatus.InvalidInput);
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
         if (!await CanAccessAsync(actorUserId, role, session.OwnerUserId, session.ProjectId, session.Purpose, session.TargetId, cancellationToken)) return new(UploadServiceStatus.NotFound);
         var now = _timeProvider.GetUtcNow();
-        var urlExpiresAt = now.AddMinutes(_options.SignedPutUrlLifetimeMinutes);
-        if (urlExpiresAt > session.ExpiresAt)
-        {
-            urlExpiresAt = session.ExpiresAt;
-        }
+        // A previously issued capability retains its own expiry; session completion still
+        // requires the session to be active. Replays retain the recorded original expiry.
+        var urlExpiresAt = now.AddSeconds(_options.PrivateEvidenceSignedUrlLifetimeSeconds);
 
         var result = await _repository.GetPartUrlsAsync(
             actorUserId,
@@ -198,7 +196,7 @@ public sealed class ReporterEvidenceService : IReporterEvidenceService
            && request.ChecksumSha256 is { Length: 64 } && request.ChecksumSha256.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
 
     private bool ValidOptions()
-        => _options.PartSizeBytes == 8 * 1024 * 1024 && _options.SessionLifetimeHours == 24 && _options.SignedPutUrlLifetimeMinutes == 15;
+        => _options.PartSizeBytes == 8 * 1024 * 1024 && _options.SessionLifetimeHours == 24 && _options.SignedPutUrlLifetimeMinutes == 15 && _options.PrivateEvidenceSignedUrlLifetimeSeconds == 300;
 
     private static ReporterEvidenceCreateRequestDto Normalize(ReporterEvidenceCreateRequestDto request)
         => request with

@@ -227,8 +227,17 @@ public sealed class MultipartRecoveryStateSqlTests(IdentitySqlServerFixture fixt
         await using var db = fixture.CreateRetryingDbContext(); var storage = new RecoveryStorage();
         var (actor, upload, _) = await SeedAsync(db, storage);
         storage.Presigned = async () => { await using var revoke = fixture.CreateDbContext(); await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET Status={(byte)UserStatus.Suspended} WHERE Id={actor}"); };
-        var result = await IssueAsync(db, storage, actor, upload, Guid.NewGuid().ToString());
+        var key = Guid.NewGuid().ToString();
+        var result = await IssueAsync(db, storage, actor, upload, key);
         result.Status.Should().Be(UploadPersistenceStatus.NotFound); result.Parts.Should().BeEmpty();
+        var presigns = storage.Presigns;
+        var snapshot = (await Repo(db, storage).GetSessionAsync(upload))!.Version;
+        // Receipt committed before the external signing wait. Revocation then commits before
+        // the final authority transaction; neither replay nor a new key may release a URL.
+        (await IssueAsync(db, storage, actor, upload, key)).Status.Should().Be(UploadPersistenceStatus.NotFound);
+        (await IssueAsync(db, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.NotFound);
+        storage.Presigns.Should().Be(presigns);
+        (await Repo(db, storage).GetSessionAsync(upload))!.Version.Should().Be(snapshot);
         (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == actor && r.Operation == "UploadPartUrlsIssued")).Should().Be(1);
         storage.Initiations.Should().Be(1);
     }

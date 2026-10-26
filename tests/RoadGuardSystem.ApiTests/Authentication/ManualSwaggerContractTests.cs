@@ -11,6 +11,65 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task ApprovedCollectionsAndPublicWritesDocumentCookieAlternativeWithoutSecuringAnonymousRead()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        foreach (var suffix in new[] { "repair-packages", "repair-packages/{packageId}/items", "exports", "survey-plans", "survey-tasks", "processing-jobs", "ai-mock-runs", "offline/devices", "offline/packages", "offline/grants", "retention/evaluations" })
+        {
+            var security = paths.GetProperty("/api/v1/projects/{projectId}/" + suffix).GetProperty("get").GetProperty("security");
+            Assert.Contains(security.EnumerateArray(), x => x.TryGetProperty("Bearer", out _));
+            Assert.Contains(security.EnumerateArray(), x => x.TryGetProperty("WebSession", out _) && x.EnumerateObject().Count() == 1);
+        }
+        foreach (var route in new[] { "/api/v1/projects/{projectId}/defects/{defectId}/publications", "/api/v1/projects/{projectId}/publications/{publicId}/withdraw" })
+        {
+            var security = paths.GetProperty(route).GetProperty("post").GetProperty("security");
+            Assert.Contains(security.EnumerateArray(), x => x.TryGetProperty("Bearer", out _) && x.EnumerateObject().Count() == 1);
+            Assert.Contains(security.EnumerateArray(), x => x.TryGetProperty("WebSession", out _) && x.TryGetProperty("CsrfToken", out _) && x.TryGetProperty("AntiforgeryCookie", out _));
+        }
+        var read = paths.GetProperty("/api/v1/public/publications/{publicId}").GetProperty("get");
+        Assert.True(!read.TryGetProperty("security", out var anonymous) || anonymous.GetArrayLength() == 0);
+        var capture = Environment.GetEnvironmentVariable("ROADGUARD_OPENAPI_CAPTURE_PATH");
+        if (!string.IsNullOrWhiteSpace(capture)) await File.WriteAllTextAsync(capture, document.RootElement.GetRawText());
+    }
+
+    [Fact]
+    public async Task ApprovedDiscoveryCollectionsHaveDistinctTypedPages()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        foreach (var suffix in new[] { "repair-packages", "repair-packages/{packageId}/items", "exports", "survey-plans", "survey-tasks", "processing-jobs", "ai-mock-runs", "offline/devices", "offline/packages", "offline/grants", "retention/evaluations" })
+        {
+            var path = "/api/v1/projects/{projectId}/" + suffix;
+            Assert.True(paths.TryGetProperty(path, out var operation) && operation.TryGetProperty("get", out _), "Missing approved GET " + path);
+            var get = operation.GetProperty("get");
+            Assert.True(get.GetProperty("responses").TryGetProperty("200", out _));
+            var parameters = get.GetProperty("parameters").EnumerateArray().ToArray();
+            var limit = parameters.Single(x => x.GetProperty("name").GetString() == "limit").GetProperty("schema");
+            Assert.Equal(25, limit.GetProperty("default").GetInt32());
+            Assert.Equal(100, limit.GetProperty("maximum").GetInt32());
+            Assert.Contains(parameters, x => x.GetProperty("name").GetString() == "cursor");
+            Assert.Contains("CollectionPage", get.GetProperty("responses").GetProperty("200").GetRawText());
+        }
+    }
+    [Fact]
+    public async Task PrivateFileReadDocumentsOpaqueVersionAndNoStoreWithoutNewRoutes()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        foreach (var route in new[] { "/api/v1/files/{fileId}", "/api/v1/files/{fileId}/content" })
+        {
+            var get = paths.GetProperty(route).GetProperty("get");
+            get.GetProperty("responses").GetProperty("200").GetProperty("headers")
+                .GetProperty("Cache-Control").GetProperty("description").GetString().Should().Be("private, no-store");
+            get.GetProperty("description").GetString().Should().Contain("AI frame");
+        }
+        var etag = paths.GetProperty("/api/v1/files/{fileId}").GetProperty("get")
+            .GetProperty("responses").GetProperty("200").GetProperty("headers").GetProperty("ETag");
+        etag.GetProperty("description").GetString().Should().Contain("opaque").And.NotContain("8-byte");
+    }
+
+    [Fact]
     public async Task CrewTaskBootstrapDocumentsSeparateItemVersionWithoutChangingTaskVersion()
     {
         using var document = await Document();
@@ -303,9 +362,9 @@ public sealed class ManualSwaggerContractTests
     {
         using var document = await Document();
         var callback = document.RootElement.GetProperty("paths").GetProperty("/api/v1/internal/processing-jobs/{jobId}/results").GetProperty("post");
-        callback.GetProperty("description").GetString().Should().Contain("client_type=AI_SERVICE").And.NotContain("AI_SERVICE role");
+        callback.GetProperty("description").GetString().Should().Contain("RS256").And.Contain("jobId").And.Contain("attemptId").And.Contain("roadguard-ai-callback").And.Contain("300 seconds");
         document.RootElement.GetProperty("components").GetProperty("securitySchemes").GetProperty("AiServiceBearer")
-            .GetProperty("description").GetString().Should().Contain("client_type=AI_SERVICE");
+            .GetProperty("description").GetString().Should().Contain("roadguard-ai-callback").And.Contain("300 seconds");
         var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
         var detection = schemas.GetProperty("AiDetectionDto").GetProperty("properties");
         detection.GetProperty("detectionId").GetProperty("format").GetString().Should().Be("uuid");

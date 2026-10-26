@@ -1,0 +1,1378 @@
+{
+  "Tables": [
+    "dbo.AIDetections",
+    "dbo.AIModelVersions",
+    "dbo.AccountStatusChangeLogs",
+    "dbo.Anh02AiDetectionProvenance",
+    "dbo.Anh02AiManifestFiles",
+    "dbo.Anh02AiMockRuns",
+    "dbo.Anh02AiResultProvenance",
+    "dbo.Anh02ExportJobs",
+    "dbo.Anh02ExportSnapshotFiles",
+    "dbo.Anh02ExportSnapshots",
+    "dbo.Anh02GeneratedArtifacts",
+    "dbo.AuditLogs",
+    "dbo.BaselineCurrentPointers",
+    "dbo.BaselineSelectionItems",
+    "dbo.BaselineSelections",
+    "dbo.BusinessDutyAppointments",
+    "dbo.BusinessReceivingRequests",
+    "dbo.CandidateSourceHeads",
+    "dbo.CaseConclusionDefects",
+    "dbo.CaseConclusionEvidence",
+    "dbo.CaseConclusions",
+    "dbo.CasePublicationDefects",
+    "dbo.CasePublicationEvidence",
+    "dbo.CasePublicationRecipients",
+    "dbo.CasePublications",
+    "dbo.CaseReportLinkHistory",
+    "dbo.CaseReportLinkHistoryReports",
+    "dbo.CaseReportLinks",
+    "dbo.CauseCategories",
+    "dbo.ConsumerEffectReceipts",
+    "dbo.CrsProfileRevisions",
+    "dbo.DatasetAssessmentItems",
+    "dbo.DatasetAssessments",
+    "dbo.DeadlineBreaches",
+    "dbo.DeadlineClocks",
+    "dbo.DeadlineDutyAppointments",
+    "dbo.DeadlineExtensions",
+    "dbo.DefectSourceLinks",
+    "dbo.DefectStatisticsSources",
+    "dbo.DefectTypes",
+    "dbo.DefectVerificationLogs",
+    "dbo.Defects",
+    "dbo.DerivedMeasurements",
+    "dbo.DroneDevices",
+    "dbo.FieldInspectionAssignments",
+    "dbo.FieldInspectionEvidenceLinks",
+    "dbo.FieldInspectionEvidenceReuseDecisions",
+    "dbo.FieldInspectionLocationProofs",
+    "dbo.FieldInspectionOperationOrigins",
+    "dbo.FieldInspectionReviews",
+    "dbo.FieldInspectionSessions",
+    "dbo.FieldInspectionSubmissions",
+    "dbo.FieldInspectionTaskEvents",
+    "dbo.FieldInspectionTasks",
+    "dbo.FieldTaskStartOrigins",
+    "dbo.FileScopes",
+    "dbo.Files",
+    "dbo.Flights",
+    "dbo.GeometryLocationImpactDecisions",
+    "dbo.GeometryLocationImpacts",
+    "dbo.GeometryMapPublications",
+    "dbo.GroundTruthMeasurements",
+    "dbo.H6NotificationAudits",
+    "dbo.H6NotificationCalendar",
+    "dbo.H6NotificationDeliveries",
+    "dbo.H6NotificationDeliveryAttempts",
+    "dbo.H6NotificationEventReceipts",
+    "dbo.H6NotificationOccurrences",
+    "dbo.H6NotificationScopes",
+    "dbo.HandoverDocuments",
+    "dbo.IdempotencyRecords",
+    "dbo.IncidentCases",
+    "dbo.LD06ActionEvidence",
+    "dbo.LD06LifecycleActions",
+    "dbo.MeasurementValidationSamples",
+    "dbo.NativeRouteVersionFacts",
+    "dbo.NotificationSupervisorAudits",
+    "dbo.NotificationSupervisorGenerations",
+    "dbo.NotificationSupervisorHeads",
+    "dbo.Notifications",
+    "dbo.ObligationResponsibilities",
+    "dbo.OfflineAdmittedFileReferences",
+    "dbo.OfflineDeviceRegistrations",
+    "dbo.OfflineDeviceRevocations",
+    "dbo.OfflineEncryptedCaptureArtifacts",
+    "dbo.OfflineEncryptedPackages",
+    "dbo.OfflineEvidenceCaptureReferences",
+    "dbo.OfflineHandoverGrantRevocations",
+    "dbo.OfflineHandoverGrants",
+    "dbo.OfflineOperationAdmissions",
+    "dbo.OfflineOperationBindings",
+    "dbo.OfflineOperationResults",
+    "dbo.OfflineOriginTimeVerifications",
+    "dbo.OfflinePackageFileReferences",
+    "dbo.OfflineSyncBatches",
+    "dbo.OfflineTaskSnapshots",
+    "dbo.OutboxMessages",
+    "dbo.PasswordRecoveryRequests",
+    "dbo.PasswordResetLogs",
+    "dbo.PavementLayoutRevisions",
+    "dbo.PavementSourceFileReferences",
+    "dbo.ProcessingAttempts",
+    "dbo.ProcessingBlocks",
+    "dbo.ProcessingJobs",
+    "dbo.ProjectLifecycleHistory",
+    "dbo.ProjectMembers",
+    "dbo.Projects",
+    "dbo.PublicPublications",
+    "dbo.QualityChecks",
+    "dbo.RefreshTokens",
+    "dbo.RepairActualScopes",
+    "dbo.RepairAssessmentEvidence",
+    "dbo.RepairAssessmentMeasurements",
+    "dbo.RepairAttemptEvidence",
+    "dbo.RepairAttemptReviews",
+    "dbo.RepairAttemptSubmissionLinks",
+    "dbo.RepairAttempts",
+    "dbo.RepairCorrectionEvidence",
+    "dbo.RepairDangerAcknowledgements",
+    "dbo.RepairDangerWarnings",
+    "dbo.RepairDecisions",
+    "dbo.RepairEligibilityAssessments",
+    "dbo.RepairEligibilityHandoverSources",
+    "dbo.RepairEligibilityWarrantySources",
+    "dbo.RepairExecutionAuthorizations",
+    "dbo.RepairExecutionFinishes",
+    "dbo.RepairExecutionStarts",
+    "dbo.RepairFieldTaskBindings",
+    "dbo.RepairItemLifecycleEvents",
+    "dbo.RepairItems",
+    "dbo.RepairMeasurementAssessments",
+    "dbo.RepairNormalSuccessors",
+    "dbo.RepairObligationResolutionEvents",
+    "dbo.RepairObligations",
+    "dbo.RepairPackages",
+    "dbo.RepairPolicyDraftChanges",
+    "dbo.RepairPolicyDrafts",
+    "dbo.RepairPolicyMeasurementRules",
+    "dbo.RepairPolicyRevisions",
+    "dbo.RepairPolicyRevocations",
+    "dbo.RepairReviewRequests",
+    "dbo.RepairSafetyActionSources",
+    "dbo.RepairSafetyCheckEvidence",
+    "dbo.RepairSafetyChecks",
+    "dbo.RepairSafetyMonitoring",
+    "dbo.RepairSafetyResponsibilityTransfers",
+    "dbo.RepairTemporarySafetyMeasures",
+    "dbo.RepairWorkHandovers",
+    "dbo.ReportOriginalEvidence",
+    "dbo.ReportSupplementEvidence",
+    "dbo.ReportSupplements",
+    "dbo.ReporterRegistrationIntents",
+    "dbo.Reports",
+    "dbo.RetentionBasisHeads",
+    "dbo.RetentionBasisRevisions",
+    "dbo.RetentionEvaluationItems",
+    "dbo.RetentionEvaluations",
+    "dbo.RetentionHoldHistories",
+    "dbo.RetentionHolds",
+    "dbo.RoadCoverageMappings",
+    "dbo.RoadGeometryDrafts",
+    "dbo.RoadGeometryMetadata",
+    "dbo.RoadRouteSystems",
+    "dbo.RoadSectionVersions",
+    "dbo.RoadSections",
+    "dbo.RoadSegmentSets",
+    "dbo.RoadSegments",
+    "dbo.Roles",
+    "dbo.Sessions",
+    "dbo.SeverityRuleVersions",
+    "dbo.SourceDecisions",
+    "dbo.StaffInvitationProjects",
+    "dbo.StaffInvitations",
+    "dbo.SupplementarySurveyRequests",
+    "dbo.SurveyAssignments",
+    "dbo.SurveyDataVersions",
+    "dbo.SurveyFiles",
+    "dbo.SurveyPlanPostponements",
+    "dbo.SurveyPlanScopes",
+    "dbo.SurveyPlans",
+    "dbo.SurveyRequestScopes",
+    "dbo.SurveyRequests",
+    "dbo.Surveys",
+    "dbo.TrainingLabelReviews",
+    "dbo.TrainingLabelRevisions",
+    "dbo.TrainingLabels",
+    "dbo.UploadMultipartSweeps",
+    "dbo.UploadParts",
+    "dbo.UploadSessions",
+    "dbo.Users",
+    "dbo.ValidationRuns",
+    "dbo.Warranties",
+    "dbo.WeeklyReviewDigestDuties",
+    "dbo.WeeklyReviewDigests",
+    "dbo.WeeklyReviewRecoveryPeriods"
+  ],
+  "Migrations": [
+    "20261008171739_BaselineCurrentSchema",
+    "20261009043010_AllowVerifiedDefectPostRepairTasks",
+    "20261022074647_C1ControlledPublicPublication",
+    "20261022181921_B2NotificationSupervisorAssignment"
+  ],
+  "Signature": "7089DD76ED03413842A8813E90C4018136AAB2B71996C43EF89AD4F5FB3B1F58",
+  "Classifications": [
+    {
+      "Table": "dbo.AIDetections",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.AIModelVersions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.AccountStatusChangeLogs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02AiDetectionProvenance",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02AiManifestFiles",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02AiMockRuns",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02AiResultProvenance",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02ExportJobs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02ExportSnapshotFiles",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02ExportSnapshots",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Anh02GeneratedArtifacts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.AuditLogs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.BaselineCurrentPointers",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.BaselineSelectionItems",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.BaselineSelections",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.BusinessDutyAppointments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.BusinessReceivingRequests",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CandidateSourceHeads",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CaseConclusionDefects",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CaseConclusionEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CaseConclusions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CasePublicationDefects",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CasePublicationEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CasePublicationRecipients",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CasePublications",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CaseReportLinkHistory",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CaseReportLinkHistoryReports",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CaseReportLinks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CauseCategories",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ConsumerEffectReceipts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.CrsProfileRevisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DatasetAssessmentItems",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DatasetAssessments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DeadlineBreaches",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DeadlineClocks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DeadlineDutyAppointments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DeadlineExtensions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DefectSourceLinks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DefectStatisticsSources",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DefectTypes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DefectVerificationLogs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Defects",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DerivedMeasurements",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.DroneDevices",
+      "Category": "SEEDED",
+      "Reason": "Core synthetic bootstrap",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionAssignments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionEvidenceLinks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionEvidenceReuseDecisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionLocationProofs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionOperationOrigins",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionReviews",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionSessions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionSubmissions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionTaskEvents",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldInspectionTasks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FieldTaskStartOrigins",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.FileScopes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Files",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Flights",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.GeometryLocationImpactDecisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.GeometryLocationImpacts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.GeometryMapPublications",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.GroundTruthMeasurements",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.H6NotificationAudits",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.H6NotificationCalendar",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.H6NotificationDeliveries",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.H6NotificationDeliveryAttempts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.H6NotificationEventReceipts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.H6NotificationOccurrences",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.H6NotificationScopes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.HandoverDocuments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.IdempotencyRecords",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.IncidentCases",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.LD06ActionEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.LD06LifecycleActions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.MeasurementValidationSamples",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.NativeRouteVersionFacts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Notifications",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ObligationResponsibilities",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineAdmittedFileReferences",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineDeviceRegistrations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineDeviceRevocations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineEncryptedCaptureArtifacts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineEncryptedPackages",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineEvidenceCaptureReferences",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineHandoverGrantRevocations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineHandoverGrants",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineOperationAdmissions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineOperationBindings",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineOperationResults",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineOriginTimeVerifications",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflinePackageFileReferences",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineSyncBatches",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OfflineTaskSnapshots",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.OutboxMessages",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.PasswordRecoveryRequests",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.PasswordResetLogs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.PavementLayoutRevisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.PavementSourceFileReferences",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ProcessingAttempts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ProcessingBlocks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ProcessingJobs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ProjectLifecycleHistory",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ProjectMembers",
+      "Category": "SEEDED",
+      "Reason": "Core synthetic bootstrap",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Projects",
+      "Category": "SEEDED",
+      "Reason": "Core synthetic bootstrap",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.QualityChecks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RefreshTokens",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairActualScopes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairAssessmentEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairAssessmentMeasurements",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairAttemptEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairAttemptReviews",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairAttemptSubmissionLinks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairAttempts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairCorrectionEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairDangerAcknowledgements",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairDangerWarnings",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairDecisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairEligibilityAssessments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairEligibilityHandoverSources",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairEligibilityWarrantySources",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairExecutionAuthorizations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairExecutionFinishes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairExecutionStarts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairFieldTaskBindings",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairItemLifecycleEvents",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairItems",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairMeasurementAssessments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairNormalSuccessors",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairObligationResolutionEvents",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairObligations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairPackages",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairPolicyDraftChanges",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairPolicyDrafts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairPolicyMeasurementRules",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairPolicyRevisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairPolicyRevocations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairReviewRequests",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairSafetyActionSources",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairSafetyCheckEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairSafetyChecks",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairSafetyMonitoring",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairSafetyResponsibilityTransfers",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairTemporarySafetyMeasures",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RepairWorkHandovers",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ReportOriginalEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ReportSupplementEvidence",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ReportSupplements",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ReporterRegistrationIntents",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Reports",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RetentionBasisHeads",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RetentionBasisRevisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RetentionEvaluationItems",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RetentionEvaluations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RetentionHoldHistories",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RetentionHolds",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadCoverageMappings",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadGeometryDrafts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadGeometryMetadata",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadRouteSystems",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadSectionVersions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadSections",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadSegmentSets",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.RoadSegments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Roles",
+      "Category": "SEEDED",
+      "Reason": "Core synthetic bootstrap",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Sessions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SeverityRuleVersions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SourceDecisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.StaffInvitationProjects",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.StaffInvitations",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SupplementarySurveyRequests",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyAssignments",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyDataVersions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyFiles",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyPlanPostponements",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyPlanScopes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyPlans",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyRequestScopes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.SurveyRequests",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Surveys",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.TrainingLabelReviews",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.TrainingLabelRevisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.TrainingLabels",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.UploadMultipartSweeps",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.UploadParts",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.UploadSessions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Users",
+      "Category": "SEEDED",
+      "Reason": "Core synthetic bootstrap",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.ValidationRuns",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.Warranties",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.WeeklyReviewDigestDuties",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.WeeklyReviewDigests",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.WeeklyReviewRecoveryPeriods",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.PublicPublications",
+      "Category": "TEST_ONLY",
+      "Reason": "Strict C1 publication requires genuine verified Defect/Case/evidence; no automatic public demo seed.",
+      "Evidence": "PublicPublicationSqlTests; C1_DATA_POLICY_APPROVED"
+    },
+    {
+      "Table": "dbo.NotificationSupervisorAudits",
+      "Category": "TEST_ONLY",
+      "Reason": "Approved notification-only assignment; populated by demo PUT and genuine producer acceptance, never synthetic Supervisor approval.",
+      "Evidence": "NotificationSupervisorConcurrencySqlTests; NotificationSupervisorHttpTests; OWNER_B2_EXACT_CONTRACT_APPROVED"
+    },
+    {
+      "Table": "dbo.NotificationSupervisorGenerations",
+      "Category": "TEST_ONLY",
+      "Reason": "Approved notification-only assignment; populated by demo PUT and genuine producer acceptance, never synthetic Supervisor approval.",
+      "Evidence": "NotificationSupervisorConcurrencySqlTests; NotificationSupervisorHttpTests; OWNER_B2_EXACT_CONTRACT_APPROVED"
+    },
+    {
+      "Table": "dbo.NotificationSupervisorHeads",
+      "Category": "TEST_ONLY",
+      "Reason": "Approved notification-only assignment; populated by demo PUT and genuine producer acceptance, never synthetic Supervisor approval.",
+      "Evidence": "NotificationSupervisorConcurrencySqlTests; NotificationSupervisorHttpTests; OWNER_B2_EXACT_CONTRACT_APPROVED"
+    }
+  ]
+}

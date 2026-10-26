@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +15,7 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class SurveyAssessmentsController(ISurveyAssessmentService service) : ControllerBase
 {
     [HttpPost("datasets/{id:guid}/assessments")]
-    public async Task<IActionResult> Create(Guid id, CreateAssessmentDto body, [FromHeader(Name = "Idempotency-Key")] string? key,
+    public async Task<IActionResult> Create(Guid id, CreateAssessmentDto body, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? key,
         [FromHeader(Name = "If-Match")] string? version, CancellationToken token)
     {
         if (!Actor(out var actor, out var role)) return Error("unauthorized");
@@ -32,7 +33,7 @@ public sealed class SurveyAssessmentsController(ISurveyAssessmentService service
         return Error(result.Code);
     }
     [HttpPost("projects/{projectId:guid}/baseline-selections")]
-    public async Task<IActionResult> Select(Guid projectId, CreateBaselineDto body, [FromHeader(Name = "Idempotency-Key")] string? key, CancellationToken token)
+    public async Task<IActionResult> Select(Guid projectId, CreateBaselineDto body, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? key, CancellationToken token)
     {
         if (!Actor(out var actor, out var role)) return Error("unauthorized");
         if (string.IsNullOrWhiteSpace(key)) return Error("precondition_required");

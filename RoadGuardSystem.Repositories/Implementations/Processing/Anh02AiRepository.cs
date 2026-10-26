@@ -47,7 +47,13 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             || row.Data.ScopeManifest is null || row.Data.PairsManifest is null) throw new AiRequestException(409, "source_not_ready");
         if (!await db.AIModelVersions.AsNoTracking().AnyAsync(m => m.Id == request.ModelVersionId && m.Status == AIModelVersionStatus.Released, ct))
             throw new AiRequestException(422, "ai_contract_invalid");
-        if (request.FixtureVersion == "synthetic-road-v1" && !await db.DefectTypes.AsNoTracking().AnyAsync(t => t.Code == "CRACK" && t.IsActive, ct))
+        var requiredTypes = request.FixtureVersion switch
+        {
+            "synthetic-road-v1" => new[] { "CRACK" },
+            "synthetic-multiclass-v1" => new[] { "CRACK", "POTHOLE" },
+            _ => Array.Empty<string>()
+        };
+        if (await db.DefectTypes.AsNoTracking().CountAsync(t => requiredTypes.Contains(t.Code) && t.IsActive, ct) != requiredTypes.Length)
             throw new AiRequestException(409, "source_not_ready");
         try
         {

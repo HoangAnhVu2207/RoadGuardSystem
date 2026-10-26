@@ -13,7 +13,18 @@ public sealed class SyntheticAiFixture(IOptions<Anh02AiOptions> options)
     public const long FrameBytes = 1021;
     public const long DurationMilliseconds = 2000;
     public const long TimestampMilliseconds = 500;
-    public static bool Supported(string version) => version is "synthetic-road-v1" or "synthetic-empty-v1";
+    public static bool Supported(string version) => version is "synthetic-road-v1" or "synthetic-empty-v1" or "synthetic-multiclass-v1";
+    // Versioned internal development fixture; not an external AI provider contract.
+    public sealed record Sample(int Index, long TimestampMilliseconds, string TypeCode, decimal Confidence, decimal[] Box);
+    public static IReadOnlyList<Sample> Samples(string version) => version switch
+    {
+        "synthetic-empty-v1" => [],
+        "synthetic-road-v1" => [new(1, 500, "CRACK", .8m, [.375m, .333333333m, .25m, .333333333m])],
+        "synthetic-multiclass-v1" => [
+            new(1, 500, "CRACK", .8m, [.375m, .333333333m, .25m, .333333333m]),
+            new(2, 1500, "POTHOLE", .9m, [.1m, .1m, .2m, .2m])],
+        _ => throw new ArgumentException("Unsupported synthetic fixture version.", nameof(version))
+    };
     public byte[] Frame()
     {
         var bytes = File.ReadAllBytes(Path.Combine(options.Value.FixtureDirectory, "synthetic-road-v1-frame-1.png"));

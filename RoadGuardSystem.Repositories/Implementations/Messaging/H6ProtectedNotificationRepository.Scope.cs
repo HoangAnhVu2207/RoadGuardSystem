@@ -40,6 +40,18 @@ public sealed partial class H6ProtectedNotificationRepository
                     (source.SourceKind == "ReviewDigest" ? source.ProjectAuthorityVerified && source.AssignedUserId == actor : projects.Contains(source.ProjectId)) || role == UserRoleCode.RepairCrew &&
                     projects.Contains(source.AssignedProjectId ?? source.ProjectId) && source.AssignedUserId == actor))).Select(row => row.Id));
         }
-        return owned.Where(row => ids.Contains(row.Id));
+        return owned.Where(row => ids.Contains(row.Id) &&
+            !db.Set<H6NotificationScopeRow>().Any(scope => scope.NotificationId == row.Id && scope.NotificationAssignmentId != null &&
+                !(role == UserRoleCode.Supervisor && scope.SourceKind == "RepairWork" &&
+                  (scope.EventType == "repair.work.submitted.v1" || scope.EventType == "repair.work.fast_track_confirmed.v1") &&
+                  db.Set<NotificationSupervisorHead>().Any(head => head.ItemId == scope.SourceId && head.ProjectId == scope.ProjectId &&
+                    head.AssignmentId == scope.NotificationAssignmentId && head.SupervisorId == actor && head.RevokedAt == null &&
+                    db.Set<NotificationSupervisorGeneration>().Any(generation => generation.Id == head.AssignmentId &&
+                        generation.ItemId == head.ItemId && generation.SupervisorId == actor && generation.Version == scope.NotificationAssignmentVersion) &&
+                    db.RepairItems.Any(item => item.Id == head.ItemId && item.ProjectId == head.ProjectId &&
+                        item.Mode == RoadGuardSystem.BusinessObjects.Repairs.RepairMode.FastTrack && item.SupersededByItemId == null &&
+                        db.RepairObligations.Any(obligation => obligation.Id == item.ObligationId && obligation.CurrentRepairItemId == item.Id) &&
+                        !db.Set<RoadGuardSystem.BusinessObjects.Projects.ObligationResponsibility>().Any(owner => owner.ObligationId == item.ObligationId &&
+                            owner.OriginProjectId == item.ProjectId && owner.CurrentProjectId != head.ProjectId))))));
     }
 }

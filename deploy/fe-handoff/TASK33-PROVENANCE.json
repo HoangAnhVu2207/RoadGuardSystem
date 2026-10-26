@@ -1,0 +1,38 @@
+{
+  "task": "RG-BE-FE-INTEGRATION-MASTER-CLOSURE-33",
+  "runnerPolicy": "DENY_ALL",
+  "ownerDecision": "G01 approved as proposed by owner in this conversation",
+  "rule": "Current PM membership or Supervisor authority, exact project/road/version parent chain; no new authority",
+  "workflow": "Geometry discovery and synthetic survey/AI",
+  "apiExtension": "GET /api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions/{routeVersionId}/segment-sets",
+  "runtimeEvidence": "Task33 external rg-task33-one-results.json, task33-focused.trx; exact source/ZIP runs separate",
+  "sqlPostconditions": "Current owned server/database marker; page1/page2 disjoint, draft filter, wrong parent404, scope403 and membership revoke/restore; four actual mock runs",
+  "fullContractPromotion": false,
+  "sources": [
+    {
+      "path": "RoadGuardSystem.API/Controllers/GeometryWorkflowController.cs",
+      "sha256": "86ee0f6078f9cf15b35198efd64e61c9e20bf3c3dc0794cc7c1c31a80e3ba37b"
+    },
+    {
+      "path": "RoadGuardSystem.Services/Implementations/Projects/GeometryWorkflowService.cs",
+      "sha256": "cc1a296ff6daa6403d46d4b559e017135857b0ced3a8b0be40e7a0284874f7c8"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs",
+      "sha256": "de31c945f2fc4522835b16cc20dc47dff778fc90ec8f6e61abb43b91906691b5"
+    },
+    {
+      "path": "tests/RoadGuardSystem.ApiTests/Projects/Anh01GeometryWorkflowTests.cs",
+      "sha256": "ca5c9606c4bd850e19566f9ee4cd334e31b2646d6fd6e1c3ac1b563b42066b49"
+    },
+    {
+      "path": "tests/RoadGuardSystem.UnitTests/Projects/Anh01GeometryAuthorizationTests.cs",
+      "sha256": "1af6c6702a85376be2a2d11e77c64247ad32ec0757cdf4bc10063e59e8086e81"
+    },
+    {
+      "path": "deploy/fe-handoff/demo_ai.py",
+      "sha256": "f72513cc3b2accc973c5cafd484b4e08ed39ad9d3c37e52b7ab6a78a4bc7f65c"
+    }
+  ],
+  "privacy": "No secret, token, signed capability or account credential included"
+}

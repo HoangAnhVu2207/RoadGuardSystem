@@ -53,6 +53,11 @@ public sealed class GeometryWorkflowController(IGeometryWorkflowService service)
     public Task<IActionResult> Publish(Guid projectId, Guid roadSectionId, Guid routeVersionId, Guid setId, SegmentPublishInput input, CancellationToken ct) => Run(projectId, "publish", ct, roadSectionId, route: routeVersionId, set: setId, input: input);
     [HttpGet("road-sections/{roadSectionId:guid}/versions/{routeVersionId:guid}/segment-sets/{setId:guid}")]
     public Task<IActionResult> Set(Guid projectId, Guid roadSectionId, Guid routeVersionId, Guid setId, CancellationToken ct) => Run(projectId, "set-get", ct, roadSectionId, route: routeVersionId, set: setId);
+    [HttpGet("road-sections/{roadSectionId:guid}/versions/{routeVersionId:guid}/segment-sets")]
+    [ProducesResponseType<SegmentSetPageDto>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Sets(Guid projectId, Guid roadSectionId, Guid routeVersionId, CancellationToken ct,
+        [FromQuery] int pageSize = 25, [FromQuery] Guid? cursor = null, [FromQuery] string? status = null)
+        => Run(projectId, "set-list", ct, roadSectionId, route: routeVersionId, input: new SegmentSetListQuery(pageSize, cursor, status));
     [HttpGet("geometry-package")]
     public Task<IActionResult> Package(Guid projectId, [FromQuery] Guid routeVersionId, [FromQuery] Guid segmentSetId, CancellationToken ct)
         => routeVersionId == Guid.Empty || segmentSetId == Guid.Empty ? Task.FromResult<IActionResult>(Error(400, "validation_error")) : Run(projectId, "package", ct, route: routeVersionId, set: segmentSetId);

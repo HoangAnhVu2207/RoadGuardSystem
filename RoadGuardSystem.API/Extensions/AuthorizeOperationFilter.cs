@@ -32,7 +32,7 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
         if (authorizations.Any(x => x.Policy == "AiCallback"))
         {
             operation.Security = [Requirement("AiServiceBearer")];
-            operation.Description = "Submit a processing result. Authentication: AI service bearer token with client_type=AI_SERVICE.";
+            operation.Description = "Submit a processing result. Dedicated RS256 service JWT with jobId/attemptId bound to route and payload; current attempt is fenced atomically. No public mint endpoint.";
             return;
         }
         if (authorizations.Any(x => x.AuthenticationSchemes == WebCookieConfiguration.Scheme))

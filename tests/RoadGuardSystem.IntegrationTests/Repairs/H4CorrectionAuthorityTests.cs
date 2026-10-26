@@ -115,10 +115,12 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
         Assert.False(await db.IdempotencyRecords.AnyAsync(row => row.ProjectId == facts.Project));
     }
 
-    [Fact]
-    public async Task SameKeyMissBeforeAuthorityLockConvergesOnOneCommittedReplay()
+    [Theory]
+    [InlineData(RepairMode.Normal, UserRoleCode.Supervisor)]
+    [InlineData(RepairMode.FastTrack, UserRoleCode.ProjectManager)]
+    public async Task SameKeyMissBeforeAuthorityLockConvergesOnOneCommittedReplay(RepairMode mode, UserRoleCode role)
     {
-        Facts facts; await using (var setup = Db()) facts = await Seed(setup, RepairMode.Normal, UserRoleCode.Supervisor);
+        Facts facts; await using (var setup = Db()) facts = await Seed(setup, mode, role);
         var barrier = new FirstReceiptReadBarrier(); await using var first = Db(barrier); await using var second = Db(barrier);
         var results = await Task.WhenAll(Repository(first).CorrectAsync(Command(facts), CancellationToken.None),
             Repository(second).CorrectAsync(Command(facts), CancellationToken.None));
@@ -128,10 +130,12 @@ public sealed partial class H4CorrectionAuthorityTests : IAsyncLifetime
         Assert.Single(await verify.IdempotencyRecords.Where(row => row.ProjectId == facts.Project).ToListAsync());
     }
 
-    [Fact]
-    public async Task DifferentKeysCompetingForSameHeadCannotBothChangeDecision()
+    [Theory]
+    [InlineData(RepairMode.Normal, UserRoleCode.Supervisor)]
+    [InlineData(RepairMode.FastTrack, UserRoleCode.ProjectManager)]
+    public async Task DifferentKeysCompetingForSameHeadCannotBothChangeDecision(RepairMode mode, UserRoleCode role)
     {
-        Facts facts; await using (var setup = Db()) facts = await Seed(setup, RepairMode.Normal, UserRoleCode.Supervisor);
+        Facts facts; await using (var setup = Db()) facts = await Seed(setup, mode, role);
         var barrier = new FirstReceiptReadBarrier(); await using var first = Db(barrier); await using var second = Db(barrier);
         var results = await Task.WhenAll(Repository(first).CorrectAsync(Command(facts), CancellationToken.None),
             Repository(second).CorrectAsync(Command(facts) with { Key = "different-correction-key" }, CancellationToken.None));

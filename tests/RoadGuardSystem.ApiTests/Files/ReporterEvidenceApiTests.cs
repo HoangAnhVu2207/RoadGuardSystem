@@ -26,6 +26,375 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task PrivateReadContract_BindsOwnerBytesAndMetadata_DeniesGuessingAndRoleChangesWithoutEffects(bool content)
+    {
+        sql.GetOwnedSeedDatabaseIdentity();
+        var owner = await sql.CreateUserAsync($"read-owner-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var outsider = await sql.CreateUserAsync($"read-other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var pm = await sql.CreateUserAsync($"read-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var storage = new PhotoStorage();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage); });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, owner.UserName!);
+        var verified = await UploadVerified(client, factory);
+        var suffix = content ? "/content" : "";
+        var path = $"/api/v1/reporter-evidence/files/{verified.File}{suffix}";
+        var response = await client.GetAsync(path);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var original = await response.Content.ReadAsByteArrayAsync();
+        if (content)
+        {
+            original.Should().Equal(new byte[] { 255, 216, 255, 0 });
+            response.Content.Headers.ContentType!.MediaType.Should().Be("image/jpeg");
+        }
+        else
+        {
+            using var body = JsonDocument.Parse(original);
+            body.RootElement.GetProperty("id").GetGuid().Should().Be(verified.File);
+            body.RootElement.GetProperty("version").GetString().Should().Be(verified.Version);
+            body.RootElement.GetProperty("status").GetString().Should().Be("VERIFIED");
+            body.RootElement.GetProperty("checksumSha256").GetString().Should().Be(PhotoStorage.Hash);
+            body.RootElement.GetProperty("mediaType").GetString().Should().Be("image/jpeg");
+            body.RootElement.GetProperty("sizeBytes").GetInt64().Should().Be(4);
+            body.RootElement.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo(
+                "id", "status", "checksumSha256", "mediaType", "sizeBytes", "version");
+            response.Headers.ETag!.Tag.Should().Be($"\"{verified.Version}\"");
+        }
+        await using var beforeDb = sql.CreateDbContext();
+        var before = await beforeDb.UploadSessions.AsNoTracking().Where(x => x.FileId == verified.File)
+            .Select(x => new { x.Id, x.Status, x.RowVersion }).SingleAsync();
+        var fileBefore = await beforeDb.Files.AsNoTracking().SingleAsync(x => x.Id == verified.File);
+        var receiptsBefore = await beforeDb.IdempotencyRecords.CountAsync(x => x.ActorUserId == owner.Id);
+        var presigns = storage.Presigns; var reads = storage.Reads;
+        client.DefaultRequestHeaders.Authorization = null;
+        (await client.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "invalid.synthetic.token");
+        (await client.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var deniedActors = new[] { outsider, pm }.ToList();
+        foreach (var role in new[] { UserRoleCode.Supervisor, UserRoleCode.DroneOperator, UserRoleCode.RepairCrew })
+            deniedActors.Add(await sql.CreateUserAsync($"read-role-{Guid.NewGuid():N}", "Current1!", role));
+        foreach (var actor in deniedActors)
+        {
+            await Login(client, actor.UserName!);
+            var denied = await client.GetAsync(path);
+            denied.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            var error = await denied.Content.ReadFromJsonAsync<JsonElement>();
+            error.GetProperty("status").GetInt32().Should().Be(404);
+            error.GetProperty("instance").GetString().Should().Be(path);
+        }
+        await Login(client, owner.UserName!);
+        (await client.GetAsync($"/api/v1/reporter-evidence/files/{Guid.NewGuid()}{suffix}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.GetAsync($"/api/v1/reporter-evidence/files/not-a-guid{suffix}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        // Existing token must not retain reporter access after a committed role change.
+        await using (var db = sql.CreateDbContext())
+            await db.Users.Where(x => x.Id == owner.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.RoleCode, UserRoleCode.ProjectManager));
+        (await client.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        storage.Reads.Should().Be(reads); storage.Presigns.Should().Be(presigns);
+        await using var afterDb = sql.CreateDbContext();
+        var after = await afterDb.UploadSessions.AsNoTracking().Where(x => x.FileId == verified.File)
+            .Select(x => new { x.Id, x.Status, x.RowVersion }).SingleAsync();
+        after.Should().BeEquivalentTo(before);
+        (await afterDb.Files.AsNoTracking().SingleAsync(x => x.Id == verified.File)).Should().BeEquivalentTo(fileBefore);
+        (await afterDb.IdempotencyRecords.CountAsync(x => x.ActorUserId == owner.Id)).Should().Be(receiptsBefore);
+        // Role restoration permits a fresh admission without altering evidence metadata or bytes.
+        await afterDb.Users.Where(x => x.Id == owner.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.RoleCode, UserRoleCode.Reporter));
+        await Login(client, owner.UserName!);
+        var restored = await client.GetAsync(path);
+        restored.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await restored.Content.ReadAsByteArrayAsync()).Should().Equal(original);
+    }
+
+    [Fact]
+    public async Task PrivateContentStorageFailureIsRedactedAndCannotBypassOwnerGuard()
+    {
+        sql.GetOwnedSeedDatabaseIdentity();
+        var owner = await sql.CreateUserAsync($"read-fault-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var outsider = await sql.CreateUserAsync($"read-denied-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var storage = new PhotoStorage();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage); });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, owner.UserName!); var file = await UploadVerified(client, factory);
+        await using var before = sql.CreateDbContext();
+        var original = await before.Files.AsNoTracking().SingleAsync(x => x.Id == file.File);
+        var scope = await before.FileScopes.AsNoTracking().SingleAsync(x => x.FileId == file.File);
+        var receipts = await before.IdempotencyRecords.CountAsync();
+        var reads = storage.Reads; var presigns = storage.Presigns;
+        storage.FailRead = true;
+        var path = $"/api/v1/reporter-evidence/files/{file.File}/content";
+        var failed = await client.GetAsync(path);
+        failed.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        var body = await failed.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("status").GetInt32().Should().Be(503);
+        body.GetProperty("code").GetString().Should().Be("upload_storage_unavailable");
+        body.GetProperty("instance").GetString().Should().Be(path);
+        var text = body.ToString();
+        text.Should().NotContain(original.StorageUri).And.NotContain("synthetic-private-key").And.NotContain("storage.internal.invalid");
+        storage.Reads.Should().Be(reads + 1);
+        await Login(client, outsider.UserName!);
+        var denied = await client.GetAsync(path);
+        denied.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        storage.Reads.Should().Be(reads + 1);
+        await Login(client, owner.UserName!); storage.FailRead = false;
+        var recovered = await client.GetAsync(path);
+        recovered.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await recovered.Content.ReadAsByteArrayAsync()).Should().Equal(new byte[] { 255, 216, 255, 0 });
+        await using var after = sql.CreateDbContext();
+        (await after.Files.AsNoTracking().SingleAsync(x => x.Id == file.File)).Should().BeEquivalentTo(original);
+        (await after.FileScopes.AsNoTracking().SingleAsync(x => x.FileId == file.File)).Should().BeEquivalentTo(scope);
+        (await after.IdempotencyRecords.CountAsync()).Should().Be(receipts);
+        storage.Presigns.Should().Be(presigns);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PersonalMetadataCannotBeReadUsingProjectAuthorityOrSpoofedProjectSelectors(bool content)
+    {
+        sql.GetOwnedSeedDatabaseIdentity();
+        var owner = await sql.CreateUserAsync($"scope-owner-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var supervisor = await sql.CreateUserAsync($"scope-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var managerA = await sql.CreateUserAsync($"scope-a-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var managerB = await sql.CreateUserAsync($"scope-b-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var storage = new PhotoStorage();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage); });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, supervisor.UserName!);
+        async Task<Guid> Project(Guid manager)
+        {
+            var created = await client.PostAsJsonAsync("/api/v1/projects", new
+            {
+                projectCode = $"META-{Guid.NewGuid():N}",
+                name = "Metadata isolation fixture",
+                engineeringUtmSrid = 32648,
+                startDate = "2026-09-01",
+                endDate = "2027-09-01",
+                primaryProjectManagerUserId = manager,
+                handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
+                operationId = Guid.NewGuid()
+            });
+            created.StatusCode.Should().Be(HttpStatusCode.Created);
+            return (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
+        }
+        var a = await Project(managerA.Id); var b = await Project(managerB.Id);
+        await Login(client, owner.UserName!); var file = await UploadVerified(client, factory);
+        var path = $"/api/v1/reporter-evidence/files/{file.File}" + (content ? "/content" : "");
+        await using var before = sql.CreateDbContext();
+        var original = await before.Files.AsNoTracking().SingleAsync(x => x.Id == file.File);
+        var scope = await before.FileScopes.AsNoTracking().SingleAsync(x => x.FileId == file.File);
+        scope.ProjectId.Should().BeNull(); scope.TargetId.Should().BeNull();
+        var reads = storage.Reads; var presigns = storage.Presigns;
+        foreach (var manager in new[] { managerA, managerB })
+        {
+            await Login(client, manager.UserName!);
+            foreach (var project in new[] { a, b })
+            {
+                var denied = await client.GetAsync($"{path}?projectId={project}");
+                denied.StatusCode.Should().Be(HttpStatusCode.NotFound);
+                var problem = await denied.Content.ReadFromJsonAsync<JsonElement>();
+                problem.GetProperty("code").GetString().Should().Be("file_not_found");
+                problem.GetProperty("status").GetInt32().Should().Be(404);
+                problem.GetProperty("instance").GetString().Should().Be(path);
+                var text = problem.ToString(); text.Should().NotContain(original.StorageUri);
+            }
+        }
+        await Login(client, owner.UserName!);
+        foreach (var project in new[] { a, b })
+        {
+            var allowed = await client.GetAsync($"{path}?projectId={project}");
+            allowed.StatusCode.Should().Be(HttpStatusCode.OK);
+            if (content)
+            {
+                (await allowed.Content.ReadAsByteArrayAsync()).Should().Equal(new byte[] { 255, 216, 255, 0 });
+                continue;
+            }
+            var body = await allowed.Content.ReadFromJsonAsync<JsonElement>();
+            body.GetProperty("id").GetGuid().Should().Be(file.File);
+            body.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo("id", "status", "checksumSha256", "mediaType", "sizeBytes", "version");
+        }
+        await using var after = sql.CreateDbContext();
+        (await after.Files.AsNoTracking().SingleAsync(x => x.Id == file.File)).Should().BeEquivalentTo(original);
+        (await after.FileScopes.AsNoTracking().SingleAsync(x => x.FileId == file.File)).Should().BeEquivalentTo(scope);
+        storage.Reads.Should().Be(reads + (content ? 2 : 0)); storage.Presigns.Should().Be(presigns);
+    }
+
+    [Fact]
+    public async Task PrivateSignedUrl_UsesFiveMinuteWindow_ReplayDoesNotRenew_ExpiryAndRevocationDenyIssuance()
+    {
+        sql.GetOwnedSeedDatabaseIdentity();
+        var owner = await sql.CreateUserAsync($"private-ttl-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var clock = new EvidenceClock(DateTimeOffset.UtcNow);
+        var storage = new PhotoStorage();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage);
+            services.RemoveAll<TimeProvider>(); services.AddSingleton<TimeProvider>(clock);
+        });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, owner.UserName!);
+        var created = await Create(client, Guid.NewGuid().ToString());
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var upload = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var scope = factory.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IReporterEvidenceService>();
+        var key = Guid.NewGuid().ToString(); var issuedAt = clock.GetUtcNow();
+        var issued = await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload, new([1]), key);
+        issued.Status.Should().Be(UploadServiceStatus.Success);
+        issued.PartUrls!.Parts.Single().ExpiresAt.Should().Be(issuedAt.AddSeconds(300));
+        clock.Advance(TimeSpan.FromSeconds(120));
+        var replay = await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload, new([1]), key);
+        replay.Status.Should().Be(UploadServiceStatus.Replayed);
+        replay.PartUrls!.Parts.Single().ExpiresAt.Should().Be(issuedAt.AddSeconds(300));
+        clock.Advance(TimeSpan.FromSeconds(180));
+        var presigns = storage.Presigns;
+        (await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload, new([1]), key)).Status.Should().Be(UploadServiceStatus.Conflict);
+        storage.Presigns.Should().Be(presigns);
+        await using (var db = sql.CreateDbContext())
+        { var actor = await db.Users.SingleAsync(x => x.Id == owner.Id); actor.Status = UserStatus.Suspended; await db.SaveChangesAsync(); }
+        (await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload, new([1]), key)).Status.Should().Be(UploadServiceStatus.NotFound);
+        (await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload, new([1]), Guid.NewGuid().ToString())).Status.Should().Be(UploadServiceStatus.NotFound);
+        storage.Presigns.Should().Be(presigns);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(299)]
+    [InlineData(301)]
+    [InlineData(86400)]
+    public async Task PrivateSignedUrl_InvalidConfiguredLifetimeFailsClosed(int seconds)
+    {
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+            services.PostConfigure<RoadGuardSystem.Repositories.Options.UploadSessionOptions>(options => options.PrivateEvidenceSignedUrlLifetimeSeconds = seconds));
+        Func<Task> start = () => Task.Run(() => { using var client = factory.CreateClient(); });
+        await start.Should().ThrowAsync<Microsoft.Extensions.Options.OptionsValidationException>();
+    }
+
+    private sealed class EvidenceClock(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset _now = now;
+        public override DateTimeOffset GetUtcNow() => _now;
+        public void Advance(TimeSpan amount) => _now += amount;
+    }
+
+    [Theory]
+    [InlineData("suspended")]
+    [InlineData("password-change")]
+    [InlineData("role-changed")]
+    public async Task CurrentAuthorityLoss_DeniesPrivateReadsAndPartIssuanceWithoutStorageOrFileMutation(string change)
+    {
+        sql.GetOwnedSeedDatabaseIdentity();
+        var owner = await sql.CreateUserAsync($"private-current-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var storage = new PhotoStorage();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage); });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, owner.UserName!);
+        var verified = await UploadVerified(client, factory);
+        var pending = await Create(client, Guid.NewGuid().ToString());
+        pending.StatusCode.Should().Be(HttpStatusCode.Created);
+        var upload = (await pending.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        string before;
+        await using (var db = sql.CreateDbContext())
+        {
+            before = JsonSerializer.Serialize(await db.UploadSessions.AsNoTracking().Where(x => x.FileId == verified.File || x.Id == upload).OrderBy(x => x.Id).ToArrayAsync());
+            var actor = await db.Users.SingleAsync(x => x.Id == owner.Id);
+            if (change == "suspended") actor.Status = UserStatus.Suspended;
+            else if (change == "password-change") actor.MustChangePassword = true;
+            else await new RoadGuardSystem.Repositories.Identity.IdentityRepository(db).ChangeUserRoleAtomicAsync(
+                actor.Id, UserRoleCode.ProjectManager, actor.RowVersion, actor.Id, Guid.NewGuid(), reason: "Private evidence current-authority fixture");
+            await db.SaveChangesAsync();
+        }
+        var reads = storage.Reads; var presigns = storage.Presigns;
+        // Call service as well as HTTP: stale role arguments cannot bypass current DB authority.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var service = scope.ServiceProvider.GetRequiredService<IReporterEvidenceService>();
+            (await service.DownloadAsync(owner.Id, UserRoleCode.Reporter, verified.File)).Status.Should().Be(UploadServiceStatus.NotFound);
+            (await service.GetFileMetadataAsync(owner.Id, UserRoleCode.Reporter, verified.File)).Status.Should().Be(UploadServiceStatus.NotFound);
+            (await service.GetSessionAsync(owner.Id, UserRoleCode.Reporter, upload)).Status.Should().Be(UploadServiceStatus.NotFound);
+            (await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload,
+                new UploadPartUrlsRequestDto([1]), Guid.NewGuid().ToString())).Status.Should().Be(UploadServiceStatus.NotFound);
+        }
+        storage.Reads.Should().Be(reads); storage.Presigns.Should().Be(presigns);
+        await using var after = sql.CreateDbContext();
+        JsonSerializer.Serialize(await after.UploadSessions.AsNoTracking().Where(x => x.FileId == verified.File || x.Id == upload).OrderBy(x => x.Id).ToArrayAsync()).Should().Be(before);
+    }
+
+    [Fact]
+    public async Task StorageWaitCharacterization_ReporterAuthorityIsCheckedBeforeOpen_NotAfterIt()
+    {
+        sql.GetOwnedSeedDatabaseIdentity();
+        var owner = await sql.CreateUserAsync($"private-wait-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var storage = new PhotoStorage();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(storage); });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, owner.UserName!); var verified = await UploadVerified(client, factory);
+        storage.OpenEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        storage.ReleaseOpen = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var scope = factory.Services.CreateScope();
+        var download = scope.ServiceProvider.GetRequiredService<IReporterEvidenceService>().DownloadAsync(owner.Id, UserRoleCode.Reporter, verified.File);
+        await storage.OpenEntered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        try
+        {
+            await using var db = sql.CreateDbContext();
+            var actor = await db.Users.SingleAsync(x => x.Id == owner.Id);
+            actor.Status = UserStatus.Suspended; await db.SaveChangesAsync();
+        }
+        finally { storage.ReleaseOpen.SetResult(); }
+        var result = await download;
+        // Admission preceded revocation; no new access is admitted after the commit.
+        result.Status.Should().Be(UploadServiceStatus.Success);
+        await using var content = result.Content!;
+        using var bytes = new MemoryStream(); await content.CopyToAsync(bytes);
+        bytes.ToArray().Should().Equal(new byte[] { 255, 216, 255, 0 });
+        storage.OpenEntered = null; storage.ReleaseOpen = null;
+        (await scope.ServiceProvider.GetRequiredService<IReporterEvidenceService>().DownloadAsync(owner.Id, UserRoleCode.Reporter, verified.File)).Status.Should().Be(UploadServiceStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task VerifiedPrivateEvidence_AccountSuspensionRejectsExistingBearerWithoutChangingFile()
+    {
+        var owner = await sql.CreateUserAsync($"private-temporal-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new PhotoStorage()); });
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await Login(client, owner.UserName!);
+        var verified = await UploadVerified(client, factory);
+        var metadataPath = $"/api/v1/reporter-evidence/files/{verified.File}";
+        (await client.GetAsync(metadataPath + "/content")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var before = await client.GetAsync(metadataPath);
+        before.StatusCode.Should().Be(HttpStatusCode.OK);
+        var beforeBody = await before.Content.ReadAsStringAsync();
+        var beforeEtag = before.Headers.ETag;
+
+        await using (var db = sql.CreateDbContext())
+        {
+            var actor = await db.Users.SingleAsync(row => row.Id == owner.Id);
+            actor.Status = UserStatus.Suspended;
+            await db.SaveChangesAsync();
+        }
+        // Keep the original bearer: current account authority must be checked per request.
+        (await client.GetAsync(metadataPath)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await client.GetAsync(metadataPath + "/content")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        await using (var db = sql.CreateDbContext())
+        {
+            var actor = await db.Users.SingleAsync(row => row.Id == owner.Id);
+            actor.Status = UserStatus.Active;
+            await db.SaveChangesAsync();
+        }
+        var after = await client.GetAsync(metadataPath);
+        after.StatusCode.Should().Be(HttpStatusCode.OK);
+        after.Headers.ETag.Should().Be(beforeEtag);
+        (await after.Content.ReadAsStringAsync()).Should().Be(beforeBody);
+        // This covers fresh API authorization, not revocation of already issued object URLs.
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task PrivateIntake_OwnerOnly_Replay_CurrentAuthority_AndVerification(bool failVerification)
     {
         var owner = await sql.CreateUserAsync($"reporter-evidence-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
@@ -40,6 +409,9 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var json = await created.Content.ReadFromJsonAsync<JsonElement>();
         var upload = json.GetProperty("id").GetGuid(); var file = json.GetProperty("fileId").GetGuid();
+        var pendingMetadata = await client.GetAsync($"/api/v1/reporter-evidence/files/{file}");
+        pendingMetadata.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await pendingMetadata.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString().Should().Be("PENDING");
         (await Create(client, key)).StatusCode.Should().Be(HttpStatusCode.Created);
         using (var producerScope = factory.Services.CreateScope())
         {
@@ -249,11 +621,22 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
     { var r = new HttpRequestMessage(HttpMethod.Post, "/api/v1/reporter-evidence/uploads") { Content = JsonContent.Create(new { fileName = "photo.jpg", mediaType = "image/jpeg", sizeBytes = 4, checksumSha256 = PhotoStorage.Hash }) }; r.Headers.Add("Idempotency-Key", key); return client.SendAsync(r); }
     private sealed class PhotoStorage : IUploadObjectStorage
     {
+        public int Reads { get; private set; }
+        public int Presigns { get; private set; }
+        public TaskCompletionSource? OpenEntered { get; set; }
+        public TaskCompletionSource? ReleaseOpen { get; set; }
         public bool FailVerification { get; init; }
+        public bool FailRead { get; set; }
         public static string Hash => Convert.ToHexString(SHA256.HashData(new byte[] { 255, 216, 255, 0 })).ToLowerInvariant();
         public Task<string> InitiateAsync(string key, string type, CancellationToken cancellationToken = default) => Task.FromResult("multipart");
-        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string key, string id, IReadOnlyList<int> parts, DateTimeOffset expires, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PresignedUploadPart>>(parts.Select(x => new PresignedUploadPart(x, "https://storage.invalid/part", expires)).ToArray());
+        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string key, string id, IReadOnlyList<int> parts, DateTimeOffset expires, CancellationToken cancellationToken = default) { Presigns++; return Task.FromResult<IReadOnlyList<PresignedUploadPart>>(parts.Select(x => new PresignedUploadPart(x, "https://storage.invalid/part", expires)).ToArray()); }
         public Task<UploadObjectVerification> CompleteAndVerifyAsync(string key, string id, IReadOnlyList<CompletedStoragePart> parts, CancellationToken cancellationToken = default) => Task.FromResult(new UploadObjectVerification(FailVerification ? 5 : 4, Hash, "image/jpeg"));
-        public Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream(new byte[] { 255, 216, 255, 0 }));
+        public async Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default)
+        {
+            Reads++; OpenEntered?.TrySetResult();
+            if (FailRead) throw new FileStorageException("synthetic_unavailable", "synthetic-private-key https://storage.internal.invalid/object");
+            if (ReleaseOpen is not null) await ReleaseOpen.Task.WaitAsync(cancellationToken);
+            return new MemoryStream(new byte[] { 255, 216, 255, 0 });
+        }
     }
 }

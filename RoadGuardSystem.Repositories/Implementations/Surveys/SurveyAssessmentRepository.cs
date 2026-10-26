@@ -92,9 +92,27 @@ public sealed class SurveyAssessmentRepository(RoadGuardDbContext context, Idemp
             }, token);
             return outcome.Status == IdempotencyOperationStatus.Conflict ? new("duplicate_request") : JsonSerializer.Deserialize<AssessmentOutcome>(outcome.OutcomeJson)!;
         }
+        catch (AssessmentReject e) when (e.Code == "baseline_selection_conflict")
+        { return await RecoverSelectionConflictAsync(actor, project, key, fingerprint, token); }
         catch (AssessmentReject e) { context.ChangeTracker.Clear(); return new(e.Code); }
-        catch (DbUpdateConcurrencyException) { context.ChangeTracker.Clear(); return new("baseline_selection_conflict"); }
-        catch (DbUpdateException e) when (e.InnerException is SqlException { Number: 2601 or 2627 }) { context.ChangeTracker.Clear(); return new("baseline_selection_conflict"); }
+        catch (DbUpdateConcurrencyException)
+        { return await RecoverSelectionConflictAsync(actor, project, key, fingerprint, token); }
+        catch (DbUpdateException e) when (e.InnerException is SqlException { Number: 2601 or 2627 })
+        { return await RecoverSelectionConflictAsync(actor, project, key, fingerprint, token); }
+    }
+
+    private async Task<AssessmentOutcome> RecoverSelectionConflictAsync(Guid actor, Guid project, string key, string fingerprint, CancellationToken token)
+    {
+        context.ChangeTracker.Clear();
+        // A concurrent copy can commit the same command before this attempt observes a stale pointer.
+        // Consult only that actor/project/key's durable receipt after the losing transaction rolls back.
+        var receipt = await context.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(r =>
+            r.ActorUserId == actor && r.ProjectId == project && r.Operation == "BaselineSelected" &&
+            r.IdempotencyKey == key.Trim(), token);
+        if (receipt is null) return new("baseline_selection_conflict");
+        return receipt.RequestFingerprint == fingerprint
+            ? JsonSerializer.Deserialize<AssessmentOutcome>(receipt.OutcomeJson)!
+            : new("duplicate_request");
     }
 
     public async Task<BaselineRecord?> HistoryAsync(Guid project, Guid id, CancellationToken token)

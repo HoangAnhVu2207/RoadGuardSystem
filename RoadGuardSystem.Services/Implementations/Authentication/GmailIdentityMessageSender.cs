@@ -9,10 +9,15 @@ namespace RoadGuardSystem.Services.Authentication;
 public sealed class GmailIdentityMessageSender : IIdentityMessageSender
 {
     private readonly IdentityOnboardingOptions _options;
+    private readonly SandboxMailOptions _sandbox;
 
-    public GmailIdentityMessageSender(IOptions<IdentityOnboardingOptions> options)
+    public GmailIdentityMessageSender(IOptions<IdentityOnboardingOptions> options,
+        IOptions<SandboxMailOptions>? sandbox = null)
     {
         _options = options.Value;
+        _sandbox = sandbox?.Value ?? new SandboxMailOptions();
+        if (_sandbox.Enabled && !string.Equals(_sandbox.Host, "mailpit", StringComparison.Ordinal))
+            throw new InvalidOperationException("Sandbox mail can only target the local Mailpit service.");
     }
 
     public Task<bool> SendReporterOtpAsync(
@@ -58,8 +63,8 @@ public sealed class GmailIdentityMessageSender : IIdentityMessageSender
         string textBody,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(_options.SmtpUsername) ||
-            string.IsNullOrWhiteSpace(_options.SmtpPassword) ||
+        if ((!_sandbox.Enabled && (string.IsNullOrWhiteSpace(_options.SmtpUsername) ||
+            string.IsNullOrWhiteSpace(_options.SmtpPassword))) ||
             string.IsNullOrWhiteSpace(recipient))
         {
             return false;
@@ -67,7 +72,7 @@ public sealed class GmailIdentityMessageSender : IIdentityMessageSender
 
         using var message = new MailMessage
         {
-            From = new MailAddress(_options.SmtpUsername, _options.SenderDisplayName, Encoding.UTF8),
+            From = new MailAddress(_sandbox.Enabled ? "roadguard@example.test" : _options.SmtpUsername, _options.SenderDisplayName, Encoding.UTF8),
             Subject = subject,
             SubjectEncoding = Encoding.UTF8,
             Body = textBody,
@@ -84,10 +89,10 @@ public sealed class GmailIdentityMessageSender : IIdentityMessageSender
         }
 
         message.AlternateViews.Add(html);
-        using var smtp = new SmtpClient(_options.SmtpHost, _options.SmtpPort)
+        using var smtp = new SmtpClient(_sandbox.Enabled ? _sandbox.Host : _options.SmtpHost, _sandbox.Enabled ? 1025 : _options.SmtpPort)
         {
-            EnableSsl = true,
-            Credentials = new NetworkCredential(_options.SmtpUsername, _options.SmtpPassword)
+            EnableSsl = !_sandbox.Enabled,
+            Credentials = _sandbox.Enabled ? null : new NetworkCredential(_options.SmtpUsername, _options.SmtpPassword)
         };
         try
         {

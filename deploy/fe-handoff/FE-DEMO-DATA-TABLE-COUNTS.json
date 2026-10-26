@@ -1,0 +1,773 @@
+{
+  "scope": "Task33 owned source demo DB; no external database",
+  "tables": [
+    {
+      "table": "dbo.__EFMigrationsHistory",
+      "rows": 2
+    },
+    {
+      "table": "dbo.AccountStatusChangeLogs",
+      "rows": 0
+    },
+    {
+      "table": "dbo.AIDetections",
+      "rows": 2
+    },
+    {
+      "table": "dbo.AIModelVersions",
+      "rows": 1
+    },
+    {
+      "table": "dbo.Anh02AiDetectionProvenance",
+      "rows": 2
+    },
+    {
+      "table": "dbo.Anh02AiManifestFiles",
+      "rows": 4
+    },
+    {
+      "table": "dbo.Anh02AiMockRuns",
+      "rows": 4
+    },
+    {
+      "table": "dbo.Anh02AiResultProvenance",
+      "rows": 4
+    },
+    {
+      "table": "dbo.Anh02ExportJobs",
+      "rows": 2
+    },
+    {
+      "table": "dbo.Anh02ExportSnapshotFiles",
+      "rows": 0
+    },
+    {
+      "table": "dbo.Anh02ExportSnapshots",
+      "rows": 2
+    },
+    {
+      "table": "dbo.Anh02GeneratedArtifacts",
+      "rows": 2
+    },
+    {
+      "table": "dbo.AuditLogs",
+      "rows": 39
+    },
+    {
+      "table": "dbo.BaselineCurrentPointers",
+      "rows": 0
+    },
+    {
+      "table": "dbo.BaselineSelectionItems",
+      "rows": 0
+    },
+    {
+      "table": "dbo.BaselineSelections",
+      "rows": 0
+    },
+    {
+      "table": "dbo.BusinessDutyAppointments",
+      "rows": 0
+    },
+    {
+      "table": "dbo.BusinessReceivingRequests",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CandidateSourceHeads",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CaseConclusionDefects",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CaseConclusionEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CaseConclusions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CasePublicationDefects",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CasePublicationEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CasePublicationRecipients",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CasePublications",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CaseReportLinkHistory",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CaseReportLinkHistoryReports",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CaseReportLinks",
+      "rows": 1
+    },
+    {
+      "table": "dbo.CauseCategories",
+      "rows": 0
+    },
+    {
+      "table": "dbo.ConsumerEffectReceipts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.CrsProfileRevisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DatasetAssessmentItems",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DatasetAssessments",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DeadlineBreaches",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DeadlineClocks",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DeadlineDutyAppointments",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DeadlineExtensions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.Defects",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DefectSourceLinks",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DefectStatisticsSources",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DefectTypes",
+      "rows": 1
+    },
+    {
+      "table": "dbo.DefectVerificationLogs",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DerivedMeasurements",
+      "rows": 0
+    },
+    {
+      "table": "dbo.DroneDevices",
+      "rows": 1
+    },
+    {
+      "table": "dbo.FieldInspectionAssignments",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionEvidenceLinks",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionEvidenceReuseDecisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionLocationProofs",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionOperationOrigins",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionReviews",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionSessions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionSubmissions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionTaskEvents",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldInspectionTasks",
+      "rows": 0
+    },
+    {
+      "table": "dbo.FieldTaskStartOrigins",
+      "rows": 0
+    },
+    {
+      "table": "dbo.Files",
+      "rows": 7
+    },
+    {
+      "table": "dbo.FileScopes",
+      "rows": 3
+    },
+    {
+      "table": "dbo.Flights",
+      "rows": 0
+    },
+    {
+      "table": "dbo.GeometryLocationImpactDecisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.GeometryLocationImpacts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.GeometryMapPublications",
+      "rows": 0
+    },
+    {
+      "table": "dbo.GroundTruthMeasurements",
+      "rows": 0
+    },
+    {
+      "table": "dbo.H6NotificationAudits",
+      "rows": 0
+    },
+    {
+      "table": "dbo.H6NotificationCalendar",
+      "rows": 0
+    },
+    {
+      "table": "dbo.H6NotificationDeliveries",
+      "rows": 0
+    },
+    {
+      "table": "dbo.H6NotificationDeliveryAttempts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.H6NotificationEventReceipts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.H6NotificationOccurrences",
+      "rows": 0
+    },
+    {
+      "table": "dbo.H6NotificationScopes",
+      "rows": 0
+    },
+    {
+      "table": "dbo.HandoverDocuments",
+      "rows": 0
+    },
+    {
+      "table": "dbo.IdempotencyRecords",
+      "rows": 36
+    },
+    {
+      "table": "dbo.IncidentCases",
+      "rows": 1
+    },
+    {
+      "table": "dbo.LD06ActionEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.LD06LifecycleActions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.MeasurementValidationSamples",
+      "rows": 0
+    },
+    {
+      "table": "dbo.NativeRouteVersionFacts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.Notifications",
+      "rows": 0
+    },
+    {
+      "table": "dbo.ObligationResponsibilities",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineAdmittedFileReferences",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineDeviceRegistrations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineDeviceRevocations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineEncryptedCaptureArtifacts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineEncryptedPackages",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineEvidenceCaptureReferences",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineHandoverGrantRevocations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineHandoverGrants",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineOperationAdmissions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineOperationBindings",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineOperationResults",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineOriginTimeVerifications",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflinePackageFileReferences",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineSyncBatches",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OfflineTaskSnapshots",
+      "rows": 0
+    },
+    {
+      "table": "dbo.OutboxMessages",
+      "rows": 0
+    },
+    {
+      "table": "dbo.PasswordRecoveryRequests",
+      "rows": 0
+    },
+    {
+      "table": "dbo.PasswordResetLogs",
+      "rows": 0
+    },
+    {
+      "table": "dbo.PavementLayoutRevisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.PavementSourceFileReferences",
+      "rows": 0
+    },
+    {
+      "table": "dbo.ProcessingAttempts",
+      "rows": 4
+    },
+    {
+      "table": "dbo.ProcessingBlocks",
+      "rows": 2
+    },
+    {
+      "table": "dbo.ProcessingJobs",
+      "rows": 4
+    },
+    {
+      "table": "dbo.ProjectLifecycleHistory",
+      "rows": 0
+    },
+    {
+      "table": "dbo.ProjectMembers",
+      "rows": 8
+    },
+    {
+      "table": "dbo.Projects",
+      "rows": 2
+    },
+    {
+      "table": "dbo.QualityChecks",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RefreshTokens",
+      "rows": 33
+    },
+    {
+      "table": "dbo.RepairActualScopes",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairAssessmentEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairAssessmentMeasurements",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairAttemptEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairAttemptReviews",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairAttempts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairAttemptSubmissionLinks",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairCorrectionEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairDangerAcknowledgements",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairDangerWarnings",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairDecisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairEligibilityAssessments",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairEligibilityHandoverSources",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairEligibilityWarrantySources",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairExecutionAuthorizations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairExecutionFinishes",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairExecutionStarts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairFieldTaskBindings",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairItemLifecycleEvents",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairItems",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairMeasurementAssessments",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairNormalSuccessors",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairObligationResolutionEvents",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairObligations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairPackages",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairPolicyDraftChanges",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairPolicyDrafts",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairPolicyMeasurementRules",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairPolicyRevisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairPolicyRevocations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairReviewRequests",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairSafetyActionSources",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairSafetyCheckEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairSafetyChecks",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairSafetyMonitoring",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairSafetyResponsibilityTransfers",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairTemporarySafetyMeasures",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RepairWorkHandovers",
+      "rows": 0
+    },
+    {
+      "table": "dbo.ReporterRegistrationIntents",
+      "rows": 0
+    },
+    {
+      "table": "dbo.ReportOriginalEvidence",
+      "rows": 1
+    },
+    {
+      "table": "dbo.Reports",
+      "rows": 1
+    },
+    {
+      "table": "dbo.ReportSupplementEvidence",
+      "rows": 0
+    },
+    {
+      "table": "dbo.ReportSupplements",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RetentionBasisHeads",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RetentionBasisRevisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RetentionEvaluationItems",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RetentionEvaluations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RetentionHoldHistories",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RetentionHolds",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RoadCoverageMappings",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RoadGeometryDrafts",
+      "rows": 2
+    },
+    {
+      "table": "dbo.RoadGeometryMetadata",
+      "rows": 2
+    },
+    {
+      "table": "dbo.RoadRouteSystems",
+      "rows": 0
+    },
+    {
+      "table": "dbo.RoadSections",
+      "rows": 4
+    },
+    {
+      "table": "dbo.RoadSectionVersions",
+      "rows": 4
+    },
+    {
+      "table": "dbo.RoadSegments",
+      "rows": 4
+    },
+    {
+      "table": "dbo.RoadSegmentSets",
+      "rows": 2
+    },
+    {
+      "table": "dbo.Roles",
+      "rows": 5
+    },
+    {
+      "table": "dbo.Sessions",
+      "rows": 33
+    },
+    {
+      "table": "dbo.SeverityRuleVersions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.SourceDecisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.StaffInvitationProjects",
+      "rows": 0
+    },
+    {
+      "table": "dbo.StaffInvitations",
+      "rows": 0
+    },
+    {
+      "table": "dbo.SupplementarySurveyRequests",
+      "rows": 0
+    },
+    {
+      "table": "dbo.SurveyAssignments",
+      "rows": 2
+    },
+    {
+      "table": "dbo.SurveyDataVersions",
+      "rows": 2
+    },
+    {
+      "table": "dbo.SurveyFiles",
+      "rows": 2
+    },
+    {
+      "table": "dbo.SurveyPlanPostponements",
+      "rows": 0
+    },
+    {
+      "table": "dbo.SurveyPlans",
+      "rows": 2
+    },
+    {
+      "table": "dbo.SurveyPlanScopes",
+      "rows": 2
+    },
+    {
+      "table": "dbo.SurveyRequests",
+      "rows": 2
+    },
+    {
+      "table": "dbo.SurveyRequestScopes",
+      "rows": 2
+    },
+    {
+      "table": "dbo.Surveys",
+      "rows": 2
+    },
+    {
+      "table": "dbo.TrainingLabelReviews",
+      "rows": 0
+    },
+    {
+      "table": "dbo.TrainingLabelRevisions",
+      "rows": 0
+    },
+    {
+      "table": "dbo.TrainingLabels",
+      "rows": 0
+    },
+    {
+      "table": "dbo.UploadMultipartSweeps",
+      "rows": 3
+    },
+    {
+      "table": "dbo.UploadParts",
+      "rows": 3
+    },
+    {
+      "table": "dbo.UploadSessions",
+      "rows": 3
+    },
+    {
+      "table": "dbo.Users",
+      "rows": 11
+    },
+    {
+      "table": "dbo.ValidationRuns",
+      "rows": 0
+    },
+    {
+      "table": "dbo.Warranties",
+      "rows": 0
+    },
+    {
+      "table": "dbo.WeeklyReviewDigestDuties",
+      "rows": 0
+    },
+    {
+      "table": "dbo.WeeklyReviewDigests",
+      "rows": 0
+    },
+    {
+      "table": "dbo.WeeklyReviewRecoveryPeriods",
+      "rows": 0
+    }
+  ]
+}

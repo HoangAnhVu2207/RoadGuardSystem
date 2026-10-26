@@ -41,7 +41,7 @@ public sealed class UsersController : ControllerBase
         if (result.Status == RoadGuardSystem.Services.Staff.StaffReadStatus.Success && result.Value is not null)
         {
             Response.Headers.ETag = $"\"{result.Value.Version}\"";
-            return Ok(result.Value);
+            return Ok(new ActorResponseDto(result.Value.Id, result.Value.DisplayName, result.Value.Role, result.Value.Version));
         }
 
         return result.Status switch

@@ -23,6 +23,14 @@ public sealed class AuthenticationSqlServerFixture : IAsyncLifetime
 
     public string ConnectionString { get; private set; } = string.Empty;
 
+    private readonly Guid _seedOwnerId = Guid.NewGuid();
+    public (Guid OwnerId, string ContainerId, string DatabaseName) GetOwnedSeedDatabaseIdentity()
+    {
+        EnsureOwnedDatabase();
+        if (!OwnedConnections.ContainsKey(ConnectionString)) throw new InvalidOperationException("Inactive seed fixture.");
+        return (_seedOwnerId, _container!.Id, _databaseName!);
+    }
+
     public Task InitializeAsync() => InitializeAtMigrationAsync(null);
 
     internal async Task InitializeAtMigrationAsync(string? migration)

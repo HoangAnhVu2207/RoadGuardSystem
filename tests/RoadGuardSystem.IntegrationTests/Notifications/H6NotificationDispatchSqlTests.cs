@@ -15,6 +15,35 @@ public sealed class H6NotificationDispatchSqlTests(IdentitySqlServerFixture sql)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     [Fact]
+    public async Task UntrustedPayloadExtensionsCannotBecomePrivateLinksInRecipientContent()
+    {
+        var seed = await new H6FieldSourceSqlTests(sql).Seed(); await using var db = sql.CreateDbContext();
+        var claim = await Lease(db, seed.Event);
+        const string privateUrl = "https://synthetic.invalid/private/evidence?signature=synthetic";
+        const string privateKey = "private/synthetic-object-never-uploaded";
+        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(claim.PayloadJson, Json)!;
+        payload["evidenceUrl"] = JsonSerializer.SerializeToElement(privateUrl);
+        payload["objectKey"] = JsonSerializer.SerializeToElement(privateKey);
+        payload["title"] = JsonSerializer.SerializeToElement(privateUrl);
+        payload["body"] = JsonSerializer.SerializeToElement(privateKey);
+        // The current DTO forbids unknown JSON members; rejection must precede fanout.
+        var extended = claim with { PayloadJson = JsonSerializer.Serialize(payload, Json) };
+        Assert.Equal("notification_envelope_invalid", Assert.Throws<H6NotificationProtocolException>(() => Plan(extended)).Code);
+        Assert.False(await db.Notifications.AnyAsync(row => row.SourceEntityId == seed.Task));
+        Assert.False(await db.Set<H6NotificationEventReceipt>().AnyAsync(row => row.OutboxMessageId == claim.Id));
+        Assert.False(await db.Set<H6NotificationOccurrenceRow>().AnyAsync(row => row.SourceId == seed.Task));
+        var canonical = Plan(claim);
+        var result = await new H6NotificationDispatchRepository(db, TimeProvider.System).DispatchAsync(claim, canonical, default);
+        Assert.Equal("COMMITTED", result.Status); Assert.Equal(1, result.Delivered);
+        db.ChangeTracker.Clear();
+        var notification = Assert.Single(await db.Notifications.Where(row => row.SourceEntityId == seed.Task).ToArrayAsync());
+        Assert.Equal(seed.Crew, notification.RecipientUserId);
+        Assert.Equal(canonical.Title, notification.Title); Assert.Equal(canonical.Body, notification.Body);
+        Assert.DoesNotContain(privateUrl, JsonSerializer.Serialize(notification, Json));
+        Assert.DoesNotContain(privateKey, JsonSerializer.Serialize(notification, Json));
+    }
+
+    [Fact]
     public async Task DuplicateActualTransportCommitsTwoReceiptsAndOneRecipientEffect()
     {
         var seed = await new H6FieldSourceSqlTests(sql).Seed(); await using var db = sql.CreateDbContext();

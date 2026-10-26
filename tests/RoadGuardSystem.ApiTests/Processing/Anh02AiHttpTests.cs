@@ -1,4 +1,10 @@
 using System.Net;
+using System.IO.Compression;
+using Amazon.S3;
+using Amazon.S3.Model;
+using DotNet.Testcontainers.Builders;
+using Microsoft.Extensions.Options;
+using RoadGuardSystem.Repositories.Options;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -44,8 +50,25 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         var second = await sql.CreateUserAsync($"anh-op2-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
         var media = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Anh02Fixtures", "synthetic-road-v1.mp4"));
         var checksum = Convert.ToHexString(SHA256.HashData(media)).ToLowerInvariant();
-        var artifacts = new ArtifactFixture { LoseFirstAcknowledgement = true };
-        var sourceStorage = new SurveyVideoStorage(media, checksum);
+        // Optional owned real MinIO exercises the existing synthetic producer/label/export flow.
+        // No real AI issuer or external provider is introduced.
+        var image = Environment.GetEnvironmentVariable("RG_MINIO_IMAGE"); var owned = Guid.NewGuid().ToString("N");
+        var access = "sbx" + owned[..12]; var secret = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        await using var minio = image is null ? null : new ContainerBuilder(image)
+            .WithLabel("roadguard.sandbox.owner", owned).WithLabel("roadguard.sandbox.mode", "task24-test")
+            .WithEnvironment("MINIO_ROOT_USER", access).WithEnvironment("MINIO_ROOT_PASSWORD", secret)
+            .WithCommand("server", "/data").WithPortBinding(9000, true)
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(9000).ForPath("/minio/health/ready"), m => m.WithTimeout(TimeSpan.FromSeconds(30)))).Build();
+        IAnh02ArtifactStore? realStore = null;
+        if (minio is not null)
+        {
+            await minio.StartAsync(); var endpoint = $"http://{minio.Hostname}:{minio.GetMappedPublicPort(9000)}"; var bucket = "sbx-" + owned;
+            using var s3 = new AmazonS3Client(access, secret, new AmazonS3Config { ServiceURL = endpoint, ForcePathStyle = true, AuthenticationRegion = "us-east-1" });
+            await s3.PutBucketAsync(new PutBucketRequest { BucketName = bucket });
+            realStore = new MinioAnh02ArtifactStore(Options.Create(new MinioStorageOptions { Endpoint = endpoint, BucketName = bucket, AccessKey = access, SecretKey = secret }));
+        }
+        var artifacts = new ArtifactFixture(realStore) { LoseFirstAcknowledgement = true };
+        var sourceStorage = new SurveyVideoStorage(media, checksum) { Frames = artifacts };
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
         {
             services.RemoveAll<IHostedService>(); services.Configure<Anh02AiOptions>(o => o.MockEnabled = true);
@@ -185,7 +208,7 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         var model = Guid.NewGuid();
         await using (var db = sql.CreateDbContext())
         {
-            db.AIModelVersions.Add(AIModelVersion.Create(model, "Synthetic fixture", "synthetic-road-v1", "fixture://local", null, null, AIModelVersionStatus.Released, DateTimeOffset.UtcNow, supervisor.Id));
+            db.AIModelVersions.Add(AIModelVersion.Create(model, "Synthetic fixture", $"synthetic-road-{model:N}", "fixture://local", null, null, AIModelVersionStatus.Released, DateTimeOffset.UtcNow, supervisor.Id));
             await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS(SELECT 1 FROM DefectTypes WHERE Code='CRACK') INSERT INTO DefectTypes(Code,Name,IsActive) VALUES ('CRACK','Crack',1)");
             await db.SaveChangesAsync();
         }
@@ -219,6 +242,9 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         Assert.Equal(1, artifacts.Writes);
         var resultResponse = await client.GetAsync(path + $"/{run}/result"); Assert.Equal(HttpStatusCode.OK, resultResponse.StatusCode);
         var result = await Body(resultResponse); Assert.Equal("MOCK", result.GetProperty("mode").GetString());
+        var runRow = await CollectionAssertions.Contains(client, path, run, "id", "projectId", "stage", "mode", "status", "processingJobId", "resultId", "fixtureVersion", "errorCode", "version");
+        var jobRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{project}/processing-jobs", result.GetProperty("jobId").GetGuid(), "id", "status", "resultId", "attemptNumber", "version", "jobType");
+        Assert.Equal(runRow.GetProperty("processingJobId").GetGuid(), jobRow.GetProperty("id").GetGuid());
         var detection = result.GetProperty("detections")[0]; var detectionId = detection.GetProperty("detectionId").GetGuid();
         Assert.Equal(video, detection.GetProperty("sourceVideoFileId").GetGuid()); Assert.Equal(500, detection.GetProperty("timestampMs").GetInt64());
         Assert.Equal("UNKNOWN", detection.GetProperty("positionStatus").GetString());
@@ -248,6 +274,40 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
             Assert.False(await db.OutboxMessages.AnyAsync(o => o.CorrelationId == row.ProcessingJobId));
             await Assert.ThrowsAnyAsync<Exception>(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Anh02AiResultProvenance SET ResultHash={new string('b', 64)} WHERE RunId={run}"));
         }
+        // Owner-approved existing file routes must resolve completed worker frames without an upload session.
+        var framePath = $"/api/v1/files/{detection.GetProperty("frameFileId").GetGuid()}";
+        var frameMetadata = await client.GetAsync(framePath);
+        Assert.Equal(HttpStatusCode.OK, frameMetadata.StatusCode);
+        Assert.Equal("VERIFIED", (await Body(frameMetadata)).GetProperty("status").GetString());
+        Assert.Null(frameMetadata.Headers.Location);
+        Assert.True(frameMetadata.Headers.CacheControl?.NoStore);
+        Assert.True(frameMetadata.Headers.CacheControl?.Private);
+        var frameContent = await client.GetAsync(framePath + "/content");
+        Assert.Equal(HttpStatusCode.OK, frameContent.StatusCode);
+        Assert.Equal("image/png", frameContent.Content.Headers.ContentType!.MediaType);
+        Assert.True(frameContent.Headers.CacheControl?.NoStore);
+        Assert.True(frameContent.Headers.CacheControl?.Private);
+        Assert.Equal(SyntheticAiFixture.FrameHash, AiManifestCanonicalizer.Hash(await frameContent.Content.ReadAsByteArrayAsync()));
+        await Login(client, supervisor.UserName!);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(framePath + "/content")).StatusCode);
+        await Login(client, first.UserName!);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(framePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(framePath + "/content")).StatusCode);
+        var outsider = await sql.CreateUserAsync($"frame-other-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        await Login(client, outsider.UserName!);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(framePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(framePath + "/content")).StatusCode);
+        await Login(client, manager.UserName!);
+        sourceStorage.AfterFrameOpen = async () =>
+        {
+            await using var revoke = sql.CreateDbContext();
+            await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET Status=2 WHERE Id={manager.Id}");
+        };
+        var revokedDuringOpen = await client.GetAsync(framePath + "/content");
+        Assert.Equal(HttpStatusCode.Forbidden, revokedDuringOpen.StatusCode);
+        sourceStorage.AfterFrameOpen = null;
+        await using (var restore = sql.CreateDbContext())
+            await restore.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET Status=1 WHERE Id={manager.Id}");
         var candidate = await client.GetAsync($"/api/v1/projects/{project}/ai-candidates/{detectionId}"); Assert.Equal(HttpStatusCode.OK, candidate.StatusCode);
         var proof = await Body(candidate); Assert.Equal("MOCK/SYNTHETIC", proof.GetProperty("mode").GetString());
         // Actual persisted job provenance must agree with the run/result, not
@@ -457,7 +517,43 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         var trainingContent = await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/content");
         Assert.True(trainingContent.StatusCode == HttpStatusCode.OK,
             $"Content={trainingContent.StatusCode}; job={await (await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}")).Content.ReadAsStringAsync()}");
-        Assert.Equal("PK", System.Text.Encoding.ASCII.GetString((await trainingContent.Content.ReadAsByteArrayAsync())[..2]));
+        var trainingBytes = await trainingContent.Content.ReadAsByteArrayAsync();
+        Assert.Equal("PK", System.Text.Encoding.ASCII.GetString(trainingBytes[..2]));
+        Assert.Equal("application/zip", trainingContent.Content.Headers.ContentType!.MediaType);
+        Assert.True(trainingContent.Headers.CacheControl!.Private); Assert.True(trainingContent.Headers.CacheControl.NoStore);
+        Assert.Equal("\"" + Convert.ToHexString(SHA256.HashData(trainingBytes)).ToLowerInvariant() + "\"", trainingContent.Headers.ETag!.ToString());
+        using (var archive = new ZipArchive(new MemoryStream(trainingBytes), ZipArchiveMode.Read))
+        {
+            var embedded = archive.GetEntry("manifest.json"); Assert.NotNull(embedded);
+            using var embeddedStream = embedded.Open(); using var capturedManifest = await JsonDocument.ParseAsync(embeddedStream);
+            var capturedLabels = capturedManifest.RootElement.GetProperty("labels");
+            Assert.Contains(capturedLabels.EnumerateArray(), l => l.GetProperty("labelId").GetGuid() == labelId && l.GetProperty("sourceKind").GetString() == "AI_DETECTION" && l.GetProperty("mode").GetString() == "MOCK");
+            var frame = capturedManifest.RootElement.GetProperty("files").EnumerateArray().Single(f => f.GetProperty("fileId").GetGuid() == detection.GetProperty("frameFileId").GetGuid());
+            Assert.True(frame.GetProperty("included").GetBoolean()); var entry = archive.GetEntry(frame.GetProperty("archivePath").GetString()!); Assert.NotNull(entry);
+            using var frameStream = entry.Open(); using var frameCopy = new MemoryStream(); await frameStream.CopyToAsync(frameCopy); var frameBytes = frameCopy.ToArray();
+            Assert.Equal(frame.GetProperty("sizeBytes").GetInt64(), frameBytes.LongLength);
+            Assert.Equal(frame.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(frameBytes)).ToLowerInvariant());
+        }
+        // Captured source bytes must still match during materialization. This is a bounded
+        // read corruption seam over the real provider, not mutation of immutable SQL history.
+        var inconsistent = await Command(client, $"/api/v1/projects/{project}/exports",
+            new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true });
+        Assert.Equal(HttpStatusCode.Accepted, inconsistent.StatusCode);
+        var inconsistentId = (await Body(inconsistent)).GetProperty("id").GetGuid();
+        string frameKey;
+        await using (var sourceDb = sql.CreateDbContext()) frameKey = await sourceDb.Set<RoadGuardSystem.BusinessObjects.Files.StoredFile>().Where(f => f.Id == detection.GetProperty("frameFileId").GetGuid()).Select(f => f.StorageUri).SingleAsync();
+        artifacts.CorruptReadKey = frameKey;
+        try
+        {
+            using var worker = factory.Services.CreateScope();
+            Assert.True(await worker.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>().ProcessNextAsync(default));
+        }
+        finally { artifacts.CorruptReadKey = null; }
+        var failedSource = await Body(await client.GetAsync($"/api/v1/projects/{project}/exports/{inconsistentId}"));
+        Assert.Equal("FAILED", failedSource.GetProperty("status").GetString());
+        Assert.Equal("export_source_unavailable", failedSource.GetProperty("errorCode").GetString());
+        Assert.Equal(JsonValueKind.Null, failedSource.GetProperty("artifactId").ValueKind);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.GetAsync($"/api/v1/projects/{project}/exports/{inconsistentId}/content")).StatusCode);
         var originalManifest = await (await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/manifest")).Content.ReadAsStringAsync();
         var queuedTraining = await Command(client, $"/api/v1/projects/{project}/exports",
             new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true });
@@ -654,6 +750,8 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
         await using (var db = sql.CreateDbContext()) { var member = await db.ProjectMembers.SingleAsync(m => m.ProjectId == project && m.UserId == manager.Id); member.Status = ProjectMemberStatus.Ended; await db.SaveChangesAsync(); }
         Assert.Equal(HttpStatusCode.Forbidden, (await Command(client, path, input, key: key)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path + $"/{run}/result")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(framePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(framePath + "/content")).StatusCode);
         var deniedTraining = await client.GetAsync($"/api/v1/projects/{project}/exports/{trainingExportId}/content");
         Assert.Equal(HttpStatusCode.Forbidden, deniedTraining.StatusCode);
         Assert.Equal("application/problem+json", deniedTraining.Content.Headers.ContentType!.MediaType);
@@ -725,16 +823,24 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
             return ValueTask.FromResult(result);
         }
     }
-    private sealed class ArtifactFixture : IAnh02ArtifactStore
+    private sealed class ArtifactFixture(IAnh02ArtifactStore? real = null) : IAnh02ArtifactStore
     {
         public readonly Dictionary<string, byte[]> Objects = [];
         private readonly Dictionary<string, string> _mediaTypes = [];
         public bool LoseFirstAcknowledgement { get; init; }
         public int Writes { get; private set; }
+        public string? CorruptReadKey { get; set; }
         public async Task<Anh02ArtifactMetadata> WriteAsync(string key, Stream content, long? sizeBytes, string mediaType, CancellationToken cancellationToken = default)
-        { using var copy = new MemoryStream(); await content.CopyToAsync(copy, cancellationToken); var bytes = copy.ToArray(); var added = Objects.TryAdd(key, bytes); if (added) { Writes++; _mediaTypes[key] = mediaType; } Assert.Equal(Objects[key], bytes); if (added && LoseFirstAcknowledgement && Writes == 1) throw new IOException("Lost durable acknowledgement fixture"); return new(key, bytes.Length, AiManifestCanonicalizer.Hash(bytes), mediaType); }
-        public Task<Anh02ArtifactRead> OpenReadAsync(string key, CancellationToken cancellationToken = default)
-        { if (!Objects.TryGetValue(key, out var bytes)) throw new FileNotFoundException(key); return Task.FromResult(new Anh02ArtifactRead(new MemoryStream(bytes, false), new(key, bytes.Length, AiManifestCanonicalizer.Hash(bytes), _mediaTypes[key]))); }
+        { using var copy = new MemoryStream(); await content.CopyToAsync(copy, cancellationToken); var bytes = copy.ToArray(); var added = Objects.TryAdd(key, bytes); if (added) { Writes++; _mediaTypes[key] = mediaType; } Assert.Equal(Objects[key], bytes); if (real is not null) { using var put = new MemoryStream(bytes, false); await real.WriteAsync(key, put, bytes.Length, mediaType, cancellationToken); } if (added && LoseFirstAcknowledgement && Writes == 1) throw new IOException("Lost durable acknowledgement fixture"); return new(key, bytes.Length, AiManifestCanonicalizer.Hash(bytes), mediaType); }
+        public async Task<Anh02ArtifactRead> OpenReadAsync(string key, CancellationToken cancellationToken = default)
+        {
+            if (key == CorruptReadKey)
+            {
+                if (real is not null) { await using var observed = await real.OpenReadAsync(key, cancellationToken); Assert.True(observed.Metadata.SizeBytes > 0); }
+                return new(new MemoryStream([0], false), new(key, Objects[key].Length, AiManifestCanonicalizer.Hash(Objects[key]), _mediaTypes[key]));
+            }
+            if (real is not null) return await real.OpenReadAsync(key, cancellationToken); if (!Objects.TryGetValue(key, out var bytes)) throw new FileNotFoundException(key); return new Anh02ArtifactRead(new MemoryStream(bytes, false), new(key, bytes.Length, AiManifestCanonicalizer.Hash(bytes), _mediaTypes[key]));
+        }
     }
     private static async Task Login(HttpClient client, string username)
     {
@@ -756,11 +862,22 @@ public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
     private sealed class SurveyVideoStorage(byte[] media, string checksum) : IUploadObjectStorage
     {
         public bool Corrupt { get; set; }
+        public ArtifactFixture? Frames { get; init; }
+        public Func<Task>? AfterFrameOpen { get; set; }
         public Task<string> InitiateAsync(string objectKey, string mediaType, CancellationToken cancellationToken = default) => Task.FromResult("fixture-upload");
         public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string objectKey, string uploadId, IReadOnlyList<int> partNumbers,
             DateTimeOffset expiresAt, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PresignedUploadPart>>(partNumbers.Select(n => new PresignedUploadPart(n, $"https://storage.test/{n}", expiresAt)).ToArray());
         public Task<UploadObjectVerification> CompleteAndVerifyAsync(string objectKey, string uploadId, IReadOnlyList<CompletedStoragePart> parts,
             CancellationToken cancellationToken = default) => Task.FromResult(new UploadObjectVerification(media.Length, checksum, "video/mp4"));
-        public Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream(Corrupt ? new byte[media.Length] : media, false));
+        public async Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default)
+        {
+            if (objectKey.StartsWith("anh02/ai/", StringComparison.Ordinal) && Frames is not null)
+            {
+                var frame = await Frames.OpenReadAsync(objectKey, cancellationToken);
+                if (AfterFrameOpen is not null) await AfterFrameOpen();
+                return frame.Content;
+            }
+            return new MemoryStream(Corrupt ? new byte[media.Length] : media, false);
+        }
     }
 }

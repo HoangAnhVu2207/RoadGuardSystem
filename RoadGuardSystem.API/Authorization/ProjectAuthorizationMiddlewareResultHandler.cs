@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using RoadGuardSystem.API.Controllers;
 using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Middlewares;
 
@@ -16,6 +18,32 @@ public sealed class ProjectAuthorizationMiddlewareResultHandler : IAuthorization
         AuthorizationPolicy policy,
         PolicyAuthorizationResult authorizeResult)
     {
+        if (!authorizeResult.Succeeded && context.GetEndpoint()?.Metadata
+                .GetMetadata<ControllerActionDescriptor>()?.ControllerTypeInfo.AsType() == typeof(NotificationSupervisorController))
+            context.Response.Headers.CacheControl = "private, no-store";
+
+        // The adopted collection profile applies only to these additive endpoints.
+        // Existing controllers retain their existing challenge/forbidden contracts.
+        if (!authorizeResult.Succeeded && context.GetEndpoint()?.Metadata
+                .GetMetadata<ControllerActionDescriptor>()?.ControllerTypeInfo.AsType() == typeof(DiscoveryCollectionsController))
+        {
+            var status = authorizeResult.Challenged ? StatusCodes.Status401Unauthorized : StatusCodes.Status403Forbidden;
+            var collectionProblem = new ProblemDetails
+            {
+                Type = "about:blank",
+                Title = "Collection request failed",
+                Status = status,
+                Instance = context.Request.Path
+            };
+            collectionProblem.Extensions["code"] = status == 401 ? "unauthorized" : "access_forbidden";
+            collectionProblem.Extensions["correlationId"] =
+                context.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString() ?? context.TraceIdentifier;
+            context.Response.StatusCode = status;
+            context.Response.Headers.CacheControl = "private, no-store";
+            await context.Response.WriteAsJsonAsync(collectionProblem, options: null,
+                contentType: "application/problem+json", cancellationToken: context.RequestAborted);
+            return;
+        }
         if (authorizeResult.Forbidden &&
             context.Items.ContainsKey(ProjectAuthorizationPolicies.AccessDeniedItemKey))
         {

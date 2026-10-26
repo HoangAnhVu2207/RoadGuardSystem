@@ -76,6 +76,39 @@ public sealed class LD08DefectStatisticsHttpTests(AuthenticationSqlServerFixture
         var exportRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/projects/{project.Id}/exports") { Content = JsonContent.Create(new CreateExportRequestDto("DOSSIER", "ZIP")) };
         exportRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString()); var exported = await client.SendAsync(exportRequest); Assert.Equal(HttpStatusCode.Accepted, exported.StatusCode);
         var job = (await exported.Content.ReadFromJsonAsync<ExportJobViewDto>())!;
+        fixture.GetOwnedSeedDatabaseIdentity();
+        var exportRoot = $"/api/v1/projects/{project.Id}/exports";
+        using var anonymous = factory.CreateClient();
+        var jobBefore = await db.Set<ExportJob>().AsNoTracking().SingleAsync(row => row.Id == job.Id);
+        var jobVersion = jobBefore.RowVersion;
+        foreach (var suffix in new[] { "", "/manifest", "/content" })
+        {
+            var readPath = $"{exportRoot}/{job.Id}{suffix}";
+            Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(readPath)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/exports/{job.Id}{suffix}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"{exportRoot}/{Guid.NewGuid()}{suffix}")).StatusCode);
+        }
+        var metadata = await client.GetAsync($"{exportRoot}/{job.Id}"); Assert.Equal(HttpStatusCode.OK, metadata.StatusCode);
+        Assert.Equal("QUEUED", (await metadata.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+        Assert.NotNull(metadata.Headers.ETag);
+        var manifestResponse = await client.GetAsync($"{exportRoot}/{job.Id}/manifest"); Assert.Equal(HttpStatusCode.OK, manifestResponse.StatusCode);
+        var manifestBody = await manifestResponse.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("storageUri", manifestBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("accessKey", manifestBody, StringComparison.OrdinalIgnoreCase);
+        var pending = await client.GetAsync($"{exportRoot}/{job.Id}/content");
+        Assert.Equal(HttpStatusCode.Conflict, pending.StatusCode);
+        Assert.Equal("export_not_ready", (await pending.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        var replayRequest = new HttpRequestMessage(HttpMethod.Post, exportRoot) { Content = JsonContent.Create(new CreateExportRequestDto("DOSSIER", "ZIP")) };
+        replayRequest.Headers.Add("Idempotency-Key", exportRequest.Headers.GetValues("Idempotency-Key").Single());
+        var replayedExport = await client.SendAsync(replayRequest); Assert.Equal(HttpStatusCode.Accepted, replayedExport.StatusCode);
+        Assert.Equal(job.Id, (await replayedExport.Content.ReadFromJsonAsync<ExportJobViewDto>())!.Id);
+        var invalidExport = new HttpRequestMessage(HttpMethod.Post, exportRoot) { Content = JsonContent.Create(new CreateExportRequestDto("DOSSIER", "INVALID")) };
+        invalidExport.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await client.SendAsync(invalidExport)).StatusCode);
+        Assert.Equal(HttpStatusCode.PreconditionRequired, (await client.PostAsJsonAsync(exportRoot, new CreateExportRequestDto("DOSSIER", "ZIP"))).StatusCode);
+        Assert.Equal(jobVersion, (await db.Set<ExportJob>().AsNoTracking().SingleAsync(row => row.Id == job.Id)).RowVersion);
+        Assert.Equal(1, await db.Set<ExportJob>().CountAsync(row => row.ProjectId == project.Id));
+        Assert.Equal(0, await db.Set<GeneratedArtifact>().CountAsync(row => row.ExportJobId == job.Id));
         var snapshot = await db.Set<ExportSnapshot>().AsNoTracking().SingleAsync(row => row.Id == job.SnapshotId); var oldJson = snapshot.PayloadJson; var oldHash = snapshot.Hash;
         using (var json = JsonDocument.Parse(oldJson)) Assert.Equal(1, json.RootElement.GetProperty("dossier").GetProperty("defectStatistics").GetProperty("projectDistinctDefects").GetInt64());
         var fresh = await client.GetAsync(path); var current = (await fresh.Content.ReadFromJsonAsync<DefectStatisticsRead>())!;
@@ -86,7 +119,15 @@ public sealed class LD08DefectStatisticsHttpTests(AuthenticationSqlServerFixture
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/v1/projects/{project.Id}/exports/{job.Id}/manifest")).StatusCode);
         await db.ProjectMembers.Where(row => row.ProjectId == project.Id && row.UserId == pm.Id).ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, path, input, key, initial.Headers.ETag.ToString())).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/v1/projects/{project.Id}/exports/{job.Id}/manifest")).StatusCode);
+        foreach (var suffix in new[] { "", "/manifest", "/content" })
+        {
+            var denied = await client.GetAsync($"{exportRoot}/{job.Id}{suffix}");
+            Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+            Assert.DoesNotContain(oldHash, await denied.Content.ReadAsStringAsync());
+        }
+        Assert.Equal(jobVersion, (await db.Set<ExportJob>().AsNoTracking().SingleAsync(row => row.Id == job.Id)).RowVersion);
+        Assert.Equal(oldJson, (await db.Set<ExportSnapshot>().AsNoTracking().SingleAsync(row => row.Id == job.SnapshotId)).PayloadJson);
+        Assert.False(await db.Set<GeneratedArtifact>().AnyAsync(row => row.ExportJobId == job.Id));
     }
     [Fact]
     public async Task CookieStatisticsWriteRequiresCsrfBeforeSourceOrReceiptEffects()

@@ -12,7 +12,7 @@ public sealed partial class H6NotificationDispatchRepository
     private async Task<(int Delivered, int Unresolved)> DeliverAsync(H6NotificationOccurrenceRow occurrence,
         H6DispatchPlan plan, H6SourceResolution proof, DateTimeOffset now, CancellationToken token)
     {
-        var recipients = await RecipientsAsync(plan.Envelope!, proof, now, token); var delivered = 0; var unresolved = 0;
+        var recipients = await RecipientsAsync(plan.Envelope!, proof, now, token, plan.Source.FastTrackReview, plan.Source.NotificationAssignmentSnapshot); var delivered = 0; var unresolved = 0;
         foreach (var recipient in recipients.OrderBy(row => row.Key, StringComparer.Ordinal))
         {
             var delivery = new H6NotificationDeliveryRow
@@ -24,17 +24,34 @@ public sealed partial class H6NotificationDispatchRepository
                 NextAttemptAtUtc = now.AddMinutes(5)
             };
             var reason = recipient.Actor is Guid actor
-                ? await RecipientAuthorityAsync(actor, recipient.Role, occurrence.ProjectId, plan.Envelope!.RecipientStrategy, proof, now, token)
+                ? await RecipientAuthorityAsync(actor, recipient.Role, occurrence.ProjectId, plan.Envelope!.RecipientStrategy, proof, now, token, plan.Source.FastTrackReview, plan.Source.NotificationAssignmentSnapshot)
                 : "notification_responsible_actor_missing";
-            RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now, proof.BodyOverride);
+            RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now, proof.BodyOverride, recipient.Role == UserRoleCode.Supervisor ? plan.Source.NotificationAssignmentSnapshot : null);
             if (reason is null) delivered++; else unresolved++;
             db.Set<H6NotificationDeliveryRow>().Add(delivery);
         }
         return (delivered, unresolved);
     }
     private async Task<Recipient[]> RecipientsAsync(NotificationEventEnvelope envelope, H6SourceResolution proof,
-        DateTimeOffset now, CancellationToken token)
+        DateTimeOffset now, CancellationToken token, FastTrackReviewSnapshot? snapshot = null, NotificationAssignmentSnapshot? assignmentSnapshot = null)
     {
+        if (assignmentSnapshot is not null)
+        {
+            if (!assignmentSnapshot.IsValid()) return [];
+            var pinned = assignmentSnapshot.ProjectManagerIds.Select(id => RecipientFor(id, UserRoleCode.ProjectManager, "ProjectManager")).ToList();
+            if (envelope.Kind == NotificationEventKind.RepairSubmitted && pinned.Count == 0)
+                pinned.Add(RecipientFor(null, UserRoleCode.ProjectManager, "ProjectManager"));
+            pinned.Add(RecipientFor(assignmentSnapshot.SupervisorId, UserRoleCode.Supervisor, "Supervisor"));
+            return pinned.ToArray();
+        }
+        if (snapshot is not null)
+        {
+            if (!snapshot.IsValid()) return [];
+            var pinned = snapshot.ProjectManagerIds.Select(id => RecipientFor(id, UserRoleCode.ProjectManager, "ProjectManager")).ToList();
+            if (pinned.Count == 0) pinned.Add(RecipientFor(null, UserRoleCode.ProjectManager, "ProjectManager"));
+            pinned.Add(RecipientFor(snapshot.SupervisorId, UserRoleCode.Supervisor, "Supervisor"));
+            return pinned.ToArray();
+        }
         var day = DateOnly.FromDateTime(now.UtcDateTime);
         var members = db.ProjectMembers.Where(row => row.ProjectId == (proof.ResponsibilityProjectId ?? envelope.ProjectId) && row.Status == ProjectMemberStatus.Active &&
             row.ValidFrom <= day && (!row.ValidTo.HasValue || row.ValidTo >= day));
@@ -64,7 +81,7 @@ public sealed partial class H6NotificationDispatchRepository
     private static Recipient RecipientFor(Guid? actor, UserRoleCode? role, string missing)
         => new(actor is Guid id ? "actor:" + id.ToString("N") : "pending:" + missing, actor, role);
     private void RecordDeliveryAttempt(H6NotificationDeliveryRow delivery, H6NotificationOccurrenceRow occurrence,
-        NotificationEventKind kind, string? reason, DateTimeOffset now, string? bodyOverride = null)
+        NotificationEventKind kind, string? reason, DateTimeOffset now, string? bodyOverride = null, NotificationAssignmentSnapshot? assignmentSnapshot = null)
     {
         if (reason is null)
         {
@@ -89,6 +106,8 @@ public sealed partial class H6NotificationDispatchRepository
             db.Set<H6NotificationScopeRow>().Add(new()
             {
                 NotificationId = notification.Id,
+                NotificationAssignmentId = assignmentSnapshot?.AssignmentId,
+                NotificationAssignmentVersion = assignmentSnapshot?.AssignmentVersion,
                 ProjectId = occurrence.ProjectId,
                 OccurrenceId = occurrence.Id,
                 Classification = "PROJECT",
@@ -113,8 +132,34 @@ public sealed partial class H6NotificationDispatchRepository
         });
     }
     private async Task<string?> RecipientAuthorityAsync(Guid actor, UserRoleCode? expectedRole, Guid projectId,
-        NotificationRecipientStrategy strategy, H6SourceResolution proof, DateTimeOffset now, CancellationToken token)
+        NotificationRecipientStrategy strategy, H6SourceResolution proof, DateTimeOffset now, CancellationToken token, FastTrackReviewSnapshot? snapshot = null, NotificationAssignmentSnapshot? assignmentSnapshot = null)
     {
+        if (assignmentSnapshot is not null && expectedRole == UserRoleCode.Supervisor)
+        {
+            // This is the only global-Supervisor branch. It never grants unrelated recipients/events access.
+            if (!assignmentSnapshot.IsValid() || assignmentSnapshot.SupervisorId != actor ||
+                proof.ResponsibilityProjectId is Guid currentProject && currentProject != projectId ||
+                !await BusinessDutyRepository.CurrentAuthority(db, clock, actor, UserRoleCode.Supervisor, projectId, token, readOnly: true))
+                return "notification_assignment_lost";
+            var generation = await db.Set<NotificationSupervisorGeneration>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == assignmentSnapshot.AssignmentId, token);
+            if (generation is null || generation.ProjectId != projectId || generation.SupervisorId != actor || generation.Version != assignmentSnapshot.AssignmentVersion ||
+                !await db.Set<NotificationSupervisorHead>().AsNoTracking().AnyAsync(x => x.ItemId == generation.ItemId && x.ProjectId == projectId &&
+                    x.AssignmentId == generation.Id && x.SupervisorId == actor && x.RevokedAt == null &&
+                    db.RepairItems.Any(item => item.Id == x.ItemId && item.ProjectId == projectId && item.Mode == RepairMode.FastTrack && item.SupersededByItemId == null &&
+                        db.RepairObligations.Any(obligation => obligation.Id == item.ObligationId && obligation.CurrentRepairItemId == item.Id)), token))
+                return "notification_assignment_lost";
+            return null;
+        }
+        if (snapshot is not null)
+        {
+            if (proof.ResponsibilityProjectId is Guid currentProject && currentProject != projectId)
+                return "notification_responsibility_lost";
+            if (expectedRole == UserRoleCode.Supervisor &&
+                !await db.Set<RoadGuardSystem.BusinessObjects.Clocks.DeadlineClock>().AsNoTracking().AnyAsync(c =>
+                    c.Id == snapshot.SupervisorClockId && c.ProjectId == projectId && c.CompletedAt == null &&
+                    c.AppointedActorId == actor && c.AppointedRole == UserRoleCode.Supervisor, token))
+                return "notification_assignment_lost";
+        }
         // Assigned crews keep their exact existing source assignment; supervisory duty follows accepted responsibility.
         if (expectedRole != UserRoleCode.RepairCrew)
         {

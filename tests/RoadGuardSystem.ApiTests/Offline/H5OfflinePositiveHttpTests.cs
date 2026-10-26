@@ -129,6 +129,8 @@ public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fi
         var grantId = (await granted.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         await LoginAsync(client, pm.UserName!);
         var importBatchId = Guid.NewGuid();
+        await CollectionAssertions.Contains(client, offline + "/packages", packageId, "id", "projectId", "originalActorId", "sourceDeviceRegistrationId", "sourceBatchId");
+        await CollectionAssertions.Contains(client, offline + "/grants", grantId, "id", "projectId", "packageId", "issuedAt", "expiresAt", "revokedAt");
         var recipientClaim = OfflineRecipientEndorsement.CanonicalClaim(new(scope.Project, packageId,
             grantId, importBatchId, recipientRegistration, hash));
         var recipientSignature = OfflinePackageAuthentication.SignClaim(recipientClaim, recipientKeys);

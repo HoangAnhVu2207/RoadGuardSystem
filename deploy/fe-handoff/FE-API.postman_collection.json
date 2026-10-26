@@ -1,0 +1,254 @@
+{
+  "info": {
+    "name": "RoadGuard local handoff \u2014 bounded examples",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:18081"
+    },
+    {
+      "key": "demoEmail",
+      "value": ""
+    },
+    {
+      "key": "demoPassword",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "projectId",
+      "value": ""
+    },
+    {
+      "key": "defectId",
+      "value": ""
+    },
+    {
+      "key": "publicId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Readiness",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/ready"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('readiness HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mobile login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/android/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"{{demoEmail}}\", \"password\": \"{{demoPassword}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) pm.collectionVariables.set('accessToken', pm.response.json().accessToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Current profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/profile",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('profile HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/projects",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('projects HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('projects paged response', () => pm.expect(pm.response.json().items).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "C1 controlled public publication",
+      "item": [
+        {
+          "name": "Approve sanitized snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/defects/{{defectId}}/publications",
+            "description": "Current authorized project PM. No body. Strict C1 eligibility. Set returned publicId for read/withdraw. Use same idempotency key for intentional replay; use a fresh key for a distinct action."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('C1 create HTTP 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('publicId', pm.response.json().publicId);",
+                  "pm.test('C1 create exact public fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['damageCategory','publicId','publicStatus','publishedAt']));",
+                  "pm.test('C1 create approved values', () => { const b=pm.response.json(); pm.expect(b.damageCategory).to.eql('ROAD_SURFACE_DAMAGE'); pm.expect(b.publicStatus).to.eql('PUBLISHED'); pm.expect(Number.isNaN(Date.parse(b.publishedAt))).to.eql(false); });",
+                  "pm.test('C1 create no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anonymous public detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/public/publications/{{publicId}}",
+            "description": "Anonymous GET; exactly four sanitized fields, no-store. After withdrawal this URL returns 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('C1 anonymous HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('C1 anonymous exact public fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['damageCategory','publicId','publicStatus','publishedAt']));",
+                  "pm.test('C1 read identity/status', () => { const b=pm.response.json(); pm.expect(b.publicId).to.eql(pm.collectionVariables.get('publicId')); pm.expect(b.publicStatus).to.eql('PUBLISHED'); pm.expect(b.damageCategory).to.eql('ROAD_SURFACE_DAMAGE'); });",
+                  "pm.test('C1 anonymous no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdraw",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/publications/{{publicId}}/withdraw",
+            "description": "Current authorized project PM. No body. Strict C1 eligibility. Set returned publicId for read/withdraw. Use same idempotency key for intentional replay; use a fresh key for a distinct action."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('C1 withdraw HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('C1 withdraw exact public fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['damageCategory','publicId','publicStatus','publishedAt']));",
+                  "pm.test('C1 withdrawn status', () => pm.expect(pm.response.json().publicStatus).to.eql('WITHDRAWN'));",
+                  "pm.test('C1 withdraw no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
+                  "pm.sendRequest({url: pm.variables.get('baseUrl')+'/api/v1/public/publications/'+pm.collectionVariables.get('publicId'),method:'GET'}, (err,res) => { pm.test('C1 post-withdraw anonymous 404', () => { pm.expect(err).to.eql(null); pm.expect(res.code).to.eql(404); pm.expect(res.headers.get('Cache-Control')).to.eql('no-store'); }); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

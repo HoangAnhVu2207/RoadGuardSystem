@@ -83,6 +83,10 @@ public sealed class H4RepairWorkflowHttpAdmissionTests(AuthenticationSqlServerFi
         var itemPath = $"/api/v1/projects/{facts.Project}/repair-packages/{facts.Package}/items/{facts.Item}";
         var before = await client.GetAsync(itemPath); Assert.Equal(HttpStatusCode.OK, before.StatusCode);
         var priorTag = before.Headers.ETag!.ToString();
+        var collection = $"/api/v1/projects/{facts.Project}/repair-packages";
+        await CollectionAssertions.Contains(client, collection, facts.Package, "id", "projectId", "defectId", "allMandatoryResolved", "version");
+        await CollectionAssertions.Contains(client, collection + $"/{facts.Package}/items?mode=FAST_TRACK", facts.Item, "id", "projectId", "defectId", "obligationId", "mode", "state", "result", "version");
+        Assert.Empty((await (await client.GetAsync(collection + $"/{facts.Package}/items?mode=NORMAL")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items").EnumerateArray());
         client.DefaultRequestHeaders.Add("Idempotency-Key", "actual-http-correction");
         client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", priorTag);
         var input = Input() with { SupersedesDecisionId = facts.Decision };
@@ -93,6 +97,9 @@ public sealed class H4RepairWorkflowHttpAdmissionTests(AuthenticationSqlServerFi
         var after = await client.GetAsync(itemPath); Assert.Equal(HttpStatusCode.OK, after.StatusCode);
         var view = await after.Content.ReadFromJsonAsync<RepairItemView>(); Assert.NotNull(view);
         Assert.Equal(corrected.Id, view.EffectiveDecisionId); Assert.Equal("UNREPAIRED", view.Result); Assert.Equal("CorrectionRequired", view.State);
+        var refreshed = await CollectionAssertions.Contains(client, collection + $"/{facts.Package}/items", facts.Item);
+        Assert.Equal(view.Version, refreshed.GetProperty("version").GetString());
+        Assert.Equal("CorrectionRequired", refreshed.GetProperty("state").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(itemPath + "/corrections", input)).StatusCode);
         client.DefaultRequestHeaders.Remove("Idempotency-Key"); client.DefaultRequestHeaders.Add("Idempotency-Key", "actual-http-review-request");
         client.DefaultRequestHeaders.Remove("If-Match"); client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", after.Headers.ETag!.ToString());
@@ -116,6 +123,24 @@ public sealed class H4RepairWorkflowHttpAdmissionTests(AuthenticationSqlServerFi
             Assert.Equal(RepairPresentationState.Confirmed, (await db.Set<RepairDecision>().SingleAsync(row => row.Id == facts.Decision)).Result);
         }
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(itemPath)).StatusCode);
+        // The same issued bearer and cached history validator must not retain access.
+        var deniedHistory = await client.GetAsync(itemPath + "/history");
+        Assert.Equal(HttpStatusCode.Forbidden, deniedHistory.StatusCode);
+        var deniedBody = await deniedHistory.Content.ReadAsStringAsync();
+        Assert.DoesNotContain(corrected.Id.ToString(), deniedBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(facts.Decision.ToString(), deniedBody, StringComparison.OrdinalIgnoreCase);
+        using var cachedRequest = new HttpRequestMessage(HttpMethod.Get, itemPath + "/history");
+        if (historyResponse.Headers.ETag is not null)
+            cachedRequest.Headers.IfNoneMatch.Add(historyResponse.Headers.ETag);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(cachedRequest)).StatusCode);
+        var foreignPath = itemPath.Replace(facts.Project.ToString(), Guid.NewGuid().ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(foreignPath + "/history")).StatusCode);
+        await using (var postDenied = fixture.CreateDbContext())
+        {
+            // Selected SQL postconditions: reads did not append decisions/reviews.
+            Assert.Equal(2, await postDenied.Set<RepairDecision>().CountAsync(x => x.ItemId == facts.Item));
+            Assert.Single(await postDenied.Set<RepairReviewRequest>().Where(x => x.ItemId == facts.Item).ToListAsync());
+        }
         client.DefaultRequestHeaders.Remove("Idempotency-Key"); client.DefaultRequestHeaders.Add("Idempotency-Key", "actual-http-correction");
         client.DefaultRequestHeaders.Remove("If-Match"); client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", priorTag);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync(itemPath + "/corrections", input)).StatusCode);

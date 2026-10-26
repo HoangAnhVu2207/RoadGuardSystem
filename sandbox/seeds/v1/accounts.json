@@ -1,0 +1,104 @@
+{
+  "Version": "sbx02-v1",
+  "Actors": [
+    {
+      "Id": "72f84201-a001-4000-8000-000000000001",
+      "Key": "supervisor",
+      "Email": "supervisor@sandbox.example.test",
+      "Role": 1,
+      "Project": null,
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000002",
+      "Key": "pm-a",
+      "Email": "pm-a@sandbox.example.test",
+      "Role": 2,
+      "Project": "A",
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000003",
+      "Key": "pm-b",
+      "Email": "pm-b@sandbox.example.test",
+      "Role": 2,
+      "Project": "B",
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000004",
+      "Key": "reporter-a",
+      "Email": "reporter-a@sandbox.example.test",
+      "Role": 5,
+      "Project": null,
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000005",
+      "Key": "reporter-b",
+      "Email": "reporter-b@sandbox.example.test",
+      "Role": 5,
+      "Project": null,
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000006",
+      "Key": "operator-a",
+      "Email": "operator-a@sandbox.example.test",
+      "Role": 3,
+      "Project": "A",
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000007",
+      "Key": "operator-b",
+      "Email": "operator-b@sandbox.example.test",
+      "Role": 3,
+      "Project": "B",
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000008",
+      "Key": "crew-a",
+      "Email": "crew-a@sandbox.example.test",
+      "Role": 4,
+      "Project": "A",
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000009",
+      "Key": "crew-b",
+      "Email": "crew-b@sandbox.example.test",
+      "Role": 4,
+      "Project": "B",
+      "Suspended": false,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000010",
+      "Key": "suspended-a",
+      "Email": "suspended-a@sandbox.example.test",
+      "Role": 3,
+      "Project": "A",
+      "Suspended": true,
+      "Ended": false
+    },
+    {
+      "Id": "72f84201-a001-4000-8000-000000000011",
+      "Key": "ended-a",
+      "Email": "ended-a@sandbox.example.test",
+      "Role": 3,
+      "Project": "A",
+      "Suspended": false,
+      "Ended": true
+    }
+  ]
+}

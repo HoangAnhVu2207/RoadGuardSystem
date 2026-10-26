@@ -31,7 +31,7 @@ public sealed partial class H6NotificationDispatchRepository
                     ? "notification_source_pending_producer" : "notification_source_relation_invalid";
                 if (reason is null)
                 {
-                    var eligible = await RecipientsAsync(plan!.Envelope!, proof, now, cancellationToken);
+                    var eligible = await RecipientsAsync(plan!.Envelope!, proof, now, cancellationToken, plan.Source.FastTrackReview, plan.Source.NotificationAssignmentSnapshot);
                     var recipient = delivery.RecipientUserId is Guid actor
                         ? eligible.SingleOrDefault(row => row.Actor == actor)
                         : ResolveMissingRecipient(delivery.RecipientKey, eligible, proof);
@@ -42,7 +42,7 @@ public sealed partial class H6NotificationDispatchRepository
                         // never replaced by a new assignee/manager merely to make a retry succeed.
                         delivery.RecipientUserId ??= currentActor;
                         reason = await RecipientAuthorityAsync(currentActor, recipient.Role, occurrence.ProjectId,
-                            plan.Envelope!.RecipientStrategy, proof, now, cancellationToken);
+                            plan.Envelope!.RecipientStrategy, proof, now, cancellationToken, plan.Source.FastTrackReview, plan.Source.NotificationAssignmentSnapshot);
                     }
                 }
                 if (plan is null)
@@ -57,7 +57,7 @@ public sealed partial class H6NotificationDispatchRepository
                         ReasonCode = reason
                     });
                 }
-                else { RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now, proof.BodyOverride); if (reason is null) delivered++; }
+                else { RecordDeliveryAttempt(delivery, occurrence, plan.Envelope!.Kind, reason, now, proof.BodyOverride, delivery.RecipientUserId == plan.Source.NotificationAssignmentSnapshot?.SupervisorId ? plan.Source.NotificationAssignmentSnapshot : null); if (reason is null) delivered++; }
             }
             await db.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken);
         });
@@ -86,6 +86,9 @@ public sealed partial class H6NotificationDispatchRepository
                 source.ProjectId != occurrence.ProjectId || source.SourceId != occurrence.SourceId || source.OriginEventId != occurrence.OriginEventId ||
                 source.SourceKind != occurrence.SourceKind || source.OccurredAtUtc != occurrence.OccurredAtUtc ||
                 !Enum.TryParse<NotificationSourceKind>(source.SourceKind, out var sourceKind) || Enum.GetName(sourceKind) != source.SourceKind) return null;
+            if (source.NotificationAssignmentSnapshot is { } assignment && (!assignment.IsValid() || source.FastTrackReview is not null ||
+                source.SourceKind != "RepairWork" || assignment.CapturedAt != source.OccurredAtUtc ||
+                occurrence.EventType is not ("repair.work.submitted.v1" or "repair.work.fast_track_confirmed.v1"))) return null;
             var kind = occurrence.EventType switch
             {
                 "field.task.assigned.v1" => NotificationEventKind.FieldAssigned,

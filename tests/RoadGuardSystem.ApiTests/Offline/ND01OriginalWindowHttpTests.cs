@@ -17,8 +17,10 @@ namespace RoadGuardSystem.ApiTests.Offline;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class ND01OriginalWindowHttpTests(AuthenticationSqlServerFixture fixture, ITestOutputHelper output)
 {
-    [Fact]
-    public async Task ActualBearerSignedSyncCommitsEligibleOriginalWindowFtExactlyOnce()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ActualBearerSignedSyncCommitsEligibleOriginalWindowFtExactlyOnce(bool recreateHost)
     {
         var pm = await fixture.CreateUserAsync("nd01-pm-" + Guid.NewGuid(), "Current1!", UserRoleCode.ProjectManager);
         var crew = await fixture.CreateUserAsync("nd01-crew-" + Guid.NewGuid(), "Current1!", UserRoleCode.RepairCrew);
@@ -40,21 +42,30 @@ public sealed class ND01OriginalWindowHttpTests(AuthenticationSqlServerFixture f
             throw;
         }
         using var keys = state.Keys;
-        await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
-        using var scope = factory.Services.CreateScope();
-        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IOfflineRepairCommandAdapter>());
-        using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") });
-        await H5OfflinePositiveHttpTests.LoginAsync(client, crew.UserName!);
+        var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
         var route = $"/api/v1/projects/{source.Project}/offline/sync";
-        for (var attempt = 0; attempt < 2; attempt++)
+        try
         {
-            using var response = await H5OfflinePositiveHttpTests.PostAsync(client, route, state.Batch);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var result = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items")[0];
-            Assert.True(result.GetProperty("durableAcknowledgment").GetBoolean(), result.GetRawText());
-            Assert.Equal(state.Operation.EffectId, result.GetProperty("effectId").GetGuid());
-            Assert.Equal("UNCERTAIN", result.GetProperty("timeProvenance").GetString());
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                if (attempt == 1 && recreateHost)
+                {
+                    await factory.DisposeAsync();
+                    factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
+                }
+                using var scope = factory.Services.CreateScope();
+                Assert.NotNull(scope.ServiceProvider.GetRequiredService<IOfflineRepairCommandAdapter>());
+                using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") });
+                await H5OfflinePositiveHttpTests.LoginAsync(client, crew.UserName!);
+                using var response = await H5OfflinePositiveHttpTests.PostAsync(client, route, state.Batch);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                var result = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items")[0];
+                Assert.True(result.GetProperty("durableAcknowledgment").GetBoolean(), result.GetRawText());
+                Assert.Equal(state.Operation.EffectId, result.GetProperty("effectId").GetGuid());
+                Assert.Equal("UNCERTAIN", result.GetProperty("timeProvenance").GetString());
+            }
         }
+        finally { await factory.DisposeAsync(); }
         Assert.Equal(1, await db.Set<RepairExecutionStart>().CountAsync(row => row.ItemId == state.Item));
         Assert.Equal(1, await db.Set<OfflineOperationResult>().CountAsync(row => row.ProjectId == source.Project && row.DurableAck));
         var authorization = await db.Set<RepairExecutionAuthorization>().AsNoTracking().SingleAsync(row => row.Id == state.Authorization);

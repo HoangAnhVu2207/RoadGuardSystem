@@ -58,8 +58,11 @@ public sealed class Anh01LegacyGeometryCorrectionTests
             var child = setBody.GetProperty("segments")[0];
             child.GetProperty("id").GetGuid().Should().Be(segment);
             child.GetProperty("sequence").GetInt32().Should().Be(1);
-            foreach (var field in new[] { "fromOffsetMeters", "toOffsetMeters", "startStationMeters", "endStationMeters", "lengthMeters", "metricGeometry" })
+            foreach (var field in new[] { "fromOffsetMeters", "toOffsetMeters", "startStationMeters", "endStationMeters", "lengthMeters" })
                 child.GetProperty(field).ValueKind.Should().Be(JsonValueKind.Null);
+            // Approved optional-object compatibility omits absent geometry.
+            child.TryGetProperty("metricGeometry", out _).Should().BeFalse();
+            child.TryGetProperty("wgs84Geometry", out _).Should().BeFalse();
             (await client.GetAsync(sets + $"/{set}")).StatusCode.Should().Be(HttpStatusCode.OK);
             // Read does not backfill. The unchanged command admission still rejects incomplete geometry.
             var preview = await client.PostAsJsonAsync(sets + "/preview", new { targetLengthMeters = 100d, remainderMode = "KEEP" });

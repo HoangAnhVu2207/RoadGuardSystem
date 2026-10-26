@@ -7,6 +7,7 @@ public sealed class UploadSessionOptions
     public int PartSizeBytes { get; set; } = 8 * 1024 * 1024;
     public int SessionLifetimeHours { get; set; } = 24;
     public int SignedPutUrlLifetimeMinutes { get; set; } = 15;
+    public int PrivateEvidenceSignedUrlLifetimeSeconds { get; set; } = 300;
     public bool RecoveryEnabled { get; set; }
     public int RecoveryDeadlineSeconds { get; set; } = 120;
     public int RecoveryRetrySeconds { get; set; } = 30;

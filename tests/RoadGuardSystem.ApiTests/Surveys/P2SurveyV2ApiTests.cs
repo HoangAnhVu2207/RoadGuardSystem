@@ -108,6 +108,10 @@ public sealed class P2SurveyV2ApiTests
         taskBody.GetProperty("status").GetString().Should().Be("NEW_ASSIGNED");
         taskBody.TryGetProperty("dueAt", out _).Should().BeFalse();
         var taskId = taskBody.GetProperty("id").GetGuid();
+        var planRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{projectId}/survey-plans", planId, "id", "projectId", "plannedAt", "status", "version");
+        Assert.Equal(postponedVersion, planRow.GetProperty("version").GetString());
+        var taskRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{projectId}/survey-tasks", taskId, "id", "projectId", "operatorId", "status", "version", "supplementTaskId");
+        Assert.Equal(operatorUser.Id, taskRow.GetProperty("operatorId").GetGuid());
 
         var read = await client.GetAsync($"/api/v1/survey-tasks/{taskId}");
         read.StatusCode.Should().Be(HttpStatusCode.OK);

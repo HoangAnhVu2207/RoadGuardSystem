@@ -627,10 +627,14 @@ if ($ciContent -match 'pull_request_target') {
     $errors += "CI workflow must not use 'pull_request_target' due to security elevation risk."
 }
 
-$requiredBranches = @("develop", "main", "anh", "huy")
+$requiredBranches = @("develop", "main", "anh", "anh-review", "huy", "huy-review")
+$pushBranches = @()
+if ($ciContent -match '(?m)^  push:\s*\r?\n    branches:\s*\[([^\]]+)\]') {
+    $pushBranches = @($Matches[1] -split ',' | ForEach-Object { $_.Trim().Trim('"', "'") })
+}
 foreach ($branch in $requiredBranches) {
-    if ($ciContent -notmatch [regex]::Escape($branch)) {
-        $errors += "CI workflow trigger branches missing: '$branch'"
+    if ($branch -notin $pushBranches) {
+        $errors += "CI workflow push trigger branches missing: '$branch'"
     }
 }
 

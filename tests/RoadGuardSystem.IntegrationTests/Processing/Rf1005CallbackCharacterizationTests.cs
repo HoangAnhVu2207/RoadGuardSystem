@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.BusinessObjects.Catalogs;
 using RoadGuardSystem.BusinessObjects.Files;
@@ -24,6 +25,36 @@ public sealed class Rf1005CallbackCharacterizationTests : IClassFixture<Identity
     private readonly IdentitySqlServerFixture _fixture;
 
     public Rf1005CallbackCharacterizationTests(IdentitySqlServerFixture fixture) => _fixture = fixture;
+
+    [Fact]
+    [Trait("Finding", "P1-02")]
+    public async Task OlderAttemptAfterRetry_IsRejectedWithoutBusinessMutation()
+    {
+        var scope = await CreateScopeAsync();
+        var key = Guid.NewGuid().ToString("N");
+        var created = await ExecuteAsync(repository => repository.CreateAsync(new ProcessingJobCreateRequest(
+            scope.ActorId, scope.DatasetId, "{}", scope.ModelId, "pre-v1", "config-v1", "MOCK", key, Hash(key), null)));
+        created.Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+        var jobId = created.Job!.Id;
+        var initial = await ReadAsync(jobId);
+        var oldAttempt = initial.Attempts.Single().Id;
+        // Controlled external failure-state fixture; does not claim a production failure producer.
+        await using (var db = _fixture.CreateDbContext())
+            await db.ProcessingJobs.Where(j => j.Id == jobId).ExecuteUpdateAsync(update =>
+                update.SetProperty(j => j.Status, ProcessingJobStatus.RetryableFailure));
+        var failed = await ReadAsync(jobId);
+        var retried = await ExecuteAsync(repository => repository.RetryAsync(new(scope.ActorId, jobId,
+            "characterize late callback", failed.Version, key + "-retry", Hash(key + "-retry"), null)));
+        retried.Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+        var queued = await ReadAsync(jobId);
+        queued.Attempts.Should().HaveCount(2);
+        queued.Attempts[1].Id.Should().NotBe(oldAttempt);
+        queued.Status.Should().Be(ProcessingJobStatus.Queued);
+        var callback = await ExecuteAsync(repository => repository.ReceiveResultAsync(new(jobId, oldAttempt,
+            initial.ManifestHash, scope.ModelId, "MOCK", scope.RawFileId, scope.Checksum, "[]", key + "-late")));
+        callback.Status.Should().Be(ProcessingJobPersistenceStatus.Conflict);
+        (await ReadAsync(jobId)).Should().BeEquivalentTo(queued);
+    }
 
     [Fact]
     public async Task CurrentAttempt_CallbackReplayAndRetryFromQueued_PreserveObservedSqlEffects()
@@ -117,6 +148,142 @@ public sealed class Rf1005CallbackCharacterizationTests : IClassFixture<Identity
         return await action(new ProcessingV2PersistenceService(context, new IdempotencyOperationService(context)));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RetriedCurrentAttempt_SucceedsAndReplays_WhileOldAttemptCannotOverwrite(bool lateAfterSuccess)
+    {
+        var (scope, jobId, initial) = await NewJobAsync();
+        await MarkFailureAsync(jobId);
+        var failed = await ReadAsync(jobId);
+        (await ExecuteAsync(r => r.RetryAsync(new(scope.ActorId, jobId, "retry", failed.Version,
+            "retry-1", Hash("retry-1"), null)))).Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+        var queued = await ReadAsync(jobId);
+        var current = Callback(scope, jobId, queued, queued.Attempts[^1].Id, "callback-1");
+        var old = current with { AttemptId = initial.Attempts.Single().Id, IdempotencyKey = "old-callback" };
+        if (!lateAfterSuccess)
+        {
+            (await ExecuteAsync(r => r.ReceiveResultAsync(old))).Status.Should().Be(ProcessingJobPersistenceStatus.Conflict);
+            (await ReadAsync(jobId)).Should().BeEquivalentTo(queued);
+        }
+        var received = await ExecuteAsync(r => r.ReceiveResultAsync(current));
+        received.Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+        received.Job!.AttemptNumber.Should().Be(2);
+        var completed = await ReadAsync(jobId);
+        completed.Status.Should().Be(ProcessingJobStatus.Completed);
+        completed.Version.Should().NotBe(queued.Version);
+        completed.Detections.Should().ContainSingle();
+        completed.Attempts.Should().Equal(queued.Attempts);
+        completed.AuditEvents.Should().Equal(queued.AuditEvents);
+        completed.OutboxTypes.Should().Equal(queued.OutboxTypes);
+        (await ExecuteAsync(r => r.ReceiveResultAsync(current))).Status.Should().Be(ProcessingJobPersistenceStatus.Replayed);
+        if (lateAfterSuccess)
+            (await ExecuteAsync(r => r.ReceiveResultAsync(old))).Status.Should().Be(ProcessingJobPersistenceStatus.Conflict);
+        (await ReadAsync(jobId)).Should().BeEquivalentTo(completed);
+    }
+
+    [Fact]
+    public async Task CallbackReceiptFailure_RollsBackJobDetectionsAndReceipt_ThenCanSucceed()
+    {
+        var (scope, jobId, initial) = await NewJobAsync();
+        var callback = Callback(scope, jobId, initial, initial.Attempts.Single().Id, "callback-1");
+        await using (var context = _fixture.CreateDbContext(new FailReceiptSave()))
+        {
+            var repository = new ProcessingV2PersistenceService(context, new IdempotencyOperationService(context));
+            Func<Task> action = async () => await repository.ReceiveResultAsync(callback);
+            await action.Should().ThrowAsync<InjectedReceiptException>();
+        }
+        (await ReadAsync(jobId)).Should().BeEquivalentTo(initial);
+        (await ExecuteAsync(r => r.ReceiveResultAsync(callback))).Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+        (await ReadAsync(jobId)).Detections.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RetryAndCallback_SerializeAtJobLock_WithoutStaleEffects(bool retryFirst)
+    {
+        var (scope, jobId, initial) = await NewJobAsync();
+        if (retryFirst) await MarkFailureAsync(jobId);
+        var before = await ReadAsync(jobId);
+        var callback = Callback(scope, jobId, initial, initial.Attempts.Single().Id, "callback-1");
+        var retry = new ProcessingJobRetryRequest(scope.ActorId, jobId, "concurrent retry", before.Version,
+            "retry-1", Hash("retry-1"), null);
+        var pause = new PauseFirstSave();
+        await using var context = _fixture.CreateDbContext(pause);
+        var repository = new ProcessingV2PersistenceService(context, new IdempotencyOperationService(context));
+        var first = retryFirst ? repository.RetryAsync(retry) : repository.ReceiveResultAsync(callback);
+        Task<ProcessingJobPersistenceResult>? second = null;
+        try
+        {
+            await pause.Entered.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            second = retryFirst ? ExecuteAsync(r => r.ReceiveResultAsync(callback)) : ExecuteAsync(r => r.RetryAsync(retry));
+            await Task.Delay(150);
+            second.IsCompleted.Should().BeFalse("the competing operation must wait for the job transaction");
+        }
+        finally { pause.Release.TrySetResult(); }
+        (await first.WaitAsync(TimeSpan.FromSeconds(15))).Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+        var loser = await second!.WaitAsync(TimeSpan.FromSeconds(15));
+        loser.Status.Should().Be(retryFirst ? ProcessingJobPersistenceStatus.Conflict : ProcessingJobPersistenceStatus.ConcurrencyConflict);
+        var after = await ReadAsync(jobId);
+        after.Status.Should().Be(retryFirst ? ProcessingJobStatus.Queued : ProcessingJobStatus.Completed);
+        after.Attempts.Should().HaveCount(retryFirst ? 2 : 1);
+        after.Detections.Should().HaveCount(retryFirst ? 0 : 1);
+        after.OutboxTypes.Should().HaveCount(retryFirst ? 2 : 1);
+        after.AuditEvents.Should().HaveCount(retryFirst ? 2 : 1);
+    }
+
+    private async Task<(Scope Scope, Guid JobId, Snapshot Initial)> NewJobAsync()
+    {
+        var scope = await CreateScopeAsync();
+        var key = Guid.NewGuid().ToString("N");
+        var created = await ExecuteAsync(r => r.CreateAsync(new(scope.ActorId, scope.DatasetId, "{}", scope.ModelId,
+            "pre-v1", "config-v1", "MOCK", key, Hash(key), null)));
+        created.Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+        return (scope, created.Job!.Id, await ReadAsync(created.Job.Id));
+    }
+
+    private async Task MarkFailureAsync(Guid jobId)
+    {
+        // Controlled state fixture, not evidence of a production failure callback contract.
+        await using var context = _fixture.CreateDbContext();
+        await context.ProcessingJobs.Where(j => j.Id == jobId).ExecuteUpdateAsync(u =>
+            u.SetProperty(j => j.Status, ProcessingJobStatus.RetryableFailure));
+    }
+
+    private static ProcessingAiResultRequest Callback(Scope scope, Guid jobId, Snapshot snapshot, Guid attemptId, string key)
+        => new(jobId, attemptId, snapshot.ManifestHash, scope.ModelId, "MOCK", scope.RawFileId, scope.Checksum,
+            $"[{{\"detectionId\":\"{Guid.NewGuid()}\",\"typeCode\":\"POTHOLE\",\"confidence\":0.9}}]", key);
+
+    private sealed class InjectedReceiptException : Exception;
+    private sealed class FailReceiptSave : SaveChangesInterceptor
+    {
+        private int _calls;
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
+            InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (++_calls == 2) throw new InjectedReceiptException();
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    private sealed class PauseFirstSave : SaveChangesInterceptor
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _calls;
+        public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
+            InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (++_calls == 1)
+            {
+                Entered.TrySetResult();
+                await Release.Task.WaitAsync(TimeSpan.FromSeconds(20), cancellationToken);
+            }
+            return result;
+        }
+    }
+
     private async Task<Snapshot> ReadAsync(Guid jobId)
     {
         await using var context = _fixture.CreateDbContext();
@@ -175,7 +342,7 @@ public sealed class Rf1005CallbackCharacterizationTests : IClassFixture<Identity
             SurveyStatus.InProgress, false, null, null);
         var dataset = SurveyDataVersion.Create(Guid.NewGuid(), survey.Id, 1, SurveyDataVersionStatus.ServerConfirmed,
             SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend, "[]");
-        var model = AIModelVersion.Create(Guid.NewGuid(), "fixture-model", "v1", "file:///fixture-model",
+        var model = AIModelVersion.Create(Guid.NewGuid(), "fixture-model", $"v1-{Guid.NewGuid():N}", "file:///fixture-model",
             null, null, AIModelVersionStatus.Released, now, actor.Id);
         var checksum = new string('a', 64);
         var file = StoredFile.Create(Guid.NewGuid(), $"objects/rf1005/{Guid.NewGuid():N}", "result.json",
@@ -183,8 +350,9 @@ public sealed class Rf1005CallbackCharacterizationTests : IClassFixture<Identity
         var fileScope = FileScope.Create(Guid.NewGuid(), file.Id, project.Id, null, actor.Id, "AI_RESULT", now);
         var upload = UploadSession.Create(Guid.NewGuid(), file.Id, actor.Id, file.StorageUri,
             "AI_RESULT", "application/json", 32, checksum, 32, now.AddHours(1));
-        context.AddRange(project, actor, section, version, survey, dataset, model, file, fileScope, upload,
-            DefectType.Create("POTHOLE", "Pothole"));
+        context.AddRange(project, actor, section, version, survey, dataset, model, file, fileScope, upload);
+        if (!await context.DefectTypes.AnyAsync(type => type.Code == "POTHOLE"))
+            context.Add(DefectType.Create("POTHOLE", "Pothole"));
         await context.SaveChangesAsync();
         upload.StartUploading("fixture-upload", now);
         await context.SaveChangesAsync();

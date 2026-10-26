@@ -40,6 +40,51 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         => (_sql, _output) = (sql, output);
 
     [Fact]
+    public async Task OldAttemptAfterRetry_Returns409WithoutEffects_CurrentAttemptReturns200AndReplays()
+    {
+        var scenario = await SetupAsync();
+        Guid currentAttempt;
+        await using (var context = _sql.CreateDbContext())
+        {
+            // Controlled retryable-failure fixture; the result DTO has no failure/status field.
+            await context.ProcessingJobs.Where(j => j.Id == scenario.Job.Id).ExecuteUpdateAsync(u =>
+                u.SetProperty(j => j.Status, ProcessingJobStatus.RetryableFailure));
+            var failed = await context.ProcessingJobs.AsNoTracking().SingleAsync(j => j.Id == scenario.Job.Id);
+            var repository = new ProcessingV2PersistenceService(context, new IdempotencyOperationService(context));
+            var retry = await repository.RetryAsync(new(scenario.Scope.ActorId, scenario.Job.Id, "fixture retry",
+                Convert.ToBase64String(failed.RowVersion), scenario.Key + "-retry", Hash(scenario.Key + "-retry"), null));
+            retry.Status.Should().Be(ProcessingJobPersistenceStatus.Success);
+            currentAttempt = await context.ProcessingAttempts.Where(a => a.ProcessingJobId == scenario.Job.Id)
+                .OrderByDescending(a => a.AttemptNo).Select(a => a.Id).FirstAsync();
+        }
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = CreateClient(factory);
+        var before = await ReadAsync(scenario, "before-stale");
+        var stale = await SendAsync(client, scenario.Job.Id, scenario.Request, scenario.Key);
+        stale.Status.Should().Be(HttpStatusCode.Conflict);
+        var rejected = await ReadAsync(scenario, "after-stale");
+        rejected.EffectsJson.Should().Be(before.EffectsJson);
+        rejected.Receipts.Should().ContainSingle();
+        var current = scenario.Request with { JobAttemptId = currentAttempt };
+        var accepted = await SendAsync(client, scenario.Job.Id, current, scenario.ControlKey);
+        accepted.Status.Should().Be(HttpStatusCode.OK);
+        using var body = JsonDocument.Parse(accepted.Body);
+        body.RootElement.GetProperty("attemptNumber").GetInt32().Should().Be(2);
+        body.RootElement.GetProperty("status").GetString().Should().Be("SUCCEEDED");
+        var completed = await ReadAsync(scenario, "after-current");
+        (await SendAsync(client, scenario.Job.Id, current, scenario.ControlKey)).Should().Be(accepted);
+        (await ReadAsync(scenario, "after-current-replay")).Should().BeEquivalentTo(completed);
+        (await SendAsync(client, scenario.Job.Id, scenario.Request, scenario.Key + "-late-again")).Status
+            .Should().Be(HttpStatusCode.Conflict);
+        (await ReadAsync(scenario, "after-late-again")).EffectsJson.Should().Be(completed.EffectsJson);
+        await using var final = _sql.CreateDbContext();
+        (await final.AIDetections.CountAsync(d => d.ProcessingJobId == scenario.Job.Id)).Should().Be(1);
+        var job = await final.ProcessingJobs.AsNoTracking().SingleAsync(j => j.Id == scenario.Job.Id);
+        job.Status.Should().Be(ProcessingJobStatus.Completed);
+        Convert.ToBase64String(job.RowVersion).Should().Be(body.RootElement.GetProperty("version").GetString());
+    }
+
+    [Fact]
     public async Task ValidCallback_ThenSameKeyReplay_ReturnsStoredOutcomeAndOneEffect()
     {
         var scenario = await SetupAsync();
@@ -59,7 +104,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
     [InlineData("ModelVersionId")]
     [InlineData("Mode")]
     [InlineData("RawResultFileId")]
-    public async Task ChangedIdentity_SameKeyReplaysOriginal_NewKeyValidatesAndRejects(string field)
+    public async Task ChangedIdentity_SameKeyConflicts_NewKeyValidatesAndRejects(string field)
     {
         var scenario = await SetupAsync();
         await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
@@ -75,9 +120,13 @@ public sealed class A0801CallbackIdentityCharacterizationTests
             "RawResultFileId" => scenario.Request with { RawResultFileId = scenario.OtherScope.RawFileId },
             _ => scenario.Request
         };
-        Fingerprint(changed).Should().Be(Fingerprint(scenario.Request));
+        Fingerprint(changed, jobId).Should().NotBe(Fingerprint(scenario.Request, scenario.Job.Id));
         var beforeReplay = await ReadAsync(scenario, "before-changed-replay-" + field);
-        (await SendAsync(client, jobId, changed, scenario.Key)).Should().Be(first);
+        var conflict = await SendAsync(client, jobId, changed, scenario.Key);
+        conflict.Status.Should().Be(HttpStatusCode.Conflict);
+        using var problem = JsonDocument.Parse(conflict.Body);
+        problem.RootElement.GetProperty("code").GetString().Should().Be("duplicate_request");
+        conflict.ETag.Should().BeNull();
         var afterReplay = await ReadAsync(scenario, "after-changed-replay-" + field);
         afterReplay.Should().BeEquivalentTo(beforeReplay);
         // A fresh key distinguishes durable replay from the handler's identity checks.
@@ -90,7 +139,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         afterControl.Receipts.Single(value => value.IdempotencyKey == scenario.Key)
             .Should().BeEquivalentTo(beforeControl.Receipts.Single());
         var rejected = afterControl.Receipts.Single(value => value.IdempotencyKey == scenario.ControlKey);
-        rejected.RequestFingerprint.Should().Be(Fingerprint(changed));
+        rejected.RequestFingerprint.Should().Be(Fingerprint(changed, jobId));
         using var stored = JsonDocument.Parse(rejected.OutcomeJson);
         stored.RootElement.GetProperty("Status").GetInt32().Should().Be((int)ProcessingJobPersistenceStatus.Conflict);
         stored.RootElement.GetProperty("Job").ValueKind.Should().Be(JsonValueKind.Null);
@@ -108,7 +157,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         var changed = field == "Checksum"
             ? scenario.Request with { ChecksumSha256 = new string('c', 64) }
             : scenario.Request with { Detections = [scenario.Request.Detections.Single() with { Confidence = 0.8m }] };
-        Fingerprint(changed).Should().NotBe(Fingerprint(scenario.Request));
+        Fingerprint(changed, scenario.Job.Id).Should().NotBe(Fingerprint(scenario.Request, scenario.Job.Id));
         var before = await ReadAsync(scenario, "before-fingerprint-" + field);
         var conflict = await SendAsync(client, scenario.Job.Id, changed, scenario.Key);
         conflict.Status.Should().Be(HttpStatusCode.Conflict);
@@ -130,7 +179,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         var otherRequest = new ReceiveAiResultRequestDto(scenario.CrossProjectAttemptId,
             scenario.CrossProjectJob.ManifestHash, scenario.OtherScope.ModelId, "MOCK",
             scenario.OtherScope.RawFileId, scenario.OtherScope.Checksum, []);
-        Fingerprint(otherRequest).Should().Be(Fingerprint(scenario.Request));
+        Fingerprint(otherRequest, scenario.CrossProjectJob.Id).Should().NotBe(Fingerprint(scenario.Request, scenario.Job.Id));
         var before = await ReadAsync(scenario, "before-cross-project");
         var result = await SendAsync(client, scenario.CrossProjectJob.Id, otherRequest, scenario.Key);
         result.Status.Should().Be(HttpStatusCode.OK);
@@ -140,7 +189,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         after.Receipts.Should().HaveCount(2);
         var receipt = after.Receipts.Single(value => value.ProjectId == scenario.OtherScope.ProjectId);
         receipt.OperationId.Should().Be(scenario.CrossProjectJob.Id);
-        receipt.RequestFingerprint.Should().Be(before.Receipts.Single().RequestFingerprint);
+        receipt.RequestFingerprint.Should().NotBe(before.Receipts.Single().RequestFingerprint);
         receipt.Id.Should().NotBe(before.Receipts.Single().Id);
         await using var context = _sql.CreateDbContext();
         var job = await context.ProcessingJobs.AsNoTracking().SingleAsync(value => value.Id == scenario.CrossProjectJob.Id);
@@ -156,7 +205,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
 
     [Theory]
     [InlineData("Mode", HttpStatusCode.BadRequest)]
-    [InlineData("AttemptId", HttpStatusCode.UnprocessableEntity)]
+    [InlineData("AttemptId", HttpStatusCode.Forbidden)]
     public async Task InvalidUpstreamIdentity_IsRejectedBeforeReceiptEvenWithReplayKey(string field, HttpStatusCode expected)
     {
         var scenario = await SetupAsync();
@@ -181,15 +230,65 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         (await ReadAsync(scenario, "after-unauthorized")).Should().BeEquivalentTo(before);
     }
 
+    [Fact]
+    public async Task CommittedDispatchMintsPerAttemptCredentialAndCompletedJobCannotRedispatch()
+    {
+        var scenario = await SetupAsync();
+        await using var db = _sql.CreateDbContext();
+        var outbox = await db.OutboxMessages.AsNoTracking().SingleAsync(x => x.CorrelationId == scenario.Job.Id && x.MessageType == "processing_job.dispatch");
+        var adapter = new RoadGuardSystem.Services.Processing.AiDispatchAdapter(new AiDispatchSourceRepository(db),
+            TestAiServiceIdentity.Tokens, TestAiServiceIdentity.Options);
+        var envelope = await adapter.PrepareAsync(outbox.Id);
+        envelope.Should().NotBeNull(); envelope!.JobId.Should().Be(scenario.Job.Id);
+        envelope.AttemptId.Should().Be(scenario.Request.JobAttemptId);
+        envelope.ToString().Should().NotContain(envelope.Bearer);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", envelope.Bearer);
+        (await SendAsync(client, scenario.Job.Id, scenario.Request, scenario.Key)).Status.Should().Be(HttpStatusCode.OK);
+        (await adapter.PrepareAsync(outbox.Id)).Should().BeNull();
+        (await adapter.PrepareAsync(Guid.NewGuid())).Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("human", HttpStatusCode.Unauthorized)]
+    [InlineData("job", HttpStatusCode.Forbidden)]
+    [InlineData("attempt", HttpStatusCode.Forbidden)]
+    [InlineData("expired", HttpStatusCode.Unauthorized)]
+    public async Task InvalidServiceCredentialHasNoSqlEffect(string kind, HttpStatusCode expected)
+    {
+        var scenario = await SetupAsync();
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        string raw;
+        if (kind == "human")
+        {
+            var jwt = new JwtSecurityToken(AuthenticationWebApplicationFactory.TestIssuer, AuthenticationWebApplicationFactory.TestAudience,
+                [new Claim("sub", Guid.NewGuid().ToString())], DateTime.UtcNow.AddSeconds(-1), DateTime.UtcNow.AddMinutes(5),
+                new SigningCredentials(new SymmetricSecurityKey(AuthenticationWebApplicationFactory.CurrentSigningKey)
+                { KeyId = AuthenticationWebApplicationFactory.CurrentKeyId }, SecurityAlgorithms.HmacSha256));
+            raw = new JwtSecurityTokenHandler().WriteToken(jwt);
+        }
+        else
+        {
+            using var rsa = RSA.Create(); rsa.ImportFromPem(TestAiServiceIdentity.Options.PrivateKeyPem);
+            var payload = new JwtSecurityTokenHandler().ReadJwtToken(TestAiServiceIdentity.Tokens.Mint(
+                kind == "job" ? Guid.NewGuid() : scenario.Job.Id,
+                kind == "attempt" ? Guid.NewGuid() : scenario.Request.JobAttemptId)).Payload;
+            if (kind == "expired") { payload["iat"] = DateTimeOffset.UtcNow.AddMinutes(-10).ToUnixTimeSeconds(); payload["nbf"] = payload["iat"]; payload["exp"] = DateTimeOffset.UtcNow.AddMinutes(-5).ToUnixTimeSeconds(); }
+            raw = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(new JwtHeader(new SigningCredentials(
+                new RsaSecurityKey(rsa.ExportParameters(true)) { KeyId = TestAiServiceIdentity.Options.ActiveKeyId }, SecurityAlgorithms.RsaSha256)), payload));
+        }
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", raw);
+        var before = await ReadAsync(scenario, "before-invalid-credential");
+        (await SendAsync(client, scenario.Job.Id, scenario.Request, scenario.Key)).Status.Should().Be(expected);
+        (await ReadAsync(scenario, "after-invalid-credential")).Should().BeEquivalentTo(before);
+    }
+
     private static HttpClient CreateClient(AuthenticationWebApplicationFactory factory)
     {
         var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
-        var credentials = new SigningCredentials(new SymmetricSecurityKey(AuthenticationWebApplicationFactory.CurrentSigningKey)
-        { KeyId = AuthenticationWebApplicationFactory.CurrentKeyId }, SecurityAlgorithms.HmacSha256);
-        var token = new JwtSecurityToken(AuthenticationWebApplicationFactory.TestIssuer, "roadguard-be-ai",
-            [new Claim("sub", "isolated-ai-characterization"), new Claim("client_type", "AI_SERVICE")],
-            DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(10), credentials);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", new JwtSecurityTokenHandler().WriteToken(token));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "test-per-attempt");
         return client;
     }
 
@@ -198,6 +297,9 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         using var message = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/internal/processing-jobs/{jobId}/results")
         { Content = JsonContent.Create(request) };
         message.Headers.Add("Idempotency-Key", key);
+        if (client.DefaultRequestHeaders.Authorization?.Parameter == "test-per-attempt")
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestAiServiceIdentity.Tokens.Mint(jobId,
+                request.JobAttemptId == Guid.Empty ? Guid.NewGuid() : request.JobAttemptId));
         using var response = await client.SendAsync(message);
         var result = new HttpOutcome(response.StatusCode, await response.Content.ReadAsStringAsync(), response.Headers.ETag?.Tag);
         _output.WriteLine("HTTP " + JsonSerializer.Serialize(new { jobId, key, request, result }));
@@ -220,7 +322,7 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         after.StableEffectsJson.Should().Be(before.StableEffectsJson);
         var receipt = after.Receipts.Should().ContainSingle().Subject;
         receipt.OperationId.Should().Be(scenario.Job.Id);
-        receipt.RequestFingerprint.Should().Be(Fingerprint(scenario.Request));
+        receipt.RequestFingerprint.Should().Be(Fingerprint(scenario.Request, scenario.Job.Id));
         using var stored = JsonDocument.Parse(receipt.OutcomeJson);
         stored.RootElement.GetProperty("Job").GetProperty("Id").GetGuid().Should().Be(scenario.Job.Id);
         stored.RootElement.GetProperty("Job").GetProperty("AttemptNumber").GetInt32().Should().Be(1);
@@ -324,8 +426,24 @@ public sealed class A0801CallbackIdentityCharacterizationTests
         return new Scope(project.Id, actor.Id, dataset.Id, model.Id, file.Id, checksum);
     }
 
-    private static string Fingerprint(ReceiveAiResultRequestDto request) => Hash(JsonSerializer.Serialize(request.Detections.Select(item => new
-    { detectionId = Guid.Parse(item.DetectionId), item.FrameFileId, item.TimestampMs, item.TypeCode, item.Confidence, item.Bbox }), WebJson) + request.ChecksumSha256);
+    // OWNER-A1-REPLAY-RECEIPT-COMPATIBILITY replaces the historical incomplete hash.
+    private static string Fingerprint(ReceiveAiResultRequestDto request, Guid jobId)
+    {
+        var detections = JsonSerializer.Serialize(request.Detections.Select(item => new
+        { detectionId = Guid.Parse(item.DetectionId), item.FrameFileId, item.TimestampMs, item.TypeCode, item.Confidence, item.Bbox }), WebJson);
+        return Hash(JsonSerializer.Serialize(new
+        {
+            receiptIdentity = "A1_CALLBACK_V2",
+            JobId = jobId,
+            AttemptId = request.JobAttemptId,
+            request.ManifestHash,
+            request.ModelVersionId,
+            request.Mode,
+            request.RawResultFileId,
+            request.ChecksumSha256,
+            DetectionsJson = detections
+        }));
+    }
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
     private sealed record Scope(Guid ProjectId, Guid ActorId, Guid DatasetId, Guid ModelId, Guid RawFileId, string Checksum);
     private sealed record HttpOutcome(HttpStatusCode Status, string Body, string? ETag);

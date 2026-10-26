@@ -6,6 +6,7 @@ using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.Repositories.Storage;
+using RoadGuardSystem.Repositories.Processing;
 using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Files;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -23,17 +24,20 @@ public sealed class UploadService : IUploadService
     private readonly IProjectScopeGuard _scopeGuard;
     private readonly TimeProvider _timeProvider;
     private readonly UploadSessionOptions _options;
+    private readonly IAnh02AiRepository? _aiRepository;
 
     public UploadService(
         IUploadRepository repository,
         IProjectScopeGuard scopeGuard,
         TimeProvider timeProvider,
-        IOptions<UploadSessionOptions> options)
+        IOptions<UploadSessionOptions> options,
+        IAnh02AiRepository? aiRepository = null)
     {
         _repository = repository;
         _scopeGuard = scopeGuard;
         _timeProvider = timeProvider;
         _options = options.Value;
+        _aiRepository = aiRepository;
     }
 
     public async Task<UploadServiceResult> CreateAsync(
@@ -199,7 +203,7 @@ public sealed class UploadService : IUploadService
         try
         {
             var stream = await _repository.OpenFileAsync(file.ObjectKey, cancellationToken);
-            if (IsFieldPurpose(file.Purpose))
+            if (IsFieldPurpose(file.Purpose) || file.Purpose == "AI_FRAME")
             {
                 try
                 {
@@ -229,8 +233,20 @@ public sealed class UploadService : IUploadService
     }
 
     private async Task<bool> CanReadFileAsync(Guid actor, UserRoleCode role, FileMetadataPersistenceView file, CancellationToken token)
-        => await _repository.IsCurrentOfflineFileActorAsync(actor, role, file.Id, token) || await CanAccessAssetAsync(actor, role, file.ProjectId, file.Purpose, file.TargetId, false, token) ||
+    {
+        if (file.Purpose == "AI_FRAME")
+        {
+            if (_aiRepository is null || file.ProjectId is not Guid projectId || file.TargetId is not Guid runId) return false;
+            try
+            {
+                await _aiRepository.AuthorizeAsync(actor, role, projectId, false, token);
+                return await _aiRepository.GetAsync(projectId, runId, token) is { Status: "SUCCEEDED", ResultId: not null };
+            }
+            catch (AiRequestException error) when (error.Status is 403 or 404) { return false; }
+        }
+        return await _repository.IsCurrentOfflineFileActorAsync(actor, role, file.Id, token) || await CanAccessAssetAsync(actor, role, file.ProjectId, file.Purpose, file.TargetId, false, token) ||
             (file.ProjectId is Guid project && IsFieldPurpose(file.Purpose) && await _repository.IsCurrentLegacyFieldFileReaderAsync(actor, role, project, file.Id, file.Purpose!, token));
+    }
 
     private async Task<bool> CanAccessAssetAsync(Guid actorUserId, UserRoleCode role, Guid? projectId, string? purpose, Guid? targetId, bool mutation, CancellationToken cancellationToken, bool requireActiveTask = true)
     {

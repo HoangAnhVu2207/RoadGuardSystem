@@ -52,7 +52,9 @@ public sealed class WebCookieRequestMiddleware(RequestDelegate next)
     {
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
-        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Headers.CacheControl = context.GetEndpoint()?.Metadata
+            .GetMetadata<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>()?.ControllerTypeInfo.AsType()
+            == typeof(RoadGuardSystem.API.Controllers.NotificationSupervisorController) ? "private, no-store" : "no-store";
         return context.Response.WriteAsync(JsonSerializer.Serialize(new
         {
             type = "about:blank",

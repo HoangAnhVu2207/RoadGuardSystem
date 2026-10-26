@@ -19430,7 +19430,7 @@
     "instructions": "AiCallback policy uses AI service credentials, not PM credentials. Supply legitimate job attempt/manifest/model/mode and verified raw-result file/checksum in the same project. Detection IDs are GUID strings; timestamp >=0, confidence [0,1], bbox exactly 4 values within [0,1] and contained within image.",
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "Submit a processing result. Requires an AI service bearer token with client_type=AI_SERVICE."
+    "uiDescription": "Submit a processing result. Requires a dedicated RS256 AI service bearer token (issuer roadguard-backend, audience roadguard-ai-callback, TTL 300 seconds), bound to the current jobId and attemptId."
   },
   {
     "id": "SWG-125",
@@ -28759,10 +28759,15 @@
         "headers": [
           {
             "name": "ETag",
-            "description": "Strong quoted Base64 rowversion. Copy entire header value to the matching concurrency consumer.",
+            "description": "Strong quoted opaque file version; AI frame version is its SHA-256 checksum. Do not infer upload-session concurrency from this value.",
             "format": "string",
-            "pattern": "^\"[A-Za-z0-9+/]+={0,2}\"$",
-            "uiDescription": "Current strong quoted ETag containing an 8-byte Base64 rowversion."
+            "uiDescription": "Strong quoted opaque file version; AI frame version is its SHA-256 checksum. Do not infer upload-session concurrency from this value."
+          },
+          {
+            "name": "Cache-Control",
+            "description": "private, no-store",
+            "format": "string",
+            "uiDescription": "private, no-store"
           }
         ],
         "mediaTypes": [
@@ -28793,10 +28798,10 @@
         "description": "Required file/session unavailable; download also requires VERIFIED file."
       }
     ],
-    "instructions": "Metadata exposes normalized file status, checksum, media type, size and version; response emits quoted file rowversion.",
+    "instructions": "Metadata exposes status, checksum, media type, size and opaque version. ETag quotes the exact version; AI frames use checksum version, not upload-session concurrency. Private, no-store.",
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "Get file metadata uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator."
+    "uiDescription": "Get file metadata uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator. AI frame reads require current AI-result project authority (PM or Supervisor); no signed URL is issued."
   },
   {
     "id": "SWG-229",
@@ -28810,7 +28815,14 @@
         "status": 200,
         "type": "binary",
         "description": "Binary stream. application/octet-stream represents the binary download in documentation; runtime Content-Type equals stored FileMetadata.mediaType and can differ.",
-        "headers": [],
+        "headers": [
+          {
+            "name": "Cache-Control",
+            "description": "private, no-store",
+            "format": "string",
+            "uiDescription": "private, no-store"
+          }
+        ],
         "mediaTypes": [
           "application/octet-stream"
         ]
@@ -28846,12 +28858,12 @@
         "description": "Storage unavailable."
       }
     ],
-    "instructions": "Downloads a VERIFIED file as a stream with its stored media type. No redirect, signed download URL, ETag or Content-Disposition is emitted by this action.",
+    "instructions": "Downloads a VERIFIED file as a stream with its stored media type. No redirect, signed download URL, ETag or Content-Disposition is emitted by this action. Private, no-store.",
     "conditionalInputs": [],
     "wireLimitations": [
       "OpenAPI binary representative media type does not change runtime dynamic stored Content-Type."
     ],
-    "uiDescription": "Download uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator."
+    "uiDescription": "Download uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator. AI frame reads require current AI-result project authority (PM or Supervisor); no signed URL is issued."
   },
   {
     "id": "SWG-230",

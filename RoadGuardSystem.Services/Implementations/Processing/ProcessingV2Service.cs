@@ -23,7 +23,8 @@ public sealed class ProcessingV2Service : IProcessingV2Service
 
     public async Task<ProcessingV2ServiceResult> CreateAsync(Guid actorUserId, UserRoleCode role, CreateProcessingJobRequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default)
     {
-        if (!IsManager(actorUserId, role) || request is null || request.DatasetId == Guid.Empty || request.ModelVersionId == Guid.Empty || request.Scope is null || !ValidScope(request.Scope) || !IsMode(request.Mode) || string.IsNullOrWhiteSpace(request.PreprocessingVersion) || string.IsNullOrWhiteSpace(request.ConfigVersion) || string.IsNullOrWhiteSpace(idempotencyKey)) return new(ProcessingV2ServiceStatus.InvalidInput);
+        if (!IsManager(actorUserId, role)) return new(ProcessingV2ServiceStatus.Forbidden);
+        if (request is null || request.DatasetId == Guid.Empty || request.ModelVersionId == Guid.Empty || request.Scope is null || !ValidScope(request.Scope) || !IsMode(request.Mode) || string.IsNullOrWhiteSpace(request.PreprocessingVersion) || string.IsNullOrWhiteSpace(request.ConfigVersion) || string.IsNullOrWhiteSpace(idempotencyKey)) return new(ProcessingV2ServiceStatus.InvalidInput);
         var datasetProjectId = await _repository.GetDatasetProjectIdAsync(request.DatasetId, cancellationToken);
         if (datasetProjectId is null) return new(ProcessingV2ServiceStatus.NotFound);
         if (!await InScope(actorUserId, role, datasetProjectId.Value, cancellationToken)) return new(ProcessingV2ServiceStatus.Forbidden);
@@ -38,12 +39,14 @@ public sealed class ProcessingV2Service : IProcessingV2Service
         var job = await _repository.GetAsync(jobId, cancellationToken);
         if (job is null) return new(ProcessingV2ServiceStatus.NotFound);
         if (!await InScope(actorUserId, role, job.ProjectId, cancellationToken)) return new(ProcessingV2ServiceStatus.Forbidden);
+        if (role == UserRoleCode.DroneOperator && !await _repository.IsCurrentAssignedOperatorAsync(jobId, actorUserId, cancellationToken)) return new(ProcessingV2ServiceStatus.Forbidden);
         return new(ProcessingV2ServiceStatus.Success, ToDto(job));
     }
 
     public async Task<ProcessingV2ServiceResult> RetryAsync(Guid actorUserId, UserRoleCode role, Guid jobId, RetryProcessingJobRequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
     {
-        if (!IsManager(actorUserId, role) || request is null || string.IsNullOrWhiteSpace(request.Reason) || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(ProcessingV2ServiceStatus.InvalidInput);
+        if (!IsManager(actorUserId, role)) return new(ProcessingV2ServiceStatus.Forbidden);
+        if (request is null || string.IsNullOrWhiteSpace(request.Reason) || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(ProcessingV2ServiceStatus.InvalidInput);
         var job = await _repository.GetAsync(jobId, cancellationToken);
         if (job is null) return new(ProcessingV2ServiceStatus.NotFound);
         if (!await InScope(actorUserId, role, job.ProjectId, cancellationToken)) return new(ProcessingV2ServiceStatus.Forbidden);

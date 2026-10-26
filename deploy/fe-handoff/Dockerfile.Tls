@@ -1,0 +1,4 @@
+FROM python:3.12-alpine
+RUN apk add --no-cache openssl
+COPY tls-init.sh /tls-init.sh
+ENTRYPOINT ["sh", "/tls-init.sh"]

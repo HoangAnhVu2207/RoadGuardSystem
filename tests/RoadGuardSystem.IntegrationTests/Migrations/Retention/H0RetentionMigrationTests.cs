@@ -27,7 +27,12 @@ public sealed class H0RetentionMigrationTests : IAsyncLifetime
     {
         await using var db = Db();
         var discovered = db.Database.GetMigrations().ToArray();
-        Assert.Equal(2, discovered.Length);
+        Assert.Equal(new[] {
+            "20261008171739_BaselineCurrentSchema",
+            "20261009043010_AllowVerifiedDefectPostRepairTasks",
+            "20261022074647_C1ControlledPublicPublication",
+            "20261022181921_B2NotificationSupervisorAssignment"
+        }, discovered);
         Assert.EndsWith("_BaselineCurrentSchema", discovered[0]);
         Assert.EndsWith("_AllowVerifiedDefectPostRepairTasks", discovered[1]);
         Assert.Equal(discovered.Length, db.GetService<IMigrationsAssembly>().Migrations.Count);

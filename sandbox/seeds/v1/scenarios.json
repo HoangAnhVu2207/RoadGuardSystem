@@ -1,0 +1,194 @@
+[
+  {
+    "Id": "SBX02-W01",
+    "Workflow": "W01",
+    "CoverageKind": "CORE",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "supervisor",
+      "pm-a",
+      "pm-b",
+      "reporter-a",
+      "reporter-b",
+      "operator-a",
+      "operator-b",
+      "crew-a",
+      "crew-b",
+      "suspended-a",
+      "ended-a"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Identity and OTP",
+      "Active login; suspended denied; ended membership has no project scope"
+    ]
+  },
+  {
+    "Id": "SBX02-W02",
+    "Workflow": "W02",
+    "CoverageKind": "CORE",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "pm-a",
+      "pm-b",
+      "operator-a",
+      "crew-a"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Projects and membership",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W03",
+    "Workflow": "W03",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "reporter-a",
+      "reporter-b"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Reporter evidence",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W04",
+    "Workflow": "W04",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "pm-a",
+      "pm-b"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Candidate and defect decision",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W05",
+    "Workflow": "W05",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "operator-a",
+      "operator-b"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Survey and processing",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W06",
+    "Workflow": "W06",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "crew-a",
+      "crew-b"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Field inspection",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W07",
+    "Workflow": "W07",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "pm-a",
+      "crew-a"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Normal repair",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W08",
+    "Workflow": "W08",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "supervisor",
+      "pm-a",
+      "crew-a"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Fast Track repair",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W09",
+    "Workflow": "W09",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "crew-a",
+      "crew-b"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Offline sync and handover",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  },
+  {
+    "Id": "SBX02-W10",
+    "Workflow": "W10",
+    "CoverageKind": "NOT_COVERED",
+    "SourceReference": "planning/development/HUY-FINAL-INTEGRATION.md",
+    "Actors": [
+      "supervisor",
+      "pm-a"
+    ],
+    "Preconditions": [
+      "Owned migrated pristine SQL; real authentication",
+      "Current producer prerequisites required before business transitions"
+    ],
+    "Expectations": [
+      "Notification and reporting",
+      "A/B memberships isolated; no fabricated workflow authority"
+    ]
+  }
+]

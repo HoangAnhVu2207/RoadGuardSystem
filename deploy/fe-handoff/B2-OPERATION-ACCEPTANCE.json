@@ -1,0 +1,849 @@
+{
+  "operations": [
+    {
+      "id": "B2-GET",
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/notification-supervisor",
+      "approvedAuthority": "OWNER_B2_EXACT_CONTRACT_APPROVED; B2-EXACT-ASSIGNMENT-PROPOSAL.md",
+      "sourcePins": {
+        "RoadGuardSystem.API/Controllers/NotificationSupervisorController.cs": "8b2fd288f7801681733ebf35d0b1e5ae07615b2df3b97ee4c90894008cd9b326",
+        "RoadGuardSystem.API/Extensions/NotificationSupervisorOperationFilter.cs": "9732328006fe631896e9d1ac241d944db0ae2ac0edb9322fba0bfd542ed7fbae",
+        "RoadGuardSystem.DTOs/Repairs/NotificationSupervisorDto.cs": "14b26ac75644691ec834ebd71c816f14ee2e6159f17680e285102acfdfa7d4dd",
+        "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs": "0a9fa2caa7c7df5dd0b514e2253efd4da64a6111619e2f46212b1a0ac7ec9fda",
+        "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs": "b3d104a9516a1f1ded50ff8eb21dbc2f45b53720266b1d2f4071a33824545b18",
+        "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Delivery.cs": "2c33727a5920c4f8562bf1f46d4ffc2071d9dcb626d81bec2d005292b57db5a4",
+        "RoadGuardSystem.BusinessObjects/Messaging/NotificationAssignmentSnapshot.cs": "c426f02fac68dda53385e65dec608749a8eee36bd720860ea18eff253e55d857"
+      },
+      "swaggerOperation": {
+        "tags": [
+          "NotificationSupervisor"
+        ],
+        "description": "Current project PM manages one notification-only FastTrack Supervisor assignment. Supervisor authority is global; no ProjectMember is required for the recipient. No approval duty is granted. Current authority/resource checks precede envelope validation and historical replay.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Quoted base64 SQL head rowversion, including historical command replay.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Existing invalid or revoked authentication/session behavior.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or existing csrf_failed for cookie writes.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: concealed missing/mismatched resource, absent head or invalid recipient.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      },
+      "runtimeEvidence": [
+        "b2-authority-http.trx",
+        "b2-cache-http.trx",
+        "b2-authority-sql-second.trx",
+        "b2-race-rollback-second.trx",
+        "b2-model-parity-third.trx",
+        "policy-http.trx",
+        "snapshot-boundary-green-final.trx",
+        "b2-cold-results.json",
+        "review-evidence/iteration10-complete/current-test-results.json"
+      ],
+      "boundedAssertions": [
+        "current PM/project/resource before validation/replay",
+        "global active Supervisor without ProjectMember",
+        "exact6fields/ETag/status/error",
+        "Bearer/cookie/CSRF",
+        "replacement/revocation/immutable generations",
+        "SQL concurrency/atomic audit rollback"
+      ],
+      "gaps": [
+        "No external FE consumer acceptance",
+        "No production deployment or rolling old-consumer/new-payload compatibility",
+        "All canonical241 dimensions remain individually gated"
+      ],
+      "classification": "EXECUTED_BOUNDED",
+      "FULL_CONTRACT": false,
+      "sourcePinHistory": [
+        {
+          "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
+          "previousSha256": "115fed697ec81a8472d3cfd77ce58fc67c98509489d7d74b2af107913ba18de0",
+          "currentSha256": "b3d104a9516a1f1ded50ff8eb21dbc2f45b53720266b1d2f4071a33824545b18",
+          "reason": "Iteration9 FastTrack commit-time snapshot fix; H3 receipt provenance retained"
+        }
+      ],
+      "revalidation": {
+        "state": "SOURCE_SWAGGER_AND_FOCUSED_RUNTIME_VERIFIED_BOUNDED",
+        "head": "dd94aa697c411bb11d305973580055216f65ba73",
+        "evidence": "review-evidence/iteration10-complete/current-test-results.json",
+        "newRuntimeRun": true,
+        "operationWireChanged": false,
+        "remaining": "Exact dimension acceptance and independent review pending",
+        "assertionSource": "tests/RoadGuardSystem.ApiTests/Repairs/NotificationSupervisorHttpTests.cs",
+        "assertionSourceSha256": "fd6fbedde0e0f4bc5942ae20d52dff3f7118cdcc0b5f8d77f93151af9f560e62"
+      },
+      "operationSpecificAssertions": [
+        "active 200 exact six fields and ETag equal PUT result",
+        "private/no-store",
+        "missing 404",
+        "revoked generation representation",
+        "anonymous 401",
+        "non-PM global Supervisor 403",
+        "revoked PM 403",
+        "revoked session 401"
+      ]
+    },
+    {
+      "id": "B2-PUT",
+      "method": "PUT",
+      "route": "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/notification-supervisor",
+      "approvedAuthority": "OWNER_B2_EXACT_CONTRACT_APPROVED; B2-EXACT-ASSIGNMENT-PROPOSAL.md",
+      "sourcePins": {
+        "RoadGuardSystem.API/Controllers/NotificationSupervisorController.cs": "8b2fd288f7801681733ebf35d0b1e5ae07615b2df3b97ee4c90894008cd9b326",
+        "RoadGuardSystem.API/Extensions/NotificationSupervisorOperationFilter.cs": "9732328006fe631896e9d1ac241d944db0ae2ac0edb9322fba0bfd542ed7fbae",
+        "RoadGuardSystem.DTOs/Repairs/NotificationSupervisorDto.cs": "14b26ac75644691ec834ebd71c816f14ee2e6159f17680e285102acfdfa7d4dd",
+        "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs": "0a9fa2caa7c7df5dd0b514e2253efd4da64a6111619e2f46212b1a0ac7ec9fda",
+        "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs": "b3d104a9516a1f1ded50ff8eb21dbc2f45b53720266b1d2f4071a33824545b18",
+        "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Delivery.cs": "2c33727a5920c4f8562bf1f46d4ffc2071d9dcb626d81bec2d005292b57db5a4",
+        "RoadGuardSystem.BusinessObjects/Messaging/NotificationAssignmentSnapshot.cs": "c426f02fac68dda53385e65dec608749a8eee36bd720860ea18eff253e55d857"
+      },
+      "swaggerOperation": {
+        "tags": [
+          "NotificationSupervisor"
+        ],
+        "description": "Current project PM manages one notification-only FastTrack Supervisor assignment. Supervisor authority is global; no ProjectMember is required for the recipient. No approval duty is granted. Current authority/resource checks precede envelope validation and historical replay.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted base64 eight-byte head rowversion; required for replacement/revocation.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "Exactly * for initial create; mutually exclusive with If-Match. One conditional header is required.",
+            "schema": {
+              "enum": [
+                "*"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "supervisorId"
+                ],
+                "type": "object",
+                "properties": {
+                  "supervisorId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Quoted base64 SQL head rowversion, including historical command replay.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "description": "Same notification-supervisor resource path.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Quoted base64 SQL head rowversion, including historical command replay.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSupervisorDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error: malformed/duplicate/unknown body fields, invalid key/ETag or both conditionals.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Existing invalid or revoked authentication/session behavior.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or existing csrf_failed for cookie writes.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: concealed missing/mismatched resource, absent head or invalid recipient.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "invalid_state_transition, notification_assignment_revoked, or idempotency_key_reused.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "precondition_failed: head version mismatch or initial create against existing head.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "precondition_required: missing conditional header.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      },
+      "runtimeEvidence": [
+        "b2-authority-http.trx",
+        "b2-cache-http.trx",
+        "b2-authority-sql-second.trx",
+        "b2-race-rollback-second.trx",
+        "b2-model-parity-third.trx",
+        "policy-http.trx",
+        "snapshot-boundary-green-final.trx",
+        "b2-cold-results.json",
+        "review-evidence/iteration10-complete/current-test-results.json"
+      ],
+      "boundedAssertions": [
+        "current PM/project/resource before validation/replay",
+        "global active Supervisor without ProjectMember",
+        "exact6fields/ETag/status/error",
+        "Bearer/cookie/CSRF",
+        "replacement/revocation/immutable generations",
+        "SQL concurrency/atomic audit rollback"
+      ],
+      "gaps": [
+        "No external FE consumer acceptance",
+        "No production deployment or rolling old-consumer/new-payload compatibility",
+        "All canonical241 dimensions remain individually gated"
+      ],
+      "classification": "EXECUTED_BOUNDED",
+      "FULL_CONTRACT": false,
+      "sourcePinHistory": [
+        {
+          "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
+          "previousSha256": "115fed697ec81a8472d3cfd77ce58fc67c98509489d7d74b2af107913ba18de0",
+          "currentSha256": "b3d104a9516a1f1ded50ff8eb21dbc2f45b53720266b1d2f4071a33824545b18",
+          "reason": "Iteration9 FastTrack commit-time snapshot fix; H3 receipt provenance retained"
+        }
+      ],
+      "revalidation": {
+        "state": "SOURCE_SWAGGER_AND_FOCUSED_RUNTIME_VERIFIED_BOUNDED",
+        "head": "dd94aa697c411bb11d305973580055216f65ba73",
+        "evidence": "review-evidence/iteration10-complete/current-test-results.json",
+        "newRuntimeRun": true,
+        "operationWireChanged": false,
+        "remaining": "Exact dimension acceptance and independent review pending",
+        "assertionSource": "tests/RoadGuardSystem.ApiTests/Repairs/NotificationSupervisorHttpTests.cs",
+        "assertionSourceSha256": "fd6fbedde0e0f4bc5942ae20d52dff3f7118cdcc0b5f8d77f93151af9f560e62"
+      },
+      "operationSpecificAssertions": [
+        "201 create and 200 replace",
+        "single-field strict body rejects duplicate/unknown fields",
+        "Location/ETag/private no-store",
+        "conditional 428/400/412",
+        "replay 201 and conflicting key 409",
+        "wrong parent/recipient 404, wrong project 403",
+        "cookie CSRF denied without token and succeeds with token",
+        "non-PM global Supervisor 403",
+        "revoked PM historical replay denied"
+      ]
+    },
+    {
+      "id": "B2-DELETE",
+      "method": "DELETE",
+      "route": "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/notification-supervisor",
+      "approvedAuthority": "OWNER_B2_EXACT_CONTRACT_APPROVED; B2-EXACT-ASSIGNMENT-PROPOSAL.md",
+      "sourcePins": {
+        "RoadGuardSystem.API/Controllers/NotificationSupervisorController.cs": "8b2fd288f7801681733ebf35d0b1e5ae07615b2df3b97ee4c90894008cd9b326",
+        "RoadGuardSystem.API/Extensions/NotificationSupervisorOperationFilter.cs": "9732328006fe631896e9d1ac241d944db0ae2ac0edb9322fba0bfd542ed7fbae",
+        "RoadGuardSystem.DTOs/Repairs/NotificationSupervisorDto.cs": "14b26ac75644691ec834ebd71c816f14ee2e6159f17680e285102acfdfa7d4dd",
+        "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs": "0a9fa2caa7c7df5dd0b514e2253efd4da64a6111619e2f46212b1a0ac7ec9fda",
+        "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs": "b3d104a9516a1f1ded50ff8eb21dbc2f45b53720266b1d2f4071a33824545b18",
+        "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Delivery.cs": "2c33727a5920c4f8562bf1f46d4ffc2071d9dcb626d81bec2d005292b57db5a4",
+        "RoadGuardSystem.BusinessObjects/Messaging/NotificationAssignmentSnapshot.cs": "c426f02fac68dda53385e65dec608749a8eee36bd720860ea18eff253e55d857"
+      },
+      "swaggerOperation": {
+        "tags": [
+          "NotificationSupervisor"
+        ],
+        "description": "Current project PM manages one notification-only FastTrack Supervisor assignment. Supervisor authority is global; no ProjectMember is required for the recipient. No approval duty is granted. Current authority/resource checks precede envelope validation and historical replay.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted base64 eight-byte head rowversion; required for replacement/revocation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Quoted base64 SQL head rowversion, including historical command replay.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error: malformed/duplicate/unknown body fields, invalid key/ETag or both conditionals.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Existing invalid or revoked authentication/session behavior.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or existing csrf_failed for cookie writes.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: concealed missing/mismatched resource, absent head or invalid recipient.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "invalid_state_transition, notification_assignment_revoked, or idempotency_key_reused.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "precondition_failed: head version mismatch or initial create against existing head.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "precondition_required: missing conditional header.",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      },
+      "runtimeEvidence": [
+        "b2-authority-http.trx",
+        "b2-cache-http.trx",
+        "b2-authority-sql-second.trx",
+        "b2-race-rollback-second.trx",
+        "b2-model-parity-third.trx",
+        "policy-http.trx",
+        "snapshot-boundary-green-final.trx",
+        "b2-cold-results.json",
+        "review-evidence/iteration10-complete/current-test-results.json"
+      ],
+      "boundedAssertions": [
+        "current PM/project/resource before validation/replay",
+        "global active Supervisor without ProjectMember",
+        "exact6fields/ETag/status/error",
+        "Bearer/cookie/CSRF",
+        "replacement/revocation/immutable generations",
+        "SQL concurrency/atomic audit rollback"
+      ],
+      "gaps": [
+        "No external FE consumer acceptance",
+        "No production deployment or rolling old-consumer/new-payload compatibility",
+        "All canonical241 dimensions remain individually gated"
+      ],
+      "classification": "EXECUTED_BOUNDED",
+      "FULL_CONTRACT": false,
+      "sourcePinHistory": [
+        {
+          "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
+          "previousSha256": "115fed697ec81a8472d3cfd77ce58fc67c98509489d7d74b2af107913ba18de0",
+          "currentSha256": "b3d104a9516a1f1ded50ff8eb21dbc2f45b53720266b1d2f4071a33824545b18",
+          "reason": "Iteration9 FastTrack commit-time snapshot fix; H3 receipt provenance retained"
+        }
+      ],
+      "revalidation": {
+        "state": "SOURCE_SWAGGER_AND_FOCUSED_RUNTIME_VERIFIED_BOUNDED",
+        "head": "dd94aa697c411bb11d305973580055216f65ba73",
+        "evidence": "review-evidence/iteration10-complete/current-test-results.json",
+        "newRuntimeRun": true,
+        "operationWireChanged": false,
+        "remaining": "Exact dimension acceptance and independent review pending",
+        "assertionSource": "tests/RoadGuardSystem.ApiTests/Repairs/NotificationSupervisorHttpTests.cs",
+        "assertionSourceSha256": "fd6fbedde0e0f4bc5942ae20d52dff3f7118cdcc0b5f8d77f93151af9f560e62"
+      },
+      "operationSpecificAssertions": [
+        "204 revoke and 204 replay",
+        "stale If-Match 412",
+        "already-revoked new command 409",
+        "non-PM global Supervisor 403"
+      ]
+    }
+  ],
+  "count": 3,
+  "FULL_CONTRACT": 0,
+  "canonical241LedgerUnchanged": true
+}

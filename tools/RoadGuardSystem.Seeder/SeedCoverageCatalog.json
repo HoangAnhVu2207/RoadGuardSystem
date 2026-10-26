@@ -1,19 +1,5 @@
 [
   {
-    "Table": "dbo.AccountStatusChangeLogs",
-    "Group": "identity",
-    "DependencyOrder": 10,
-    "Prerequisites": [
-      "dbo.Users"
-    ],
-    "Producer": "PostmanUserSeedStep + current identity services; tokens/session/recovery/invitation only through supported identity workflow",
-    "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty.",
-    "Scenario": "Create five fake active dev/test accounts using PasswordHasher<ApplicationUser>; add Reporter fixture. Do not seed tokens/OTP or reset existing account state. Login may legitimately create sessions/refresh tokens, but seed run should leave them empty.",
-    "Source": [
-      "RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.AccountUpdates.cs"
-    ]
-  },
-  {
     "Table": "dbo.AIDetections",
     "Group": "processing",
     "DependencyOrder": 80,
@@ -50,6 +36,20 @@
     "Source": [
       "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
       "RoadGuardSystem.Repositories/Implementations/Processing/Anh02AiRepository.cs"
+    ]
+  },
+  {
+    "Table": "dbo.AccountStatusChangeLogs",
+    "Group": "identity",
+    "DependencyOrder": 10,
+    "Prerequisites": [
+      "dbo.Users"
+    ],
+    "Producer": "PostmanUserSeedStep + current identity services; tokens/session/recovery/invitation only through supported identity workflow",
+    "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty.",
+    "Scenario": "Create five fake active dev/test accounts using PasswordHasher<ApplicationUser>; add Reporter fixture. Do not seed tokens/OTP or reset existing account state. Login may legitimately create sessions/refresh tokens, but seed run should leave them empty.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.AccountUpdates.cs"
     ]
   },
   {
@@ -642,31 +642,6 @@
     "Source": []
   },
   {
-    "Table": "dbo.Defects",
-    "Group": "report-case",
-    "DependencyOrder": 60,
-    "Prerequisites": [
-      "dbo.AIDetections",
-      "dbo.CauseCategories",
-      "dbo.DefectTypes",
-      "dbo.Projects",
-      "dbo.RoadSectionVersions"
-    ],
-    "Producer": "IReporterReportService.CreateAsync -> IReporterLifecycleService.SupplementAsync -> ICaseWorkflowService.CommandAsync -> ICandidateDecisionService.DecideAsync",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
-    "Source": [
-      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/DefectStatisticsCaptureConsumer.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/CaseDefectCaptureConsumer.cs",
-      "RoadGuardSystem.Repositories/Implementations/Retention/RetentionInventoryRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Retention/Huy02InspectionRetentionContributor.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs"
-    ]
-  },
-  {
     "Table": "dbo.DefectSourceLinks",
     "Group": "report-case",
     "DependencyOrder": 60,
@@ -748,6 +723,31 @@
       "RoadGuardSystem.Repositories/Implementations/Defects/DefectWorkflowRepository.cs",
       "RoadGuardSystem.Repositories/Implementations/Defects/DetectionReviewPersistenceService.cs",
       "RoadGuardSystem.Repositories/Implementations/Defects/DetectionReviewPersistenceRequest.cs"
+    ]
+  },
+  {
+    "Table": "dbo.Defects",
+    "Group": "report-case",
+    "DependencyOrder": 60,
+    "Prerequisites": [
+      "dbo.AIDetections",
+      "dbo.CauseCategories",
+      "dbo.DefectTypes",
+      "dbo.Projects",
+      "dbo.RoadSectionVersions"
+    ],
+    "Producer": "IReporterReportService.CreateAsync -> IReporterLifecycleService.SupplementAsync -> ICaseWorkflowService.CommandAsync -> ICandidateDecisionService.DecideAsync",
+    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
+    "Scenario": "At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
+      "RoadGuardSystem.Services/Implementations/Reporting/DefectStatisticsCaptureConsumer.cs",
+      "RoadGuardSystem.Services/Implementations/Reporting/CaseDefectCaptureConsumer.cs",
+      "RoadGuardSystem.Repositories/Implementations/Retention/RetentionInventoryRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Retention/Huy02InspectionRetentionContributor.cs",
+      "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
+      "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs"
     ]
   },
   {
@@ -1044,27 +1044,6 @@
     ]
   },
   {
-    "Table": "dbo.Files",
-    "Group": "storage",
-    "DependencyOrder": 50,
-    "Prerequisites": [
-      "dbo.Users"
-    ],
-    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
-    "Source": [
-      "RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyPersistenceService.cs",
-      "RoadGuardSystem.Services/Implementations/Surveys/SurveyV2Service.cs",
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs",
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyDataValidationAdmissionPersistenceService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssessmentRepository.cs",
-      "RoadGuardSystem.Services/Implementations/Reports/ReporterLifecycleService.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/ReportingDefinitions.cs"
-    ]
-  },
-  {
     "Table": "dbo.FileScopes",
     "Group": "storage",
     "DependencyOrder": 50,
@@ -1085,6 +1064,27 @@
       "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Intake.cs",
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs"
+    ]
+  },
+  {
+    "Table": "dbo.Files",
+    "Group": "storage",
+    "DependencyOrder": 50,
+    "Prerequisites": [
+      "dbo.Users"
+    ],
+    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync",
+    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
+    "Scenario": "Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyPersistenceService.cs",
+      "RoadGuardSystem.Services/Implementations/Surveys/SurveyV2Service.cs",
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs",
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyDataValidationAdmissionPersistenceService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssessmentRepository.cs",
+      "RoadGuardSystem.Services/Implementations/Reports/ReporterLifecycleService.cs",
+      "RoadGuardSystem.Services/Implementations/Reporting/ReportingDefinitions.cs"
     ]
   },
   {
@@ -1441,6 +1441,51 @@
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
       "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs",
       "RoadGuardSystem.Repositories/Implementations/Projects/PavementWorkflowRepository.cs"
+    ]
+  },
+  {
+    "Table": "dbo.NotificationSupervisorAudits",
+    "Group": "messaging-clock",
+    "DependencyOrder": 121,
+    "Prerequisites": [
+      "dbo.NotificationSupervisorGenerations"
+    ],
+    "Producer": "NotificationSupervisorRepository.ExecuteAsync: immutable CREATED/REPLACED/REVOKED audit",
+    "EmptyReason": "No item-scoped notification Supervisor assignment has been issued through the supported PM command; never fabricate assignment or audit rows.",
+    "Scenario": "Create an eligible FastTrack repair item and use the approved PM assignment API with current ETag and idempotency key. The development seed does not assign a notification Supervisor.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs",
+      "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs"
+    ]
+  },
+  {
+    "Table": "dbo.NotificationSupervisorGenerations",
+    "Group": "messaging-clock",
+    "DependencyOrder": 121,
+    "Prerequisites": [
+      "dbo.NotificationSupervisorHeads"
+    ],
+    "Producer": "NotificationSupervisorRepository.ExecuteAsync: immutable assignment generation after successful PUT",
+    "EmptyReason": "No item-scoped notification Supervisor assignment has been issued through the supported PM command; never fabricate assignment or audit rows.",
+    "Scenario": "Create an eligible FastTrack repair item and use the approved PM assignment API with current ETag and idempotency key. The development seed does not assign a notification Supervisor.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs",
+      "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs"
+    ]
+  },
+  {
+    "Table": "dbo.NotificationSupervisorHeads",
+    "Group": "messaging-clock",
+    "DependencyOrder": 121,
+    "Prerequisites": [
+      "dbo.RepairItems"
+    ],
+    "Producer": "NotificationSupervisorRepository.ExecuteAsync: item-scoped PM PUT/DELETE",
+    "EmptyReason": "No item-scoped notification Supervisor assignment has been issued through the supported PM command; never fabricate assignment or audit rows.",
+    "Scenario": "Create an eligible FastTrack repair item and use the approved PM assignment API with current ETag and idempotency key. The development seed does not assign a notification Supervisor.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs",
+      "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs"
     ]
   },
   {
@@ -1970,6 +2015,23 @@
     ]
   },
   {
+    "Table": "dbo.PublicPublications",
+    "Group": "public-publication",
+    "DependencyOrder": 122,
+    "Prerequisites": [
+      "dbo.Defects",
+      "dbo.Cases",
+      "dbo.CaseConclusions"
+    ],
+    "Producer": "PublicPublicationRepository.CreateAsync/WithdrawAsync through approved PM C1 commands",
+    "EmptyReason": "No policy-eligible public publication was issued by the development seed. Private cases, evidence or defects must not be exposed to fill coverage.",
+    "Scenario": "Establish an eligible genuine Case/Defect/evidence graph, issue authorized publication, anonymously read the sanitized public DTO, then withdraw using its current version.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Cases/PublicPublicationRepository.cs",
+      "RoadGuardSystem.Repositories/Migrations/20261022074647_C1ControlledPublicPublication.cs"
+    ]
+  },
+  {
     "Table": "dbo.QualityChecks",
     "Group": "survey",
     "DependencyOrder": 70,
@@ -2096,29 +2158,6 @@
     ]
   },
   {
-    "Table": "dbo.RepairAttempts",
-    "Group": "repair",
-    "DependencyOrder": 100,
-    "Prerequisites": [
-      "dbo.Defects",
-      "dbo.FieldInspectionAssignments",
-      "dbo.FieldInspectionTasks",
-      "dbo.Projects",
-      "dbo.RepairItems",
-      "dbo.RepairObligations",
-      "dbo.Users"
-    ],
-    "Producer": "IRepairPolicyService; IRepairProducerService; IRepairExecutionService; IRepairSafetyService; IRepairLifecycleService",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "Create valid policy draft/revision via current actions. CreatePackage -> ProposeItem -> ApproveItem -> AssignItem; genuine generated FIELD binding drives Assess -> StartExecution -> FinishExecution -> SubmitAttempt -> ReviewAttempt -> ConfirmFinal. Separate normal, FT, correction/rework and safety graphs. FT needs current policy, eligibility, published defect, coverage/warranty facts; do not fabricate them.",
-    "Source": [
-      "RoadGuardSystem.Repositories/Implementations/Retention/H4H5RetentionSources.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
-      "RoadGuardSystem.Repositories/Implementations/Messaging/H6RepairNotificationSourceAdapter.cs"
-    ]
-  },
-  {
     "Table": "dbo.RepairAttemptSubmissionLinks",
     "Group": "repair",
     "DependencyOrder": 100,
@@ -2131,6 +2170,29 @@
       "dbo.RepairExecutionFinishes",
       "dbo.RepairFieldTaskBindings",
       "dbo.RepairItems"
+    ],
+    "Producer": "IRepairPolicyService; IRepairProducerService; IRepairExecutionService; IRepairSafetyService; IRepairLifecycleService",
+    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
+    "Scenario": "Create valid policy draft/revision via current actions. CreatePackage -> ProposeItem -> ApproveItem -> AssignItem; genuine generated FIELD binding drives Assess -> StartExecution -> FinishExecution -> SubmitAttempt -> ReviewAttempt -> ConfirmFinal. Separate normal, FT, correction/rework and safety graphs. FT needs current policy, eligibility, published defect, coverage/warranty facts; do not fabricate them.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Retention/H4H5RetentionSources.cs",
+      "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
+      "RoadGuardSystem.Repositories/Implementations/Messaging/H6RepairNotificationSourceAdapter.cs"
+    ]
+  },
+  {
+    "Table": "dbo.RepairAttempts",
+    "Group": "repair",
+    "DependencyOrder": 100,
+    "Prerequisites": [
+      "dbo.Defects",
+      "dbo.FieldInspectionAssignments",
+      "dbo.FieldInspectionTasks",
+      "dbo.Projects",
+      "dbo.RepairItems",
+      "dbo.RepairObligations",
+      "dbo.Users"
     ],
     "Producer": "IRepairPolicyService; IRepairProducerService; IRepairExecutionService; IRepairSafetyService; IRepairLifecycleService",
     "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
@@ -2760,21 +2822,6 @@
     ]
   },
   {
-    "Table": "dbo.ReporterRegistrationIntents",
-    "Group": "identity",
-    "DependencyOrder": 10,
-    "Prerequisites": [
-      "dbo.Users"
-    ],
-    "Producer": "PostmanUserSeedStep + current identity services; tokens/session/recovery/invitation only through supported identity workflow",
-    "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty.",
-    "Scenario": "Create five fake active dev/test accounts using PasswordHasher<ApplicationUser>; add Reporter fixture. Do not seed tokens/OTP or reset existing account state. Login may legitimately create sessions/refresh tokens, but seed run should leave them empty.",
-    "Source": [
-      "RoadGuardSystem.Services/Implementations/Authentication/IdentityOnboardingService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Identity/IdentityOnboardingRepository.cs"
-    ]
-  },
-  {
     "Table": "dbo.ReportOriginalEvidence",
     "Group": "report-case",
     "DependencyOrder": 60,
@@ -2789,27 +2836,6 @@
     "Source": [
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
       "RoadGuardSystem.Repositories/Implementations/Cases/CaseWorkflowRepository.cs"
-    ]
-  },
-  {
-    "Table": "dbo.Reports",
-    "Group": "report-case",
-    "DependencyOrder": 60,
-    "Prerequisites": [
-      "dbo.Users"
-    ],
-    "Producer": "IReporterReportService.CreateAsync -> IReporterLifecycleService.SupplementAsync -> ICaseWorkflowService.CommandAsync -> ICandidateDecisionService.DecideAsync",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
-    "Source": [
-      "RoadGuardSystem.Services/Implementations/Reports/ReporterReportService.cs",
-      "RoadGuardSystem.Services/Implementations/Reports/ReporterLifecycleService.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/ReportingService.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/ReportingDefinitions.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/CaseDefectCaptureConsumer.cs",
-      "RoadGuardSystem.Repositories/Implementations/Retention/RetentionInventoryRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Retention/ReporterIntakeRetentionInventoryContributor.cs",
-      "RoadGuardSystem.Repositories/Implementations/Retention/Huy01RetentionInventoryContributor.cs"
     ]
   },
   {
@@ -2845,6 +2871,42 @@
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
       "RoadGuardSystem.Repositories/Implementations/Integration/AnhHuyFactsRepository.cs",
       "RoadGuardSystem.Repositories/Implementations/Offline/OfflineAdmissionValidator.cs"
+    ]
+  },
+  {
+    "Table": "dbo.ReporterRegistrationIntents",
+    "Group": "identity",
+    "DependencyOrder": 10,
+    "Prerequisites": [
+      "dbo.Users"
+    ],
+    "Producer": "PostmanUserSeedStep + current identity services; tokens/session/recovery/invitation only through supported identity workflow",
+    "EmptyReason": "Technical/security/transient or durable receipt table. Never directly populate for apparent coverage; use listed supported producer or leave empty.",
+    "Scenario": "Create five fake active dev/test accounts using PasswordHasher<ApplicationUser>; add Reporter fixture. Do not seed tokens/OTP or reset existing account state. Login may legitimately create sessions/refresh tokens, but seed run should leave them empty.",
+    "Source": [
+      "RoadGuardSystem.Services/Implementations/Authentication/IdentityOnboardingService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Identity/IdentityOnboardingRepository.cs"
+    ]
+  },
+  {
+    "Table": "dbo.Reports",
+    "Group": "report-case",
+    "DependencyOrder": 60,
+    "Prerequisites": [
+      "dbo.Users"
+    ],
+    "Producer": "IReporterReportService.CreateAsync -> IReporterLifecycleService.SupplementAsync -> ICaseWorkflowService.CommandAsync -> ICandidateDecisionService.DecideAsync",
+    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
+    "Scenario": "At least three distinct report/case graphs: received; triaged using ExistingEvidence with one KeepNew defect; concluded/published through service only. Link/split on separate reports. FIELD/DRONE terminal conclusion is unsupported (CaseWorkflowRepository.cs source_not_ready guard). Evidence and geometry pins must satisfy current guards.",
+    "Source": [
+      "RoadGuardSystem.Services/Implementations/Reports/ReporterReportService.cs",
+      "RoadGuardSystem.Services/Implementations/Reports/ReporterLifecycleService.cs",
+      "RoadGuardSystem.Services/Implementations/Reporting/ReportingService.cs",
+      "RoadGuardSystem.Services/Implementations/Reporting/ReportingDefinitions.cs",
+      "RoadGuardSystem.Services/Implementations/Reporting/CaseDefectCaptureConsumer.cs",
+      "RoadGuardSystem.Repositories/Implementations/Retention/RetentionInventoryRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Retention/ReporterIntakeRetentionInventoryContributor.cs",
+      "RoadGuardSystem.Repositories/Implementations/Retention/Huy01RetentionInventoryContributor.cs"
     ]
   },
   {
@@ -3005,27 +3067,6 @@
     ]
   },
   {
-    "Table": "dbo.RoadSections",
-    "Group": "geometry",
-    "DependencyOrder": 40,
-    "Prerequisites": [
-      "dbo.Projects"
-    ],
-    "Producer": "IGeometryWorkflowService.ExecuteAsync; IPavementWorkflowService.ExecuteAsync; IRoadCoverageService.ConfirmAsync",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "PM profile-create/system-create/draft-create -> preview -> Supervisor confirm -> PM set-create/publish using returned IDs and versions. Native source profile must remain SampleOnly when synthetic. Pavement plan-create can prepare layout; as-built/map/coverage confirmation only from supported source evidence, else explicit empty/GAP.",
-    "Source": [
-      "RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyPersistenceService.cs",
-      "RoadGuardSystem.Services/Implementations/Warranties/WarrantyCreationService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanningPersistenceService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
-      "RoadGuardSystem.Repositories/Implementations/Retention/Huy02InspectionRetentionContributor.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs"
-    ]
-  },
-  {
     "Table": "dbo.RoadSectionVersions",
     "Group": "geometry",
     "DependencyOrder": 40,
@@ -3048,25 +3089,24 @@
     ]
   },
   {
-    "Table": "dbo.RoadSegments",
+    "Table": "dbo.RoadSections",
     "Group": "geometry",
     "DependencyOrder": 40,
     "Prerequisites": [
-      "dbo.RoadSectionVersions",
-      "dbo.RoadSegmentSets"
+      "dbo.Projects"
     ],
     "Producer": "IGeometryWorkflowService.ExecuteAsync; IPavementWorkflowService.ExecuteAsync; IRoadCoverageService.ConfirmAsync",
     "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
     "Scenario": "PM profile-create/system-create/draft-create -> preview -> Supervisor confirm -> PM set-create/publish using returned IDs and versions. Native source profile must remain SampleOnly when synthetic. Pavement plan-create can prepare layout; as-built/map/coverage confirmation only from supported source evidence, else explicit empty/GAP.",
     "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyPersistenceService.cs",
+      "RoadGuardSystem.Services/Implementations/Warranties/WarrantyCreationService.cs",
       "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyPlanningPersistenceService.cs",
       "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/DefectStatisticsCaptureConsumer.cs",
+      "RoadGuardSystem.Repositories/Implementations/Retention/Huy02InspectionRetentionContributor.cs",
       "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Intake.cs",
-      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
-      "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs"
+      "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs"
     ]
   },
   {
@@ -3088,6 +3128,28 @@
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Business.cs",
       "RoadGuardSystem.Repositories/Implementations/Defects/CandidateDecisionRepository.cs"
+    ]
+  },
+  {
+    "Table": "dbo.RoadSegments",
+    "Group": "geometry",
+    "DependencyOrder": 40,
+    "Prerequisites": [
+      "dbo.RoadSectionVersions",
+      "dbo.RoadSegmentSets"
+    ],
+    "Producer": "IGeometryWorkflowService.ExecuteAsync; IPavementWorkflowService.ExecuteAsync; IRoadCoverageService.ConfirmAsync",
+    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
+    "Scenario": "PM profile-create/system-create/draft-create -> preview -> Supervisor confirm -> PM set-create/publish using returned IDs and versions. Native source profile must remain SampleOnly when synthetic. Pavement plan-create can prepare layout; as-built/map/coverage confirmation only from supported source evidence, else explicit empty/GAP.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
+      "RoadGuardSystem.Services/Implementations/Reporting/DefectStatisticsCaptureConsumer.cs",
+      "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Intake.cs",
+      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
+      "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs"
     ]
   },
   {
@@ -3294,6 +3356,22 @@
     ]
   },
   {
+    "Table": "dbo.SurveyPlanScopes",
+    "Group": "survey",
+    "DependencyOrder": 70,
+    "Prerequisites": [
+      "dbo.RoadSectionVersions",
+      "dbo.SurveyPlans"
+    ],
+    "Producer": "ISurveyV2Service.CreatePlanAsync/CreateTaskAsync/AcceptTaskAsync/SubmitDatasetAsync; ISurveyAssessmentService.CreateAsync/SelectAsync",
+    "EmptyReason": "Valid preparatory business state; no verified terminal state implied.",
+    "Scenario": "Separate planned, accepted, submitted dataset and assessed/baseline graphs. Create plan/task with future reference-time dates and immutable geometry pins; use actual verified files and flight data. Postpone distinct plan; supplement distinct task. Never assign SurveyStatus.Completed directly.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs"
+    ]
+  },
+  {
     "Table": "dbo.SurveyPlans",
     "Group": "survey",
     "DependencyOrder": 70,
@@ -3312,19 +3390,23 @@
     ]
   },
   {
-    "Table": "dbo.SurveyPlanScopes",
+    "Table": "dbo.SurveyRequestScopes",
     "Group": "survey",
     "DependencyOrder": 70,
     "Prerequisites": [
       "dbo.RoadSectionVersions",
-      "dbo.SurveyPlans"
+      "dbo.SurveyRequests"
     ],
     "Producer": "ISurveyV2Service.CreatePlanAsync/CreateTaskAsync/AcceptTaskAsync/SubmitDatasetAsync; ISurveyAssessmentService.CreateAsync/SelectAsync",
     "EmptyReason": "Valid preparatory business state; no verified terminal state implied.",
     "Scenario": "Separate planned, accepted, submitted dataset and assessed/baseline graphs. Create plan/task with future reference-time dates and immutable geometry pins; use actual verified files and flight data. Postpone distinct plan; supplement distinct task. Never assign SurveyStatus.Completed directly.",
     "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs",
       "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs"
+      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
+      "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Projects/PavementWorkflowRepository.cs"
     ]
   },
   {
@@ -3352,26 +3434,6 @@
       "RoadGuardSystem.Services/Implementations/Reporting/ReportingService.cs",
       "RoadGuardSystem.Services/Implementations/Reporting/ReportingDefinitions.cs",
       "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs"
-    ]
-  },
-  {
-    "Table": "dbo.SurveyRequestScopes",
-    "Group": "survey",
-    "DependencyOrder": 70,
-    "Prerequisites": [
-      "dbo.RoadSectionVersions",
-      "dbo.SurveyRequests"
-    ],
-    "Producer": "ISurveyV2Service.CreatePlanAsync/CreateTaskAsync/AcceptTaskAsync/SubmitDatasetAsync; ISurveyAssessmentService.CreateAsync/SelectAsync",
-    "EmptyReason": "Valid preparatory business state; no verified terminal state implied.",
-    "Scenario": "Separate planned, accepted, submitted dataset and assessed/baseline graphs. Create plan/task with future reference-time dates and immutable geometry pins; use actual verified files and flight data. Postpone distinct plan; supplement distinct task. Never assign SurveyStatus.Completed directly.",
-    "Source": [
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs",
-      "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
-      "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs",
-      "RoadGuardSystem.Repositories/Implementations/Projects/PavementWorkflowRepository.cs"
     ]
   },
   {

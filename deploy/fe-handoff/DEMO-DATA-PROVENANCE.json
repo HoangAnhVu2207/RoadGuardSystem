@@ -1,0 +1,73 @@
+{
+  "task": "Task33",
+  "label": "MOCK_AI_DEVELOPMENT_DATA",
+  "externalDataPackaged": false,
+  "research": [
+    {
+      "publisher": "OpenStreetMap Foundation",
+      "source": "https://www.openstreetmap.org/copyright",
+      "license": "ODbL 1.0",
+      "licenseUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "disposition": "NOT_INGESTED; synthetic coordinates satisfy small demo, no additional database distribution obligations introduced",
+      "retrievalDate": "2026-10-21"
+    }
+  ],
+  "assets": [
+    {
+      "path": "contracts/ai/fixtures/anh02/analysis-manifest.sample.json",
+      "bytes": 1215,
+      "sha256": "231d8af82fad594a070a77fc693bddb72993abefd53e4f18612e85e0cec00066",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    },
+    {
+      "path": "contracts/ai/fixtures/anh02/analysis-result.sample.json",
+      "bytes": 874,
+      "sha256": "26d8a91e1bc230635fa89db34b2fb02212e122fd50ff85926167b668f1ac3476",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    },
+    {
+      "path": "contracts/ai/fixtures/anh02/asset-manifest.json",
+      "bytes": 798,
+      "sha256": "6238766e67753d726a1f9e821a51fd5e7e38786e0f9c20b69e329027ed0c50f1",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    },
+    {
+      "path": "contracts/ai/fixtures/anh02/matching-manifest.sample.json",
+      "bytes": 1641,
+      "sha256": "ec0f47cc5ba6c96c72150b8be67e6f2d2b97f2d672966cf63379adfa346abb45",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    },
+    {
+      "path": "contracts/ai/fixtures/anh02/matching-result.sample.json",
+      "bytes": 700,
+      "sha256": "a275508d1450e9359720539bf6a4b0a505b130d8aa4f966699b8b19f2f396db8",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    },
+    {
+      "path": "contracts/ai/fixtures/anh02/samples.json",
+      "bytes": 614,
+      "sha256": "d41cd9988771e743cc53e7c159d6254016435082f7adfdbbae742ea2f5042f26",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    },
+    {
+      "path": "contracts/ai/fixtures/anh02/synthetic-road-v1-frame-1.png",
+      "bytes": 1021,
+      "sha256": "755358d3fc71b2543e4a3ce50b2887e4b64ecdf18db7dce500a5250fc379e82e",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    },
+    {
+      "path": "contracts/ai/fixtures/anh02/synthetic-road-v1.mp4",
+      "bytes": 1510,
+      "sha256": "152c804d61a49960bb3307501c68da4baccb68b264416d657b2533df0476da15",
+      "provenance": "existing repository-generated synthetic fixture; no external imagery ingested",
+      "privacy": "synthetic, no personal capture"
+    }
+  ]
+}

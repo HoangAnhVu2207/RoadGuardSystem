@@ -2,8 +2,8 @@
   "status": "CURRENT_VERIFIED_ISOLATED_SQL",
   "provider": "Microsoft.EntityFrameworkCore.SqlServer 8.0.17",
   "sqlImage": "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04",
-  "lastMigration": "20261009043010_AllowVerifiedDefectPostRepairTasks",
-  "migrationCount": 2,
+  "lastMigration": "20261022181921_B2NotificationSupervisorAssignment",
+  "migrationCount": 4,
   "inputHashes": [
     {
       "path": "RoadGuardSystem.BusinessObjects/Auditing/AuditLog.cs",
@@ -80,6 +80,10 @@
     {
       "path": "RoadGuardSystem.BusinessObjects/Cases/IncidentCaseStatus.cs",
       "sha256": "e5c460a4a0814182a228badc16f23f47c88ac5d7e83327aa15f01742f50f6155"
+    },
+    {
+      "path": "RoadGuardSystem.BusinessObjects/Cases/PublicPublication.cs",
+      "sha256": "0befb2cf90f17806df0597a80d1cec042df1991ed9580bfbbe34f99abe689f0c"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Catalogs/CauseCategory.cs",
@@ -270,12 +274,20 @@
       "sha256": "9f0add52f32dafa8580d58d9ac14a01ea1b21e76c6d6e66d18c42c173dc15cf3"
     },
     {
+      "path": "RoadGuardSystem.BusinessObjects/Messaging/FastTrackReviewSnapshot.cs",
+      "sha256": "989e13befe9eaf7ff4b8e688f9db655c50ec94a6e0201f8b54312abe2f469caf"
+    },
+    {
       "path": "RoadGuardSystem.BusinessObjects/Messaging/H6NotificationPersistenceRecords.cs",
-      "sha256": "b99601b1c6e9cd6f52e293a6ab715e20d8d466248c8b73dd5a6701384d9c2c2d"
+      "sha256": "636777248eaddae3ac05bb786f28c6f63cc09c2476dfd58969606c6c75bac0d9"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Messaging/Notification.cs",
       "sha256": "cfde65be9012725fe233202353d6675b23227ef869d3332a0de4cefe40a84431"
+    },
+    {
+      "path": "RoadGuardSystem.BusinessObjects/Messaging/NotificationAssignmentSnapshot.cs",
+      "sha256": "c426f02fac68dda53385e65dec608749a8eee36bd720860ea18eff253e55d857"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Messaging/NotificationCalendarAdmissionProof.cs",
@@ -435,7 +447,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/PersistenceFacts/InspectionsFacts.cs",
-      "sha256": "013c4de674c9b932dc6295f8990bfacaf606ad762d301bc881c3c241c69d0ef2"
+      "sha256": "1e0a97eb338aebaf165c90af5cd0df6eb27123c7b9473590229a6576384f4da6"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/PersistenceFacts/LabelsFacts.cs",
@@ -599,7 +611,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/RepairWork.cs",
-      "sha256": "fbb649c08d73f759f14696faaa5f8783fa8a9c731fdf8a581709acf523d7523f"
+      "sha256": "783b76eebbe90a9585b356a5197787cd18c32adaa1b422cc1777c41d99f25ed4"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/RoadCoverageMapping.cs",
@@ -718,8 +730,12 @@
       "sha256": "e30d8127a486788030bacd8b4fa12efd22f18c88e7c7b9eed2f850460cabca7f"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Collections/ICollectionReadRepository.cs",
+      "sha256": "b8f64e82f4d186f576a1560103165613be9b1f64b65d532004c8d2b96c4e3b88"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Commons/ApiResult.cs",
-      "sha256": "20b3f94b81604832e5352769de19c9e98b35243663e0c53616bb9b95d73cb126"
+      "sha256": "044097350cd6a2453584e6b6bd47daf72fd244a00d719f93c3285dcd600b9cb8"
     },
     {
       "path": "RoadGuardSystem.Repositories/Concurrency/RowVersionConvention.cs",
@@ -863,7 +879,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/Messaging/H6NotificationMappingDraft.cs",
-      "sha256": "ac8679d30d0dc4acde3a0cf9c46e32a94467c14c5e54f32e9a996915ff89e48a"
+      "sha256": "c75180c04df9f27df21ff5af788477646079f53e40ab2368c4a3e387af8749df"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Configurations/Messaging/NotificationSupervisorConfiguration.cs",
+      "sha256": "3d4f7681a17531ffc149723ad1f17cc80083b416b9e4e7f1f5863b87fc6ea199"
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/NotificationConfiguration.cs",
@@ -912,6 +932,10 @@
     {
       "path": "RoadGuardSystem.Repositories/Configurations/ProjectMemberConfiguration.cs",
       "sha256": "0f9713c86ae0da6a1103668384853a7b2016f605c884ff9446426522a5d458eb"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Configurations/PublicPublicationConfiguration.cs",
+      "sha256": "1ad7fe262e1eced3d5af04e1e0871633943c811ddc464fdc9009e0054036be01"
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/QualityCheckConfiguration.cs",
@@ -1051,19 +1075,19 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Extensions/Huy01ReporterPersistenceExtensions.cs",
-      "sha256": "bf4c54ae93f62c227556db9b6ead54afff0d5cdb0e0401fe46470fc519ef74a4"
+      "sha256": "659ba6eef7a946567a5753da53a25b3745e6f5ff3ef25c24ea6bbd340aae0211"
     },
     {
       "path": "RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs",
-      "sha256": "1a5595dfced46898c6bc399af4af2ece645511fdcc34ed96922e4a96890e5e46"
+      "sha256": "0603fb9c59f6134097ff26f3f58d4e005b8bfbfe3fcf5a98f136e471ff2dc3d2"
     },
     {
       "path": "RoadGuardSystem.Repositories/Helpers/PagedList.cs",
-      "sha256": "f8d0f76c5a2542e587049e318a96f44d1fd31926ea48505425f52399ae86f014"
+      "sha256": "a359caa659759a7fbac32454b95cbf674ad26c8fc3c970b4d5eacb851358aa11"
     },
     {
       "path": "RoadGuardSystem.Repositories/Idempotency/Anh02ReceiptAuthority.cs",
-      "sha256": "d14e30f4b2640cd59572984f4a489da80d029c406dcfb75a551e0f7a1e3e3a48"
+      "sha256": "0f0907d12e519bedb1dfa5871b66a4ae485a698c8120cefc87901adb910fd330"
     },
     {
       "path": "RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationResult.cs",
@@ -1079,7 +1103,15 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Cases/CaseWorkflowRepository.cs",
-      "sha256": "846c8d741ebae101e224dd4ae75e4e34e3828d19159f01d4d41fa37ee8203adb"
+      "sha256": "618049fda5e7be3e2d45234b9ccd72bdfd50b63f0c6596908335ba32e654dc54"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Cases/PublicPublicationRepository.cs",
+      "sha256": "564f736ccefe289c65e81d17dd8f14d52250a0707bff0f2fca94532ea0d97d15"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs",
+      "sha256": "43b3dc4c4ca293ea57f11879009497777a1cacbb7f5f02e7d64832615a117ecc"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Defects/CandidateDecisionRepository.cs",
@@ -1107,11 +1139,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.SourceAuthority.cs",
-      "sha256": "b1c472f66ff803d525779b4377b741e5b4219b29041bb9b8371c4e798c1aeb85"
+      "sha256": "a5cfd9db47b9d0f52c03edb132ca0af75b14edd509a0b5ae116b3e65ccd008cc"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.cs",
-      "sha256": "1a8295b87d6d4e51bc92ef747f5453bd7bedf2f147df6782d1daf4a94ac3f429"
+      "sha256": "02bff4c5c475890008e99541ed76405cd1169f97c6a40e99869bedf819140967"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Files/FileRepository.cs",
@@ -1143,7 +1175,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Files/UploadPersistenceService.cs",
-      "sha256": "f03282aac07fe268b465310f7f8f1b7b9150e2650322613f65212ddd62822bc0"
+      "sha256": "5752b79dfb39a9dafad8033da6b0b9f601132ab2215ead6f6afbdd46ce501af4"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Identity/IdentityOnboardingRepository.cs",
@@ -1155,7 +1187,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.Helpers.cs",
-      "sha256": "315a86126525f9e54df7e7325478d385e86c8371e1c208f08813e8dfaf5292ef"
+      "sha256": "9a4b3aa16e2ead59f6f223080a78c9a325db90ff78fcbb15caa3bee1c1111504"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.PasswordChanges.cs",
@@ -1167,7 +1199,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.PasswordResets.cs",
-      "sha256": "997b44a1b8967f36d147572b3dc6ab7b58d4f15e98cb1b74e0c5ff266e06f390"
+      "sha256": "b6a9eb8244071a7254ff0d66e6c1bb9c9ba7d2d1c0c88334c1d7a06d5c579367"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Identity/IdentityRepository.Profiles.cs",
@@ -1214,6 +1246,10 @@
       "sha256": "7ba69f2e53d4ecaa00094920983c0627a44f7850c89925c1a74715e031525184"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.CrewRepairContext.cs",
+      "sha256": "91f2b293b60cd7cee7b66bcc6529a81a19333cb797072ceffa2c2594c3cd68ea"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
       "sha256": "21d832d1d9db444e9dd8c5a8fd799acf9e2ac9e4b53c55a7a4efc703ef99bb5e"
     },
@@ -1247,7 +1283,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.cs",
-      "sha256": "dede05e3bd35179df5f4e548149d468a46f05d7d69b7a1cf87709228b8bde4f1"
+      "sha256": "9a3accad418dfad0b057aa26070574b87286f13819ec0d483b4779d4ad7eaff8"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Inspections/InspectionTaskReadRepository.cs",
@@ -1263,7 +1299,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/BusinessDutyRepository.cs",
-      "sha256": "b4977bc8b12f2f5d8a786784e245755ac14ee74ad1f672d34de7c0b8b7661599"
+      "sha256": "2e22430b56293844ec5f70baa6cf5d9d06cb4a6507f73894dfa7e234f8175fab"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/BusinessRequestProducer.cs",
@@ -1279,15 +1315,15 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6DeadlineNotificationSourceAdapter.cs",
-      "sha256": "e2a689d42e15d1df43da0d8872421fb5ff0f3726b85992a31c41a047754cd9c9"
+      "sha256": "8ba1bae66480f2b2dfb6a1ad4417a01f094b1dec17bc98cdc31f7e97722e0ca7"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6FieldNotificationSourceAdapter.cs",
-      "sha256": "a69be57764560736e41fcf9dc8d8f4eb31e6bba793c91b59f4d9646121a0a673"
+      "sha256": "8e22f48b9fda252246552aace4708f007865536ef15bf3697b7b33f96af7ad52"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Calendar.cs",
-      "sha256": "17b6cf89586b1f26fa581ac2915e868aa27833d2b26edbe21fdc557e5db6bae6"
+      "sha256": "61319b4128e97d2c01ce8cbf6f41925f813e933de2dbd161e340095e680470ab"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Clocks.cs",
@@ -1299,11 +1335,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Delivery.cs",
-      "sha256": "c33fdb9ca2cebda5a8534877b10abb1b4de8ab5cff8c87c8c080807344d54331"
+      "sha256": "2c33727a5920c4f8562bf1f46d4ffc2071d9dcb626d81bec2d005292b57db5a4"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Retry.cs",
-      "sha256": "24a6528bcbd391e651de0f85b4fde0cd1b347bfa9d09fd5d8e12eaf01466b485"
+      "sha256": "c9e5361f7de44cbc0e694e444a5002bf4b507e1ca8853c5c6cafb202c4c99d7d"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.cs",
@@ -1319,11 +1355,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.Operations.cs",
-      "sha256": "785e2346c63f4ffabe86baa83a0556b6fecd1259958d68b7da05b4301d98be8b"
+      "sha256": "9b70592d92363ced52fbf00ab1d31b0288054ac3d6357e61a35bbd2aa0979c64"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.Scope.cs",
-      "sha256": "4a932eb94204afaa95a440dea0d774841036b8dc84885d25d37c78d87b232795"
+      "sha256": "b4f01994e4fad16bd6e5eec27ae7774114166507eb1aa41c68d20492d5611849"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.cs",
@@ -1331,7 +1367,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6RepairNotificationSourceAdapter.cs",
-      "sha256": "37e500b2afb58f372e301a5b67f30623d16047813e43e49329f018630c77dfe8"
+      "sha256": "771f6dea952ff830d0da3d11b67d4188ef6052a718b2c4218a4693b82ca96737"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6SafetyNotificationSourceAdapter.cs",
@@ -1339,7 +1375,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6WeeklyReviewSourceAdapter.cs",
-      "sha256": "79e63218b5ec7a8663ccca1bb67bc7d9a9187ef88e365a04655005756d115b97"
+      "sha256": "c390b151ff714100348cbd500a9b043d81e77b46a840132ae18c6d343b538544"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/NotificationOutboxConsumer.cs",
@@ -1374,16 +1410,20 @@
       "sha256": "05f5727ac86f8e8ed005ca51469c1309c2cc70825e9c54d32787bc5dc8888a17"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Implementations/Processing/AiDispatchSourceRepository.cs",
+      "sha256": "1d3ff785709a6d91e4bfa473e96ce0ad76ed9c14c7538328ec2e46f93a23b478"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Implementations/Processing/Anh02AiRepository.cs",
-      "sha256": "9a9e7906d0e74de898a28a644c11f24366557612e90b4ef509ef30012640f14f"
+      "sha256": "ac6812c12e95c62b696be531378a863cc429fe3ab9664da241cca80c615bfc99"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
-      "sha256": "315ac104176b538bea316e2f91ab222ff2a6efed741c226a6282919357030ba5"
+      "sha256": "33e91421aa2e6f673304f8af0b07af869297614155c8b1e29657255af0ca373b"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs",
-      "sha256": "502b4c1600f5010d19332f7240e615ee93b402cd6b06e84b449a3022653ae526"
+      "sha256": "de31c945f2fc4522835b16cc20dc47dff778fc90ec8f6e61abb43b91906691b5"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Projects/PavementWorkflowRepository.cs",
@@ -1427,7 +1467,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Projects/ProjectLifecycleRepository.cs",
-      "sha256": "6900612f0ed6a188f3c0463cffbbb29169ae263e395e1cf4a2f049406442041f"
+      "sha256": "12f95c7c046480d554a8ada77c4b6ebb4294970a2503d2f18e5bb2bf6b2046c1"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Projects/ProjectListReadModel.cs",
+      "sha256": "7564e4392894b43da2753af926e84aad6801d667f4ca1aefc3bec751268008f3"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Projects/ProjectMembershipReadModel.cs",
@@ -1470,8 +1514,12 @@
       "sha256": "5e99a9c7d3d5a9ee4e84b2a4ed30f970063987b3ac31ba6de65291c6e50f5543"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs",
+      "sha256": "2fcf6b659adc82fddde41a1185794da51e4070cecf08d4c8f61b768666ea6d56"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairEligibilityRepository.cs",
-      "sha256": "acae2283c72987ab14cf617bd17e5e9050ba8570e7f34c078e7a4a3b8f96d6df"
+      "sha256": "32d2076a0af98dbd78f85b9e487b5a18102c742eecaf66312c93365755dc71c1"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairFtEligibility.cs",
@@ -1483,7 +1531,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairSafetyRepository.cs",
-      "sha256": "c4ee97693e29ce7aeb72abfd7e8fa059aea044732bfcb8c9d566edc5ae9462ee"
+      "sha256": "9fe57ca45fd400cfb7ef5177d1b77f901837808ff0b842f44303d8127bc35df1"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Execution.cs",
@@ -1499,7 +1547,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
-      "sha256": "933ed40756fad3375e4d86742baa8c0f647eaff679a19b0ff9faf9d57e1cd61c"
+      "sha256": "fb26f92b54d77e3d54ae4e5187a0b55fae2f830070d2d27d0bb7eb0a8b470442"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.ReviewRequests.cs",
@@ -1507,11 +1555,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.cs",
-      "sha256": "31471064a06dbfdbf96c5c0369e30d04f3415e3dd4dd9b182b90a43c91a8aeeb"
+      "sha256": "327d0f8aa32ec5318a2618a49b65b87eea956ed1c56937dcf4139d099a49343e"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageRepository.cs",
-      "sha256": "2591c81adab21dc2ea111a6494e703012f7247674ba9ffca9fe5e7b412577b27"
+      "sha256": "6bc9591b2b086e3859cb9e380613279fd86415f8aedb1e9fc138640bc23dd5ef"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageResolver.cs",
@@ -1519,15 +1567,15 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs",
-      "sha256": "d4c54b39dbf44c91e6429f53599fdd807a0d26b69d7d31708329752d3340d37c"
+      "sha256": "df9916540fd2c0367d618ea934e1461d79f33d3dd71063a30fa8a08588da3863"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
-      "sha256": "bf14d83c0c6f41ce1d3c9fc34adcfc83a54a2f8cfffffb56ef20224f41a27b62"
+      "sha256": "dbf45d5b9708403aa7eb8609be9896f0b7b9737bd99e5582c7b8f280da17caca"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
-      "sha256": "e8331a733ea8da1fc42738e85e522e9666191321a6e763a91a5e87b5fabd41a7"
+      "sha256": "7c9ea1ca529b46c72a9b1349057b98079b1b73b8a3c8ab64a736f74ef0838a80"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
@@ -1602,8 +1650,28 @@
       "sha256": "4af8ceef25399e02bc328aa70711e0832886f3443a9dc5882384debea99f32e9"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxFixtureIds.cs",
+      "sha256": "88eab622a6eb380c46dcc48a120edb66705b88f1b73b5a34917c23c2d2899743"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxSeedCatalog.cs",
+      "sha256": "efff5d3fb2a7ce7be0220c89ea90042dcf38b08d31be9ba1e85e1f2e3b1ff354"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxSeedGuard.cs",
+      "sha256": "a7b43d672d7dabf14726202be736d545f11837b347c0b886b810b363bedfece4"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxSyntheticSeeder.cs",
+      "sha256": "57a47297a3c94f873fd7e07a972836b53f0dc6e7d0ea1d8250055a65cc350cdd"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/SeedResult.cs",
       "sha256": "f30fbc91f3a2dab2dc19c20c474c80273cfacbf51d0a01081cb9b3e0eb7de3e9"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Implementations/Staff/StaffReadRepository.cs",
+      "sha256": "7310af0975e3d79e34f95ea8603e85de437309dc88024880258fe77e43381107"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Storage/FileStorageErrorCodes.cs",
@@ -1623,7 +1691,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Storage/MinioUploadObjectStorage.cs",
-      "sha256": "dfa9c112138f9fc1f3e715b6da080b0b44c74899e9a3cc1cea98ab7e76789cdb"
+      "sha256": "f94bc0c390e832b25bda82bccd2ed838aad50dc407b03d7dfa479d605d5824cd"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Storage/S3ResponseStream.cs",
@@ -1635,7 +1703,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssessmentRepository.cs",
-      "sha256": "a96de494b15c7afd6595676a5ca406f2cecfcebbaa52c51aeff25d2321d85238"
+      "sha256": "9888f060af1b08558dde41fffcc630a961e2224bad746ed17f76c1f3ccdfe87c"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssignmentPersistenceService.cs",
@@ -1730,6 +1798,10 @@
       "sha256": "afb739d019f758fcac91a84e53fb128e2920531d13f95fd0e015369e82e01db1"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Interfaces/Cases/IPublicPublicationRepository.cs",
+      "sha256": "dd737a35a4c04d30296e6975ec357fdcaff914d5287defe07773c8abdc20e57e"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Interfaces/Defects/ICandidateDecisionRepository.cs",
       "sha256": "5d13da1dbe67ddbf60855159c102e39f35897100ccc071e2105f8de28aadaf6e"
     },
@@ -1747,7 +1819,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Exports/IExportRepository.cs",
-      "sha256": "3c458130a6a2de4db4d9290f7a97fb3c7245c3871cb41e1d9a63a498d6bf8daf"
+      "sha256": "9534940275cde4c02ccc8f874feb1aa8607ed70f03d03371f8e695002da3a999"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Files/FileMetadataPersistenceView.cs",
@@ -1867,7 +1939,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Messaging/H6NotificationInternalContracts.cs",
-      "sha256": "de22acb742cd8a07194f28d8368df7b77b993283b0c7ba17f46601936979ff79"
+      "sha256": "dc1da9010103210cf72a6338cf9f8497b82b58e51901458cb0a5907ec31eeb5e"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Messaging/IBusinessDutyRepository.cs",
@@ -1942,12 +2014,16 @@
       "sha256": "ad993b3ab475016094cd9f51ca6407b0f67d66fb76528a7f2f76904aaf6025c5"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Interfaces/Processing/IAiDispatchSource.cs",
+      "sha256": "d52b3e2f73c16eaaa272a922a6b6e8f8ef131da1b87a0f0de0bb1636d26b01ea"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Interfaces/Processing/IAnh02AiRepository.cs",
       "sha256": "af04ba975fe6c9225b959b0cef51cada5719b9a487fd5c66340ca9c408566238"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Processing/IProcessingV2Repository.cs",
-      "sha256": "ac788c1128fbdbfe2cb710e27da91da68dc9a9589fa769751534cb0e13cd0c88"
+      "sha256": "2a90b00a1207debae50081b6c213e4dcd3d9883728124ca2a9953624553f27c9"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Processing/ProcessingAiResultRequest.cs",
@@ -1987,7 +2063,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Projects/IGeometryWorkflowRepository.cs",
-      "sha256": "a875c8584e6f188b5265e74c2636409e86b319210e2bd11b05852d8a2300f03f"
+      "sha256": "0d5416f715ca6857689bf1348ae9a5f30f363e966cae85c53f7af8aba7331c37"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Projects/IPavementWorkflowRepository.cs",
@@ -2006,6 +2082,10 @@
       "sha256": "18a118255deef2fc661aebbb2fa55de721592deba9e6cc319dc51889edfc5a0d"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Interfaces/Projects/IProjectListRepository.cs",
+      "sha256": "64693e956228b6b0b149986da2bc560e22de4e6bb22f808881bfeedf5ed34331"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Interfaces/Projects/IProjectMembershipRepository.cs",
       "sha256": "3b0e34257176775b741ef056c4d9ab48f6889ca28051dc77f94d110e3f6d05cb"
     },
@@ -2020,6 +2100,10 @@
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Projects/IRoadSectionVersionRepository.cs",
       "sha256": "0012f0704d93b67421563f706af2083b07be6868218bb05c9970ebe094a39f7d"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Interfaces/Repairs/INotificationSupervisorRepository.cs",
+      "sha256": "0b9adf83a121ae164689ea30b5e582a5dfc922a5fb70f85cc0ad31e7c2f1830a"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Repairs/IRepairEligibilityRepository.cs",
@@ -2092,6 +2176,10 @@
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Seeding/ISeedStep.cs",
       "sha256": "87c2dbbb764c62f9da8ec9158828452fee379d429d3c5e3a6136483fa31ff53d"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Interfaces/Staff/IStaffReadRepository.cs",
+      "sha256": "539253e3a9d1594985a5874f98fb48f7eed89bdf65a78d74e6cd4e032639fbfd"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Storage/CompletedStoragePart.cs",
@@ -2230,12 +2318,28 @@
       "sha256": "20aee162353fcb04298b86896ff65eb8c5c85bf1e1ae49f605393f395f243249"
     },
     {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261022074647_C1ControlledPublicPublication.Designer.cs",
+      "sha256": "d2c37987aaa7801cb64098a9b248dca71332a0562b6e0c4285fdb0b412c6aa7b"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261022074647_C1ControlledPublicPublication.cs",
+      "sha256": "59e02935836c8ce6b7b37f7d265afad3e34d380a2f1f4972bd6caafe79f637aa"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.Designer.cs",
+      "sha256": "007193287113effad3fbf1af6b889891f35d058d3bbb84dfe36cc4ba9ac4b1f8"
+    },
+    {
+      "path": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
+      "sha256": "c08b535e204081893a48cc3d57063797297f3c87d5c686dd8aed1c1de136d699"
+    },
+    {
       "path": "RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextDesignTimeFactory.cs",
       "sha256": "506aeecc0b0bc2e2b1cdda18aa13f315ad2f85f15854bd4369a60632bb5fdbc4"
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextModelSnapshot.cs",
-      "sha256": "277aecb05b0f781d261679b23edaf0f52e9b8fe5eb3eeef8d9e7acf5236a7f59"
+      "sha256": "12f52d37ec8fe7ca1cef1283242ef1e7ccd985cf744797ffe19f59f7fdbc76a3"
     },
     {
       "path": "RoadGuardSystem.Repositories/Models/Huy01/HuyIntegrationRows.cs",
@@ -2255,7 +2359,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Options/MinioStorageOptions.cs",
-      "sha256": "b841f9467260bfcf6c30d4a18508e1decf755cfd49cb1678a8f3c7de93804af4"
+      "sha256": "474ed272b6ff1013fc3f0709bfa8d230c91036b557786b4f5e7bb90fe0da50c6"
     },
     {
       "path": "RoadGuardSystem.Repositories/Options/RoadGuardDatabaseOptions.cs",
@@ -2279,7 +2383,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Options/UploadSessionOptions.cs",
-      "sha256": "c6a316cd082adbb9457a6055bdcbde3e09feecfaa16e0d465d3c5e7ecea2ddaf"
+      "sha256": "ea33a42851d81ba1f70d909207a68e0ffccec7b0c27c0200fd674e79a1294851"
     },
     {
       "path": "RoadGuardSystem.Repositories/Repairs/ObligationResponsibilityScope.cs",
@@ -2313,7 +2417,7 @@
     },
     {
       "path": "tests/RoadGuardSystem.IntegrationTests/Infrastructure/SqlServerTestFixture.cs",
-      "sha256": "258853f23f16ef397c88b9c82df92ac041f61c8271897881312ef820011d3d76"
+      "sha256": "19c06296f23bb66f6830a4aa76d471fcaa63363aaac0685023a1a3ade8752982"
     }
   ],
   "model": [
@@ -17837,6 +17941,42 @@
           "EnumStoredValues": null
         },
         {
+          "Name": "NotificationAssignmentId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.H6NotificationScopeRow",
+          "Property": "NotificationAssignmentId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "NotificationAssignmentVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.H6NotificationScopeRow",
+          "Property": "NotificationAssignmentVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(12)",
+          "Nullable": true,
+          "MaxLength": 12,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
           "Name": "NotificationId",
           "Entity": "RoadGuardSystem.BusinessObjects.Messaging.H6NotificationScopeRow",
           "Property": "NotificationId",
@@ -19620,6 +19760,483 @@
       "Checks": [
         "CK_NativeRouteFacts"
       ]
+    },
+    {
+      "TableKey": "dbo.NotificationSupervisorAudits",
+      "Entities": [
+        "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "Action",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit",
+          "Property": "Action",
+          "ClrType": "String",
+          "SqlType": "varchar(16)",
+          "Nullable": false,
+          "MaxLength": 16,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ActorId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "AssignmentId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit",
+          "Property": "AssignmentId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "At",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit",
+          "Property": "At",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAdd",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ItemId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit",
+          "Property": "ItemId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "PreviousAssignmentId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit",
+          "Property": "PreviousAssignmentId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_NotificationSupervisorAudits_NotificationSupervisorGenerations_AssignmentId",
+          "Columns": [
+            "AssignmentId"
+          ],
+          "PrincipalTable": "dbo.NotificationSupervisorGenerations",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_NotificationSupervisorAudits_AssignmentId"
+      ],
+      "Checks": []
+    },
+    {
+      "TableKey": "dbo.NotificationSupervisorGenerations",
+      "Entities": [
+        "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ActorId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "AssignedAt",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration",
+          "Property": "AssignedAt",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAdd",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ItemId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration",
+          "Property": "ItemId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupervisorId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration",
+          "Property": "SupervisorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Version",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration",
+          "Property": "Version",
+          "ClrType": "String",
+          "SqlType": "varchar(12)",
+          "Nullable": false,
+          "MaxLength": 12,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_NotificationSupervisorGenerations_NotificationSupervisorHeads_ItemId",
+          "Columns": [
+            "ItemId"
+          ],
+          "PrincipalTable": "dbo.NotificationSupervisorHeads",
+          "PrincipalColumns": [
+            "ItemId"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_NotificationSupervisorGenerations_ItemId_Version"
+      ],
+      "Checks": []
+    },
+    {
+      "TableKey": "dbo.NotificationSupervisorHeads",
+      "Entities": [
+        "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "AssignedAt",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "AssignedAt",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "AssignmentId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "AssignmentId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ItemId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "ItemId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "PackageId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "PackageId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RevokedAt",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "RevokedAt",
+          "ClrType": "DateTimeOffset?",
+          "SqlType": "datetimeoffset",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RowVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "RowVersion",
+          "ClrType": "Byte[]",
+          "SqlType": "rowversion",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAddOrUpdate",
+          "ConcurrencyToken": true,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupervisorId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead",
+          "Property": "SupervisorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_NotificationSupervisorHeads_RepairItems_ItemId",
+          "Columns": [
+            "ItemId"
+          ],
+          "PrincipalTable": "dbo.RepairItems",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_NotificationSupervisorHeads_AssignmentId"
+      ],
+      "Checks": []
     },
     {
       "TableKey": "dbo.Notifications",
@@ -26933,6 +27550,270 @@
         "CK_Projects_EngineeringUtmSrid",
         "CK_Projects_Status"
       ]
+    },
+    {
+      "TableKey": "dbo.PublicPublications",
+      "Entities": [
+        "RoadGuardSystem.BusinessObjects.Cases.PublicPublication"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ApprovedBy",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "ApprovedBy",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "CaseId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "CaseId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ConclusionId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "ConclusionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DamageCategory",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "DamageCategory",
+          "ClrType": "String",
+          "SqlType": "nvarchar(40)",
+          "Nullable": false,
+          "MaxLength": 40,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DefectId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "DefectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "PublishedAt",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "PublishedAt",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RowVersion",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "RowVersion",
+          "ClrType": "Byte[]",
+          "SqlType": "rowversion",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAddOrUpdate",
+          "ConcurrencyToken": true,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "WithdrawnAt",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "WithdrawnAt",
+          "ClrType": "DateTimeOffset?",
+          "SqlType": "datetimeoffset",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "WithdrawnBy",
+          "Entity": "RoadGuardSystem.BusinessObjects.Cases.PublicPublication",
+          "Property": "WithdrawnBy",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_PublicPublications_CaseConclusions_ConclusionId",
+          "Columns": [
+            "ConclusionId"
+          ],
+          "PrincipalTable": "dbo.CaseConclusions",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_PublicPublications_Defects_DefectId",
+          "Columns": [
+            "DefectId"
+          ],
+          "PrincipalTable": "dbo.Defects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_PublicPublications_IncidentCases_CaseId",
+          "Columns": [
+            "CaseId"
+          ],
+          "PrincipalTable": "dbo.IncidentCases",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_PublicPublications_Projects_ProjectId",
+          "Columns": [
+            "ProjectId"
+          ],
+          "PrincipalTable": "dbo.Projects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_PublicPublications_CaseId",
+        "IX_PublicPublications_ConclusionId",
+        "IX_PublicPublications_DefectId",
+        "IX_PublicPublications_ProjectId_DefectId"
+      ],
+      "Checks": []
     },
     {
       "TableKey": "dbo.QualityChecks",
@@ -64435,6 +65316,42 @@
           "EnumStoredValues": null
         },
         {
+          "Name": "NotificationAssignmentId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "NotificationAssignmentId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "NotificationAssignmentVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "NotificationAssignmentVersion",
+          "ClrType": "String",
+          "SqlType": "varchar(12)",
+          "Nullable": true,
+          "MaxLength": 12,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
           "Name": "NotificationId",
           "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
           "Property": "NotificationId",
@@ -66218,6 +67135,483 @@
       "Checks": [
         "CK_NativeRouteFacts"
       ]
+    },
+    {
+      "TableKey": "dbo.NotificationSupervisorAudits",
+      "Entities": [
+        "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "Action",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Action",
+          "ClrType": "String",
+          "SqlType": "varchar(16)",
+          "Nullable": false,
+          "MaxLength": 16,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ActorId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "AssignmentId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "AssignmentId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "At",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "At",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAdd",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ItemId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ItemId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "PreviousAssignmentId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "PreviousAssignmentId",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_NotificationSupervisorAudits_NotificationSupervisorGenerations_AssignmentId",
+          "Columns": [
+            "AssignmentId"
+          ],
+          "PrincipalTable": "dbo.NotificationSupervisorGenerations",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_NotificationSupervisorAudits_AssignmentId"
+      ],
+      "Checks": []
+    },
+    {
+      "TableKey": "dbo.NotificationSupervisorGenerations",
+      "Entities": [
+        "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ActorId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ActorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "AssignedAt",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "AssignedAt",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAdd",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ItemId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ItemId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupervisorId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SupervisorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Version",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Version",
+          "ClrType": "String",
+          "SqlType": "varchar(12)",
+          "Nullable": false,
+          "MaxLength": 12,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_NotificationSupervisorGenerations_NotificationSupervisorHeads_ItemId",
+          "Columns": [
+            "ItemId"
+          ],
+          "PrincipalTable": "dbo.NotificationSupervisorHeads",
+          "PrincipalColumns": [
+            "ItemId"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_NotificationSupervisorGenerations_ItemId_Version"
+      ],
+      "Checks": []
+    },
+    {
+      "TableKey": "dbo.NotificationSupervisorHeads",
+      "Entities": [
+        "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "AssignedAt",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "AssignedAt",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "AssignmentId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "AssignmentId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ItemId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ItemId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "PackageId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "PackageId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RevokedAt",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "RevokedAt",
+          "ClrType": "DateTimeOffset?",
+          "SqlType": "datetimeoffset",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RowVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "RowVersion",
+          "ClrType": "Byte[]",
+          "SqlType": "rowversion",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAddOrUpdate",
+          "ConcurrencyToken": true,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "SupervisorId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "SupervisorId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_NotificationSupervisorHeads_RepairItems_ItemId",
+          "Columns": [
+            "ItemId"
+          ],
+          "PrincipalTable": "dbo.RepairItems",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_NotificationSupervisorHeads_AssignmentId"
+      ],
+      "Checks": []
     },
     {
       "TableKey": "dbo.Notifications",
@@ -73531,6 +74925,270 @@
         "CK_Projects_EngineeringUtmSrid",
         "CK_Projects_Status"
       ]
+    },
+    {
+      "TableKey": "dbo.PublicPublications",
+      "Entities": [
+        "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]"
+      ],
+      "QueryFilters": [],
+      "Columns": [
+        {
+          "Name": "ApprovedBy",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ApprovedBy",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "CaseId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "CaseId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ConclusionId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ConclusionId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DamageCategory",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "DamageCategory",
+          "ClrType": "String",
+          "SqlType": "nvarchar(40)",
+          "Nullable": false,
+          "MaxLength": 40,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "DefectId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "DefectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "Id",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "Id",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "ProjectId",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "ProjectId",
+          "ClrType": "Guid",
+          "SqlType": "uniqueidentifier",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "PublishedAt",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "PublishedAt",
+          "ClrType": "DateTimeOffset",
+          "SqlType": "datetimeoffset",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "RowVersion",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "RowVersion",
+          "ClrType": "Byte[]",
+          "SqlType": "rowversion",
+          "Nullable": false,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "OnAddOrUpdate",
+          "ConcurrencyToken": true,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "WithdrawnAt",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "WithdrawnAt",
+          "ClrType": "DateTimeOffset?",
+          "SqlType": "datetimeoffset",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        },
+        {
+          "Name": "WithdrawnBy",
+          "Entity": "System.Collections.Generic.Dictionary\u00602[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.Object, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+          "Property": "WithdrawnBy",
+          "ClrType": "Guid?",
+          "SqlType": "uniqueidentifier",
+          "Nullable": true,
+          "MaxLength": null,
+          "Precision": null,
+          "Scale": null,
+          "DefaultSql": null,
+          "ComputedSql": null,
+          "ValueGenerated": "Never",
+          "ConcurrencyToken": false,
+          "Shadow": false,
+          "ConverterProviderType": null,
+          "EnumStoredValues": null
+        }
+      ],
+      "ForeignKeys": [
+        {
+          "Name": "FK_PublicPublications_CaseConclusions_ConclusionId",
+          "Columns": [
+            "ConclusionId"
+          ],
+          "PrincipalTable": "dbo.CaseConclusions",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_PublicPublications_Defects_DefectId",
+          "Columns": [
+            "DefectId"
+          ],
+          "PrincipalTable": "dbo.Defects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_PublicPublications_IncidentCases_CaseId",
+          "Columns": [
+            "CaseId"
+          ],
+          "PrincipalTable": "dbo.IncidentCases",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        },
+        {
+          "Name": "FK_PublicPublications_Projects_ProjectId",
+          "Columns": [
+            "ProjectId"
+          ],
+          "PrincipalTable": "dbo.Projects",
+          "PrincipalColumns": [
+            "Id"
+          ],
+          "Required": true,
+          "DeleteBehavior": "Restrict"
+        }
+      ],
+      "Indexes": [
+        "IX_PublicPublications_CaseId",
+        "IX_PublicPublications_ConclusionId",
+        "IX_PublicPublications_DefectId",
+        "IX_PublicPublications_ProjectId_DefectId"
+      ],
+      "Checks": []
     },
     {
       "TableKey": "dbo.QualityChecks",
@@ -105607,6 +107265,31 @@
       },
       {
         "schema": "dbo",
+        "table": "H6NotificationScopes",
+        "name": "NotificationAssignmentId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": true,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "H6NotificationScopes",
+        "name": "NotificationAssignmentVersion",
+        "type": "varchar",
+        "maxLengthBytes": 12,
+        "precision": 0,
+        "scale": 0,
+        "nullable": true,
+        "identity": false,
+        "computed": false,
+        "collation": "SQL_Latin1_General_CP1_CI_AS"
+      },
+      {
+        "schema": "dbo",
         "table": "HandoverDocuments",
         "name": "Id",
         "type": "uniqueidentifier",
@@ -106529,6 +108212,272 @@
       {
         "schema": "dbo",
         "table": "Notifications",
+        "name": "RowVersion",
+        "type": "timestamp",
+        "maxLengthBytes": 8,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "Id",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "ItemId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "AssignmentId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "PreviousAssignmentId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": true,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "ActorId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "Action",
+        "type": "varchar",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false,
+        "collation": "SQL_Latin1_General_CP1_CI_AS"
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "At",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "Id",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "ItemId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "ProjectId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "SupervisorId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "ActorId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "AssignedAt",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "Version",
+        "type": "varchar",
+        "maxLengthBytes": 12,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false,
+        "collation": "SQL_Latin1_General_CP1_CI_AS"
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "ItemId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "ProjectId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "PackageId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "AssignmentId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "SupervisorId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "AssignedAt",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "RevokedAt",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": true,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
         "name": "RowVersion",
         "type": "timestamp",
         "maxLengthBytes": 8,
@@ -110086,6 +112035,139 @@
       {
         "schema": "dbo",
         "table": "Projects",
+        "name": "RowVersion",
+        "type": "timestamp",
+        "maxLengthBytes": 8,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "Id",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "ProjectId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "DefectId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "CaseId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "ConclusionId",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "ApprovedBy",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "DamageCategory",
+        "type": "nvarchar",
+        "maxLengthBytes": 80,
+        "precision": 0,
+        "scale": 0,
+        "nullable": false,
+        "identity": false,
+        "computed": false,
+        "collation": "SQL_Latin1_General_CP1_CI_AS"
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "PublishedAt",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": false,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "WithdrawnAt",
+        "type": "datetimeoffset",
+        "maxLengthBytes": 10,
+        "precision": 34,
+        "scale": 7,
+        "nullable": true,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "WithdrawnBy",
+        "type": "uniqueidentifier",
+        "maxLengthBytes": 16,
+        "precision": 0,
+        "scale": 0,
+        "nullable": true,
+        "identity": false,
+        "computed": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
         "name": "RowVersion",
         "type": "timestamp",
         "maxLengthBytes": 8,
@@ -125383,6 +127465,51 @@
       },
       {
         "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "FK_NotificationSupervisorAudits_NotificationSupervisorGenerations_AssignmentId",
+        "column": "AssignmentId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "NotificationSupervisorGenerations",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "onUpdate": "NO_ACTION",
+        "disabled": false,
+        "notTrusted": false,
+        "notForReplication": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "FK_NotificationSupervisorGenerations_NotificationSupervisorHeads_ItemId",
+        "column": "ItemId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "NotificationSupervisorHeads",
+        "principalColumn": "ItemId",
+        "onDelete": "NO_ACTION",
+        "onUpdate": "NO_ACTION",
+        "disabled": false,
+        "notTrusted": false,
+        "notForReplication": false
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "FK_NotificationSupervisorHeads_RepairItems_ItemId",
+        "column": "ItemId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "RepairItems",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "onUpdate": "NO_ACTION",
+        "disabled": false,
+        "notTrusted": false,
+        "notForReplication": false
+      },
+      {
+        "schema": "dbo",
         "table": "ObligationResponsibilities",
         "name": "FK_ObligationResponsibilities_LD06LifecycleActions_AcceptanceActionId",
         "column": "AcceptanceActionId",
@@ -127384,6 +129511,66 @@
         "ordinal": 1,
         "principalSchema": "dbo",
         "principalTable": "Users",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "onUpdate": "NO_ACTION",
+        "disabled": false,
+        "notTrusted": false,
+        "notForReplication": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "FK_PublicPublications_CaseConclusions_ConclusionId",
+        "column": "ConclusionId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "CaseConclusions",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "onUpdate": "NO_ACTION",
+        "disabled": false,
+        "notTrusted": false,
+        "notForReplication": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "FK_PublicPublications_Defects_DefectId",
+        "column": "DefectId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Defects",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "onUpdate": "NO_ACTION",
+        "disabled": false,
+        "notTrusted": false,
+        "notForReplication": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "FK_PublicPublications_IncidentCases_CaseId",
+        "column": "CaseId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "IncidentCases",
+        "principalColumn": "Id",
+        "onDelete": "NO_ACTION",
+        "onUpdate": "NO_ACTION",
+        "disabled": false,
+        "notTrusted": false,
+        "notForReplication": false
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "FK_PublicPublications_Projects_ProjectId",
+        "column": "ProjectId",
+        "ordinal": 1,
+        "principalSchema": "dbo",
+        "principalTable": "Projects",
         "principalColumn": "Id",
         "onDelete": "NO_ACTION",
         "onUpdate": "NO_ACTION",
@@ -137898,6 +140085,74 @@
       },
       {
         "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "IX_NotificationSupervisorAudits_AssignmentId",
+        "column": "AssignmentId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "IX_NotificationSupervisorGenerations_ItemId_Version",
+        "column": "ItemId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": true,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "IX_NotificationSupervisorGenerations_ItemId_Version",
+        "column": "Version",
+        "ordinal": 2,
+        "included": false,
+        "descending": false,
+        "unique": true,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "IX_NotificationSupervisorHeads_AssignmentId",
+        "column": "AssignmentId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": true,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
         "table": "ObligationResponsibilities",
         "name": "IX_ObligationResponsibilities_AcceptanceActionId",
         "column": "AcceptanceActionId",
@@ -141085,6 +143340,91 @@
         "included": false,
         "descending": false,
         "unique": true,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "IX_PublicPublications_CaseId",
+        "column": "CaseId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "IX_PublicPublications_ConclusionId",
+        "column": "ConclusionId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "IX_PublicPublications_DefectId",
+        "column": "DefectId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "IX_PublicPublications_ProjectId_DefectId",
+        "column": "ProjectId",
+        "ordinal": 1,
+        "included": false,
+        "descending": false,
+        "unique": false,
+        "filtered": false,
+        "kind": "NONCLUSTERED",
+        "disabled": false,
+        "fillFactor": 0,
+        "padded": false,
+        "allowRowLocks": true,
+        "allowPageLocks": true
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "IX_PublicPublications_ProjectId_DefectId",
+        "column": "DefectId",
+        "ordinal": 2,
+        "included": false,
+        "descending": false,
+        "unique": false,
         "filtered": false,
         "kind": "NONCLUSTERED",
         "disabled": false,
@@ -148287,6 +150627,30 @@
       },
       {
         "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "PK_NotificationSupervisorAudits",
+        "kind": "PRIMARY_KEY_CONSTRAINT",
+        "column": "Id",
+        "ordinal": 1
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "PK_NotificationSupervisorGenerations",
+        "kind": "PRIMARY_KEY_CONSTRAINT",
+        "column": "Id",
+        "ordinal": 1
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads",
+        "name": "PK_NotificationSupervisorHeads",
+        "kind": "PRIMARY_KEY_CONSTRAINT",
+        "column": "ItemId",
+        "ordinal": 1
+      },
+      {
+        "schema": "dbo",
         "table": "ObligationResponsibilities",
         "name": "PK_ObligationResponsibilities",
         "kind": "PRIMARY_KEY_CONSTRAINT",
@@ -148753,6 +151117,14 @@
         "schema": "dbo",
         "table": "Projects",
         "name": "PK_Projects",
+        "kind": "PRIMARY_KEY_CONSTRAINT",
+        "column": "Id",
+        "ordinal": 1
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications",
+        "name": "PK_PublicPublications",
         "kind": "PRIMARY_KEY_CONSTRAINT",
         "column": "Id",
         "ordinal": 1
@@ -150000,6 +152372,18 @@
       },
       {
         "schema": "dbo",
+        "table": "NotificationSupervisorAudits"
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations"
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorHeads"
+      },
+      {
+        "schema": "dbo",
         "table": "ObligationResponsibilities"
       },
       {
@@ -150105,6 +152489,10 @@
       {
         "schema": "dbo",
         "table": "Projects"
+      },
+      {
+        "schema": "dbo",
+        "table": "PublicPublications"
       },
       {
         "schema": "dbo",
@@ -151179,6 +153567,16 @@
       {
         "schema": "dbo",
         "table": "H6NotificationScopes",
+        "name": "TR_H6NotificationScopes_AssignmentProof",
+        "disabled": false,
+        "insteadOf": false,
+        "notForReplication": false,
+        "definition": "CREATE TRIGGER [TR_H6NotificationScopes_AssignmentProof] ON [H6NotificationScopes]\r\nAFTER INSERT, UPDATE AS\r\nBEGIN\r\n    SET NOCOUNT ON;\r\n    IF EXISTS (SELECT 1 FROM inserted i WHERE\r\n        (i.NotificationAssignmentId IS NULL AND i.NotificationAssignmentVersion IS NOT NULL)\r\n        OR (i.NotificationAssignmentId IS NOT NULL AND i.NotificationAssignmentVersion IS NULL))\r\n        THROW 51000, \u0027Incomplete assignment scope proof.\u0027, 1;\r\n    IF EXISTS (SELECT 1 FROM inserted i JOIN deleted d ON d.NotificationId=i.NotificationId\r\n        WHERE ISNULL(CONVERT(varchar(36),i.NotificationAssignmentId),\u0027\u0027) \u003C\u003E ISNULL(CONVERT(varchar(36),d.NotificationAssignmentId),\u0027\u0027)\r\n        OR ISNULL(i.NotificationAssignmentVersion,\u0027\u0027) \u003C\u003E ISNULL(d.NotificationAssignmentVersion,\u0027\u0027))\r\n        THROW 51000, \u0027Assignment scope proof is immutable.\u0027, 1;\r\nEND\r\n",
+        "events": "INSERT,UPDATE"
+      },
+      {
+        "schema": "dbo",
+        "table": "H6NotificationScopes",
         "name": "TR_H6NotificationScopes_Source",
         "disabled": false,
         "insteadOf": false,
@@ -151235,6 +153633,26 @@
         "notForReplication": false,
         "definition": "CREATE TRIGGER [TR_NativeRouteVersionFacts_Scope] ON [dbo].[NativeRouteVersionFacts] AFTER INSERT AS BEGIN SET NOCOUNT ON; IF EXISTS(SELECT 1 FROM inserted i JOIN RoadSectionVersions v ON v.Id=i.RoadSectionVersionId JOIN RoadSections r ON r.Id=v.RoadSectionId JOIN CrsProfileRevisions c ON c.Id=i.CrsProfileRevisionId WHERE r.ProjectId\u003C\u003Ei.ProjectId OR v.CrsProfileRevisionId IS NULL OR v.CrsProfileRevisionId\u003C\u003Ei.CrsProfileRevisionId OR c.SampleOnly\u003C\u003Ei.SampleOnly) THROW 51231, \u0027Native route scope mismatch.\u0027, 1; IF EXISTS(SELECT 1 FROM inserted i WHERE i.RouteKind=\u0027BRANCH\u0027 AND NOT EXISTS(SELECT 1 FROM NativeRouteVersionFacts p JOIN RoadSectionVersions pv ON pv.Id=p.RoadSectionVersionId JOIN RoadSectionVersions cv ON cv.Id=i.RoadSectionVersionId WHERE p.RoadSectionVersionId=i.ParentRouteVersionId AND p.ProjectId=i.ProjectId AND p.RouteSystemId=i.RouteSystemId AND p.CrsProfileRevisionId=i.CrsProfileRevisionId AND pv.RoadSectionId\u003C\u003Ecv.RoadSectionId AND pv.IsCurrent=1 AND i.JunctionOffsetMeters\u003C=p.CanonicalLengthMeters)) THROW 51231, \u0027Native branch scope mismatch.\u0027, 1; DECLARE @bad bit=0; WITH walk AS (SELECT i.RoadSectionVersionId AS RootId,v.RoadSectionId AS RootSectionId,i.ParentRouteVersionId AS NextId,CAST(\u0027|\u0027 \u002B CONVERT(varchar(36),i.RoadSectionVersionId) \u002B \u0027|\u0027 AS varchar(max)) AS Seen,CAST(\u0027|\u0027 \u002B CONVERT(varchar(36),v.RoadSectionId) \u002B \u0027|\u0027 AS varchar(max)) AS SeenSections,CAST(0 AS bit) AS Bad,0 AS Depth FROM inserted i JOIN RoadSectionVersions v ON v.Id=i.RoadSectionVersionId UNION ALL SELECT w.RootId,w.RootSectionId,p.ParentRouteVersionId,CAST(w.Seen \u002B CONVERT(varchar(36),p.RoadSectionVersionId) \u002B \u0027|\u0027 AS varchar(max)),CAST(w.SeenSections \u002B CONVERT(varchar(36),v.RoadSectionId) \u002B \u0027|\u0027 AS varchar(max)),CAST(CASE WHEN CHARINDEX(\u0027|\u0027 \u002B CONVERT(varchar(36),p.RoadSectionVersionId) \u002B \u0027|\u0027,w.Seen)\u003E0 OR CHARINDEX(\u0027|\u0027 \u002B CONVERT(varchar(36),v.RoadSectionId) \u002B \u0027|\u0027,w.SeenSections)\u003E0 THEN 1 ELSE 0 END AS bit),w.Depth\u002B1 FROM walk w JOIN NativeRouteVersionFacts p ON p.RoadSectionVersionId=w.NextId JOIN RoadSectionVersions v ON v.Id=p.RoadSectionVersionId WHERE w.Bad=0 AND w.Depth\u003C100000) SELECT @bad=1 FROM walk WHERE Bad=1 OR Depth\u003E=100000 OPTION(MAXRECURSION 0); IF @bad=1 THROW 51231, \u0027Native route topology cycle or depth bound exceeded.\u0027, 1; END\r\n",
         "events": "INSERT"
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorAudits",
+        "name": "TR_NotificationSupervisorAudits_Immutable",
+        "disabled": false,
+        "insteadOf": true,
+        "notForReplication": false,
+        "definition": "CREATE TRIGGER [TR_NotificationSupervisorAudits_Immutable] ON [NotificationSupervisorAudits]\r\nINSTEAD OF UPDATE, DELETE AS\r\nBEGIN\r\n    THROW 51000, \u0027Assignment audits are immutable.\u0027, 1;\r\nEND\r\n",
+        "events": "DELETE,UPDATE"
+      },
+      {
+        "schema": "dbo",
+        "table": "NotificationSupervisorGenerations",
+        "name": "TR_NotificationSupervisorGenerations_Immutable",
+        "disabled": false,
+        "insteadOf": true,
+        "notForReplication": false,
+        "definition": "CREATE TRIGGER [TR_NotificationSupervisorGenerations_Immutable] ON [NotificationSupervisorGenerations]\r\nINSTEAD OF UPDATE, DELETE AS\r\nBEGIN\r\n    THROW 51000, \u0027Assignment generations are immutable.\u0027, 1;\r\nEND\r\n",
+        "events": "DELETE,UPDATE"
       },
       {
         "schema": "dbo",
@@ -153943,6 +156361,28 @@
     {
       "Schema": "dbo",
       "Table": "H6NotificationScopes",
+      "Name": "TR_H6NotificationScopes_AssignmentProof",
+      "observedDefinitionSha256Utf8Lf": "08b2b87ea7c1def962f4605ff4548e51e8d7279c93d7215a64d4803d51a27ebb",
+      "createdMigration": "20261022181921_B2NotificationSupervisorAssignment",
+      "lastDefinitionMigration": "20261022181921_B2NotificationSupervisorAssignment",
+      "sourcePath": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
+      "sourceLine": 130,
+      "migrationSqlSha256Utf8Lf": "47460bbbd8f0cba2d5a03228b5673e93320695349e1fa19dad8798f768a9841c",
+      "expectedCatalogDefinitionSha256Utf8Lf": "47460bbbd8f0cba2d5a03228b5673e93320695349e1fa19dad8798f768a9841c",
+      "textComparison": "OUTER_WHITESPACE_ONLY",
+      "operationHistory": [
+        {
+          "MigrationId": "20261022181921_B2NotificationSupervisorAssignment",
+          "Action": "CREATE",
+          "Path": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
+          "Line": 130
+        }
+      ],
+      "runtimeBehavior": "NOT_TESTED"
+    },
+    {
+      "Schema": "dbo",
+      "Table": "H6NotificationScopes",
       "Name": "TR_H6NotificationScopes_Source",
       "observedDefinitionSha256Utf8Lf": "e3ac4a4f4ba8351e8bf0480fdd111791a2648c9e8d71880b29893094a475e33e",
       "createdMigration": "20261008171739_BaselineCurrentSchema",
@@ -154068,6 +156508,50 @@
           "Action": "CREATE",
           "Path": "RoadGuardSystem.Repositories/Migrations/20261008171739_BaselineCurrentSchema.cs",
           "Line": 12646
+        }
+      ],
+      "runtimeBehavior": "NOT_TESTED"
+    },
+    {
+      "Schema": "dbo",
+      "Table": "NotificationSupervisorAudits",
+      "Name": "TR_NotificationSupervisorAudits_Immutable",
+      "observedDefinitionSha256Utf8Lf": "618ffdf4bb4d76308481795b242a9f2e2a8585f14169ccb870c91880ee444ebc",
+      "createdMigration": "20261022181921_B2NotificationSupervisorAssignment",
+      "lastDefinitionMigration": "20261022181921_B2NotificationSupervisorAssignment",
+      "sourcePath": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
+      "sourceLine": 123,
+      "migrationSqlSha256Utf8Lf": "ad60c2e00c2c2f60b8ba439d2f049ea69ede60dcb6466dc7760cb7e60f48efaf",
+      "expectedCatalogDefinitionSha256Utf8Lf": "ad60c2e00c2c2f60b8ba439d2f049ea69ede60dcb6466dc7760cb7e60f48efaf",
+      "textComparison": "OUTER_WHITESPACE_ONLY",
+      "operationHistory": [
+        {
+          "MigrationId": "20261022181921_B2NotificationSupervisorAssignment",
+          "Action": "CREATE",
+          "Path": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
+          "Line": 123
+        }
+      ],
+      "runtimeBehavior": "NOT_TESTED"
+    },
+    {
+      "Schema": "dbo",
+      "Table": "NotificationSupervisorGenerations",
+      "Name": "TR_NotificationSupervisorGenerations_Immutable",
+      "observedDefinitionSha256Utf8Lf": "2d7728596af49bd5ea33b02b17791b082dc79951d92eaff99472995c46c230fe",
+      "createdMigration": "20261022181921_B2NotificationSupervisorAssignment",
+      "lastDefinitionMigration": "20261022181921_B2NotificationSupervisorAssignment",
+      "sourcePath": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
+      "sourceLine": 116,
+      "migrationSqlSha256Utf8Lf": "ec5c7ae7bd3006eb4c19132381dcb58d13beca63da53d112512f748510d85449",
+      "expectedCatalogDefinitionSha256Utf8Lf": "ec5c7ae7bd3006eb4c19132381dcb58d13beca63da53d112512f748510d85449",
+      "textComparison": "OUTER_WHITESPACE_ONLY",
+      "operationHistory": [
+        {
+          "MigrationId": "20261022181921_B2NotificationSupervisorAssignment",
+          "Action": "CREATE",
+          "Path": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
+          "Line": 116
         }
       ],
       "runtimeBehavior": "NOT_TESTED"

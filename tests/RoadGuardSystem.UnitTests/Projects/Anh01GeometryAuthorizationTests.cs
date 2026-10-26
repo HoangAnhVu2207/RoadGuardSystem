@@ -10,6 +10,19 @@ namespace RoadGuardSystem.UnitTests.Projects;
 public sealed class Anh01GeometryAuthorizationTests
 {
     [Theory]
+    [InlineData(UserRoleCode.Supervisor, true, 200)]
+    [InlineData(UserRoleCode.ProjectManager, true, 200)]
+    [InlineData(UserRoleCode.ProjectManager, false, 403)]
+    [InlineData(UserRoleCode.DroneOperator, true, 403)]
+    [InlineData(UserRoleCode.Reporter, true, 403)]
+    public async Task Segment_collection_uses_current_detail_authority(UserRoleCode role, bool active, int expected)
+    {
+        var repository = new Repository();
+        var result = await new GeometryWorkflowService(repository, new Guard(active)).ExecuteAsync(role, Command("set-list"), default);
+        result.Status.Should().Be(expected);
+        repository.Executed.Should().Be(expected == 200);
+    }
+    [Theory]
     [InlineData(UserRoleCode.ProjectManager, "confirm")]
     [InlineData(UserRoleCode.Supervisor, "draft-create")]
     [InlineData(UserRoleCode.DroneOperator, "set-create")]

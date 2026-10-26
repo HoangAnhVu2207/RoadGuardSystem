@@ -21,8 +21,10 @@ namespace RoadGuardSystem.ApiTests.Surveys;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
 {
-    [Fact]
-    public async Task ManualAssessmentPartialBaselineSupplementAndRevocationPersistThroughHttp()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ManualAssessmentPartialBaselineSupplementAndRevocationPersistThroughHttp(bool withAccessPoint)
     {
         var supervisor = await sql.CreateUserAsync($"anh-super-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         var manager = await sql.CreateUserAsync($"anh-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
@@ -108,7 +110,7 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             surveyType = "BASELINE",
             operatorId = first.Id,
             dueAt = "2026-10-03T08:00:00Z",
-            accessPoint = (object?)null,
+            accessPoint = withAccessPoint ? new { point = new { longitude = 106.5, latitude = 10.5 }, source = "MANUAL", accuracyMeters = 2d } : (object?)null,
             planId
         });
         taskResponse.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -117,6 +119,14 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var work = await client.GetAsync($"/api/v1/survey-tasks/{task}/work-package");
         work.StatusCode.Should().Be(HttpStatusCode.OK);
         var workBody = await Body(work);
+        workBody.TryGetProperty("accessPoint", out var actualAccessPoint).Should().Be(withAccessPoint);
+        if (withAccessPoint)
+        {
+            actualAccessPoint.GetProperty("point").GetProperty("longitude").GetDouble().Should().Be(106.5);
+            actualAccessPoint.GetProperty("point").GetProperty("latitude").GetDouble().Should().Be(10.5);
+            actualAccessPoint.GetProperty("source").GetString().Should().Be("MANUAL");
+            actualAccessPoint.GetProperty("accuracyMeters").GetDouble().Should().Be(2d);
+        }
         workBody.GetProperty("schemaVersion").GetString().Should().Be("anh01.survey-work.v1");
         workBody.GetProperty("geometryRefs").GetArrayLength().Should().Be(1);
         workBody.GetProperty("geometryRefs")[0].TryGetProperty("targetBand", out _).Should().BeFalse();

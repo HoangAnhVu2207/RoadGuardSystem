@@ -104,6 +104,7 @@ public sealed class UploadsController : ControllerBase
     [ProducesResponseType<FileMetadataResponseDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFileMetadata(Guid fileId, CancellationToken cancellationToken)
     {
+        Response.Headers.CacheControl = "private, no-store";
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         var result = await _service.GetFileMetadataAsync(actorUserId, role, fileId, cancellationToken);
         if (result.File is not null) Response.Headers.ETag = $"\"{result.File.Version}\"";
@@ -119,6 +120,7 @@ public sealed class UploadsController : ControllerBase
     [HttpGet("files/{fileId:guid}/content")]
     public async Task<IActionResult> Download(Guid fileId, CancellationToken cancellationToken)
     {
+        Response.Headers.CacheControl = "private, no-store";
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         var result = await _service.DownloadAsync(actorUserId, role, fileId, cancellationToken);
         return result.Status switch

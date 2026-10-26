@@ -61,8 +61,9 @@ public sealed class CaseWorkflowService(ICaseWorkflowRepository repository, IPro
             return new(command.Action is "publish" or "split" ? 201 : 200, Write: JsonSerializer.Deserialize<CaseWriteResult>(result.OutcomeJson));
         });
 
-    private static bool ValidVersion(string value)
+    private static bool ValidVersion(string? value)
     {
+        if (value is null) return false;
         try { return Convert.FromBase64String(value).Length == 8; } catch (FormatException) { return false; }
     }
     private static CaseWorkflowResult Invalid(string field) => new(400, "validation_error", Errors: new Dictionary<string, string[]> { [field] = ["Invalid command field."] });

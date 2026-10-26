@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "task": "RG-BE-FE-FINAL-HANDOFF-CLOSEOUT",
+  "runnerPolicy": "DENY_ALL",
+  "coveragePromotion": false,
+  "authority": "TARGET_CONFIRMED",
+  "decisionSource": "Owner C2C A1/B2 exact compatibility and C1_DATA_POLICY_APPROVED 2026-10-22; planning/development/RG-BE-FE-FINAL-HANDOFF-CLOSEOUT.md",
+  "decisions": [
+    {
+      "id": "A1",
+      "policy": {
+        "issuer": "roadguard-backend",
+        "audience": "roadguard-ai-callback",
+        "algorithm": "RS256",
+        "ttlSeconds": 300,
+        "mint": "Backend internal dispatch, committed current job/attempt only",
+        "publicMint": false
+      },
+      "source": [
+        "RoadGuardSystem.Services/Implementations/Processing/AiCallbackTokens.cs",
+        "RoadGuardSystem.API/Authentication/AiServiceJwtBearerConfiguration.cs",
+        "RoadGuardSystem.API/Controllers/ProcessingV2Controller.cs"
+      ],
+      "runtime": "a1-dispatch-http-sql.trx",
+      "limitation": "External AI transport NOT_VERIFIED; development mock remains separate",
+      "sourceHashes": {
+        "RoadGuardSystem.Services/Implementations/Processing/AiCallbackTokens.cs": "b23c9e2d9329b654b3c809eb69f3d09b45635b50330f924ce281fec5a4b69f0c",
+        "RoadGuardSystem.API/Authentication/AiServiceJwtBearerConfiguration.cs": "1a346e6852797fe1ea99a1b0c573d35bd77fe83d7ab34074c91698cc742bc071",
+        "RoadGuardSystem.API/Controllers/ProcessingV2Controller.cs": "417100630c44233c2912ca5ca3de27b084dd254eb6028f2ab134705bc1b404f1"
+      }
+    },
+    {
+      "id": "B2",
+      "policy": {
+        "trigger": "Committed FastTrack SUBMITTED",
+        "snapshot": "All current project PMs plus exact assigned Supervisor",
+        "channel": "internal",
+        "dedup": "event+recipient+channel",
+        "missingSupervisor": "PM delivery plus unresolved assignment"
+      },
+      "source": [
+        "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
+        "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Delivery.cs"
+      ],
+      "runtime": "b2-producer-fixed.trx",
+      "limitation": "OWNER_CONFIRMED source boundary: genuine FastTrack has no Supervisor duty; Supervisor-positive delivery NOT_SUPPORTED_BY_CURRENT_SOURCE. PM delivery plus unresolved assignment verified; do not fabricate assignments.",
+      "sourceHashes": {
+        "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs": "b64dbf01cc1d0345772797fbc30261d96a6f7bdd619acc01cf1be73cda736c58",
+        "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Delivery.cs": "8edf122b9dfe8c49a85011d99c310d1d4d69e765360aaa549ce47b06c76ff491"
+      }
+    },
+    {
+      "id": "C1",
+      "policy": {
+        "mapping": {
+          "CRACK": "ROAD_SURFACE_DAMAGE",
+          "POTHOLE": "ROAD_SURFACE_DAMAGE"
+        },
+        "unknown": "DENY",
+        "status": "PUBLISHED",
+        "withdrawnRead": 404,
+        "cache": "no-store",
+        "fields": [
+          "publicId",
+          "damageCategory",
+          "publicStatus",
+          "publishedAt"
+        ],
+        "eligibility": "Current project PM; Verified Defect + Confirm provenance; valid CONCLUDED/CONFIRMED Case including same Defect and verified linked evidence"
+      },
+      "source": [
+        "RoadGuardSystem.Repositories/Implementations/Cases/PublicPublicationRepository.cs",
+        "RoadGuardSystem.Services/Implementations/Cases/PublicPublicationService.cs",
+        "RoadGuardSystem.API/Controllers/PublicPublicationsController.cs"
+      ],
+      "runtime": "c1-final.trx",
+      "limitation": "Controlled genuine lineage SQL/HTTP fixture, not all FE journeys",
+      "sourceHashes": {
+        "RoadGuardSystem.Repositories/Implementations/Cases/PublicPublicationRepository.cs": "d7e5b587cd68ca58739dfcaa477d9dce28d5cc9ab475243d695dc3437776c148",
+        "RoadGuardSystem.Services/Implementations/Cases/PublicPublicationService.cs": "b245c0325daadae6d0e1a74c68d73823641b6a809e5051642abacb4f89f3b07a",
+        "RoadGuardSystem.API/Controllers/PublicPublicationsController.cs": "57d76dd116d44cf563dbcec9ae0c39bdba86ede2a1f0e19799b7565cbe4a45b8"
+      }
+    },
+    {
+      "id": "D1",
+      "policy": {
+        "automaticOrphanDeletion": false
+      },
+      "source": [],
+      "runtime": null,
+      "sourceHashes": {}
+    }
+  ]
+}

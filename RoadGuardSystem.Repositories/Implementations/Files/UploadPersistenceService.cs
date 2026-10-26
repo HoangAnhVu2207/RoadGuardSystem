@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Files;
+using RoadGuardSystem.BusinessObjects.Processing;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Storage;
@@ -410,9 +411,26 @@ public sealed partial class UploadPersistenceService : IUploadRepository
             where file.Id == fileId
             select new { File = file, Scope = scope, Session = session })
             .SingleOrDefaultAsync(cancellationToken);
-        return row is null
-            ? null
-            : new FileMetadataPersistenceView(
+        if (row is null)
+        {
+            // Worker-generated frames have no UploadSession. Only completed, matching
+            // provenance can establish their project and read authority.
+            var frame = await (from file in _context.Files.AsNoTracking()
+                               join proof in _context.Set<AiDetectionProvenance>().AsNoTracking() on file.Id equals proof.FrameFileId
+                               join result in _context.Set<AiResultProvenance>().AsNoTracking() on proof.ResultId equals result.Id
+                               join run in _context.Set<AiMockRun>().AsNoTracking() on proof.RunId equals run.Id
+                               where file.Id == fileId && run.Status == "SUCCEEDED" && run.ResultId == result.Id
+                                   && result.RunId == run.Id && result.ProcessingJobId == run.ProcessingJobId
+                                   && result.AttemptId == run.AttemptId && result.ManifestHash == run.ManifestHash
+                                   && proof.FrameFileVersion == file.Checksum
+                               select new { File = file, run.ProjectId, run.CreatedBy, RunId = run.Id })
+                .SingleOrDefaultAsync(cancellationToken);
+            return frame is null ? null : new FileMetadataPersistenceView(
+                frame.File.Id, frame.CreatedBy, frame.ProjectId, frame.File.StorageUri,
+                "VERIFIED", frame.File.Checksum, frame.File.MimeType, frame.File.SizeBytes,
+                frame.File.Checksum, "AI_FRAME", frame.RunId);
+        }
+        return new FileMetadataPersistenceView(
                 row.File.Id,
                 row.Scope.OwnerUserId,
                 row.Scope.ProjectId,

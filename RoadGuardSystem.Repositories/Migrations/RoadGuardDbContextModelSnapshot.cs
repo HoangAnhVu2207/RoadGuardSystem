@@ -355,6 +355,59 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Cases.PublicPublication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ApprovedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ConclusionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DamageCategory")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("DefectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset?>("WithdrawnAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("WithdrawnBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("ConclusionId");
+
+                    b.HasIndex("DefectId");
+
+                    b.HasIndex("ProjectId", "DefectId");
+
+                    b.ToTable("PublicPublications", (string)null);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Catalogs.CauseCategory", b =>
                 {
                     b.Property<string>("Code")
@@ -3329,6 +3382,14 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<Guid?>("NotificationAssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("NotificationAssignmentVersion")
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)");
+
                     b.Property<Guid?>("OccurrenceId")
                         .HasColumnType("uniqueidentifier");
 
@@ -3367,6 +3428,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.ToTable("H6NotificationScopes", null, t =>
                         {
                             t.HasTrigger("TR_H6NotificationScopes_Source");
+                            t.HasTrigger("TR_H6NotificationScopes_AssignmentProof");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -3429,6 +3491,122 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasDatabaseName("UX_Notifications_RecipientSourceEvent");
 
                     b.ToTable("Notifications", (string)null);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PreviousAssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.ToTable("NotificationSupervisorAudits", null, t =>
+                        {
+                            t.HasTrigger("TR_NotificationSupervisorAudits_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SupervisorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("NotificationSupervisorGenerations", null, t =>
+                        {
+                            t.HasTrigger("TR_NotificationSupervisorGenerations_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead", b =>
+                {
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SupervisorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ItemId");
+
+                    b.HasIndex("AssignmentId")
+                        .IsUnique();
+
+                    b.ToTable("NotificationSupervisorHeads", (string)null);
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage", b =>
@@ -10659,6 +10837,33 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Cases.PublicPublication", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Cases.IncidentCase", null)
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Cases.CaseConclusion", null)
+                        .WithMany()
+                        .HasForeignKey("ConclusionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Defects.Defect", null)
+                        .WithMany()
+                        .HasForeignKey("DefectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Clocks.BusinessDutyAppointment", b =>
                 {
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
@@ -11609,6 +11814,33 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorAudit", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorGeneration", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Repairs.RepairItem", null)
+                        .WithOne()
+                        .HasForeignKey("RoadGuardSystem.BusinessObjects.Messaging.NotificationSupervisorHead", "ItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

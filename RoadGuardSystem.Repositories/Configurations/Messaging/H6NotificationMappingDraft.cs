@@ -51,7 +51,8 @@ internal static class H6NotificationMappingDraft
     }
     internal static void Scope(EntityTypeBuilder<H6NotificationScopeRow> b)
     {
-        b.ToTable("H6NotificationScopes", table => table.HasTrigger("TR_H6NotificationScopes_Source"));
+        b.ToTable("H6NotificationScopes", table => { table.HasTrigger("TR_H6NotificationScopes_Source"); table.HasTrigger("TR_H6NotificationScopes_AssignmentProof"); });
+        b.Property(row => row.NotificationAssignmentVersion).HasMaxLength(12).IsUnicode(false);
         b.HasKey(row => row.NotificationId); b.Property(row => row.Classification).HasMaxLength(40).IsUnicode(false).IsRequired();
         b.Property(row => row.SourceKind).HasMaxLength(80).IsUnicode(false).IsRequired(); b.Property(row => row.EventType).HasMaxLength(200).IsUnicode(false).IsRequired();
         b.Property(row => row.ResolverVersion).HasMaxLength(100).IsUnicode(false).IsRequired(); b.Property(row => row.RowVersion).IsRowVersion();

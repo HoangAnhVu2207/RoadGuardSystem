@@ -316,9 +316,40 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         var metadata = await client.GetAsync(path + $"/evidence/{file}"); Assert.Equal(HttpStatusCode.OK, metadata.StatusCode); var text = await metadata.Content.ReadAsStringAsync(); Assert.DoesNotContain("objectKey", text, StringComparison.OrdinalIgnoreCase); Assert.DoesNotContain("storageUri", text, StringComparison.OrdinalIgnoreCase); Assert.DoesNotContain(reporter.Id.ToString(), text, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(new byte[] { 255, 216, 255, 0 }, await client.GetByteArrayAsync(path + $"/evidence/{file}/content"));
         storage.FailOpen = true; var unavailable = await client.GetAsync(path + $"/evidence/{file}/content"); Assert.Equal(HttpStatusCode.ServiceUnavailable, unavailable.StatusCode); var unavailableBody = await unavailable.Content.ReadAsStringAsync(); Assert.Contains("storage_unavailable", unavailableBody); Assert.DoesNotContain("objectKey", unavailableBody, StringComparison.OrdinalIgnoreCase); storage.FailOpen = false;
+        // Cached metadata and opaque file IDs must not become reusable authority.
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(path + "/history")).StatusCode);
+        await Login(client, reporter.UserName!);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path + $"/evidence/{file}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path + $"/evidence/{file}/content")).StatusCode);
+        await Login(client, crew.UserName!);
         storage.AfterOpen = async () => { await using var revoke = sql.CreateDbContext(); await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProjectMembers SET Status=2 WHERE ProjectId={scope.Project} AND UserId={crew.Id}"); }; storage.Disposed = false;
         var racePath = genericDownload ? $"/api/v1/files/{file}/content" : path + $"/evidence/{file}/content";
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(racePath)).StatusCode); Assert.True(storage.Disposed); storage.AfterOpen = null;
+        async Task<string> PrivateReadState()
+        {
+            await using var db = sql.CreateDbContext();
+            return JsonSerializer.Serialize(new
+            {
+                files = await db.Files.AsNoTracking().Where(x => x.Id == file).Select(x => new { x.Id, x.SizeBytes, x.Checksum, x.StorageUri }).ToArrayAsync(),
+                uploads = await db.UploadSessions.AsNoTracking().Where(x => x.FileId == file).Select(x => new { x.Id, x.Status, x.RowVersion }).ToArrayAsync(),
+                tasks = await db.FieldInspectionTasks.AsNoTracking().Where(x => x.Id == id).Select(x => new { x.Id, x.Status, x.RowVersion }).ToArrayAsync()
+            });
+        }
+        var stateAfterRevocation = await PrivateReadState();
+        var opensAfterRevocation = storage.OpenCount;
+        var urlsAfterRevocation = storage.PresignCount;
+        foreach (var protectedPath in new[] { path, path + "/history", path + $"/evidence/{file}",
+            path + $"/evidence/{file}/content", $"/api/v1/files/{file}", $"/api/v1/files/{file}/content" })
+        {
+            var deniedRead = await client.GetAsync(protectedPath);
+            Assert.Equal(HttpStatusCode.Forbidden, deniedRead.StatusCode);
+            var denial = await deniedRead.Content.ReadAsStringAsync();
+            Assert.DoesNotContain("objectKey", denial, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("storageUri", denial, StringComparison.OrdinalIgnoreCase);
+        }
+        Assert.Equal(stateAfterRevocation, await PrivateReadState());
+        Assert.Equal(opensAfterRevocation, storage.OpenCount);
+        Assert.Equal(urlsAfterRevocation, storage.PresignCount);
         await Login(client, other.UserName!); Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path + $"/evidence/{file}/content")).StatusCode);
         await Login(client, pm.UserName!); Assert.Equal(HttpStatusCode.Created, (await Post(client, path + "/reviews", new { submissionId = second.GetProperty("id").GetGuid(), decision = "CONFIRM", reason = "actual result" }, version: await Version(client, path))).StatusCode);
         await using (var revoke = sql.CreateDbContext()) { await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProjectMembers SET Status=2 WHERE ProjectId={scope.Project} AND UserId={pm.Id}"); }
@@ -346,10 +377,10 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
     {
         public static string Hash => Convert.ToHexString(SHA256.HashData(new byte[] { 255, 216, 255, 0 })).ToLowerInvariant();
         public Task<string> InitiateAsync(string key, string type, CancellationToken cancellationToken = default) => Task.FromResult("multipart");
-        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string key, string id, IReadOnlyList<int> parts, DateTimeOffset expires, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PresignedUploadPart>>(parts.Select(x => new PresignedUploadPart(x, "https://storage.invalid/part", expires)).ToArray());
+        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string key, string id, IReadOnlyList<int> parts, DateTimeOffset expires, CancellationToken cancellationToken = default) { PresignCount++; return Task.FromResult<IReadOnlyList<PresignedUploadPart>>(parts.Select(x => new PresignedUploadPart(x, "https://storage.invalid/part", expires)).ToArray()); }
         public Task<UploadObjectVerification> CompleteAndVerifyAsync(string key, string id, IReadOnlyList<CompletedStoragePart> parts, CancellationToken cancellationToken = default) => Task.FromResult(new UploadObjectVerification(4, Hash, "image/jpeg"));
-        public Func<Task>? AfterOpen; public bool Disposed; public bool FailOpen;
-        public async Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default) { if (FailOpen) throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Storage unavailable."); var stream = new TrackingStream(this); if (AfterOpen is not null) await AfterOpen(); return stream; }
+        public Func<Task>? AfterOpen; public bool Disposed; public bool FailOpen; public int OpenCount; public int PresignCount;
+        public async Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default) { OpenCount++; if (FailOpen) throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Storage unavailable."); var stream = new TrackingStream(this); if (AfterOpen is not null) await AfterOpen(); return stream; }
         private sealed class TrackingStream(PhotoStorage owner) : MemoryStream(new byte[] { 255, 216, 255, 0 })
         { protected override void Dispose(bool disposing) { owner.Disposed = true; base.Dispose(disposing); } }
     }

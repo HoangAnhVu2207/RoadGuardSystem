@@ -101,6 +101,10 @@ public static class RoadGuardPersistenceExtensions
                 uploadSessionSection.Bind(opt);
             }
         });
+        services.AddOptions<UploadSessionOptions>()
+            .Validate(options => options.PrivateEvidenceSignedUrlLifetimeSeconds == 300,
+                "Private evidence signed URL lifetime must be exactly 300 seconds.")
+            .ValidateOnStart();
 
         services.AddScoped<RoadGuardSystem.Repositories.Reporting.IDefectStatisticsRepository, RoadGuardSystem.Repositories.Implementations.Reporting.DefectStatisticsRepository>();
         services.AddScoped<RoadGuardTransactionService>();
@@ -129,6 +133,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<RoadGuardSystem.Repositories.Offline.IOfflineUploadAdmissionValidator>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Offline.OfflineAdmissionValidator>());
         services.AddScoped<IFieldInspectionWorkflowRepository, FieldInspectionWorkflowRepository>();
         services.AddScoped<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>();
+        services.AddScoped<RoadGuardSystem.Repositories.Repairs.INotificationSupervisorRepository, RoadGuardSystem.Repositories.Implementations.Repairs.NotificationSupervisorRepository>();
         services.AddScoped<RoadGuardSystem.Repositories.Repairs.IRepairWorkflowRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());
         services.AddScoped<RoadGuardSystem.Repositories.Repairs.IRepairProducerRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());
         services.AddScoped<RoadGuardSystem.Repositories.Repairs.IRepairExecutionRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());
@@ -144,6 +149,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<ISurveyV2Repository, SurveyV2PersistenceService>();
         services.AddScoped<ISurveyAssessmentRepository, SurveyAssessmentRepository>();
         services.AddScoped<IProcessingV2Repository, ProcessingV2PersistenceService>();
+        services.AddScoped<IAiDispatchSource, AiDispatchSourceRepository>();
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.H6ProtectedNotificationRepository>();
         services.AddScoped<INotificationRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.H6ProtectedNotificationRepository>());
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.IH6NotificationOperationsRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.H6ProtectedNotificationRepository>());

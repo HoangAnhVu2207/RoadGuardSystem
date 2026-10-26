@@ -21,7 +21,7 @@ public sealed record DefectGeometryDto(int Srid, string Wkt)
 }
 public sealed record DefectViewDto(Guid Id, Guid ProjectId, Guid? RoadSectionVersionId,
     Guid? SegmentId, string DefectTypeCode, string? CauseCategoryCode, string Severity,
-    string Status, DefectGeometryDto? Geometry, string Version)
+    string Status, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DefectGeometryDto? Geometry, string Version)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Defects.DefectViewFact?(DefectViewDto? value)

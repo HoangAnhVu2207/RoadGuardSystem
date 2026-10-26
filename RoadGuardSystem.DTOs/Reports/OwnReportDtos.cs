@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace RoadGuardSystem.DTOs.Reports;
 
 public sealed record OwnReportEvidenceDto(Guid Id, Guid FileId, string FileVersion, Guid? SupplementId,
-    DateTimeOffset? CapturedAt, string LocationSource, ReportEvidenceLocationDto? Location)
+    DateTimeOffset? CapturedAt, string LocationSource, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ReportEvidenceLocationDto? Location)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportEvidenceFact?(OwnReportEvidenceDto? value)

@@ -56,6 +56,20 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
         _masterConnectionString = masterConnectionString;
     }
 
+    private readonly Guid _seedOwnerId = Guid.NewGuid();
+
+    // Seed ownership proof must come from a live Testcontainers instance, even
+    // when the regular CI lanes use an explicitly configured SQL server.
+    public static SqlServerTestFixture CreateForSandboxSeed() => new(_ => null, null, false);
+
+    public (Guid OwnerId, string ContainerId, string DatabaseName) GetOwnedSeedDatabaseIdentity()
+    {
+        if (_container is null || _databaseDropped || _databaseConnectionString is null ||
+            !string.IsNullOrEmpty(_environmentAccessor("ROADGUARD_TEST_SQL_SERVER_CONNECTION_STRING")))
+            throw new InvalidOperationException("Seed fixture requires active Testcontainers ownership.");
+        return (_seedOwnerId, _container.Id, DatabaseName);
+    }
+
     public static SqlServerTestFixture CreateWithEnvironmentAccessor(EnvironmentVariableAccessor accessor)
         => new(accessor);
 

@@ -1,0 +1,31 @@
+FROM python:3.12-alpine AS init
+COPY deploy/fe-handoff/init.py /init.py
+COPY sandbox/seeds/v1 /catalog
+ENTRYPOINT ["python", "/init.py"]
+
+FROM mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04 AS sql
+COPY deploy/fe-handoff/sql-start.sh /sql-start.sh
+ENTRYPOINT ["bash", "/sql-start.sh"]
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet publish RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -c Release -o /out --nologo
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS api
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /out .
+COPY sandbox/seeds/v1 /catalog
+RUN mkdir /keys && chown $APP_UID:$APP_UID /keys
+USER $APP_UID
+ENV ASPNETCORE_HTTP_PORTS=8080
+ENTRYPOINT ["dotnet", "RoadGuardSystem.eAPI.dll"]
+
+FROM python:3.12-alpine AS scenarios
+COPY deploy/fe-handoff/scenarios.py /scenarios.py
+COPY deploy/fe-handoff/demo_ai.py /demo_ai.py
+COPY deploy/fe-handoff/demo_collections.py /demo_collections.py
+COPY deploy/fe-handoff/demo_repairs.py /demo_repairs.py
+COPY contracts/ai/fixtures/anh02/synthetic-road-v1.mp4 /fixtures/synthetic-road-v1.mp4
+ENTRYPOINT ["python", "/scenarios.py"]

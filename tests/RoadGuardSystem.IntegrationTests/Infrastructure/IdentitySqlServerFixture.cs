@@ -14,7 +14,11 @@ namespace RoadGuardSystem.IntegrationTests.Infrastructure;
 
 public sealed class IdentitySqlServerFixture : IAsyncLifetime
 {
-    private readonly SqlServerTestFixture _database = new(createSpatialProbeSchema: false);
+    private readonly SqlServerTestFixture _database;
+
+    public IdentitySqlServerFixture() : this(new SqlServerTestFixture(createSpatialProbeSchema: false)) { }
+
+    internal IdentitySqlServerFixture(SqlServerTestFixture database) => _database = database;
 
     public string ConnectionString => _database.ConnectionString;
 

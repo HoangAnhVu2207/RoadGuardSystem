@@ -89,6 +89,16 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
         return new(job.Id, job.ProjectId, ToApiStatus(job.Status), result, attempt, Version(job), job.ErrorCode);
     }
 
+    public Task<bool> IsCurrentAssignedOperatorAsync(Guid jobId, Guid operatorUserId, CancellationToken cancellationToken = default)
+        => (from job in _context.ProcessingJobs.AsNoTracking()
+            join block in _context.ProcessingBlocks.AsNoTracking() on job.ProcessingBlockId equals block.Id
+            join dataset in _context.SurveyDataVersions.AsNoTracking() on block.SurveyDataVersionId equals dataset.Id
+            join survey in _context.Surveys.AsNoTracking() on dataset.SurveyId equals survey.Id
+            join assignment in _context.SurveyAssignments.AsNoTracking() on survey.SurveyRequestId equals assignment.SurveyRequestId
+            where job.Id == jobId && assignment.OperatorUserId == operatorUserId &&
+                  assignment.EndedAt == null && assignment.RejectedAt == null
+            select assignment.Id).AnyAsync(cancellationToken);
+
     public async Task<ProcessingJobPersistenceResult> RetryAsync(ProcessingJobRetryRequest request, CancellationToken cancellationToken = default)
     {
         var job = await _context.ProcessingJobs.AsNoTracking().SingleOrDefaultAsync(value => value.Id == request.JobId, cancellationToken);
@@ -97,13 +107,14 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
         {
             var outcome = await _idempotency.ExecuteAsync(request.ActorUserId, job.ProjectId, "ProcessingJobRetried", request.IdempotencyKey, request.RequestFingerprint, async token =>
             {
-                var tracked = await _context.ProcessingJobs.SingleOrDefaultAsync(value => value.Id == request.JobId, token) ?? throw new ScopeNotFoundException();
+                var tracked = await LockJobAsync(request.JobId, token) ?? throw new ScopeNotFoundException();
                 if (!TryDecodeVersion(request.ExpectedVersion, out var expected) || !tracked.RowVersion.SequenceEqual(expected)) return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredJobOutcome(ProcessingJobPersistenceStatus.ConcurrencyConflict, null)));
                 _context.Entry(tracked).Property(value => value.RowVersion).OriginalValue = expected;
                 try { tracked.Retry(); } catch (InvalidOperationException) { return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredJobOutcome(ProcessingJobPersistenceStatus.Conflict, null))); }
                 var nextAttempt = (await _context.ProcessingAttempts.AsNoTracking().Where(value => value.ProcessingJobId == tracked.Id).MaxAsync(value => (int?)value.AttemptNo, token) ?? 0) + 1;
-                _context.ProcessingAttempts.Add(ProcessingAttempt.Create(Guid.NewGuid(), tracked.Id, nextAttempt, DateTimeOffset.UtcNow, null, null, null));
-                _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), "processing_job.dispatch", DateTimeOffset.UtcNow, tracked.Id, JsonSerializer.Serialize(new { jobId = tracked.Id, attemptNumber = nextAttempt, tracked.ManifestHash })));
+                var attempt = ProcessingAttempt.Create(Guid.NewGuid(), tracked.Id, nextAttempt, DateTimeOffset.UtcNow, null, null, null);
+                _context.ProcessingAttempts.Add(attempt);
+                _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), "processing_job.dispatch", DateTimeOffset.UtcNow, tracked.Id, JsonSerializer.Serialize(new { jobId = tracked.Id, attemptId = attempt.Id, attemptNumber = nextAttempt, tracked.ManifestHash })));
                 _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, DateTimeOffset.UtcNow, "processing_job_retried", "ProcessingJob", tracked.Id, null, JsonSerializer.Serialize(new { request.Reason }), "Processing job retried", "p2-032", request.CorrelationId, ["reason"]));
                 await _context.SaveChangesAsync(token);
                 return (tracked.Id, JsonSerializer.Serialize(new StoredJobOutcome(ProcessingJobPersistenceStatus.Success, new ProcessingJobPersistenceView(tracked.Id, tracked.ProjectId, ToApiStatus(tracked.Status), null, nextAttempt, Version(tracked), null))));
@@ -120,11 +131,35 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
         if (existingJob is null) return new(ProcessingJobPersistenceStatus.NotFound);
         try
         {
-            var outcome = await _idempotency.ExecuteAsync(null, existingJob.ProjectId, "ProcessingAiResultReceived", request.IdempotencyKey, Sha256(request.DetectionsJson + request.ChecksumSha256), async token =>
+            // Domain separation prevents an identity-incomplete legacy receipt from matching.
+            // Serialize named fields to avoid ambiguous concatenation of callback identity.
+            var fingerprint = Sha256(JsonSerializer.Serialize(new
             {
-                var job = await _context.ProcessingJobs.SingleOrDefaultAsync(value => value.Id == request.JobId, token) ?? throw new ScopeNotFoundException();
-                var attempt = await _context.ProcessingAttempts.AsNoTracking().SingleOrDefaultAsync(value => value.Id == request.AttemptId && value.ProcessingJobId == job.Id, token);
-                if (attempt is null || job.ManifestHash != request.ManifestHash || job.ModelVersionId != request.ModelVersionId || job.Mode != request.Mode) return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredJobOutcome(ProcessingJobPersistenceStatus.Conflict, null)));
+                receiptIdentity = "A1_CALLBACK_V2",
+                request.JobId,
+                request.AttemptId,
+                request.ManifestHash,
+                request.ModelVersionId,
+                request.Mode,
+                request.RawResultFileId,
+                request.ChecksumSha256,
+                request.DetectionsJson
+            }));
+            var outcome = await _idempotency.ExecuteAsync(null, existingJob.ProjectId, "ProcessingAiResultReceived", request.IdempotencyKey, fingerprint, async token =>
+            {
+                var job = await LockJobAsync(request.JobId, token) ?? throw new ScopeNotFoundException();
+                // Another callback may have committed while this handler waited for the job
+                // lock. Let the idempotency service's unique-race recovery map that receipt
+                // (including its guard and fingerprint), without reapplying business effects.
+                var racedReceipt = await _context.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(
+                    value => value.ActorUserId == null && value.ProjectId == job.ProjectId &&
+                        value.Operation == "ProcessingAiResultReceived" && value.IdempotencyKey == request.IdempotencyKey.Trim(), token);
+                if (racedReceipt is not null) return (racedReceipt.OperationId, racedReceipt.OutcomeJson);
+                var attempt = await _context.ProcessingAttempts.AsNoTracking()
+                    .Where(value => value.ProcessingJobId == job.Id)
+                    .OrderByDescending(value => value.AttemptNo).FirstOrDefaultAsync(token);
+                if (attempt is null || attempt.Id != request.AttemptId || attempt.EndedAt.HasValue || attempt.ErrorType.HasValue ||
+                    job.ManifestHash != request.ManifestHash || job.ModelVersionId != request.ModelVersionId || job.Mode != request.Mode) return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredJobOutcome(ProcessingJobPersistenceStatus.Conflict, null)));
                 var rawFile = await (
                     from file in _context.Files.AsNoTracking()
                     join upload in _context.UploadSessions.AsNoTracking() on file.Id equals upload.FileId
@@ -146,15 +181,36 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
                 await _context.SaveChangesAsync(token);
                 var resultId = await _context.AIDetections.AsNoTracking().Where(value => value.ProcessingJobId == job.Id).Select(value => (Guid?)value.Id).FirstOrDefaultAsync(token);
                 return (job.Id, JsonSerializer.Serialize(new StoredJobOutcome(ProcessingJobPersistenceStatus.Success, new ProcessingJobPersistenceView(job.Id, job.ProjectId, ToApiStatus(job.Status), resultId, attempt.AttemptNo, Version(job), null))));
-            }, cancellationToken);
+            }, cancellationToken, async token =>
+            {
+                // The same job lock fences replay against retry, including unique-race and
+                // commit-recovery receipt paths. Completed current attempts remain replayable.
+                var job = await LockJobAsync(request.JobId, token);
+                var attempt = await _context.ProcessingAttempts.AsNoTracking()
+                    .Where(value => value.ProcessingJobId == request.JobId)
+                    .OrderByDescending(value => value.AttemptNo).FirstOrDefaultAsync(token);
+                if (job is null || attempt is null || attempt.Id != request.AttemptId ||
+                    attempt.EndedAt.HasValue || attempt.ErrorType.HasValue)
+                    throw new CallbackReceiptAccessException();
+            });
             return ReadJobOutcome(outcome);
         }
+        catch (CallbackReceiptAccessException) { return new(ProcessingJobPersistenceStatus.IdempotentConflict); }
         catch (JsonException) { return new(ProcessingJobPersistenceStatus.InvalidInput); }
         catch (KeyNotFoundException) { return new(ProcessingJobPersistenceStatus.InvalidInput); }
         catch (InvalidOperationException) { return new(ProcessingJobPersistenceStatus.InvalidInput); }
         catch (ArgumentException) { return new(ProcessingJobPersistenceStatus.InvalidInput); }
+        catch (DbUpdateConcurrencyException) { return new(ProcessingJobPersistenceStatus.ConcurrencyConflict); }
         catch (DbUpdateException exception) when (IsUnique(exception)) { return new(ProcessingJobPersistenceStatus.Conflict); }
     }
+
+    // Both retry and callback acquire this lock inside the idempotency transaction.
+    // Hold it through attempt selection, job/detection writes and receipt commit so
+    // retry cannot replace the active attempt between validation and mutation.
+    private Task<ProcessingJob?> LockJobAsync(Guid jobId, CancellationToken token)
+        => _context.ProcessingJobs.FromSqlInterpolated(
+            $"SELECT * FROM [ProcessingJobs] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {jobId}")
+            .SingleOrDefaultAsync(token);
 
     public async Task<ValidationRunPersistenceResult> CreateValidationAsync(ValidationRunCreateRequest request, CancellationToken cancellationToken = default)
     {
@@ -297,4 +353,5 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
     private sealed record ValidationPairReference(Guid GroundTruthId, Guid DerivedMeasurementId);
     private sealed record ValidationPairFact(Guid GroundTruthId, Guid DerivedMeasurementId, string SampleId, Guid GroundTruthRoadSectionVersionId, Guid DerivedRoadSectionVersionId, MeasurementType MeasurementType, MeasurementType DerivedMeasurementType, decimal GroundTruthValue, decimal DerivedValue, string Unit, string DerivedUnit, DerivedMeasurementStatus Status);
     private sealed class ScopeNotFoundException : Exception;
+    private sealed class CallbackReceiptAccessException : Exception;
 }

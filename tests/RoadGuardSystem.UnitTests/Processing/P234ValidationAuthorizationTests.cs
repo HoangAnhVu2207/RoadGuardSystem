@@ -39,6 +39,7 @@ public sealed class P234ValidationAuthorizationTests
         public Task<Guid?> GetDatasetProjectIdAsync(Guid datasetId, CancellationToken cancellationToken = default) => Task.FromResult<Guid?>(null);
         public Task<ProcessingJobPersistenceResult> CreateAsync(ProcessingJobCreateRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new ProcessingJobPersistenceResult(ProcessingJobPersistenceStatus.InvalidInput));
         public Task<ProcessingJobPersistenceView?> GetAsync(Guid jobId, CancellationToken cancellationToken = default) => Task.FromResult<ProcessingJobPersistenceView?>(null);
+        public Task<bool> IsCurrentAssignedOperatorAsync(Guid jobId, Guid operatorUserId, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task<ProcessingJobPersistenceResult> RetryAsync(ProcessingJobRetryRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new ProcessingJobPersistenceResult(ProcessingJobPersistenceStatus.InvalidInput));
         public Task<ProcessingJobPersistenceResult> ReceiveResultAsync(ProcessingAiResultRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new ProcessingJobPersistenceResult(ProcessingJobPersistenceStatus.InvalidInput));
         public Task<ValidationRunPersistenceResult> CreateValidationAsync(ValidationRunCreateRequest request, CancellationToken cancellationToken = default)

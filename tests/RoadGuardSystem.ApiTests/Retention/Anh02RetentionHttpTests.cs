@@ -55,6 +55,7 @@ public sealed class Anh02RetentionHttpTests(AuthenticationSqlServerFixture sql)
         using (var scope = factory.Services.CreateScope()) { while (await scope.ServiceProvider.GetRequiredService<IRetentionService>().ProcessOneAsync(default)) { } }
         var result = await client.GetAsync(admitted.Headers.Location); Assert.Equal(HttpStatusCode.OK, result.StatusCode);
         var body = await result.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("COMPLETE", body.GetProperty("status").GetString()); Assert.Equal("WAITING_RETENTION_BASIS", body.GetProperty("items")[0].GetProperty("eligibility").GetString());
+        await CollectionAssertions.Contains(client, $"/api/v1/projects/{seed.Project}/retention/evaluations", body.GetProperty("id").GetGuid(), "id", "projectId", "status", "createdAt", "evaluatedAt", "policyVersion", "version");
         await using var check = sql.CreateDbContext(); var before = await check.Files.AsNoTracking().SingleAsync(x => x.Id == seed.File); var audits = await check.AuditLogs.CountAsync(); var jobs = await check.Set<RetentionEvaluation>().CountAsync();
         await client.GetAsync(admitted.Headers.Location); await client.GetAsync(path);
         Assert.Equal(audits, await check.AuditLogs.CountAsync()); Assert.Equal(jobs, await check.Set<RetentionEvaluation>().CountAsync()); var after = await check.Files.AsNoTracking().SingleAsync(x => x.Id == seed.File); Assert.Equal(before.Checksum, after.Checksum); Assert.Equal(before.RetentionUntil, after.RetentionUntil);

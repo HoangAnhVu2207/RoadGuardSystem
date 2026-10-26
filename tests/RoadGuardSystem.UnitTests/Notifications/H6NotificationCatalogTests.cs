@@ -98,4 +98,34 @@ public sealed class H6NotificationCatalogTests
         Assert.Equal(NotificationEventKind.FastTrackConfirmedInformation, plan.Envelope!.Kind);
         Assert.Equal(NotificationRecipientStrategy.Supervisor, plan.Envelope.RecipientStrategy);
     }
+
+    [Fact]
+    public void ReviewSnapshotSurvivesStoredProducerParsingWithoutAddingNormalApproval()
+    {
+        var snapshot = new FastTrackReviewSnapshot(At, [Guid.NewGuid(), Guid.NewGuid()], null, null);
+        var source = Event("SUBMITTED") with { SourceKind = "RepairWork", FastTrackReview = snapshot };
+        var plan = Parse("repair.work.submitted.v1", source);
+        Assert.Equal(JsonSerializer.Serialize(snapshot, Json), JsonSerializer.Serialize(plan.Source.FastTrackReview, Json));
+        Assert.Equal(NotificationEventKind.RepairSubmitted, plan.Envelope!.Kind);
+    }
+
+    [Theory]
+    [InlineData("duplicate")]
+    [InlineData("empty")]
+    [InlineData("partial-appointment")]
+    [InlineData("default-time")]
+    public void MalformedReviewSnapshotIsRejected(string kind)
+    {
+        var id = Guid.NewGuid();
+        var snapshot = new FastTrackReviewSnapshot(kind == "default-time" ? default : At,
+            kind == "duplicate" ? [id, id] : kind == "empty" ? [Guid.Empty] : [id],
+            kind == "partial-appointment" ? Guid.NewGuid() : null, null);
+        Assert.Throws<H6NotificationProtocolException>(() => Parse("repair.work.submitted.v1",
+            Event("SUBMITTED") with { SourceKind = "RepairWork", FastTrackReview = snapshot }));
+    }
+
+    [Fact]
+    public void ReviewSnapshotCannotAttachToUnrelatedEventFamily()
+        => Assert.Throws<H6NotificationProtocolException>(() => Parse("field.task.submitted.v1",
+            Event("SUBMITTED") with { FastTrackReview = new(At, [Guid.NewGuid()], null, null) }));
 }

@@ -29,6 +29,31 @@ namespace RoadGuardSystem.ApiTests.Cases;
 [Trait("Package", "HUY-01")]
 public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : IClassFixture<AuthenticationSqlServerFixture>
 {
+    [Fact]
+    public async Task CurrentCaseProjectionRechecksRevokedMembershipWithoutMutatingHistory()
+    {
+        var setup = await SetupAsync();
+        await using var db = sql.CreateDbContext(); var service = Service(db);
+        var admitted = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        Assert.Equal(200, admitted.Status); Assert.NotNull(admitted.Case);
+        var projection = JsonSerializer.Serialize(admitted.Case);
+        Assert.DoesNotContain("private/", projection, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("storageUri", projection, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://", projection, StringComparison.OrdinalIgnoreCase);
+        var before = await SnapshotAsync(setup);
+        await using (var write = sql.CreateDbContext())
+            await write.ProjectMembers.Where(m => m.ProjectId == setup.Project && m.UserId == setup.Pm)
+                .ExecuteUpdateAsync(u => u.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        // Reused service/context must recheck SQL authority rather than retaining a cached admission.
+        var denied = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        Assert.Equal(403, denied.Status); Assert.Null(denied.Case);
+        await using var fresh = sql.CreateDbContext();
+        var freshDenied = await Service(fresh).ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        Assert.Equal(403, freshDenied.Status); Assert.Null(freshDenied.Case);
+        Assert.Equal(before, await SnapshotAsync(setup));
+        // This is the SQL service projection, not HTTP/cache erasure or publication privacy policy.
+    }
+
     [Theory]
     [InlineData("membership", 403)]
     [InlineData("inactive", 403)]
@@ -80,30 +105,71 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
         Assert.Equal(409, result.Status); Assert.Equal("source_not_ready", result.Code); Assert.Equal(snapshot, await SnapshotAsync(setup));
     }
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task ConcurrentParentVersion_SameKeyReplays_DifferentKeysHaveOneWinner(bool sameKey)
+    [InlineData("triage", true)]
+    [InlineData("triage", false)]
+    [InlineData("link", true)]
+    [InlineData("link", false)]
+    [InlineData("split", true)]
+    [InlineData("split", false)]
+    [InlineData("conclude", true)]
+    [InlineData("conclude", false)]
+    [InlineData("publish", true)]
+    [InlineData("publish", false)]
+    public async Task ConcurrentParentVersion_SameKeyReplays_DifferentKeysHaveOneWinner(string action, bool sameKey)
     {
         var setup = await SetupAsync();
-        await using var readDb = sql.CreateDbContext(); var read = await Service(readDb).ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
-        var command = new CaseCommand(setup.CaseA, read.Case!.Version, "triage", "PM method choice", ProjectId: setup.Project, Method: CaseVerificationMethod.Drone);
+        await using var readDb = sql.CreateDbContext(); var service = Service(readDb);
+        var read = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        var source = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseB, default);
+        if (action == "split")
+        {
+            var linked = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, new(setup.CaseA, read.Case!.Version,
+                "link", "Prepare genuine split race", ReportIds: [setup.ReportB], SourceCaseVersions: new Dictionary<Guid, string> { [setup.CaseB] = source.Case!.Version }), Guid.NewGuid().ToString(), null, default);
+            Assert.Equal(200, linked.Status); read = new(200, Case: linked.Write!.Case);
+        }
+        if (action == "publish")
+        {
+            var concluded = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, new(setup.CaseA, read.Case!.Version,
+                "conclude", "Prepare genuine publication race", Outcome: CaseConclusionOutcome.NoDefect, DefectIds: [], EvidenceIds: [setup.EvidenceA]), Guid.NewGuid().ToString(), null, default);
+            Assert.Equal(200, concluded.Status); read = new(200, Case: concluded.Write!.Case);
+        }
+        var command = action switch
+        {
+            "triage" => new CaseCommand(setup.CaseA, read.Case!.Version, action, "Concurrent command", ProjectId: setup.Project, Method: CaseVerificationMethod.Drone),
+            "link" => new(setup.CaseA, read.Case!.Version, action, "Concurrent command", ReportIds: [setup.ReportB], SourceCaseVersions: new Dictionary<Guid, string> { [setup.CaseB] = source.Case!.Version }),
+            "split" => new(setup.CaseA, read.Case!.Version, action, "Concurrent command", ReportIds: [setup.ReportB]),
+            "conclude" => new(setup.CaseA, read.Case!.Version, action, "Concurrent command", Outcome: CaseConclusionOutcome.NoDefect, DefectIds: [], EvidenceIds: [setup.EvidenceA]),
+            _ => new(setup.CaseA, read.Case!.Version, action, "Concurrent command", ReportIds: [setup.ReportA], DefectIds: [], EvidenceIds: [setup.EvidenceA])
+        };
         var key = Guid.NewGuid().ToString(); var barrier = new ReadBarrier();
         await using var leftDb = sql.CreateDbContext(); await using var rightDb = sql.CreateDbContext();
         CaseWorkflowService Wrapped(RoadGuardDbContext db) => new(new ReadBarrierRepository(new CaseWorkflowRepository(db), barrier),
             new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System), Producer(db), new IdempotencyOperationService(db));
         var results = await Task.WhenAll(Wrapped(leftDb).CommandAsync(setup.Pm, UserRoleCode.ProjectManager, command, key, null, default),
             Wrapped(rightDb).CommandAsync(setup.Pm, UserRoleCode.ProjectManager, command, sameKey ? key : Guid.NewGuid().ToString(), null, default));
-        Assert.Equal(sameKey ? 2 : 1, results.Count(r => r.Status == 200));
+        var success = action is "split" or "publish" ? 201 : 200;
+        Assert.Equal(sameKey ? 2 : 1, results.Count(r => r.Status == success));
         if (sameKey) Assert.Equal(JsonSerializer.Serialize(results[0].Write), JsonSerializer.Serialize(results[1].Write));
-        else Assert.Single(results.Where(r => r.Status == 412));
+        else Assert.Single(results.Where(r => r.Status == 412 && r.Code == "concurrency_conflict"));
         await using var check = sql.CreateDbContext();
-        Assert.Equal(1, await check.AuditLogs.CountAsync(a => a.EntityId == setup.CaseA && a.ActorUserId == setup.Pm && a.EventType == "case_triage"));
-        Assert.Equal(1, await check.IdempotencyRecords.CountAsync(r => r.ActorUserId == setup.Pm && r.Operation == "huy01.case.triage.v1"));
+        Assert.Equal(1, await check.AuditLogs.CountAsync(a => a.EntityId == setup.CaseA && a.ActorUserId == setup.Pm && a.EventType == "case_" + action));
+        Assert.Equal(1, await check.IdempotencyRecords.CountAsync(r => r.ActorUserId == setup.Pm && r.Operation == "huy01.case." + action + ".v1"));
+        Assert.Equal(action == "publish" ? 1 : 0, await check.Set<CasePublication>().CountAsync(p => p.CaseId == setup.CaseA));
+        var active = await check.Set<HuyCaseReportLink>().Where(l => (l.ReportId == setup.ReportA || l.ReportId == setup.ReportB) && l.EndedAt == null).ToArrayAsync();
+        Assert.Equal(2, active.Length);
+        foreach (var group in active.GroupBy(l => l.ReportId)) Assert.Single(group);
+        foreach (var group in active.GroupBy(l => l.CaseId))
+        {
+            var incident = await check.IncidentCases.SingleAsync(c => c.Id == group.Key);
+            Assert.Equal(group.Select(l => l.ReportId).Order(), incident.ActiveReportIds.Order());
+        }
     }
 
     [Theory]
     [InlineData("link", false)]
     [InlineData("link", true)]
+    [InlineData("triage", false)]
+    [InlineData("triage", true)]
     [InlineData("conclude", false)]
     [InlineData("conclude", true)]
     [InlineData("publish", false)]
@@ -128,7 +194,8 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
                 Outcome: CaseConclusionOutcome.NoDefect, DefectIds: [], EvidenceIds: [setup.EvidenceA]), Guid.NewGuid().ToString(), null, default);
             target = new(200, Case: conclusion.Write!.Case);
         }
-        var command = action == "link" ? new CaseCommand(setup.CaseA, target.Case!.Version, action, "Fault probe link", ReportIds: [setup.ReportB],
+        var command = action == "triage" ? new CaseCommand(setup.CaseA, target.Case!.Version, action, "Fault probe triage", ProjectId: setup.Project, Method: CaseVerificationMethod.Drone)
+            : action == "link" ? new CaseCommand(setup.CaseA, target.Case!.Version, action, "Fault probe link", ReportIds: [setup.ReportB],
             SourceCaseVersions: new Dictionary<Guid, string> { [setup.CaseB] = source.Case!.Version }) : action == "conclude"
             ? new(setup.CaseA, target.Case!.Version, action, "Fault probe conclusion", Outcome: CaseConclusionOutcome.NoDefect, DefectIds: [], EvidenceIds: [setup.EvidenceA])
             : action == "split" ? new(setup.CaseA, target.Case!.Version, action, "Fault probe split", ReportIds: [setup.ReportB])
@@ -240,6 +307,77 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
         var other = await new AnhHuyProducerService(new AnhHuyFactsRepository(check), null!, null!).ResolvePublicationEvidenceAsync(setup.ReporterB,
             UserRoleCode.Reporter, snapshot.Id, setup.ReportB, setup.EvidenceA);
         Assert.Equal(AnhHuyProducerStatus.NotFound, other.Status);
+    }
+
+    [Theory]
+    [InlineData("triage", "concluded", 409, "invalid_state_transition")]
+    [InlineData("triage", "linked", 409, "invalid_state_transition")]
+    [InlineData("link", "concluded", 409, "invalid_state_transition")]
+    [InlineData("link", "source-concluded", 409, "invalid_state_transition")]
+    [InlineData("link", "wrong-source-report", 412, "concurrency_conflict")]
+    [InlineData("split", "concluded", 409, "invalid_state_transition")]
+    [InlineData("split", "linked", 409, "invalid_state_transition")]
+    [InlineData("split", "all-reports", 409, "invalid_state_transition")]
+    [InlineData("split", "foreign-report", 409, "invalid_state_transition")]
+    [InlineData("conclude", "concluded", 409, "invalid_state_transition")]
+    [InlineData("conclude", "linked", 404, "not_found")]
+    [InlineData("publish", "open", 409, "invalid_state_transition")]
+    [InlineData("publish", "awaiting", 409, "invalid_state_transition")]
+    public async Task ExactCommandRejectsInvalidCurrentLifecycleWithoutAnyPartialWrites(string action, string state, int expected, string code)
+    {
+        var setup = await SetupAsync(); await using var db = sql.CreateDbContext(); var service = Service(db);
+        var target = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        var source = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseB, default);
+        if (state is "concluded" or "source-concluded" or "awaiting")
+        {
+            var fromSource = state == "source-concluded";
+            var id = fromSource ? setup.CaseB : setup.CaseA;
+            var selected = fromSource ? source : target;
+            var outcome = state == "awaiting" ? CaseConclusionOutcome.NeedsEvidence : CaseConclusionOutcome.NoDefect;
+            var changed = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, new(id, selected.Case!.Version,
+                "conclude", "Prepare valid lifecycle", Outcome: outcome, DefectIds: [], EvidenceIds: [fromSource ? setup.EvidenceB : setup.EvidenceA]), Guid.NewGuid().ToString(), null, default);
+            Assert.Equal(200, changed.Status);
+        }
+        if (state == "linked")
+        {
+            var changed = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, new(setup.CaseB, source.Case!.Version,
+                "link", "Move genuine reports", ReportIds: [setup.ReportA], SourceCaseVersions: new Dictionary<Guid, string> { [setup.CaseA] = target.Case!.Version }), Guid.NewGuid().ToString(), null, default);
+            Assert.Equal(200, changed.Status);
+        }
+        target = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        source = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseB, default);
+        var command = action switch
+        {
+            "triage" => new CaseCommand(setup.CaseA, target.Case!.Version, action, "Denied lifecycle", ProjectId: setup.Project, Method: CaseVerificationMethod.Drone),
+            "link" => new(setup.CaseA, target.Case!.Version, action, "Denied lifecycle", ReportIds: [state == "wrong-source-report" ? setup.ReportA : setup.ReportB], SourceCaseVersions: new Dictionary<Guid, string> { [setup.CaseB] = source.Case!.Version }),
+            "split" => new(setup.CaseA, target.Case!.Version, action, "Denied lifecycle", ReportIds: [state == "foreign-report" ? setup.ReportB : setup.ReportA]),
+            "conclude" => new(setup.CaseA, target.Case!.Version, action, "Denied lifecycle", Outcome: CaseConclusionOutcome.NoDefect, DefectIds: [], EvidenceIds: [setup.EvidenceA]),
+            _ => new(setup.CaseA, target.Case!.Version, action, "Denied lifecycle", ReportIds: [setup.ReportA], DefectIds: [], EvidenceIds: [setup.EvidenceA])
+        };
+        var before = await SnapshotAsync(setup);
+        var denied = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, command, Guid.NewGuid().ToString(), null, default);
+        Assert.Equal(expected, denied.Status); Assert.Equal(code, denied.Code); Assert.Null(denied.Write);
+        Assert.Equal(before, await SnapshotAsync(setup));
+    }
+
+    [Fact]
+    public async Task NeedsEvidenceAndCurrentMethodSelectionPersistWithoutInventingFieldCompletion()
+    {
+        var setup = await SetupAsync(); await using var db = sql.CreateDbContext(); var service = Service(db);
+        var current = await service.ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        var pending = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, new(setup.CaseA, current.Case!.Version,
+            "conclude", "Need current evidence", Outcome: CaseConclusionOutcome.NeedsEvidence, DefectIds: [], EvidenceIds: []), Guid.NewGuid().ToString(), null, default);
+        Assert.Equal(200, pending.Status); Assert.Equal("AWAITING_EVIDENCE", pending.Write!.Case.Status);
+        var selected = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, new(setup.CaseA, pending.Write.Case.Version,
+            "triage", "Choose current field method", ProjectId: setup.Project, Method: CaseVerificationMethod.Field), Guid.NewGuid().ToString(), null, default);
+        Assert.Equal(200, selected.Status); Assert.Equal("AWAITING_EVIDENCE", selected.Write!.Case.Status);
+        var before = await SnapshotAsync(setup);
+        var denied = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, new(setup.CaseA, selected.Write.Case.Version,
+            "conclude", "Cannot invent completion", Outcome: CaseConclusionOutcome.NoDefect, DefectIds: [], EvidenceIds: [setup.EvidenceA]), Guid.NewGuid().ToString(), null, default);
+        Assert.Equal(409, denied.Status); Assert.Equal("source_not_ready", denied.Code); Assert.Equal(before, await SnapshotAsync(setup));
+        await using var fresh = sql.CreateDbContext();
+        var read = await Service(fresh).ReadAsync(setup.Pm, UserRoleCode.ProjectManager, setup.CaseA, default);
+        Assert.Equal("AWAITING_EVIDENCE", read.Case!.Status); Assert.Equal("FIELD", read.Case.VerificationMethod);
     }
 
     private CaseWorkflowService Service(RoadGuardDbContext db) => new(new CaseWorkflowRepository(db),

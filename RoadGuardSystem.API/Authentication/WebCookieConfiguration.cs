@@ -1,6 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using RoadGuardSystem.API.Constants;
+using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Services.Authentication;
@@ -114,10 +117,22 @@ internal static class WebCookieConfiguration
                         context.HttpContext.RequestAborted)) return;
                 if (result != AuthoritativeSessionValidation.Success) context.RejectPrincipal();
             },
-            OnRedirectToLogin = context =>
+            OnRedirectToLogin = async context =>
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return Task.CompletedTask;
+                var problem = new ProblemDetails
+                {
+                    Status = StatusCodes.Status401Unauthorized,
+                    Title = "Unauthorized",
+                    Detail = "Authentication is required or the supplied credential is no longer valid.",
+                    Instance = context.Request.Path,
+                    Type = "https://tools.ietf.org/html/rfc9110#section-15.5.2"
+                };
+                problem.Extensions["code"] = ApiErrorCodes.Unauthorized;
+                problem.Extensions["correlationId"] = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString()
+                    ?? Guid.NewGuid().ToString();
+                await context.Response.WriteAsJsonAsync(problem, options: null,
+                    contentType: "application/problem+json", cancellationToken: context.HttpContext.RequestAborted);
             },
             OnRedirectToAccessDenied = context =>
             {

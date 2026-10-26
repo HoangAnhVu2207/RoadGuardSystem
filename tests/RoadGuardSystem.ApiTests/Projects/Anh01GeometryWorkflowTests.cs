@@ -68,6 +68,9 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         var confirmed = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmation, confirmKey, create.Headers.ETag!.ToString());
         confirmed.StatusCode.Should().Be(HttpStatusCode.Created);
         var route = await confirmed.Content.ReadFromJsonAsync<JsonElement>();
+        route.TryGetProperty("chainageCalibration", out _).Should().BeFalse();
+        route.GetProperty("metricCenterline").ValueKind.Should().Be(JsonValueKind.Object);
+        route.TryGetProperty("wgs84Centerline", out _).Should().BeFalse("this metric sample has no verified WGS84 transform");
         var section = route.GetProperty("roadSectionId").GetGuid(); var version = route.GetProperty("routeVersionId").GetGuid();
         var replay = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmation, confirmKey, create.Headers.ETag!.ToString());
         (await replay.Content.ReadAsStringAsync()).Should().Be(await confirmed.Content.ReadAsStringAsync());
@@ -86,9 +89,29 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         noOp.Headers.ETag.Should().Be(set.Headers.ETag);
         var noOpReplay = await Send(client, HttpMethod.Put, setPath + $"/{setId}", definition, editKey, set.Headers.ETag.ToString());
         (await noOpReplay.Content.ReadAsStringAsync()).Should().Be(await noOp.Content.ReadAsStringAsync());
+        var beforeEditList = await client.GetFromJsonAsync<JsonElement>(setPath);
+        beforeEditList.GetProperty("items").EnumerateArray().Should().ContainSingle(x => x.GetProperty("id").GetGuid() == setId);
+        var beforeEditDetail = await client.GetAsync(setPath + $"/{setId}");
+        beforeEditDetail.StatusCode.Should().Be(HttpStatusCode.OK);
+        beforeEditDetail.Headers.ETag.Should().Be(set.Headers.ETag);
+        var readSet = await beforeEditDetail.Content.ReadFromJsonAsync<JsonElement>();
+        readSet.GetProperty("definition").TryGetProperty("nativeAlignment", out _).Should().BeFalse();
+        readSet.GetProperty("definition").TryGetProperty("chainageCalibration", out _).Should().BeFalse();
+        foreach (var segment in readSet.GetProperty("segments").EnumerateArray())
+        {
+            segment.GetProperty("metricGeometry").ValueKind.Should().Be(JsonValueKind.Object);
+            segment.TryGetProperty("wgs84Geometry", out _).Should().BeFalse();
+        }
         var changed = await Send(client, HttpMethod.Put, setPath + $"/{setId}", new { targetLengthMeters = 125d, remainderMode = "KEEP" }, Guid.NewGuid().ToString(), set.Headers.ETag.ToString());
         changed.StatusCode.Should().Be(HttpStatusCode.OK);
         changed.Headers.ETag.Should().NotBe(set.Headers.ETag);
+        var afterEditList = await client.GetFromJsonAsync<JsonElement>(setPath);
+        afterEditList.GetProperty("items").EnumerateArray().Should().ContainSingle(x => x.GetProperty("id").GetGuid() == setId);
+        var afterEditDetail = await client.GetAsync(setPath + $"/{setId}");
+        afterEditDetail.StatusCode.Should().Be(HttpStatusCode.OK);
+        afterEditDetail.Headers.ETag.Should().Be(changed.Headers.ETag);
+        (await afterEditDetail.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("segments").GetArrayLength().Should().Be(2);
+        (await client.GetAsync(setPath.Replace(project.ToString(), Guid.NewGuid().ToString()))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         var stalePublish = await Send(client, HttpMethod.Post, setPath + $"/{setId}/publish", new { expectedPublishedSetId = (Guid?)null, reason = "Stale definition" }, Guid.NewGuid().ToString(), set.Headers.ETag.ToString());
         stalePublish.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
         var restored = await Send(client, HttpMethod.Put, setPath + $"/{setId}", definition, Guid.NewGuid().ToString(), changed.Headers.ETag!.ToString());
@@ -104,6 +127,17 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         var replacement = await Send(client, HttpMethod.Post, setPath, new { targetLengthMeters = 100d, remainderMode = "MERGE_PREVIOUS" }, Guid.NewGuid().ToString());
         replacement.StatusCode.Should().Be(HttpStatusCode.Created);
         var replacementId = (await replacement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var firstPage = await client.GetFromJsonAsync<JsonElement>(setPath + "?pageSize=1");
+        firstPage.GetProperty("items").GetArrayLength().Should().Be(1);
+        var cursor = firstPage.GetProperty("nextCursor").GetGuid();
+        var secondPage = await client.GetFromJsonAsync<JsonElement>(setPath + $"?pageSize=1&cursor={cursor}");
+        secondPage.GetProperty("items")[0].GetProperty("id").GetGuid().Should().NotBe(firstPage.GetProperty("items")[0].GetProperty("id").GetGuid());
+        secondPage.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
+        var drafts = await client.GetFromJsonAsync<JsonElement>(setPath + "?status=DRAFT");
+        drafts.GetProperty("items").EnumerateArray().Select(x => x.GetProperty("id").GetGuid()).Should().Equal(replacementId);
+        (await client.GetAsync(setPath + "?pageSize=101")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync(setPath + "?cursor=malformed")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync(setPath.Replace(section.ToString(), Guid.NewGuid().ToString()))).StatusCode.Should().Be(HttpStatusCode.NotFound);
         var conflictPublish = await Send(client, HttpMethod.Post, setPath + $"/{replacementId}/publish", publishInput, Guid.NewGuid().ToString(), replacement.Headers.ETag!.ToString());
         conflictPublish.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var replaced = await Send(client, HttpMethod.Post, setPath + $"/{replacementId}/publish", new { expectedPublishedSetId = setId, reason = "PM chose merged remainder" }, Guid.NewGuid().ToString(), replacement.Headers.ETag.ToString());

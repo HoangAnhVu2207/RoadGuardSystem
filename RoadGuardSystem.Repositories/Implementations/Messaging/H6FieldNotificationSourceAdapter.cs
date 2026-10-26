@@ -79,7 +79,8 @@ public sealed class H6FieldNotificationSourceAdapter(RoadGuardDbContext db) : IH
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var property in document.RootElement.EnumerateObject())
                 if (!names.Add(property.Name)) return false;
-            return JsonSerializer.Deserialize<H6StoredEvent>(transport.PayloadJson, Json) == plan.Source;
+            var stored = JsonSerializer.Deserialize<H6StoredEvent>(transport.PayloadJson, Json);
+            return stored is not null && JsonSerializer.Serialize(stored, Json) == JsonSerializer.Serialize(plan.Source, Json);
         }
         catch (JsonException) { return false; }
     }

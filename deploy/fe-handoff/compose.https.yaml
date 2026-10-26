@@ -1,0 +1,24 @@
+# Add after compose.yaml; never replaces its private state, keys or SQL volumes.
+services:
+  tls-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.Tls
+    volumes:
+      - tls:/tls
+    network_mode: none
+  api:
+    environment:
+      RG_FE_ORIGINS: ${RG_FE_HTTPS_ORIGINS:-https://localhost:5173,https://localhost:8081,https://127.0.0.1:5173,https://127.0.0.1:8081}
+      ASPNETCORE_URLS: http://+:8080;https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /tls/localhost.crt
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /tls/localhost.key
+    volumes:
+      - tls:/tls:ro
+    ports:
+      - "127.0.0.1:${RG_FE_HTTPS_PORT:-18443}:8443"
+    depends_on:
+      tls-init:
+        condition: service_completed_successfully
+volumes:
+  tls: {}

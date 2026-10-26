@@ -100,7 +100,7 @@ public sealed class CasesController : ControllerBase
     private IActionResult Map(CaseWorkflowResult result)
     {
         if (result.Status is not (200 or 201)) return Error(result.Status, result.Code!, errors: result.Errors);
-        var incident = result.Write?.Case ?? result.Case;
+        InternalCaseDto? incident = result.Write?.Case ?? result.Case;
         if (incident is not null) Response.Headers.ETag = $"\"{incident.Version}\"";
         if (result.Status == 201)
         {

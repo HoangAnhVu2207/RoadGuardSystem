@@ -130,40 +130,45 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
             {
                 var image = fixture.Frame();
                 foreach (var source in sources.Files.Where(f => f.Purpose == "SURVEY_VIDEO").OrderBy(f => f.FileId.ToString("D"), StringComparer.Ordinal))
-                {
-                    var frameId = SyntheticAiFixture.Identity(run.Id, $"frame:{source.FileId:D}");
-                    var detectionId = SyntheticAiFixture.Identity(run.Id, $"detection:{source.FileId:D}");
-                    var key = $"anh02/ai/{run.Id:D}/{source.FileId:D}/{SyntheticAiFixture.FrameHash}.png";
-                    await using var imageStream = new MemoryStream(image, false);
-                    var durable = await artifacts.WriteAsync(key, imageStream, image.LongLength, "image/png", ct);
-                    if (durable.Sha256 != SyntheticAiFixture.FrameHash || durable.SizeBytes != SyntheticAiFixture.FrameBytes)
-                        throw new AiRequestException(422, "ai_contract_invalid");
-                    frames.Add(StoredFile.Create(frameId, key, $"{frameId:D}.png", "image/png", durable.SizeBytes, durable.Sha256,
-                        run.CreatedBy, run.ResultTimestamp!.Value, null));
-                    var box = new[] { .375m, .333333333m, .25m, .333333333m };
-                    var dto = new AiDetectionResultV1(detectionId, source.FileId, frameId, durable.Sha256,
-                        SyntheticAiFixture.TimestampMilliseconds, "CRACK", .8m, box, null, "UNKNOWN");
-                    resultDetections.Add(dto);
-                    detections.Add(AIDetection.Create(detectionId, run.ProcessingJobId, run.ModelVersionId, run.RouteVersionId, null,
-                        "CRACK", .8m, null, null, JsonSerializer.Serialize(dto, Json)));
-                    proofs.Add(new()
+                    foreach (var sample in SyntheticAiFixture.Samples(run.FixtureVersion))
                     {
-                        DetectionId = detectionId,
-                        RunId = run.Id,
-                        ResultId = resultId,
-                        SourceVideoFileId = source.FileId,
-                        SourceVideoFileVersion = source.FileVersion,
-                        FrameFileId = frameId,
-                        FrameFileVersion = durable.Sha256,
-                        DerivationHash = AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes($"{SyntheticAiFixture.VideoHash}:frame=1:{durable.Sha256}")),
-                        TimestampMilliseconds = SyntheticAiFixture.TimestampMilliseconds,
-                        SourceDurationMilliseconds = SyntheticAiFixture.DurationMilliseconds,
-                        BoxX = box[0],
-                        BoxY = box[1],
-                        BoxWidth = box[2],
-                        BoxHeight = box[3]
-                    });
-                }
+                        // Legacy identity/object paths remain byte-for-byte compatible.
+                        var suffix = run.FixtureVersion == "synthetic-road-v1" ? "" : $":{sample.Index}";
+                        var frameId = SyntheticAiFixture.Identity(run.Id, $"frame:{source.FileId:D}{suffix}");
+                        var detectionId = SyntheticAiFixture.Identity(run.Id, $"detection:{source.FileId:D}{suffix}");
+                        var key = run.FixtureVersion == "synthetic-road-v1"
+                            ? $"anh02/ai/{run.Id:D}/{source.FileId:D}/{SyntheticAiFixture.FrameHash}.png"
+                            : $"anh02/ai/{run.Id:D}/{source.FileId:D}/{sample.Index}/{SyntheticAiFixture.FrameHash}.png";
+                        await using var imageStream = new MemoryStream(image, false);
+                        var durable = await artifacts.WriteAsync(key, imageStream, image.LongLength, "image/png", ct);
+                        if (durable.Sha256 != SyntheticAiFixture.FrameHash || durable.SizeBytes != SyntheticAiFixture.FrameBytes)
+                            throw new AiRequestException(422, "ai_contract_invalid");
+                        frames.Add(StoredFile.Create(frameId, key, $"{frameId:D}.png", "image/png", durable.SizeBytes, durable.Sha256,
+                            run.CreatedBy, run.ResultTimestamp!.Value, null));
+                        var box = sample.Box;
+                        var dto = new AiDetectionResultV1(detectionId, source.FileId, frameId, durable.Sha256,
+                            sample.TimestampMilliseconds, sample.TypeCode, sample.Confidence, box, null, "UNKNOWN");
+                        resultDetections.Add(dto);
+                        detections.Add(AIDetection.Create(detectionId, run.ProcessingJobId, run.ModelVersionId, run.RouteVersionId, null,
+                            sample.TypeCode, sample.Confidence, null, null, JsonSerializer.Serialize(dto, Json)));
+                        proofs.Add(new()
+                        {
+                            DetectionId = detectionId,
+                            RunId = run.Id,
+                            ResultId = resultId,
+                            SourceVideoFileId = source.FileId,
+                            SourceVideoFileVersion = source.FileVersion,
+                            FrameFileId = frameId,
+                            FrameFileVersion = durable.Sha256,
+                            DerivationHash = AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes($"{SyntheticAiFixture.VideoHash}:frame={sample.Index}:{durable.Sha256}")),
+                            TimestampMilliseconds = sample.TimestampMilliseconds,
+                            SourceDurationMilliseconds = SyntheticAiFixture.DurationMilliseconds,
+                            BoxX = box[0],
+                            BoxY = box[1],
+                            BoxWidth = box[2],
+                            BoxHeight = box[3]
+                        });
+                    }
             }
             else if (run.Stage == "DUPLICATE_MATCHING")
             {

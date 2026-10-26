@@ -15,7 +15,7 @@ public sealed record CaseConclusionDto(string? Outcome, IReadOnlyList<Guid>? Def
 public sealed record CasePublicationDto(IReadOnlyList<Guid>? ReportIds, IReadOnlyList<Guid>? DefectIds, IReadOnlyList<Guid>? EvidenceIds, string? Summary);
 public sealed record InternalCaseDto(Guid Id, Guid? ProjectId, string Status, string Version,
     IReadOnlyList<Guid> ReportIds, IReadOnlyList<Guid> DefectIds, string? VerificationMethod, string WarrantyRouting,
-    CaseConclusionViewDto? Conclusion, DateTimeOffset CreatedAt)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CaseConclusionViewDto? Conclusion, DateTimeOffset CreatedAt)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.InternalCaseFact?(InternalCaseDto? value)

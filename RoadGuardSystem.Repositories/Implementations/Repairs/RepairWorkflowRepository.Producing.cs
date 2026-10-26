@@ -71,6 +71,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     command.Input.Reason, now, obligation.EffectiveResolutionHeadDecisionId); obligation.Resolve(decision);
                 }
                 catch (InvalidOperationException) { Deny(409, "final_confirmation_source_conflict"); throw; }
+                if (item.Mode == RepairMode.FastTrack)
+                {
+                    var snapshot = await SnapshotNotificationAssignment(item, now, false, ct);
+                    db.OutboxMessages.Add(OutboxMessage.Create(decision.Id, "repair.work.fast_track_confirmed.v1", now, null,
+                        JsonSerializer.Serialize(new H6StoredEvent(1, decision.Id, "FAST_TRACK_CONFIRMED", item.ProjectId,
+                            "RepairWork", item.Id, decision.Id, now, decision.Id, NotificationAssignmentSnapshot: snapshot,
+                            FastTrackFinal: new(package.Id, review.Id, review.IntakeLinkId, review.AttemptId)), Json)));
+                }
                 supervisorClock?.Complete(now);
                 Touch(package);
                 AuditProducer(command.ActorId, "repair_final_confirmed", "RepairItem", item.Id,
@@ -402,12 +410,16 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 db.Add(link); db.Entry(item).Property(row => row.CurrentAttemptId).CurrentValue = attempt.Id;
                 db.Entry(item).Property(row => row.CurrentIntakeLinkId).CurrentValue = link.Id;
                 db.Entry(item).Property(row => row.EffectiveIntakeSubmissionId).CurrentValue = submission.Id;
+                // FastTrack SUBMITTED occurs at this genuine intake, not at the earlier H3 receipt.
+                // The attempt, link and review clock above retain immutable formal-source timing.
+                var submittedAt = item.Mode == RepairMode.FastTrack ? clock.GetUtcNow() : submission.ServerReceivedAt;
                 var source = new RepairItemLifecycleEvent(Guid.NewGuid(), package.ProjectId, item.DefectId,
                     item.ObligationId, item.Id, item.Mode, "SUBMITTED", command.ActorId, command.Role,
-                    "Formal H3 root intake", submission.ServerReceivedAt, binding.Id, attempt.Id,
+                    "Formal H3 root intake", submittedAt, binding.Id, attempt.Id,
                     submission.Id, null, null, command.ExpectedItemVersion);
                 db.Add(source);
-                Notify(source, "repair.work.submitted.v1", "SUBMITTED");
+                var snapshot = item.Mode == RepairMode.FastTrack ? await SnapshotNotificationAssignment(item, source.At, true, ct) : null;
+                Notify(source, "repair.work.submitted.v1", "SUBMITTED", assignment: snapshot);
                 Touch(package);
                 AuditProducer(command.ActorId, "repair_attempt_intake", "RepairItem", item.Id,
                     "Actual H3 root formal intake; incomplete evidence does not confirm repair",
@@ -656,11 +668,29 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
             item.Mode, kind, actor, role, reason, at, binding, null, null, null, null, sourceVersion);
         db.Add(source); return source;
     }
-    private void Notify(RepairItemLifecycleEvent source, string type, string kind)
+    private void Notify(RepairItemLifecycleEvent source, string type, string kind, FastTrackReviewSnapshot? snapshot = null, NotificationAssignmentSnapshot? assignment = null)
     {
         db.OutboxMessages.Add(OutboxMessage.Create(source.Id, type, source.At, null, JsonSerializer.Serialize(
             new H6StoredEvent(1, source.Id, kind, source.ProjectId, "RepairWork", source.ItemId,
-                source.Id, source.At, source.Id), Json)));
+                source.Id, source.At, source.Id, FastTrackReview: snapshot, NotificationAssignmentSnapshot: assignment), Json)));
+    }
+    private async Task<NotificationAssignmentSnapshot> SnapshotNotificationAssignment(RepairItem item, DateTimeOffset at, bool includeManagers, CancellationToken token)
+    {
+        var day = DateOnly.FromDateTime(at.UtcDateTime);
+        var managers = includeManagers ? await (from member in db.ProjectMembers
+                                                join user in db.Users on member.UserId equals user.Id
+                                                where member.ProjectId == item.ProjectId && member.RoleCode == UserRoleCode.ProjectManager &&
+                                                    member.Status == ProjectMemberStatus.Active && member.ValidFrom <= day && (member.ValidTo == null || member.ValidTo >= day) &&
+                                                    user.RoleCode == UserRoleCode.ProjectManager && user.Status == UserStatus.Active && !user.MustChangePassword &&
+                                                    db.Roles.Any(role => role.Code == user.RoleCode && role.IsActive)
+                                                select member.UserId).Distinct().OrderBy(id => id).ToArrayAsync(token) : [];
+        // The producer and assignment writes already hold the exact item lock before reading this head.
+        var head = await db.Set<NotificationSupervisorHead>().FromSqlInterpolated(
+            $"SELECT * FROM [NotificationSupervisorHeads] WITH (UPDLOCK,HOLDLOCK) WHERE [ItemId]={item.Id}").AsNoTracking().SingleOrDefaultAsync(token);
+        if (head is not null && head.RevokedAt is null && head.ProjectId == item.ProjectId &&
+            await BusinessDutyRepository.CurrentAuthority(db, clock, head.SupervisorId, UserRoleCode.Supervisor, item.ProjectId, token))
+            return new(1, at, managers, head.SupervisorId, head.AssignmentId, Convert.ToBase64String(head.RowVersion));
+        return new(1, at, managers, null, null, null);
     }
     private void AuditProducer(Guid actor, string action, string entity, Guid id, string reason, object source)
         => db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, clock.GetUtcNow(), action, entity, id, null,

@@ -50,12 +50,22 @@ public sealed class H6NotificationOperationsHttpTests(AuthenticationSqlServerFix
         Assert.NotNull(owner.Email); Assert.NotNull(outsider.Email);
         await Login(ownerClient, owner.Email); await Login(outsiderClient, outsider.Email);
         var scopePath = $"/api/v1/notifications/{notification.Id}/scope";
+        using var anonymous = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(scopePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await ownerClient.GetAsync($"/api/v1/notifications/{Guid.NewGuid()}/scope")).StatusCode);
         var scopeResponse = await ownerClient.GetAsync(scopePath);
         Assert.Equal(HttpStatusCode.OK, scopeResponse.StatusCode);
         var scope = await scopeResponse.Content.ReadFromJsonAsync<H6NotificationScopeDto>();
         Assert.NotNull(scope); Assert.Equal(project.Id, scope.ProjectId); Assert.Equal("PROJECT", scope.Classification);
         Assert.Equal(HttpStatusCode.NotFound, (await outsiderClient.GetAsync(scopePath)).StatusCode);
         var clocksPath = $"/api/v1/projects/{project.Id}/clocks";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(clocksPath)).StatusCode);
+        foreach (var suffix in new[] { "?limit=0", "?limit=101", "?cursor=not-json", "?cursor=" + new string('x', 1025) })
+        {
+            var invalid = await ownerClient.GetAsync(clocksPath + suffix);
+            Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+            Assert.Equal("validation_error", (await invalid.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        }
         var page = await (await ownerClient.GetAsync(clocksPath + "?limit=1")).Content.ReadFromJsonAsync<H6ClockPage>();
         Assert.NotNull(page); Assert.Equal("READY", page.Status); Assert.Single(page.Items); Assert.NotNull(page.Continuation);
         var cursor = Uri.EscapeDataString(JsonSerializer.Serialize(page.Continuation, Json));
@@ -66,7 +76,21 @@ public sealed class H6NotificationOperationsHttpTests(AuthenticationSqlServerFix
         await using (var db = fixture.CreateDbContext())
             await db.ProjectMembers.Where(row => row.Id == membership.Id)
                 .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
-        Assert.Equal(HttpStatusCode.NotFound, (await ownerClient.GetAsync(scopePath)).StatusCode);
+        var revokedScope = await ownerClient.GetAsync(scopePath);
+        Assert.Equal(HttpStatusCode.NotFound, revokedScope.StatusCode);
+        var deniedBody = await revokedScope.Content.ReadAsStringAsync();
+        Assert.DoesNotContain(project.Id.ToString(), deniedBody, StringComparison.OrdinalIgnoreCase);
+        // ProblemDetails.instance may echo the identifier supplied by this caller.
+        // Sensitive resolved content must not be returned with the denial.
+        Assert.DoesNotContain(notification.Title, deniedBody, StringComparison.Ordinal);
+        Assert.DoesNotContain(notification.Body, deniedBody, StringComparison.Ordinal);
+        await using (var check = fixture.CreateDbContext())
+        {
+            var persisted = await check.Notifications.AsNoTracking().SingleAsync(n => n.Id == notification.Id);
+            Assert.Null(persisted.ReadAt);
+            Assert.Equal(notification.Title, persisted.Title); Assert.Equal(notification.Body, persisted.Body);
+            Assert.Equal(2, await check.Set<DeadlineClock>().CountAsync(c => c.ProjectId == project.Id));
+        }
         Assert.Equal(HttpStatusCode.Forbidden, (await ownerClient.GetAsync(clocksPath)).StatusCode);
     }
 

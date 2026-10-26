@@ -229,12 +229,14 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var supervisor = await sql.CreateUserAsync($"candidate-s-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         var pm = await sql.CreateUserAsync($"candidate-p-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var project = Guid.NewGuid();
-        var defectTypeCode = $"HUY-{Guid.NewGuid():N}";
+        // Approved C1 catalog value; all Report/Case/Defect transitions remain genuine HTTP.
+        var defectTypeCode = "CRACK";
         await using (var db = sql.CreateDbContext())
         {
             db.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(project, $"CD-{Guid.NewGuid():N}", "Candidate project", null, 32648, new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), DateTimeOffset.UtcNow));
             db.ProjectMembers.Add(RoadGuardSystem.BusinessObjects.Projects.ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project, pm.Id, new DateOnly(2026, 1, 1)));
-            db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(defectTypeCode, "Candidate fixture type"));
+            if (!await db.DefectTypes.AnyAsync(x => x.Code == defectTypeCode))
+                db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(defectTypeCode, "Approved surface damage"));
             await db.SaveChangesAsync();
         }
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
@@ -602,6 +604,28 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
             summary = "Verified defect on report"
         }, Guid.NewGuid().ToString(), confirmed.Headers.ETag!.ToString());
         published.StatusCode.Should().Be(HttpStatusCode.Created);
+        // C1 is a separate sanitized representation; never expose the private CasePublication.
+        var publicKey = Guid.NewGuid().ToString();
+        var publicRoute = $"/api/v1/projects/{project}/defects/{createdDefectId}/publications";
+        var publicCreated = await SendAsync(client, HttpMethod.Post, publicRoute, new { }, publicKey);
+        publicCreated.StatusCode.Should().Be(HttpStatusCode.Created, await publicCreated.Content.ReadAsStringAsync());
+        var publicId = (await publicCreated.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("publicId").GetGuid();
+        var publicReplay = await SendAsync(client, HttpMethod.Post, publicRoute, new { }, publicKey);
+        (await publicReplay.Content.ReadAsStringAsync()).Should().Be(await publicCreated.Content.ReadAsStringAsync());
+        using (var anonymous = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") }))
+        {
+            var publicRead = await anonymous.GetAsync($"/api/v1/public/publications/{publicId}");
+            publicRead.StatusCode.Should().Be(HttpStatusCode.OK);
+            publicRead.Headers.CacheControl!.NoStore.Should().BeTrue();
+            var publicBody = await publicRead.Content.ReadFromJsonAsync<JsonElement>();
+            publicBody.EnumerateObject().Select(x => x.Name).Order().Should().Equal("damageCategory", "publicId", "publicStatus", "publishedAt");
+            publicBody.GetProperty("damageCategory").GetString().Should().Be("ROAD_SURFACE_DAMAGE");
+            publicBody.GetProperty("publicStatus").GetString().Should().Be("PUBLISHED");
+            var withdrawn = await SendAsync(client, HttpMethod.Post, $"/api/v1/projects/{project}/publications/{publicId}/withdraw", new { }, Guid.NewGuid().ToString());
+            withdrawn.StatusCode.Should().Be(HttpStatusCode.OK);
+            var gone = await anonymous.GetAsync($"/api/v1/public/publications/{publicId}");
+            gone.StatusCode.Should().Be(HttpStatusCode.NotFound); gone.Headers.CacheControl!.NoStore.Should().BeTrue();
+        }
         await LoginAsync(client, reporter.UserName!);
         var ownPublished = await client.GetFromJsonAsync<JsonElement>($"/api/v1/reports/{report}");
         ownPublished.GetProperty("publicUpdates").GetArrayLength().Should().Be(1);
@@ -1411,10 +1435,17 @@ public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture 
         var detail = await client.GetAsync($"/api/v1/reports/{reportId}");
         detail.StatusCode.Should().Be(HttpStatusCode.OK);
         var initial = await detail.Content.ReadFromJsonAsync<JsonElement>();
+        initial.GetProperty("evidence")[0].TryGetProperty("location", out _).Should().BeFalse("optional unknown location must be omitted, not serialized as null");
+        var ownList = await client.GetFromJsonAsync<JsonElement>("/api/v1/reports");
+        var listed = ownList.GetProperty("items").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == reportId);
+        listed.GetProperty("evidence")[0].TryGetProperty("location", out _).Should().BeFalse();
         initial.GetProperty("evidence").GetArrayLength().Should().Be(1);
         initial.GetProperty("publicUpdates").GetArrayLength().Should().Be(0);
         var evidenceId = initial.GetProperty("evidence")[0].GetProperty("id").GetGuid();
         var download = await client.GetAsync($"/api/v1/reports/{reportId}/evidence/{evidenceId}/download");
+        download.Headers.ETag.Should().NotBeNull();
+        download.Headers.ETag!.IsWeak.Should().BeFalse();
+        download.Headers.ETag.Tag.Should().Be('"' + initial.GetProperty("evidence")[0].GetProperty("fileVersion").GetString() + '"');
         download.StatusCode.Should().Be(HttpStatusCode.OK);
         (await download.Content.ReadAsByteArrayAsync()).Should().Equal(1, 2, 3, 4);
         var added = await UploadVerifiedAsync(client, factory);

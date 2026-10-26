@@ -21,7 +21,11 @@ public sealed class BaselineSchemaTests
             item.Key.EndsWith("_BaselineCurrentSchema", StringComparison.Ordinal)));
         var operations = assembly.CreateMigration(migration.Value, "Microsoft.EntityFrameworkCore.SqlServer").UpOperations;
         var modelTables = context.GetService<IDesignTimeModel>().Model.GetRelationalModel().Tables.Select(table => table.Name).Order().ToArray();
-        Assert.Equal(modelTables, operations.OfType<CreateTableOperation>().Select(table => table.Name).Order().ToArray());
+        // C1 and B2 are deliberately additive; do not rewrite the applied baseline.
+        var createdTables = assembly.Migrations.OrderBy(item => item.Key)
+            .SelectMany(item => assembly.CreateMigration(item.Value, "Microsoft.EntityFrameworkCore.SqlServer").UpOperations)
+            .OfType<CreateTableOperation>().Select(table => table.Name).Order().ToArray();
+        Assert.Equal(modelTables, createdTables);
         Assert.DoesNotContain(operations, operation => operation is DropTableOperation or RenameTableOperation or AlterColumnOperation);
     }
 }

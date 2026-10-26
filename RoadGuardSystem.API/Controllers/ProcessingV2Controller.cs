@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Asp.Versioning;
@@ -25,7 +26,7 @@ public sealed class ProcessingV2Controller : ControllerBase
 
     [Authorize]
     [HttpPost("processing-jobs")]
-    public async Task<IActionResult> CreateProcessingJob([FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CreateProcessingJobRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateProcessingJob([FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? idempotencyKey, CreateProcessingJobRequestDto request, CancellationToken cancellationToken)
     {
         if (!TryActor(out var actor, out var role)) return Problem(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return Problem(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
@@ -42,7 +43,7 @@ public sealed class ProcessingV2Controller : ControllerBase
 
     [Authorize]
     [HttpPost("processing-jobs/{jobId:guid}/retry")]
-    public async Task<IActionResult> RetryProcessingJob(Guid jobId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, RetryProcessingJobRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RetryProcessingJob(Guid jobId, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, RetryProcessingJobRequestDto request, CancellationToken cancellationToken)
     {
         if (!TryActor(out var actor, out var role)) return Problem(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return Problem(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
@@ -51,15 +52,16 @@ public sealed class ProcessingV2Controller : ControllerBase
 
     [Authorize(Policy = "AiCallback")]
     [HttpPost("internal/processing-jobs/{jobId:guid}/results")]
-    public async Task<IActionResult> ReceiveAiResult(Guid jobId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, ReceiveAiResultRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> ReceiveAiResult(Guid jobId, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? idempotencyKey, ReceiveAiResultRequestDto request, CancellationToken cancellationToken)
     {
+        if (!AiCallbackTokens.Matches(User, jobId, request.JobAttemptId)) return Problem(403, ApiErrorCodes.AccessForbidden, "Forbidden");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return Problem(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         return Map(await _service.ReceiveResultAsync(jobId, request, idempotencyKey, cancellationToken));
     }
 
     [Authorize]
     [HttpPost("projects/{projectId:guid}/validation-runs")]
-    public async Task<IActionResult> CreateValidationRun(Guid projectId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CreateValidationRunRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateValidationRun(Guid projectId, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? idempotencyKey, CreateValidationRunRequestDto request, CancellationToken cancellationToken)
     {
         if (!TryActor(out var actor, out var role)) return Problem(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return Problem(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
@@ -91,7 +93,7 @@ public sealed class ProcessingV2Controller : ControllerBase
             ProcessingV2ServiceStatus.Success or ProcessingV2ServiceStatus.Replayed when result.Job is not null => created ? Accepted($"/api/v1/processing-jobs/{result.Job.Id}", result.Job) : Ok(result.Job),
             ProcessingV2ServiceStatus.Forbidden => Problem(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             ProcessingV2ServiceStatus.NotFound => Problem(404, ApiErrorCodes.NotFound, "Not found"),
-            ProcessingV2ServiceStatus.ConcurrencyConflict => Problem(412, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
+            ProcessingV2ServiceStatus.ConcurrencyConflict => Problem(412, "concurrency_conflict", "Precondition failed"),
             ProcessingV2ServiceStatus.IdempotentConflict => Problem(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
             ProcessingV2ServiceStatus.Conflict => Problem(409, ApiErrorCodes.ValidationError, "Processing transition is not allowed"),
             _ => Problem(422, ApiErrorCodes.ValidationError, "Processing request is invalid")

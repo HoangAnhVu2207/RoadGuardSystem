@@ -170,6 +170,63 @@ public sealed class H7ExportStorageAuthorityTests
         Assert.Equal("export_source_access_revoked", error);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StorageFailureOrLostCompletionAcknowledgementNeverPretendsArtifactWasPublished(bool afterWrite)
+    {
+        var actor = Guid.NewGuid(); var project = Guid.NewGuid(); var now = DateTimeOffset.UtcNow;
+        var snapshotId = Guid.NewGuid();
+        var payload = new ExportSnapshotPayloadDto(new("anh02.export.v1", snapshotId, project, "DOSSIER", "ZIP",
+            actor, now, now, [], new("DOSSIER", "ZIP"), [], [], [], null, ""), null);
+        var json = JsonSerializer.Serialize(payload, Json);
+        var snapshot = ExportSnapshot.Create(snapshotId, project, json, ExportSerialization.Hash(json), now);
+        var claim = new ExportClaim(Guid.NewGuid(), Guid.NewGuid(), actor, project, snapshot);
+        var writes = 0; var completionCalls = 0; var failures = 0;
+        var repository = Proxy<IExportRepository>((method, args) => method.Name switch
+        {
+            nameof(IExportRepository.ClaimAsync) => Task.FromResult<ExportClaim?>(claim),
+            nameof(IExportRepository.RenewAsync) => Task.FromResult(true),
+            nameof(IExportRepository.HasCurrentProjectMembershipAsync) => Task.FromResult(true),
+            nameof(IExportRepository.CanReadSnapshotSourcesAsync) => Task.FromResult(true),
+            nameof(IExportRepository.CompleteAsync) => Complete(),
+            nameof(IExportRepository.FailAsync) => Fail((string)args![1]!, (bool)args[2]!),
+            _ => throw new InvalidOperationException("Unexpected repository call: " + method.Name)
+        });
+        Task<bool> Complete() { completionCalls++; throw new IOException("synthetic completion acknowledgement loss"); }
+        Task Fail(string code, bool terminal)
+        { Assert.Equal("export_storage_unavailable", code); Assert.False(terminal); failures++; return Task.CompletedTask; }
+        var identity = Proxy<IIdentityRepository>((method, _) => method.Name switch
+        {
+            nameof(IIdentityRepository.GetUserSecurityStateAsync) => Task.FromResult<UserSecurityState?>(
+                new(actor, "fixture", "fixture", UserRoleCode.ProjectManager, UserStatus.Active, false, [])),
+            nameof(IIdentityRepository.IsRoleActiveAsync) => Task.FromResult(true),
+            _ => throw new InvalidOperationException("Unexpected identity call: " + method.Name)
+        });
+        var scope = Proxy<IProjectScopeGuard>((_, _) => Task.FromResult<ProjectAccessScope?>(new(project, UserRoleCode.ProjectManager, Guid.NewGuid())));
+        var rendered = new ObservedStream();
+        var renderer = Proxy<IExportRenderer>((_, _) => Task.FromResult<Stream>(rendered));
+        var artifacts = Proxy<IAnh02ArtifactStore>((method, _) => method.Name switch
+        {
+            nameof(IAnh02ArtifactStore.OpenReadAsync) => throw new FileNotFoundException(),
+            nameof(IAnh02ArtifactStore.WriteAsync) => Write(),
+            _ => throw new InvalidOperationException("Unexpected artifact call: " + method.Name)
+        });
+        Task<Anh02ArtifactMetadata> Write()
+        {
+            writes++;
+            if (!afterWrite) throw new IOException("synthetic object write failure");
+            return Task.FromResult(new Anh02ArtifactMetadata("synthetic/partial.zip", 4, new string('a', 64), "application/zip"));
+        }
+        using var services = new ServiceCollection().AddScoped<IExportRepository>(_ => repository).BuildServiceProvider();
+        var service = new ExportService(repository, identity, scope, null!, [], [], artifacts, null!, renderer,
+            TimeProvider.System, services.GetRequiredService<IServiceScopeFactory>());
+        Assert.True(await service.ProcessNextAsync(default));
+        Assert.Equal(1, writes); Assert.Equal(afterWrite ? 1 : 0, completionCalls); Assert.Equal(1, failures);
+        Assert.True(rendered.Disposed); Assert.Equal(json, snapshot.PayloadJson);
+        // This characterizes retry signalling with controlled adapters, not SQL commit or MinIO cleanup.
+    }
+
     private static T Proxy<T>(Func<MethodInfo, object?[]?, object?> handler) where T : class
     {
         var result = DispatchProxy.Create<T, ControlledProxy>();

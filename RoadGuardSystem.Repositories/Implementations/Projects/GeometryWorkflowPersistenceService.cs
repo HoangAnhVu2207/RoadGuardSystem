@@ -205,12 +205,23 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             var confirmed = await RouteView(c.ProjectId, section.Id, version, ct);
             return new(201, Value: confirmed, Version: Hash(confirmed));
         }
-        var readGeometry = c.Action is "package" or "set-get" or "geometry-get";
+        var readGeometry = c.Action is "package" or "set-get" or "set-list" or "geometry-get";
         var routeQuery = readGeometry ? db.RoadSectionVersions.AsNoTracking() : db.RoadSectionVersions;
         var route = await routeQuery.SingleOrDefaultAsync(x => x.Id == c.RouteVersionId && (c.RoadSectionId == null || x.RoadSectionId == c.RoadSectionId), ct);
         if (route is null) Reject(404, "road_section_version_not_found");
         if (section is null) section = await db.RoadSections.SingleOrDefaultAsync(x => x.Id == route!.RoadSectionId && x.ProjectId == c.ProjectId, ct);
         if (section is null) Reject(404, "road_section_version_not_found");
+        if (c.Action == "set-list")
+        {
+            var query = (SegmentSetListQuery)c.Input!;
+            if (query.PageSize is < 1 or > 100 || query.Status is not (null or "DRAFT" or "PUBLISHED" or "SUPERSEDED")) Reject(400, "validation_error");
+            var rows = db.RoadSegmentSets.AsNoTracking().Where(x => x.RoadSectionVersionId == route!.Id);
+            if (query.Status is not null) rows = rows.Where(x => x.Status == query.Status);
+            if (query.Cursor is Guid cursor) rows = rows.Where(x => x.Id.CompareTo(cursor) > 0);
+            var page = await rows.OrderBy(x => x.Id).Take(query.PageSize + 1).ToArrayAsync(ct);
+            var items = page.Take(query.PageSize).Select(x => new SegmentSetSummary(x.Id, x.RoadSectionVersionId, x.Status, Version(x.RowVersion))).ToArray();
+            return new(200, Value: new SegmentSetPage(items, page.Length > query.PageSize ? items[^1].Id : null));
+        }
         var view = await RouteView(c.ProjectId, section!.Id, route!, ct);
         if (c.Action == "geometry-get") return new(200, Value: view, Version: Hash(view));
         RoadSegmentSet? set = null;
@@ -334,7 +345,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         if (locked) await Anh02ReceiptAuthority.LockAsync(db, c.ActorId, c.ProjectId, ct);
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == c.ActorId, ct);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || (c.Role is not null && c.Role != user.RoleCode) || !await db.Roles.AsNoTracking().AnyAsync(x => x.Code == user.RoleCode && x.IsActive, ct)) Reject(403, "access_forbidden");
-        var read = c.Action is "draft-get" or "draft-readiness" or "draft-preview" or "geometry-get" or "set-get" or "set-preview" or "package" or "profile-get" or "profile-list" or "system-list";
+        var read = c.Action is "draft-get" or "draft-readiness" or "draft-preview" or "geometry-get" or "set-get" or "set-list" or "set-preview" or "package" or "profile-get" or "profile-list" or "system-list";
         if (c.Action == "confirm" ? user.RoleCode != UserRoleCode.Supervisor : !read ? user.RoleCode != UserRoleCode.ProjectManager : user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.DroneOperator)) Reject(403, "access_forbidden");
         if (user.RoleCode != UserRoleCode.Supervisor)
         {

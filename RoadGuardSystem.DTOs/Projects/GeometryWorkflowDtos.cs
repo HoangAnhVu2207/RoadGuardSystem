@@ -1,4 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace RoadGuardSystem.DTOs.Projects;
+
+public sealed record SegmentSetSummaryDto(Guid Id, Guid RouteVersionId, string Status, string Version);
+public sealed record SegmentSetPageDto(SegmentSetSummaryDto[] Items, Guid? NextCursor);
 
 public sealed record GeometryPoint(double X, double Y)
 {
@@ -71,11 +76,11 @@ public sealed record GeometryPreview(int SourceCrs, int EngineeringSrid, double 
 public sealed record RoadGeometryVersionView(Guid ProjectId, Guid RoadSectionId, Guid RouteVersionId,
     int VersionNo, bool IsCurrent, DateTimeOffset EffectiveFrom, Guid? SourceDraftId, int? SourceCrs,
     int EngineeringSrid, double? StationOriginMeters, WidthProfileItem[]? WidthProfile,
-    double? SurveyWidthMeters, GeometryShape MetricCenterline, GeometryShape? Wgs84Centerline,
+    double? SurveyWidthMeters, GeometryShape MetricCenterline, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] GeometryShape? Wgs84Centerline,
     double LengthMeters, string MetadataStatus, Guid? ApprovedBy, DateTimeOffset? ApprovedAt, string GeometryHash,
     Guid? CrsProfileRevisionId = null, Guid? RouteSystemId = null, string? RouteKind = null,
     Guid? ParentRouteVersionId = null, double? JunctionOffsetMeters = null, double? DeclaredLengthMeters = null,
-    ChainageCalibrationInput? ChainageCalibration = null, string? CrsStatus = null, bool SampleOnly = false)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ChainageCalibrationInput? ChainageCalibration = null, string? CrsStatus = null, bool SampleOnly = false)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.RoadGeometryVersionViewFact?(RoadGeometryVersionView? value)
@@ -94,8 +99,8 @@ public sealed record GeometryConfirmInput(Guid? ExpectedCurrentVersionId, DateTi
         => value is null ? null! : new(value.ExpectedCurrentVersionId, value.EffectiveFrom, value.Reason);
 }
 public sealed record SegmentDefinition(double TargetLengthMeters = 100, string RemainderMode = "KEEP", double[]? BoundariesMeters = null,
-    NativeAlignmentInput? NativeAlignment = null, double? TessellationToleranceMeters = null,
-    ChainageCalibrationInput? ChainageCalibration = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] NativeAlignmentInput? NativeAlignment = null, double? TessellationToleranceMeters = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ChainageCalibrationInput? ChainageCalibration = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.SegmentDefinitionFact?(SegmentDefinition? value)
@@ -125,8 +130,8 @@ public sealed record SegmentPreview(Guid RouteVersionId, double TotalLengthMeter
         => value is null ? null! : new(value.RouteVersionId, value.TotalLengthMeters, value.BoundariesMeters, value.Segments?.Select(item => (global::RoadGuardSystem.DTOs.Projects.SegmentGeometry)item).ToArray()!, value.DefinitionHash);
 }
 public sealed record SegmentGeometryView(Guid Id, int Sequence, double? FromOffsetMeters, double? ToOffsetMeters,
-    double? StartStationMeters, double? EndStationMeters, double? LengthMeters, GeometryShape? MetricGeometry,
-    GeometryShape? Wgs84Geometry, string[] MissingMetadata)
+    double? StartStationMeters, double? EndStationMeters, double? LengthMeters, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] GeometryShape? MetricGeometry,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] GeometryShape? Wgs84Geometry, string[] MissingMetadata)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.SegmentGeometryViewFact?(SegmentGeometryView? value)

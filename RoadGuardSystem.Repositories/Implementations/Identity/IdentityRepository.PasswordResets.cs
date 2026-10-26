@@ -180,6 +180,25 @@ public sealed partial class IdentityRepository
                     targetUserId,
                     CancellationToken.None);
         }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            _context.ChangeTracker.Clear();
+            var winner = await FindIdempotencyRecordAsync(
+                actorUserId,
+                operation,
+                idempotencyKey,
+                CancellationToken.None);
+            if (winner is null)
+            {
+                throw;
+            }
+
+            return await MapAdminPasswordResetReplayAsync(
+                winner,
+                requestFingerprint,
+                targetUserId,
+                CancellationToken.None);
+        }
     }
 
     private async Task<AdminPasswordResetResult> MapAdminPasswordResetReplayAsync(

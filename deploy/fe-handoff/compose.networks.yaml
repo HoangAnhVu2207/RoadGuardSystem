@@ -1,0 +1,12 @@
+# Optional, project-local remedy for exhausted Docker automatic address pools.
+# Select TWO distinct CIDRs after checking Docker networks and host/VPN routes.
+# Required variables deliberately have no default; never change daemon settings.
+networks:
+  internal:
+    ipam:
+      config:
+        - subnet: ${RG_FE_INTERNAL_SUBNET:?Choose a non-overlapping internal subnet}
+  edge:
+    ipam:
+      config:
+        - subnet: ${RG_FE_EDGE_SUBNET:?Choose a non-overlapping edge subnet}

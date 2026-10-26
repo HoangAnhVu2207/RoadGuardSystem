@@ -130,10 +130,13 @@ public sealed class H6ProjectLifecycleHttpTests(AuthenticationSqlServerFixture f
         db.AddRange(project, receiver, member, receiverMember, road, route, type, defect); await db.SaveChangesAsync();
         var obligation = RepairObligation.Create(Guid.NewGuid(), project.Id, defect.Id, RepairObligationKind.FormalRepair,
             true, RepairActualScope.Create(Guid.NewGuid(), road.Id, "TEST_ONLY_SOURCE_V1", "TEST_ONLY", 0, 10, -1, 1));
-        db.Add(RepairPackage.Create(Guid.NewGuid(), project.Id, defect.Id, [obligation])); await db.SaveChangesAsync();
+        var package = RepairPackage.Create(Guid.NewGuid(), project.Id, defect.Id, [obligation]);
+        db.Add(package); await db.SaveChangesAsync();
         await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
         using var client = factory.CreateClient(); using var receiverClient = factory.CreateClient();
         await Login(client, actor.Email!); await Login(receiverClient, receiverActor.Email!);
+        var packages = $"/api/v1/projects/{project.Id}/repair-packages";
+        await CollectionAssertions.Contains(client, packages, package.Id);
         var path = $"/api/v1/projects/{project.Id}/lifecycle";
         var initial = await client.GetAsync(path); Assert.Equal(HttpStatusCode.OK, initial.StatusCode);
         var scope = Assert.Single((await initial.Content.ReadFromJsonAsync<ProjectLifecycleViewDto>())!.TransferableObligations!);
@@ -158,6 +161,15 @@ public sealed class H6ProjectLifecycleHttpTests(AuthenticationSqlServerFixture f
         accept.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
         accept.Headers.TryAddWithoutValidation("If-Match", receiverRead.Headers.ETag!.ToString());
         Assert.Equal(HttpStatusCode.Created, (await receiverClient.SendAsync(accept)).StatusCode);
+        var originPage = await (await client.GetAsync(packages)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Empty(originPage.GetProperty("items").EnumerateArray());
+        var transferred = await CollectionAssertions.Contains(receiverClient,
+            $"/api/v1/projects/{receiver.Id}/repair-packages", package.Id);
+        Assert.Equal(project.Id, transferred.GetProperty("projectId").GetGuid()); // Provenance, not current authority.
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(packages + $"/{package.Id}/items")).StatusCode);
+        var receivedItems = await receiverClient.GetAsync($"/api/v1/projects/{receiver.Id}/repair-packages/{package.Id}/items");
+        Assert.Equal(HttpStatusCode.OK, receivedItems.StatusCode);
+        Assert.Empty((await receivedItems.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items").EnumerateArray());
         var close = new HttpRequestMessage(HttpMethod.Post, path + "/operational-closures")
         { Content = JsonContent.Create(new { reason = "TEST_ONLY transferred mandatory obligation", evidenceFileIds = Array.Empty<Guid>() }) };
         close.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());

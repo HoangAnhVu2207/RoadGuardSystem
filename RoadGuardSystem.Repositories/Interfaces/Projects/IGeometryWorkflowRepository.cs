@@ -2,6 +2,9 @@ using RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects;
 namespace RoadGuardSystem.Repositories.Projects;
 
 public sealed record GeometryWorkflowResult(int Status, string? Code = null, object? Value = null, string? Version = null);
+public sealed record SegmentSetListQuery(int PageSize, Guid? Cursor, string? Status);
+public sealed record SegmentSetSummary(Guid Id, Guid RouteVersionId, string Status, string Version);
+public sealed record SegmentSetPage(SegmentSetSummary[] Items, Guid? NextCursor);
 public sealed record GeometryWorkflowCommand(Guid ActorId, Guid ProjectId, string Action, Guid? RoadSectionId,
     Guid? DraftId, Guid? RouteVersionId, Guid? SetId, object? Input, string? Key, string? ExpectedVersion,
     RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode? Role = null);

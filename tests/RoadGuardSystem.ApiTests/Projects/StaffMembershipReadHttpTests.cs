@@ -44,8 +44,9 @@ public sealed class StaffMembershipReadHttpTests(AuthenticationSqlServerFixture 
         Assert.NotNull(detailResponse.Headers.ETag);
         var detail = await detailResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(pm.Id, detail.GetProperty("id").GetGuid());
-        Assert.Equal(pm.Email, detail.GetProperty("email").GetString());
-        Assert.Equal("000-test-contact", detail.GetProperty("phoneNumber").GetString());
+        Assert.Equal(new[] { "displayName", "id", "role", "version" }, detail.EnumerateObject().Select(x => x.Name).OrderBy(x => x));
+        Assert.Equal(pm.DisplayName, detail.GetProperty("displayName").GetString());
+        Assert.Equal("PM", detail.GetProperty("role").GetString());
         Assert.Equal('"' + detail.GetProperty("version").GetString() + '"', detailResponse.Headers.ETag!.ToString());
         using var pmClient = await Login(factory, pm);
         Assert.Equal(HttpStatusCode.Forbidden, (await pmClient.GetAsync($"/api/v1/users/{pm.Id}")).StatusCode);
@@ -201,8 +202,8 @@ public sealed class StaffMembershipReadHttpTests(AuthenticationSqlServerFixture 
         Assert.Equal("SUSPENDED", row.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Null, row.GetProperty("email").ValueKind);
         var detail = await Get(client, $"/api/v1/users/{staff.Id}");
-        Assert.Equal(JsonValueKind.Null, detail.GetProperty("phoneNumber").ValueKind);
-        Assert.Equal(JsonValueKind.Null, detail.GetProperty("email").ValueKind);
+        Assert.False(detail.TryGetProperty("phoneNumber", out _));
+        Assert.False(detail.TryGetProperty("email", out _));
         Assert.Empty((await Get(client, "/api/v1/users?status=ACTIVE&search=" + prefix)).GetProperty("items").EnumerateArray());
         await using (var db = sql.CreateDbContext()) await db.Users.Where(x => x.Id == sup.Id).ExecuteUpdateAsync(x => x.SetProperty(u => u.RoleCode, UserRoleCode.ProjectManager));
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/users")).StatusCode);
@@ -311,6 +312,132 @@ public sealed class StaffMembershipReadHttpTests(AuthenticationSqlServerFixture 
         {
             Assert.Equal(HttpStatusCode.Unauthorized, (await cookie.GetAsync(url)).StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, (await bearer.GetAsync(url)).StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task ReadContractsExposeOnlyDeclaredFieldsAndNeverMutateOwnedRows()
+    {
+        var sup = await User(UserRoleCode.Supervisor);
+        var pm = await User(UserRoleCode.ProjectManager);
+        var project = await Project();
+        var member = await Member(project.Id, pm.Id, UserRoleCode.ProjectManager, primary: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = await Login(factory, sup);
+        async Task<string> Snapshot()
+        {
+            await using var db = sql.CreateDbContext();
+            var user = await db.Users.AsNoTracking().SingleAsync(x => x.Id == pm.Id);
+            var membership = await db.ProjectMembers.AsNoTracking().SingleAsync(x => x.Id == member.Id);
+            var head = await db.Projects.AsNoTracking().SingleAsync(x => x.Id == project.Id);
+            return Convert.ToBase64String(user.RowVersion) + ":" + Convert.ToBase64String(membership.RowVersion) + ":" + Convert.ToBase64String(head.RowVersion);
+        }
+        static void Keys(JsonElement item, params string[] names) =>
+            Assert.Equal(names.OrderBy(x => x), item.EnumerateObject().Select(x => x.Name).OrderBy(x => x));
+        var before = await Snapshot();
+        for (var repeat = 0; repeat < 2; repeat++)
+        {
+            var roster = await Get(client, $"/api/v1/projects/{project.Id}/members");
+            Keys(roster, "items", "nextCursor", "asOf");
+            var row = Assert.Single(roster.GetProperty("items").EnumerateArray());
+            Keys(row, "membershipId", "userId", "displayName", "role", "isPrimary", "status", "validFrom", "validTo", "membershipVersion");
+            Assert.Equal(member.Id, row.GetProperty("membershipId").GetGuid());
+            Assert.Equal(pm.Id, row.GetProperty("userId").GetGuid());
+            Assert.Equal("PM", row.GetProperty("role").GetString());
+            var primary = await Get(client, $"/api/v1/projects/{project.Id}/primary-project-manager");
+            Keys(primary, "primaryProjectManager");
+            var current = primary.GetProperty("primaryProjectManager");
+            Keys(current, "membershipId", "userId", "displayName", "validFrom", "validTo", "membershipVersion");
+            Assert.Equal(member.Id, current.GetProperty("membershipId").GetGuid());
+            Assert.Equal(row.GetProperty("membershipVersion").GetString(), current.GetProperty("membershipVersion").GetString());
+            var account = await client.GetAsync($"/api/v1/users/{pm.Id}");
+            Assert.Equal(HttpStatusCode.OK, account.StatusCode);
+            var detail = await account.Content.ReadFromJsonAsync<JsonElement>();
+            Keys(detail, "id", "displayName", "role", "version");
+            Assert.Equal(pm.Id, detail.GetProperty("id").GetGuid());
+            Assert.Equal(pm.DisplayName, detail.GetProperty("displayName").GetString());
+            Assert.Equal("PM", detail.GetProperty("role").GetString());
+            Assert.Equal("\"" + detail.GetProperty("version").GetString() + "\"", account.Headers.ETag!.Tag);
+            Assert.Equal(before, await Snapshot());
+        }
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/v1/users/{Guid.NewGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/v1/users/not-a-guid")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"/api/v1/projects/{project.Id}/members?includeHistory=not-a-bool")).StatusCode);
+        Assert.Equal(before, await Snapshot());
+    }
+
+    [Fact]
+    public async Task RosterCursorCannotCrossProjectOrActorAndReadDenialsPreserveMembershipVersion()
+    {
+        var sup = await User(UserRoleCode.Supervisor); var otherSup = await User(UserRoleCode.Supervisor);
+        var pm = await User(UserRoleCode.ProjectManager); var crew = await User(UserRoleCode.RepairCrew);
+        var a = await Project(); var b = await Project();
+        var pmMember = await Member(a.Id, pm.Id, UserRoleCode.ProjectManager, primary: true);
+        await Member(a.Id, crew.Id, UserRoleCode.RepairCrew);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = await Login(factory, sup); using var other = await Login(factory, otherSup); using var manager = await Login(factory, pm);
+        var first = await Get(client, $"/api/v1/projects/{a.Id}/members?limit=1");
+        var cursor = Uri.EscapeDataString(first.GetProperty("nextCursor").GetString()!);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"/api/v1/projects/{b.Id}/members?limit=1&cursor={cursor}")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await other.GetAsync($"/api/v1/projects/{a.Id}/members?limit=1&cursor={cursor}")).StatusCode);
+        foreach (var surface in new[] { "members", "primary-project-manager" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await manager.GetAsync($"/api/v1/projects/{b.Id}/{surface}")).StatusCode);
+        await using var db = sql.CreateDbContext();
+        Assert.Equal(pmMember.RowVersion, (await db.ProjectMembers.AsNoTracking().SingleAsync(x => x.Id == pmMember.Id)).RowVersion);
+        Assert.Empty(await db.ProjectMembers.Where(x => x.ProjectId == b.Id).ToArrayAsync());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ApprovedAccountFourFieldWirePreservesContactsAndExactAuthorityErrors(bool cookie)
+    {
+        var sup = await User(UserRoleCode.Supervisor);
+        var target = await User(UserRoleCode.ProjectManager);
+        await using (var db = sql.CreateDbContext())
+            await db.Users.Where(x => x.Id == target.Id).ExecuteUpdateAsync(x => x.SetProperty(u => u.PhoneNumber, "000-test-contact"));
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = await Login(factory, sup, cookie);
+        var path = $"/api/v1/users/{target.Id}";
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType!.MediaType);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(new[] { "displayName", "id", "role", "version" }, body.EnumerateObject().Select(x => x.Name).OrderBy(x => x));
+        Assert.Equal(target.Id, body.GetProperty("id").GetGuid());
+        Assert.Equal(target.DisplayName, body.GetProperty("displayName").GetString());
+        Assert.Equal("PM", body.GetProperty("role").GetString());
+        await using (var db = sql.CreateDbContext())
+        {
+            var stored = await db.Users.AsNoTracking().SingleAsync(x => x.Id == target.Id);
+            Assert.Equal(target.Email, stored.Email);
+            Assert.Equal("000-test-contact", stored.PhoneNumber);
+            Assert.Equal(Convert.ToBase64String(stored.RowVersion), body.GetProperty("version").GetString());
+            Assert.Equal('"' + body.GetProperty("version").GetString() + '"', response.Headers.ETag!.Tag);
+            Assert.False(await db.ProjectMembers.AnyAsync(x => x.UserId == sup.Id));
+        }
+        var directory = await Get(client, "/api/v1/users?search=" + target.Email);
+        var row = Assert.Single(directory.GetProperty("items").EnumerateArray());
+        Assert.Equal(target.Email, row.GetProperty("email").GetString());
+        Assert.Equal("000-test-contact", row.GetProperty("phoneNumber").GetString());
+        foreach (var role in new[] { UserRoleCode.ProjectManager, UserRoleCode.DroneOperator, UserRoleCode.RepairCrew, UserRoleCode.Reporter })
+        {
+            using var denied = await Login(factory, await User(role), cookie);
+            await Error(await denied.GetAsync(path), HttpStatusCode.Forbidden, "access_forbidden");
+        }
+        await Error(await client.GetAsync($"/api/v1/users/{Guid.NewGuid()}"), HttpStatusCode.NotFound, "identity_user_not_found");
+        using var anonymous = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = false });
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(path)).StatusCode);
+
+        static async Task Error(HttpResponseMessage denied, HttpStatusCode status, string code)
+        {
+            Assert.Equal(status, denied.StatusCode);
+            Assert.Equal("application/problem+json", denied.Content.Headers.ContentType!.MediaType);
+            var problem = await denied.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal((int)status, problem.GetProperty("status").GetInt32());
+            Assert.Equal(code, problem.GetProperty("code").GetString());
+            Assert.False(string.IsNullOrWhiteSpace(problem.GetProperty("correlationId").GetString()));
+            Assert.All(problem.EnumerateObject(), p => Assert.Contains(p.Name, new[] { "type", "title", "status", "detail", "instance", "code", "correlationId" }));
         }
     }
 

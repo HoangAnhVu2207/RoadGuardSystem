@@ -40,6 +40,8 @@ public sealed class H6NotificationDeliveryAttempt
 }
 public sealed class H6NotificationScopeRow
 {
+    public Guid? NotificationAssignmentId { get; set; }
+    public string? NotificationAssignmentVersion { get; set; }
     public Guid NotificationId { get; set; }
     public Guid? ProjectId { get; set; }
     public Guid? OccurrenceId { get; set; }

@@ -7,6 +7,7 @@ public sealed record ExportResult<T>(string Code, T? Value = default);
 public sealed record ExportContentDto(Stream Content, string MediaType, string FileName, string Sha256);
 public interface IExportService
 {
+    Task<bool> CanListAsync(Guid actorId, Guid projectId, CancellationToken ct) => Task.FromResult(false);
     Task<ExportResult<ExportJobViewDto>> CreateAsync(Guid actorId, Guid projectId, CreateExportRequestDto request, string key, Guid? correlationId, CancellationToken ct);
     Task<ExportResult<ExportJobViewDto>> GetAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct);
     Task<ExportResult<ExportManifestV1Dto>> ManifestAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct);

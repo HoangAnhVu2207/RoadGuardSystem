@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main, anh, huy, huy-review]
+    branches: [develop, main, anh, anh-review, huy, huy-review]
   schedule:
     - cron: "0 18 * * *"
   workflow_dispatch:
@@ -23,6 +23,8 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
   SQL_IMAGE: "mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04"
+  RG_MINIO_IMAGE: "roadguard-ci/minio:source-pinned"
+  RG_TEST_UNICODE_FONT: "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 jobs:
   verify:
@@ -100,6 +102,8 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
       - run: docker pull ${{ env.SQL_IMAGE }}
+      - name: Build pinned disposable MinIO provider
+        run: docker build --file deploy/fe-handoff/Dockerfile.Minio --tag ${{ env.RG_MINIO_IMAGE }} .
       - run: dotnet restore tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj
       - run: dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --no-incremental
       - if: ${{ github.event_name != 'schedule' && inputs.collect_coverage != true }}
@@ -136,6 +140,8 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
+      - name: Build pinned disposable MinIO provider
+        run: docker build --file deploy/fe-handoff/Dockerfile.Minio --tag ${{ env.RG_MINIO_IMAGE }} .
       - name: Generate ephemeral SQL credential
         shell: pwsh
         run: |
@@ -192,6 +198,14 @@ jobs:
           throw 'SQL Server readiness timeout after 3 minutes.'
       - run: dotnet restore tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj
       - run: dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --no-incremental
+      - name: Prepare export crash-recovery worker
+        shell: pwsh
+        run: |
+          dotnet build tools/RoadGuardSystem.ExportTestWorker/RoadGuardSystem.ExportTestWorker.csproj --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $worker = Join-Path $env:GITHUB_WORKSPACE 'tools/RoadGuardSystem.ExportTestWorker/bin/Debug/net8.0/RoadGuardSystem.ExportTestWorker.dll'
+          "RG_EXPORT_TEST_WORKER=$worker" >> $env:GITHUB_ENV
+          if (-not (Test-Path -LiteralPath $env:RG_TEST_UNICODE_FONT)) { throw 'Required licensed Unicode test font is unavailable.' }
       - name: Run integration tests
         shell: pwsh
         run: |

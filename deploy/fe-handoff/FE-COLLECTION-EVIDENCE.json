@@ -1,0 +1,356 @@
+{
+  "sourceHead": "dd94aa697c411bb11d305973580055216f65ba73",
+  "canonicalOperations": 241,
+  "renderedOperations": 257,
+  "additiveCollections": 11,
+  "runnerPolicy": "DENY_ALL",
+  "operations": [
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/ai-mock-runs",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "populated-ai-frame-green.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Processing.Anh02AiHttpTests.Real_synthetic_upload_manifest_worker_provenance_replay_and_revocation"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/repair-packages",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "transfer-repair-final.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Projects.H6ProjectLifecycleHttpTests.ConfirmedOperationalClosureProducesRenewedHandlingThroughActualHttp"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/repair-packages/{packageId}/items",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "transfer-repair-final.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Repairs.H4RepairWorkflowHttpAdmissionTests.ActualHttpCorrectionChangesCurrentViewAndRequestOnlyAppendsHistory"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/exports",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "populated-export-green.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Reporting.ExportReadyContentHttpTests.ReadyHttpChecksBytesCurrentAuthorityStorageFailureAndRecoveryWithoutSqlMutation"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/survey-plans",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "final-survey-offline-retention.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Surveys.P2SurveyV2ApiTests.SurveyV2Endpoints_CreateReplayPostponeWithConcurrencyAndReadScope"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/survey-tasks",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "final-survey-offline-retention.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Surveys.P2SurveyV2ApiTests.SurveyV2Endpoints_CreateReplayPostponeWithConcurrencyAndReadScope"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/processing-jobs",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "populated-ai-frame-green.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Processing.Anh02AiHttpTests.Real_synthetic_upload_manifest_worker_provenance_replay_and_revocation"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/offline/devices",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "final-contract-auth-regression.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Projects.DiscoveryCollectionsHttpTests.EmptyCollectionsEnforceCurrentAuthorityAndStrictQueryWithoutWrites(suffix: \"offline/devices\")"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/offline/packages",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "final-survey-offline-retention.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Offline.H5OfflinePositiveHttpTests.BearerSignedSyncAndSupervisorGrantedImportCommitOriginalCrewEffects"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/offline/grants",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "final-survey-offline-retention.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Offline.H5OfflinePositiveHttpTests.BearerSignedSyncAndSupervisorGrantedImportCommitOriginalCrewEffects"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/retention/evaluations",
+      "status": "PARTIAL_CONTRACT",
+      "authority": "G02_G06_COLLECTION_CONTRACT_APPROVAL",
+      "sourceHashes": {
+        "RoadGuardSystem.API/Controllers/DiscoveryCollectionsController.cs": "e2d8b7e71d7cce882a30647200f0de6d0eaa304ad7c203ccb316b834bdbd47ff",
+        "RoadGuardSystem.Services/Implementations/Collections/CollectionReadService.cs": "9de52c2f9f074775088e931c552246655ceeec764bcff5be8c3e28c03c4ace18",
+        "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs": "a02b73cbdaab1173f6502f6aa06950733601d11a0d267fdeee824bf9c0c68f6c",
+        "RoadGuardSystem.DTOs/Collections/CollectionPages.cs": "385188c38d94c401dc5e5a8d3a40e32a0a2b5815a4bdee36e751187d0d49581f"
+      },
+      "sharedRuntimeRun": "final-contract-auth-regression.trx",
+      "tests": "See populatedRuntime and sharedRuntimeRun; shared route admission does not prove every contract dimension.",
+      "verifiedDimensions": [
+        "SQL-backed populated projection in resource-specific workflow test",
+        "current per-row authority reused"
+      ],
+      "notExhaustivelyVerified": [
+        "each route with multi-page and revoked-row traversal",
+        "each role/device/reassignment combination",
+        "mixed-responsibility package discovery design"
+      ],
+      "fullContract": false,
+      "populatedRuntime": {
+        "run": "final-survey-offline-retention.trx",
+        "testCases": [
+          "RoadGuardSystem.ApiTests.Retention.Anh02RetentionHttpTests.Missing_inventory_basis_fails_closed_evaluation_GET_has_no_source_writes"
+        ]
+      }
+    }
+  ],
+  "evidenceBase": "C:\\Users\\HoangAnhVu\\AppData\\Local\\codex-with-chatgpt\\handoffs\\TASK34-20261021T050240Z\\approved-collections",
+  "staleHistoricalProvenance": {
+    "pythonKnowledge": "134 PASS, 1 FAIL, 1 ERROR; source hash mismatch detected, not bypassed",
+    "affectedCatalogs": [
+      "knowledge/owner-policy-task31.json",
+      "knowledge/task29-authorization.json",
+      "knowledge/task29-postconditions.json"
+    ],
+    "runtimeReattestation": "NOT_RUN for complete historical catalog; no automatic hash promotion"
+  },
+  "closeoutRuntime": {
+    "file": "collections-frames-results.json",
+    "sha256": "6eb2b9d29c204c1cd8e02273d4887e7b472e3cd03f0582717d0b0cb1bc4110bb",
+    "status": "PASS_BOUNDED",
+    "checks": 145,
+    "limitations": "Empty collections do not prove nonempty producer/lifecycle. Historical per-operation attribution retained; no FULL_CONTRACT promotion."
+  }
+}

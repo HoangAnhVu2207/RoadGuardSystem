@@ -56,6 +56,11 @@ public static class ServiceCollectionExtensions
                 jwtValidation.Failures!);
         }
 
+        var aiOptions = new AiServiceTokenOptions();
+        configuration.GetSection(AiServiceTokenOptions.Section).Bind(aiOptions);
+        services.AddSingleton(aiOptions);
+        services.AddSingleton<AiCallbackTokens>();
+        services.AddScoped<AiDispatchAdapter>();
         services.AddAuthentication(options =>
             {
                 options.DefaultScheme = WebCookieConfiguration.UserScheme;
@@ -64,8 +69,10 @@ public static class ServiceCollectionExtensions
             .AddPolicyScheme(WebCookieConfiguration.UserScheme, null,
                 options => options.ForwardDefaultSelector = WebCookieConfiguration.SelectScheme)
             .AddJwtBearer(options => JwtBearerConfiguration.Configure(options, jwtOptions))
-            .AddJwtBearer(AiServiceJwtBearerConfiguration.Scheme, options => AiServiceJwtBearerConfiguration.Configure(options, jwtOptions))
+            .AddJwtBearer(AiServiceJwtBearerConfiguration.Scheme, _ => { })
             .AddCookie(WebCookieConfiguration.Scheme, WebCookieConfiguration.Configure);
+        services.AddOptions<JwtBearerOptions>(AiServiceJwtBearerConfiguration.Scheme)
+            .Configure<AiCallbackTokens>((options, tokens) => AiServiceJwtBearerConfiguration.Configure(options, tokens));
         services.AddOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(WebCookieConfiguration.Scheme)
             .Configure<TimeProvider>((options, clock) => options.TimeProvider = clock);
         services.AddAntiforgery(options =>
@@ -88,9 +95,7 @@ public static class ServiceCollectionExtensions
             });
             options.AddPolicy("AiCallback", policy =>
             {
-                policy.AddAuthenticationSchemes(AiServiceJwtBearerConfiguration.Scheme);
-                policy.RequireAuthenticatedUser();
-                policy.RequireClaim("client_type", "AI_SERVICE");
+                HandoffPolicyGates.ConfigureAiCallback(policy, configuration);
             });
         });
         services.AddScoped<IProjectScopeGuard, ProjectScopeGuard>();
@@ -103,6 +108,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWarrantyCreationService, WarrantyCreationService>();
         services.AddScoped<IRoadSectionVersionService, RoadSectionVersionService>();
         services.AddScoped<IGeometryWorkflowService, GeometryWorkflowService>();
+        services.AddScoped<RoadGuardSystem.Services.Collections.CollectionReadService>();
+        services.AddScoped<RoadGuardSystem.Repositories.Collections.ICollectionReadRepository, RoadGuardSystem.Repositories.Implementations.Collections.CollectionReadRepository>();
         services.AddScoped<IPavementWorkflowService, PavementWorkflowService>();
         services.AddScoped<ISurveyAssignmentService, SurveyAssignmentService>();
         services.AddScoped<ISurveyPlanningService, SurveyPlanningService>();
@@ -110,6 +117,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFieldInspectionWorkflowService, FieldInspectionWorkflowService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairWorkflowService, RoadGuardSystem.Services.Implementations.Repairs.RepairWorkflowService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairProducerService, RoadGuardSystem.Services.Implementations.Repairs.RepairProducerService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.INotificationSupervisorService, RoadGuardSystem.Services.Implementations.Repairs.NotificationSupervisorService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairExecutionService, RoadGuardSystem.Services.Implementations.Repairs.RepairExecutionService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairPolicyService, RoadGuardSystem.Services.Implementations.Repairs.RepairPolicyService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairEligibilityService, RoadGuardSystem.Services.Implementations.Repairs.RepairEligibilityService>();

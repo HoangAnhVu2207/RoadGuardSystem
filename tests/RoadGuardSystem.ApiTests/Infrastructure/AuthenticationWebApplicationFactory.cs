@@ -55,6 +55,11 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.UseSetting("AiServiceJwt:Enabled", "true");
+        builder.UseSetting("AiServiceJwt:Subject", TestAiServiceIdentity.Options.Subject);
+        builder.UseSetting("AiServiceJwt:ActiveKeyId", TestAiServiceIdentity.Options.ActiveKeyId);
+        builder.UseSetting("AiServiceJwt:PrivateKeyPem", TestAiServiceIdentity.Options.PrivateKeyPem);
+        builder.UseSetting("AiServiceJwt:PublicKeys:ephemeral-ai", TestAiServiceIdentity.Options.PublicKeys["ephemeral-ai"]);
         builder.UseSetting("RoadGuardDatabase:ConnectionString", _connectionString);
         builder.UseSetting("RoadGuardDatabase:EnableSensitiveDataLogging", "false");
         builder.UseSetting("RoadGuardDatabase:MaxRetryCount", "3");

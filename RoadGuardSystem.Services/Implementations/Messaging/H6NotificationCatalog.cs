@@ -44,13 +44,34 @@ public static class H6NotificationCatalog
                 throw new H6NotificationProtocolException("notification_envelope_invalid");
             var propertyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var property in document.RootElement.EnumerateObject())
+            {
                 if (!propertyNames.Add(property.Name)) throw new H6NotificationProtocolException("notification_envelope_invalid");
+                if ((property.Name.Equals("notificationAssignmentSnapshot", StringComparison.OrdinalIgnoreCase) ||
+                     property.Name.Equals("fastTrackFinal", StringComparison.OrdinalIgnoreCase)) && property.Value.ValueKind == JsonValueKind.Object)
+                {
+                    var nestedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var nested in property.Value.EnumerateObject())
+                        if (!nestedNames.Add(nested.Name)) throw new H6NotificationProtocolException("notification_envelope_invalid");
+                }
+            }
             if (messageType == "repair.decision.corrected.v1") return ParseCorrection(outboxId, occurredAtUtc, payloadJson);
             var wire = JsonSerializer.Deserialize<H6NotificationEventDto>(payloadJson, Json)
                 ?? throw new H6NotificationProtocolException("notification_envelope_invalid");
             var source = new H6StoredEvent(wire.SchemaVersion, wire.EventId, wire.Kind, wire.ProjectId,
                 wire.SourceKind, wire.SourceId, wire.OriginEventId, wire.OccurredAtUtc,
-                wire.SourceRevisionId, wire.ResponsibleUserId, wire.ScheduledAtUtc);
+                wire.SourceRevisionId, wire.ResponsibleUserId, wire.ScheduledAtUtc, wire.FastTrackReview, wire.NotificationAssignmentSnapshot, wire.FastTrackFinal);
+            if (source.FastTrackReview is { } snapshot &&
+                (messageType != "repair.work.submitted.v1" || source.SourceKind != "RepairWork" || !snapshot.IsValid()))
+                throw new H6NotificationProtocolException("notification_envelope_invalid");
+            if (source.NotificationAssignmentSnapshot is { } assignment &&
+                (source.FastTrackReview is not null || source.SourceKind != "RepairWork" || !assignment.IsValid() ||
+                 assignment.CapturedAt != source.OccurredAtUtc || source.ResponsibleUserId is not null ||
+                 messageType is not ("repair.work.submitted.v1" or "repair.work.fast_track_confirmed.v1") ||
+                 messageType == "repair.work.fast_track_confirmed.v1" && assignment.ProjectManagerIds.Length != 0))
+                throw new H6NotificationProtocolException("notification_envelope_invalid");
+            if (source.FastTrackFinal is not null && (messageType != "repair.work.fast_track_confirmed.v1" || source.NotificationAssignmentSnapshot is null) ||
+                source.NotificationAssignmentSnapshot is not null && messageType == "repair.work.fast_track_confirmed.v1" && source.FastTrackFinal is null)
+                throw new H6NotificationProtocolException("notification_envelope_invalid");
             if (source.SchemaVersion != 1 || outboxId == Guid.Empty || source.EventId != outboxId ||
                 source.ProjectId == Guid.Empty || source.SourceId == Guid.Empty || source.OriginEventId == Guid.Empty ||
                 source.OccurredAtUtc == default || source.OccurredAtUtc.Offset != TimeSpan.Zero || source.OccurredAtUtc != occurredAtUtc ||

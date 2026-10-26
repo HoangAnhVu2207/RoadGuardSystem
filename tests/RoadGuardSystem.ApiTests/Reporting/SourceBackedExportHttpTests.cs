@@ -94,7 +94,7 @@ public sealed class SourceBackedExportHttpTests(AuthenticationSqlServerFixture s
         }
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
         {
-            services.Configure<ExportOptions>(o => o.UnicodeFontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf"));
+            services.Configure<ExportOptions>(o => o.UnicodeFontPath = Environment.GetEnvironmentVariable("ANH02_TEST_FONT_PATH") ?? Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? throw new InvalidOperationException("Set RG_TEST_UNICODE_FONT to an embedding-licensed Unicode TTF font."));
             services.AddSingleton<IAnh02ArtifactStore>(store); services.AddSingleton<TimeProvider>(clock);
             services.AddSingleton<IUploadObjectStorage>(new MinioUploadObjectStorage(options));
         });

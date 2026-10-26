@@ -84,3 +84,25 @@ Fixed the fixture, identity-manifest and portable-output findings above. Origina
 source and failed evidence remain preserved. No new public contract decision is introduced.
 Self-review 2 covers remote SHA, per-branch CI and final delivery; it remains pending
 until those remote checks execute. Independent review and production release remain pending/not run.
+
+## Actual remote CI repair: portable reporting export fonts
+
+HISTORICAL: publication commit `05c55593a270d9877ded4e0d900657f0466faac5`
+was pushed non-force to all five named branches. Develop run 40332829556 executed
+1,529 API PASS / 4 FAIL / 1 optional SKIP; all SQL lanes and their union passed.
+The retained raw TRX identifies `export_font_unavailable` in reporting exports.
+Two HTTP fixtures selected Windows Arial directly despite CI already declaring
+`RG_TEST_UNICODE_FONT` as DejaVu Sans on Linux. Both fixtures now use the explicit
+licensed-font environment configuration, consistent with other export tests.
+No renderer, public contract, security check or test assertion is relaxed.
+The failed remote execution remains a distinct historical result. Focused and
+full affected API verification plus every branch's new exact-SHA CI are required.
+
+CURRENT_VERIFIED: focused export HTTP regression 4/4 PASS after correction;
+changed-file format, documentation and diff checks PASS. Full local API rerun
+was launched, but Docker subsequently timed out and `/containers/json` returned
+HTTP 500; that execution is retained and is not accepted as PASS. Earlier full
+local API evidence remains historical for unchanged tests. Fresh complete CI
+on each repaired branch is mandatory; local infrastructure recovery is pending.
+Self-review of this repair confirms exactly two test configuration substitutions,
+no production changes and no assertion removal. Original 909 dirty files have zero drift.

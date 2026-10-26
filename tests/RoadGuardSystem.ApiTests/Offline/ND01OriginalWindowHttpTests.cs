@@ -15,8 +15,13 @@ using Xunit.Abstractions;
 namespace RoadGuardSystem.ApiTests.Offline;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class ND01OriginalWindowHttpTests(AuthenticationSqlServerFixture fixture, ITestOutputHelper output)
+public sealed class ND01OriginalWindowHttpTests(ITestOutputHelper output) : IAsyncLifetime
 {
+    // Direct fixture admissions must not contend with hosted workers from other shared-database scenarios.
+    private readonly AuthenticationSqlServerFixture fixture = new();
+    public Task InitializeAsync() => fixture.InitializeAsync();
+    public Task DisposeAsync() => fixture.DisposeAsync();
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

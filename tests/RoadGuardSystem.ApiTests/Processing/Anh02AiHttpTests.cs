@@ -34,8 +34,12 @@ using RoadGuardSystem.Repositories.Processing;
 namespace RoadGuardSystem.ApiTests.Processing;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class Anh02AiHttpTests(AuthenticationSqlServerFixture sql)
+public sealed class Anh02AiHttpTests : IAsyncLifetime
 {
+    // The export worker claims across projects; isolate this scenario from other tests' queues.
+    private readonly AuthenticationSqlServerFixture sql = new();
+    public Task InitializeAsync() => sql.InitializeAsync();
+    public Task DisposeAsync() => sql.DisposeAsync();
     [Fact]
     public async Task Real_synthetic_upload_manifest_worker_provenance_replay_and_revocation()
     {

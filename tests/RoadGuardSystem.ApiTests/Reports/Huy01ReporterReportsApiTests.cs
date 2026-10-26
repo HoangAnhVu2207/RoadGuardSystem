@@ -36,7 +36,7 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Reports;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture sql)
+public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServerFixture sql)
 {
     [Fact]
     public async Task ActualOperationalClosureKeepsProductionReportIntakeAndSupervisorTriageAvailable()

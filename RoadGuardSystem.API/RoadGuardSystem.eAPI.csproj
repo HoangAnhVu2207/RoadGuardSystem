@@ -8,6 +8,7 @@
 
 
   <ItemGroup>
+    <Content Update="appsettings.Development.local.json" CopyToPublishDirectory="Never" />
     <EmbeddedResource Include="Extensions\ManualSwaggerContracts.json" LogicalName="RoadGuardSystem.API.ManualSwaggerContracts.json" />
     <EmbeddedResource Include="Extensions\ManualSwaggerSchemas.json" LogicalName="RoadGuardSystem.API.ManualSwaggerSchemas.json" />
     <Content Include="EmailAssets\hoanghai-logo.png" CopyToOutputDirectory="PreserveNewest" />

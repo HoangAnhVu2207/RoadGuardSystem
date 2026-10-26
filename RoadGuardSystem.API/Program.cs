@@ -24,6 +24,9 @@ if (builder.Environment.IsDevelopment())
         "appsettings.Development.local.json",
         optional: true,
         reloadOnChange: true);
+    // Preserve deployment overrides after optional developer-only configuration.
+    builder.Configuration.AddEnvironmentVariables();
+    builder.Configuration.AddCommandLine(SandboxSeedCommand.NormalizeArguments(args));
 }
 
 // Add services to the container.

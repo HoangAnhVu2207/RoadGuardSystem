@@ -83,7 +83,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Cases/PublicPublication.cs",
-      "sha256": "0befb2cf90f17806df0597a80d1cec042df1991ed9580bfbbe34f99abe689f0c"
+      "sha256": "08b33d5c0778bf79bdf436d645557a7bac732b4b174edad4476714a1a5942c8e"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Catalogs/CauseCategory.cs",
@@ -279,7 +279,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Messaging/H6NotificationPersistenceRecords.cs",
-      "sha256": "636777248eaddae3ac05bb786f28c6f63cc09c2476dfd58969606c6c75bac0d9"
+      "sha256": "7a21491dc8af0c0905b9f9659556e5442a01f8c06621728c54ac8b21c80da176"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Messaging/Notification.cs",
@@ -287,7 +287,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Messaging/NotificationAssignmentSnapshot.cs",
-      "sha256": "c426f02fac68dda53385e65dec608749a8eee36bd720860ea18eff253e55d857"
+      "sha256": "de987a3610e988bf880ff49accf94a481ae5cfe462d082da4b36cb620bb6a12c"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Messaging/NotificationCalendarAdmissionProof.cs",
@@ -611,7 +611,7 @@
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/RepairWork.cs",
-      "sha256": "783b76eebbe90a9585b356a5197787cd18c32adaa1b422cc1777c41d99f25ed4"
+      "sha256": "52f1796f8f1aa5d18b4e0d0a4ee73c62354a4b25a31aa3854b2694c529489540"
     },
     {
       "path": "RoadGuardSystem.BusinessObjects/Repairs/RoadCoverageMapping.cs",
@@ -731,11 +731,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Collections/ICollectionReadRepository.cs",
-      "sha256": "b8f64e82f4d186f576a1560103165613be9b1f64b65d532004c8d2b96c4e3b88"
+      "sha256": "99ed6bfda2315629588fe11cabc6a3bab7942988e1ab7d00ef0ba6ce2e43eaf5"
     },
     {
       "path": "RoadGuardSystem.Repositories/Commons/ApiResult.cs",
-      "sha256": "044097350cd6a2453584e6b6bd47daf72fd244a00d719f93c3285dcd600b9cb8"
+      "sha256": "20b3f94b81604832e5352769de19c9e98b35243663e0c53616bb9b95d73cb126"
     },
     {
       "path": "RoadGuardSystem.Repositories/Concurrency/RowVersionConvention.cs",
@@ -879,11 +879,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/Messaging/H6NotificationMappingDraft.cs",
-      "sha256": "c75180c04df9f27df21ff5af788477646079f53e40ab2368c4a3e387af8749df"
+      "sha256": "6004f950277c64343d2602c87e5f47de593329b47c0101a4f9f1436000781dcc"
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/Messaging/NotificationSupervisorConfiguration.cs",
-      "sha256": "3d4f7681a17531ffc149723ad1f17cc80083b416b9e4e7f1f5863b87fc6ea199"
+      "sha256": "f465c8a8c73943365c1b1c8275eb1c01753c10c468179936352c7fbaa5c3e4b3"
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/NotificationConfiguration.cs",
@@ -935,7 +935,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/PublicPublicationConfiguration.cs",
-      "sha256": "1ad7fe262e1eced3d5af04e1e0871633943c811ddc464fdc9009e0054036be01"
+      "sha256": "c4f7e02644a9323a4c280215df431a4d128ac3b98c91bd62e959c1b5ab7c693b"
     },
     {
       "path": "RoadGuardSystem.Repositories/Configurations/QualityCheckConfiguration.cs",
@@ -1075,15 +1075,15 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Extensions/Huy01ReporterPersistenceExtensions.cs",
-      "sha256": "659ba6eef7a946567a5753da53a25b3745e6f5ff3ef25c24ea6bbd340aae0211"
+      "sha256": "411f689e2cd4a70a699950569f4fe8e3af59b03c222b10bef96991fbaffcb7f9"
     },
     {
       "path": "RoadGuardSystem.Repositories/Extensions/RoadGuardPersistenceExtensions.cs",
-      "sha256": "0603fb9c59f6134097ff26f3f58d4e005b8bfbfe3fcf5a98f136e471ff2dc3d2"
+      "sha256": "51616694d2b70d205a69f0c3bd608c08917b6770caa73b8c03497e66ada8261f"
     },
     {
       "path": "RoadGuardSystem.Repositories/Helpers/PagedList.cs",
-      "sha256": "a359caa659759a7fbac32454b95cbf674ad26c8fc3c970b4d5eacb851358aa11"
+      "sha256": "f8d0f76c5a2542e587049e318a96f44d1fd31926ea48505425f52399ae86f014"
     },
     {
       "path": "RoadGuardSystem.Repositories/Idempotency/Anh02ReceiptAuthority.cs",
@@ -1103,15 +1103,15 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Cases/CaseWorkflowRepository.cs",
-      "sha256": "618049fda5e7be3e2d45234b9ccd72bdfd50b63f0c6596908335ba32e654dc54"
+      "sha256": "9ae6f41d7c43afd63885812e613162384477ce36ac4ce8d8b2f49b6d2ad7efc4"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Cases/PublicPublicationRepository.cs",
-      "sha256": "564f736ccefe289c65e81d17dd8f14d52250a0707bff0f2fca94532ea0d97d15"
+      "sha256": "600e2277ae218b986eeec01a6a1d5979143d2bdd190ece77e20e38b02d03dea3"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Collections/CollectionReadRepository.cs",
-      "sha256": "43b3dc4c4ca293ea57f11879009497777a1cacbb7f5f02e7d64832615a117ecc"
+      "sha256": "3d801683b15c8f3714b006b53a022cb248f8824bf257082a62c49b14e7aec94f"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Defects/CandidateDecisionRepository.cs",
@@ -1139,7 +1139,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.SourceAuthority.cs",
-      "sha256": "a5cfd9db47b9d0f52c03edb132ca0af75b14edd509a0b5ae116b3e65ccd008cc"
+      "sha256": "721f16d23aacde0ec4dc08ba1ffefb44b8350541bc545a5ebfa18b6cd37effb6"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Exports/ExportRepository.cs",
@@ -1175,7 +1175,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Files/UploadPersistenceService.cs",
-      "sha256": "5752b79dfb39a9dafad8033da6b0b9f601132ab2215ead6f6afbdd46ce501af4"
+      "sha256": "f732289d32226332386f81434c0fe2b82791921fc42fc7a263857dc21e842950"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Identity/IdentityOnboardingRepository.cs",
@@ -1299,7 +1299,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/BusinessDutyRepository.cs",
-      "sha256": "2e22430b56293844ec5f70baa6cf5d9d06cb4a6507f73894dfa7e234f8175fab"
+      "sha256": "0a0fa69970bf7b238fdf7330ba1d5ed4e874c6199b05ebf50bc4dd8a4cd9fcbb"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/BusinessRequestProducer.cs",
@@ -1335,11 +1335,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Delivery.cs",
-      "sha256": "2c33727a5920c4f8562bf1f46d4ffc2071d9dcb626d81bec2d005292b57db5a4"
+      "sha256": "f2ed9dda6dbd02c3e5dc40ee49c134db947ad35deb074ec19dcceb384e836f58"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Retry.cs",
-      "sha256": "c9e5361f7de44cbc0e694e444a5002bf4b507e1ca8853c5c6cafb202c4c99d7d"
+      "sha256": "be913b1727301204472aff692c33922675b3e214eef02be25b8888d75915dd58"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.cs",
@@ -1355,11 +1355,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.Operations.cs",
-      "sha256": "9b70592d92363ced52fbf00ab1d31b0288054ac3d6357e61a35bbd2aa0979c64"
+      "sha256": "5a48e50f041006aebc14bd72e82ca317da18a4503c5c59a451931626ac64f961"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.Scope.cs",
-      "sha256": "b4f01994e4fad16bd6e5eec27ae7774114166507eb1aa41c68d20492d5611849"
+      "sha256": "17b8a60feb9ac8c33d6273aac899146d719c4880371867cb70df77f88278cd96"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.cs",
@@ -1367,7 +1367,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6RepairNotificationSourceAdapter.cs",
-      "sha256": "771f6dea952ff830d0da3d11b67d4188ef6052a718b2c4218a4693b82ca96737"
+      "sha256": "10d9d025ced797998dcd903f6403a4a1df0d3801ba79027aa85d21f7bf3aa387"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6SafetyNotificationSourceAdapter.cs",
@@ -1375,7 +1375,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/H6WeeklyReviewSourceAdapter.cs",
-      "sha256": "c390b151ff714100348cbd500a9b043d81e77b46a840132ae18c6d343b538544"
+      "sha256": "86cfd677d8d9e34e08380d652646e1a74cdd13ea734ea1ad61320e02cbd6fe93"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Messaging/NotificationOutboxConsumer.cs",
@@ -1415,11 +1415,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Processing/Anh02AiRepository.cs",
-      "sha256": "ac6812c12e95c62b696be531378a863cc429fe3ab9664da241cca80c615bfc99"
+      "sha256": "123ceadf8f8d0e3ec5c60df3de1ae071c43e7a62bb6c377920c5e69e6a4995f3"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Processing/ProcessingV2PersistenceService.cs",
-      "sha256": "33e91421aa2e6f673304f8af0b07af869297614155c8b1e29657255af0ca373b"
+      "sha256": "999857afc7ca0baee0d0272c8d94d3993ed1f147f836de44ad7a4325808bfb27"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs",
@@ -1467,7 +1467,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Projects/ProjectLifecycleRepository.cs",
-      "sha256": "12f95c7c046480d554a8ada77c4b6ebb4294970a2503d2f18e5bb2bf6b2046c1"
+      "sha256": "ed543a4b337557336a8c6654a80ec0dbfa1eb2f8caccedf11cff08253baf423a"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Projects/ProjectListReadModel.cs",
@@ -1515,11 +1515,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/NotificationSupervisorRepository.cs",
-      "sha256": "2fcf6b659adc82fddde41a1185794da51e4070cecf08d4c8f61b768666ea6d56"
+      "sha256": "68299eb40287c35a429912fbb0d633701e5793df50c00150ca84ca202645655e"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairEligibilityRepository.cs",
-      "sha256": "32d2076a0af98dbd78f85b9e487b5a18102c742eecaf66312c93365755dc71c1"
+      "sha256": "74bbccadae57c7456f024829208f6bd2247726d21ebe3a8daf2d7ebc9ab6928b"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairFtEligibility.cs",
@@ -1531,7 +1531,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairSafetyRepository.cs",
-      "sha256": "9fe57ca45fd400cfb7ef5177d1b77f901837808ff0b842f44303d8127bc35df1"
+      "sha256": "f0933636806fde5cfb8186ad1735291a714573e52dd52012075522b38d5728f5"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Execution.cs",
@@ -1547,7 +1547,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
-      "sha256": "fb26f92b54d77e3d54ae4e5187a0b55fae2f830070d2d27d0bb7eb0a8b470442"
+      "sha256": "1955d7c51a5b40ab1585787201b56049cc9685c9d402f08ea3a3ea9290e5b886"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.ReviewRequests.cs",
@@ -1555,11 +1555,11 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.cs",
-      "sha256": "327d0f8aa32ec5318a2618a49b65b87eea956ed1c56937dcf4139d099a49343e"
+      "sha256": "2326d798bdbb8d82953603d1c8f9e88c1520f2844d1335693ff9e2caa0d390dd"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageRepository.cs",
-      "sha256": "6bc9591b2b086e3859cb9e380613279fd86415f8aedb1e9fc138640bc23dd5ef"
+      "sha256": "f8fdf7d34b928fed4c1cff737fc8dca21e12724e4ec908fdd13bfefaa806a622"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageResolver.cs",
@@ -1567,15 +1567,15 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/CurrentRepairFactsRepository.cs",
-      "sha256": "df9916540fd2c0367d618ea934e1461d79f33d3dd71063a30fa8a08588da3863"
+      "sha256": "484f51f735213d875fd8c639a7b805ec684fa6c74be15b3a855ec64a9cd35bfe"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
-      "sha256": "dbf45d5b9708403aa7eb8609be9896f0b7b9737bd99e5582c7b8f280da17caca"
+      "sha256": "40f4ae3051293e9d78970f1ee5fd08c78404d053ff84bc582a721973849014af"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
-      "sha256": "7c9ea1ca529b46c72a9b1349057b98079b1b73b8a3c8ab64a736f74ef0838a80"
+      "sha256": "e6856819aa669cab2fd932aa45ba9a69d2cc6c8dc5f009418499343919c685e7"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
@@ -1643,7 +1643,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
-      "sha256": "3e09c45fa873dd4e3151d23d663a1815b556073ab085e1a29e46e27e35d7dbcc"
+      "sha256": "c5bf6676c9a1bd213c80d2514ef850716cb3cdf010132d9df593996eedf67d47"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanUserSeedStep.cs",
@@ -1651,19 +1651,19 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxFixtureIds.cs",
-      "sha256": "88eab622a6eb380c46dcc48a120edb66705b88f1b73b5a34917c23c2d2899743"
+      "sha256": "b7f284549d63a03cf4c8a0c0573d1829966e0ae546304af24f0a890229c71fcc"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxSeedCatalog.cs",
-      "sha256": "efff5d3fb2a7ce7be0220c89ea90042dcf38b08d31be9ba1e85e1f2e3b1ff354"
+      "sha256": "7d8f2d10bd618bae80987367451d8d8c5e14e33bcde5b5eb0a8e1188df0c6560"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxSeedGuard.cs",
-      "sha256": "a7b43d672d7dabf14726202be736d545f11837b347c0b886b810b363bedfece4"
+      "sha256": "cf6859b0ac7b4d7e463d236c1402f95419058f1272c1a38c6d7dcf076cb382ef"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/Sandbox/SandboxSyntheticSeeder.cs",
-      "sha256": "57a47297a3c94f873fd7e07a972836b53f0dc6e7d0ea1d8250055a65cc350cdd"
+      "sha256": "a9ea1127d012afb161eabec13eb1edeac4c6b121f30aa07d2569f41f62b3e626"
     },
     {
       "path": "RoadGuardSystem.Repositories/Implementations/Seeding/SeedResult.cs",
@@ -1799,7 +1799,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Cases/IPublicPublicationRepository.cs",
-      "sha256": "dd737a35a4c04d30296e6975ec357fdcaff914d5287defe07773c8abdc20e57e"
+      "sha256": "61f64e09e3a2b30f219cb566e909fe385fca06a1ef0070fb9cb3d719042dfc82"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Defects/ICandidateDecisionRepository.cs",
@@ -1939,7 +1939,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Messaging/H6NotificationInternalContracts.cs",
-      "sha256": "dc1da9010103210cf72a6338cf9f8497b82b58e51901458cb0a5907ec31eeb5e"
+      "sha256": "8979cfc2fd2e3dbc514067e0207f5bb848285e55b1e291c274ad3243e7bae29a"
     },
     {
       "path": "RoadGuardSystem.Repositories/Interfaces/Messaging/IBusinessDutyRepository.cs",
@@ -2319,19 +2319,19 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/20261022074647_C1ControlledPublicPublication.Designer.cs",
-      "sha256": "d2c37987aaa7801cb64098a9b248dca71332a0562b6e0c4285fdb0b412c6aa7b"
+      "sha256": "00b699e4b8186a9b7f26e599472cf32350bb7418b8a69f80ce1fdf28369aa588"
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/20261022074647_C1ControlledPublicPublication.cs",
-      "sha256": "59e02935836c8ce6b7b37f7d265afad3e34d380a2f1f4972bd6caafe79f637aa"
+      "sha256": "db0d3005e0959f8e771014fcbd90e61bc429f8bbaf5bf9eb49e16237d8355f30"
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.Designer.cs",
-      "sha256": "007193287113effad3fbf1af6b889891f35d058d3bbb84dfe36cc4ba9ac4b1f8"
+      "sha256": "d62cc7c7ce5ecacc7a46cf45ece8e06ea0c12d42fbbc8f38e86e097493406706"
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/20261022181921_B2NotificationSupervisorAssignment.cs",
-      "sha256": "c08b535e204081893a48cc3d57063797297f3c87d5c686dd8aed1c1de136d699"
+      "sha256": "2a140056f5536b2e0ef37dac0a70d76915f6cd45c859ad6b4c7555fa339f1889"
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextDesignTimeFactory.cs",
@@ -2339,7 +2339,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Migrations/RoadGuardDbContextModelSnapshot.cs",
-      "sha256": "12f52d37ec8fe7ca1cef1283242ef1e7ccd985cf744797ffe19f59f7fdbc76a3"
+      "sha256": "c489d3f5fe65b239f18642127001a7123165926f47729b5aa18a0f4ca4db1cfe"
     },
     {
       "path": "RoadGuardSystem.Repositories/Models/Huy01/HuyIntegrationRows.cs",
@@ -2383,7 +2383,7 @@
     },
     {
       "path": "RoadGuardSystem.Repositories/Options/UploadSessionOptions.cs",
-      "sha256": "ea33a42851d81ba1f70d909207a68e0ffccec7b0c27c0200fd674e79a1294851"
+      "sha256": "29cdb8b32a1fedc748966837e5ece5602f7457c7c32fe879ebaa801e7ab4ccef"
     },
     {
       "path": "RoadGuardSystem.Repositories/Repairs/ObligationResponsibilityScope.cs",
@@ -2417,7 +2417,7 @@
     },
     {
       "path": "tests/RoadGuardSystem.IntegrationTests/Infrastructure/SqlServerTestFixture.cs",
-      "sha256": "19c06296f23bb66f6830a4aa76d471fcaa63363aaac0685023a1a3ade8752982"
+      "sha256": "a72608878c487887fe3a2e0ddd872bcc8bd111063c6bedc5334ca73882b9e4a4"
     }
   ],
   "model": [

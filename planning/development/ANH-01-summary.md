@@ -1,5 +1,7 @@
 # ANH-01 Delivery Summary
 
+> HISTORICAL checkpoint preserved during the 2026-10-26 publication merge. Execution claims and revision references below describe the original checkpoint, not verification of the integrated publication tree. Current owner-approved contracts and the active assignment take precedence where later decisions differ. This document grants no new database, storage, Git or release authority.
+
 Status: **ANH-01 Partial**, revision 2. Metric producer through manual partial
 baseline is implemented and tested; the remaining gates below prevent Done.
 Branch: `anh-review`. Base: `1ecae797caaed1ab912b02b2372a1940d1e05375`.
@@ -340,3 +342,291 @@ deployed schema/readers and owner acceptance.
 - The complete A01-A23 matrix is not fully evidenced by focused tests; external,
   large-transfer and remaining CRS acceptance must close before ANH-01 Done.
   DB shared/deployed rollout still requires its separate authorization.
+
+
+## Shared receipt authorization seam — handoff 2026-10-03
+
+**Shared seam CURRENT_VERIFIED; external ChatGPT review PENDING. Reporter P1
+remains OPEN/PENDING; ANH-01/HUY-01 remain Partial.** This is the explicitly
+assigned shared dependency follow-up after ANH-02, not activation of a Huy
+consumer or acceptance of its real Reporter authorization flow.
+
+Preflight: branch `anh-review`; exact initial base/local HEAD and remote
+`origin/anh-review` both `530d2655bf9ccd07654132490549363fc3bfeb22`; dirty
+paths none. Read-only `origin/huy-review` and reviewed Huy checkpoint both
+`b8ec845d69ba2c71249cec6fb15e13a5bad8126f`. Read AGENTS, active manifest,
+four rules/module route, current summaries/callers, ANH-02's existing
+Serializable delta, and HUY-01 **at that exact SHA**, section "Reporter intake
+receipt-authorization and validation delta". Its two validation/test-isolation
+P2s are already CLOSED; its receipt authorization P1 is not. Retired RoadGuard
+skills were not activated. Anh is the expressly assigned shared service/test
+writer; Huy retains its adapter and Reporter module.
+
+**Exact implementation/integration SHA:**
+`f626ea595420c3f28a35f2b3f4c6f196d313a7be`.
+[Shared code/test diff for review](https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/530d2655bf9ccd07654132490549363fc3bfeb22...f626ea595420c3f28a35f2b3f4c6f196d313a7be).
+This handoff is a subsequent documentation-only commit; its exact delivery HEAD
+is supplied in the final handoff. The integration target is the immutable SHA
+above **after ChatGPT review**, not an automatic merge of either branch.
+
+Changed files (entire package):
+`RoadGuardSystem.Repositories/Idempotency/IdempotencyOperationService.cs`;
+`tests/RoadGuardSystem.IntegrationTests/Persistence/ReceiptAccessGuardSqlTests.cs`;
+this handoff section only. ANH-02 source/summary and earlier ANH-01 evidence and
+limitations are preserved. No Huy source/spec/DI, schema/migration, event/outbox,
+identity/processing module, shared database or new RF/ZIP/summary was changed.
+
+The original **seven-parameter overloads** are retained, including positional
+`CancellationToken`, `default` literals and existing reflection consumers. A
+caller without a guard retains prior behavior. Both methods additionally expose:
+
+```csharp
+Task<IdempotencyOperationResult> ExecuteAsync(
+    Guid? actorUserId, Guid? projectId, string operation, string idempotencyKey,
+    string requestFingerprint,
+    Func<CancellationToken, Task<(Guid OperationId, string OutcomeJson)>> operationHandler,
+    CancellationToken cancellationToken,
+    Func<CancellationToken, Task>? receiptAccessGuard);
+// ExecuteSerializableAsync exposes the identical additive parameter list.
+```
+
+The callback is optional through overload selection (or explicit null). Huy
+passes `operationHandler, cancellationToken, receiptAccessGuard: Guard`.
+On **every found receipt**, initial lookup, each execution-strategy attempt,
+duplicate-key recovery and durable commit/acknowledgement recovery call the
+guard before mapping replay **or conflict**; a found receipt never invokes the
+create handler. Guard + mapping + commit run in a short service-owned transaction
+inside the execution strategy. The guard must use the **same scoped DbContext**,
+fresh authoritative reads and ordered locks (`UPDLOCK,HOLDLOCK` in the SQL
+harness); it must not open/complete transactions, save business writes or reuse
+preflight authority. Locks last through mapping/commit; result returns after
+completion. New-write isolation/atomic business + audit + receipt remain intact.
+
+After failed commit the old transaction is disposed before durable lookup and
+before a new guard transaction. Durable discovery still uses `CancellationToken.None`
+to determine SQL durability, but the guard/its transaction receive the **original
+command token**; cancellation cannot turn into a protected success. Callback
+exceptions/cancellation are rethrown as the same exception instance with preserved
+stack semantics. A private non-retryable boundary prevents a guard's transient or
+unique-constraint exception entering provider retry/duplicate recovery. Infrastructure
+retry can invoke a successful read guard again, so it must remain free of write
+side effects and reread current authority on every invocation.
+
+**Self-review 1 (actual):** traced all four paths, guard-before-outcome/conflict,
+short transaction/locks, strategy boundary, old-transaction disposal, original
+cancellation token and exception propagation, duplicate recovery and atomicity.
+Found the existing `P202ServiceContractTests` reflection consumer requiring exactly
+seven arguments; replaced the initial signature extension with retained old and
+additive new overloads. Added conflict during durable recovery, transient/SQL-unique
+guard errors and recovery cancellation checks. No receipt path skips the guard.
+
+**Self-review 2 (actual):** reviewed final service/test diff, ANH-02 Serializable
+callers and legacy reflection/positional callers, per-actor effect/audit/receipt
+counts, fixture-owned SQL databases and per-context fault interceptors, writer
+allowlist and preserved summaries. Fixed a test indentation issue; no additional
+behavior finding. No Huy adapter, DI binding, fake consumer or event was activated.
+These are Codex self-reviews, not external ChatGPT approval.
+
+Fresh commands/results (from repository root; SQL writes only fixture-owned
+Testcontainers databases; counts are cases, not requests):
+
+| Exact command | Executed / pass / fail / skip |
+|---|---|
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~ReceiptAccessGuardSqlTests.Every_receipt_path' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=receipt-guard-red-corrected.trx'` | Corrected red on old source: 16 / 0 / 16 / 0, missing guard (no exception or guard count zero) |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~ReceiptAccessGuardSqlTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=receipt-guard-green.trx'` | Initial green: 25 / 25 / 0 / 0 |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~ReceiptAccessGuardSqlTests\|FullyQualifiedName~P202ServiceContractTests\|FullyQualifiedName~P202TransactionAndIdempotencyTests\|FullyQualifiedName~Anh02Retention\|FullyQualifiedName~Anh02Export' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=receipt-guard-regression.trx'` | Before additional cases: 60 / 60 / 0 / 0 |
+| `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~ReceiptAccessGuardSqlTests\|FullyQualifiedName~P202ServiceContractTests\|FullyQualifiedName~P202TransactionAndIdempotencyTests\|FullyQualifiedName~Anh02Retention\|FullyQualifiedName~Anh02Export' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=receipt-guard-final-sql.trx'` | Final: **67 / 67 / 0 / 0** = shared guard32 + existing service contract16 + atomicity6 + ANH-02 retention9 + export4 |
+| `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Anh02\|FullyQualifiedName~IdempotencyPerCommandCharacterizationTests\|FullyQualifiedName~P120ProjectCreationTests\|FullyQualifiedName~P120WarrantyCreationTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=receipt-guard-api.trx'` | **24 / 24 / 0 / 0** = ANH-02 HTTP6 + per-command10 + project5 + warranty3 |
+| `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --no-incremental --disable-build-servers -v quiet -clp:ErrorsOnly` | Exit0, 0 errors, 98 existing warnings |
+| `git diff --check`; `git diff --cached --check`; selective final diff review | Exit0, no whitespace errors |
+
+SQL evidence: all four receipt paths allow current access and deny after stale
+preflight/revoke before outcome; replay/conflict have identical protection.
+Acknowledgement loss recovers its own matching receipt; the same durable-recovery
+branch also guards a conflicting competing receipt after failed commit (the first
+transaction is asserted disposed before the lookup). Same-key concurrent contexts
+plus acknowledgement loss leave exactly one durable Project effect, one audit and
+one receipt. Precommit failure leaves zero of all three. Ordinary and every recovery
+path propagate guard cancellation without handler reinvocation or new durable rows;
+transient and actual SQL-unique guard exceptions escape unchanged. The lock-race
+case observes a real `LCK_M_%` wait, blocks revoke through receipt transaction commit,
+then denies the next replay after revoke. Serializable and legacy no-guard callers
+and real ANH-02 HTTP/SQL callers pass regression. The final **91 distinct cases**
+pass; earlier overlapping runs are not added to that count.
+
+Failure history: the first red command (`receipt-guard-red.trx`) initially compiled
+zero cases due to a missing Storage import and two cancellation-forwarding analyzer
+errors; fixture fixes then ran16/failed16, mixing missing-guard failures with an
+incorrect string assumption about the real tinyint `Users.Status`. The corrected
+red above eliminates that fixture error. First green compilation selected zero
+cases due to CA1068; private token parameters were reordered and the two additive
+public overloads have narrow, documented compatibility suppressions. Final runs
+have no unresolved failure or skip. The red-only reflection shim was removed;
+committed tests call the production overload directly.
+
+**NOT RUN / remaining ownership:** real Reporter controller/service/repository
+adapter and authenticated Reporter revoke/file-owner/scope/VERIFIED/version/race/
+recovery acceptance. The SQL guard above is an explicit shared test callback on
+real authority rows and Project/audit effects; it does not prove Report/Case/link
+producer→consumer integration or Huy's privacy-safe HTTP errors. Huy must supply
+its same-context, ordered-lock adapter, integrate the reviewed exact SHA, pass the
+callback at its service call, and run those real acceptance cases before Reporter
+P1 can close. No Reporter composition-root activation or `report.received.v1`
+emission is authorized by this handoff. Full solution tests, live MinIO/8GiB/CRS/
+demo/deployment, shared/deployed migration and external ChatGPT review were NOT RUN
+here; all prior Partial gates and D1–D5 remain unchanged.
+
+
+## Checkpoint A — production Reporter intake integration, 2026-10-03
+
+**Partial; Reporter P1 and external ChatGPT review PENDING.** Owner-assigned two-part
+continuation. Initial/local/remote Anh base `6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e`,
+branch anh-review, initial `git status --short` empty. Fixed Huy source
+`0e41913b225d4f72d4d1ead1ae322ad56bba5328`; shared receipt seam f626ea5 retained,
+including latest ANH-02 correction. No reset/stash/discard/whole Huy merge/auth
+import/model change/shared DB write/amend/force push/main/develop/Huy branch edit.
+Anh sole shared writer; Huy retains business module policy. During work remote Huy
+advanced to `7e8261648e08adf5b5bdf0cea85fca5e55463b73`; read-only fixed-object fetch/
+path inspection shows lifecycle/case/candidate additions, no approved-label/
+matching snapshot/dossier/complete-inventory reader. None imported from that tip.
+
+Imported from exact0e41913 (9 production files byte-identical):
+- API/Controllers/ReportsController.cs; DTOs/Reports/ReporterReportDtos.cs.
+- Repositories/Extensions/Huy01ReporterPersistenceExtensions.cs;
+  Implementations/Reports/ReporterReportRepository.cs;
+  Interfaces/Reports/IReporterReportRepository.cs.
+- Services/Extensions/Huy01ReporterServiceExtensions.cs;
+  Implementations/Reports/ReporterReportService.cs;
+  Interfaces/Reports/IReporterReportService.cs; ReporterIntakeRequestNormalizer.cs.
+- Tests: ApiTests/Reports/Huy01ReporterReportsApiTests.cs,
+  Huy01ReporterReceiptAccessSqlTests.cs; UnitTests/Reports/ReporterIntakeRequestNormalizerTests.cs.
+
+Anh adaptations: call AddHuy01ReporterServices/Persistence once in production
+composition roots; remove module registrations from imported HTTP tests; test-only
+partial class adds descriptor/type/scoped-lifetime proof and12 post-preflight
+HTTP races. Strengthen SQL concurrency with actual2601/2627 probe and revoke at
+loser receipt recovery. Existing shared service/tests, schema/migrations/snapshot,
+identity/processing and ANH-02 guards unchanged. Only POST /api/v1/reports activated;
+real private upload/evidence producer retained. One Report + UNASSIGNED Case +
+active link + sanitized audit + receipt atomic. No report.received.v1/outbox event,
+case/candidate/label route activation or phantom project/label policy.
+
+Canonical adoption stays contracts/http/anh01.local-contract.md (append-only).
+Postman preserves all prior items and adds13 ordered/negative requests with actual
+signed PUT bytes, stable distinct upload/parts/complete/report keys, file version,
+exact replay body/Location/ETag and error assertions. Complete preserves original
+If-Match. Worker must finish VERIFIED; pending/failed negatives require explicit
+fixtures. Live PUT/local storage distinct from automated named mock storage.
+No draft OpenAPI promotion, FE lock change, credentials or Postman-runner PASS.
+
+Actual self-review1: authorization/privacy/transaction/recovery/source locks,
+producer consistency and real production binding; found HTTP test DI override
+hiding absent production bindings, removed it and observed7/7 failures (500)
+then wired production DI. Added12 real HTTP races and explicit unique violation/
+guard probes for concurrent success and revoked loser. All source permissions
+before replay/conflict, same scoped context and service-owned transaction, no
+handler on found receipt; shared cancellation/original-exception evidence rerun.
+Owner-Huy finding: imported Reporter guard locks/checks Users but never locks/
+reads Roles.IsActive; current Anh private-evidence preflight also checks user
+role code rather than role-row activity. Global role deactivation after preflight
+has no guard. Source evidence ReporterReportRepository.EnsureCurrentReceiptAccessAsync
+and AnhHuyFactsRepository.IsCurrentActorAsync. Not changed in Huy-owned module;
+Huy must supply additive exact correction and role-deactivation HTTP/SQL acceptance.
+This is not closed by user/password/role-code tests or bearer preflight.
+Actual self-review2: fixed MIME mismatch in new Postman signed-PUT/create flow;
+checked DTO/errors/key normalization, lifetimes/one registration, all dependency
+closure, unchanged imported production bytes and existing contract/Postman items,
+no schema delta/retired skills/unrelated files. Reviews are Codex self-review,
+not external ChatGPT acceptance.
+
+Fresh commands/results (owned disposable SQL with production migrations):
+- `dotnet build RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-restore --no-incremental --disable-build-servers -v quiet -clp:ErrorsOnly`:0 errors/98 warnings.
+- `dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~ReporterIntakeRequestNormalizerTests|FullyQualifiedName~Anh02' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=reporter-anh02-unit.trx'`:92 executed/pass,0 failed/skip.
+- `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --disable-build-servers --filter '(FullyQualifiedName~Huy01Reporter|FullyQualifiedName~Anh02|FullyQualifiedName~ReporterEvidenceApiTests|FullyQualifiedName~UploadApiTests|FullyQualifiedName~IdempotencyPerCommandCharacterizationTests)&FullyQualifiedName!~CompleteMultipartUploadAgainstConfiguredMinio' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=reporter-checkpoint-a-api.trx'`:68 executed/pass,0 failed/skip.
+- Same ApiTests command with filter `FullyQualifiedName~Composition_root_registers_one_scoped_real_reporter`, TRX reporter-di-binding.trx:1 executed/pass,0 failed/skip;69 distinct API-assembly cases total (includes actual SQL caller recovery fixtures).
+- `dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --disable-build-servers --filter 'FullyQualifiedName~Anh02|FullyQualifiedName~ReceiptAccessGuardSqlTests|FullyQualifiedName~P202ServiceContractTests|FullyQualifiedName~P202TransactionAndIdempotencyTests|FullyQualifiedName~Huy01SharedSchemaTests' -v quiet -clp:ErrorsOnly --logger 'trx;LogFileName=reporter-checkpoint-a-sql.trx'`:97 executed/pass,0 failed/skip.
+- `./.tools/dotnet-ef.exe migrations has-pending-model-changes --context RoadGuardDbContext --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj --no-build`:exit0,no pending model; process-only unreachable design connection restored, no shared DB.
+- JSON/old-item/production-byte checks and git diff --check:exit0.258 distinct passing cases, overlapping focused runs excluded.
+
+Recovery evidence: ordinary replay/conflict and actor/evidence changes; strategy
+probe injected once, lookup>=2, guard1/create0; concurrent same-key enters both
+handlers, exact1 SQL unique violation/guard and durable graph1; revoked loser
+returns forbidden/no receipt; acknowledgement probe1/create1, durable graph1,
+including revoke denial; precommit failure3/handler3, all five effect counts0;
+callback failure/cancellation produces no protected receipt/second create.
+HTTP fixtures use actual auth middleware, production DI, SQL and BE upload/
+verification/intake; storage is explicitly MOCK_VERIFIED. No test-only Reporter
+service/repository binding. Published Location has no implemented GET yet.
+
+Failure history: production-DI red7 failed then24 initial green; subsequent19
+HTTP and18 SQL/probe green overlap final69. Added probe first compilation selected
+zero cases due nullable assertion, fixed fixture then18 pass. Python default
+cp1252 contract write failed on existing Unicode; restored original contract
+bytes and appended UTF-8, preservation check passed. One Postman name search
+assertion failed before any mutation, corrected source folder. No unresolved
+failure/hidden skip. NOT RUN: role-row revoke acceptance (Huy gap), external review,
+case/candidate/label lifecycle routes/readers, live MinIO/S3/deployed PDF font,
+Postman HTTP runner, shared/deployed migration/history/backup restore, demo8GiB/
+CRS/external consumers/performance/full suite. Docker pull of disposable
+minio/minio:RELEASE.2025-04-22T22-12-26Z failed with pull access denied; no MinIO
+container/bucket/shared resource created. ANH-01 prior gates unchanged.
+
+Checkpoint A is committed/pushed separately; exact SHA/compare in continuation
+handoff and ANH-02 continuation summary. Huy can take the activated Reporter
+slice/contract/DI and address role-row guard gap without waiting for ANH-02.
+HUY-01 whole-package/Reporter P1 remain Partial/PENDING; B proceeds immediately.
+
+
+Checkpoint A CURRENT_VERIFIED: `715ade2c20f652b77c8c7e995c76bb5d47ead966`,
+normal push confirmed remote/local exact and clean; [exact A compare](https://github.com/HoangAnhVu2207/RoadGuardSystem/compare/6365ae0ce0d6dc982a88b6d1ea3864ed37a7035e...715ade2c20f652b77c8c7e995c76bb5d47ead966).
+B continuation evidence is appended to existing ANH-02-summary; A is not amended.
+The Huy-owned role-row receipt guard finding and external review remain PENDING.
+
+
+## ANH runtime acceptance delta — 2026-10-03
+
+CURRENT_VERIFIED at correction base d2414844af1a3fd9a39547fc131f85bda451fad2:
+actual local MinIO multipart upload/verification/protected download passed
+for an MP4 of exactly8,589,934,592bytes; source/download SHA256
+08ba3133e6dc0659a55862e692167b84e593aaa46f3725633dd41502909ea7e5.
+SQL bigint/VERIFIED/scoped owner/one complete receipt and original-version
+complete replay checked. Synthetic H.264 MP4 was fully probed/decoded; no
+small-file or metadata-only substitution. Full prepare/survey demo ran on
+a task-owned Linux API/SQL/MinIO and same-state replay kept durable counts.
+CRS/WGS84/GPX, real Huy consumers and external/deployment gates remain OPEN;
+ANH-01 stays Partial. Exact commands/evidence are in existing ANH-02-summary.
+That summary also records a preflight isolation breach: copied local config
+caused startup migrations against RoadGuardPostmanTest before the config
+fix. The accidental DB is excluded from acceptance and needs owner recovery
+decision; no rollback attempted. External ChatGPT review remains PENDING.
+
+## Multipart recovery continuation — 2026-10-03
+
+CURRENT_VERIFIED base **f7a32dcfaa842e1ab6557ec19b0acb0c0c053a74**, anh-review,
+initial dirty none; implementation **7f8f7715853aa745c705c12a7c28e897ededae60**.
+The earlier unresolved initialization limitation is now superseded: durable
+phase/generation fencing, exact-key provider reconciliation, one empty candidate
+adoption, controlled FAILED/restart for ambiguity/legacy/deadline, and background
+late-orphan cleanup. No storage I/O inside SQL retry; current private/project
+authority before receipt and protected URL delivery. No shared receipt rewrite,
+Huy business change, completed-object deletion or external exactly-once claim.
+One additive migration20261003170000; fresh/upgrade and EF no-pending-model check
+pass. Existing applied migrations are unchanged.
+
+Two self-review passes/fixes and exact commands/mapping/failure history are in
+the existing ANH-02-summary multipart recovery section. Fresh85 distinct cases
+(69 SQL/adapter/migration +16 HTTP→SQL),0 fail/skip. Actual local MinIO3PASS:
+injected lost ACK, owned API kill/restart, ambiguity/late-orphan cleanup/new-session
+restart; each real bytes upload→VERIFIED→protected download/hash. Current run
+9093accef53e433da8a99bc7c565d19d uses valid9,004,013byte PNG/two parts, not8GiB.
+API/harness builds and diff checks pass; Postman identifiers/scripts unchanged.
+
+TARGET_CONFIRMED owner subsequently accepted exact .\\HANHNAV/RoadGuardPostmanTest
+as disposable, no recovery required; this updates the earlier pending recovery
+decision without erasing the incident. This continuation did not mutate that DB;
+only isolated owned SQL fixtures. Config precedence/publish exclusion retained.
+No real8GiB rerun: streaming/limits/part sizing/assembly unaffected. Historical
+8GiB evidence stays at its recorded source. Full unrelated suites/Postman
+reporting/demo, Huy reader/label/session authority, CRS, external review and
+deployment NOT RUN/PENDING; both Anh packages remain **Partial**. Final HEAD and
+compare URL are provided in handoff; implementation diff is linked in ANH-02.

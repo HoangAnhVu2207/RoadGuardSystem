@@ -87,8 +87,10 @@ public sealed class SandboxSyntheticSeedTests
             await SandboxSeedGuard.ValidateTargetAsync(db, target);
             var schema = await SandboxSeedGuard.ReadSchemaAsync(db);
             Assert.Equal(195, schema.Tables.Length);
-            var evidence = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var output = Path.Combine(evidence, "codex-with-chatgpt", "handoffs", "CLOSEOUT-B2-APPROVED-20261023", "runtime-schema.json");
+            // Each execution owns its output; CI must not depend on a developer's historical handoff directory.
+            var evidence = Path.Combine(Path.GetTempPath(), "RoadGuardSystem-test-evidence", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(evidence);
+            var output = Path.Combine(evidence, "runtime-schema.json");
             await File.WriteAllTextAsync(output, System.Text.Json.JsonSerializer.Serialize(schema));
             await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
             {

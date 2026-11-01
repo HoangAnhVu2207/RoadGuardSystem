@@ -11,6 +11,25 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task StaffPhoneWriteDocumentsBearerCookieCsrfAndRequiredHeaders()
+    {
+        using var document = await Document();
+        var operation = document.RootElement.GetProperty("paths")
+            .GetProperty("/api/v1/users/{userId}/phone-number").GetProperty("patch");
+        var security = operation.GetProperty("security");
+        Assert.Contains(security.EnumerateArray(), x => x.TryGetProperty("Bearer", out _));
+        Assert.Contains(security.EnumerateArray(), x => x.TryGetProperty("WebSession", out _) &&
+            x.TryGetProperty("CsrfToken", out _) && x.TryGetProperty("AntiforgeryCookie", out _));
+        var headers = operation.GetProperty("parameters").EnumerateArray()
+            .Where(x => x.GetProperty("in").GetString() == "header").ToArray();
+        foreach (var name in new[] { "If-Match", "Idempotency-Key" })
+            Assert.Contains(headers, x => x.GetProperty("name").GetString() == name && x.GetProperty("required").GetBoolean());
+        Assert.Contains("Supervisor", operation.GetProperty("description").GetString());
+        foreach (var status in new[] { "204", "400", "401", "403", "404", "409", "412", "428" })
+            Assert.True(operation.GetProperty("responses").TryGetProperty(status, out _), status);
+    }
+
+    [Fact]
     public async Task ApprovedCollectionsAndPublicWritesDocumentCookieAlternativeWithoutSecuringAnonymousRead()
     {
         using var document = await Document();

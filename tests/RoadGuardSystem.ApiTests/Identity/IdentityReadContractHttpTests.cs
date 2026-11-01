@@ -14,6 +14,81 @@ namespace RoadGuardSystem.ApiTests.Identity;
 public sealed class IdentityReadContractHttpTests(AuthenticationSqlServerFixture sql)
 {
     [Fact]
+    public async Task SupervisorCookiePhoneWriteRequiresCsrfAndReplaysOnce()
+    {
+        var supervisor = await User(UserRoleCode.Supervisor);
+        var target = await User(UserRoleCode.RepairCrew);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var browser = await Login(factory, supervisor, cookie: true);
+        var path = $"/api/v1/users/{target.Id}/phone-number";
+        var account = await browser.GetAsync($"/api/v1/users/{target.Id}");
+        Assert.Equal(HttpStatusCode.OK, account.StatusCode);
+        browser.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", account.Headers.ETag!.Tag);
+        browser.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var denied = await browser.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" });
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.Equal("csrf_failed", (await denied.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        var csrf = await Get(browser, "/api/v1/auth/web/csrf");
+        browser.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf.GetProperty("requestToken").GetString());
+        Assert.Equal(HttpStatusCode.NoContent, (await browser.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await browser.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+        await using var db = sql.CreateDbContext();
+        var stored = await db.Users.AsNoTracking().SingleAsync(x => x.Id == target.Id);
+        Assert.Equal("0901234567", stored.PhoneNumber);
+        Assert.False(stored.PhoneNumberConfirmed);
+        Assert.Equal(1, await db.AuditLogs.CountAsync(x => x.EntityId == target.Id && x.EventType == "staff_phone_number_updated"));
+    }
+
+    [Theory]
+    [InlineData(UserRoleCode.ProjectManager)]
+    [InlineData(UserRoleCode.DroneOperator)]
+    [InlineData(UserRoleCode.RepairCrew)]
+    public async Task SupervisorCreatesAndEditsStaffPhoneWithCurrentVersion(UserRoleCode targetRole)
+    {
+        var supervisor = await User(UserRoleCode.Supervisor);
+        var target = await User(targetRole);
+        var reporter = await User(UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var admin = await Login(factory, supervisor);
+        using var self = await Login(factory, target);
+        const string firstPhone = "+84901234567";
+        var path = $"/api/v1/users/{target.Id}/phone-number";
+        var account = await admin.GetAsync($"/api/v1/users/{target.Id}");
+        Assert.Equal(HttpStatusCode.OK, account.StatusCode);
+        var firstVersion = account.Headers.ETag!.Tag;
+        Assert.Equal((HttpStatusCode)428, (await admin.PatchAsJsonAsync(path, new { phoneNumber = firstPhone })).StatusCode);
+        admin.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", firstVersion);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PatchAsJsonAsync(path, new { phoneNumber = firstPhone })).StatusCode);
+        admin.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PatchAsJsonAsync(path, new { phoneNumber = "bad phone" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.PatchAsJsonAsync(path, new { phoneNumber = firstPhone })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.PatchAsJsonAsync(path, new { phoneNumber = firstPhone })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PatchAsJsonAsync(path, new { phoneNumber = "+84901234568" })).StatusCode);
+        self.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", firstVersion);
+        self.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.Forbidden, (await self.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+        admin.DefaultRequestHeaders.Remove("Idempotency-Key");
+        admin.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.PreconditionFailed, (await admin.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.PatchAsJsonAsync($"/api/v1/users/{reporter.Id}/phone-number",
+            new { phoneNumber = "0901234567" })).StatusCode);
+        await using var db = sql.CreateDbContext();
+        Assert.Equal(firstPhone, (await db.Users.AsNoTracking().SingleAsync(x => x.Id == target.Id)).PhoneNumber);
+        await db.Users.Where(x => x.Id == target.Id).ExecuteUpdateAsync(x => x.SetProperty(u => u.PhoneNumberConfirmed, true));
+        var refreshed = await admin.GetAsync($"/api/v1/users/{target.Id}");
+        admin.DefaultRequestHeaders.Remove("If-Match");
+        admin.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", refreshed.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+        var stored = await db.Users.AsNoTracking().SingleAsync(x => x.Id == target.Id);
+        Assert.Equal("0901234567", stored.PhoneNumber);
+        Assert.False(stored.PhoneNumberConfirmed);
+        Assert.Equal(2, await db.AuditLogs.CountAsync(x => x.EntityId == target.Id && x.EventType == "staff_phone_number_updated"));
+        Assert.Empty(await db.AuditLogs.Where(x => x.EntityId == target.Id && x.EventType == "staff_phone_number_updated" &&
+            (x.BeforeSnapshot != null || x.AfterSnapshot != null)).ToListAsync());
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync("/api/v1/profile/phone-number")).StatusCode);
+    }
+
+    [Fact]
     public async Task CsrfBootstrapIsAnonymousNoStoreAndCreatesNoDurableSession()
     {
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);

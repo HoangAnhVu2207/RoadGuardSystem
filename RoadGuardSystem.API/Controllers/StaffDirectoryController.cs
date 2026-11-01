@@ -39,6 +39,29 @@ public sealed class StaffDirectoryController(IStaffReadService service) : Contro
         return Map(await service.MembersAsync(actor, actorRole, projectId, search, role, status, includeHistory, limit, cursor, cancellationToken));
     }
 
+    [HttpGet("projects/{projectId:guid}/members/eligible")]
+    [WebCookieEligible]
+    [ProducesResponseType<StaffPageResponseDto<EligibleProjectMemberDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Eligible(Guid projectId, [FromQuery] string? search, [FromQuery] string? role,
+        [FromQuery] int limit = 20, [FromQuery] string? cursor = null, CancellationToken cancellationToken = default)
+    {
+        if (!Actor(out var actor, out var actorRole)) return Unauthorized();
+        return Map(await service.EligibleAsync(actor, actorRole, projectId, search, role, limit, cursor, cancellationToken));
+    }
+
+    [HttpPost("projects/{projectId:guid}/members")]
+    [WebCookieEligible]
+    [ProducesResponseType<ProjectMemberResponseDto>(StatusCodes.Status201Created)]
+    public async Task<IActionResult> AddMember(Guid projectId, AddProjectMemberRequestDto request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CancellationToken cancellationToken)
+    {
+        if (!Actor(out var actor, out var actorRole)) return Unauthorized();
+        var result = await service.AddMemberAsync(actor, actorRole, projectId, request.UserId, idempotencyKey, cancellationToken);
+        return result.Status == StaffReadStatus.Success
+            ? Created($"/api/v1/projects/{projectId:D}/members", result.Value)
+            : Map(result);
+    }
+
     [HttpGet("projects/{projectId:guid}/primary-project-manager")]
     [WebCookieEligible]
     [ProducesResponseType<PrimaryProjectManagerResponseDto>(StatusCodes.Status200OK)]
@@ -61,6 +84,9 @@ public sealed class StaffDirectoryController(IStaffReadService service) : Contro
         {
             StaffReadStatus.Forbidden => (403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             StaffReadStatus.NotFound => (404, ApiErrorCodes.ProjectNotFound, "Not found"),
+            StaffReadStatus.UserNotFound => (404, ApiErrorCodes.IdentityUserNotFound, "Not found"),
+            StaffReadStatus.Conflict => (409, ApiErrorCodes.DuplicateRequest, "Conflict"),
+            StaffReadStatus.KeyConflict => (409, ApiErrorCodes.IdempotencyKeyReused, "Conflict"),
             _ => (400, ApiErrorCodes.ValidationError, "Invalid request")
         };
         var problem = new ProblemDetails { Status = status, Title = title, Detail = title, Instance = Request.Path };

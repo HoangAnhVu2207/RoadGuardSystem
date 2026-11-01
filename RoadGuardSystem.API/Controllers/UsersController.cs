@@ -18,12 +18,38 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class UsersController : ControllerBase
 {
     private readonly IIdentityV2Service _identityService;
+    private readonly IStaffPhoneNumberService _staffPhoneService;
     private readonly RoadGuardSystem.Services.Staff.IStaffReadService _staffReadService;
 
-    public UsersController(IIdentityV2Service identityService, RoadGuardSystem.Services.Staff.IStaffReadService staffReadService)
+    public UsersController(IIdentityV2Service identityService, IStaffPhoneNumberService staffPhoneService,
+        RoadGuardSystem.Services.Staff.IStaffReadService staffReadService)
     {
         _identityService = identityService;
+        _staffPhoneService = staffPhoneService;
         _staffReadService = staffReadService;
+    }
+
+    [HttpPatch("{userId:guid}/phone-number")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> UpdatePhoneNumber(Guid userId, PhoneNumberUpdateRequestDto request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorId(out var actorUserId)) return Unauthorized();
+        var result = await _staffPhoneService.UpdateAsync(actorUserId, userId,
+            request.PhoneNumber, ifMatch, idempotencyKey, cancellationToken);
+        return result.Status switch
+        {
+            PhoneNumberUpdateStatus.Success or PhoneNumberUpdateStatus.Replay => NoContent(),
+            PhoneNumberUpdateStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            PhoneNumberUpdateStatus.NotFound => ProblemResponse(404, ApiErrorCodes.IdentityUserNotFound, "Not found"),
+            PhoneNumberUpdateStatus.PreconditionRequired => ProblemResponse(428, ApiErrorCodes.ValidationError, "If-Match is required"),
+            PhoneNumberUpdateStatus.PreconditionFailed => ProblemResponse(412, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
+            PhoneNumberUpdateStatus.KeyConflict => ProblemResponse(409, ApiErrorCodes.IdempotencyKeyReused, "Conflict"),
+            _ => ProblemResponse(400, ApiErrorCodes.ValidationError, "Bad request")
+        };
     }
 
     [HttpGet("{userId:guid}")]

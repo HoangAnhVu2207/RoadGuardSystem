@@ -17,6 +17,102 @@ public sealed class StaffMembershipReadHttpTests(AuthenticationSqlServerFixture 
     private static DateOnly Today => DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
 
     [Fact]
+    public async Task ProjectManagerAddsExistingOperatorOnceAndCannotReuseKeyForAnotherUser()
+    {
+        var pm = await User(UserRoleCode.ProjectManager);
+        var op = await User(UserRoleCode.DroneOperator);
+        var crew = await User(UserRoleCode.RepairCrew);
+        var project = await Project();
+        await Member(project.Id, pm.Id, UserRoleCode.ProjectManager, primary: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = await Login(factory, pm);
+        var eligible = await Get(client, $"/api/v1/projects/{project.Id}/members/eligible?role=OPERATOR");
+        Assert.Contains(eligible.GetProperty("items").EnumerateArray(), x => x.GetProperty("userId").GetGuid() == op.Id);
+        Assert.All(eligible.GetProperty("items").EnumerateArray(), x =>
+        {
+            Assert.False(x.TryGetProperty("email", out _));
+            Assert.False(x.TryGetProperty("phoneNumber", out _));
+        });
+        var key = Guid.NewGuid().ToString("N");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", key);
+        var path = $"/api/v1/projects/{project.Id}/members";
+        var first = await client.PostAsJsonAsync(path, new { userId = op.Id });
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        var row = await first.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(op.Id, row.GetProperty("userId").GetGuid());
+        Assert.Equal("OPERATOR", row.GetProperty("role").GetString());
+        var replay = await client.PostAsJsonAsync(path, new { userId = op.Id });
+        Assert.Equal(HttpStatusCode.Created, replay.StatusCode);
+        Assert.Equal(row.GetProperty("membershipId").GetGuid(),
+            (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("membershipId").GetGuid());
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync(path, new { userId = crew.Id })).StatusCode);
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync(path, new { userId = op.Id })).StatusCode);
+        await using var db = sql.CreateDbContext();
+        Assert.Single(await db.ProjectMembers.Where(x => x.ProjectId == project.Id && x.UserId == op.Id).ToListAsync());
+        Assert.Empty(await db.ProjectMembers.Where(x => x.ProjectId == project.Id && x.UserId == crew.Id).ToListAsync());
+        Assert.Single(await db.AuditLogs.Where(x => x.EntityId == row.GetProperty("membershipId").GetGuid()).ToListAsync());
+        await db.ProjectMembers.Where(x => x.ProjectId == project.Id && x.UserId == pm.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", key);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync(path, new { userId = op.Id })).StatusCode);
+    }
+
+    [Fact]
+    public async Task ProjectMemberWriteRequiresCurrentProjectManagerAndEligibleTarget()
+    {
+        var pm = await User(UserRoleCode.ProjectManager);
+        var otherPm = await User(UserRoleCode.ProjectManager);
+        var sup = await User(UserRoleCode.Supervisor);
+        var op = await User(UserRoleCode.DroneOperator);
+        var project = await Project();
+        var membership = await Member(project.Id, pm.Id, UserRoleCode.ProjectManager, primary: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var manager = await Login(factory, pm);
+        using var outsider = await Login(factory, otherPm);
+        using var supervisor = await Login(factory, sup);
+        var path = $"/api/v1/projects/{project.Id}/members";
+        foreach (var client in new[] { manager, outsider, supervisor })
+            client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.Forbidden, (await outsider.PostAsJsonAsync(path, new { userId = op.Id })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await supervisor.PostAsJsonAsync(path, new { userId = op.Id })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await manager.PostAsJsonAsync(path, new { userId = sup.Id })).StatusCode);
+        await using (var db = sql.CreateDbContext())
+            await db.Users.Where(x => x.Id == op.Id).ExecuteUpdateAsync(x => x.SetProperty(u => u.Status, UserStatus.Suspended));
+        Assert.Equal(HttpStatusCode.NotFound, (await manager.PostAsJsonAsync(path, new { userId = op.Id })).StatusCode);
+        await using (var db = sql.CreateDbContext())
+            await db.Users.Where(x => x.Id == op.Id).ExecuteUpdateAsync(x => x.SetProperty(u => u.Status, UserStatus.Active));
+        await using (var db = sql.CreateDbContext())
+            await db.ProjectMembers.Where(x => x.Id == membership.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        Assert.Equal(HttpStatusCode.Forbidden, (await manager.PostAsJsonAsync(path, new { userId = op.Id })).StatusCode);
+        await using var check = sql.CreateDbContext();
+        Assert.Empty(await check.ProjectMembers.Where(x => x.ProjectId == project.Id && x.UserId == op.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task ConcurrentDifferentKeysCannotCreateTwoActiveMemberships()
+    {
+        var pm = await User(UserRoleCode.ProjectManager);
+        var op = await User(UserRoleCode.DroneOperator);
+        var project = await Project();
+        await Member(project.Id, pm.Id, UserRoleCode.ProjectManager, primary: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var first = await Login(factory, pm);
+        using var second = await Login(factory, pm);
+        first.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        second.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var path = $"/api/v1/projects/{project.Id}/members";
+        var responses = await Task.WhenAll(first.PostAsJsonAsync(path, new { userId = op.Id }),
+            second.PostAsJsonAsync(path, new { userId = op.Id }));
+        Assert.Equal(new[] { HttpStatusCode.Created, HttpStatusCode.Conflict },
+            responses.Select(x => x.StatusCode).OrderBy(x => x));
+        await using var db = sql.CreateDbContext();
+        Assert.Single(await db.ProjectMembers.Where(x => x.ProjectId == project.Id && x.UserId == op.Id).ToListAsync());
+    }
+
+    [Fact]
     public async Task SupervisorDirectoryExcludesReporterByDefaultAndContactDetailStaysPrivate()
     {
         var prefix = "STAFF-" + Guid.NewGuid().ToString("N");

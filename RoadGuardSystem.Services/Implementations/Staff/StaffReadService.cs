@@ -67,6 +67,45 @@ public sealed class StaffReadService(IStaffReadRepository repository, TimeProvid
             new(m.MembershipId, m.UserId, m.DisplayName, m.ValidFrom, m.ValidTo, Convert.ToBase64String(m.RowVersion))));
     }
 
+    public async Task<StaffReadResult<StaffPageResponseDto<EligibleProjectMemberDto>>> EligibleAsync(Guid actor, UserRoleCode role,
+        Guid project, string? search, string? filterRole, int limit, string? cursor, CancellationToken token)
+    {
+        if (role != UserRoleCode.ProjectManager) return new(StaffReadStatus.Forbidden);
+        var asOf = clock.GetUtcNow();
+        var access = await Access(actor, role, project, asOf, token);
+        if (access != StaffReadStatus.Success) return new(access);
+        search = Normalize(search); filterRole = Normalize(filterRole)?.ToUpperInvariant();
+        var binding = Binding(actor, $"eligible:{project:D}", search, filterRole, null);
+        if (!ValidQuery(search, filterRole, limit, cursor, binding, out var selectedRole, out var after) ||
+            selectedRole is not null and not (UserRoleCode.DroneOperator or UserRoleCode.RepairCrew))
+            return new(StaffReadStatus.InvalidInput);
+        var rows = await repository.EligibleAsync(project, search,
+            selectedRole, after, limit + 1, token);
+        var items = rows.Take(limit).Select(u => new EligibleProjectMemberDto(u.UserId, u.DisplayName, RoleCode(u.Role))).ToArray();
+        return new(StaffReadStatus.Success, new(items, rows.Count > limit ? Cursor(rows[limit - 1].UserId, binding) : null, asOf));
+    }
+
+    public async Task<StaffReadResult<ProjectMemberResponseDto>> AddMemberAsync(Guid actor, UserRoleCode role,
+        Guid project, Guid user, string? idempotencyKey, CancellationToken token)
+    {
+        if (role != UserRoleCode.ProjectManager) return new(StaffReadStatus.Forbidden);
+        if (project == Guid.Empty || user == Guid.Empty || string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Trim().Length > 200)
+            return new(StaffReadStatus.InvalidInput);
+        var result = await repository.AddMemberAsync(actor, project, user, idempotencyKey.Trim(), token);
+        var status = result.Status switch
+        {
+            StaffMemberWriteStatus.Success => StaffReadStatus.Success,
+            StaffMemberWriteStatus.Forbidden => StaffReadStatus.Forbidden,
+            StaffMemberWriteStatus.ProjectNotFound => StaffReadStatus.NotFound,
+            StaffMemberWriteStatus.UserNotFound => StaffReadStatus.UserNotFound,
+            StaffMemberWriteStatus.KeyConflict => StaffReadStatus.KeyConflict,
+            _ => StaffReadStatus.Conflict
+        };
+        if (result.Member is not { } m) return new(status);
+        return new(status, new(m.MembershipId, m.UserId, m.DisplayName, RoleCode(m.Role), m.IsPrimary,
+            m.Status.ToString().ToUpperInvariant(), m.ValidFrom, m.ValidTo, Convert.ToBase64String(m.RowVersion)));
+    }
+
     private async Task<StaffReadStatus> Access(Guid actor, UserRoleCode role, Guid? project, DateTimeOffset asOf, CancellationToken token) =>
         await repository.CheckAccessAsync(actor, role, project, DateOnly.FromDateTime(asOf.UtcDateTime), token) switch
         {

@@ -102,6 +102,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectWorkPackageService, ProjectWorkPackageService>();
         services.AddScoped<IProjectListService, ProjectListService>();
         services.AddScoped<RoadGuardSystem.Services.Staff.IStaffReadService, RoadGuardSystem.Services.Staff.StaffReadService>();
+        services.AddScoped<RoadGuardSystem.Services.Identity.IStaffPhoneNumberService, RoadGuardSystem.Services.Identity.StaffPhoneNumberService>();
         services.AddScoped<IProjectCreationService, ProjectCreationService>();
         services.AddScoped<IProjectUpdateService, ProjectUpdateService>();
         services.AddScoped<IPrimaryProjectManagerService, PrimaryProjectManagerService>();

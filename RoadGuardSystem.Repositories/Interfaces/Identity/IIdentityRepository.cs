@@ -24,6 +24,8 @@ public sealed record UserProfileState(
     UserStatus Status,
     byte[] RowVersion);
 
+public enum UserPhoneNumberWriteStatus { Success, Replay, Forbidden, NotFound, StaleVersion, KeyConflict }
+
 public enum UserProfileUpdateStatus
 {
     Success,
@@ -159,6 +161,8 @@ public sealed record UserRoleChangeResult(
 public interface IIdentityRepository
 {
     Task<UserProfileState?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<UserPhoneNumberWriteStatus> UpdateStaffPhoneNumberAtomicAsync(Guid actorUserId, Guid targetUserId,
+        string phoneNumber, byte[] expectedRowVersion, string idempotencyKey, CancellationToken cancellationToken = default);
 
     Task<UserProfileUpdateResult> UpdateUserProfileAtomicAsync(
         Guid userId,

@@ -10,6 +10,9 @@ public sealed record StaffAccountResponseDto(Guid Id, string DisplayName, string
 public sealed record ProjectMemberResponseDto(Guid MembershipId, Guid UserId, string DisplayName, string Role, bool IsPrimary,
     string Status, DateOnly ValidFrom, DateOnly? ValidTo, string MembershipVersion);
 
+public sealed record EligibleProjectMemberDto(Guid UserId, string DisplayName, string Role);
+public sealed record AddProjectMemberRequestDto(Guid UserId);
+
 public sealed record PrimaryProjectManagerResponseDto(PrimaryProjectManagerReadDto? PrimaryProjectManager);
 
 public sealed record PrimaryProjectManagerReadDto(Guid MembershipId, Guid UserId, string DisplayName,

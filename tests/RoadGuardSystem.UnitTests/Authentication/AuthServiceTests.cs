@@ -350,6 +350,10 @@ public sealed partial class AuthServiceTests
         public Task<UserProfileState?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default) =>
             Task.FromResult<UserProfileState?>(null);
 
+        public Task<UserPhoneNumberWriteStatus> UpdateStaffPhoneNumberAtomicAsync(Guid actorUserId, Guid targetUserId,
+            string phoneNumber, byte[] expectedRowVersion, string idempotencyKey, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<UserProfileUpdateResult> UpdateUserProfileAtomicAsync(
             Guid userId,
             string displayName,

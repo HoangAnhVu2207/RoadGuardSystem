@@ -107,8 +107,16 @@ public sealed class StaffReadRepository(RoadGuardDbContext db, IdempotencyOperat
                     if (await db.ProjectMembers.AnyAsync(m => m.ProjectId == project && m.UserId == user &&
                         m.Status == ProjectMemberStatus.Active, ct))
                         throw new StaffWriteException(StaffMemberWriteStatus.Conflict);
-                    var member = new ProjectMember { Id = Guid.NewGuid(), ProjectId = project, UserId = user,
-                        RoleCode = target.RoleCode, IsPrimary = false, Status = ProjectMemberStatus.Active, ValidFrom = day };
+                    var member = new ProjectMember
+                    {
+                        Id = Guid.NewGuid(),
+                        ProjectId = project,
+                        UserId = user,
+                        RoleCode = target.RoleCode,
+                        IsPrimary = false,
+                        Status = ProjectMemberStatus.Active,
+                        ValidFrom = day
+                    };
                     db.ProjectMembers.Add(member);
                     db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, clock.GetUtcNow(), "project_member_added",
                         "ProjectMember", member.Id, null, null, null, "PROJECT_API", null));

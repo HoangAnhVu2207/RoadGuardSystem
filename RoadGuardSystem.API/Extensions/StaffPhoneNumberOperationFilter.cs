@@ -36,7 +36,7 @@ public sealed class StaffPhoneNumberOperationFilter : IOperationFilter
             };
         foreach (var response in operation.Responses.Values)
             response.Headers["X-Correlation-ID"] = new OpenApiHeader
-                { Description = "Request correlation UUID.", Schema = new OpenApiSchema { Type = "string", Format = "uuid" } };
+            { Description = "Request correlation UUID.", Schema = new OpenApiSchema { Type = "string", Format = "uuid" } };
 
         void Header(string name, string description)
         {
@@ -48,8 +48,12 @@ public sealed class StaffPhoneNumberOperationFilter : IOperationFilter
             }
             header.Required = true;
             header.Description = description;
-            header.Schema = new OpenApiSchema { Type = "string", MinLength = 1,
-                MaxLength = name == "Idempotency-Key" ? 200 : null };
+            header.Schema = new OpenApiSchema
+            {
+                Type = "string",
+                MinLength = 1,
+                MaxLength = name == "Idempotency-Key" ? 200 : null
+            };
         }
     }
 }

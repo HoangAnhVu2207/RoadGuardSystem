@@ -43,7 +43,15 @@ public sealed class SandboxOfflineRouteCatalogTests
                                 Assert.True(actual.Add((method, route)), $"Duplicate route: {method} {route} ({controller.Name}.{action.Name})");
                         }
         Assert.Equal(260, expected.Count);
+        // These newer staff routes are source-verified; the 260-operation FE handoff is a historical snapshot.
+        var additions = new HashSet<(string, string)>
+        {
+            ("GET", "/api/v1/projects/{projectId}/members/eligible"),
+            ("POST", "/api/v1/projects/{projectId}/members"),
+            ("PATCH", "/api/v1/users/{userId}/phone-number")
+        };
         Assert.Empty(expected.Except(actual));
-        Assert.Empty(actual.Except(expected));
+        Assert.Empty(additions.Except(actual));
+        Assert.Empty(actual.Except(expected).Except(additions));
     }
 }

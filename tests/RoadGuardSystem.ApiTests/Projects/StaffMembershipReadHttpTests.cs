@@ -26,7 +26,7 @@ public sealed class StaffMembershipReadHttpTests(AuthenticationSqlServerFixture 
         await Member(project.Id, pm.Id, UserRoleCode.ProjectManager, primary: true);
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
         using var client = await Login(factory, pm);
-        var eligible = await Get(client, $"/api/v1/projects/{project.Id}/members/eligible?role=OPERATOR");
+        var eligible = await Get(client, $"/api/v1/projects/{project.Id}/members/eligible?role=OPERATOR&search={Uri.EscapeDataString(op.DisplayName)}");
         Assert.Contains(eligible.GetProperty("items").EnumerateArray(), x => x.GetProperty("userId").GetGuid() == op.Id);
         Assert.All(eligible.GetProperty("items").EnumerateArray(), x =>
         {

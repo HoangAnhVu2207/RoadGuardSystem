@@ -163,6 +163,10 @@ public interface IIdentityRepository
     Task<UserProfileState?> GetUserProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserPhoneNumberWriteStatus> UpdateStaffPhoneNumberAtomicAsync(Guid actorUserId, Guid targetUserId,
         string phoneNumber, byte[] expectedRowVersion, string idempotencyKey, CancellationToken cancellationToken = default);
+    Task<(string? PhoneNumber, bool Confirmed, byte[] Version)?> GetSelfPhoneNumberAsync(Guid actorUserId,
+        CancellationToken cancellationToken = default);
+    Task<UserPhoneNumberWriteStatus> UpdateSelfPhoneNumberAtomicAsync(Guid actorUserId,
+        string phoneNumber, byte[] expectedRowVersion, string idempotencyKey, CancellationToken cancellationToken = default);
 
     Task<UserProfileUpdateResult> UpdateUserProfileAtomicAsync(
         Guid userId,

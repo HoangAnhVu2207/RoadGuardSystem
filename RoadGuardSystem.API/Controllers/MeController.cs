@@ -18,10 +18,47 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class MeController : ControllerBase
 {
     private readonly IIdentityV2Service _identityService;
+    private readonly IStaffPhoneNumberService _phoneService;
 
-    public MeController(IIdentityV2Service identityService)
+    public MeController(IIdentityV2Service identityService, IStaffPhoneNumberService phoneService)
     {
         _identityService = identityService;
+        _phoneService = phoneService;
+    }
+
+    [HttpGet("phone-number")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    public async Task<IActionResult> GetPhoneNumber(CancellationToken cancellationToken)
+    {
+        if (!TryGetActorId(out var userId)) return Unauthorized();
+        var result = await _phoneService.GetSelfAsync(userId, cancellationToken);
+        if (result.Status != PhoneNumberUpdateStatus.Success || result.Version is null)
+            return ProblemResponse(StatusCodes.Status403Forbidden, ApiErrorCodes.AccessForbidden, "Forbidden");
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers.ETag = $"\"{result.Version}\"";
+        return Ok(new SelfPhoneNumberResponseDto(result.PhoneNumber, result.PhoneNumberConfirmed, result.Version));
+    }
+
+    [HttpPatch("phone-number")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> UpdatePhoneNumber(PhoneNumberUpdateRequestDto request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetActorId(out var userId)) return Unauthorized();
+        var result = await _phoneService.UpdateSelfAsync(userId, request.PhoneNumber, ifMatch,
+            idempotencyKey, cancellationToken);
+        return result.Status switch
+        {
+            PhoneNumberUpdateStatus.Success or PhoneNumberUpdateStatus.Replay => NoContent(),
+            PhoneNumberUpdateStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            PhoneNumberUpdateStatus.PreconditionRequired => ProblemResponse(428, ApiErrorCodes.ValidationError, "If-Match is required"),
+            PhoneNumberUpdateStatus.PreconditionFailed => ProblemResponse(412, ApiErrorCodes.ConcurrencyConflict, "Precondition failed"),
+            PhoneNumberUpdateStatus.KeyConflict => ProblemResponse(409, ApiErrorCodes.IdempotencyKeyReused, "Conflict"),
+            _ => ProblemResponse(400, ApiErrorCodes.ValidationError, "Bad request")
+        };
     }
 
     [HttpGet]

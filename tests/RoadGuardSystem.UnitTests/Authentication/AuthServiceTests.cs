@@ -354,6 +354,13 @@ public sealed partial class AuthServiceTests
             string phoneNumber, byte[] expectedRowVersion, string idempotencyKey, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<(string? PhoneNumber, bool Confirmed, byte[] Version)?> GetSelfPhoneNumberAsync(Guid actorUserId,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<UserPhoneNumberWriteStatus> UpdateSelfPhoneNumberAtomicAsync(Guid actorUserId,
+            string phoneNumber, byte[] expectedRowVersion, string idempotencyKey, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<UserProfileUpdateResult> UpdateUserProfileAtomicAsync(
             Guid userId,
             string displayName,

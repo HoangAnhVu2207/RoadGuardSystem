@@ -13,6 +13,65 @@ namespace RoadGuardSystem.ApiTests.Identity;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class IdentityReadContractHttpTests(AuthenticationSqlServerFixture sql)
 {
+    [Theory]
+    [InlineData(UserRoleCode.Supervisor)]
+    [InlineData(UserRoleCode.ProjectManager)]
+    [InlineData(UserRoleCode.DroneOperator)]
+    [InlineData(UserRoleCode.RepairCrew)]
+    [InlineData(UserRoleCode.Reporter)]
+    public async Task EveryActiveRoleCanReadAndUpdateOwnUnconfirmedPhone(UserRoleCode role)
+    {
+        var user = await User(role);
+        var other = await User(UserRoleCode.Reporter);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = await Login(factory, user);
+        const string path = "/api/v1/me/phone-number";
+        var before = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
+        Assert.True(before.Headers.CacheControl!.NoStore);
+        var originalVersion = before.Headers.ETag!.Tag;
+        var original = await before.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(JsonValueKind.Null, original.GetProperty("phoneNumber").ValueKind);
+        Assert.False(original.GetProperty("phoneNumberConfirmed").GetBoolean());
+        Assert.Equal(originalVersion.Trim('"'), original.GetProperty("version").GetString());
+        Assert.Equal((HttpStatusCode)428, (await client.PatchAsJsonAsync(path, new { phoneNumber = "+84901234567" })).StatusCode);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", originalVersion);
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PatchAsJsonAsync(path, new { phoneNumber = "+84901234567" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PatchAsJsonAsync(path, new { phoneNumber = "+84901234567" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PatchAsJsonAsync(path, new { phoneNumber = "+84901234568" })).StatusCode);
+        var after = await Get(client, path);
+        Assert.Equal("+84901234567", after.GetProperty("phoneNumber").GetString());
+        Assert.False(after.GetProperty("phoneNumberConfirmed").GetBoolean());
+        Assert.NotEqual(original.GetProperty("version").GetString(), after.GetProperty("version").GetString());
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.PreconditionFailed, (await client.PatchAsJsonAsync(path, new { phoneNumber = "+84901234568" })).StatusCode);
+        await using var db = sql.CreateDbContext();
+        Assert.Null((await db.Users.AsNoTracking().SingleAsync(x => x.Id == other.Id)).PhoneNumber);
+        Assert.Equal(1, await db.AuditLogs.CountAsync(x => x.EntityId == user.Id && x.EventType == "self_phone_number_updated"));
+    }
+
+    [Fact]
+    public async Task SelfPhoneCookieRequiresCsrfAndCurrentAuthorityOnReplay()
+    {
+        var user = await User(UserRoleCode.RepairCrew);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var browser = await Login(factory, user, cookie: true);
+        const string path = "/api/v1/me/phone-number";
+        var read = await browser.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, read.StatusCode);
+        browser.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", read.Headers.ETag!.Tag);
+        browser.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.Forbidden, (await browser.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+        var csrf = await Get(browser, "/api/v1/auth/web/csrf");
+        browser.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf.GetProperty("requestToken").GetString());
+        Assert.Equal(HttpStatusCode.NoContent, (await browser.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+        await using (var db = sql.CreateDbContext())
+            await db.Users.Where(x => x.Id == user.Id).ExecuteUpdateAsync(x => x.SetProperty(x => x.Status, UserStatus.Suspended));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await browser.PatchAsJsonAsync(path, new { phoneNumber = "0901234567" })).StatusCode);
+    }
+
     [Fact]
     public async Task SupervisorCookiePhoneWriteRequiresCsrfAndReplaysOnce()
     {

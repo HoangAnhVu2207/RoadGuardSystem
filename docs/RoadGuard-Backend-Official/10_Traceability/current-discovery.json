@@ -1,0 +1,12 @@
+{
+  "head": "01cc4725b178199215b02f4ddf7093491a16f2f7",
+  "controllers": 50,
+  "controllerOperations": 259,
+  "paths": 229,
+  "canonicalOperations": 260,
+  "schemas": 384,
+  "sourceFiles": 1534,
+  "openApiSha256": "d0afa2090f89e1301cf6e79d907580739961adb794c52b18f12fdb8aaac90c47",
+  "runtimeCaptureSha256": "efd2c093cb89951cb3cf64b6c397016dcd44753150f3918d548ad2478a454d6a",
+  "idsPreserved": true
+}

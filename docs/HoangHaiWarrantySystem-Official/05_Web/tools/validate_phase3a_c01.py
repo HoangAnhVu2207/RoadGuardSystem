@@ -14,8 +14,11 @@ def fail(msg):
     print('FAIL:',msg); raise SystemExit(1)
 text=CAT.read_text(encoding='utf-8')
 entries={}
-for m in re.finditer(r'^### (API-\d+)\n(.*?)(?=^### API-|\Z)',text,re.M|re.S):
+for m in re.finditer(r'^### ((?:API|ADD)-\d+)\n(.*?)(?=^### (?:API|ADD)-|\Z)',text,re.M|re.S):
     body=m.group(2); ident=m.group(1)
+    if ident == 'ADD-19':
+        if '**`GET /ready`**' not in body or 'Handoff:Enabled=true' not in body: fail('invalid conditional readiness entry')
+        continue
     route=re.search(r'\*\*`([^`]+)`\*\*',body)
     role=re.search(r'- \*\*Actor/role/scope:\*\* ([^\.\n]+)',body)
     auth=re.search(r'- \*\*Authentication/security declaration:\*\* (.*)',body)
@@ -59,7 +62,8 @@ def selector_matches(route):
     families=('/api/v1/profile','/api/v1/auth/change-password','/api/v1/reports','/api/v1/cases')
     if any(path == x or path.startswith(x+'/') for x in families): return 'IsCookieEligiblePath' in WEB_CONFIG
     if '/candidate-decisions' in path or '/candidates' in path or '/labels' in path: return 'path.Contains' in WEB_CONFIG
-    if '/defects' in path: return 'IsProjectDefectPath' in WEB_CONFIG
+    if '/defects' in path:
+        return ('IsProjectDefectPath' in WEB_CONFIG and bool(re.fullmatch(r'/api/v1/projects/\{projectId\}/defects(?:/\{defectId\}(?:/(?:assessments|verification-decisions))?)?',path)))
     return False
 rows=[]; main=[]
 for fn,prefix,actor in [('02_Supervisor-Screen-API-Matrix.md','SUP','Supervisor'),('03_PM-Screen-API-Matrix.md','PM','PM')]:

@@ -20,6 +20,10 @@
 !deploy/fe-handoff/
 !deploy/fe-handoff/init.py
 !deploy/fe-handoff/sql-start.sh
+!deploy/fe-handoff/scenarios.py
+!deploy/fe-handoff/demo_ai.py
+!deploy/fe-handoff/demo_collections.py
+!deploy/fe-handoff/demo_repairs.py
 !sandbox/
 !sandbox/seeds/
 !sandbox/seeds/v1/

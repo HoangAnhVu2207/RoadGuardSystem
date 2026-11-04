@@ -3,12 +3,16 @@ services:
     image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
     container_name: roadguard-sqlserver
     restart: unless-stopped
+    # SQL Server Linux requires at least 2 GiB; engine memory is a separate cap.
+    mem_limit: 2304m
+    cpus: 1.0
     ports:
       - "${MSSQL_PORT:-1433}:1433"
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD is required}"
       MSSQL_PID: "Developer"
+      MSSQL_MEMORY_LIMIT_MB: "1024"
     volumes:
       - mssql_data:/var/opt/mssql
     healthcheck:

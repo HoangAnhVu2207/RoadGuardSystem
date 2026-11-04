@@ -1,5 +1,23 @@
 # Boundary Web/Android ↔ Backend
 
+<!-- CURRENT-DOCS-SYNC-BEGIN -->
+
+## Current integration — 2026-10-27
+
+`CURRENT_VERIFIED` static source at BE `01cc4725b178199215b02f4ddf7093491a16f2f7`, branch `huy-review`; FE read-only `hoang` / `afec0e714af1e6ea8c845af110996b84888efa07`. This integrated BE is later than Candidate3; exact Candidate3 deployment equivalence is **NOT_VERIFIED**.
+
+50 controllers, 259 controller operations, 229 controller paths, 384 production schemas; 260 canonical IDs include conditional operational ADD-19 `/ready`. `/health` remains separate liveness. Counts come from disconnected production API Explorer/Swagger capture, excluding test controllers and their schemas. No database queries were executed for discovery. EF metadata: 200 entity types, 195 table identities, 1980 model properties and 1975 distinct mapped column identities; these are model counts, not a deployed SQL audit.
+
+API030 media-type compatibility remains **NOT_VERIFIED**; H02–H05 **OPEN**, FULL_CONTRACT uncertified; FE acceptance, production, live external AI and native Mobile acceptance remain **PENDING / NOT_VERIFIED**.
+
+Current details: [integration, authority, compatibility and evidence](../CURRENT-INTEGRATION-20261027.md); [exact current endpoint catalog](../03_API_Contracts/02_Endpoint_Catalog.md); [384 current schema definitions](../../HoangHaiWarrantySystem-Official/04_API-Contracts/03_DTO-and-Schema-Reference.md). Historical deep traces below must be rechecked against current SHA before reuse.
+
+## Historical checkpoint (retained)
+
+The following baseline, counts, execution labels and gap statements describe the dated checkpoint below. They are not current acceptance; use the current integration section and source-pinned inventories above.
+
+<!-- CURRENT-DOCS-SYNC-END -->
+
 > Baseline source: `cdeb1ca1037744d06995058af13d0582f6273c0a`, nhánh `huy-review`; BE-DOC-02, ngày 13/10/2026. `CURRENT_VERIFIED` = source đối chiếu tại baseline; build/tests trong phần việc này **NOT_RUN**. Source không chứng minh external adoption/deployed behavior. Kết quả DOC-AUDIT-01 là **HISTORICAL**.
 
 Nghiệp vụ từ [32–44](../../../docs/product/confirmed-decisions.md) và [HUY final, latest activation](../../../planning/development/HUY-FINAL-INTEGRATION.md); [audit gaps](../../../docs/audit/DOC-AUDIT-01-OPEN-GAPS.md) được đối chiếu lại với source.

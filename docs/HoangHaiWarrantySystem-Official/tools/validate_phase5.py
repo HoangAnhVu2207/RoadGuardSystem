@@ -11,6 +11,7 @@ import yaml
 import contextlib
 import io
 import runpy
+from route_inventory import discover, normalize
 
 ROOT = Path(__file__).resolve().parents[3]
 DOCS = ROOT / 'docs/HoangHaiWarrantySystem-Official'
@@ -20,15 +21,10 @@ def read(path):
     return path.read_text(encoding='utf-8-sig')
 
 
-def normalize(route):
-    route = route.replace('{version:apiVersion}', '1').replace('[controller]', '')
-    return re.sub(r'\{(\w+):[^}]+\}', r'{\1}', '/' + route.strip('/'))
-
-
 def entries():
     text = read(DOCS / '04_API-Contracts/02_Full-API-Catalog.md')
     result = {}
-    for match in re.finditer(r'^### (API-\d+)\n(.*?)(?=^### API-|\Z)', text, re.M | re.S):
+    for match in re.finditer(r'^### ((?:API|ADD)-\d+)\n(.*?)(?=^### (?:API|ADD)-|\Z)', text, re.M | re.S):
         body = match[2]
         route = re.search(r'\*\*`(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) ([^`]+)`\*\*', body)
         role = re.search(r'Actor/role/scope:\*\* ([^.\n]+)', body)
@@ -70,18 +66,19 @@ def run():
     controllers = sorted((ROOT / 'RoadGuardSystem.API/Controllers').glob('*.cs'))
     source = []
     for file in controllers:
-        text = read(file)
-        header, body = text.split('public sealed class', 1) if 'public sealed class' in text else text.split('public class', 1)
-        base = re.search(r'\bRoute\("([^"]+)"\)', header)
-        if not base:
-            errors.append(f'unsupported controller route {file.name}')
-            continue
-        for match in re.finditer(r'\bHttp(Get|Post|Put|Patch|Delete|Head|Options)(?:\("([^"]*)"\))?(?=\s*[,\]])', body):
-            suffix = match[2] or ''
-            route = suffix[2:] if suffix.startswith('~/') else suffix if suffix.startswith('/') else base[1].rstrip('/') + '/' + suffix
-            source.append((match[1].upper(), normalize(route)))
+        try:
+            source.extend((x['method'], x['path']) for x in discover(read(file), file.name))
+        except ValueError as ex:
+            errors.append(str(ex))
     source_set = set(source)
-    catalog_set = {(e['method'], e['path']) for e in cat.values()}
+    catalog_set = {(e['method'], e['path']) for ident,e in cat.items() if ident != 'ADD-19'}
+    # Retained canonical operational ID is conditional minimal routing, not MVC.
+    readiness = read(ROOT / 'RoadGuardSystem.API/Extensions/HandoffBootstrap.cs')
+    if cat.get('ADD-19', {}).get('path') != '/ready' or 'app.MapGet("/ready"' not in readiness or 'Handoff:Enabled' not in readiness:
+        errors.append('ADD-19 conditional readiness source/catalog mismatch')
+    canonical = json.loads(read(ROOT/'deploy/fe-handoff/FE-API-CATALOG.json'))['operations']
+    if {(o['operationId'],o['method'],o['path']) for o in canonical} != {(ident,e['method'],e['path']) for ident,e in cat.items()}:
+        errors.append('canonical ID/method/path drift')
     for label, left, right in [('source/OpenAPI', source_set, operations), ('catalog/OpenAPI', catalog_set, operations)]:
         if left != right:
             errors.append(f'{label}: left-only={sorted(left-right)} right-only={sorted(right-left)}')
@@ -90,7 +87,7 @@ def run():
     crosswalk = read(DOCS / '04_API-Contracts/09_Consumer-API-Crosswalk.md')
     crosswalk_count = 0
     for line in crosswalk.splitlines():
-        m = re.match(r'\| \[(API-\d+)\].*?\| `(\w+) ([^`]+)` \| [^|]+ \| ([^|]+) \|', line)
+        m = re.match(r'\| \[((?:API|ADD)-\d+)\].*?\| `(\w+) ([^`]+)` \| [^|]+ \| ([^|]+) \|', line)
         if not m:
             continue
         crosswalk_count += 1

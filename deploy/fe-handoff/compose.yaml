@@ -1,6 +1,8 @@
 # Isolated development only. No SQL/admin host ports, no host bind secrets.
 services:
   init:
+    mem_limit: 128m
+    cpus: 0.25
     build:
       context: ../..
       dockerfile: deploy/fe-handoff/Dockerfile.Handoff
@@ -12,6 +14,8 @@ services:
       - state:/state
     network_mode: none
   sql:
+    mem_limit: 2304m
+    cpus: 1.0
     build:
       context: ../..
       dockerfile: deploy/fe-handoff/Dockerfile.Handoff
@@ -33,6 +37,8 @@ services:
       retries: 60
     networks: [internal]
   minio:
+    mem_limit: 384m
+    cpus: 0.5
     build:
       context: .
       dockerfile: Dockerfile.Minio
@@ -44,6 +50,8 @@ services:
     ports: ['127.0.0.1:${RG_FE_OBJECT_PORT:-19001}:9000']
     networks: [internal, edge]
   mailpit:
+    mem_limit: 128m
+    cpus: 0.25
     image: axllent/mailpit@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
     environment:
       MP_DATABASE: /data/mailpit.db
@@ -51,6 +59,8 @@ services:
     ports: ['127.0.0.1:${RG_FE_MAIL_PORT:-18026}:8025']
     networks: [internal, edge]
   api:
+    mem_limit: 512m
+    cpus: 0.75
     build:
       context: ../..
       dockerfile: deploy/fe-handoff/Dockerfile.Handoff
@@ -73,6 +83,8 @@ services:
       retries: 60
     networks: [internal, edge]
   scenarios:
+    mem_limit: 256m
+    cpus: 0.5
     build:
       context: ../..
       dockerfile: deploy/fe-handoff/Dockerfile.Handoff

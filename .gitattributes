@@ -6,6 +6,7 @@
 *.targets text eol=lf
 *.json text eol=lf
 *.py text eol=lf
+deploy/fe-handoff/*.sh text eol=lf
 *.md text eol=lf whitespace=-blank-at-eol
 *.sln text eol=crlf
 *.slnx text eol=lf

@@ -19,6 +19,7 @@ public static class Huy01ReporterServiceExtensions
         services.TryAddScoped<RoadGuardSystem.Services.Cases.IPublicPublicationService, RoadGuardSystem.Services.Implementations.Cases.PublicPublicationService>();
         services.TryAddScoped<IReporterLifecycleService, ReporterLifecycleService>();
         services.TryAddScoped<RoadGuardSystem.Services.Cases.ICaseWorkflowService, RoadGuardSystem.Services.Implementations.Cases.CaseWorkflowService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Cases.ICaseReportDetailsService, RoadGuardSystem.Services.Implementations.Cases.CaseReportDetailsService>();
         return services;
     }
 

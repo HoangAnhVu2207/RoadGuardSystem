@@ -50,7 +50,9 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("POST", "/api/v1/projects/{projectId}/members"),
             ("PATCH", "/api/v1/users/{userId}/phone-number"),
             ("GET", "/api/v1/me/phone-number"),
-            ("PATCH", "/api/v1/me/phone-number")
+            ("PATCH", "/api/v1/me/phone-number"),
+            ("GET", "/api/v1/cases/{caseId}/reports"),
+            ("GET", "/api/v1/cases/{caseId}/reports/{reportId}/evidence/{evidenceId}/content")
         };
         Assert.Empty(expected.Except(actual));
         Assert.Empty(additions.Except(actual));

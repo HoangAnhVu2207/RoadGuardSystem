@@ -1,5 +1,7 @@
 # RoadGuard FE handoff — preparation
 
+Current source addition: [Case Report details for PM/Supervisor](CASE-REPORT-DETAILS.md). Its runtime-generated Swagger contract is newer than this package's frozen preview `openapi.json`.
+
 ## FE Starter continuation — approved optional response compatibility
 
 Use this index, [business flows](FE-BUSINESS-FLOW-GUIDE.md), [API cookbook](FE-API-COOKBOOK.md), [authentication](FE-AUTH-AND-CLIENT-GUIDE.md), [test instructions](FE-API-TEST-GUIDE.md) and the [Postman collection](FE-API.postman_collection.json) as the Starter package. The canonical catalog retains all 260 operations. A documented operation is not automatically runtime accepted.

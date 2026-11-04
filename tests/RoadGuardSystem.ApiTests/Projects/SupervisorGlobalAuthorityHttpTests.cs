@@ -30,8 +30,11 @@ public sealed class SupervisorGlobalAuthorityHttpTests(AuthenticationSqlServerFi
         Assert.Equal(HttpStatusCode.OK, (await bearer.GetAsync("/api/v1/projects")).StatusCode);
         using var anonymous = factory.CreateClient(new() { HandleCookies = false });
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/v1/projects")).StatusCode);
-        // Method-only cookie opt-in must not silently opt in project mutations.
-        Assert.Equal(HttpStatusCode.Unauthorized, (await cookie.PostAsJsonAsync("/api/v1/projects", new { })).StatusCode);
+        // The create action is cookie-eligible, but still requires CSRF; PUT remains bearer-only.
+        var missingCsrf = await cookie.PostAsJsonAsync("/api/v1/projects", new { });
+        Assert.Equal(HttpStatusCode.Forbidden, missingCsrf.StatusCode);
+        Assert.Equal("csrf_failed", (await missingCsrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await cookie.PutAsJsonAsync($"/api/v1/projects/{project.Id}", new { })).StatusCode);
         await using var db = sql.CreateDbContext();
         await db.Sessions.Where(x => x.UserId == actor.Id).ExecuteUpdateAsync(x => x.SetProperty(s => s.RevokedAt, DateTimeOffset.UtcNow));
         Assert.Equal(HttpStatusCode.Unauthorized, (await cookie.GetAsync("/api/v1/projects")).StatusCode);

@@ -4,6 +4,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -26,7 +28,9 @@ public sealed class P2SurveyV2ApiTests
         var manager = await _sql.CreateUserAsync($"p2_v2_manager_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var operatorUser = await _sql.CreateUserAsync($"p2_v2_operator_{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
         var otherOperator = await _sql.CreateUserAsync($"p2_v2_other_operator_{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
-        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        var clock = new MutableClock(DateTimeOffset.UtcNow);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString,
+            configureTestServices: services => { services.RemoveAll<TimeProvider>(); services.AddSingleton<TimeProvider>(clock); });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await AuthenticateAsync(client, supervisor.UserName!);
         var projectId = await CreateProjectAsync(client, manager.Id);
@@ -113,6 +117,42 @@ public sealed class P2SurveyV2ApiTests
         var taskRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{projectId}/survey-tasks", taskId, "id", "projectId", "operatorId", "status", "version", "supplementTaskId");
         Assert.Equal(operatorUser.Id, taskRow.GetProperty("operatorId").GetGuid());
 
+        var planPath = $"/api/v1/survey-plans/{planId}";
+        var taskPath = $"/api/v1/survey-tasks/{taskId}";
+        using var webPm = await WebCookieTestClient.Login(factory, manager.Email!);
+        using var webSup = await WebCookieTestClient.Login(factory, supervisor.Email!);
+        webPm.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        webSup.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        using var webPlan = await webPm.GetAsync(planPath);
+        using var webTask = await webPm.GetAsync(taskPath);
+        Assert.Equal(new[] { HttpStatusCode.OK, HttpStatusCode.OK }, new[] { webPlan.StatusCode, webTask.StatusCode });
+        Assert.Equal(planId, (await webPlan.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
+        Assert.Equal(taskId, (await webTask.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
+        Assert.Equal(postponedVersion, webPlan.Headers.ETag!.Tag.Trim('"'));
+        Assert.Equal(task.Headers.ETag, webTask.Headers.ETag);
+
+        var outsider = await _sql.CreateUserAsync($"p2_v2_outside_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var reporter = await _sql.CreateUserAsync($"p2_v2_reporter_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        using var webOutside = await WebCookieTestClient.Login(factory, outsider.Email!);
+        using var webReporter = await WebCookieTestClient.Login(factory, reporter.Email!);
+        using var webOperator = await WebCookieTestClient.Login(factory, operatorUser.Email!);
+        using var webOtherOperator = await WebCookieTestClient.Login(factory, otherOperator.Email!);
+        foreach (var path in new[] { planPath, taskPath })
+        {
+            Assert.Equal(HttpStatusCode.OK, (await webSup.GetAsync(path)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(path)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await webOutside.GetAsync(path)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await webReporter.GetAsync(path)).StatusCode);
+        }
+        Assert.Equal(HttpStatusCode.OK, (await webOperator.GetAsync(taskPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await webOperator.GetAsync(planPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await webOtherOperator.GetAsync(taskPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await webPm.GetAsync(taskPath + "/work-package")).StatusCode);
+        clock.Now += TimeSpan.FromHours(13);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await webPm.GetAsync(planPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await webPm.GetAsync(taskPath)).StatusCode);
+        clock.Now -= TimeSpan.FromHours(13);
+
         var read = await client.GetAsync($"/api/v1/survey-tasks/{taskId}");
         read.StatusCode.Should().Be(HttpStatusCode.OK);
         (await read.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("operatorId").GetGuid().Should().Be(operatorUser.Id);
@@ -177,5 +217,11 @@ public sealed class P2SurveyV2ApiTests
         login.EnsureSuccessStatusCode();
         var body = await login.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+    }
+
+    private sealed class MutableClock(DateTimeOffset initial) : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = initial;
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 }

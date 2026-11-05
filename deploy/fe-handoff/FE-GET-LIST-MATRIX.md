@@ -11,8 +11,8 @@ See [FE-APPROVED-COLLECTIONS.md](FE-APPROVED-COLLECTIONS.md) for adopted G02-G06
 | G02/W07 packages | /api/v1/projects/{projectId}/repair-packages | PM/Supervisor, current project, every obligation currently readable | package id -> items |
 | G02/G03/W07/W08 items | /api/v1/projects/{projectId}/repair-packages/{packageId}/items | existing repair ReadItem, currently readable parent obligation | detail/history/eligibility; fresh detail ETag before mutation |
 | G04/W10 history | /api/v1/projects/{projectId}/exports | creator-only AND current export/snapshot source visibility | status -> manifest/content, each reauthorizes |
-| G05/W05 plans | /api/v1/projects/{projectId}/survey-plans | PM/Supervisor + plan detail guard | /api/v1/projects/{projectId}/survey-plans/{id} |
-| G05/W05 assignments | /api/v1/projects/{projectId}/survey-tasks | PM/Supervisor/Operator + task detail guard | /api/v1/projects/{projectId}/survey-tasks/{id}, work-package |
+| G05/W05 plans | /api/v1/projects/{projectId}/survey-plans | PM/Supervisor + plan detail guard | GET /api/v1/survey-plans/{id} |
+| G05/W05 assignments | /api/v1/projects/{projectId}/survey-tasks | PM/Supervisor/Operator + task detail guard | GET /api/v1/survey-tasks/{taskId}, then work package if needed |
 | G05/W05 processing | /api/v1/projects/{projectId}/processing-jobs | PM/Supervisor/Operator + job detail guard | /api/v1/projects/{projectId}/processing-jobs/{id} |
 | G05/W05 mock/result | /api/v1/projects/{projectId}/ai-mock-runs | PM/Supervisor + Development mock/detail guard | run/result -> /files/{id}, /content |
 | G06/W09 devices | /api/v1/projects/{projectId}/offline/devices | PM/Supervisor/Crew + device-get guard | existing detail; no keys in summary |

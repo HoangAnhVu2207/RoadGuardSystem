@@ -78,6 +78,7 @@ public sealed class SurveyV2Controller : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("survey-tasks/{taskId:guid}")]
     public async Task<IActionResult> GetTask(Guid taskId, CancellationToken cancellationToken)
     {
@@ -93,6 +94,7 @@ public sealed class SurveyV2Controller : ControllerBase
     }
 
     [Authorize, HttpGet("survey-plans/{id:guid}")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public Task<IActionResult> ReadPlan(Guid id, CancellationToken token) => ReadResource(id, "plan", token);
     [Authorize, HttpGet("datasets/{id:guid}")]
     public Task<IActionResult> ReadDataset(Guid id, CancellationToken token) => ReadResource(id, "dataset", token);

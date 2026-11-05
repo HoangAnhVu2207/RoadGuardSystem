@@ -9,14 +9,20 @@ All routes below use `/api/v1/projects/{projectId}`. Current bearer or web cooki
 | G02/W07 packages | /repair-packages | PM/Supervisor, current project, every obligation currently readable | package id -> items |
 | G02/G03/W07/W08 items | /repair-packages/{packageId}/items | existing repair ReadItem, currently readable parent obligation | detail/history/eligibility; fresh detail ETag before mutation |
 | G04/W10 history | /exports | creator-only AND current export/snapshot source visibility | status -> manifest/content, each reauthorizes |
-| G05/W05 plans | /survey-plans | PM/Supervisor + plan detail guard | /survey-plans/{id} |
-| G05/W05 assignments | /survey-tasks | PM/Supervisor/Operator + task detail guard | /survey-tasks/{id}, work-package |
+| G05/W05 plans | /survey-plans | PM/Supervisor + plan detail guard | GET /api/v1/survey-plans/{id} |
+| G05/W05 assignments | /survey-tasks | PM/Supervisor/Operator + task detail guard | GET /api/v1/survey-tasks/{taskId}, then work package if needed |
 | G05/W05 processing | /processing-jobs | PM/Supervisor/Operator + job detail guard | /processing-jobs/{id} |
 | G05/W05 mock/result | /ai-mock-runs | PM/Supervisor + Development mock/detail guard | run/result -> /files/{id}, /content |
 | G06/W09 devices | /offline/devices | PM/Supervisor/Crew + device-get guard | existing detail; no keys in summary |
 | G06/W09 packages | /offline/packages | PM/Supervisor/Crew + original actor/recipient grant/Supervisor guard | authorized detail, no ciphertext summary |
 | G06/W09 grants | /offline/grants | PM/Supervisor/Crew + recipient-role/device/Supervisor guard | existing detail; no blanket PM grant |
 | G06/W10 evaluations | /retention/evaluations | PM/Supervisor + retention guard | existing evaluation detail pagination; no deletion |
+
+### G05 detail navigation and transport
+
+The project prefix above applies to collection routes. Use the row's `id` for the plan or task detail GET at the full path shown in the table. Both detail actions accept Bearer or a Web session cookie and return the current `ETag`. Send cookie requests with credentials over HTTPS. These GETs require no CSRF header. The plan checks PM/Supervisor and current project authority. Task detail also checks an Operator's active assignment to that task and current project authority. Use the Development runtime OpenAPI for security metadata. The packaged `openapi.json` remains a preview snapshot.
+
+The documented next actions give a basis for a separate Web review of `GET /api/v1/survey-tasks/{id}/work-package`, `GET /api/v1/projects/{projectId}/ai-mock-runs/{runId}`, its `/result` GET and the frame reads `GET /api/v1/files/{fileId}` and `GET /api/v1/files/{fileId}/content`. Those actions currently use Bearer. Run and result require the mock flag and a supported nonproduction environment. The file routes serve other file types too, so Web admission needs a separate review of the current file and AI result guards. `GET /api/v1/projects/{projectId}/ai-candidates/{detectionId}` appears in the BE inventory, but the approved collection's next actions do not establish a Web caller for it.
 
 ## Exact new wire
 

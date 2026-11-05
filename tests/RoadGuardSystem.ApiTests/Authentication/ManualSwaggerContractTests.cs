@@ -10,6 +10,21 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 
 public sealed class ManualSwaggerContractTests
 {
+    [Fact]
+    public async Task SurveyDetailsAdvertiseWebAndBearerAtResourceRoutes()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        foreach (var route in new[] { "/api/v1/survey-plans/{id}", "/api/v1/survey-tasks/{taskId}" })
+        {
+            var security = paths.GetProperty(route).GetProperty("get").GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, security.Length);
+            Assert.Contains(security, x => x.TryGetProperty("Bearer", out _) && x.EnumerateObject().Count() == 1);
+            Assert.Contains(security, x => x.TryGetProperty("WebSession", out _) && x.EnumerateObject().Count() == 1);
+            Assert.False(paths.TryGetProperty(route.Replace("/api/v1/", "/api/v1/projects/{projectId}/", StringComparison.Ordinal), out _));
+        }
+    }
+
     [Theory]
     [InlineData("primary-project-manager", "put", true)]
     [InlineData("work-package", "get", false)]

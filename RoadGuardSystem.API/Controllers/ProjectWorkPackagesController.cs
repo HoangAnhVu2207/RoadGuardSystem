@@ -23,6 +23,7 @@ public sealed class ProjectWorkPackagesController : ControllerBase
     }
 
     [Authorize(Policy = ProjectAuthorizationPolicies.WorkPackageRead)]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet]
     [ProducesResponseType<ProjectWorkPackageResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]

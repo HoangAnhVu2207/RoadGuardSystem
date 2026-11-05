@@ -10,6 +10,23 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 
 public sealed class ManualSwaggerContractTests
 {
+    [Theory]
+    [InlineData("primary-project-manager", "put", true)]
+    [InlineData("work-package", "get", false)]
+    public async Task ProjectOperationsAdvertiseBearerOrWebSession(string suffix, string verb, bool csrf)
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        var security = paths.GetProperty("/api/v1/projects/{projectId}/" + suffix)
+            .GetProperty(verb).GetProperty("security").EnumerateArray().ToArray();
+        Assert.Equal(2, security.Length);
+        Assert.Contains(security, x => x.TryGetProperty("Bearer", out _) && x.EnumerateObject().Count() == 1);
+        var web = Assert.Single(security, x => x.TryGetProperty("WebSession", out _));
+        Assert.Equal(csrf ? 3 : 1, web.EnumerateObject().Count());
+        Assert.Equal(csrf, web.TryGetProperty("CsrfToken", out _));
+        Assert.Equal(csrf, web.TryGetProperty("AntiforgeryCookie", out _));
+    }
+
     [Fact]
     public async Task StaffPhoneWriteDocumentsBearerCookieCsrfAndRequiredHeaders()
     {

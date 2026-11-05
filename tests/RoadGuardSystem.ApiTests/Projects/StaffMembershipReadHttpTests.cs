@@ -537,6 +537,84 @@ public sealed class StaffMembershipReadHttpTests(AuthenticationSqlServerFixture 
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ProjectWorkPackageKeepsCurrentRoleAndProjectScope(bool cookie)
+    {
+        var project = await Project();
+        var pm = await User(UserRoleCode.ProjectManager);
+        await Member(project.Id, pm.Id, UserRoleCode.ProjectManager, primary: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var manager = await Login(factory, pm, cookie);
+        using var supervisor = await Login(factory, await User(UserRoleCode.Supervisor), cookie);
+        using var reporter = await Login(factory, await User(UserRoleCode.Reporter), cookie);
+        var url = $"/api/v1/projects/{project.Id}/work-package";
+        Assert.Equal(HttpStatusCode.OK, (await supervisor.GetAsync(url)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync(url)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await manager.GetAsync($"/api/v1/projects/{(await Project()).Id}/work-package")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reporter.GetAsync(url)).StatusCode);
+    }
+
+    [Fact]
+    public async Task PrimaryPmWebReassignmentRequiresCsrfAndPreservesVersionAndReplay()
+    {
+        var sup = await User(UserRoleCode.Supervisor);
+        var oldPm = await User(UserRoleCode.ProjectManager);
+        var newPm = await User(UserRoleCode.ProjectManager);
+        var project = await Project();
+        var old = await Member(project.Id, oldPm.Id, UserRoleCode.ProjectManager, primary: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var web = await Login(factory, sup, cookie: true);
+        using var pm = await Login(factory, oldPm, cookie: true);
+        using var bearer = await Login(factory, sup);
+        var url = $"/api/v1/projects/{project.Id}/primary-project-manager";
+        var payload = new
+        {
+            primaryProjectManagerUserId = newPm.Id,
+            effectiveFrom = Today,
+            reason = "Web reassignment",
+            expectedCurrentMembershipRowVersion = Convert.ToBase64String(old.RowVersion),
+            operationId = Guid.NewGuid()
+        };
+
+        await Problem(await web.PutAsJsonAsync(url, payload), HttpStatusCode.Forbidden, "csrf_failed");
+        web.DefaultRequestHeaders.Add("X-CSRF-TOKEN", "invalid");
+        await Problem(await web.PutAsJsonAsync(url, payload), HttpStatusCode.Forbidden, "csrf_failed");
+        await WebCookieTestClient.RefreshCsrf(web);
+        await WebCookieTestClient.RefreshCsrf(pm);
+        await Problem(await pm.PutAsJsonAsync(url, payload), HttpStatusCode.Forbidden, "access_forbidden");
+        Assert.Equal(old.Id, (await Get(web, url)).GetProperty("primaryProjectManager").GetProperty("membershipId").GetGuid());
+        var staleVersion = old.RowVersion.ToArray();
+        staleVersion[0] ^= 1;
+        await Problem(await web.PutAsJsonAsync(url, payload with { expectedCurrentMembershipRowVersion = Convert.ToBase64String(staleVersion) }),
+            HttpStatusCode.Conflict, "concurrency_conflict");
+
+        using var success = await web.PutAsJsonAsync(url, payload);
+        Assert.Equal(HttpStatusCode.OK, success.StatusCode);
+        var result = await success.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(old.Id, result.GetProperty("previousMembershipId").GetGuid());
+        foreach (var client in new[] { web, bearer })
+        {
+            using var replay = await client.PutAsJsonAsync(url, payload);
+            Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+            Assert.Equal(result.GetRawText(), (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
+        }
+        await Problem(await web.PutAsJsonAsync(url, payload with { reason = "Changed input" }),
+            HttpStatusCode.Conflict, "duplicate_request");
+        await using var db = sql.CreateDbContext();
+        Assert.Equal(2, await db.ProjectMembers.CountAsync(m => m.ProjectId == project.Id));
+    }
+
+    private static async Task Problem(HttpResponseMessage response, HttpStatusCode status, string code)
+    {
+        using (response)
+        {
+            Assert.Equal(status, response.StatusCode);
+            Assert.Equal(code, (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        }
+    }
+
     private Task<ApplicationUser> User(UserRoleCode role, string? name = null) => sql.CreateUserAsync(name ?? "STAFF-" + Guid.NewGuid().ToString("N"), "Current1!", role);
     private async Task<Project> Project()
     {

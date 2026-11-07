@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import secrets
 import subprocess
+import sys
 import uuid
 
 CONFIG = Path('/etc/roadguard')
@@ -72,6 +73,15 @@ def write(path, value, uid=0, gid=10001, mode=0o640):
     os.chown(path, uid, gid)
 
 
+def read_terminal(prompt, secret=False):
+    while True:
+        try:
+            return getpass.getpass(prompt) if secret else input(prompt)
+        except UnicodeDecodeError:
+            # Reject malformed bytes; never guess an encoding or alter a password.
+            print('Input is not valid UTF-8. Use a UTF-8 terminal/English keyboard and retype this field.', file=sys.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host', required=True, type=validate_host)
@@ -79,10 +89,10 @@ def main():
     if not hasattr(os, 'geteuid') or os.geteuid() != 0:
         raise SystemExit('Run this setup with sudo on the Ubuntu server.')
     require_empty_target(CONFIG, DATA)
-    email = input('First Supervisor email: ').strip()
-    name = input('Supervisor display name: ').strip()
-    password = getpass.getpass('Initial password (16+ chars, upper/lower/digit/symbol): ')
-    if password != getpass.getpass('Repeat password: '):
+    email = read_terminal('First Supervisor email: ').strip()
+    name = read_terminal('Supervisor display name: ').strip()
+    password = read_terminal('Initial password (16+ chars, upper/lower/digit/symbol): ', secret=True)
+    if password != read_terminal('Repeat password: ', secret=True):
         raise SystemExit('Passwords do not match. Nothing was created.')
     app, maintenance, sa, storage, pfx = configuration(args.host, email, name, password)
     os.umask(0o077)

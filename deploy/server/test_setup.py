@@ -4,6 +4,8 @@ import io
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -14,6 +16,57 @@ spec.loader.exec_module(setup)
 
 
 class SetupTests(unittest.TestCase):
+    def test_invalid_terminal_encoding_is_retried_without_logging_raw_input(self):
+        for secret in (False, True):
+            output = io.StringIO()
+            invalid = UnicodeDecodeError('utf-8', b'private\xffinput', 7, 8, 'invalid continuation byte')
+            with self.subTest(secret=secret), patch.object(setup.getpass, 'getpass', side_effect=[invalid, 'valid-value']) as password_reader, \
+                 patch('builtins.input', side_effect=[invalid, 'valid-value']) as text_reader, contextlib.redirect_stderr(output):
+                self.assertEqual('valid-value', setup.read_terminal('Value: ', secret=secret))
+                self.assertEqual(2, (password_reader if secret else text_reader).call_count)
+                self.assertNotIn('private', output.getvalue())
+                self.assertNotIn('valid-value', output.getvalue())
+                self.assertIn('UTF-8', output.getvalue())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Linux PTY required')
+    def test_real_terminal_recovers_after_invalid_utf8_line(self):
+        import os
+        import pty
+        import select
+        import termios
+        import time
+        master, slave = pty.openpty()
+        attributes = termios.tcgetattr(slave)
+        attributes[3] &= ~termios.ECHO
+        termios.tcsetattr(slave, termios.TCSANOW, attributes)
+        process = subprocess.Popen([sys.executable, '-u', '-c',
+                                    "import setup; assert setup.read_terminal('Value: ') == 'Owner'; print('RECOVERED')"],
+                                   cwd=Path(__file__).parent, stdin=slave, stdout=slave, stderr=slave,
+                                   env={**os.environ, 'PYTHONIOENCODING': 'utf-8:strict'})
+        os.close(slave)
+        def receive(marker):
+            result = b''
+            deadline = time.monotonic() + 10
+            while marker not in result and time.monotonic() < deadline:
+                if select.select([master], [], [], 0.1)[0]:
+                    result += os.read(master, 4096)
+            self.assertIn(marker, result)
+            return result
+        try:
+            receive(b'Value: ')
+            os.write(master, b'\xff\n')
+            retry = receive(b'Value: ')
+            self.assertIn(b'UTF-8', retry)
+            self.assertNotIn(b'Traceback', retry)
+            os.write(master, b'Owner\n')
+            receive(b'RECOVERED')
+            self.assertEqual(0, process.wait(timeout=10))
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+            os.close(master)
+
     @unittest.skipUnless(shutil.which('openssl'), 'OpenSSL required for real certificate generation')
     def test_wizard_generates_verified_certificates_and_refuses_second_run(self):
         with tempfile.TemporaryDirectory() as temporary:

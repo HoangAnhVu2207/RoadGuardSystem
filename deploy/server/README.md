@@ -38,6 +38,8 @@ sudo bash /tmp/roadguard-bootstrap-<SHA>.sh <SHA> 192.168.1.11
 
 Thay `<SHA>` bằng commit thật, không gõ nguyên dấu ngoặc. Wizard hỏi email, tên và mật khẩu Supervisor đầu tiên. Nhập mật khẩu trực tiếp trên server, tối thiểu 16 ký tự có chữ hoa/thường/số/ký tự đặc biệt. Không gửi mật khẩu qua chat. Các secret khác được sinh ngẫu nhiên tại server, không đưa vào Git. Lần build đầu phải tải SQL/.NET/Go và biên dịch MinIO nên có thể mất nhiều phút.
 
+Nếu terminal gửi dữ liệu không phải UTF-8, wizard từ chối trường đó và yêu cầu nhập lại; không tự đoán encoding hoặc sửa ký tự trong mật khẩu. Chuyển bàn phím sang English khi nhập email/mật khẩu, dùng terminal UTF-8. Ctrl+C để hủy nếu chưa thể nhập đúng. Toàn bộ thông tin được kiểm tra trước khi tạo thư mục cấu hình/dữ liệu.
+
 Bootstrap từ chối khi đã có thư mục cài đặt. Nếu mất kết nối hoặc build lỗi sau khi wizard đã tạo cấu hình, **không chạy lại wizard, không xóa dữ liệu**. Dùng script trong release đã tải để xem log, sửa nguyên nhân và chạy lại `initialize` khi chưa có `active-release`:
 
 ```bash

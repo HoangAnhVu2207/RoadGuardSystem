@@ -115,6 +115,8 @@ public sealed class P2V2SurveyServiceTests
 
     private sealed class RecordingRepository : ISurveyV2Repository
     {
+        public Task<IReadOnlyList<EligibleDroneRecord>> ListActiveDronesAsync(Guid? afterId, int take, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<EligibleDroneRecord>>([]);
         public SurveyV2PlanPersistenceResult PlanResult { get; init; } = new(SurveyV2PersistenceStatus.InvalidInput);
         public SurveyV2PlanCreationRequest? PlanRequest { get; private set; }
         public SurveyV2TaskCreationRequest? TaskRequest { get; private set; }

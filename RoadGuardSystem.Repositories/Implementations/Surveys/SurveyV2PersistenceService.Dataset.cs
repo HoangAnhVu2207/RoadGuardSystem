@@ -11,6 +11,14 @@ namespace RoadGuardSystem.Repositories.Implementations.Surveys;
 
 public sealed partial class SurveyV2PersistenceService
 {
+    public async Task<IReadOnlyList<EligibleDroneRecord>> ListActiveDronesAsync(Guid? afterId, int take, CancellationToken cancellationToken = default)
+    {
+        var query = _context.DroneDevices.AsNoTracking().Where(d => d.Status == DroneDeviceStatus.Active);
+        if (afterId is Guid after) query = query.Where(d => d.Id.CompareTo(after) > 0);
+        return await query.OrderBy(d => d.Id).Take(take)
+            .Select(d => new EligibleDroneRecord(d.Id, d.SerialNo)).ToArrayAsync(cancellationToken);
+    }
+
     private static readonly JsonSerializerOptions DatasetScopeJsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<SurveyDatasetPersistenceResult> SubmitDatasetAsync(SurveyDatasetSubmissionRequest request, CancellationToken cancellationToken = default)

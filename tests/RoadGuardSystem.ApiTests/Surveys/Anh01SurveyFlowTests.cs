@@ -130,6 +130,57 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         workBody.GetProperty("schemaVersion").GetString().Should().Be("anh01.survey-work.v1");
         workBody.GetProperty("geometryRefs").GetArrayLength().Should().Be(1);
         workBody.GetProperty("geometryRefs")[0].TryGetProperty("targetBand", out _).Should().BeFalse();
+        var eligiblePath = $"/api/v1/survey-tasks/{task}/eligible-drones";
+        var sharedDrone = Guid.NewGuid();
+        var maintenanceDrone = Guid.NewGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            db.DroneDevices.Add(DroneDevice.Create(sharedDrone, "SHARED-" + sharedDrone, DroneDeviceStatus.Active));
+            db.DroneDevices.Add(DroneDevice.Create(maintenanceDrone, "MAINTENANCE-" + maintenanceDrone, DroneDeviceStatus.Maintenance));
+            await db.SaveChangesAsync();
+        }
+        var selectable = new List<Guid>();
+        string? droneCursor = null;
+        do
+        {
+            var pageResponse = await client.GetAsync(eligiblePath + "?limit=1" +
+                (droneCursor is null ? "" : "&cursor=" + Uri.EscapeDataString(droneCursor)));
+            pageResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            pageResponse.Headers.CacheControl!.Private.Should().BeTrue();
+            pageResponse.Headers.CacheControl.NoStore.Should().BeTrue();
+            var page = await Body(pageResponse);
+            foreach (var drone in page.GetProperty("items").EnumerateArray())
+            {
+                drone.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("id", "serialNo");
+                selectable.Add(drone.GetProperty("id").GetGuid());
+            }
+            droneCursor = page.GetProperty("nextCursor").GetString();
+        } while (droneCursor is not null);
+        selectable.Should().Contain(device).And.Contain(sharedDrone).And.NotContain(maintenanceDrone).And.OnlyHaveUniqueItems();
+        var firstDronePage = await Body(await client.GetAsync(eligiblePath + "?limit=1"));
+        var foreignDroneCursor = firstDronePage.GetProperty("nextCursor").GetString()!;
+        (await client.GetAsync(eligiblePath + "?cursor=invalid")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync(eligiblePath + "?cursor=")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync(eligiblePath + "?limit=101")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync(eligiblePath + "?limit=1&limit=2")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync(eligiblePath + "?search=drone")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        foreach (var user in new[] { second, manager, supervisor })
+        {
+            await Login(client, user.UserName!);
+            (await client.GetAsync(eligiblePath)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+        using (var anonymous = factory.CreateClient(new() { HandleCookies = false }))
+            (await anonymous.GetAsync(eligiblePath)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        await Login(client, first.UserName!);
+        await using (var db = sql.CreateDbContext())
+        {
+            await db.DroneDevices.Where(d => selectable.Contains(d.Id)).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Maintenance));
+        }
+        var emptyDrones = await Body(await client.GetAsync(eligiblePath));
+        emptyDrones.GetProperty("items").GetArrayLength().Should().Be(0);
+        emptyDrones.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
+        await using (var db = sql.CreateDbContext())
+            await db.DroneDevices.Where(d => selectable.Contains(d.Id)).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Active));
         var accepted = await Command(client, $"/api/v1/survey-tasks/{task}/accept", null, taskResponse.Headers.ETag!.Tag);
         accepted.StatusCode.Should().Be(HttpStatusCode.OK);
         var uploadCreated = await Command(client, "/api/v1/uploads", new
@@ -162,9 +213,49 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             scope = scopes,
             pairs = new[] { new { videoFileId = video, telemetryFileId = (Guid?)null, timeOffsetMilliseconds = 0L } }
         };
-        var submitted = await Command(client, $"/api/v1/survey-tasks/{task}/datasets", submit, accepted.Headers.ETag!.Tag);
+        var submitPath = $"/api/v1/survey-tasks/{task}/datasets";
+        var submitKey = Guid.NewGuid().ToString("N");
+        await using (var db = sql.CreateDbContext())
+            await db.DroneDevices.Where(d => d.Id == device).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Maintenance));
+        (await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await Body(await client.GetAsync(eligiblePath))).GetProperty("items").EnumerateArray()
+            .Select(d => d.GetProperty("id").GetGuid()).Should().NotContain(device);
+        await using (var db = sql.CreateDbContext())
+            await db.DroneDevices.Where(d => d.Id == device).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Active));
+        var submitted = await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey);
         submitted.StatusCode.Should().Be(HttpStatusCode.Created);
         var dataset = (await Body(submitted)).GetProperty("id").GetGuid();
+        // Model a lost response: the client retries the original body, key and If-Match after commit.
+        await using (var db = sql.CreateDbContext())
+            await db.DroneDevices.Where(d => d.Id == device).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Maintenance));
+        var submitReplay = await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey);
+        submitReplay.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await Body(submitReplay)).GetProperty("id").GetGuid().Should().Be(dataset);
+        (await submitReplay.Content.ReadAsStringAsync()).Should().Be(await submitted.Content.ReadAsStringAsync());
+        submitReplay.Headers.Location.Should().Be(submitted.Headers.Location);
+        submitReplay.Headers.ETag.Should().Be(submitted.Headers.ETag);
+        var changedPayload = await Command(client, submitPath, submit with { recordedAt = "2026-10-02T09:00:00Z" }, accepted.Headers.ETag!.Tag, submitKey);
+        changedPayload.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Body(changedPayload)).GetProperty("code").GetString().Should().Be("duplicate_request");
+        var changedVersion = await Command(client, submitPath, submit, submitted.Headers.ETag!.Tag, submitKey);
+        changedVersion.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Body(changedVersion)).GetProperty("code").GetString().Should().Be("duplicate_request");
+        await using (var db = sql.CreateDbContext())
+        {
+            var surveyId = await db.Surveys.Where(s => s.SurveyRequestId == task).Select(s => s.Id).SingleAsync();
+            (await db.SurveyDataVersions.CountAsync(d => d.SurveyId == surveyId)).Should().Be(1);
+            (await db.AuditLogs.CountAsync(a => a.EventType == "survey_dataset_submitted" && a.EntityId == dataset)).Should().Be(1);
+            (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == first.Id && r.ProjectId == project &&
+                r.Operation == "SurveyDatasetSubmitted" && r.IdempotencyKey == submitKey)).Should().Be(1);
+            await db.DroneDevices.Where(d => d.Id == device).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Active));
+            await db.ProjectMembers.Where(m => m.UserId == first.Id && m.ProjectId == project)
+                .ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        }
+        (await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await client.GetAsync(eligiblePath)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await using (var db = sql.CreateDbContext())
+            await db.ProjectMembers.Where(m => m.UserId == first.Id && m.ProjectId == project)
+                .ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Active));
         var detail = await client.GetAsync(submitted.Headers.Location);
         detail.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(detail)).GetProperty("submittedBy").GetGuid().Should().Be(first.Id);
@@ -273,9 +364,24 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         reopenParent.StatusCode.Should().Be(HttpStatusCode.Conflict);
         await Login(client, first.UserName!);
         (await client.GetAsync($"/api/v1/survey-tasks/{child}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        // Fixture authority change isolates replay authorization from the already submitted task lifecycle.
+        await using (var db = sql.CreateDbContext())
+        {
+            var assignment = await db.SurveyAssignments.SingleAsync(a => a.SurveyRequestId == task && a.EndedAt == null);
+            assignment.EndForReassignment(DateTimeOffset.UtcNow, "Replay authority fixture");
+            await db.SaveChangesAsync();
+            db.SurveyAssignments.Add(SurveyAssignment.Create(Guid.NewGuid(), task, second.Id, manager.Id,
+                DateTimeOffset.UtcNow, null, null, null, null, null));
+            await db.SaveChangesAsync();
+        }
+        await Login(client, first.UserName!);
+        (await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await client.GetAsync(eligiblePath + "?cursor=" + Uri.EscapeDataString(foreignDroneCursor))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         await Login(client, second.UserName!);
         var childRead = await client.GetAsync(supplemented.Headers.Location);
         childRead.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.GetAsync($"/api/v1/survey-tasks/{child}/eligible-drones?cursor=" + Uri.EscapeDataString(foreignDroneCursor)))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await Command(client, $"/api/v1/survey-tasks/{child}/accept", null, childRead.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.OK);
         var childAccepted = await client.GetAsync($"/api/v1/survey-tasks/{child}");
         var largeVideos = new List<Guid>();

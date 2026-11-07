@@ -143,6 +143,7 @@ Lượt triển khai bộ chọn bổ sung kiểm HTTP cho Active registry dùng
 | `dotnet test tests/RoadGuardSystem.UnitTests --filter FullyQualifiedName~P2V2SurveyServiceTests -p:RunAnalyzers=false` | 5 PASS / 0 FAIL / 0 SKIP, `eligible-drones-unit.trx`. |
 | `dotnet build tests/RoadGuardSystem.ApiTests --no-restore -clp:ErrorsOnly` | PASS, 0 errors / 591 warnings. |
 | Scoped whitespace format, Verify-P102Docs.ps1, Verify-AgentSetup.ps1, git diff check và link/JSON mẫu | PASS. |
+| SandboxOfflineRouteCatalogTests sau bổ sung GET eligible-drones vào danh mục route mới | 1 PASS / 0 FAIL / 0 SKIP, `eligible-drone-route-catalog-final.trx`. Trước bổ sung, test tái hiện FAIL do đúng route mới chưa có trong danh mục. |
 
 Các TRX nằm trong `TestResults/DatasetRetry` của checkout D:/RG-dataset. Những ca đã qua và không bị thay đổi tiếp được giữ làm bằng chứng, không cộng các lượt chạy lặp thành số test độc lập. Database chỉ là SQL fixture cô lập; video storage là mock. Không có source app hoặc runtime FE/Operator được xác minh ở đợt này.
 

@@ -1,0 +1,99 @@
+name: roadguard-server
+x-logging: &logging
+  driver: json-file
+  options: {max-size: 10m, max-file: '3'}
+x-api: &api
+  image: roadguard/server-api:${RG_RELEASE:?Set RG_RELEASE}
+  build:
+    context: ../..
+    dockerfile: deploy/server/Dockerfile
+  mem_limit: 1g
+  cpus: 4
+  logging: *logging
+  environment: {ASPNETCORE_ENVIRONMENT: Production}
+  networks: [backend, edge]
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+    hostname: sql
+    group_add: ['10001']
+    restart: unless-stopped
+    mem_limit: 4g
+    cpus: 4
+    logging: *logging
+    env_file: [/etc/roadguard/sql.env]
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_PID: Developer
+      MSSQL_MEMORY_LIMIT_MB: '2048'
+    volumes:
+      - /srv/roadguard/sql:/var/opt/mssql
+      - /etc/roadguard/mssql.conf:/var/opt/mssql/mssql.conf:ro
+      - /etc/roadguard/tls/server.crt:/run/tls/server.crt:ro
+      - /etc/roadguard/tls/server.key:/run/tls/server.key:ro
+    healthcheck:
+      # Local startup probe only; application SQL connections validate the LAN CA.
+      test: [CMD-SHELL, 'SQLCMDPASSWORD="$${MSSQL_SA_PASSWORD}" /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -N -C -Q "SELECT 1" -b -o /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks: [backend]
+  minio:
+    image: roadguard/server-storage:pinned-20250907
+    build: {context: ., dockerfile: Dockerfile.Storage}
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 2
+    logging: *logging
+    env_file: [/etc/roadguard/storage.env]
+    command: [server, /data, --certs-dir, /certs, --console-address, ':9001']
+    volumes:
+      - /srv/roadguard/objects:/data
+      - /etc/roadguard/tls/server.crt:/certs/public.crt:ro
+      - /etc/roadguard/tls/server.key:/certs/private.key:ro
+      - /etc/roadguard/tls/ca.crt:/run/tls/ca.crt:ro
+    ports: ['${RG_BIND_IP:?Set RG_BIND_IP}:9443:9000']
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --cacert, /run/tls/ca.crt, 'https://localhost:9000/minio/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks: [backend, edge]
+  maintenance:
+    <<: *api
+    profiles: [tools]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ServerDeployment__Maintenance: initialize
+    volumes:
+      - /etc/roadguard/maintenance.json:/app/appsettings.Production.json:ro
+      - /etc/roadguard/tls/ca.crt:/run/tls/ca.crt:ro
+      - /etc/roadguard/tls/server.pfx:/run/tls/server.pfx:ro
+      - /srv/roadguard/keys:/keys
+      - /srv/roadguard/files:/files
+    depends_on:
+      sql: {condition: service_healthy}
+      minio: {condition: service_healthy}
+  api:
+    <<: *api
+    restart: unless-stopped
+    ports: ['${RG_BIND_IP:?Set RG_BIND_IP}:8443:8443']
+    volumes:
+      - /etc/roadguard/application.json:/app/appsettings.Production.json:ro
+      - /etc/roadguard/tls/ca.crt:/run/tls/ca.crt:ro
+      - /etc/roadguard/tls/server.pfx:/run/tls/server.pfx:ro
+      - /srv/roadguard/keys:/keys
+      - /srv/roadguard/files:/files
+    depends_on:
+      sql: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --cacert, /run/tls/ca.crt, 'https://localhost:8443/health']
+      interval: 15s
+      timeout: 12s
+      retries: 10
+      start_period: 20s
+networks:
+  backend: {internal: true}
+  edge: {}

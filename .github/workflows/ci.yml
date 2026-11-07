@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main, anh, anh-review, huy, huy-review]
+    branches: [develop, main, anh, anh-review, huy, huy-review, deploy]
   schedule:
     - cron: "0 18 * * *"
   workflow_dispatch:
@@ -52,6 +52,9 @@ jobs:
       - run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
       - run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
       - run: pwsh -File tests/CI/Verify-TestResults.Tests.ps1
+      - run: python -m unittest discover -s deploy/server -p test_setup.py -v
+      - run: python deploy/server/verify_compose.py
+      - run: for script in deploy/server/*.sh; do bash -n "$script"; done
       - run: pwsh -File tests/Security/Verify-DependencySecurity.ps1
       - run: dotnet restore RoadGuardSystem.slnx
       - run: dotnet format --verify-no-changes --no-restore

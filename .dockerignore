@@ -24,6 +24,8 @@
 !deploy/fe-handoff/demo_ai.py
 !deploy/fe-handoff/demo_collections.py
 !deploy/fe-handoff/demo_repairs.py
+!deploy/server/
+!deploy/server/container-entrypoint.sh
 !sandbox/
 !sandbox/seeds/
 !sandbox/seeds/v1/

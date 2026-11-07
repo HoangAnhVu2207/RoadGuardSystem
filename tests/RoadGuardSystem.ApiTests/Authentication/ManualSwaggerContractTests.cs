@@ -11,6 +11,25 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task EligibleSurveyDronesExposeOnlySelectionFieldsAndBoundedBearerRead()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var operation = root.GetProperty("paths").GetProperty("/api/v1/survey-tasks/{taskId}/eligible-drones").GetProperty("get");
+        var security = Assert.Single(operation.GetProperty("security").EnumerateArray());
+        Assert.True(security.TryGetProperty("Bearer", out _));
+        Assert.Contains("shared registry", operation.GetProperty("description").GetString());
+        var limit = operation.GetProperty("parameters").EnumerateArray().Single(p => p.GetProperty("name").GetString() == "limit").GetProperty("schema");
+        Assert.Equal(25, limit.GetProperty("default").GetInt32());
+        Assert.Equal(1, limit.GetProperty("minimum").GetInt32());
+        Assert.Equal(100, limit.GetProperty("maximum").GetInt32());
+        var fields = root.GetProperty("components").GetProperty("schemas").GetProperty("EligibleDroneDto").GetProperty("properties");
+        Assert.Equal(new[] { "id", "serialNo" }, fields.EnumerateObject().Select(p => p.Name).OrderBy(n => n));
+        foreach (var status in new[] { "200", "400", "401", "403", "404" })
+            Assert.True(operation.GetProperty("responses").TryGetProperty(status, out _));
+    }
+
+    [Fact]
     public async Task SurveyDetailsAdvertiseWebAndBearerAtResourceRoutes()
     {
         using var document = await Document();

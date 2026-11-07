@@ -3,6 +3,9 @@ using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.DataProtection;
+using System.Security.Cryptography;
+using RoadGuardSystem.DTOs.Collections;
 using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.DTOs.Surveys;
@@ -91,6 +94,47 @@ public sealed class SurveyV2Controller : ControllerBase
             SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             _ => ProblemResponse(404, ApiErrorCodes.SurveyRequestNotFound, "Not found")
         };
+    }
+
+    [Authorize]
+    [HttpGet("survey-tasks/{taskId:guid}/eligible-drones")]
+    [ProducesResponseType<CollectionPage<EligibleDroneDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> EligibleDrones(Guid taskId, [FromServices] IDataProtectionProvider protection,
+        CancellationToken cancellationToken, [FromQuery] int limit = 25, [FromQuery] string? cursor = null)
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (role != UserRoleCode.DroneOperator) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+        var access = await _service.GetTaskAsync(actor, role, taskId, cancellationToken);
+        if (access.Status == SurveyV2ServiceStatus.Forbidden) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+        if (access.Status != SurveyV2ServiceStatus.Success) return ProblemResponse(404, ApiErrorCodes.SurveyRequestNotFound, "Not found");
+        if (limit is < 1 or > 100 || Request.Query.Any(q => q.Key is not ("limit" or "cursor") || q.Value.Count != 1))
+            return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid query");
+        if (Request.Query.ContainsKey("cursor") && string.IsNullOrEmpty(cursor))
+            return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor");
+        var protector = protection.CreateProtector("RoadGuard.SurveyEligibleDrones.v1", actor.ToString("D"), taskId.ToString("D"));
+        Guid? afterId = null;
+        if (cursor is not null)
+        {
+            if (cursor.Length is 0 or > 4096) return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor");
+            try
+            {
+                if (!Guid.TryParseExact(protector.Unprotect(cursor), "D", out var id) || id == Guid.Empty)
+                    return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor");
+                afterId = id;
+            }
+            catch (CryptographicException) { return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor"); }
+        }
+        var result = await _service.ListEligibleDronesAsync(actor, role, taskId, afterId, limit + 1, cancellationToken);
+        if (result.Status == SurveyV2ServiceStatus.Forbidden) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+        if (result.Status != SurveyV2ServiceStatus.Success) return ProblemResponse(404, ApiErrorCodes.SurveyRequestNotFound, "Not found");
+        var items = result.Items.Take(limit).ToArray();
+        var nextCursor = result.Items.Count > limit ? protector.Protect(items[^1].Id.ToString("D")) : null;
+        return Ok(new CollectionPage<EligibleDroneDto>(items, nextCursor));
     }
 
     [Authorize, HttpGet("survey-plans/{id:guid}")]

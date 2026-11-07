@@ -4,6 +4,7 @@ namespace RoadGuardSystem.Repositories.Surveys;
 
 public interface ISurveyV2Repository
 {
+    Task<IReadOnlyList<EligibleDroneRecord>> ListActiveDronesAsync(Guid? afterId, int take, CancellationToken cancellationToken = default);
     Task<SurveyV2PlanPersistenceResult> CreatePlanAsync(SurveyV2PlanCreationRequest request, CancellationToken cancellationToken = default);
     Task<SurveyV2PlanPersistenceResult> PostponePlanAsync(SurveyV2PlanPostponementRequest request, CancellationToken cancellationToken = default);
     Task<SurveyV2TaskPersistenceResult> CreateTaskAsync(SurveyV2TaskCreationRequest request, CancellationToken cancellationToken = default);

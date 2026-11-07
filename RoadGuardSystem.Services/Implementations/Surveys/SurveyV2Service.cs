@@ -20,6 +20,17 @@ public sealed class SurveyV2Service : ISurveyV2Service
 
     public SurveyV2Service(ISurveyV2Repository repository, IProjectScopeGuard scopeGuard, ISurveyAssessmentRepository? assessments = null) { _repository = repository; _scopeGuard = scopeGuard; _assessments = assessments; }
 
+    public async Task<(SurveyV2ServiceStatus Status, IReadOnlyList<EligibleDroneDto> Items)> ListEligibleDronesAsync(
+        Guid actor, UserRoleCode role, Guid taskId, Guid? afterId, int take, CancellationToken cancellationToken = default)
+    {
+        if (role != UserRoleCode.DroneOperator) return (SurveyV2ServiceStatus.Forbidden, []);
+        var access = await GetTaskAsync(actor, role, taskId, cancellationToken);
+        if (access.Status != SurveyV2ServiceStatus.Success) return (access.Status, []);
+        if (take is < 1 or > 101) return (SurveyV2ServiceStatus.InvalidInput, []);
+        var drones = await _repository.ListActiveDronesAsync(afterId, take, cancellationToken);
+        return (SurveyV2ServiceStatus.Success, drones.Select(d => new EligibleDroneDto(d.Id, d.SerialNo)).ToArray());
+    }
+
     public async Task<SurveyV2ServiceResult> CreatePlanAsync(Guid actorUserId, UserRoleCode role, Guid projectId, CreateSurveyPlanV2RequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default)
     {
         if (actorUserId == Guid.Empty || role != UserRoleCode.ProjectManager) return new(SurveyV2ServiceStatus.Forbidden);

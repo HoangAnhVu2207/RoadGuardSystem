@@ -6591,6 +6591,42 @@
     }
   ],
   "componentOverrides": {
+    "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskViewFact": {
+      "properties": {
+        "repairContext": {
+          "type": "object",
+          "nullable": true,
+          "allOf": [{ "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact" }]
+        }
+      }
+    },
+    "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact": {
+      "properties": {
+        "mode": { "type": "string", "enum": ["NORMAL", "FAST_TRACK"] },
+        "itemVersion": { "type": "string", "description": "Current repair item rowversion in Base64. Use for repair commands." },
+        "attempt": {
+          "type": "object",
+          "nullable": true,
+          "description": "Current attempt and effective intake on the current task binding, when present.",
+          "allOf": [{ "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairAttemptFact" }]
+        }
+      }
+    },
+    "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairAttemptFact": {
+      "properties": {
+        "review": {
+          "type": "object",
+          "nullable": true,
+          "description": "PM decision for the effective submission. Null while awaiting review.",
+          "allOf": [{ "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairReviewFact" }]
+        }
+      }
+    },
+    "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairReviewFact": {
+      "properties": {
+        "decision": { "type": "string", "enum": ["SUPPLEMENT", "ACCEPT"] }
+      }
+    },
     "RoadGuardSystem.Repositories.Messaging.BusinessDutyView": {
       "properties": {
         "appointments": {

@@ -147,12 +147,21 @@ public sealed class ManualSwaggerContractTests
         var task = schemas.GetProperty("FieldTaskViewFact").GetProperty("properties");
         task.GetProperty("version").GetProperty("type").GetString().Should().Be("string");
         task.GetProperty("repairContext").GetRawText().Should().Contain("CrewRepairContextFact");
+        Assert.True(task.GetProperty("repairContext").GetProperty("nullable").GetBoolean());
         var context = schemas.GetProperty("CrewRepairContextFact").GetProperty("properties");
         context.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo(new[]
         {
-            "packageId", "itemId", "bindingId", "mode", "status", "itemVersion", "repairPlan", "checklistVersion"
+            "packageId", "itemId", "bindingId", "mode", "status", "itemVersion", "repairPlan", "checklistVersion", "attempt"
         });
         context.GetProperty("itemVersion").GetProperty("type").GetString().Should().Be("string");
+        context.GetProperty("attempt").GetRawText().Should().Contain("CrewRepairAttemptFact");
+        Assert.True(context.GetProperty("attempt").GetProperty("nullable").GetBoolean());
+        var attempt = schemas.GetProperty("CrewRepairAttemptFact").GetProperty("properties");
+        attempt.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo("attemptId", "effectiveSubmissionId", "review");
+        attempt.GetProperty("review").GetRawText().Should().Contain("CrewRepairReviewFact");
+        Assert.True(attempt.GetProperty("review").GetProperty("nullable").GetBoolean());
+        schemas.GetProperty("CrewRepairReviewFact").GetProperty("properties").EnumerateObject()
+            .Select(x => x.Name).Should().BeEquivalentTo("reviewId", "decision");
     }
 
     [Fact]

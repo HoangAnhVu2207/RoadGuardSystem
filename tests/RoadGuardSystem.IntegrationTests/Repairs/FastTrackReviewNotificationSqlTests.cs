@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Inspections;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
@@ -16,6 +17,8 @@ using RoadGuardSystem.Repositories.Implementations.Inspections;
 using RoadGuardSystem.Repositories.Implementations.Repairs;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Messaging;
+using RoadGuardSystem.Repositories.Projects;
+using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Messaging;
 using RoadGuardSystem.TestFixtures;
 using Xunit;
@@ -78,7 +81,22 @@ public sealed class FastTrackReviewNotificationSqlTests(IdentitySqlServerFixture
                 state.Package, state.Item, "PUT", "assign-A", IfNoneMatch: "*", Body: JsonSerializer.Serialize(new { supervisorId = source.Supervisor })), default);
             Assert.Equal(201, assignedA.Status);
         }
-        var itemVersion = Convert.ToBase64String(await db.RepairItems.Where(x => x.Id == state.Item).Select(x => EF.Property<byte[]>(x, "RowVersion")).SingleAsync());
+        var taskReader = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), eventClock);
+        var guard = new ProjectScopeGuard(new ProjectMembershipReadModel(db), eventClock);
+        var bootstrap = await taskReader.ExecuteAsync(new(source.Project, state.First.TaskId, "get", null, null, null,
+            new(source.Crew, UserRoleCode.RepairCrew, source.Crew, "DIRECT", true)),
+            async ct => await guard.AuthorizeAsync(source.Crew, UserRoleCode.RepairCrew, source.Project, ct) is not null, default);
+        Assert.Equal(200, bootstrap.Status);
+        var task = Assert.IsType<FieldTaskViewFact>(bootstrap.Value);
+        var context = Assert.IsType<CrewRepairContextFact>(task.RepairContext);
+        Assert.Equal("CONDITIONAL_FT", task.Mode);
+        Assert.Equal("FAST_TRACK", context.Mode);
+        Assert.Equal(state.Item, context.ItemId);
+        Assert.Equal(state.Package, context.PackageId);
+        Assert.Equal(task.Version, bootstrap.Version);
+        Assert.NotEqual(task.Version, context.ItemVersion);
+        Assert.Null(context.Attempt);
+        var itemVersion = context.ItemVersion;
         var start = await repairs.StartExecutionAsync(new(source.Crew, UserRoleCode.RepairCrew, source.Project, state.Package, state.Item, state.First.TaskId,
             new(Guid.NewGuid(), state.First.Id, DateTimeOffset.UtcNow, state.Operation.Repair!.Start!.AssessmentId), Guid.NewGuid().ToString(), itemVersion), default); Assert.Equal(201, start.Status);
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);

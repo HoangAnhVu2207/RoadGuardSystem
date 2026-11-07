@@ -62,6 +62,24 @@ public sealed class ND01OriginalWindowHttpTests(ITestOutputHelper output) : IAsy
                 Assert.NotNull(scope.ServiceProvider.GetRequiredService<IOfflineRepairCommandAdapter>());
                 using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") });
                 await H5OfflinePositiveHttpTests.LoginAsync(client, crew.UserName!);
+                if (attempt == 0)
+                {
+                    using var taskResponse = await client.GetAsync($"/api/v1/projects/{source.Project}/field-inspection-tasks/{state.First.TaskId}");
+                    Assert.Equal(HttpStatusCode.OK, taskResponse.StatusCode);
+                    var task = await taskResponse.Content.ReadFromJsonAsync<JsonElement>();
+                    var context = task.GetProperty("repairContext");
+                    var taskVersion = task.GetProperty("version").GetString();
+                    Assert.Equal("CONDITIONAL_FT", task.GetProperty("mode").GetString());
+                    Assert.Equal("FAST_TRACK", context.GetProperty("mode").GetString());
+                    Assert.Equal(state.Item, context.GetProperty("itemId").GetGuid());
+                    Assert.Equal($"\"{taskVersion}\"", taskResponse.Headers.ETag!.Tag);
+                    var itemVersion = await db.RepairItems.AsNoTracking().Where(row => row.Id == state.Item)
+                        .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync();
+                    Assert.Equal(Convert.ToBase64String(itemVersion), context.GetProperty("itemVersion").GetString());
+                    Assert.Equal(JsonValueKind.Null, context.GetProperty("attempt").ValueKind);
+                    output.WriteLine("FAST_TRACK API-080 response excerpt: " + JsonSerializer.Serialize(new
+                    { mode = task.GetProperty("mode"), version = taskVersion, repairContext = context }));
+                }
                 using var response = await H5OfflinePositiveHttpTests.PostAsync(client, route, state.Batch);
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
                 var result = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items")[0];

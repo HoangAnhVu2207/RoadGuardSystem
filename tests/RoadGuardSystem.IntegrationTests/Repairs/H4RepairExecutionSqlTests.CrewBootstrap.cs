@@ -38,6 +38,7 @@ public sealed partial class H4RepairExecutionSqlTests
         Assert.Equal(state.Binding.Id, context.BindingId); Assert.Equal("NORMAL", context.Mode);
         Assert.Equal(state.Binding.AssignmentId, task.AssignmentId);
         Assert.Equal(Version(db, state.Item), context.ItemVersion);
+        Assert.Null(context.Attempt);
         Assert.NotEqual(task.Version, context.ItemVersion);
         FieldTaskView wire = task;
         FieldTaskViewFact roundTrip = wire;
@@ -58,6 +59,8 @@ public sealed partial class H4RepairExecutionSqlTests
         Assert.Equal(409, stale.Status); Assert.Equal("concurrency_conflict", stale.Code);
         Assert.Equal(403, (await Repo(db).ReadItemAsync(state.Source.Crew, UserRoleCode.RepairCrew,
             state.Source.Project, state.Package.Id, state.Item.Id, false, default)).Status);
+        Assert.Equal(403, (await Repo(db).ReadItemAsync(state.Source.Crew, UserRoleCode.RepairCrew,
+            state.Source.Project, state.Package.Id, state.Item.Id, true, default)).Status);
         Assert.Null(Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state,
             state.Source.Pm, role: UserRoleCode.ProjectManager)).Value).RepairContext);
     }

@@ -36,6 +36,8 @@ namespace RoadGuardSystem.IntegrationTests.Repairs;
 
 public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITestOutputHelper output) : IClassFixture<IdentitySqlServerFixture>
 {
+    private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
     [Fact]
     public async Task Current_Supervisor_extends_actual_initial_approval_duty()
     {
@@ -570,7 +572,7 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
         Assert.Equal(readyRevision.Id, acceptedContext.Attempt.EffectiveSubmissionId);
         Assert.Equal(new CrewRepairReviewFact(acceptedReviewRecord.Id, "ACCEPT"), acceptedContext.Attempt.Review);
         output.WriteLine("NORMAL API-080 projection: " + JsonSerializer.Serialize(
-            new { acceptedTask.Mode, acceptedTask.Version, acceptedTask.RepairContext }, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+            new { acceptedTask.Mode, acceptedTask.Version, acceptedTask.RepairContext }, WebJson));
         var finalClock = await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(row =>
             row.ProjectId == state.Source.Project && row.TargetId == state.Item.Id &&
             row.Kind == DeadlineClockKind.SupervisorFinalConfirmation);

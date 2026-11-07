@@ -1,4 +1,4 @@
-# C04 — Assigned Crew NORMAL repair bootstrap
+# C04 — Assigned Crew repair bootstrap
 
 <!-- CURRENT-DOCS-SYNC-BEGIN -->
 
@@ -39,20 +39,77 @@ API-141/148 intentionally restrict repair item/history reads to PM/Supervisor (`
 
 Crew uses Mobile React Native Expo, bearer authentication and existing project scope. Discover assigned task IDs via API-078 `GET /api/v1/projects/{projectId}/field-inspection-tasks`, then API-080 `GET /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}`. No Idempotency-Key or If-Match is required for these reads.
 
-API-080 retains all existing fields. It adds nullable `repairContext` only for the currently assigned NORMAL Crew. Outer `projectId`, `id` (task ID), `assignmentId`, `firstStartOriginId`, `requiredMeasurementType`, `measurementScope`, `instructions` and `dueAt` retain their original semantics.
+API-080 retains all existing fields. Its nullable `repairContext` covers the current assigned Crew on NORMAL and FastTrack tasks. Outer `projectId`, `id` (task ID), `assignmentId`, `firstStartOriginId`, `requiredMeasurementType`, `measurementScope`, `instructions` and `dueAt` retain their original semantics.
 
 | Nested field | Source / meaning |
 |---|---|
 | `packageId` | Current item's parent package |
 | `itemId` | Task-linked current repair item |
 | `bindingId` | Item's current binding, matching task/assignment/Crew |
-| `mode` | `NORMAL`; no Fast Track bootstrap added |
+| `mode` | `NORMAL` or `FAST_TRACK`. Outer task mode remains `NORMAL` or `CONDITIONAL_FT`. |
 | `status` | Exact `RepairItem.State.ToString()`; observed `Confirmed`, not `CONFIRMED` |
 | `itemVersion` | Base64 SQL rowversion of **RepairItem**, not task |
-| `repairPlan` | Approved item's plan |
+| `repairPlan` | Current item's plan |
 | `checklistVersion` | Item's checklist revision |
+| `attempt` | Current attempt on this binding, including `attemptId` and `effectiveSubmissionId`. Null before a valid current intake is linked. |
+| `attempt.review` | Current PM review of the effective submission. Contains `reviewId` and `decision` (`SUPPLEMENT` or `ACCEPT`). Null when there is no matching current review. |
 
-No invented `allowedActions` or `requiredEvidence` array is added. Read task measurement requirements and the plan/checklist; follow authoritative command admission and existing evidence DTOs. A status does not grant a permission. Null context means the response supplies no NORMAL repair capability: do not infer IDs or borrow PM versions. PM/Supervisor, task list and non-NORMAL projections have no repair context.
+Read task measurement requirements and the plan/checklist, then follow existing command admission and evidence DTOs. A null context supplies no current repair source for this task. PM/Supervisor and task list responses have no Crew repair context.
+
+The summary follows `CurrentAttemptId`, `CurrentIntakeLinkId`, `EffectiveIntakeSubmissionId` and `CurrentReviewId` on the current repair item. The intake link and review must match the binding, attempt and exact submission. PM reason and reviewer identity are outside this projection.
+
+After PM requests a supplement in API-158, read API-080 to see `SUPPLEMENT` for the effective submission. API-095 creates the FIELD revision. The effective repair submission changes when API-159 links that revision. On the next API-080 read, the attempt ID stays the same, the effective submission ID points to the revision and `review` is null. Once PM accepts that revision, API-080 returns its `ACCEPT` review. Refresh after the command or decision, and on opening or resuming the task screen.
+
+API-158 continues to return `reviewId`, `itemId`, `submissionId`, `decision` and `receiptActivation`. API-159 continues to return `attemptId`, `linkId`, `itemId`, `submissionId`, `reviewClockId`, `originalReviewDueAt` and `intakeReadiness`. Both use repair item ETag, with 201 on first success and 200 on receipt replay.
+
+### Response excerpts from local fixtures
+
+NORMAL after PM accepted the effective submission. Captured from the API-080 projection in the SQL test.
+
+```json
+{
+  "mode": "NORMAL",
+  "version": "AAAAAAAACIE=",
+  "repairContext": {
+    "packageId": "da2734a8-68a2-4430-8407-ec65c6656c3c",
+    "itemId": "019622e1-6a4e-4745-90c5-ccfe187dda70",
+    "bindingId": "90648165-9d74-4422-ac23-dadbc7bb4874",
+    "mode": "NORMAL",
+    "status": "Reviewed",
+    "itemVersion": "AAAAAAAACIQ=",
+    "repairPlan": "actual repair plan",
+    "checklistVersion": "checklist-v1",
+    "attempt": {
+      "attemptId": "e5241fc4-6390-4fc7-943d-b23e6439f445",
+      "effectiveSubmissionId": "8d6ce58d-dabf-4544-82ec-72b79fc123fa",
+      "review": {
+        "reviewId": "a8ec8a8b-683b-467b-90ed-939d4c640756",
+        "decision": "ACCEPT"
+      }
+    }
+  }
+}
+```
+
+FastTrack before an attempt exists. Captured from the authenticated API-080 HTTP response. The task ETag is `"AAAAAAAAB/E="`.
+
+```json
+{
+  "mode": "CONDITIONAL_FT",
+  "version": "AAAAAAAAB/E=",
+  "repairContext": {
+    "packageId": "2720572b-c21e-4739-8e4a-42799bc55e88",
+    "itemId": "9f525438-57b7-490b-bd82-e9627b78f8ed",
+    "bindingId": "a4990fc1-c81d-4efb-a90d-b4d9eebf17c7",
+    "mode": "FAST_TRACK",
+    "status": "Assigned",
+    "itemVersion": "AAAAAAAAB/o=",
+    "repairPlan": "conditional plan",
+    "checklistVersion": "nd01-checklist",
+    "attempt": null
+  }
+}
+```
 
 ### Version and command sequence
 
@@ -78,14 +135,33 @@ Upload BEFORE/AFTER actual bytes through multipart upload, preserve object ETag/
 
 ### Authorization and recovery
 
-The existing read guard checks current actor, current project membership and active task assignment. The new projection additionally requires current item/binding/obligation/package project and defect agreement, matching active assignment/Crew, NORMAL mode, no superseded item, current obligation item, and active date-valid Crew membership. It returns no unrelated item/history/PM decision data. Legitimate historical FIELD read rights are preserved; no context is returned if repair links are no longer current. Existing commands reauthorize independently.
+The existing read guard checks current actor, project membership and active task assignment. The projection also checks agreement across the current item, binding, obligation, package, task and assigned Crew. FastTrack checks authorization against the current task, assignment, location and policy. It checks the pinned policy hash, checklist and active policy. Execution separately checks measurement, road coverage, first start and time window. A valid read supplies data and the item version for command admission. Historical FIELD reads retain their existing access.
 
 401: renew/login using existing session policy, never log tokens. 403: stop command and refresh membership/assignment; no PM token fallback. 409 `concurrency_conflict`: reread API-080, reconcile and ask user to retry with new logical action/key only when appropriate. Preserve original key/body/version on unknown outcome replay. 412/428: use existing precondition error handling, never synthesize version; no claim these were executed in C04. Network failures: read state before creating a duplicate operation. API-141/148 and Supervisor/PM decisions remain unavailable to Crew.
 
-## Verification and boundaries
+## Earlier C04 verification checkpoint
 
 CURRENT_VERIFIED: five new SQL bootstrap regressions; 71 related SQL tests; 966 Unit tests; 16 focused HTTP API tests; real isolated HTTP NORMAL chain through PM supplement/ACCEPT and Supervisor final, with Crew versions exclusively from API-080. Unassigned/wrong-project/revoked/ended/superseded and stale-version denial are covered by SQL regressions. Wrong-project, Reporter, Crew item/history/approval/final and PM final denials are also covered by actual HTTP. SQL fixture authority changes are isolated regression arrangements, never used to bypass the HTTP chain.
 
 Runtime OpenAPI remains 241 operations; additive context schema is generated from source. Historical Phase2C snapshots remain historical; catalog has a scoped amendment. The Swagger source-evidence golden excerpt is updated only for the changed task GET branch, not regenerated indiscriminately. External C04 report/evidence records final Newman and exact-SHA CI results.
 
 NOT_VERIFIED: Expo/native execution, native encrypted storage, production upload verification, deployment, real physical measurement and external AI. No FT/AI GAP is closed by C04. P5-G02 is CLOSED_CANDIDATE only for assigned NORMAL Crew Backend contract, subject to independent review; global MVP/E2E remains unverified.
+
+## Current G02/G03 verification
+
+Implemented locally on `huy-review` from `3b2f189760785f8034ce9a3bf1840a2a78cf4a65`. At fetch, `develop` was `d810cc52668a6f0a3272f8b20b095ac6fef122b2` with the same tree. The checkout started clean.
+
+- SQL fixtures exercise the NORMAL source chain through PM SUPPLEMENT, FIELD revision, API-159 linking and PM ACCEPT. They also check stale repair version, wrong actor/project, ended assignment or membership and superseded binding.
+- The FastTrack SQL fixture reads the item version from the Crew task projection and uses it to start execution with valid fixture sources. The HTTP fixture also checks FastTrack API-080 and separate task ETag/item version.
+- Runtime Swagger at `/swagger/v1/swagger.json` describes the two modes, nullable summaries and version sources. The packaged OpenAPI file records the earlier preview.
+
+| Executed check | Result |
+| --- | --- |
+| Integration filters `CrewBootstrap`, `IncompleteFormalFieldIntake`, `FastTrackReviewNotificationSqlTests` | 14 passed, 0 failed, 0 skipped in `crew-read-sql.trx`. |
+| API filters `ManualSwaggerContractTests`, `ND01OriginalWindowHttpTests`, `H4RepairExecutionHttpAdmissionTests` | 29 passed, 0 failed, 0 skipped in `crew-read-http.trx`. |
+| Rerun `CrewBootstrapSuppliesItemVersionForCommandAndRefreshWithoutPmRead` after asserting both item and history denials | 1 passed, 0 failed, 0 skipped in `crew-read-rights-final.trx`. |
+| Scoped whitespace format, documentation guidance, JSON samples and diff check | Passed. |
+
+TRX files are under `TestResults/CrewRead` in the local checkout. The first integration compile exposed a fixture variable still used later in the FastTrack test. That variable now takes the item version from the Crew projection, and the targeted integration run passed.
+
+Both self-review passes checked the current IDs, source agreement, response compatibility and data exposure. Local fixtures use isolated SQL. Device UI, runtime deployment and real repair measurements remain outside this verification.

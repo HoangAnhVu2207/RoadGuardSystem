@@ -9,6 +9,19 @@ namespace RoadGuardSystem.Repositories.Implementations.Repairs;
 
 internal static class RepairFtEligibility
 {
+    internal static string PolicyHash(RepairPolicyRevision policy) => RoadCoverageResolver.Hash(new
+    {
+        policy.Id,
+        policy.ProjectId,
+        policy.Revision,
+        policy.DefectTypeCode,
+        policy.ChecklistVersion,
+        policy.PublishedAt,
+        policy.PublishedBy,
+        measurements = policy.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray(),
+        stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray()
+    });
+
     internal static async Task<string[]> Missing(RoadGuardDbContext db, TimeProvider clock, RepairItem item,
         RepairFieldTaskBinding binding, RepairMeasurementAssessment? assessment, RepairPolicyRevision? policy,
         RepairExecutionAuthorization? authorization, RoadCoverageResolution coverage, CancellationToken token)
@@ -34,18 +47,8 @@ internal static class RepairFtEligibility
         if (policy is null || policy.IsRevoked || policy.Measurements.Count == 0 || policy.Id != binding.PolicyRevisionId ||
             policy.ProjectId != item.ProjectId || policy.ChecklistVersion != binding.ChecklistVersion)
             missing.Add("POLICY_UNAVAILABLE");
-        if (policy is not null && binding.PolicyContentHash != RoadCoverageResolver.Hash(new
-        {
-            policy.Id,
-            policy.ProjectId,
-            policy.Revision,
-            policy.DefectTypeCode,
-            policy.ChecklistVersion,
-            policy.PublishedAt,
-            policy.PublishedBy,
-            measurements = policy.Measurements.OrderBy(row => row.Code, StringComparer.Ordinal).ToArray(),
-            stopConditions = policy.StopConditions.Order(StringComparer.Ordinal).ToArray()
-        })) missing.Add("PINNED_POLICY_SOURCE_MISMATCH");
+        if (policy is not null && binding.PolicyContentHash != PolicyHash(policy))
+            missing.Add("PINNED_POLICY_SOURCE_MISMATCH");
         if (assessment is null) missing.Add("ASSESSMENT_REQUIRED");
         else
         {

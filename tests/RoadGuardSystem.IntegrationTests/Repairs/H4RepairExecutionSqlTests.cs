@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Inspections;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.BusinessObjects.Messaging;
@@ -35,6 +36,8 @@ namespace RoadGuardSystem.IntegrationTests.Repairs;
 
 public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture sql, ITestOutputHelper output) : IClassFixture<IdentitySqlServerFixture>
 {
+    private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
     [Fact]
     public async Task Current_Supervisor_extends_actual_initial_approval_duty()
     {
@@ -390,6 +393,11 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
         var requested = await Repo(db).ReviewAttemptAsync(reviewCommand, default);
         Assert.True(requested.Status == 201, $"Expected H4 supplement request 201, got {requested.Status}/{requested.Code}.");
         db.ChangeTracker.Clear();
+        var needsSupplement = Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state)).Value).RepairContext!;
+        Assert.Equal(link.AttemptId, needsSupplement.Attempt!.AttemptId);
+        Assert.Equal(intake.Id, needsSupplement.Attempt.EffectiveSubmissionId);
+        Assert.Equal("SUPPLEMENT", needsSupplement.Attempt.Review!.Decision);
+        Assert.Equal(Assert.IsType<RepairAttemptReviewFact>(requested.Value).ReviewId, needsSupplement.Attempt.Review.ReviewId);
         var supplementEvent = await db.Set<RepairItemLifecycleEvent>().AsNoTracking().SingleAsync(row =>
             row.ItemId == state.Item.Id && row.Kind == "REWORK");
         var supplementOutbox = await db.OutboxMessages.SingleAsync(row => row.Id == supplementEvent.Id &&
@@ -440,13 +448,30 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
         Assert.Equal(201, supplemented.Status); db.ChangeTracker.Clear();
         var revision = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(row =>
             row.TaskId == state.Binding.TaskId && row.Revision == 2);
+        var beforeLink = await Bootstrap(db, state);
+        var taskBeforeLink = Assert.IsType<FieldTaskViewFact>(beforeLink.Value);
+        Assert.Equal(taskBeforeLink.Version, beforeLink.Version);
+        var contextBeforeLink = taskBeforeLink.RepairContext!;
+        Assert.Equal(intake.Id, contextBeforeLink.Attempt!.EffectiveSubmissionId);
         var supplementCommand = new RepairAttemptSupplementCommand(state.Source.Crew, UserRoleCode.RepairCrew,
             state.Source.Project, state.Package.Id, state.Item.Id, state.Binding.TaskId,
             new(revision.Id, revision.ContentHash), Guid.NewGuid().ToString(),
-            Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking().Where(row => row.Id == state.Item.Id)
-                .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()));
+            contextBeforeLink.ItemVersion);
+        var staleSupplement = await Repo(db).SupplementAttemptAsync(supplementCommand with
+        {
+            Key = Guid.NewGuid().ToString(),
+            ExpectedItemVersion = linked.Version!
+        }, default);
+        Assert.Equal(409, staleSupplement.Status);
+        Assert.Equal("concurrency_conflict", staleSupplement.Code);
         var supplement = await Repo(db).SupplementAttemptAsync(supplementCommand, default);
         Assert.Equal(201, supplement.Status); db.ChangeTracker.Clear();
+        var afterLink = Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state)).Value);
+        Assert.Equal(taskBeforeLink.Version, afterLink.Version);
+        Assert.Equal(supplement.Version, afterLink.RepairContext!.ItemVersion);
+        Assert.Equal(link.AttemptId, afterLink.RepairContext.Attempt!.AttemptId);
+        Assert.Equal(revision.Id, afterLink.RepairContext.Attempt.EffectiveSubmissionId);
+        Assert.Null(afterLink.RepairContext.Attempt.Review);
         Assert.Equal(200, (await Repo(db).SupplementAttemptAsync(supplementCommand, default)).Status);
         Assert.Equal(409, (await Repo(db).SupplementAttemptAsync(supplementCommand with
         {
@@ -541,6 +566,13 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
         Assert.NotNull((await db.Set<DeadlineClock>().SingleAsync(row => row.Id == reviewClock.Id)).CompletedAt);
         var acceptedReviewRecord = await db.Set<RepairAttemptReview>().AsNoTracking().SingleAsync(row =>
             row.ItemId == state.Item.Id && row.Decision == "ACCEPT");
+        var acceptedTask = Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state)).Value);
+        var acceptedContext = acceptedTask.RepairContext!;
+        Assert.Equal(link.AttemptId, acceptedContext.Attempt!.AttemptId);
+        Assert.Equal(readyRevision.Id, acceptedContext.Attempt.EffectiveSubmissionId);
+        Assert.Equal(new CrewRepairReviewFact(acceptedReviewRecord.Id, "ACCEPT"), acceptedContext.Attempt.Review);
+        output.WriteLine("NORMAL API-080 projection: " + JsonSerializer.Serialize(
+            new { acceptedTask.Mode, acceptedTask.Version, acceptedTask.RepairContext }, WebJson));
         var finalClock = await db.Set<DeadlineClock>().AsNoTracking().SingleAsync(row =>
             row.ProjectId == state.Source.Project && row.TargetId == state.Item.Id &&
             row.Kind == DeadlineClockKind.SupervisorFinalConfirmation);

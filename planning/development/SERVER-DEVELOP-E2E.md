@@ -40,7 +40,7 @@ Phạm vi kiểm thử hồi quy BE: identity/session/CSRF; Supervisor project/s
 - [x] P2: `git merge --no-commit --no-ff cda6d6384a69db23cafbdab430ffb523b0b5e6bc`; review diff và giữ server hooks. Build Release, unit và focused API checks. Không nâng package.
 - [x] P3: Chuẩn bị một entrypoint update có SHA cố định và kiểm tra ancestor/active release; giữ lock xuyên các bước, không activate khi backup thất bại. Thêm kiểm tra hồi quy cho thay đổi script nếu cần.
 - [x] P4: Rà soát code dư và packaging; ghi findings ngay trong spec này. Thực hiện hai self-review: dữ liệu/auth/backup; scope/ref/release/test evidence.
-- [ ] P5: Commit/push chỉ deploy, chờ đúng candidate SHA CI. Nếu CI lỗi, chẩn đoán và sửa chỉ trong phạm vi; không deploy candidate đỏ.
+- [x] P5: Commit/push chỉ deploy, chờ đúng candidate SHA CI. Nếu CI lỗi, chẩn đoán và sửa chỉ trong phạm vi; không deploy candidate đỏ.
 - [ ] P6: Chuẩn bị một lệnh sudo cho chủ server nhập mật khẩu trực tiếp. Chạy gói tuần tự: preflight → build → backup → activation → health/status → live HTTP smoke. Không xin lại quyết định cho các bước đã mô tả; quyền sudo vẫn do chủ server cung cấp qua terminal.
 - [ ] P7: Tổng hợp PASS/FAIL/NOT RUN, bản chạy, backup path, audit findings và việc còn chặn. Không tuyên bố hoàn tất E2E nếu thiếu xác thực hoặc luồng ghi thật.
 
@@ -77,3 +77,28 @@ Static scan: 1017 file C# production, bỏ migration/generated; đối chiếu �
 Không chứng minh endpoint bất kỳ là an toàn để xóa chỉ từ BE repo; FE/mobile/AI consumers không được checkout/audit trong gói này. Không xóa code, package, lịch sử hoặc file server dựa trên heuristic.
 
 Self-review 1: merge giữ Production hooks, auth/CSRF và migrations; updater khóa cùng manage.sh, pin target, kiểm tra ancestor và dừng khi backup lỗi. Self-review 2: giữ dirty docs cũ, không public port/privilege/secret changes; test giả lập updater và live guard không được gọi là live E2E. Giới hạn còn lại: backup cùng SSD, chưa restore thử; thiếu mật khẩu nhập riêng để test live login, thiếu Docker local cho toàn bộ API suite. External review: NOT REQUESTED.
+
+## Candidate và ma trận bằng chứng
+
+Candidate đã commit/push chỉ `origin/deploy`: `fe3828d10da2c0274d916657d596650a1a7587d8`, merge parents `f3ac2e3` và `cda6d63`. Develop đã là ancestor; không thay migrations. Hosted run: https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/42498004003. Bằng chứng TRX tải về nằm trong `TestResults/ServerDevelop/ci-42498004003` (ignored, không đưa vào release).
+
+| Luồng | Bằng chứng cần đọc | Giới hạn môi trường |
+|---|---|---|
+| Web login/session/CSRF/logout | Huy01WebTransportTests, WebSession*, WebLogout*, Csrf*; live-smoke.py sau deploy | CI dùng TestServer/SQL fixture; live smoke dùng HTTPS thật và tài khoản người dùng |
+| Supervisor staff/project/road sections | StepTwoWebWritesHttpTests, ProjectCreateWebCookieHttpTests, StaffMembershipReadHttpTests | Invitation sender trong một số tests là fixture, không chứng minh SMTP thật |
+| Pavement layout | H2PavementWorkflowHttpTests, H2PavementWorkflowSqlTests | Database cô lập, không tạo dự án trên RoadGuard_Server |
+| Normal/FastTrack/Crew | CloseoutNormalJourneyHttpTests, H4RepairExecutionSqlTests, FastTrackReviewNotificationSqlTests | Kiểm tra HTTP/DI và SQL; fixture khởi tạo actor/source, không phải UI E2E |
+| Inspection/offline | H3FieldInspectionWorkflowHttpTests/SqlTests, H5OfflineRepairSqlTests, ND01OriginalWindowHttpTests | Thời gian/nguồn dữ liệu kiểm thử có kiểm soát |
+| File upload/download | UploadEndpoints_OwnedMinioPreservesBytesAndRejectsPrivateFileOutsider | TestServer + SQL + MinIO container thật của CI; không chứng minh TLS/private bucket trên server LAN |
+| MinIO được cấu hình ngoài fixture | UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio | CI cho phép đúng test tùy chọn này skip; phải ghi riêng, không gọi skip là PASS |
+| AI/FE/mobile | Không có bằng chứng triển khai trong gói này | NOT VERIFIED; callback/contract test không thay thế engine hoặc giao diện thật |
+
+Preflight SSH gần thời điểm phát hành: hostname đúng, current vẫn `21e5177`, TLS health `Healthy`, RAM khả dụng 13,355 MiB, swap chưa dùng, SSD trống 89 GiB. Không thấy build/backup cạnh tranh trong snapshot tiến trình; cần kiểm tra lại lúc thực thi. `sudo -n true` báo cần mật khẩu. Đã stage đúng một script `/tmp/roadguard-update-fe3828d.sh`, SHA256 local/server cùng `791b2746617ad590219badbb4a30b522603e457e02653354c95685963076e5e5`; chưa thực thi. Linux regression lần cuối: 14 PASS, 0 SKIP và bash syntax PASS, dùng TemporaryDirectory tự dọn; fixture tài nguyên của updater đã được cố định để test không phụ thuộc RAM trống trên CI.
+
+Checkpoint thực thi: chưa có quyền sudo không tương tác, không thay sudoers/Docker group và không thu mật khẩu. Chủ server nhập sudo trực tiếp khi được cung cấp lệnh sau CI đạt; đây là bàn giao quyền thực thi, không hỏi duyệt lại phạm vi. Chưa deploy candidate, chưa có backup của lần update này và chưa chạy live smoke. P6/P7 vẫn mở.
+
+### Kết quả CI của candidate — CURRENT_VERIFIED
+
+Run 42498004003 kết thúc SUCCESS đúng SHA `fe3828d10da2c0274d916657d596650a1a7587d8`; cả 8 jobs đạt. Đã tải và đọc TRX: unit 1117/1117 PASS; SQL lane 1/2/3/4 lần lượt 203/179/217/208 PASS (tổng 807, không skip); API 1581 PASS, 0 FAIL, 1 `NotExecuted` trong 1582 tests. Test bỏ qua duy nhất là `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio`, đúng ngoại lệ đã công bố. `UploadEndpoints_OwnedMinioPreservesBytesAndRejectsPrivateFileOutsider`, ba tests StepTwoWebWrites và CloseoutNormalJourney đều PASS. Tổng C# đã chạy đạt: 3505, không cộng lại 52 focused tests vốn đã nằm trong API suite. Script Linux: 14 PASS riêng.
+
+Đã kiểm tra lại trước bàn giao sudo: server vẫn chạy `21e5177`, TLS health Healthy, RAM khả dụng 13,368 MiB, SSD trống 89 GiB, checksum script không đổi. Không tự nâng quyền hoặc chạy update khi chưa nhập sudo. Đã gửi một lệnh liên hoàn update + live smoke; chờ kết quả thực thi. G1/G2/G3/G7 đạt theo phạm vi; G4/G5 chưa thực thi; G6 giữ phân biệt môi trường, không tuyên bố full live E2E. Bản ghi bằng chứng bổ sung chỉ đổi spec, không đổi artifact runtime `fe3828d` đã qua CI.

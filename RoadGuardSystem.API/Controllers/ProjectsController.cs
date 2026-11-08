@@ -118,6 +118,7 @@ public sealed class ProjectsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPut("{projectId:guid}")]
     [ProducesResponseType<UpdateProjectResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]

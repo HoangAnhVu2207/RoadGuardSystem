@@ -24,6 +24,7 @@ public sealed class ProjectRoadSectionsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost]
     [ProducesResponseType<RoadSectionVersionResponseDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
@@ -78,6 +79,7 @@ public sealed class ProjectRoadSectionsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("{roadSectionId:guid}/versions")]
     [ProducesResponseType<RoadSectionVersionResponseDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]

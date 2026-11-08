@@ -11,6 +11,40 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task StepTwoWritesExposeBearerAndWebCsrfInRuntimeSwagger()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var writes = new (string Route, string Method, string? RequiredHeader)[]
+        {
+            ("/api/v1/invitations", "post", "Idempotency-Key"),
+            ("/api/v1/users/{userId}", "patch", "Idempotency-Key"),
+            ("/api/v1/users/{userId}/password-reset", "post", "Idempotency-Key"),
+            ("/api/v1/projects/{projectId}", "put", null),
+            ("/api/v1/projects/{projectId}/road-sections", "post", null),
+            ("/api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions", "post", null)
+        };
+        foreach (var (route, method, requiredHeader) in writes)
+        {
+            var operation = paths.GetProperty(route).GetProperty(method);
+            var security = operation.GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, security.Length);
+            Assert.Contains(security, x => x.TryGetProperty("Bearer", out _) && x.EnumerateObject().Count() == 1);
+            var web = Assert.Single(security, x => x.TryGetProperty("WebSession", out _));
+            Assert.Equal(3, web.EnumerateObject().Count());
+            Assert.True(web.TryGetProperty("CsrfToken", out _));
+            Assert.True(web.TryGetProperty("AntiforgeryCookie", out _));
+            Assert.Contains("csrf_failed", operation.GetProperty("responses").GetProperty("403").GetProperty("description").GetString());
+            var headers = operation.GetProperty("parameters").EnumerateArray()
+                .Where(x => x.GetProperty("in").GetString() == "header").ToArray();
+            Assert.DoesNotContain(headers, x => x.GetProperty("name").GetString() == "X-CSRF-TOKEN");
+            Assert.Equal(requiredHeader is not null, headers.Any(x => x.GetProperty("name").GetString() == "Idempotency-Key" &&
+                x.GetProperty("required").GetBoolean()));
+        }
+    }
+
+    [Fact]
     public async Task EligibleSurveyDronesExposeOnlySelectionFieldsAndBoundedBearerRead()
     {
         using var document = await Document();

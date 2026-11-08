@@ -11,6 +11,27 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task PavementLayoutDocumentsOptionalSavedConfiguration()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var schema = root.GetProperty("components").GetProperty("schemas");
+        var layout = schema.GetProperty("PavementLayoutView").GetProperty("properties").GetProperty("layout");
+        Assert.True(layout.GetProperty("nullable").GetBoolean());
+        Assert.Equal("#/components/schemas/PavementLayoutInput", layout.GetProperty("allOf")[0].GetProperty("$ref").GetString());
+        var input = schema.GetProperty("PavementLayoutInput").GetProperty("properties");
+        foreach (var name in new[] { "slabThicknessCentimeters", "contractionJointSpacingMeters",
+            "expansionJointSpacingMeters", "expansionJointGapMillimeters" })
+        {
+            var field = input.GetProperty(name);
+            Assert.True(field.GetProperty("nullable").GetBoolean());
+            Assert.Equal(0, field.GetProperty("minimum").GetInt32());
+            Assert.Equal(name != "expansionJointGapMillimeters",
+                field.TryGetProperty("exclusiveMinimum", out var exclusive) && exclusive.GetBoolean());
+        }
+    }
+
+    [Fact]
     public async Task StepTwoWritesExposeBearerAndWebCsrfInRuntimeSwagger()
     {
         using var document = await Document();

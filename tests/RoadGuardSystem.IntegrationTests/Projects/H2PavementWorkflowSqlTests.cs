@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Data.Common;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using NetTopologySuite.Geometries;
@@ -75,6 +76,28 @@ public sealed class H2PavementWorkflowSqlTests(IdentitySqlServerFixture sql) : I
         Assert.Equal(((JsonElement)results[0].Value!).GetProperty("id").GetGuid(), ((JsonElement)results[1].Value!).GetProperty("id").GetGuid());
         await using var check = sql.CreateDbContext(); Assert.Equal(1, await check.Set<PavementLayoutRevision>().CountAsync(x => x.ProjectId == scope.Project));
         Assert.Equal(1, await check.OutboxMessages.CountAsync(x => x.PayloadJson.Contains(scope.Project.ToString())));
+        var receipt = await check.IdempotencyRecords.SingleAsync(x => x.ProjectId == scope.Project && x.IdempotencyKey == key);
+        // The v1 fingerprint used these exact members before optional joint metadata existed.
+        var legacyBytes = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            ProjectId = scope.Project,
+            Action = "plan-create",
+            RouteVersionId = scope.Route,
+            SegmentSetId = scope.Set,
+            ResourceId = (Guid?)null,
+            Input = new
+            {
+                Layout = new
+                {
+                    StripWidthMeters = 4m,
+                    SlabLengthMeters = 10m,
+                    WidthProfile = new[] { new { FromOffsetMeters = 0m, ToOffsetMeters = 20m, WidthMeters = 12m } }
+                },
+                DisplayToleranceMeters = .1
+            },
+            ExpectedContentHash = (string?)null
+        });
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(legacyBytes)).ToLowerInvariant(), receipt.RequestFingerprint);
     }
     [Fact]
     public async Task Mixed_set_official_mode_and_raw_snapshot_rewrite_are_rejected()

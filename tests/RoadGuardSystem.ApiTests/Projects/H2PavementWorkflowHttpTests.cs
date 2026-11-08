@@ -18,20 +18,62 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
     public async Task Production_plan_asbuilt_manifest_page_and_revoked_receipts_are_real()
     {
         var pm = await sql.CreateUserAsync($"pavement-http-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var supervisor = await sql.CreateUserAsync($"pavement-http-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         var scope = await Seed(pm.Id);
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
-        using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") }); await Login(client, pm.UserName!);
+        using var client = await WebCookieTestClient.Login(factory, pm.Email!);
+        using var supervisorClient = await WebCookieTestClient.Login(factory, supervisor.Email!);
         var root = $"/api/v1/projects/{scope.Project}";
         var path = root + $"/route-versions/{scope.Route}/segment-sets/{scope.Set}/pavement-plans";
-        var input = new { layout = new { stripWidthMeters = 4, slabLengthMeters = 10, widthProfile = new[] { new { fromOffsetMeters = 0, toOffsetMeters = 20, widthMeters = 12 } } }, displayToleranceMeters = .1 };
+        var input = new
+        {
+            layout = new
+            {
+                stripWidthMeters = 4,
+                slabLengthMeters = 10,
+                widthProfile = new[] { new { fromOffsetMeters = 0, toOffsetMeters = 10, widthMeters = 12 },
+                    new { fromOffsetMeters = 10, toOffsetMeters = 20, widthMeters = 8 } },
+                slabThicknessCentimeters = 25.25m,
+                contractionJointSpacingMeters = 4.5m,
+                expansionJointSpacingMeters = 37.125m,
+                expansionJointGapMillimeters = 12.75m
+            },
+            displayToleranceMeters = .1
+        };
         var key = Guid.NewGuid().ToString(); var plan = await Send(client, path, input, key);
         Assert.Equal(HttpStatusCode.Created, plan.StatusCode); var layout = await plan.Content.ReadFromJsonAsync<JsonElement>();
         var layoutId = layout.GetProperty("id").GetGuid(); var hash = layout.GetProperty("contentHash").GetString()!;
         Assert.Equal($"\"{hash}\"", plan.Headers.ETag!.Tag); Assert.EndsWith($"/pavement-layouts/{layoutId}", plan.Headers.Location!.ToString());
         var replay = await Send(client, path, input, key); Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
         Assert.Equal(layout.GetRawText(), (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
-        Assert.Equal(6, layout.GetProperty("geometry").GetProperty("slabs").GetArrayLength());
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(root + $"/pavement-layouts/{layoutId}")).StatusCode);
+        var geometry = layout.GetProperty("geometry");
+        Assert.Equal(5, geometry.GetProperty("slabs").GetArrayLength());
+        var cell = geometry.GetProperty("plan").GetProperty("cells")[0];
+        Assert.Equal(1, cell.GetProperty("sequence").GetInt32());
+        Assert.Equal(10, cell.GetProperty("toOffsetMeters").GetDecimal());
+        Assert.Equal(-6, cell.GetProperty("fromLateralMeters").GetDecimal());
+        Assert.Equal(-2, cell.GetProperty("toLateralMeters").GetDecimal());
+        var slab = geometry.GetProperty("slabs")[0];
+        Assert.Equal(1, slab.GetProperty("plannedSequence").GetInt32());
+        Assert.Equal(10, slab.GetProperty("lengthMeters").GetDouble());
+        Assert.Equal(4, slab.GetProperty("widthMeters").GetDouble());
+        Assert.True(slab.GetProperty("footprint").GetArrayLength() >= 4);
+        Assert.Equal(scope.Route, layout.GetProperty("routeVersionId").GetGuid());
+        Assert.Equal(scope.Set, layout.GetProperty("segmentSetId").GetGuid());
+        Assert.Equal(JsonSerializer.Serialize(input.layout), layout.GetProperty("layout").GetRawText());
+        foreach (var reader in new[] { client, supervisorClient })
+        {
+            using var reopened = await reader.GetAsync(plan.Headers.Location);
+            Assert.Equal(HttpStatusCode.OK, reopened.StatusCode);
+            Assert.Equal(plan.Headers.ETag, reopened.Headers.ETag);
+            Assert.Equal(layout.GetRawText(), (await reopened.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
+        }
+        using var changedConfig = await Send(client, path, input with
+        { layout = input.layout with { expansionJointGapMillimeters = 13m } }, key);
+        Assert.Equal(HttpStatusCode.Conflict, changedConfig.StatusCode);
+        using var invalidConfig = await Send(client, path, input with
+        { layout = input.layout with { slabThicknessCentimeters = 0m } });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidConfig.StatusCode);
         var publication = await Send(client, root + "/geometry-map-publications", new { layoutRevisionId = layoutId, publicationMode = "SAMPLE", reason = "native sample fixture" }, hash: hash);
         Assert.Equal(HttpStatusCode.Created, publication.StatusCode); var manifest = await publication.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(manifest.GetProperty("sampleOnly").GetBoolean()); var id = manifest.GetProperty("publicationId").GetGuid(); var mapHash = manifest.GetProperty("contentHash").GetString();
@@ -46,6 +88,13 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         Assert.Equal(HttpStatusCode.Conflict, (await Send(client, root + "/geometry-map-publications", new { layoutRevisionId = layoutId, publicationMode = "OFFICIAL", reason = "no accepted CRS" }, hash: hash)).StatusCode);
         var built = await Send(client, root + "/pavement-layouts/as-built", new { sourcePlanId = layoutId, reason = "custom unknown dimension", slabs = new[] { new { key = "custom", plannedSequence = 1, footprint = new[] { new { x = 0, y = 0 }, new { x = 5, y = 0 }, new { x = 5, y = 4 }, new { x = 0, y = 4 }, new { x = 0, y = 0 } }, lengthMeters = (double?)null, widthMeters = 4, dimensionUnknownReason = "not measured", source = "observed field polygon" } } }, hash: hash);
         Assert.Equal(HttpStatusCode.Created, built.StatusCode);
+        using var reopenedBuilt = await supervisorClient.GetAsync(built.Headers.Location);
+        Assert.Equal(HttpStatusCode.OK, reopenedBuilt.StatusCode);
+        var asBuilt = await reopenedBuilt.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("AS_BUILT", asBuilt.GetProperty("kind").GetString());
+        Assert.Equal(layoutId, asBuilt.GetProperty("sourcePlanId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, asBuilt.GetProperty("layout").ValueKind);
+        Assert.Single(asBuilt.GetProperty("geometry").GetProperty("slabs").EnumerateArray());
         await using (var revoke = sql.CreateDbContext()) { await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProjectMembers SET Status=2 WHERE ProjectId={scope.Project} AND UserId={pm.Id}"); }
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, path, input, key)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(root + $"/geometry-map-publications/{id}")).StatusCode);
@@ -91,6 +140,14 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         Assert.Equal(HttpStatusCode.OK, (await Send(client, setPath + $"/{setId}/publish", new { expectedPublishedSetId = (Guid?)null, reason = "sample" }, hash: set.Headers.ETag!.Tag.Trim('"'))).StatusCode);
         var plan = await Send(client, root + $"/route-versions/{route}/segment-sets/{setId}/pavement-plans", new { layout = new { stripWidthMeters = 4, slabLengthMeters = 10, widthProfile = new[] { new { fromOffsetMeters = 0, toOffsetMeters = 20, widthMeters = 12 } } }, displayToleranceMeters = .1 }); Assert.Equal(HttpStatusCode.Created, plan.StatusCode);
         var planJson = await plan.Content.ReadFromJsonAsync<JsonElement>();
+        using var legacyShapeRead = await client.GetAsync(plan.Headers.Location);
+        Assert.Equal(HttpStatusCode.OK, legacyShapeRead.StatusCode);
+        var legacyInput = (await legacyShapeRead.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("layout");
+        Assert.Single(legacyInput.GetProperty("widthProfile").EnumerateArray());
+        Assert.False(legacyInput.TryGetProperty("slabThicknessCentimeters", out _));
+        Assert.False(legacyInput.TryGetProperty("contractionJointSpacingMeters", out _));
+        Assert.False(legacyInput.TryGetProperty("expansionJointSpacingMeters", out _));
+        Assert.False(legacyInput.TryGetProperty("expansionJointGapMillimeters", out _));
         var published = await Send(client, root + "/geometry-map-publications", new { layoutRevisionId = planJson.GetProperty("id").GetGuid(), publicationMode = "SAMPLE", reason = "native layers" }, hash: planJson.GetProperty("contentHash").GetString()); Assert.Equal(HttpStatusCode.Created, published.StatusCode);
         var manifest = await published.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(route, manifest.GetProperty("routeVersionId").GetGuid()); Assert.Equal(setId, manifest.GetProperty("segmentSetId").GetGuid()); Assert.Equal(profileId, manifest.GetProperty("crsProfileRevisionId").GetGuid()); Assert.Equal(systemId, manifest.GetProperty("routeSystemId").GetGuid());

@@ -11,6 +11,61 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task PavementLayoutDocumentsOptionalSavedConfiguration()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var schema = root.GetProperty("components").GetProperty("schemas");
+        var layout = schema.GetProperty("PavementLayoutView").GetProperty("properties").GetProperty("layout");
+        Assert.True(layout.GetProperty("nullable").GetBoolean());
+        Assert.Equal("#/components/schemas/PavementLayoutInput", layout.GetProperty("allOf")[0].GetProperty("$ref").GetString());
+        var input = schema.GetProperty("PavementLayoutInput").GetProperty("properties");
+        foreach (var name in new[] { "slabThicknessCentimeters", "contractionJointSpacingMeters",
+            "expansionJointSpacingMeters", "expansionJointGapMillimeters" })
+        {
+            var field = input.GetProperty(name);
+            Assert.True(field.GetProperty("nullable").GetBoolean());
+            Assert.Equal(0, field.GetProperty("minimum").GetInt32());
+            Assert.Equal(name != "expansionJointGapMillimeters",
+                field.TryGetProperty("exclusiveMinimum", out var exclusive) && exclusive.GetBoolean());
+        }
+    }
+
+    [Fact]
+    public async Task StepTwoWritesExposeBearerAndWebCsrfInRuntimeSwagger()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var writes = new (string Route, string Method, string? RequiredHeader)[]
+        {
+            ("/api/v1/invitations", "post", "Idempotency-Key"),
+            ("/api/v1/users/{userId}", "patch", "Idempotency-Key"),
+            ("/api/v1/users/{userId}/password-reset", "post", "Idempotency-Key"),
+            ("/api/v1/projects/{projectId}", "put", null),
+            ("/api/v1/projects/{projectId}/road-sections", "post", null),
+            ("/api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions", "post", null)
+        };
+        foreach (var (route, method, requiredHeader) in writes)
+        {
+            var operation = paths.GetProperty(route).GetProperty(method);
+            var security = operation.GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, security.Length);
+            Assert.Contains(security, x => x.TryGetProperty("Bearer", out _) && x.EnumerateObject().Count() == 1);
+            var web = Assert.Single(security, x => x.TryGetProperty("WebSession", out _));
+            Assert.Equal(3, web.EnumerateObject().Count());
+            Assert.True(web.TryGetProperty("CsrfToken", out _));
+            Assert.True(web.TryGetProperty("AntiforgeryCookie", out _));
+            Assert.Contains("csrf_failed", operation.GetProperty("responses").GetProperty("403").GetProperty("description").GetString());
+            var headers = operation.GetProperty("parameters").EnumerateArray()
+                .Where(x => x.GetProperty("in").GetString() == "header").ToArray();
+            Assert.DoesNotContain(headers, x => x.GetProperty("name").GetString() == "X-CSRF-TOKEN");
+            Assert.Equal(requiredHeader is not null, headers.Any(x => x.GetProperty("name").GetString() == "Idempotency-Key" &&
+                x.GetProperty("required").GetBoolean()));
+        }
+    }
+
+    [Fact]
     public async Task EligibleSurveyDronesExposeOnlySelectionFieldsAndBoundedBearerRead()
     {
         using var document = await Document();
@@ -147,12 +202,21 @@ public sealed class ManualSwaggerContractTests
         var task = schemas.GetProperty("FieldTaskViewFact").GetProperty("properties");
         task.GetProperty("version").GetProperty("type").GetString().Should().Be("string");
         task.GetProperty("repairContext").GetRawText().Should().Contain("CrewRepairContextFact");
+        Assert.True(task.GetProperty("repairContext").GetProperty("nullable").GetBoolean());
         var context = schemas.GetProperty("CrewRepairContextFact").GetProperty("properties");
         context.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo(new[]
         {
-            "packageId", "itemId", "bindingId", "mode", "status", "itemVersion", "repairPlan", "checklistVersion"
+            "packageId", "itemId", "bindingId", "mode", "status", "itemVersion", "repairPlan", "checklistVersion", "attempt"
         });
         context.GetProperty("itemVersion").GetProperty("type").GetString().Should().Be("string");
+        context.GetProperty("attempt").GetRawText().Should().Contain("CrewRepairAttemptFact");
+        Assert.True(context.GetProperty("attempt").GetProperty("nullable").GetBoolean());
+        var attempt = schemas.GetProperty("CrewRepairAttemptFact").GetProperty("properties");
+        attempt.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo("attemptId", "effectiveSubmissionId", "review");
+        attempt.GetProperty("review").GetRawText().Should().Contain("CrewRepairReviewFact");
+        Assert.True(attempt.GetProperty("review").GetProperty("nullable").GetBoolean());
+        schemas.GetProperty("CrewRepairReviewFact").GetProperty("properties").EnumerateObject()
+            .Select(x => x.Name).Should().BeEquivalentTo("reviewId", "decision");
     }
 
     [Fact]

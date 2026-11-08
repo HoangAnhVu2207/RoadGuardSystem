@@ -402,7 +402,8 @@ public sealed class StaffMembershipReadHttpTests(AuthenticationSqlServerFixture 
         }
         foreach (var surface in new[] { "members", "primary-project-manager" })
             Assert.Equal(HttpStatusCode.NotFound, (await bearer.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/{surface}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await cookie.PatchAsJsonAsync($"/api/v1/users/{sup.Id}", new { })).StatusCode);
+        await Problem(await cookie.PatchAsJsonAsync($"/api/v1/users/{sup.Id}", new { }),
+            HttpStatusCode.Forbidden, "csrf_failed");
         await using (var db = sql.CreateDbContext()) await db.Sessions.Where(x => x.UserId == sup.Id).ExecuteUpdateAsync(x => x.SetProperty(s => s.RevokedAt, DateTimeOffset.UtcNow));
         foreach (var url in urls)
         {

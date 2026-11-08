@@ -52,7 +52,7 @@ jobs:
       - run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
       - run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
       - run: pwsh -File tests/CI/Verify-TestResults.Tests.ps1
-      - run: python -m unittest discover -s deploy/server -p test_setup.py -v
+      - run: python -m unittest discover -s deploy/server -p 'test_*.py' -v
       - run: python deploy/server/verify_compose.py
       - run: for script in deploy/server/*.sh; do bash -n "$script"; done
       - run: pwsh -File tests/Security/Verify-DependencySecurity.ps1

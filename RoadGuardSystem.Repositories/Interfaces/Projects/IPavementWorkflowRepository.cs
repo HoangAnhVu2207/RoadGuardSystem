@@ -10,7 +10,7 @@ public sealed record PavementWorkflowCommand(Guid ActorId, Guid ProjectId, strin
 public sealed record PavementLayerQuery(string Layer, int Limit, double[]? Bbox, string? Cursor);
 public sealed record PavementLayoutView(Guid Id, Guid ProjectId, Guid RouteVersionId, Guid SegmentSetId,
     Guid? SourcePlanId, Guid? CrsProfileRevisionId, string Kind, string ContentHash,
-    PavementGeometryPreviewFact Geometry, DateTimeOffset CreatedAt);
+    PavementGeometryPreviewFact Geometry, DateTimeOffset CreatedAt, PavementLayoutInputFact? Layout = null);
 public sealed record GeometryImpactView(Guid Id, Guid ProjectId, Guid PreviousRouteVersionId,
     Guid NewRouteVersionId, GeometryAffectedReferenceFact[] References, DateTimeOffset RecordedAt);
 public sealed record GeometryImpactDecisionView(Guid Id, Guid ImpactId, Guid TaskId, string Action,

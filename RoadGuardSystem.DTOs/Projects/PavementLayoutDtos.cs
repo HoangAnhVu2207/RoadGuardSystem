@@ -9,14 +9,20 @@ public sealed record PavementWidthInterval(decimal FromOffsetMeters, decimal ToO
     public static implicit operator PavementWidthInterval?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.PavementWidthIntervalFact? value)
         => value is null ? null! : new(value.FromOffsetMeters, value.ToOffsetMeters, value.WidthMeters);
 }
-public sealed record PavementLayoutInput(decimal StripWidthMeters, decimal SlabLengthMeters, PavementWidthInterval[] WidthProfile)
+public sealed record PavementLayoutInput(decimal StripWidthMeters, decimal SlabLengthMeters, PavementWidthInterval[] WidthProfile,
+    decimal? SlabThicknessCentimeters = null, decimal? ContractionJointSpacingMeters = null,
+    decimal? ExpansionJointSpacingMeters = null, decimal? ExpansionJointGapMillimeters = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.PavementLayoutInputFact?(PavementLayoutInput? value)
-        => value is null ? null! : new(value.StripWidthMeters, value.SlabLengthMeters, value.WidthProfile?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.PavementWidthIntervalFact)item).ToArray()!);
+        => value is null ? null! : new(value.StripWidthMeters, value.SlabLengthMeters,
+            value.WidthProfile?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.PavementWidthIntervalFact)item).ToArray()!,
+            value.SlabThicknessCentimeters, value.ContractionJointSpacingMeters, value.ExpansionJointSpacingMeters, value.ExpansionJointGapMillimeters);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator PavementLayoutInput?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.PavementLayoutInputFact? value)
-        => value is null ? null! : new(value.StripWidthMeters, value.SlabLengthMeters, value.WidthProfile?.Select(item => (global::RoadGuardSystem.DTOs.Projects.PavementWidthInterval)item).ToArray()!);
+        => value is null ? null! : new(value.StripWidthMeters, value.SlabLengthMeters,
+            value.WidthProfile?.Select(item => (global::RoadGuardSystem.DTOs.Projects.PavementWidthInterval)item).ToArray()!,
+            value.SlabThicknessCentimeters, value.ContractionJointSpacingMeters, value.ExpansionJointSpacingMeters, value.ExpansionJointGapMillimeters);
 }
 public sealed record PlannedSlabCell(int Sequence, int LongitudinalRow, int Strip, decimal FromOffsetMeters,
     decimal ToOffsetMeters, decimal FromLateralMeters, decimal ToLateralMeters, bool IsTerminalResidual,

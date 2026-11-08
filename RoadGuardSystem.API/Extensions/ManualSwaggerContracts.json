@@ -5007,7 +5007,7 @@
       "Crew actions require current assigned actor; start offline proof/position/time, submission capture and evidence declarations follow current business guards."
     ],
     "wireLimitations": [],
-    "uiDescription": "Get field inspection workflow resources. Permissions: PM / Supervisor / assigned Crew."
+    "uiDescription": "Read a FIELD task as PM, Supervisor or assigned Crew. Eligible Crew can read current NORMAL or FAST_TRACK repair context and effective attempt/review. Outer version and ETag are the task version; repairContext.itemVersion is the repair item version."
   },
   {
     "id": "SWG-043",
@@ -18014,7 +18014,7 @@
       }
     ],
     "wireLimitations": [],
-    "uiDescription": "Create plan pavement workflow resources. Permissions: PM."
+    "uiDescription": "Create a pinned planned pavement layout. Permissions: scoped PM. Save the response id or Location to reopen it. Layout includes the original width profile and supplied thickness/joint metadata. Joint metadata does not change slab footprints or generate physical joints."
   },
   {
     "id": "SWG-112",
@@ -18105,7 +18105,7 @@
     "instructions": "Caller: PM / Supervisor. Use legitimate current resources in this actor's own project. Source review only; no API request was executed by this audit. Copy layout contentHash from SWG-112 for as-built/publication. Copy publication contentHash from SWG-115 for page116; use query OR quoted If-Match. Real width/station/source-file pins must come from admitted owner sources. Impact decisions do not emit Location. Current-value producer IDs: SWG-111, SWG-113. Rebootstrap uses supported isolated seeder/application paths only; never SQL insertion or invented FK/hash.",
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "Get layout pavement workflow resources. Permissions: PM / Supervisor."
+    "uiDescription": "Read a pinned pavement layout. Permissions: scoped PM or Supervisor. The layout field restores the saved planned input. Geometry remains the stored snapshot. For AS_BUILT, read sourcePlanId separately to recover the original planned input."
   },
   {
     "id": "SWG-113",

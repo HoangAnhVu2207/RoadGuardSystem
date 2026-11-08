@@ -27,6 +27,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
     private static T Decode<T>(string json) => JsonSerializer.Deserialize<T>(json, PublicJson) ?? throw new InvalidOperationException("Invalid persisted pavement snapshot.");
 
     private sealed class CommittedReceipt : Exception { }
+    private sealed record StoredPlanDefinition(PavementPlanCreateInputFact? Input);
     private sealed record SourceCapture(ReporterFileFacts File, Guid ScopeId, Guid? TargetId, DateTimeOffset ScopeCreatedAt, Guid? UploadedByUserId);
     public async Task<GeometryWorkflowResult> ExecuteAsync(UserRoleCode role, PavementWorkflowCommand command,
         Func<CancellationToken, Task<bool>> scopeGuard,
@@ -334,7 +335,8 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
         => await db.Set<PavementLayoutRevision>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.ProjectId == project, ct)
             ?? throw new Rejected(404, "not_found");
     private static PavementLayoutView View(PavementLayoutRevision x) => new(x.Id, x.ProjectId, x.RouteVersionId, x.SegmentSetId,
-        x.SourcePlanId, x.CrsProfileRevisionId, x.Kind, x.ContentHash, Decode<PavementGeometryPreviewFact>(x.SnapshotJson), x.CreatedAt);
+        x.SourcePlanId, x.CrsProfileRevisionId, x.Kind, x.ContentHash, Decode<PavementGeometryPreviewFact>(x.SnapshotJson), x.CreatedAt,
+        x.Kind == "PLANNED" ? Decode<StoredPlanDefinition>(x.DefinitionJson).Input?.Layout : null);
     private static GeometryImpactView ImpactView(GeometryLocationImpact x) => new(x.Id, x.ProjectId, x.PreviousRouteVersionId,
         x.NewRouteVersionId, Decode<GeometryAffectedReferenceFact[]>(x.AffectedReferencesJson), x.RecordedAt);
 

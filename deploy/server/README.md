@@ -1,5 +1,7 @@
 # RoadGuard trên Ubuntu Server
 
+Trước khi thao tác, đọc [quy tắc vận hành server](SERVER-RULES.md). Các lệnh dưới đây mô tả cách dùng; quyết định quan trọng được duyệt một lần theo cả gói công việc. Kiểm tra thường lệ, các bước đã duyệt và dọn file tạm hợp lệ của chính tác vụ không cần hỏi riêng; hỏi lại khi thay đổi đáng kể phạm vi hoặc rủi ro.
+
 Bộ cài dành cho một server LAN riêng, triển khai BE + SQL Server + MinIO thật. Chạy ASP.NET Core ở `Production`, không bật Sandbox/Handoff/AI mock, không nhập dữ liệu demo. SQL Server Developer chỉ dùng cho phát triển, kiểm thử và demo dự án; cần giấy phép phù hợp trước khi dùng thương mại.
 
 ## Cây thư mục
@@ -71,6 +73,25 @@ curl.exe --cacert "$env:USERPROFILE/Downloads/roadguard-lan-ca.crt" https://192.
 
 ## Vận hành và cập nhật
 
+### Cập nhật theo commit đã kiểm thử và smoke trực tiếp
+
+Gói hiện tại được theo dõi tại [SERVER-DEVELOP-E2E](../../planning/development/SERVER-DEVELOP-E2E.md).
+`update-reviewed.sh EXPECTED_ACTIVE_SHA TARGET_SHA` là entrypoint cập nhật theo SHA đầy đủ,
+có thể đặt file đã đối chiếu checksum ở `/tmp` để nâng từ release chưa có script này.
+Script kiểm tra hostname, active release, khóa bảo trì, quan hệ tổ tiên với origin/deploy,
+RAM và dung lượng, build đúng target rồi gọi backup của bản cũ trước activation.
+Backup lỗi không kích hoạt candidate. Backup vẫn có downtime như mô tả bên dưới;
+script không tự restore/downgrade hoặc dọn dữ liệu. `manage.sh update` cũ vẫn lấy HEAD,
+nên dùng entrypoint mới khi công việc đã chốt một SHA cụ thể.
+
+Sau cập nhật, chạy `python3 /opt/roadguard/current/deploy/server/live-smoke.py` trong SSH
+có terminal. Người dùng tự nhập email/mật khẩu; nếu tài khoản bắt buộc đổi mật khẩu,
+script yêu cầu nhập mật khẩu mới riêng. Kiểm tra thật qua HTTPS gồm cookie login,
+SQL-backed session/project list, CSRF denial và logout. Script không lưu token/password,
+không seed dự án hoặc gửi email; login/logout có ghi session/audit bình thường.
+Đây là smoke xác thực/đọc, không phải bằng chứng đã hoàn tất upload, sửa chữa đa vai trò,
+FE hoặc AI. Script chỉ chấp nhận đúng LAN endpoint và CA; không theo redirect.
+
 ```bash
 sudo bash /opt/roadguard/current/deploy/server/manage.sh status
 sudo bash /opt/roadguard/current/deploy/server/manage.sh logs
@@ -99,7 +120,7 @@ Sao chép backup mã hóa sang ổ/máy khác: bản sao cùng SSD không chốn
 ## Kiểm tra bộ cài trước khi phát hành
 
 ```bash
-python3 -m unittest discover -s deploy/server -p test_setup.py -v
+python3 -m unittest discover -s deploy/server -p 'test_*.py' -v
 python3 deploy/server/verify_compose.py
 for script in deploy/server/*.sh; do bash -n "$script"; done
 dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --filter FullyQualifiedName~ServerDeploymentTests

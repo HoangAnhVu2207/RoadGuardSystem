@@ -11,6 +11,9 @@ public static class PavementLayoutEngine
         if (analyticLengthMeters <= 0 || input.StripWidthMeters <= 0 || input.SlabLengthMeters <= 0 ||
             input.WidthProfile is null || input.WidthProfile.Length == 0 || input.WidthProfile.Length > maximumCells)
             throw new ArgumentException("Positive dimensions and a complete width profile are required.", nameof(input));
+        if (input.SlabThicknessCentimeters is <= 0 || input.ContractionJointSpacingMeters is <= 0 ||
+            input.ExpansionJointSpacingMeters is <= 0 || input.ExpansionJointGapMillimeters is < 0)
+            throw new ArgumentException("Thickness and spacing must be positive. The expansion joint gap cannot be negative.", nameof(input));
         if (input.SlabLengthMeters < analyticLengthMeters / int.MaxValue)
             throw new ArgumentException("The longitudinal grid exceeds supported row numbering.", nameof(input));
         decimal previousEnd = 0;

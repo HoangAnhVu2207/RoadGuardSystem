@@ -79,6 +79,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpPatch("{userId:guid}")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> Update(
         Guid userId,
         AccountUpdateRequestDto request,
@@ -115,6 +116,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpPost("{userId:guid}/password-reset")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> ResetPassword(
         Guid userId,
         AdminResetPasswordV2RequestDto request,

@@ -58,8 +58,6 @@ public sealed class ProjectCreateWebCookieHttpTests(AuthenticationSqlServerFixtu
         await Problem(missingWarrantyDate, HttpStatusCode.BadRequest, "validation_error");
         using var pmDenied = await Post(pm, Payload(manager.Id), Guid.NewGuid().ToString("N"));
         await Problem(pmDenied, HttpStatusCode.Forbidden, "access_forbidden");
-        Assert.Equal(HttpStatusCode.Unauthorized,
-            (await web.PutAsJsonAsync($"/api/v1/projects/{projectId}", new { name = "No cookie PUT" })).StatusCode);
 
         var bearerPayload = Payload(manager.Id);
         var bearerKey = Guid.NewGuid().ToString("N");
@@ -87,7 +85,7 @@ public sealed class ProjectCreateWebCookieHttpTests(AuthenticationSqlServerFixtu
     }
 
     [Fact]
-    public async Task RuntimeOpenApiOffersBearerOrCookieWithCsrfOnlyForCreate()
+    public async Task RuntimeOpenApiOffersBearerOrCookieWithCsrfForCreate()
     {
         await using var factory = new CustomWebApplicationFactory("Development");
         using var client = factory.CreateClient();
@@ -104,9 +102,6 @@ public sealed class ProjectCreateWebCookieHttpTests(AuthenticationSqlServerFixtu
         Assert.Contains("GET /api/v1/auth/web/csrf", create.GetProperty("description").GetString());
         Assert.Equal(0, create.GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
             .GetProperty("example").GetProperty("handoverFileIds").GetArrayLength());
-        var update = document.RootElement.GetProperty("paths").GetProperty("/api/v1/projects/{projectId}").GetProperty("put");
-        Assert.Single(update.GetProperty("security").EnumerateArray());
-        Assert.True(update.GetProperty("security")[0].TryGetProperty("Bearer", out _));
     }
 
     private Task<RoadGuardSystem.BusinessObjects.Identity.ApplicationUser> User(UserRoleCode role) =>

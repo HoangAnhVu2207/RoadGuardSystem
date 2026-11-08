@@ -48,7 +48,11 @@ public sealed record FieldTaskViewFact(Guid Id, Guid ProjectId, Guid DefectId, G
     CrewRepairContextFact? RepairContext = null);
 
 public sealed record CrewRepairContextFact(Guid PackageId, Guid ItemId, Guid BindingId, string Mode,
-    string Status, string ItemVersion, string RepairPlan, string ChecklistVersion);
+    string Status, string ItemVersion, string RepairPlan, string ChecklistVersion, CrewRepairAttemptFact? Attempt = null);
+
+public sealed record CrewRepairAttemptFact(Guid AttemptId, Guid EffectiveSubmissionId, CrewRepairReviewFact? Review);
+
+public sealed record CrewRepairReviewFact(Guid ReviewId, string Decision);
 
 public sealed record FieldVerificationSourceFactsFact(Guid TaskId, Guid DefectId, Guid SubmissionId, string ContentHash,
     string Decision, Guid[] EvidenceIds, Guid RouteVersionId, Guid? SegmentSetId, Guid? LayoutRevisionId);

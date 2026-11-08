@@ -96,7 +96,12 @@ public sealed record PavementGeometryPreviewFact(PavementLayoutPreviewFact? Plan
     string[] Warnings, double DisplayToleranceMeters, double RenderedGapAreaSquareMeters = 0,
     double RenderedOverlapAreaSquareMeters = 0);
 
-public sealed record PavementLayoutInputFact(decimal StripWidthMeters, decimal SlabLengthMeters, PavementWidthIntervalFact[] WidthProfile);
+// Omit unknown values to retain the v1 fingerprint and definition hash for existing requests.
+public sealed record PavementLayoutInputFact(decimal StripWidthMeters, decimal SlabLengthMeters, PavementWidthIntervalFact[] WidthProfile,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] decimal? SlabThicknessCentimeters = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] decimal? ContractionJointSpacingMeters = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] decimal? ExpansionJointSpacingMeters = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] decimal? ExpansionJointGapMillimeters = null);
 
 public sealed record PavementLayoutPreviewFact(decimal AnalyticLengthMeters, decimal StripWidthMeters,
     decimal SlabLengthMeters, PlannedSlabCellFact[] Cells, string[] Warnings);

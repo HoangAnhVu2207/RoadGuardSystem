@@ -25,6 +25,7 @@ public sealed class InvitationsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost]
     public async Task<IActionResult> Create(
         CreateInvitationRequestDto request,

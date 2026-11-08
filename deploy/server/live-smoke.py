@@ -3,9 +3,9 @@
 
 Passwords and cookies stay in process memory. Does not test FE, AI or upload flows.
 """
-import getpass
 import http.cookiejar
 import json
+import os
 import ssl
 import sys
 import urllib.error
@@ -26,9 +26,47 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def expect(label, result, status):
     actual, body = result
     if actual != status:
-        raise RuntimeError(f'{label}: expected HTTP {status}, received {actual}')
+        category = ''
+        if label == 'required password change' and actual == 400 and isinstance(body, dict):
+            if body.get('title') == 'Password policy rejected':
+                category = ' (new password rejected by policy; choose a different password with upper/lowercase letters, a digit and a symbol)'
+            elif body.get('title') == 'Bad Request':
+                category = ' (request validation failed)'
+        raise RuntimeError(f'{label}: expected HTTP {status}, received {actual}{category}')
     print(f'PASS {label}: HTTP {status}', flush=True)
     return body
+
+
+def read_secret(prompt, terminal_fd=None):
+    """Read printable ASCII bytes from the terminal without echo or text decoding."""
+    import termios
+    import tty
+
+    owned = terminal_fd is None
+    fd = os.open('/dev/tty', os.O_RDWR | os.O_NOCTTY) if owned else terminal_fd
+    previous = termios.tcgetattr(fd)
+    password = bytearray()
+    try:
+        os.write(fd, prompt.encode('ascii'))
+        tty.setraw(fd)
+        while True:
+            key = os.read(fd, 1)
+            if key in (b'\r', b'\n'):
+                return password.decode('ascii')
+            if key == b'\x03':
+                raise KeyboardInterrupt
+            if key in (b'\x7f', b'\x08'):
+                if password:
+                    password.pop()
+                continue
+            if len(key) != 1 or not 32 <= key[0] <= 126 or len(password) >= 128:
+                raise RuntimeError('Password input contains a non-ASCII/control byte or exceeds 128 characters. Switch to English keyboard and retry this smoke test.')
+            password.extend(key)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, previous)
+        os.write(fd, b'\n')
+        if owned:
+            os.close(fd)
 
 
 class Client:
@@ -73,7 +111,7 @@ def main():
     expect('health', client.request('GET', '/health'), 200)
     expect('anonymous session denied', client.request('GET', '/api/v1/auth/web/session'), 401)
     email = input('Supervisor email: ').strip()
-    password = getpass.getpass('Supervisor password (hidden): ')
+    password = read_secret('Supervisor password (hidden): ')
 
     def login():
         return expect('Web login', client.request('POST', '/api/v1/auth/web/login',
@@ -82,10 +120,12 @@ def main():
     session = login()
     if session.get('mustChangePassword'):
         print('Initial password change is required. Enter your new password privately; it will replace the initial password.')
-        new_password = getpass.getpass('New password (hidden): ')
-        confirmation = getpass.getpass('Repeat new password (hidden): ')
+        new_password = read_secret('New password (hidden): ')
+        confirmation = read_secret('Repeat new password (hidden): ')
         if new_password != confirmation:
             raise RuntimeError('Passwords differ; no password change submitted.')
+        if new_password == password:
+            raise RuntimeError('New password must differ from the temporary password; no password change submitted.')
         expect('required password change', client.request('POST', '/api/v1/auth/forced-password-change',
                {'username': email, 'currentPassword': password, 'newPassword': new_password,
                 'confirmPassword': confirmation, 'operationId': str(uuid.uuid4())}), 204)

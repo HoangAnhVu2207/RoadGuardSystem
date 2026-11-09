@@ -107,6 +107,20 @@ public sealed class UploadService : IUploadService
         return MapMutation(result);
     }
 
+    public async Task<UploadServiceStatus> CancelProjectUploadAsync(Guid actorUserId, UserRoleCode role, Guid uploadId,
+        CancellationToken cancellationToken = default)
+    {
+        if (role is not (UserRoleCode.RepairCrew or UserRoleCode.DroneOperator)) return UploadServiceStatus.Forbidden;
+        return await _repository.CancelProjectUploadAsync(actorUserId, role, uploadId, cancellationToken) switch
+        {
+            UploadPersistenceStatus.Success => UploadServiceStatus.Success,
+            UploadPersistenceStatus.Replayed => UploadServiceStatus.Replayed,
+            UploadPersistenceStatus.Forbidden => UploadServiceStatus.Forbidden,
+            UploadPersistenceStatus.NotFound => UploadServiceStatus.NotFound,
+            _ => UploadServiceStatus.Conflict
+        };
+    }
+
     public async Task<UploadServiceResult> GetSessionAsync(Guid actorUserId, UserRoleCode role, Guid uploadId, CancellationToken cancellationToken = default)
     {
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);

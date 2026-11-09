@@ -157,6 +157,65 @@ public sealed partial class UploadPersistenceService : IUploadRepository
         return row is null ? null : ToView(row.Session, row.ProjectId, row.TargetId);
     }
 
+    public Task<UploadPersistenceStatus> CancelReporterEvidenceAsync(
+        Guid actorUserId, Guid uploadId, CancellationToken cancellationToken = default)
+        => CancelAsync(uploadId, (fileId, token) => GuardPrivateAsync(actorUserId, fileId, token),
+            UploadPersistenceStatus.NotFound, cancellationToken);
+
+    public Task<UploadPersistenceStatus> CancelProjectUploadAsync(
+        Guid actorUserId, UserRoleCode role, Guid uploadId, CancellationToken cancellationToken = default)
+        => CancelAsync(uploadId, (fileId, token) => GuardProjectUploadCancelAsync(actorUserId, role, fileId, token),
+            UploadPersistenceStatus.Forbidden, cancellationToken);
+
+    private async Task GuardProjectUploadCancelAsync(Guid actorUserId, UserRoleCode role, Guid fileId, CancellationToken token)
+    {
+        var scope = await _context.FileScopes.AsNoTracking().SingleOrDefaultAsync(row => row.FileId == fileId, token);
+        if (scope is null || scope.ProjectId is null || scope.TargetId is null || scope.OwnerUserId != actorUserId)
+            throw new UploadNotFoundException();
+
+        var allowedPurpose = role switch
+        {
+            UserRoleCode.RepairCrew => FieldPurpose(scope.Purpose),
+            UserRoleCode.DroneOperator => SurveyPurpose(scope.Purpose),
+            _ => false
+        };
+        if (!allowedPurpose) throw new UploadNotFoundException();
+
+        // Use the same transaction-owned authority and session locks as multipart complete.
+        await GuardMultipartAsync(actorUserId, fileId, true, token);
+        if (!await _context.Users.AnyAsync(user => user.Id == actorUserId && user.RoleCode == role, token))
+            throw new UploadNotFoundException();
+
+        var crewPhoto = role == UserRoleCode.RepairCrew;
+        if (!await _context.UploadSessions.AnyAsync(row => row.FileId == fileId && row.Purpose == scope.Purpose &&
+            (!crewPhoto || row.MediaType == "image/jpeg" || row.MediaType == "image/png"), token))
+            throw new UploadNotFoundException();
+    }
+
+    private async Task<UploadPersistenceStatus> CancelAsync(Guid uploadId, Func<Guid, CancellationToken, Task> guard,
+        UploadPersistenceStatus denied, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await MultipartTransactionAsync(async token =>
+            {
+                var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == uploadId)
+                    .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token);
+                if (fileId is not Guid id) return UploadPersistenceStatus.NotFound;
+                await guard(id, token);
+                var session = await _context.UploadSessions.SingleAsync(s => s.Id == uploadId, token);
+                if (session.Status == UploadSessionStatus.Failed && session.FailureCode == UploadSession.CancelledFailureCode)
+                    return UploadPersistenceStatus.Replayed;
+                if (session.Status is not (UploadSessionStatus.Pending or UploadSessionStatus.Uploading))
+                    return UploadPersistenceStatus.Conflict;
+
+                session.Cancel(DateTimeOffset.UtcNow);
+                return UploadPersistenceStatus.Success;
+            }, cancellationToken);
+        }
+        catch (UploadNotFoundException) { return denied; }
+    }
+
     public async Task<UploadPartUrlsPersistenceResult> GetPartUrlsAsync(
         Guid actorUserId,
         Guid? projectId,
@@ -264,7 +323,11 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                         urlExpiresAt)));
                 },
                 cancellationToken,
-                receiptAccessGuard: token => GuardMultipartAsync(actorUserId, session.FileId, token));
+                receiptAccessGuard: async token =>
+                {
+                    await GuardMultipartAsync(actorUserId, session.FileId, token);
+                    if (await IsCancelledAsync(uploadId, token)) throw new UploadPartConflictException();
+                });
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
             {
                 return new(UploadPersistenceStatus.Conflict, []);
@@ -314,10 +377,14 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                 request.RequestFingerprint,
                 async token =>
                 {
+                    var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == request.UploadId)
+                        .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token);
+                    await GuardMultipartAsync(request.ActorUserId, fileId, true, token);
                     var session = await _context.UploadSessions.SingleOrDefaultAsync(candidate => candidate.Id == request.UploadId, token)
                         ?? throw new UploadNotFoundException();
+                    if (session.Status == UploadSessionStatus.Failed && session.FailureCode == UploadSession.CancelledFailureCode)
+                        throw new UploadPartConflictException();
                     var scope = await _context.FileScopes.AsNoTracking().SingleAsync(candidate => candidate.FileId == session.FileId, token);
-                    await GuardMultipartAsync(request.ActorUserId, session.FileId, true, token);
                     if (!string.Equals(session.ExpectedChecksumSha256, request.ChecksumSha256, StringComparison.Ordinal))
                     {
                         throw new ArgumentException("Upload checksum does not match session expectation.");
@@ -352,19 +419,18 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                     return (Guid.NewGuid(), JsonSerializer.Serialize(ToView(session, scope.ProjectId)));
                 },
                 cancellationToken,
-                receiptAccessGuard: request.ProjectId is null
-                    ? async token =>
+                receiptAccessGuard: async token =>
+                {
+                    var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == request.UploadId)
+                        .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token);
+                    if (request.ProjectId is null)
                     {
-                        var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == request.UploadId)
-                            .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token);
                         if (fileId is null) throw new UploadNotFoundException();
                         await GuardPrivateAsync(request.ActorUserId, fileId, token);
                     }
-            : async token =>
-                    {
-                        var fileId = await _context.UploadSessions.AsNoTracking().Where(x => x.Id == request.UploadId).Select(x => (Guid?)x.FileId).SingleOrDefaultAsync(token);
-                        await GuardMultipartAsync(request.ActorUserId, fileId, token);
-                    });
+                    else await GuardMultipartAsync(request.ActorUserId, fileId, token);
+                    if (await IsCancelledAsync(request.UploadId, token)) throw new UploadPartConflictException();
+                });
 
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
             {
@@ -378,6 +444,10 @@ public sealed partial class UploadPersistenceService : IUploadRepository
         catch (UploadNotFoundException)
         {
             return new(UploadPersistenceStatus.NotFound, null);
+        }
+        catch (UploadPartConflictException)
+        {
+            return new(UploadPersistenceStatus.Conflict, null);
         }
         catch (FormatException)
         {
@@ -565,6 +635,10 @@ public sealed partial class UploadPersistenceService : IUploadRepository
 
     private sealed class UploadConcurrencyException : Exception;
     private sealed class UploadPartConflictException : Exception;
+
+    private Task<bool> IsCancelledAsync(Guid uploadId, CancellationToken token)
+        => _context.UploadSessions.AsNoTracking().AnyAsync(s => s.Id == uploadId &&
+            s.Status == UploadSessionStatus.Failed && s.FailureCode == UploadSession.CancelledFailureCode, token);
 
     private sealed record UploadPartUrlReceipt(
         string ObjectKey,

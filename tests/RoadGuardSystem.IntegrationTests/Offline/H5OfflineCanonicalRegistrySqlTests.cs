@@ -438,6 +438,42 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         Guid AdmissionId, Guid? FileId, Guid? CaptureOriginId);
 
     [Fact]
+    public async Task CrewCanCancelCommittedOfflineCaptureOnlyWhileAdmissionStillAuthorizesIt()
+    {
+        var source = await SeedRawGuardSource(true, unboundCapture: true);
+        await using var db = sql.CreateDbContext();
+        var storage = new ControlledUploadStorage();
+        var repository = new UploadPersistenceService(db, new IdempotencyOperationService(db),
+            storage, Options.Create(new UploadSessionOptions()), TimeProvider.System,
+            new OfflineAdmissionValidator(db, TimeProvider.System));
+        var now = DateTimeOffset.UtcNow;
+        var upload = new UploadCreatePersistenceRequest(source.Scope.Crew, source.Scope.Project, source.TaskId,
+            "MEASUREMENT", "cancel-capture.jpg", "image/jpeg", 4, new string('c', 64), 8388608,
+            now.AddHours(24), "cancel-capture-" + Guid.NewGuid().ToString("N"), new string('d', 64), source.OriginId);
+        var request = new OfflineUploadCaptureRequest(source.Scope.Project, source.TaskId, source.AdmissionId,
+            source.CaptureOriginId!.Value, source.Scope.Crew, UserRoleCode.RepairCrew, upload);
+        var created = await repository.CreateOfflineAsync(request);
+        Assert.Equal(UploadPersistenceStatus.Success, created.Status);
+        Assert.NotNull(created.Session);
+        var id = created.Session.Id;
+        Assert.Equal(UploadPersistenceStatus.Forbidden, await repository.CancelProjectUploadAsync(source.Scope.Pm, UserRoleCode.RepairCrew, id));
+        Assert.Equal(UploadPersistenceStatus.Success, await repository.CancelProjectUploadAsync(source.Scope.Crew, UserRoleCode.RepairCrew, id));
+        Assert.Equal(UploadPersistenceStatus.Replayed, await repository.CancelProjectUploadAsync(source.Scope.Crew, UserRoleCode.RepairCrew, id));
+
+        var saved = await db.UploadSessions.AsNoTracking().SingleAsync(row => row.Id == id);
+        Assert.Equal("upload_cancelled", saved.FailureCode);
+        Assert.Equal(0, storage.Initiations);
+        Assert.Equal(1, await db.Set<OfflineEvidenceCaptureReference>().CountAsync(row =>
+            row.AdmissionId == source.AdmissionId && row.UploadSessionId == id));
+        var assignmentId = await db.Set<OfflineOperationBinding>().Where(row => row.Id == source.BindingId)
+            .Select(row => row.AssignmentId).SingleAsync();
+        var assignment = await db.FieldInspectionAssignments.SingleAsync(row => row.Id == assignmentId);
+        assignment.End(now, "Reassigned");
+        await db.SaveChangesAsync();
+        Assert.Equal(UploadPersistenceStatus.Forbidden, await repository.CancelProjectUploadAsync(source.Scope.Crew, UserRoleCode.RepairCrew, id));
+    }
+
+    [Fact]
     public async Task SignedUnboundCaptureCreatesOneActualUploaderFileAndGuardsUploadReceipt()
     {
         var source = await SeedRawGuardSource(true, unboundCapture: true);

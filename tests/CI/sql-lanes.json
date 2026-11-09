@@ -118,6 +118,7 @@
         "RoadGuardSystem.IntegrationTests.Offline.H5OfflineCanonicalRegistrySqlTests.ActualSignedSyncCommitsOneTypedStartAndGuardsItsDurableReplay(endMembershipBeforeReplay: True)",
         "RoadGuardSystem.IntegrationTests.Offline.H5OfflineCanonicalRegistrySqlTests.ActualSnapshotPinsCurrentAssignmentAndDeniesAnEndedAssignment(endAssignment: False)",
         "RoadGuardSystem.IntegrationTests.Offline.H5OfflineCanonicalRegistrySqlTests.ActualSnapshotPinsCurrentAssignmentAndDeniesAnEndedAssignment(endAssignment: True)",
+        "RoadGuardSystem.IntegrationTests.Offline.H5OfflineCanonicalRegistrySqlTests.CrewCanCancelCommittedOfflineCaptureOnlyWhileAdmissionStillAuthorizesIt",
         "RoadGuardSystem.IntegrationTests.Offline.H5OfflineCanonicalRegistrySqlTests.CurrentDeviceOwnerCanRevokeOnceAndOldSignedSourcesLoseAdmission",
         "RoadGuardSystem.IntegrationTests.Offline.H5OfflineCanonicalRegistrySqlTests.GenuineExistingDirectStartKeepsItsOriginalNullDeviceAndActualEffectOnHistoricalDescription",
         "RoadGuardSystem.IntegrationTests.Offline.H5OfflineCanonicalRegistrySqlTests.GenuineReporterFieldStartCannotBeReclassifiedOrRehashedByOfflineAdmission(changeKind: False)",

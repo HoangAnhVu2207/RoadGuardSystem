@@ -53,7 +53,14 @@ public sealed record GeometryDraftViewFact(Guid Id, Guid ProjectId, Guid? RoadSe
     string? SourceChecksum, int? TrackIndex, int? TrackSegmentIndex, GeometryPointFact[] OriginalCoordinates,
     GeometryPointFact[] EditedCoordinates, double StationOriginMeters, WidthProfileItemFact[] WidthProfile,
     double SurveyWidthMeters, Guid CreatedBy, Guid UpdatedBy, string Version,
-    NativeAlignmentInputFact? NativeAlignment = null, GeometryDraftReadinessFact? Readiness = null);
+    NativeAlignmentInputFact? NativeAlignment = null, GeometryDraftReadinessFact? Readiness = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? RouteSystemId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RouteKind = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? ParentRouteVersionId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? JunctionOffsetMeters = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DeclaredLengthMeters = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ChainageCalibrationInputFact? ChainageCalibration = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? TessellationToleranceMeters = null);
 
 public sealed record GeometryImpactDecisionInputFact(Guid TaskId, string Action, string Reason);
 

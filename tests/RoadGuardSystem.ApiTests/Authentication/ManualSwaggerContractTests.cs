@@ -11,6 +11,63 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task GeometryDraftReadsDocumentMetadataAndCoordinatesReadiness()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        const string draft = "/api/v1/projects/{projectId}/road-geometry-drafts/{draftId}";
+        const string sectionDraft = "/api/v1/projects/{projectId}/road-sections/{roadSectionId}/geometry-drafts/{draftId}";
+        foreach (var path in new[] { draft, sectionDraft })
+        {
+            var schema = paths.GetProperty(path).GetProperty("get").GetProperty("responses").GetProperty("200")
+                .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+            Assert.Equal("#/components/schemas/GeometryDraftView", schema.GetProperty("$ref").GetString());
+        }
+        var properties = root.GetProperty("components").GetProperty("schemas").GetProperty("GeometryDraftView").GetProperty("properties");
+        foreach (var field in new[] { "nativeAlignment", "routeSystemId", "routeKind", "parentRouteVersionId",
+            "junctionOffsetMeters", "declaredLengthMeters", "chainageCalibration", "tessellationToleranceMeters" })
+            Assert.True(properties.TryGetProperty(field, out _), field);
+        Assert.False(properties.TryGetProperty("resolvedCrsProfile", out _));
+        var readiness = paths.GetProperty(draft + "/readiness").GetProperty("get");
+        Assert.Contains("COORDINATES", readiness.GetProperty("description").GetString());
+        Assert.Contains("unsupported_crs", readiness.GetProperty("responses").GetProperty("422").GetProperty("description").GetString());
+    }
+
+    [Theory]
+    [InlineData("/api/v1/reporter-evidence/uploads/{uploadId}/cancel", false)]
+    [InlineData("/api/v1/uploads/{uploadId}/cancel", true)]
+    public async Task UploadCancelAdvertisesBearerAndTerminalResponse(string route, bool crew)
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var cancel = paths.GetProperty(route).GetProperty("post");
+        var security = Assert.Single(cancel.GetProperty("security").EnumerateArray());
+        Assert.True(security.TryGetProperty("Bearer", out _));
+        Assert.False(cancel.TryGetProperty("requestBody", out _));
+        var responses = cancel.GetProperty("responses");
+        foreach (var status in new[] { "200", "401", "404", "409" })
+            Assert.True(responses.TryGetProperty(status, out _));
+        Assert.True(responses.GetProperty("409").GetProperty("content").TryGetProperty("application/problem+json", out _));
+        var schema = root.GetProperty("components").GetProperty("schemas").GetProperty("UploadCancelResponseDto");
+        Assert.True(schema.GetProperty("properties").TryGetProperty("failureCode", out _));
+        Assert.Equal(crew, responses.TryGetProperty("403", out _));
+        if (crew)
+        {
+            var description = cancel.GetProperty("description").GetString();
+            Assert.Contains("DroneOperator", description, StringComparison.Ordinal);
+            Assert.Contains("SURVEY_VIDEO and TELEMETRY", description, StringComparison.Ordinal);
+            Assert.Contains("RepairCrew", description, StringComparison.Ordinal);
+        }
+        Assert.All(cancel.GetProperty("parameters").EnumerateArray(),
+            parameter => Assert.Equal("path", parameter.GetProperty("in").GetString()));
+        Assert.Equal("#/components/schemas/UploadCancelResponseDto",
+            responses.GetProperty("200").GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+    }
+
+    [Fact]
     public async Task PavementLayoutDocumentsOptionalSavedConfiguration()
     {
         using var document = await Document();

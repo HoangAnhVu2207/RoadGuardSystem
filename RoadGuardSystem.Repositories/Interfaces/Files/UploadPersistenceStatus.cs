@@ -8,5 +8,6 @@ public enum UploadPersistenceStatus
     Conflict = 4,
     ConcurrencyConflict = 5,
     InvalidInput = 6,
-    StorageUnavailable = 7
+    StorageUnavailable = 7,
+    Forbidden = 8
 }

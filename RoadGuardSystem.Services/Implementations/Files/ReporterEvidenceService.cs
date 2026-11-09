@@ -81,6 +81,20 @@ public sealed class ReporterEvidenceService : IReporterEvidenceService
         return new(UploadServiceStatus.Success, ToDto(session));
     }
 
+    public async Task<UploadServiceStatus> CancelAsync(Guid actorUserId, UserRoleCode role, Guid uploadId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsSupportedRole(role)) return UploadServiceStatus.NotFound;
+        var result = await _repository.CancelReporterEvidenceAsync(actorUserId, uploadId, cancellationToken);
+        return result switch
+        {
+            UploadPersistenceStatus.Success => UploadServiceStatus.Success,
+            UploadPersistenceStatus.Replayed => UploadServiceStatus.Replayed,
+            UploadPersistenceStatus.NotFound => UploadServiceStatus.NotFound,
+            _ => UploadServiceStatus.Conflict
+        };
+    }
+
     public async Task<UploadServiceResult> GetPartUrlsAsync(
         Guid actorUserId,
         UserRoleCode role,

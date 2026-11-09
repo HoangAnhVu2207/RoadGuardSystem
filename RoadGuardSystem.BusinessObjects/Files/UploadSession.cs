@@ -4,6 +4,7 @@ namespace RoadGuardSystem.BusinessObjects.Files;
 
 public sealed class UploadSession
 {
+    public const string CancelledFailureCode = "upload_cancelled";
     private UploadSession()
     {
     }
@@ -132,6 +133,19 @@ public sealed class UploadSession
 
         Status = UploadSessionStatus.Verifying;
         FailureCode = null;
+    }
+
+    public void Cancel(DateTimeOffset now)
+    {
+        if (Status is not (UploadSessionStatus.Pending or UploadSessionStatus.Uploading))
+            throw new InvalidOperationException("Only an active upload can be cancelled.");
+
+        if (StorageUploadId is not null || MultipartPhase is not null ||
+            FailureCode?.StartsWith("multipart_initiating:", StringComparison.Ordinal) == true)
+            StopMultipart(now);
+
+        Status = UploadSessionStatus.Failed;
+        FailureCode = CancelledFailureCode;
     }
 
     public void MarkVerified()

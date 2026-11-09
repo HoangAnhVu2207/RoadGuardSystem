@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RoadGuardSystem.BusinessObjects.Files;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.Repositories.Options;
@@ -78,6 +79,7 @@ public sealed partial class UploadPersistenceService
         {
             var fileId = await _context.UploadSessions.Where(s => s.Id == upload).Select(s => s.FileId).SingleAsync(ct);
             await GuardMultipartAsync(actor, fileId, ct);
+            if (await IsCancelledAsync(upload, ct)) throw new UploadPartConflictException();
             if (await _context.IdempotencyRecords.AnyAsync(r => r.ActorUserId == actor && r.ProjectId == projectId
                 && r.Operation == "UploadPartUrlsIssued" && r.IdempotencyKey == key, ct)) return (Initiate: false, Receipt: true);
             await GuardMultipartAsync(actor, fileId, true, ct);
@@ -171,8 +173,15 @@ public sealed partial class UploadPersistenceService
                                  join f in _context.Files.AsNoTracking() on s.FileId equals f.Id
                                  join scope in _context.FileScopes.AsNoTracking() on s.FileId equals scope.FileId
                                  where s.Id == upload && f.StorageUri == s.ObjectKey
-                                     && scope.OwnerUserId == s.OwnerUserId && s.MultipartPhase == "DURABLE" && s.StorageUploadId != null
+                                     && scope.OwnerUserId == s.OwnerUserId
+                                     && ((s.MultipartPhase == "DURABLE" && s.StorageUploadId != null) ||
+                                         (s.MultipartPhase == "TERMINAL" && s.FailureCode == UploadSession.CancelledFailureCode))
                                  select s).SingleOrDefaultAsync(ct);
+            if (current?.FailureCode == UploadSession.CancelledFailureCode)
+            {
+                _context.Set<UploadMultipartSweep>().Remove(sweep);
+                return null; // The terminal recovery queue owns cleanup after cancellation.
+            }
             if (current is not null && current.Status == UploadSessionStatus.Uploading && now >= current.ExpiresAt)
             {
                 var terminal = await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={upload}").SingleAsync(ct);

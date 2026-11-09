@@ -56,7 +56,9 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         { Content = JsonContent.Create(new { checksumSha256 = RemotePhoto.Hash, parts = new[] { new { partNumber = 1, eTag = "fixture" } } }) };
         complete.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString()); complete.Headers.TryAddWithoutValidation("If-Match", session.Headers.ETag!.ToString());
         (await current.SendAsync(complete)).StatusCode.Should().Be(HttpStatusCode.Accepted);
+        using (var cancel = await CancelAsync(current, upload)) cancel.StatusCode.Should().Be(HttpStatusCode.Conflict);
         using (var scope = restarted.Services.CreateScope()) await scope.ServiceProvider.GetRequiredService<IUploadService>().ProcessOneVerificationAsync();
+        using (var cancel = await CancelAsync(current, upload)) cancel.StatusCode.Should().Be(HttpStatusCode.Conflict);
         using var content = await current.GetAsync($"/api/v1/reporter-evidence/files/{file}/content"); content.StatusCode.Should().Be(HttpStatusCode.OK);
         Convert.ToHexString(SHA256.HashData(await content.Content.ReadAsByteArrayAsync())).ToLowerInvariant().Should().Be(RemotePhoto.Hash);
         remote.Initiations.Should().Be(1);
@@ -65,6 +67,105 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         (await db.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == upload)).Status.Should().Be(UploadSessionStatus.Verified);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET Status={(byte)UserStatus.Suspended} WHERE Id={user.Id}");
         (await PartsAsync(current, upload, partKey)).StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task PendingReporterUploadCanBeCancelledOnlyByItsCurrentOwner()
+    {
+        var owner = await sql.CreateUserAsync($"cancel-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var other = await sql.CreateUserAsync($"other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var remote = new RemotePhoto();
+        await using var factory = Factory(remote, false);
+        using var client = factory.CreateClient();
+        using var create = await CreateForOwnerAsync(client, owner.UserName!);
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var anonymous = factory.CreateClient(new() { HandleCookies = false });
+        using var missingAuth = await CancelAsync(anonymous, id);
+        missingAuth.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        using var outsider = factory.CreateClient();
+        await LoginAsync(outsider, other.UserName!);
+        using var forbidden = await CancelAsync(outsider, id);
+        forbidden.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        using var cancelled = await CancelAsync(client, id);
+        var original = await AssertCancelledAsync(cancelled, id);
+        using var replay = await CancelAsync(client, id);
+        (await AssertCancelledAsync(replay, id)).Should().Be(original);
+        using var parts = await PartsAsync(client, id, Guid.NewGuid().ToString());
+        parts.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        using var complete = CompleteRequest(id, create.Headers.ETag!.ToString());
+        using var rejected = await client.SendAsync(complete);
+        rejected.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        remote.Initiations.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CancelledUploadingSessionRejectsPartReceiptAndRetriesCleanup()
+    {
+        var owner = await sql.CreateUserAsync($"cleanup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var remote = new RemotePhoto { FailNextAbort = true };
+        await using var factory = Factory(remote, false);
+        using var client = factory.CreateClient();
+        using var create = await CreateForOwnerAsync(client, owner.UserName!);
+        var body = await create.Content.ReadFromJsonAsync<JsonElement>();
+        var id = body.GetProperty("id").GetGuid();
+        var file = body.GetProperty("fileId").GetGuid();
+        var key = Guid.NewGuid().ToString();
+        using var issued = await PartsAsync(client, id, key);
+        issued.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var session = await client.GetAsync($"/api/v1/reporter-evidence/uploads/{id}");
+        using var cancel = await CancelAsync(client, id);
+        var original = await AssertCancelledAsync(cancel, id);
+        using var replayParts = await PartsAsync(client, id, key);
+        replayParts.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        remote.Signatures.Should().Be(1);
+        using var complete = CompleteRequest(id, session.Headers.ETag!.ToString());
+        using var rejected = await client.SendAsync(complete);
+        rejected.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        await RecoverAsync(factory);
+        remote.AbortAttempts.Should().Be(1);
+        remote.Aborted.Should().BeFalse();
+        await using (var db = sql.CreateDbContext())
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET MultipartNextCheckAt={DateTimeOffset.UtcNow.AddMinutes(-1)} WHERE Id={id}");
+        await RecoverAsync(factory);
+        remote.AbortAttempts.Should().Be(2);
+        remote.Aborted.Should().BeTrue();
+        remote.LastAbort.Should().Be(($"uploads/{file:N}", "fixture-id"));
+        using var replay = await CancelAsync(client, id);
+        (await AssertCancelledAsync(replay, id)).Should().Be(original);
+    }
+
+    [Fact]
+    public async Task CancelAndCompleteAllowExactlyOneTransition()
+    {
+        var owner = await sql.CreateUserAsync($"race-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        await using var factory = Factory(new RemotePhoto(), false);
+        using var client = factory.CreateClient();
+        using var create = await CreateForOwnerAsync(client, owner.UserName!);
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var issued = await PartsAsync(client, id, Guid.NewGuid().ToString());
+        issued.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var session = await client.GetAsync($"/api/v1/reporter-evidence/uploads/{id}");
+        using var complete = CompleteRequest(id, session.Headers.ETag!.ToString());
+        var cancelTask = CancelAsync(client, id);
+        var completeTask = client.SendAsync(complete);
+        await Task.WhenAll(cancelTask, completeTask);
+        using var cancelled = await cancelTask;
+        using var completed = await completeTask;
+        await using var db = sql.CreateDbContext();
+        var saved = await db.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == id);
+        if (cancelled.StatusCode == HttpStatusCode.OK)
+        {
+            completed.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            saved.Status.Should().Be(UploadSessionStatus.Failed);
+            saved.FailureCode.Should().Be("upload_cancelled");
+        }
+        else
+        {
+            cancelled.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            completed.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            saved.Status.Should().Be(UploadSessionStatus.Verifying);
+        }
     }
 
     [Fact]
@@ -96,20 +197,81 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
     { var r = new HttpRequestMessage(HttpMethod.Post, "/api/v1/reporter-evidence/uploads") { Content = JsonContent.Create(new { fileName = "synthetic.jpg", mediaType = "image/jpeg", sizeBytes = 4, checksumSha256 = RemotePhoto.Hash }) }; r.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString()); return client.SendAsync(r); }
     private static Task<HttpResponseMessage> PartsAsync(HttpClient client, Guid upload, string key, int[]? parts = null)
     { var r = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/reporter-evidence/uploads/{upload}/part-urls") { Content = JsonContent.Create(new { partNumbers = parts ?? [1] }) }; r.Headers.Add("Idempotency-Key", key); return client.SendAsync(r); }
+
+    private static async Task<HttpResponseMessage> CreateForOwnerAsync(HttpClient client, string userName)
+    {
+        await LoginAsync(client, userName);
+        var response = await CreateAsync(client);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return response;
+    }
+
+    private static Task<HttpResponseMessage> CancelAsync(HttpClient client, Guid id)
+        => client.PostAsync($"/api/v1/reporter-evidence/uploads/{id}/cancel", null);
+
+    private static async Task<string> AssertCancelledAsync(HttpResponseMessage response, Guid id)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("id").GetGuid().Should().Be(id);
+        body.GetProperty("status").GetString().Should().Be("FAILED");
+        body.GetProperty("failureCode").GetString().Should().Be("upload_cancelled");
+        return body.GetRawText();
+    }
+
+    private static HttpRequestMessage CompleteRequest(Guid id, string etag)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/reporter-evidence/uploads/{id}/complete")
+        {
+            Content = JsonContent.Create(new { checksumSha256 = RemotePhoto.Hash, parts = new[] { new { partNumber = 1, eTag = "fixture" } } })
+        };
+        request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+        return request;
+    }
+
+    private static async Task RecoverAsync(AuthenticationWebApplicationFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<IUploadRepository>().RecoverMultipartsAsync();
+    }
+
     private sealed class RemotePhoto
     {
         public static byte[] Bytes => [255, 216, 255, 0];
         public static string Hash => Convert.ToHexString(SHA256.HashData(Bytes)).ToLowerInvariant();
         public int Initiations { get; set; }
+        public int Signatures { get; set; }
+        public string? ObjectKey { get; set; }
+        public bool FailNextAbort { get; set; }
+        public bool Aborted { get; set; }
+        public int AbortAttempts { get; set; }
+        public (string Key, string Id) LastAbort { get; set; }
     }
     private sealed class PhotoAdapter(RemotePhoto remote, bool loseAck) : IUploadObjectStorage, IMultipartRecoveryStorage
     {
         public Task<string> InitiateAsync(string objectKey, string mediaType, CancellationToken cancellationToken = default)
-        { remote.Initiations++; if (loseAck) throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Synthetic lost remote acknowledgement"); return Task.FromResult("fixture-id"); }
-        public Task<IReadOnlyList<string>> ListMultipartIdsAsync(string exactObjectKey, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>(remote.Initiations == 0 ? [] : ["fixture-id"]);
+        { remote.ObjectKey = objectKey; remote.Initiations++; if (loseAck) throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Synthetic lost remote acknowledgement"); return Task.FromResult("fixture-id"); }
+        public Task<IReadOnlyList<string>> ListMultipartIdsAsync(string exactObjectKey, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>(remote.ObjectKey == exactObjectKey && !remote.Aborted ? ["fixture-id"] : []);
         public Task<bool> HasPartsAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default) => Task.FromResult(false);
-        public Task AbortMultipartAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string objectKey, string uploadId, IReadOnlyList<int> partNumbers, DateTimeOffset expiresAt, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PresignedUploadPart>>(partNumbers.Select(n => new PresignedUploadPart(n, "https://storage.invalid/part", expiresAt)).ToArray());
+        public Task AbortMultipartAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default)
+        {
+            remote.AbortAttempts++;
+            remote.LastAbort = (objectKey, uploadId);
+            if (remote.FailNextAbort)
+            {
+                remote.FailNextAbort = false;
+                throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Synthetic transient abort failure");
+            }
+            remote.Aborted = true;
+            return Task.CompletedTask;
+        }
+        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string objectKey, string uploadId, IReadOnlyList<int> partNumbers, DateTimeOffset expiresAt, CancellationToken cancellationToken = default)
+        {
+            remote.Signatures++;
+            return Task.FromResult<IReadOnlyList<PresignedUploadPart>>(partNumbers.Select(n => new PresignedUploadPart(n, "https://storage.invalid/part", expiresAt)).ToArray());
+        }
         public Task<UploadObjectVerification> CompleteAndVerifyAsync(string objectKey, string uploadId, IReadOnlyList<CompletedStoragePart> parts, CancellationToken cancellationToken = default) => Task.FromResult(new UploadObjectVerification(4, RemotePhoto.Hash, "image/jpeg"));
         public Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream(RemotePhoto.Bytes));
     }

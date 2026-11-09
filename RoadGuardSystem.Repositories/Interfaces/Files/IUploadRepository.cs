@@ -11,6 +11,7 @@ public interface IUploadRepository
     Task<UploadMutationPersistenceResult> CreateOfflineAsync(RoadGuardSystem.Repositories.Offline.OfflineUploadCaptureRequest request, CancellationToken cancellationToken = default)
         => Task.FromResult(new UploadMutationPersistenceResult(UploadPersistenceStatus.InvalidInput, null));
     Task<UploadSessionPersistenceView?> GetSessionAsync(Guid uploadId, CancellationToken cancellationToken = default);
+    Task<UploadPersistenceStatus> CancelReporterEvidenceAsync(Guid actorUserId, Guid uploadId, CancellationToken cancellationToken = default);
     Task<UploadPartUrlsPersistenceResult> GetPartUrlsAsync(Guid actorUserId, Guid? projectId, Guid uploadId, IReadOnlyList<int> partNumbers, string idempotencyKey, string requestFingerprint, DateTimeOffset now, DateTimeOffset urlExpiresAt, CancellationToken cancellationToken = default);
     Task<UploadMutationPersistenceResult> CompleteAsync(UploadCompletePersistenceRequest request, CancellationToken cancellationToken = default);
     Task<FileMetadataPersistenceView?> GetFileMetadataAsync(Guid fileId, CancellationToken cancellationToken = default);

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Middlewares;
 using RoadGuardSystem.DTOs.Files;
+using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.Services.Files;
 using RoadGuardSystem.aBusinessObjects.Commons;
 
@@ -53,6 +54,27 @@ public sealed class ReporterEvidenceController : ControllerBase
     {
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         return MapSession(await _service.GetSessionAsync(actorUserId, role, uploadId, cancellationToken), StatusCodes.Status200OK, null);
+    }
+
+    [Authorize]
+    [HttpPost("uploads/{uploadId:guid}/cancel")]
+    [ProducesResponseType<UploadCancelResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> Cancel(Guid uploadId, CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        if (!TryGetActor(out var actorUserId, out var role))
+            return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        var result = await _service.CancelAsync(actorUserId, role, uploadId, cancellationToken);
+        return result switch
+        {
+            UploadServiceStatus.Success or UploadServiceStatus.Replayed =>
+                Ok(new UploadCancelResponseDto(uploadId, "FAILED", UploadSession.CancelledFailureCode)),
+            UploadServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.UploadSessionNotFound, "Not found"),
+            _ => ProblemResponse(409, "upload_not_cancellable", "Upload cannot be cancelled")
+        };
     }
 
     [Authorize]

@@ -11,6 +11,25 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task ReporterUploadCancelAdvertisesBearerAndTerminalResponse()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var cancel = paths.GetProperty("/api/v1/reporter-evidence/uploads/{uploadId}/cancel").GetProperty("post");
+        var security = Assert.Single(cancel.GetProperty("security").EnumerateArray());
+        Assert.True(security.TryGetProperty("Bearer", out _));
+        Assert.False(cancel.TryGetProperty("requestBody", out _));
+        var responses = cancel.GetProperty("responses");
+        foreach (var status in new[] { "200", "401", "404", "409" })
+            Assert.True(responses.TryGetProperty(status, out _));
+        Assert.True(responses.GetProperty("409").GetProperty("content").TryGetProperty("application/problem+json", out _));
+        var schema = root.GetProperty("components").GetProperty("schemas").GetProperty("UploadCancelResponseDto");
+        Assert.True(schema.GetProperty("properties").TryGetProperty("failureCode", out _));
+        Assert.False(paths.TryGetProperty("/api/v1/uploads/{uploadId}/cancel", out _));
+    }
+
+    [Fact]
     public async Task PavementLayoutDocumentsOptionalSavedConfiguration()
     {
         using var document = await Document();

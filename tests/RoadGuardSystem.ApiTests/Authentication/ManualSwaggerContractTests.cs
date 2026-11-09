@@ -11,6 +11,30 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task GeometryDraftReadsDocumentMetadataAndCoordinatesReadiness()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        const string draft = "/api/v1/projects/{projectId}/road-geometry-drafts/{draftId}";
+        const string sectionDraft = "/api/v1/projects/{projectId}/road-sections/{roadSectionId}/geometry-drafts/{draftId}";
+        foreach (var path in new[] { draft, sectionDraft })
+        {
+            var schema = paths.GetProperty(path).GetProperty("get").GetProperty("responses").GetProperty("200")
+                .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+            Assert.Equal("#/components/schemas/GeometryDraftView", schema.GetProperty("$ref").GetString());
+        }
+        var properties = root.GetProperty("components").GetProperty("schemas").GetProperty("GeometryDraftView").GetProperty("properties");
+        foreach (var field in new[] { "nativeAlignment", "routeSystemId", "routeKind", "parentRouteVersionId",
+            "junctionOffsetMeters", "declaredLengthMeters", "chainageCalibration", "tessellationToleranceMeters" })
+            Assert.True(properties.TryGetProperty(field, out _), field);
+        Assert.False(properties.TryGetProperty("resolvedCrsProfile", out _));
+        var readiness = paths.GetProperty(draft + "/readiness").GetProperty("get");
+        Assert.Contains("COORDINATES", readiness.GetProperty("description").GetString());
+        Assert.Contains("unsupported_crs", readiness.GetProperty("responses").GetProperty("422").GetProperty("description").GetString());
+    }
+
+    [Fact]
     public async Task ReporterUploadCancelAdvertisesBearerAndTerminalResponse()
     {
         using var document = await Document();

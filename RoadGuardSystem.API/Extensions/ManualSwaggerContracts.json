@@ -9214,6 +9214,8 @@
       {
         "status": 422,
         "codes": [
+          "geometry_validation_failed",
+          "unsupported_crs",
           "crs_profile_scope_mismatch",
           "crs_profile_srid_mismatch"
         ],
@@ -9229,7 +9231,7 @@
       }
     ],
     "wireLimitations": [],
-    "uiDescription": "Readiness geometry workflow resources. Permissions: PM / Supervisor."
+    "uiDescription": "Read draft readiness. COORDINATES uses project UTM and preview validation. NATIVE_ALIGNMENT uses the pinned CRS profile, calibration and tolerance. Permissions: PM / Supervisor."
   },
   {
     "id": "SWG-065",
@@ -9934,7 +9936,7 @@
       }
     ],
     "wireLimitations": [],
-    "uiDescription": "Draft geometry workflow resources. Permissions: PM / Supervisor."
+    "uiDescription": "Read the saved draft including optional native route metadata and its pinned nativeAlignment CRS profile reference. Permissions: PM / Supervisor."
   },
   {
     "id": "SWG-070",
@@ -10041,7 +10043,7 @@
       }
     ],
     "wireLimitations": [],
-    "uiDescription": "Draft geometry workflow resources. Permissions: PM / Supervisor."
+    "uiDescription": "Read the saved draft for this road section, including optional native route metadata and its pinned nativeAlignment CRS profile reference. Permissions: PM / Supervisor."
   },
   {
     "id": "SWG-071",

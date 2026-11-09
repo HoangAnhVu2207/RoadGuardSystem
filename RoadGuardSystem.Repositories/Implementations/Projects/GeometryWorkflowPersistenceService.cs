@@ -161,7 +161,15 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             var stored = Decode<GeometryDraftInputFact>(draft!.InputJson);
             if (stored.SourceKind == "NATIVE_ALIGNMENT") stored = await ResolveNativeInputAsync(stored, c.ProjectId, ct);
             if (c.Action == "draft-get") return new(200, Value: DraftView(draft), Version: Version(draft.RowVersion));
-            if (c.Action == "draft-readiness") return new(200, Value: stored, Version: Version(draft.RowVersion));
+            if (c.Action == "draft-readiness")
+            {
+                if (stored.SourceKind != "COORDINATES")
+                    return new(200, Value: stored, Version: Version(draft.RowVersion));
+
+                var validated = preview(stored, srid);
+                return new(200, Value: new GeometryDraftReadinessFact(true, [], [], "PROJECT_UTM", false, validated.Warnings),
+                    Version: Version(draft.RowVersion));
+            }
             if (c.Action == "draft-preview") return new(200, Value: preview(stored, srid), Version: Version(draft.RowVersion));
             if (draft.Status != "DRAFT") Reject(409, "road_geometry_invalid_state");
             var confirm = (GeometryConfirmInputFact)c.Input!;
@@ -281,7 +289,17 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         set.Publish(c.ActorId, clock.GetUtcNow()); await db.SaveChangesAsync(ct); var published = await SetView(set, ct); return new(200, Value: published, Version: published.Version);
     }
     private static void Match(byte[] version, string? expected) { if (Version(version) != expected) Reject(412, "concurrency_conflict"); }
-    private static GeometryDraftViewFact DraftView(RoadGeometryDraft d) { var i = Decode<GeometryDraftInputFact>(d.InputJson); return new(d.Id, d.ProjectId, d.RoadSectionId, d.RoadCode, d.RoadName, d.Status, i.SourceKind, i.SourceCrs, i.SourceFileId, d.SourceChecksum, i.TrackIndex, i.TrackSegmentIndex, Decode<GeometryPointFact[]?>(d.OriginalCoordinatesJson) ?? [], i.Coordinates ?? [], i.StationOriginMeters, i.WidthProfile, i.SurveyWidthMeters, d.CreatedBy, d.UpdatedBy, Version(d.RowVersion), i.NativeAlignment); }
+    private static GeometryDraftViewFact DraftView(RoadGeometryDraft d)
+    {
+        var input = Decode<GeometryDraftInputFact>(d.InputJson);
+        return new(d.Id, d.ProjectId, d.RoadSectionId, d.RoadCode, d.RoadName, d.Status, input.SourceKind, input.SourceCrs,
+            input.SourceFileId, d.SourceChecksum, input.TrackIndex, input.TrackSegmentIndex,
+            Decode<GeometryPointFact[]?>(d.OriginalCoordinatesJson) ?? [], input.Coordinates ?? [], input.StationOriginMeters,
+            input.WidthProfile, input.SurveyWidthMeters, d.CreatedBy, d.UpdatedBy, Version(d.RowVersion), input.NativeAlignment,
+            RouteSystemId: input.RouteSystemId, RouteKind: input.RouteKind, ParentRouteVersionId: input.ParentRouteVersionId,
+            JunctionOffsetMeters: input.JunctionOffsetMeters, DeclaredLengthMeters: input.DeclaredLengthMeters,
+            ChainageCalibration: input.ChainageCalibration, TessellationToleranceMeters: input.TessellationToleranceMeters);
+    }
     private static GeometryShapeFact Shape(LineString line) => new("LineString", line.Coordinates.Select(p => new[] { p.X, p.Y }).ToArray());
     private async Task<RoadGeometryVersionViewFact> RouteView(Guid project, Guid section, RoadSectionVersion route, CancellationToken ct)
     {

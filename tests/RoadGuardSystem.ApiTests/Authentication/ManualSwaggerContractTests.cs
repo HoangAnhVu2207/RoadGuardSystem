@@ -34,13 +34,15 @@ public sealed class ManualSwaggerContractTests
         Assert.Contains("unsupported_crs", readiness.GetProperty("responses").GetProperty("422").GetProperty("description").GetString());
     }
 
-    [Fact]
-    public async Task ReporterUploadCancelAdvertisesBearerAndTerminalResponse()
+    [Theory]
+    [InlineData("/api/v1/reporter-evidence/uploads/{uploadId}/cancel", false)]
+    [InlineData("/api/v1/uploads/{uploadId}/cancel", true)]
+    public async Task UploadCancelAdvertisesBearerAndTerminalResponse(string route, bool crew)
     {
         using var document = await Document();
         var root = document.RootElement;
         var paths = root.GetProperty("paths");
-        var cancel = paths.GetProperty("/api/v1/reporter-evidence/uploads/{uploadId}/cancel").GetProperty("post");
+        var cancel = paths.GetProperty(route).GetProperty("post");
         var security = Assert.Single(cancel.GetProperty("security").EnumerateArray());
         Assert.True(security.TryGetProperty("Bearer", out _));
         Assert.False(cancel.TryGetProperty("requestBody", out _));
@@ -50,7 +52,12 @@ public sealed class ManualSwaggerContractTests
         Assert.True(responses.GetProperty("409").GetProperty("content").TryGetProperty("application/problem+json", out _));
         var schema = root.GetProperty("components").GetProperty("schemas").GetProperty("UploadCancelResponseDto");
         Assert.True(schema.GetProperty("properties").TryGetProperty("failureCode", out _));
-        Assert.False(paths.TryGetProperty("/api/v1/uploads/{uploadId}/cancel", out _));
+        Assert.Equal(crew, responses.TryGetProperty("403", out _));
+        Assert.All(cancel.GetProperty("parameters").EnumerateArray(),
+            parameter => Assert.Equal("path", parameter.GetProperty("in").GetString()));
+        Assert.Equal("#/components/schemas/UploadCancelResponseDto",
+            responses.GetProperty("200").GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
     }
 
     [Fact]

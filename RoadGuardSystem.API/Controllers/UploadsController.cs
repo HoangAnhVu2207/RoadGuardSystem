@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoadGuardSystem.API.Constants;
 using RoadGuardSystem.API.Middlewares;
+using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.DTOs.Files;
 using RoadGuardSystem.Services.Files;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -79,6 +80,28 @@ public sealed class UploadsController : ControllerBase
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         return MapPartUrls(await _service.GetPartUrlsAsync(actorUserId, role, uploadId, request, idempotencyKey, cancellationToken));
+    }
+
+    [Authorize]
+    [HttpPost("uploads/{uploadId:guid}/cancel")]
+    [ProducesResponseType<UploadCancelResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<IActionResult> Cancel(Guid uploadId, CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        if (!TryGetActor(out var actorUserId, out var role))
+            return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        return await _service.CancelCrewPhotoAsync(actorUserId, role, uploadId, cancellationToken) switch
+        {
+            UploadServiceStatus.Success or UploadServiceStatus.Replayed =>
+                Ok(new UploadCancelResponseDto(uploadId, "FAILED", UploadSession.CancelledFailureCode)),
+            UploadServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            UploadServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.UploadSessionNotFound, "Not found"),
+            _ => ProblemResponse(409, "upload_not_cancellable", "Upload cannot be cancelled")
+        };
     }
 
     [Authorize]

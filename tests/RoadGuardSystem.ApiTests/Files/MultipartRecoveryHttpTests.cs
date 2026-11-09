@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.ApiTests.Inspections;
 using RoadGuardSystem.BusinessObjects.Inspections;
+using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.Repositories.Files;
 using RoadGuardSystem.Repositories.Options;
@@ -182,43 +184,43 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         await LoginAsync(owner, fixture.Crew);
         await LoginAsync(other, fixture.Other);
         await LoginAsync(pm, fixture.Pm);
-        using var create = await CreateCrewUploadAsync(owner, fixture.Project, fixture.Task, "BEFORE");
+        using var create = await CreateProjectUploadAsync(owner, fixture.Project, fixture.Task, "BEFORE");
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        using var unauthenticated = await CancelAsync(anonymous, id, CrewUploads);
+        using var unauthenticated = await CancelAsync(anonymous, id, ProjectUploads);
         unauthenticated.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        await AssertProblemAsync(await CancelAsync(owner, Guid.NewGuid(), CrewUploads),
+        await AssertProblemAsync(await CancelAsync(owner, Guid.NewGuid(), ProjectUploads),
             HttpStatusCode.NotFound, "upload_session_not_found");
-        await AssertProblemAsync(await CancelAsync(other, id, CrewUploads), HttpStatusCode.Forbidden, "access_forbidden");
-        await AssertProblemAsync(await CancelAsync(pm, id, CrewUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(other, id, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(pm, id, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
 
-        using var cancelled = await CancelAsync(owner, id, CrewUploads);
+        using var cancelled = await CancelAsync(owner, id, ProjectUploads);
         var body = await AssertCancelledAsync(cancelled, id);
-        using var replay = await CancelAsync(owner, id, CrewUploads);
+        using var replay = await CancelAsync(owner, id, ProjectUploads);
         (await AssertCancelledAsync(replay, id)).Should().Be(body);
-        using var second = await CreateCrewUploadAsync(owner, fixture.Project, fixture.Task, "MEASUREMENT");
+        using var second = await CreateProjectUploadAsync(owner, fixture.Project, fixture.Task, "MEASUREMENT");
         var secondId = (await second.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
         await using var db = sql.CreateDbContext();
         var task = await db.FieldInspectionTasks.SingleAsync(row => row.Id == fixture.Task);
         task.Reassign();
         await db.SaveChangesAsync();
-        await AssertProblemAsync(await CancelAsync(owner, secondId, CrewUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(owner, secondId, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
         task.Transition(FieldInspectionTaskStatus.Accepted);
         await db.SaveChangesAsync();
 
         var member = await db.ProjectMembers.SingleAsync(row => row.ProjectId == fixture.Project && row.UserId == fixture.CrewId);
         member.Status = ProjectMemberStatus.Ended;
         await db.SaveChangesAsync();
-        await AssertProblemAsync(await CancelAsync(owner, id, CrewUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(owner, id, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
         member.Status = ProjectMemberStatus.Active;
         await db.SaveChangesAsync();
 
         var assignment = await db.FieldInspectionAssignments.SingleAsync(row => row.FieldInspectionTaskId == fixture.Task);
         assignment.End(DateTimeOffset.UtcNow, "Reassigned");
         await db.SaveChangesAsync();
-        await AssertProblemAsync(await CancelAsync(owner, id, CrewUploads), HttpStatusCode.Forbidden, "access_forbidden");
-        await AssertProblemAsync(await CancelAsync(owner, secondId, CrewUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(owner, id, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(owner, secondId, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
         (await db.UploadSessions.AsNoTracking().SingleAsync(row => row.Id == secondId)).Status.Should().Be(UploadSessionStatus.Pending);
     }
 
@@ -230,22 +232,22 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         await using var factory = Factory(remote, false);
         using var client = factory.CreateClient();
         await LoginAsync(client, fixture.Crew);
-        using var create = await CreateCrewUploadAsync(client, fixture.Project, fixture.Task, "AFTER");
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "AFTER");
         var body = await create.Content.ReadFromJsonAsync<JsonElement>();
         var id = body.GetProperty("id").GetGuid();
         var file = body.GetProperty("fileId").GetGuid();
         var key = Guid.NewGuid().ToString();
-        using var issued = await PartsAsync(client, id, key, route: CrewUploads);
+        using var issued = await PartsAsync(client, id, key, route: ProjectUploads);
         issued.StatusCode.Should().Be(HttpStatusCode.OK);
-        using var session = await client.GetAsync($"{CrewUploads}/{id}");
-        using var cancel = await CancelAsync(client, id, CrewUploads);
+        using var session = await client.GetAsync($"{ProjectUploads}/{id}");
+        using var cancel = await CancelAsync(client, id, ProjectUploads);
         await AssertCancelledAsync(cancel, id);
-        await AssertProblemAsync(await PartsAsync(client, id, key, route: CrewUploads), HttpStatusCode.Conflict, "duplicate_request");
+        await AssertProblemAsync(await PartsAsync(client, id, key, route: ProjectUploads), HttpStatusCode.Conflict, "duplicate_request");
         var completeKey = Guid.NewGuid().ToString();
         var version = session.Headers.ETag!.ToString();
-        using var complete = CompleteRequest(id, version, CrewUploads, completeKey);
+        using var complete = CompleteRequest(id, version, ProjectUploads, completeKey);
         await AssertProblemAsync(await client.SendAsync(complete), HttpStatusCode.Conflict, "duplicate_request");
-        using var repeatComplete = CompleteRequest(id, version, CrewUploads, completeKey);
+        using var repeatComplete = CompleteRequest(id, version, ProjectUploads, completeKey);
         await AssertProblemAsync(await client.SendAsync(repeatComplete), HttpStatusCode.Conflict, "duplicate_request");
         remote.Signatures.Should().Be(1);
 
@@ -267,13 +269,13 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         await using var factory = Factory(new RemotePhoto(), false);
         using var client = factory.CreateClient();
         await LoginAsync(client, fixture.Crew);
-        using var create = await CreateCrewUploadAsync(client, fixture.Project, fixture.Task, "MEASUREMENT");
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "MEASUREMENT");
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-        using var issued = await PartsAsync(client, id, Guid.NewGuid().ToString(), route: CrewUploads);
+        using var issued = await PartsAsync(client, id, Guid.NewGuid().ToString(), route: ProjectUploads);
         issued.StatusCode.Should().Be(HttpStatusCode.OK);
-        using var session = await client.GetAsync($"{CrewUploads}/{id}");
-        using var complete = CompleteRequest(id, session.Headers.ETag!.ToString(), CrewUploads);
-        var cancelTask = CancelAsync(client, id, CrewUploads);
+        using var session = await client.GetAsync($"{ProjectUploads}/{id}");
+        using var complete = CompleteRequest(id, session.Headers.ETag!.ToString(), ProjectUploads);
+        var cancelTask = CancelAsync(client, id, ProjectUploads);
         var completeTask = client.SendAsync(complete);
         await Task.WhenAll(cancelTask, completeTask);
         using var cancelled = await cancelTask;
@@ -294,17 +296,17 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
             saved.Status.Should().Be(UploadSessionStatus.Verifying);
         }
 
-        using var acceptedCreate = await CreateCrewUploadAsync(client, fixture.Project, fixture.Task, "MEASUREMENT");
+        using var acceptedCreate = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "MEASUREMENT");
         var acceptedId = (await acceptedCreate.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-        using var acceptedParts = await PartsAsync(client, acceptedId, Guid.NewGuid().ToString(), route: CrewUploads);
+        using var acceptedParts = await PartsAsync(client, acceptedId, Guid.NewGuid().ToString(), route: ProjectUploads);
         acceptedParts.StatusCode.Should().Be(HttpStatusCode.OK);
-        using var acceptedSession = await client.GetAsync($"{CrewUploads}/{acceptedId}");
+        using var acceptedSession = await client.GetAsync($"{ProjectUploads}/{acceptedId}");
         var acceptedVersion = acceptedSession.Headers.ETag!.ToString();
         var acceptedKey = Guid.NewGuid().ToString();
-        using var acceptedComplete = CompleteRequest(acceptedId, acceptedVersion, CrewUploads, acceptedKey);
+        using var acceptedComplete = CompleteRequest(acceptedId, acceptedVersion, ProjectUploads, acceptedKey);
         using var accepted = await client.SendAsync(acceptedComplete);
         accepted.StatusCode.Should().Be(HttpStatusCode.Accepted);
-        await AssertProblemAsync(await CancelAsync(client, acceptedId, CrewUploads), HttpStatusCode.Conflict, "upload_not_cancellable");
+        await AssertProblemAsync(await CancelAsync(client, acceptedId, ProjectUploads), HttpStatusCode.Conflict, "upload_not_cancellable");
         using (var scope = factory.Services.CreateScope())
         {
             var service = scope.ServiceProvider.GetRequiredService<IUploadService>();
@@ -312,8 +314,8 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
             if (saved.Status == UploadSessionStatus.Verifying) await service.ProcessOneVerificationAsync();
         }
         (await db.UploadSessions.AsNoTracking().SingleAsync(row => row.Id == acceptedId)).Status.Should().Be(UploadSessionStatus.Verified);
-        await AssertProblemAsync(await CancelAsync(client, acceptedId, CrewUploads), HttpStatusCode.Conflict, "upload_not_cancellable");
-        using var replayComplete = CompleteRequest(acceptedId, acceptedVersion, CrewUploads, acceptedKey);
+        await AssertProblemAsync(await CancelAsync(client, acceptedId, ProjectUploads), HttpStatusCode.Conflict, "upload_not_cancellable");
+        using var replayComplete = CompleteRequest(acceptedId, acceptedVersion, ProjectUploads, acceptedKey);
         using var replayAccepted = await client.SendAsync(replayComplete);
         replayAccepted.StatusCode.Should().Be(HttpStatusCode.Accepted);
         (await replayAccepted.Content.ReadAsStringAsync()).Should().Be(await accepted.Content.ReadAsStringAsync());
@@ -326,12 +328,12 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         await using var factory = Factory(new RemotePhoto(), false);
         using var client = factory.CreateClient();
         await LoginAsync(client, fixture.Crew);
-        using var create = await CreateCrewUploadAsync(client, fixture.Project, fixture.Task, "BEFORE");
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "BEFORE");
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-        using var issued = await PartsAsync(client, id, Guid.NewGuid().ToString(), route: CrewUploads);
+        using var issued = await PartsAsync(client, id, Guid.NewGuid().ToString(), route: ProjectUploads);
         issued.StatusCode.Should().Be(HttpStatusCode.OK);
-        using var session = await client.GetAsync($"{CrewUploads}/{id}");
-        using var complete = CompleteRequest(id, session.Headers.ETag!.ToString(), CrewUploads);
+        using var session = await client.GetAsync($"{ProjectUploads}/{id}");
+        using var complete = CompleteRequest(id, session.Headers.ETag!.ToString(), ProjectUploads);
         using var completed = await client.SendAsync(complete);
         completed.StatusCode.Should().Be(HttpStatusCode.Accepted);
 
@@ -339,11 +341,171 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         var saved = await db.UploadSessions.SingleAsync(row => row.Id == id);
         saved.MarkFailed("checksum_mismatch");
         await db.SaveChangesAsync();
-        await AssertProblemAsync(await CancelAsync(client, id, CrewUploads), HttpStatusCode.Conflict, "upload_not_cancellable");
+        await AssertProblemAsync(await CancelAsync(client, id, ProjectUploads), HttpStatusCode.Conflict, "upload_not_cancellable");
         (await db.UploadSessions.AsNoTracking().SingleAsync(row => row.Id == id)).FailureCode.Should().Be("checksum_mismatch");
     }
 
-    private const string CrewUploads = "/api/v1/uploads";
+    [Theory]
+    [InlineData("SURVEY_VIDEO", "video/mp4", "capture.mp4")]
+    [InlineData("TELEMETRY", "application/x-subrip", "capture.srt")]
+    public async Task OperatorCancelRechecksOwnerPurposeAndCurrentSurveyAuthority(string purpose, string mime, string file)
+    {
+        var fixture = await SeedSurveyTaskAsync();
+        await using var factory = Factory(new RemotePhoto(), false);
+        using var owner = factory.CreateClient();
+        using var other = factory.CreateClient();
+        await LoginAsync(owner, fixture.Owner);
+        await LoginAsync(other, fixture.Other);
+        using var create = await CreateProjectUploadAsync(owner, fixture.Project, fixture.Task, purpose, mime, file);
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var document = await CreateProjectUploadAsync(owner, fixture.Project, fixture.Task, "DOCUMENT", "application/pdf", "fixture.pdf");
+        var documentId = (await document.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        await AssertProblemAsync(await CancelAsync(other, id, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(owner, documentId, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        using var cancelled = await CancelAsync(owner, id, ProjectUploads);
+        var response = await AssertCancelledAsync(cancelled, id);
+        using var repeated = await CancelAsync(owner, id, ProjectUploads);
+        (await AssertCancelledAsync(repeated, id)).Should().Be(response);
+
+        await using var db = sql.CreateDbContext();
+        var membership = await db.ProjectMembers.SingleAsync(row => row.ProjectId == fixture.Project && row.UserId == fixture.OwnerId);
+        membership.Status = ProjectMemberStatus.Ended;
+        await db.SaveChangesAsync();
+        await AssertProblemAsync(await CancelAsync(owner, id, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        membership.Status = ProjectMemberStatus.Active;
+        await db.SaveChangesAsync();
+
+        using var newUpload = await CreateProjectUploadAsync(owner, fixture.Project, fixture.Task, purpose, mime, file);
+        var newId = (await newUpload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var assignment = await db.SurveyAssignments.SingleAsync(row => row.SurveyRequestId == fixture.Task);
+        var now = DateTimeOffset.UtcNow;
+        assignment.EndForReassignment(now, "Replacement operator");
+        await db.SaveChangesAsync();
+        db.Add(SurveyAssignment.Create(Guid.NewGuid(), fixture.Task, fixture.OtherId, assignment.AssignedByUserId,
+            now, now, null, null, null, null));
+        await db.SaveChangesAsync();
+        await AssertProblemAsync(await CancelAsync(owner, id, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(owner, newId, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        await AssertProblemAsync(await CancelAsync(other, newId, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+
+        using var replacementUpload = await CreateProjectUploadAsync(other, fixture.Project, fixture.Task, purpose, mime, file);
+        var replacementId = (await replacementUpload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var task = await db.SurveyRequests.SingleAsync(row => row.Id == fixture.Task);
+        task.MarkSubmitted();
+        await db.SaveChangesAsync();
+        await AssertProblemAsync(await CancelAsync(other, replacementId, ProjectUploads), HttpStatusCode.Forbidden, "access_forbidden");
+        (await db.UploadSessions.AsNoTracking().SingleAsync(row => row.Id == replacementId)).Status.Should().Be(UploadSessionStatus.Pending);
+    }
+
+    [Theory]
+    [InlineData("SURVEY_VIDEO", "video/mp4", "capture.mp4")]
+    [InlineData("TELEMETRY", "application/x-subrip", "capture.srt")]
+    public async Task OperatorCancelBlocksOldPartReceiptAndRetriesAbort(string purpose, string mime, string file)
+    {
+        var fixture = await SeedSurveyTaskAsync();
+        var remote = new RemotePhoto { FailNextAbort = true };
+        await using var factory = Factory(remote, false);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, fixture.Owner);
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, purpose, mime, file);
+        var session = await create.Content.ReadFromJsonAsync<JsonElement>();
+        var id = session.GetProperty("id").GetGuid();
+        var fileId = session.GetProperty("fileId").GetGuid();
+        var partKey = Guid.NewGuid().ToString();
+        using var issued = await PartsAsync(client, id, partKey, route: ProjectUploads);
+        issued.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var state = await client.GetAsync($"{ProjectUploads}/{id}");
+        using var cancelled = await CancelAsync(client, id, ProjectUploads);
+        await AssertCancelledAsync(cancelled, id);
+
+        await AssertProblemAsync(await PartsAsync(client, id, partKey, route: ProjectUploads), HttpStatusCode.Conflict, "duplicate_request");
+        var completeKey = Guid.NewGuid().ToString();
+        var version = state.Headers.ETag!.ToString();
+        using var complete = CompleteRequest(id, version, ProjectUploads, completeKey);
+        await AssertProblemAsync(await client.SendAsync(complete), HttpStatusCode.Conflict, "duplicate_request");
+        using var completeRetry = CompleteRequest(id, version, ProjectUploads, completeKey);
+        await AssertProblemAsync(await client.SendAsync(completeRetry), HttpStatusCode.Conflict, "duplicate_request");
+        remote.Signatures.Should().Be(1);
+
+        await RecoverAsync(factory);
+        remote.AbortAttempts.Should().Be(1);
+        remote.Aborted.Should().BeFalse();
+        await using (var db = sql.CreateDbContext())
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET MultipartNextCheckAt={DateTimeOffset.UtcNow.AddMinutes(-1)} WHERE Id={id}");
+        await RecoverAsync(factory);
+        remote.AbortAttempts.Should().Be(2);
+        remote.Aborted.Should().BeTrue();
+        remote.LastAbort.Should().Be(($"uploads/{fileId:N}", "fixture-id"));
+    }
+
+    [Theory]
+    [InlineData("SURVEY_VIDEO", "video/mp4", "capture.mp4")]
+    [InlineData("TELEMETRY", "application/x-subrip", "capture.srt")]
+    public async Task OperatorCancelAndCompleteAllowExactlyOneTransition(string purpose, string mime, string file)
+    {
+        var fixture = await SeedSurveyTaskAsync();
+        await using var factory = Factory(new RemotePhoto(), false);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, fixture.Owner);
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, purpose, mime, file);
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var parts = await PartsAsync(client, id, Guid.NewGuid().ToString(), route: ProjectUploads);
+        parts.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var session = await client.GetAsync($"{ProjectUploads}/{id}");
+        using var complete = CompleteRequest(id, session.Headers.ETag!.ToString(), ProjectUploads);
+        var cancelTask = CancelAsync(client, id, ProjectUploads);
+        var completeTask = client.SendAsync(complete);
+        await Task.WhenAll(cancelTask, completeTask);
+        using var cancelled = await cancelTask;
+        using var completed = await completeTask;
+        await using var db = sql.CreateDbContext();
+        var saved = await db.UploadSessions.AsNoTracking().SingleAsync(row => row.Id == id);
+        if (cancelled.StatusCode == HttpStatusCode.OK)
+        {
+            await AssertCancelledAsync(cancelled, id);
+            completed.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            saved.Status.Should().Be(UploadSessionStatus.Failed);
+            saved.FailureCode.Should().Be("upload_cancelled");
+        }
+        else
+        {
+            await AssertProblemAsync(cancelled, HttpStatusCode.Conflict, "upload_not_cancellable");
+            completed.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            saved.Status.Should().Be(UploadSessionStatus.Verifying);
+            saved.FailureCode.Should().BeNull();
+        }
+    }
+
+    private async Task<(Guid Project, Guid Task, Guid OwnerId, string Owner, Guid OtherId, string Other)> SeedSurveyTaskAsync()
+    {
+        var owner = await sql.CreateUserAsync($"operator-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
+        var other = await sql.CreateUserAsync($"other-operator-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
+        var pm = await sql.CreateUserAsync($"pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var now = DateTimeOffset.UtcNow;
+        var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Survey upload cancel", null, 32648, null, null, now);
+        var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"ROAD-{Guid.NewGuid():N}");
+        var task = SurveyRequest.Create(Guid.NewGuid(), project.Id, road.Id, null, pm.Id,
+            SurveyType.Periodic, SurveyRequestStatus.Accepted, now);
+        var assignment = SurveyAssignment.Create(Guid.NewGuid(), task.Id, owner.Id, pm.Id, now, now, null, null, null, null);
+        await using var db = sql.CreateDbContext();
+        db.AddRange(project, road, task, assignment,
+            ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm.Id, new(2000, 1, 1)));
+        foreach (var userId in new[] { owner.Id, other.Id })
+            db.Add(new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = userId,
+                RoleCode = UserRoleCode.DroneOperator,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new(2000, 1, 1)
+            });
+        await db.SaveChangesAsync();
+        return (project.Id, task.Id, owner.Id, owner.UserName!, other.Id, other.UserName!);
+    }
+
+    private const string ProjectUploads = "/api/v1/uploads";
     private const string ReporterUploads = "/api/v1/reporter-evidence/uploads";
 
     private async Task<(Guid Project, Guid Task, Guid CrewId, string Crew, string Other, string Pm)> SeedCrewTaskAsync()
@@ -366,14 +528,20 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         return (scope.Project, task.Id, crew.Id, crew.UserName!, other.UserName!, pm.UserName!);
     }
 
-    private static async Task<HttpResponseMessage> CreateCrewUploadAsync(HttpClient client, Guid project, Guid task, string purpose)
+    private static async Task<HttpResponseMessage> CreateProjectUploadAsync(HttpClient client, Guid project, Guid task,
+        string purpose, string mediaType = "image/jpeg", string fileName = "crew.jpg")
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, CrewUploads)
+        using var request = new HttpRequestMessage(HttpMethod.Post, ProjectUploads)
         {
             Content = JsonContent.Create(new
             {
-                projectId = project, targetId = task, purpose, fileName = "crew.jpg",
-                mediaType = "image/jpeg", sizeBytes = 4, checksumSha256 = RemotePhoto.Hash
+                projectId = project,
+                targetId = task,
+                purpose,
+                fileName,
+                mediaType,
+                sizeBytes = 4,
+                checksumSha256 = RemotePhoto.Hash
             })
         };
         request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());

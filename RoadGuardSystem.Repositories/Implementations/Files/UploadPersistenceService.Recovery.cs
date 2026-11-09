@@ -19,6 +19,8 @@ public sealed partial class UploadPersistenceService
         IUploadObjectStorage storage, IOptions<UploadSessionOptions> options) : this(context, idempotency, storage)
         => _recoveryOptions = options.Value;
 
+    private static bool SurveyPurpose(string purpose) => purpose is "SURVEY_VIDEO" or "TELEMETRY";
+
     private Task GuardMultipartAsync(Guid actor, Guid? fileId, CancellationToken token) => GuardMultipartAsync(actor, fileId, false, token);
 
     private async Task GuardMultipartAsync(Guid actor, Guid? fileId, bool freshFieldUpload, CancellationToken token)
@@ -47,7 +49,7 @@ public sealed partial class UploadPersistenceService
             }
             else await GuardFieldScopeAsync(actor, project, scope.TargetId, scope.Purpose, freshFieldUpload, token);
         }
-        if (scope.Purpose is "SURVEY_VIDEO" or "TELEMETRY")
+        if (SurveyPurpose(scope.Purpose))
         {
             if (user.RoleCode != UserRoleCode.DroneOperator || scope.TargetId is not { } task) throw new UploadNotFoundException();
             await _context.SurveyRequests.FromSqlInterpolated($"SELECT * FROM [SurveyRequests] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={task}").AsNoTracking().ToListAsync(token);

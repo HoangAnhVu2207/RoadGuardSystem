@@ -456,9 +456,9 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         Assert.Equal(UploadPersistenceStatus.Success, created.Status);
         Assert.NotNull(created.Session);
         var id = created.Session.Id;
-        Assert.Equal(UploadPersistenceStatus.Forbidden, await repository.CancelCrewPhotoAsync(source.Scope.Pm, id));
-        Assert.Equal(UploadPersistenceStatus.Success, await repository.CancelCrewPhotoAsync(source.Scope.Crew, id));
-        Assert.Equal(UploadPersistenceStatus.Replayed, await repository.CancelCrewPhotoAsync(source.Scope.Crew, id));
+        Assert.Equal(UploadPersistenceStatus.Forbidden, await repository.CancelProjectUploadAsync(source.Scope.Pm, UserRoleCode.RepairCrew, id));
+        Assert.Equal(UploadPersistenceStatus.Success, await repository.CancelProjectUploadAsync(source.Scope.Crew, UserRoleCode.RepairCrew, id));
+        Assert.Equal(UploadPersistenceStatus.Replayed, await repository.CancelProjectUploadAsync(source.Scope.Crew, UserRoleCode.RepairCrew, id));
 
         var saved = await db.UploadSessions.AsNoTracking().SingleAsync(row => row.Id == id);
         Assert.Equal("upload_cancelled", saved.FailureCode);
@@ -470,7 +470,7 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         var assignment = await db.FieldInspectionAssignments.SingleAsync(row => row.Id == assignmentId);
         assignment.End(now, "Reassigned");
         await db.SaveChangesAsync();
-        Assert.Equal(UploadPersistenceStatus.Forbidden, await repository.CancelCrewPhotoAsync(source.Scope.Crew, id));
+        Assert.Equal(UploadPersistenceStatus.Forbidden, await repository.CancelProjectUploadAsync(source.Scope.Crew, UserRoleCode.RepairCrew, id));
     }
 
     [Fact]

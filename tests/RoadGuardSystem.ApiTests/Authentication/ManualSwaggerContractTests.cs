@@ -53,6 +53,13 @@ public sealed class ManualSwaggerContractTests
         var schema = root.GetProperty("components").GetProperty("schemas").GetProperty("UploadCancelResponseDto");
         Assert.True(schema.GetProperty("properties").TryGetProperty("failureCode", out _));
         Assert.Equal(crew, responses.TryGetProperty("403", out _));
+        if (crew)
+        {
+            var description = cancel.GetProperty("description").GetString();
+            Assert.Contains("DroneOperator", description, StringComparison.Ordinal);
+            Assert.Contains("SURVEY_VIDEO and TELEMETRY", description, StringComparison.Ordinal);
+            Assert.Contains("RepairCrew", description, StringComparison.Ordinal);
+        }
         Assert.All(cancel.GetProperty("parameters").EnumerateArray(),
             parameter => Assert.Equal("path", parameter.GetProperty("in").GetString()));
         Assert.Equal("#/components/schemas/UploadCancelResponseDto",

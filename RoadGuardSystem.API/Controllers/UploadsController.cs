@@ -94,7 +94,7 @@ public sealed class UploadsController : ControllerBase
         Response.Headers.CacheControl = "private, no-store";
         if (!TryGetActor(out var actorUserId, out var role))
             return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
-        return await _service.CancelCrewPhotoAsync(actorUserId, role, uploadId, cancellationToken) switch
+        return await _service.CancelProjectUploadAsync(actorUserId, role, uploadId, cancellationToken) switch
         {
             UploadServiceStatus.Success or UploadServiceStatus.Replayed =>
                 Ok(new UploadCancelResponseDto(uploadId, "FAILED", UploadSession.CancelledFailureCode)),

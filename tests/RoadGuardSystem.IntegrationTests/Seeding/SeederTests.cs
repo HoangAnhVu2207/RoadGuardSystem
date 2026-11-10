@@ -357,6 +357,9 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
             await new IdentityRoleSeedStep().SeedAsync(context);
             await new PostmanUserSeedStep().SeedAsync(context);
             var first = await RoadGuardSystem.Seeder.DevelopmentScenarios.SeedAsync(context);
+            first.Tables.Should().ContainSingle(x => x.Table == "dbo.GeometrySubmissionRounds" && x.Count == 1);
+            var round = await context.Set<RoadGuardSystem.BusinessObjects.Projects.GeometrySubmissionRound>().SingleAsync();
+            round.Outcome.Should().Be("CONFIRMED");
             var project = await context.Projects.SingleAsync(x => x.ProjectCode == RoadGuardSystem.Seeder.DevelopmentScenarios.ProjectCode);
             context.ChangeTracker.Clear();
             var repeat = await RoadGuardSystem.Seeder.DevelopmentScenarios.SeedAsync(context);

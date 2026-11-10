@@ -124,8 +124,9 @@ public static class DevelopmentScenarios
                 if (newDraft)
                 {
                     await Run("draft-preview", draft: draft!.Id);
+                    var submitted = await Run("draft-submit", draft: draft.Id, version: Convert.ToBase64String(draft.RowVersion));
                     await Run("confirm", new GeometryConfirmInput(null, reference, "Synthetic sample confirmation; no construction authority"),
-                        draft.Id, version: Convert.ToBase64String(draft.RowVersion));
+                        draft.Id, version: submitted.Version);
                 }
                 var section = await db.RoadSections.SingleOrDefaultAsync(x => x.ProjectId == project.Id && x.Code == RoadCode, ct);
                 var route = section is null ? null : await db.RoadSectionVersions.SingleOrDefaultAsync(x => x.RoadSectionId == section.Id && x.IsCurrent, ct);
@@ -302,7 +303,7 @@ public static class DevelopmentScenarios
                 Actions = "Supervisor CreateProject -> genuine handover/warranty/PM membership; existing mutable state preserved", Evidence = "SYNTHETIC_DEV_TEST" }
         };
         foreach (var road in await db.RoadSections.AsNoTracking().Where(x => x.ProjectId == project).ToListAsync(ct))
-            rows.Add(new { road.Id, Kind = "ROAD", road.Code, Actions = "PM profile/system/draft -> Supervisor confirm -> PM segment-set generate/publish", Limitation = "SampleOnly native CRS; no construction authority" });
+            rows.Add(new { road.Id, Kind = "ROAD", road.Code, Actions = "PM profile/system/draft/submit -> Supervisor confirm -> PM segment-set generate/publish", Limitation = "SampleOnly native CRS; no construction authority" });
         foreach (var task in await db.SurveyRequests.AsNoTracking().Where(x => x.ProjectId == project).ToListAsync(ct))
             rows.Add(new
             {

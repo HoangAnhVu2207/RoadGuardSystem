@@ -1157,6 +1157,22 @@
     ]
   },
   {
+    "Table": "dbo.GeometrySubmissionRounds",
+    "Group": "geometry",
+    "DependencyOrder": 40,
+    "Prerequisites": [
+      "dbo.RoadGeometryDrafts",
+      "dbo.Users"
+    ],
+    "Producer": "IGeometryWorkflowService.ExecuteAsync actions draft-submit and confirm",
+    "EmptyReason": "No new sample draft was submitted; the Development Seeder preserves existing drafts and their review history.",
+    "Scenario": "For a new synthetic native draft, PM submits the previewed draft using its current version and Supervisor confirms that round using the version returned by submit.",
+    "Source": [
+      "tools/RoadGuardSystem.Seeder/DevelopmentScenarios.cs",
+      "RoadGuardSystem.Repositories/Implementations/Projects/GeometryWorkflowPersistenceService.cs"
+    ]
+  },
+  {
     "Table": "dbo.GroundTruthMeasurements",
     "Group": "field",
     "DependencyOrder": 90,

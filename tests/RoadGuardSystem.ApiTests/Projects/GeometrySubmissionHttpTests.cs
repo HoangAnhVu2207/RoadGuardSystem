@@ -173,7 +173,14 @@ public sealed class GeometrySubmissionHttpTests(AuthenticationSqlServerFixture s
         await using var db = sql.CreateDbContext();
         var stored = await db.Set<RoadGeometryDraft>().SingleAsync(x => x.ProjectId == project && x.SubmittedAt != null);
         Assert.Equal("SUBMITTED", stored.Status);
-        Assert.Equal(scenario == "edit" && second.StatusCode == HttpStatusCode.OK ? second.Headers.ETag!.Tag.Trim('"') : etag.Tag.Trim('"'), stored.SubmittedContentVersion);
+        var secondDraftWon = scenario == "different-drafts" && second.StatusCode == HttpStatusCode.Created;
+        var winningPath = secondDraftWon ? other : path;
+        var submittedEtag = secondDraftWon ? otherEtag : etag;
+        if (scenario == "edit" && second.StatusCode == HttpStatusCode.OK)
+            submittedEtag = second.Headers.ETag!;
+
+        Assert.Equal(Guid.Parse(winningPath[(winningPath.LastIndexOf('/') + 1)..]), stored.Id);
+        Assert.Equal(submittedEtag.Tag.Trim('"'), stored.SubmittedContentVersion);
         Assert.Equal(1, await db.IdempotencyRecords.CountAsync(x => x.ProjectId == project && x.Operation == "Geometry:draft-submit"));
     }
 

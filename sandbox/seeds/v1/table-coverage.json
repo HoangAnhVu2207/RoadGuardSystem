@@ -200,9 +200,10 @@
     "20261008171739_BaselineCurrentSchema",
     "20261009043010_AllowVerifiedDefectPostRepairTasks",
     "20261022074647_C1ControlledPublicPublication",
-    "20261022181921_B2NotificationSupervisorAssignment"
+    "20261022181921_B2NotificationSupervisorAssignment",
+    "20261110043224_RoadGeometrySubmission"
   ],
-  "Signature": "7089DD76ED03413842A8813E90C4018136AAB2B71996C43EF89AD4F5FB3B1F58",
+  "Signature": "FCDF3D5A8A874FDB2B85C4A9EC733CE9BC89F885F803AE11F452C734E19050E1",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",

@@ -257,11 +257,13 @@ public sealed class ApprovedTrainingExportHttpTests(AuthenticationSqlServerFixtu
             roadCode = "TRAINING-" + Guid.NewGuid().ToString("N")
         });
         var draftId = (await draft.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var submitted = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(pm,
+            prefix + $"/road-geometry-drafts/{draftId}", draft.Headers.ETag!);
         using var supervisor = factory.CreateClient(); string email;
         await using (var db = sql.CreateDbContext()) email = (await db.Users.SingleAsync(u => u.Id == source.Supervisor)).Email!;
         var login = await supervisor.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Current1!" }); login.EnsureSuccessStatusCode();
         supervisor.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
-        var confirmed = await Send(supervisor, prefix + $"/road-geometry-drafts/{draftId}/confirm", new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow.AddMinutes(-1), reason = "synthetic fixture alignment" }, draft.Headers.ETag!.ToString());
+        var confirmed = await Send(supervisor, prefix + $"/road-geometry-drafts/{draftId}/confirm", new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow.AddMinutes(-1), reason = "synthetic fixture alignment" }, submitted.Headers.ETag!.ToString());
         var route = await confirmed.Content.ReadFromJsonAsync<JsonElement>(); var routeId = route.GetProperty("routeVersionId").GetGuid(); var road = route.GetProperty("roadSectionId").GetGuid();
         var setPath = prefix + $"/road-sections/{road}/versions/{routeId}/segment-sets";
         var set = await Send(pm, setPath, new { targetLengthMeters = 100d, remainderMode = "KEEP" });

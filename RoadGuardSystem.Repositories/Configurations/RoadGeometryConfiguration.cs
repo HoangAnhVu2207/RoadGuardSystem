@@ -8,9 +8,15 @@ public sealed class RoadGeometryDraftConfiguration : IEntityTypeConfiguration<Ro
     public void Configure(EntityTypeBuilder<RoadGeometryDraft> builder)
     {
         var b = builder;
-        b.ToTable("RoadGeometryDrafts"); b.HasKey(x => x.Id);
+        b.ToTable("RoadGeometryDrafts", table => table.HasCheckConstraint("CK_RoadGeometryDrafts_Submission",
+            "([SubmittedAt] IS NULL AND [SubmittedBy] IS NULL AND [SubmittedContentVersion] IS NULL AND [Status] <> 'SUBMITTED') OR ([SubmittedAt] IS NOT NULL AND [SubmittedBy] IS NOT NULL AND [SubmittedContentVersion] IS NOT NULL AND [Status] IN ('SUBMITTED', 'CONFIRMED'))"));
+        b.HasKey(x => x.Id);
+        b.HasIndex(x => x.ProjectId);
         b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.RoadCode).HasMaxLength(80);
         b.Property(x => x.RoadName).HasMaxLength(255); b.Property(x => x.Status).HasMaxLength(16);
+        b.Property(x => x.SubmittedContentVersion).HasMaxLength(16);
+        b.HasIndex(x => x.ProjectId, "UX_RoadGeometryDrafts_ProjectSubmission")
+            .IsUnique().HasFilter("[SubmittedAt] IS NOT NULL");
         b.Property(x => x.SourceChecksum).HasMaxLength(64); b.Property(x => x.RowVersion).IsRowVersion();
         b.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<RoadSection>().WithMany().HasForeignKey(x => x.RoadSectionId).OnDelete(DeleteBehavior.Restrict);

@@ -27,7 +27,7 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
         var triggers = await db.Database.SqlQueryRaw<string>("SELECT name AS [Value] FROM sys.triggers WHERE name LIKE '%Pavement%' OR name LIKE '%CrsProfile%' OR name LIKE '%NativeRoute%' OR name='TR_RoadSectionVersions_ProfileScope' OR name LIKE '%GeometryMapPublications%' OR name LIKE '%GeometryLocationImpact%'").ToArrayAsync();
         Assert.Equal(13, triggers.Length);
 
-        await migrator.MigrateAsync();
+        await migrator.MigrateAsync(discovered[^2]);
         var project = Guid.NewGuid(); var actor = Guid.NewGuid(); var section = Guid.NewGuid(); var route = Guid.NewGuid(); var now = DateTimeOffset.UtcNow;
         db.Projects.Add(Project.Create(project, project.ToString(), "legacy survivor", null, null, null, null, now));
         await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS(SELECT 1 FROM Roles WHERE Code='SUPERVISOR') INSERT Roles(Code,Name,NormalizedName,IsActive) VALUES('SUPERVISOR','Supervisor','SUPERVISOR',1)");
@@ -36,12 +36,26 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
         var receipt = IdempotencyRecord.Create(actor, project, "H2.fixture", "preserved", new string('a', 64), route, "{}", now); db.Add(receipt);
         await db.SaveChangesAsync();
         await db.Database.ExecuteSqlInterpolatedAsync($"INSERT RoadSectionVersions(Id,RoadSectionId,VersionNo,IsCurrent,Geometry,EffectiveFrom,ChangeReason) VALUES({route},{section},1,1,geometry::STGeomFromText('LINESTRING(0 0,100 0)',32648),{now},'legacy')");
+        var draftId = Guid.NewGuid();
+        var confirmedId = Guid.NewGuid();
+        const string emptyObject = "{}";
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT RoadGeometryDrafts(Id,ProjectId,RoadSectionId,RoadCode,Status,InputJson,OriginalCoordinatesJson,CreatedBy,UpdatedBy,CreatedAt,UpdatedAt)
+            VALUES({draftId},{project},NULL,'draft','DRAFT',{emptyObject},'[]',{actor},{actor},{now},{now}),
+                  ({confirmedId},{project},{section},'legacy','CONFIRMED',{emptyObject},'[]',{actor},{actor},{now},{now})
+            """);
         var history = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
         await migrator.MigrateAsync(); db.ChangeTracker.Clear();
+        var drafts = await db.Set<RoadGeometryDraft>().Where(x => x.ProjectId == project).ToDictionaryAsync(x => x.Id);
+        Assert.Equal("DRAFT", drafts[draftId].Status);
+        Assert.Null(drafts[draftId].RoadSectionId);
+        Assert.Equal("CONFIRMED", drafts[confirmedId].Status);
+        Assert.Equal(section, drafts[confirmedId].RoadSectionId);
+        Assert.All(drafts.Values, draft => Assert.Null(draft.SubmittedAt));
         var preserved = await db.RoadSectionVersions.AsNoTracking().SingleAsync(x => x.Id == route);
         Assert.Null(preserved.CrsProfileRevisionId); Assert.Equal(32648, preserved.Geometry.SRID); Assert.Equal(100, preserved.Geometry.Length);
         Assert.Equal(receipt.OutcomeJson, (await db.Set<IdempotencyRecord>().AsNoTracking().SingleAsync(x => x.Id == receipt.Id)).OutcomeJson);
-        Assert.Equal(history, await db.Database.GetAppliedMigrationsAsync());
+        Assert.Equal(history.Append(discovered[^1]), await db.Database.GetAppliedMigrationsAsync());
         var profile = new CrsProfileRevision { Id = Guid.NewGuid(), ProjectId = project, Code = "candidate", Revision = 1, SourceSrid = 0, SampleOnly = true, PayloadJson = "{}", CreatedBy = actor, CreatedAt = now }; db.Add(profile); await db.SaveChangesAsync();
         var system = new RoadRouteSystem { Id = Guid.NewGuid(), ProjectId = project, Code = "fixture", Name = "fixture" }; db.Add(system);
         var firstRoad = RoadSection.Create(Guid.NewGuid(), project, "first"); var secondRoad = RoadSection.Create(Guid.NewGuid(), project, "second"); db.AddRange(firstRoad, secondRoad); await db.SaveChangesAsync();

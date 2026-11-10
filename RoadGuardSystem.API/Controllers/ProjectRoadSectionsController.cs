@@ -72,6 +72,8 @@ public sealed class ProjectRoadSectionsController : ControllerBase
                 StatusCodes.Status409Conflict, ApiErrorCodes.ProjectClosed, "Conflict"),
             RoadSectionVersionServiceStatus.RoadSectionCodeConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.RoadSectionCodeConflict, "Conflict"),
+            RoadSectionVersionServiceStatus.SubmittedGeometryLocked => ProblemResponse(
+                StatusCodes.Status409Conflict, "road_geometry_submission_locked", "Conflict"),
             RoadSectionVersionServiceStatus.IdempotentConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Duplicate request"),
             _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request")
@@ -130,6 +132,8 @@ public sealed class ProjectRoadSectionsController : ControllerBase
                 StatusCodes.Status409Conflict, ApiErrorCodes.ProjectClosed, "Conflict"),
             RoadSectionVersionServiceStatus.StaleConcurrency => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.RoadSectionConcurrencyConflict, "Conflict"),
+            RoadSectionVersionServiceStatus.SubmittedGeometryLocked => ProblemResponse(
+                StatusCodes.Status409Conflict, "road_geometry_submission_locked", "Conflict"),
             RoadSectionVersionServiceStatus.IdempotentConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Duplicate request"),
             _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request")

@@ -97,6 +97,8 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
             });
             await memberDb.SaveChangesAsync();
         }
+        using var geometrySubmission = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(client,
+            $"/api/v1/projects/{scope.Project}/road-geometry-drafts/{draftId}", draftResponse.Headers.ETag!);
         await Login(client, impactSupervisor.UserName!);
         var confirmResponse = await Post(client, $"/api/v1/projects/{scope.Project}/road-geometry-drafts/{draftId}/confirm",
             new
@@ -104,7 +106,7 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
                 expectedCurrentVersionId = scope.Route,
                 effectiveFrom = DateTimeOffset.UtcNow,
                 reason = "TEST_ONLY Supervisor confirms changed route"
-            }, version: draftResponse.Headers.ETag!.Tag.Trim('"'));
+            }, version: geometrySubmission.Headers.ETag!.Tag.Trim('"'));
         Assert.Equal(HttpStatusCode.Created, confirmResponse.StatusCode);
         var replacementRoute = (await confirmResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("routeVersionId").GetGuid();
         await Login(client, pm.UserName!);

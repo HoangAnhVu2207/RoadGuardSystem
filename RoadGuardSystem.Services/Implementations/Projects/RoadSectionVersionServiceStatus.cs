@@ -11,5 +11,6 @@ public enum RoadSectionVersionServiceStatus
     RoadSectionNotFound,
     RoadSectionCodeConflict,
     StaleConcurrency,
+    SubmittedGeometryLocked,
     IdempotentConflict
 }

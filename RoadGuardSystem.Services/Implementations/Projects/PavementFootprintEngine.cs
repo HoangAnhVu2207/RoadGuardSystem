@@ -47,17 +47,15 @@ public static class PavementFootprintEngine
                 var required = Math.Ceiling((high - low) / arc.Radius / angle);
                 if (required > 4096) throw new ArgumentException("Footprint vertex bound exceeded.", nameof(input));
                 var steps = (int)Math.Max(1, required);
-                for (var index = 0; index <= steps; index++) offsets.Add(low + (high - low) * index / steps);
+                offsets.Add(low);
+                offsets.Add(high);
+                for (var index = 1; index < steps; index++) offsets.Add(low + (high - low) * index / steps);
             }
             if (offsets.Count > 4097) throw new ArgumentException("Footprint vertex bound exceeded.", nameof(input));
             vertexCount += 2L * offsets.Count + 1;
             if (vertexCount > 1000000) throw new ArgumentException("The footprint batch exceeds the vertex bound.", nameof(input));
-            GeometryPoint Offset(double at, double lateral)
-            {
-                var point = alignment.PointAt(at); var tangent = alignment.TangentAt(at);
-                return new(point.X - tangent.Y * lateral, point.Y + tangent.X * lateral);
-            }
-            var ring = offsets.Select(x => Offset(x, left)).Concat(offsets.Reverse().Select(x => Offset(x, right))).ToList();
+            var ring = offsets.Select(x => alignment.FootprintOffsetAt(x, left))
+                .Concat(offsets.Reverse().Select(x => alignment.FootprintOffsetAt(x, right))).ToList();
             ring.Add(ring[0]);
             ValidatePolygon(ring.ToArray());
             return new SlabGeometrySnapshot(cell.Sequence.ToString(System.Globalization.CultureInfo.InvariantCulture), cell.Sequence,

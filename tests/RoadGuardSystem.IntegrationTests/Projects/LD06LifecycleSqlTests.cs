@@ -33,9 +33,12 @@ public sealed class LD06LifecycleSqlTests(IdentitySqlServerFixture sql, ITestOut
                 Guid.NewGuid().ToString(), null, UserRoleCode.ProjectManager));
             Assert.True(draftResult.Status == 201, $"Draft actual {draftResult.Status}/{draftResult.Code}");
             var draft = Assert.IsType<RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.GeometryDraftViewFact>(draftResult.Value);
+            var submitted = await Geometry(new(source.Pm, source.Project, "draft-submit", null, draft.Id, null, null, null,
+                Guid.NewGuid().ToString(), draftResult.Version, UserRoleCode.ProjectManager));
+            Assert.Equal(201, submitted.Status);
             var confirmedResult = await Geometry(new(source.Supervisor, source.Project, "confirm", null, draft.Id, null, null,
                 new RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.GeometryConfirmInputFact(null, DateTimeOffset.UtcNow, "TEST_ONLY source"),
-                Guid.NewGuid().ToString(), draftResult.Version, UserRoleCode.Supervisor));
+                Guid.NewGuid().ToString(), submitted.Version, UserRoleCode.Supervisor));
             Assert.True(confirmedResult.Status == 201, $"Confirm actual {confirmedResult.Status}/{confirmedResult.Code}");
             var route = Assert.IsType<RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.RoadGeometryVersionViewFact>(confirmedResult.Value);
             var setResult = await Geometry(new(source.Pm, source.Project, "set-create", null, null, route.RouteVersionId, null,

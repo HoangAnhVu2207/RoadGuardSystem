@@ -163,6 +163,7 @@ public sealed class RoadSectionVersionService : IRoadSectionVersionService
         RoadSectionVersionWriteStatus.ProjectClosed => RoadSectionVersionServiceStatus.ProjectClosed,
         RoadSectionVersionWriteStatus.RoadSectionNotFound => RoadSectionVersionServiceStatus.RoadSectionNotFound,
         RoadSectionVersionWriteStatus.RoadSectionCodeConflict => RoadSectionVersionServiceStatus.RoadSectionCodeConflict,
+        RoadSectionVersionWriteStatus.SubmittedGeometryLocked => RoadSectionVersionServiceStatus.SubmittedGeometryLocked,
         RoadSectionVersionWriteStatus.StaleConcurrency => RoadSectionVersionServiceStatus.StaleConcurrency,
         RoadSectionVersionWriteStatus.IdempotentConflict => RoadSectionVersionServiceStatus.IdempotentConflict,
         _ => RoadSectionVersionServiceStatus.InvalidInput

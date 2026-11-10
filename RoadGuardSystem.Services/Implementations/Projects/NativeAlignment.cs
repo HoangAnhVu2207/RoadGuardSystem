@@ -63,6 +63,52 @@ public sealed class NativeAlignment
     public GeometryPoint TangentAt(double offset)
     {
         var (p, fraction) = Locate(offset);
+        return Tangent(p, fraction);
+    }
+
+    internal GeometryPoint FootprintOffsetAt(double offset, double lateral)
+    {
+        var index = LocateIndex(offset);
+        var start = index == 0 ? 0 : ends[index - 1];
+        var end = ends[index];
+        if (lateral == 0) return PointAt(offset);
+        if (offset == start) return AtJoin(index, lateral);
+        if (offset == end) return AtJoin(index + 1, lateral);
+
+        var fraction = (offset - start) / (end - start);
+        if (primitives[index].Kind == "ARC")
+            return Offset(PointOn(index, offset), Tangent(primitives[index], fraction), lateral);
+
+        // Cut the actual joined offset segment at the same fraction as the centreline.
+        // Cutting an untrimmed tangent near an inside corner can reverse the slab edge.
+        var first = AtJoin(index, lateral);
+        var last = AtJoin(index + 1, lateral);
+        return new(first.X + fraction * (last.X - first.X), first.Y + fraction * (last.Y - first.Y));
+    }
+
+    private GeometryPoint AtJoin(int index, double lateral)
+    {
+        if (index == 0) return Offset(PointOn(0, 0), Tangent(primitives[0], 0), lateral);
+        if (index == primitives.Length)
+            return Offset(PointOn(index - 1, Length), Tangent(primitives[^1], 1), lateral);
+
+        var point = PointOn(index, ends[index - 1]);
+        var incoming = Tangent(primitives[index - 1], 1);
+        var outgoing = Tangent(primitives[index], 0);
+        var denominator = 1 + incoming.X * outgoing.X + incoming.Y * outgoing.Y;
+        if (denominator <= 1e-12)
+            throw new ArgumentException("Reversing alignment has no finite footprint join.");
+
+        // The angle-bisector cut intersects both tangent offsets at the same lateral distance.
+        return new(point.X - lateral * (incoming.Y + outgoing.Y) / denominator,
+            point.Y + lateral * (incoming.X + outgoing.X) / denominator);
+    }
+
+    private static GeometryPoint Offset(GeometryPoint point, GeometryPoint tangent, double lateral)
+        => new(point.X - tangent.Y * lateral, point.Y + tangent.X * lateral);
+
+    private static GeometryPoint Tangent(NativeAlignmentPrimitive p, double fraction)
+    {
         if (p.Kind == "LINE") { var d = Distance(p.Start, p.End); return new((p.End.X - p.Start.X) / d, (p.End.Y - p.Start.Y) / d); }
         var angle = p.StartAngleRadians!.Value + fraction * p.SweepRadians!.Value;
         var direction = Math.Sign(p.SweepRadians.Value);
@@ -104,12 +150,18 @@ public sealed class NativeAlignment
     }
     private (NativeAlignmentPrimitive Primitive, double Fraction) Locate(double offset)
     {
-        ValidateOffset(offset);
-        var index = Array.FindIndex(ends, end => offset < end);
-        if (index < 0) index = ends.Length - 1;
+        var index = LocateIndex(offset);
         var start = index == 0 ? 0 : ends[index - 1];
         return (primitives[index], (offset - start) / (ends[index] - start));
     }
+
+    private int LocateIndex(double offset)
+    {
+        ValidateOffset(offset);
+        var index = Array.BinarySearch(ends, offset);
+        return index < 0 ? ~index : Math.Min(index + 1, ends.Length - 1);
+    }
+
     private void ValidateOffset(double offset) { if (!double.IsFinite(offset) || offset < 0 || offset > Length) Fail("Offset is outside the analytic alignment."); }
     private static GeometryPoint ArcPoint(NativeAlignmentPrimitive p, double fraction) => new(p.Center!.X + p.Radius!.Value * Math.Cos(p.StartAngleRadians!.Value + fraction * p.SweepRadians!.Value), p.Center.Y + p.Radius.Value * Math.Sin(p.StartAngleRadians.Value + fraction * p.SweepRadians.Value));
     private static bool Finite(GeometryPoint? p) => p is not null && double.IsFinite(p.X) && double.IsFinite(p.Y);

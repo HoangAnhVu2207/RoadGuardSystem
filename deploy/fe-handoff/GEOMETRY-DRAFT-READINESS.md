@@ -60,3 +60,5 @@ Trích response mẫu cho BRANCH, với ID minh họa:
 BE đọc các giá trị này từ draft đã lưu. FE lấy reference CRS profile từ `nativeAlignment.crsProfileRevisionId`. Các trường metadata mới được bỏ qua trong JSON khi chưa có giá trị, ví dụ tuyến MAIN không có parent hoặc junction. Giá trị `junctionOffsetMeters: 0` vẫn được trả nếu đã lưu. `nativeAlignment` của draft tọa độ giữ dạng `null` như trước.
 
 Khi sửa, gửi lại metadata cần giữ trong body PUT cùng `changeReason` mới, `If-Match` lấy nguyên ETag có dấu ngoặc kép và `Idempotency-Key`. Nếu nhận `412 concurrency_conflict`, tải lại GET draft để lấy dữ liệu và ETag mới. Swagger hiện hành ở `/swagger/v1/swagger.json` của backend đang chạy.
+
+Xem [trình và xác nhận hồ sơ tuyến](ROAD-GEOMETRY-SUBMISSION.md) để lấy ETag sau bước trình và tìm hồ sơ theo project ID.

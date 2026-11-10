@@ -39,4 +39,7 @@
     <Compile Include="..\Shared\ND01OriginalWindowFixture.cs" Link="Infrastructure\ND01OriginalWindowFixture.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../fixtures/PavementOffsetJoinRegression.cs" Link="Fixtures/PavementOffsetJoinRegression.cs" />
+  </ItemGroup>
 </Project>

@@ -40,4 +40,7 @@
     <ProjectReference Include="..\..\RoadGuardSystem.Services\RoadGuardSystem.dServices.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../fixtures/PavementOffsetJoinRegression.cs" Link="Fixtures/PavementOffsetJoinRegression.cs" />
+  </ItemGroup>
 </Project>

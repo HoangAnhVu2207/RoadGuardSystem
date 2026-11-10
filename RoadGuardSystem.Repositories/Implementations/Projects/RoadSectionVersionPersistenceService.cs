@@ -185,6 +185,7 @@ public sealed class RoadSectionVersionPersistenceService : IRoadSectionVersionRe
         RoadSectionInitialVersionWriteRequest request,
         CancellationToken cancellationToken)
     {
+        await GeometryWorkflowPersistenceService.LockProjectAsync(_context, request.ProjectId, cancellationToken);
         var project = await _context.Projects.SingleOrDefaultAsync(
             candidate => candidate.Id == request.ProjectId,
             cancellationToken);
@@ -205,6 +206,9 @@ public sealed class RoadSectionVersionPersistenceService : IRoadSectionVersionRe
 
         Spatial.SpatialValidation.EnsureProjectEngineeringGeometry(request.Geometry, projectSrid);
         var roadSection = RoadSection.Create(Guid.NewGuid(), request.ProjectId, request.Code, request.Name);
+        if (await GeometryWorkflowPersistenceService.SubmittedDrafts(_context, request.ProjectId)
+            .AnyAsync(x => x.RoadCode == roadSection.Code, cancellationToken))
+            throw new RoadSectionVersionWriteException(RoadSectionVersionWriteStatus.SubmittedGeometryLocked);
         var version = RoadSectionVersion.Create(
             Guid.NewGuid(),
             roadSection.Id,
@@ -253,6 +257,7 @@ public sealed class RoadSectionVersionPersistenceService : IRoadSectionVersionRe
         RoadSectionNextVersionWriteRequest request,
         CancellationToken cancellationToken)
     {
+        await GeometryWorkflowPersistenceService.LockProjectAsync(_context, request.ProjectId, cancellationToken);
         var section = await _context.RoadSections.SingleOrDefaultAsync(
             candidate => candidate.Id == request.RoadSectionId && candidate.ProjectId == request.ProjectId,
             cancellationToken);
@@ -278,6 +283,10 @@ public sealed class RoadSectionVersionPersistenceService : IRoadSectionVersionRe
         {
             throw new RoadSectionVersionWriteException(RoadSectionVersionWriteStatus.InvalidInput);
         }
+
+        if (await GeometryWorkflowPersistenceService.SubmittedDrafts(_context, request.ProjectId)
+            .AnyAsync(x => x.RoadSectionId == section.Id || x.RoadCode == section.Code, cancellationToken))
+            throw new RoadSectionVersionWriteException(RoadSectionVersionWriteStatus.SubmittedGeometryLocked);
 
         Spatial.SpatialValidation.EnsureProjectEngineeringGeometry(request.Geometry, projectSrid);
         var current = await _context.RoadSectionVersions.SingleOrDefaultAsync(

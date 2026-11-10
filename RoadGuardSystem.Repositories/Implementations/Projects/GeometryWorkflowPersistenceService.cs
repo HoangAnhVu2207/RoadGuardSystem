@@ -24,6 +24,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
     private static string Hash(object value) => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(value))).ToLowerInvariant();
     private static T Decode<T>(string json) => JsonSerializer.Deserialize<T>(json)!;
     private static string Version(byte[] bytes) => Convert.ToBase64String(bytes);
+    private sealed class CommittedReceipt : Exception;
     private sealed class Rejected(int status, string code) : Exception { public GeometryWorkflowResult Result { get; } = new(status, code); }
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     private static void Reject(int status, string code) => throw new Rejected(status, code);
@@ -33,7 +34,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         var c = command; var ct = cancellationToken;
         try
         {
-            var write = c.Action is "draft-create" or "draft-edit" or "confirm" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create";
+            var write = c.Action is "draft-submit" or "draft-create" or "draft-edit" or "confirm" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create";
             if (!write && db.Database.CurrentTransaction is not null)
             {
                 await GuardAsync(c, true, ct);
@@ -47,14 +48,18 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
                 await transaction.CommitAsync(ct);
                 return result;
             });
-            var receipt = await idempotency.ExecuteAsync(c.ActorId, c.ProjectId, "Geometry:" + c.Action, c.Key!, Hash(new { c.RoadSectionId, c.DraftId, c.RouteVersionId, c.SetId, c.Input, c.ExpectedVersion }), async token =>
+            var operation = "Geometry:" + c.Action;
+            var key = c.Key!.Trim();
+            var receipt = await idempotency.ExecuteAsync(c.ActorId, c.ProjectId, operation, key, Hash(new { c.RoadSectionId, c.DraftId, c.RouteVersionId, c.SetId, c.Input, c.ExpectedVersion }), async token =>
             {
                 // Project serialization also covers alias URLs whose draft resolves the existing road only inside the handler.
-                var resource = $"anh01:geometry:{c.ProjectId}";
-                await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @lockResult int; EXEC @lockResult = sys.sp_getapplock @Resource={resource}, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; IF @lockResult < 0 THROW 51000, 'Geometry command lock unavailable', 1;", token);
+                await LockProjectAsync(db, c.ProjectId, token);
                 await GuardAsync(c, true, token);
+                if (await db.IdempotencyRecords.AsNoTracking().AnyAsync(x => x.ActorUserId == c.ActorId &&
+                    x.ProjectId == c.ProjectId && x.Operation == operation && x.IdempotencyKey == key, token))
+                    throw new CommittedReceipt();
                 var result = await Run(c, preview, segments, token);
-                var id = result.Value switch { GeometryDraftViewFact draft => draft.Id, RoadGeometryVersionViewFact route => route.RouteVersionId, SegmentSetViewFact set => set.Id, _ => c.SetId ?? c.DraftId ?? Guid.NewGuid() };
+                var id = result.Value switch { GeometryDraftViewFact draft => draft.Id, GeometrySubmissionViewFact submission => submission.DraftId, RoadGeometryVersionViewFact route => route.RouteVersionId, SegmentSetViewFact set => set.Id, _ => c.SetId ?? c.DraftId ?? Guid.NewGuid() };
                 db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), c.ActorId, clock.GetUtcNow(),
                     "geometry_" + c.Action.Replace('-', '_'), "RoadGeometry", id, null,
                     JsonSerializer.Serialize(new { project_id = c.ProjectId, operation = c.Action }), "GEOMETRY_WORKFLOW", "PROJECT_API", null,
@@ -69,6 +74,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
                 Value = c.Action switch
                 {
                     "draft-create" or "draft-edit" => json.Deserialize<GeometryDraftViewFact>(),
+                    "draft-submit" => json.Deserialize<GeometrySubmissionViewFact>(),
                     "confirm" => json.Deserialize<RoadGeometryVersionViewFact>(),
                     "profile-create" => json.Deserialize<CrsProfileViewFact>(),
                     "system-create" => json.Deserialize<RouteSystemViewFact>(),
@@ -77,6 +83,11 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             };
             return restored;
         }
+        catch (CommittedReceipt)
+        {
+            db.ChangeTracker.Clear();
+            return await ExecuteAsync(command, preview, segments, cancellationToken);
+        }
         catch (Rejected e) { db.ChangeTracker.Clear(); return e.Result; }
         catch (DbUpdateConcurrencyException) { db.ChangeTracker.Clear(); return new(412, "concurrency_conflict"); }
         catch (DbUpdateException e) when (e.InnerException is SqlException { Number: 2601 or 2627 })
@@ -84,7 +95,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             db.ChangeTracker.Clear();
             return new(409, c.Action == "confirm"
                 ? ((GeometryConfirmInputFact)c.Input!).ExpectedCurrentVersionId is null ? "road_section_code_conflict" : "road_section_concurrency_conflict"
-                : "segment_publication_conflict");
+                : c.Action == "draft-submit" ? "road_geometry_submission_exists" : "segment_publication_conflict");
         }
     }
     private async Task<GeometryWorkflowResult> Run(GeometryWorkflowCommand c, Func<GeometryDraftInputFact, int, GeometryPreviewFact> preview,
@@ -92,7 +103,16 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
     {
         var project = await db.Projects.SingleOrDefaultAsync(x => x.Id == c.ProjectId, ct);
         if (project is null) Reject(404, "project_not_found");
-        if (project!.Status == RoadGuardSystem.aBusinessObjects.Commons.ProjectStatus.Closed && c.Action is "draft-create" or "draft-edit" or "confirm" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create") Reject(409, "project_closed");
+        if (project!.Status == RoadGuardSystem.aBusinessObjects.Commons.ProjectStatus.Closed && c.Action is "draft-submit" or "draft-create" or "draft-edit" or "confirm" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create") Reject(409, "project_closed");
+        if (c.Action == "submission-get")
+        {
+            var submission = await SubmittedDrafts(db, c.ProjectId).AsNoTracking().SingleOrDefaultAsync(ct);
+            if (submission is null) Reject(404, "road_geometry_submission_not_found");
+            var confirmedVersion = await db.Set<RoadGeometryMetadata>().AsNoTracking()
+                .Where(x => x.SourceDraftId == submission.Id)
+                .Select(x => (Guid?)x.RoadSectionVersionId).SingleOrDefaultAsync(ct);
+            return SubmissionResult(200, submission, confirmedVersion);
+        }
         var srid = project!.EngineeringUtmSrid ?? 0;
         if (c.Action == "profile-create")
         {
@@ -137,6 +157,8 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             }
             if (c.Action is "draft-create" or "draft-edit")
             {
+                if (await SubmittedDrafts(db, c.ProjectId).AnyAsync(ct))
+                    Reject(409, "road_geometry_submission_locked");
                 var input = (GeometryDraftInputFact)c.Input!;
                 if (input.SourceKind == "NATIVE_ALIGNMENT")
                 {
@@ -171,7 +193,21 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
                     Version: Version(draft.RowVersion));
             }
             if (c.Action == "draft-preview") return new(200, Value: preview(stored, srid), Version: Version(draft.RowVersion));
-            if (draft.Status != "DRAFT") Reject(409, "road_geometry_invalid_state");
+            if (c.Action == "draft-submit")
+            {
+                if (await SubmittedDrafts(db, c.ProjectId).AnyAsync(ct))
+                    Reject(409, "road_geometry_submission_exists");
+                if (draft.Status != "DRAFT") Reject(409, "road_geometry_invalid_state");
+                var ready = preview(stored, srid);
+                if (stored.SourceKind == "NATIVE_ALIGNMENT")
+                    await ValidateTopologyAsync(stored, c.ProjectId, section?.Id, ready, preview, segments, ct);
+                draft.Submit(c.ActorId, clock.GetUtcNow());
+                await db.SaveChangesAsync(ct);
+                return SubmissionResult(201, draft, null);
+            }
+
+            if (draft.Status != "SUBMITTED" || draft.SubmittedAt is null)
+                Reject(409, draft.Status == "CONFIRMED" ? "road_geometry_invalid_state" : "road_geometry_submission_required");
             var confirm = (GeometryConfirmInputFact)c.Input!;
             if (string.IsNullOrWhiteSpace(confirm.Reason) || confirm.EffectiveFrom == default) Reject(422, "geometry_validation_failed");
             var prepared = preview(stored, srid);
@@ -288,6 +324,23 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         if (previous is not null) { previous.Supersede(); await db.SaveChangesAsync(ct); }
         set.Publish(c.ActorId, clock.GetUtcNow()); await db.SaveChangesAsync(ct); var published = await SetView(set, ct); return new(200, Value: published, Version: published.Version);
     }
+    internal static Task LockProjectAsync(RoadGuardDbContext context, Guid project, CancellationToken ct)
+    {
+        var resource = $"anh01:geometry:{project}";
+        return context.Database.ExecuteSqlInterpolatedAsync($"DECLARE @lockResult int; EXEC @lockResult = sys.sp_getapplock @Resource={resource}, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; IF @lockResult < 0 THROW 51000, 'Geometry command lock unavailable', 1;", ct);
+    }
+
+    internal static IQueryable<RoadGeometryDraft> SubmittedDrafts(RoadGuardDbContext context, Guid project)
+        => context.Set<RoadGeometryDraft>().Where(x => x.ProjectId == project && x.SubmittedAt != null);
+
+    private static GeometryWorkflowResult SubmissionResult(int status, RoadGeometryDraft draft, Guid? confirmedVersion)
+    {
+        var version = Version(draft.RowVersion);
+        return new(status, Value: new GeometrySubmissionViewFact(draft.ProjectId, draft.Id, draft.RoadSectionId,
+            draft.Status, version, draft.SubmittedContentVersion!, draft.SubmittedBy!.Value, draft.SubmittedAt!.Value, confirmedVersion),
+            Version: version);
+    }
+
     private static void Match(byte[] version, string? expected) { if (Version(version) != expected) Reject(412, "concurrency_conflict"); }
     private static GeometryDraftViewFact DraftView(RoadGeometryDraft d)
     {
@@ -363,7 +416,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         if (locked) await Anh02ReceiptAuthority.LockAsync(db, c.ActorId, c.ProjectId, ct);
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == c.ActorId, ct);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || (c.Role is not null && c.Role != user.RoleCode) || !await db.Roles.AsNoTracking().AnyAsync(x => x.Code == user.RoleCode && x.IsActive, ct)) Reject(403, "access_forbidden");
-        var read = c.Action is "draft-get" or "draft-readiness" or "draft-preview" or "geometry-get" or "set-get" or "set-list" or "set-preview" or "package" or "profile-get" or "profile-list" or "system-list";
+        var read = c.Action is "submission-get" or "draft-get" or "draft-readiness" or "draft-preview" or "geometry-get" or "set-get" or "set-list" or "set-preview" or "package" or "profile-get" or "profile-list" or "system-list";
         if (c.Action == "confirm" ? user.RoleCode != UserRoleCode.Supervisor : !read ? user.RoleCode != UserRoleCode.ProjectManager : user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.DroneOperator)) Reject(403, "access_forbidden");
         if (user.RoleCode != UserRoleCode.Supervisor)
         {

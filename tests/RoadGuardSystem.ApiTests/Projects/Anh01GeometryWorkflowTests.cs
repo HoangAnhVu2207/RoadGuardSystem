@@ -63,19 +63,20 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         var confirmation = new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Supervisor approved" };
         var forbidden = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmation, Guid.NewGuid().ToString(), create.Headers.ETag!.ToString());
         forbidden.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        using var submitted = await GeometrySubmissionHttpTests.Submit(client, draftPath, create.Headers.ETag!);
         await Login(client, supervisor.UserName!);
         var confirmKey = Guid.NewGuid().ToString();
-        var confirmed = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmation, confirmKey, create.Headers.ETag!.ToString());
+        var confirmed = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmation, confirmKey, submitted.Headers.ETag!.ToString());
         confirmed.StatusCode.Should().Be(HttpStatusCode.Created);
         var route = await confirmed.Content.ReadFromJsonAsync<JsonElement>();
         route.TryGetProperty("chainageCalibration", out _).Should().BeFalse();
         route.GetProperty("metricCenterline").ValueKind.Should().Be(JsonValueKind.Object);
         route.TryGetProperty("wgs84Centerline", out _).Should().BeFalse("this metric sample has no verified WGS84 transform");
         var section = route.GetProperty("roadSectionId").GetGuid(); var version = route.GetProperty("routeVersionId").GetGuid();
-        var replay = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmation, confirmKey, create.Headers.ETag!.ToString());
+        var replay = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmation, confirmKey, submitted.Headers.ETag!.ToString());
         (await replay.Content.ReadAsStringAsync()).Should().Be(await confirmed.Content.ReadAsStringAsync());
         await Login(client, manager.UserName!);
-        var edit = await Send(client, HttpMethod.Put, draftPath, input, Guid.NewGuid().ToString(), create.Headers.ETag.ToString()); edit.StatusCode.Should().Be((HttpStatusCode)412);
+        var edit = await Send(client, HttpMethod.Put, draftPath, input, Guid.NewGuid().ToString(), create.Headers.ETag.ToString()); edit.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var setPath = prefix + $"/road-sections/{section}/versions/{version}/segment-sets";
         var definition = new { targetLengthMeters = 100d, remainderMode = "KEEP" };
         var set = await Send(client, HttpMethod.Post, setPath, definition, Guid.NewGuid().ToString()); set.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -158,13 +159,15 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         race.Count(x => x.StatusCode == HttpStatusCode.Conflict).Should().Be(1);
         var losing = race.Single(x => x.StatusCode == HttpStatusCode.Conflict);
         (await losing.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString().Should().Be("segment_publication_conflict");
+        await GeometrySubmissionHttpTests.MarkAsPreMigrationConfirmedFixture(sql, draft);
         var nextDraft = await Send(client, HttpMethod.Post, prefix + $"/road-sections/{section}/geometry-drafts", input, Guid.NewGuid().ToString());
         nextDraft.StatusCode.Should().Be(HttpStatusCode.Created);
-        await Login(client, supervisor.UserName!);
         var nextDraftPath = nextDraft.Headers.Location!.OriginalString;
-        var failedConfirm = await Send(client, HttpMethod.Post, nextDraftPath + "/confirm", new { expectedCurrentVersionId = Guid.NewGuid(), effectiveFrom = "2026-10-03T00:00:00Z", reason = "Stale expected route" }, Guid.NewGuid().ToString(), nextDraft.Headers.ETag!.ToString());
+        using var nextSubmitted = await GeometrySubmissionHttpTests.Submit(client, nextDraftPath, nextDraft.Headers.ETag!);
+        await Login(client, supervisor.UserName!);
+        var failedConfirm = await Send(client, HttpMethod.Post, nextDraftPath + "/confirm", new { expectedCurrentVersionId = Guid.NewGuid(), effectiveFrom = "2026-10-03T00:00:00Z", reason = "Stale expected route" }, Guid.NewGuid().ToString(), nextSubmitted.Headers.ETag!.ToString());
         failedConfirm.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        var nextConfirm = await Send(client, HttpMethod.Post, nextDraftPath + "/confirm", new { expectedCurrentVersionId = version, effectiveFrom = "2026-10-03T00:00:00Z", reason = "Replacement route" }, Guid.NewGuid().ToString(), nextDraft.Headers.ETag.ToString());
+        var nextConfirm = await Send(client, HttpMethod.Post, nextDraftPath + "/confirm", new { expectedCurrentVersionId = version, effectiveFrom = "2026-10-03T00:00:00Z", reason = "Replacement route" }, Guid.NewGuid().ToString(), nextSubmitted.Headers.ETag!.ToString());
         nextConfirm.StatusCode.Should().Be(HttpStatusCode.Created);
         (await nextConfirm.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("roadSectionId").GetGuid().Should().Be(section);
         var changedPackage = await client.GetAsync(prefix + $"/geometry-package?routeVersionId={version}&segmentSetId={setId}");
@@ -178,7 +181,7 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         (await db.Set<RoadGeometryMetadata>().CountAsync(x => x.RoadSectionVersionId == version)).Should().Be(1);
         (await db.RoadSegmentSets.CountAsync(x => x.RoadSectionVersionId == version && x.Status == "PUBLISHED")).Should().Be(1);
         (await db.RoadSegments.CountAsync(x => x.SegmentSetId == setId)).Should().Be(3);
-        (await db.IdempotencyRecords.CountAsync(x => x.ProjectId == project && x.Operation.StartsWith("Geometry:"))).Should().Be(14);
+        (await db.IdempotencyRecords.CountAsync(x => x.ProjectId == project && x.Operation.StartsWith("Geometry:"))).Should().Be(16);
     }
     private static async Task Login(HttpClient client, string name)
     {

@@ -72,13 +72,14 @@ public sealed class DatasetAssessmentAtomicityAcceptanceTests(AuthenticationSqlS
             roadCode = "DEMO"
         });
         draft.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var draftSubmission = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(client, draft.Headers.Location!.OriginalString, draft.Headers.ETag!);
         await Login(client, supervisor.UserName!);
         var road = await Command(client, draft.Headers.Location!.OriginalString + "/confirm", new
         {
             expectedCurrentVersionId = (Guid?)null,
             effectiveFrom = "2026-10-02T00:00:00Z",
             reason = "Supervisor DEMO approval"
-        }, draft.Headers.ETag!.Tag);
+        }, draftSubmission.Headers.ETag!.Tag);
         road.StatusCode.Should().Be(HttpStatusCode.Created);
         var route = (await Body(road)).GetProperty("routeVersionId").GetGuid();
         var section = (await Body(road)).GetProperty("roadSectionId").GetGuid();

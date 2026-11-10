@@ -180,3 +180,6 @@ public sealed record GeometryPackageView(string SchemaVersion, Guid ProjectId, R
     public static implicit operator GeometryPackageView?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.GeometryPackageViewFact? value)
         => value is null ? null! : new(value.SchemaVersion, value.ProjectId, (global::RoadGuardSystem.DTOs.Projects.RoadGeometryVersionView)value.Route, (global::RoadGuardSystem.DTOs.Projects.SegmentSetView)value.SegmentSet);
 }
+
+public sealed record GeometrySubmissionView(Guid ProjectId, Guid DraftId, Guid? RoadSectionId, string Status,
+    string Version, string SubmittedContentVersion, Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? ConfirmedRouteVersionId);

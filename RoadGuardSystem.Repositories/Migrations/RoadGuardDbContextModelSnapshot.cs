@@ -6537,6 +6537,16 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("SubmittedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubmittedContentVersion")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -6549,7 +6559,14 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.HasIndex("RoadSectionId");
 
-                    b.ToTable("RoadGeometryDrafts", (string)null);
+                    b.HasIndex(new[] { "ProjectId" }, "UX_RoadGeometryDrafts_ProjectSubmission")
+                        .IsUnique()
+                        .HasFilter("[SubmittedAt] IS NOT NULL");
+
+                    b.ToTable("RoadGeometryDrafts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RoadGeometryDrafts_Submission", "([SubmittedAt] IS NULL AND [SubmittedBy] IS NULL AND [SubmittedContentVersion] IS NULL AND [Status] <> 'SUBMITTED') OR ([SubmittedAt] IS NOT NULL AND [SubmittedBy] IS NOT NULL AND [SubmittedContentVersion] IS NOT NULL AND [Status] IN ('SUBMITTED', 'CONFIRMED'))");
+                        });
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryMetadata", b =>

@@ -62,13 +62,14 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             roadCode = "DEMO"
         });
         draft.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var draftSubmission = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(client, draft.Headers.Location!.OriginalString, draft.Headers.ETag!);
         await Login(client, supervisor.UserName!);
         var road = await Command(client, draft.Headers.Location!.OriginalString + "/confirm", new
         {
             expectedCurrentVersionId = (Guid?)null,
             effectiveFrom = "2026-10-02T00:00:00Z",
             reason = "Supervisor DEMO approval"
-        }, draft.Headers.ETag!.Tag);
+        }, draftSubmission.Headers.ETag!.Tag);
         road.StatusCode.Should().Be(HttpStatusCode.Created);
         var route = (await Body(road)).GetProperty("routeVersionId").GetGuid();
         var section = (await Body(road)).GetProperty("roadSectionId").GetGuid();
@@ -322,6 +323,8 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         failReview.StatusCode.Should().Be(HttpStatusCode.Created);
         (await client.GetAsync(selected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
         // A15: a new current route must not invalidate already assigned scopes or their supplement child.
+        await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.MarkAsPreMigrationConfirmedFixture(sql,
+            (await Body(draft)).GetProperty("id").GetGuid());
         var replacementDraft = await Command(client, $"/api/v1/projects/{project}/road-sections/{section}/geometry-drafts", new
         {
             sourceKind = "COORDINATES",
@@ -333,13 +336,14 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             surveyWidthMeters = 12d
         });
         replacementDraft.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var replacementDraftSubmission = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(client, replacementDraft.Headers.Location!.OriginalString, replacementDraft.Headers.ETag!);
         await Login(client, supervisor.UserName!);
         var replacementRoute = await Command(client, replacementDraft.Headers.Location!.OriginalString + "/confirm", new
         {
             expectedCurrentVersionId = route,
             effectiveFrom = "2026-10-03T00:00:00Z",
             reason = "Supersede route after assigned task"
-        }, replacementDraft.Headers.ETag!.Tag);
+        }, replacementDraftSubmission.Headers.ETag!.Tag);
         replacementRoute.StatusCode.Should().Be(HttpStatusCode.Created);
         await Login(client, manager.UserName!);
         var replacementRouteId = (await Body(replacementRoute)).GetProperty("routeVersionId").GetGuid();

@@ -11,6 +11,27 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task GeometrySubmissionSwaggerDocumentsWebAndBearerWithVersionedReceipt()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        const string root = "/api/v1/projects/{projectId}";
+        var submit = paths.GetProperty(root + "/road-geometry-drafts/{draftId}/submit").GetProperty("post");
+        Assert.False(submit.TryGetProperty("requestBody", out _));
+        Assert.Contains(submit.GetProperty("security").EnumerateArray(), item => item.TryGetProperty("Bearer", out _));
+        Assert.Contains(submit.GetProperty("security").EnumerateArray(), item => item.TryGetProperty("WebSession", out _) && item.TryGetProperty("CsrfToken", out _));
+        foreach (var header in new[] { "If-Match", "Idempotency-Key" })
+            Assert.Contains(submit.GetProperty("parameters").EnumerateArray(), parameter =>
+                parameter.GetProperty("name").GetString() == header && parameter.GetProperty("required").GetBoolean());
+        Assert.True(submit.GetProperty("responses").GetProperty("201").GetProperty("headers").TryGetProperty("ETag", out _));
+        var lookup = paths.GetProperty(root + "/road-geometry-submission").GetProperty("get");
+        Assert.Contains(lookup.GetProperty("security").EnumerateArray(), item => item.TryGetProperty("WebSession", out _) && !item.TryGetProperty("CsrfToken", out _));
+        Assert.True(lookup.GetProperty("responses").TryGetProperty("404", out _));
+        var confirm = paths.GetProperty(root + "/road-geometry-drafts/{draftId}/confirm").GetProperty("post");
+        Assert.Contains("road_geometry_submission_required", confirm.GetProperty("responses").GetProperty("409").GetProperty("description").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GeometryDraftReadsDocumentMetadataAndCoordinatesReadiness()
     {
         using var document = await Document();

@@ -16,6 +16,9 @@ public sealed class RoadGeometryDraft
     public Guid UpdatedBy { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
+    public Guid? SubmittedBy { get; private set; }
+    public DateTimeOffset? SubmittedAt { get; private set; }
+    public string? SubmittedContentVersion { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
     public static RoadGeometryDraft Create(Guid projectId, Guid? sectionId, string code, string? name,
         string input, string original, string? checksum, Guid actor, DateTimeOffset? now = null) => new()
@@ -35,9 +38,23 @@ public sealed class RoadGeometryDraft
         };
     public void Edit(string input, string original, string? checksum, string code, string? name, Guid actor, DateTimeOffset? now = null)
     {
-        if (Status != "DRAFT") throw new InvalidOperationException("Confirmed draft is immutable.");
+        if (Status != "DRAFT") throw new InvalidOperationException("Submitted and confirmed drafts are immutable.");
         InputJson = input; OriginalCoordinatesJson = original; SourceChecksum = checksum;
         RoadCode = code; RoadName = name; UpdatedBy = actor; UpdatedAt = now ?? DateTimeOffset.UtcNow;
     }
-    public void Confirm(Guid sectionId) { if (Status != "DRAFT") throw new InvalidOperationException(); Status = "CONFIRMED"; RoadSectionId = sectionId; }
+    public void Submit(Guid actor, DateTimeOffset now)
+    {
+        if (Status != "DRAFT" || RowVersion.Length == 0) throw new InvalidOperationException();
+        SubmittedContentVersion = Convert.ToBase64String(RowVersion);
+        SubmittedBy = actor;
+        SubmittedAt = now;
+        Status = "SUBMITTED";
+    }
+
+    public void Confirm(Guid sectionId)
+    {
+        if (Status != "SUBMITTED") throw new InvalidOperationException();
+        Status = "CONFIRMED";
+        RoadSectionId = sectionId;
+    }
 }

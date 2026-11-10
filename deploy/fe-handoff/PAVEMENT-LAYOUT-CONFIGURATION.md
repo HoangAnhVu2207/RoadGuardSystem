@@ -99,3 +99,7 @@ Trích response GET thực tế, giữ phần cấu hình và phần tử đầu
   }
 }
 ```
+
+## Footprint qua góc nối tuyến
+
+Layout mới cắt các cạnh offset tại cùng mặt cắt khi hai tấm dùng chung biên. Fixture tuyến 119 tọa độ, dài 701.2905185122771 m, strip 3.5 m và tấm dài 5 m tạo 282 footprint. ID, thứ tự và kích thước thiết kế của cell tiếp tục lấy từ layout. FE dùng footprint từ response lưu hoặc GET lại. Polygon không hợp lệ vẫn bị từ chối.

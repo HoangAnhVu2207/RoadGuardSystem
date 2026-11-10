@@ -80,9 +80,10 @@ public sealed class Anh01SurveyCorrectionTests(AuthenticationSqlServerFixture sq
         await Login(client, setup.Manager);
         var nextDraft = await Command(client, $"/api/v1/projects/{setup.Project}/road-sections/{setup.Section}/geometry-drafts", Draft(setup.Section));
         nextDraft.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var nextDraftSubmission = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(client, nextDraft.Headers.Location!.OriginalString, nextDraft.Headers.ETag!);
         await Login(client, setup.Supervisor);
         var version2 = await Command(client, nextDraft.Headers.Location!.OriginalString + "/confirm",
-            new { expectedCurrentVersionId = setup.Route, effectiveFrom = "2026-10-03T00:00:00Z", reason = "New alignment" }, nextDraft.Headers.ETag!.Tag);
+            new { expectedCurrentVersionId = setup.Route, effectiveFrom = "2026-10-03T00:00:00Z", reason = "New alignment" }, nextDraftSubmission.Headers.ETag!.Tag);
         version2.StatusCode.Should().Be(HttpStatusCode.Created);
         var newRoute = (await Body(version2)).GetProperty("routeVersionId").GetGuid();
         await Login(client, setup.Manager);
@@ -126,10 +127,13 @@ public sealed class Anh01SurveyCorrectionTests(AuthenticationSqlServerFixture sq
         await Login(client, manager.UserName!);
         var draft = await Command(client, $"/api/v1/projects/{project}/road-geometry-drafts", Draft());
         draft.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var draftSubmission = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(client, draft.Headers.Location!.OriginalString, draft.Headers.ETag!);
         await Login(client, supervisor.UserName!);
         var confirmed = await Command(client, draft.Headers.Location!.OriginalString + "/confirm",
-            new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Test geometry" }, draft.Headers.ETag!.Tag);
+            new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Test geometry" }, draftSubmission.Headers.ETag!.Tag);
         confirmed.StatusCode.Should().Be(HttpStatusCode.Created);
+        await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.MarkAsPreMigrationConfirmedFixture(sql,
+            (await Body(draft)).GetProperty("id").GetGuid());
         var route = (await Body(confirmed)).GetProperty("routeVersionId").GetGuid();
         var section = (await Body(confirmed)).GetProperty("roadSectionId").GetGuid();
         await Login(client, manager.UserName!);

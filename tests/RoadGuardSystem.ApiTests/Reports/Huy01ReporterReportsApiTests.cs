@@ -1170,9 +1170,10 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
             roadCode = $"R-{Guid.NewGuid():N}"
         }, Guid.NewGuid().ToString());
         draft.EnsureSuccessStatusCode();
+        using var draftSubmission = await RoadGuardSystem.ApiTests.Projects.GeometrySubmissionHttpTests.Submit(client, draft.Headers.Location!.OriginalString, draft.Headers.ETag!);
         await LoginAsync(client, supervisor);
         var confirmed = await SendAsync(client, HttpMethod.Post, draft.Headers.Location!.OriginalString + "/confirm",
-            new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Approved fixture geometry" }, Guid.NewGuid().ToString(), draft.Headers.ETag!.ToString());
+            new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Approved fixture geometry" }, Guid.NewGuid().ToString(), draftSubmission.Headers.ETag!.ToString());
         confirmed.EnsureSuccessStatusCode(); var route = await confirmed.Content.ReadFromJsonAsync<JsonElement>();
         var routeId = route.GetProperty("routeVersionId").GetGuid(); var roadId = route.GetProperty("roadSectionId").GetGuid();
         await LoginAsync(client, pm);

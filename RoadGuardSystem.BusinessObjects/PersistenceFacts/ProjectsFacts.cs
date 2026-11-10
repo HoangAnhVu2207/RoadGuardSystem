@@ -159,3 +159,6 @@ public sealed record SlabGeometrySnapshotFact(string Key, int? PlannedSequence, 
     Guid? SourceFileId = null, string ProvenanceStatus = "CLAIMED_CUSTOM");
 
 public sealed record WidthProfileItemFact(double FromOffsetMeters, double ToOffsetMeters, double WidthMeters);
+
+public sealed record GeometrySubmissionViewFact(Guid ProjectId, Guid DraftId, Guid? RoadSectionId, string Status,
+    string Version, string SubmittedContentVersion, Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? ConfirmedRouteVersionId);

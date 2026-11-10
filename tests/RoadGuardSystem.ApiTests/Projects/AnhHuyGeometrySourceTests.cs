@@ -70,9 +70,10 @@ public sealed class AnhHuyGeometrySourceTests(AuthenticationSqlServerFixture sql
         var created = await Send(client, HttpMethod.Post, prefix + "/road-geometry-drafts", input, Guid.NewGuid().ToString());
         created.EnsureSuccessStatusCode();
         var draft = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var submitted = await GeometrySubmissionHttpTests.Submit(client, prefix + $"/road-geometry-drafts/{draft}", created.Headers.ETag!);
         await Login(client, supervisor.UserName!);
         var confirmed = await Send(client, HttpMethod.Post, prefix + $"/road-geometry-drafts/{draft}/confirm",
-            new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Fixture alignment" }, Guid.NewGuid().ToString(), created.Headers.ETag!.ToString());
+            new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = "2026-10-02T00:00:00Z", reason = "Fixture alignment" }, Guid.NewGuid().ToString(), submitted.Headers.ETag!.ToString());
         confirmed.EnsureSuccessStatusCode();
         var confirmedJson = await confirmed.Content.ReadFromJsonAsync<JsonElement>();
         var route = confirmedJson.GetProperty("routeVersionId").GetGuid();

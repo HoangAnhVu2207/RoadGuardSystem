@@ -130,8 +130,10 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         var system = await Send(client, root + "/route-systems", new { code = "SAMPLE", name = "sample road" }); Assert.Equal(HttpStatusCode.Created, system.StatusCode);
         var systemId = (await system.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         var draft = await Send(client, root + "/road-geometry-drafts", new { sourceKind = "NATIVE_ALIGNMENT", sourceCrs = 0, stationOriginMeters = 1000, changeReason = "native sample", widthProfile = new[] { new { fromOffsetMeters = 0, toOffsetMeters = 20, widthMeters = 12 } }, surveyWidthMeters = 14, roadCode = "NATIVE_MAP", routeSystemId = systemId, routeKind = "MAIN", declaredLengthMeters = 25, tessellationToleranceMeters = .1, nativeAlignment = new { crsProfileRevisionId = profileId, spatialSrid = 0, primitives = new[] { new { kind = "LINE", start = new { x = 0, y = 0 }, end = new { x = 20, y = 0 } } } } }); Assert.Equal(HttpStatusCode.Created, draft.StatusCode);
-        var draftId = (await draft.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid(); await Login(client, supervisor.UserName!);
-        var confirmed = await Send(client, root + $"/road-geometry-drafts/{draftId}/confirm", new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow, reason = "candidate engineering" }, hash: draft.Headers.ETag!.Tag.Trim('"')); Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
+        var draftId = (await draft.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var submitted = await GeometrySubmissionHttpTests.Submit(client, root + $"/road-geometry-drafts/{draftId}", draft.Headers.ETag!);
+        await Login(client, supervisor.UserName!);
+        var confirmed = await Send(client, root + $"/road-geometry-drafts/{draftId}/confirm", new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow, reason = "candidate engineering" }, hash: submitted.Headers.ETag!.Tag.Trim('"')); Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
         var confirmedJson = await confirmed.Content.ReadFromJsonAsync<JsonElement>();
         var route = confirmedJson.GetProperty("routeVersionId").GetGuid(); var section = confirmedJson.GetProperty("roadSectionId").GetGuid(); await Login(client, pm.UserName!);
         var setPath = root + $"/road-sections/{section}/versions/{route}/segment-sets";
@@ -159,13 +161,46 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
             Assert.Equal(descriptor.GetProperty("count").GetInt32(), (await page.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("features").GetArrayLength());
         }
     }
-    private async Task<(Guid Project, Guid Route, Guid Set)> Seed(Guid pm)
+    [Fact]
+    public async Task SuppliedPolylinePavementPlanPersistsEveryFootprint()
+    {
+        var pm = await sql.CreateUserAsync($"pavement-polyline-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var supervisor = await sql.CreateUserAsync($"pavement-polyline-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var fixture = RoadGuardSystem.TestFixtures.PavementOffsetJoinRegression.Coordinates;
+        var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString(
+            fixture.Select(point => new Coordinate(point[0], point[1])).ToArray());
+        var scope = await Seed(pm.Id, geometry);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var author = await WebCookieTestClient.Login(factory, pm.Email!);
+        using var reader = await WebCookieTestClient.Login(factory, supervisor.Email!);
+        var path = $"/api/v1/projects/{scope.Project}/route-versions/{scope.Route}/segment-sets/{scope.Set}/pavement-plans";
+        var layout = new
+        {
+            stripWidthMeters = 3.5m,
+            slabLengthMeters = 5,
+            widthProfile = new[] { new { fromOffsetMeters = 0, toOffsetMeters = RoadGuardSystem.TestFixtures.PavementOffsetJoinRegression.LengthMeters, widthMeters = 7 } }
+        };
+        using var response = await Send(author, path, new { layout, displayToleranceMeters = 0.1 });
+        Assert.True(response.StatusCode == HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        var saved = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(282, saved.GetProperty("geometry").GetProperty("slabs").GetArrayLength());
+        Assert.Equal(JsonSerializer.Serialize(layout), saved.GetProperty("layout").GetRawText());
+        foreach (var client in new[] { author, reader })
+        {
+            using var reopened = await client.GetAsync(response.Headers.Location);
+            Assert.Equal(HttpStatusCode.OK, reopened.StatusCode);
+            Assert.Equal(response.Headers.ETag, reopened.Headers.ETag);
+            Assert.Equal(saved.GetRawText(), (await reopened.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
+        }
+    }
+
+    private async Task<(Guid Project, Guid Route, Guid Set)> Seed(Guid pm, LineString? sourceGeometry = null)
     {
         await using var db = sql.CreateDbContext();
         var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "pavement HTTP sample", null, null, null, null, DateTimeOffset.UtcNow);
-        var road = RoadSection.Create(Guid.NewGuid(), project.Id, "sample"); var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new(0, 0), new(20, 0)]);
+        var road = RoadSection.Create(Guid.NewGuid(), project.Id, "sample"); var geometry = sourceGeometry ?? new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new(0, 0), new(20, 0)]);
         var route = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, geometry, DateTimeOffset.UtcNow, "legacy source"); var set = RoadSegmentSet.Create(Guid.NewGuid(), route.Id);
-        var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1); segment.SetGeometry(0, 20, 0, geometry);
+        var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1); segment.SetGeometry(0, geometry.Length, 0, geometry);
         db.AddRange(project, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm, new(2000, 1, 1)), road, route, set, segment); await db.SaveChangesAsync();
         return (project.Id, route.Id, set.Id);
     }

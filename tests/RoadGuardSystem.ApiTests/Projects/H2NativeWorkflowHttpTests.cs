@@ -81,10 +81,11 @@ public sealed class H2NativeWorkflowHttpTests(AuthenticationSqlServerFixture sql
             await db.SaveChangesAsync();
         }
 
+        using var submitted = await GeometrySubmissionHttpTests.Submit(client, path, readiness.Headers.ETag!);
         await Login(client, supervisor.UserName!);
         using var confirmation = await Send(client, HttpMethod.Post, path + "/confirm",
             new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow, reason = "Confirm coordinate draft" },
-            readiness.Headers.ETag!.Tag);
+            submitted.Headers.ETag!.Tag);
         Assert.Equal(HttpStatusCode.Created, confirmation.StatusCode);
         var routeId = (await confirmation.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("routeVersionId").GetGuid();
         await using var persisted = sql.CreateDbContext();
@@ -136,8 +137,9 @@ public sealed class H2NativeWorkflowHttpTests(AuthenticationSqlServerFixture sql
         Assert.Equal(HttpStatusCode.PreconditionFailed, mainStale.StatusCode);
         var confirmInput = new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow, reason = "Supervisor confirms candidate engineering only" };
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmInput, mainRevised.Headers.ETag!.Tag)).StatusCode);
+        using var mainSubmitted = await GeometrySubmissionHttpTests.Submit(client, draftPath, mainRevised.Headers.ETag!);
         await Login(client, supervisor.UserName!);
-        var confirmed = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmInput, mainRevised.Headers.ETag!.Tag); Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
+        var confirmed = await Send(client, HttpMethod.Post, draftPath + "/confirm", confirmInput, mainSubmitted.Headers.ETag!.Tag); Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
         var route = await confirmed.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(length, route.GetProperty("lengthMeters").GetDouble(), 8); Assert.Equal(170, route.GetProperty("declaredLengthMeters").GetDouble()); Assert.True(route.GetProperty("sampleOnly").GetBoolean());
         var section = route.GetProperty("roadSectionId").GetGuid(); var version = route.GetProperty("routeVersionId").GetGuid();
@@ -155,6 +157,7 @@ public sealed class H2NativeWorkflowHttpTests(AuthenticationSqlServerFixture sql
             Assert.Equal(RoadGuardSystem.Services.Integration.AnhHuyProducerStatus.Ready, context.Status);
             Assert.Equal("anh-huy.geometry.v2", context.Facts!.SchemaVersion); Assert.Equal(profileId, context.Facts.CrsProfileRevisionId); Assert.True(context.Facts.SampleOnly); Assert.Equal(length, context.Facts.CanonicalLengthMeters);
         }
+        await GeometrySubmissionHttpTests.MarkAsPreMigrationConfirmedFixture(sql, draftId);
         // Branch stationing is calibrated independently of geometric length; its parent is explicitly pinned.
         var branchInput = new { sourceKind = "NATIVE_ALIGNMENT", sourceCrs = 0, stationOriginMeters = 0, changeReason = "branch fixture", widthProfile = new[] { new { fromOffsetMeters = 0, toOffsetMeters = 50, widthMeters = 12 } }, surveyWidthMeters = 14, roadCode = "BRANCH", routeSystemId = systemId, routeKind = "BRANCH", parentRouteVersionId = version, junctionOffsetMeters = 0, tessellationToleranceMeters = .1, chainageCalibration = new { sourceReference = "sample-only controls", sourceChecksum = new string('b', 64), selectedReason = "PM fixture", controls = new[] { new { geometricOffsetMeters = 0, stationMeters = 500 }, new { geometricOffsetMeters = 50, stationMeters = 600 } } }, nativeAlignment = new { crsProfileRevisionId = profileId, spatialSrid = 0, primitives = new[] { new { kind = "LINE", start = new { x = 100, y = 0 }, end = new { x = 150, y = 0 } } } } };
         var branch = await Send(client, HttpMethod.Post, root + "/road-geometry-drafts", branchInput); Assert.Equal(HttpStatusCode.Created, branch.StatusCode);
@@ -169,21 +172,25 @@ public sealed class H2NativeWorkflowHttpTests(AuthenticationSqlServerFixture sql
         AssertBranchMetadata(revisedBranch, version);
         using var branchStale = await Send(client, HttpMethod.Put, branchPath, branchInput with { changeReason = "Stale branch draft" }, branch.Headers.ETag!.Tag);
         Assert.Equal(HttpStatusCode.PreconditionFailed, branchStale.StatusCode);
+        using var branchSubmitted = await GeometrySubmissionHttpTests.Submit(client, branchPath, branchRevised.Headers.ETag!);
         await Login(client, supervisor.UserName!);
-        var branchConfirmed = await Send(client, HttpMethod.Post, branchPath + "/confirm", confirmInput, branchRevised.Headers.ETag!.Tag); Assert.Equal(HttpStatusCode.Created, branchConfirmed.StatusCode);
+        var branchConfirmed = await Send(client, HttpMethod.Post, branchPath + "/confirm", confirmInput, branchSubmitted.Headers.ETag!.Tag); Assert.Equal(HttpStatusCode.Created, branchConfirmed.StatusCode);
         var branchRoute = await branchConfirmed.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal(version, branchRoute.GetProperty("parentRouteVersionId").GetGuid()); Assert.Equal(50, branchRoute.GetProperty("lengthMeters").GetDouble());
         await Login(client, pm.UserName!);
         var branchSet = await Send(client, HttpMethod.Post, root + $"/road-sections/{branchRoute.GetProperty("roadSectionId").GetGuid()}/versions/{branchRoute.GetProperty("routeVersionId").GetGuid()}/segment-sets", new { targetLengthMeters = 100, remainderMode = "KEEP" }); Assert.Equal(HttpStatusCode.Created, branchSet.StatusCode);
         var calibrated = (await branchSet.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("segments")[0]; Assert.Equal(500, calibrated.GetProperty("startStationMeters").GetDouble()); Assert.Equal(600, calibrated.GetProperty("endStationMeters").GetDouble());
+        await GeometrySubmissionHttpTests.MarkAsPreMigrationConfirmedFixture(sql, branchDraft);
         var cycleDraft = await Send(client, HttpMethod.Post, root + $"/road-sections/{section}/geometry-drafts", branchInput); Assert.Equal(HttpStatusCode.Created, cycleDraft.StatusCode);
         var cycleDraftId = (await cycleDraft.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-        await Login(client, supervisor.UserName!);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Send(client, HttpMethod.Post, root + $"/road-geometry-drafts/{cycleDraftId}/confirm", new { expectedCurrentVersionId = version, effectiveFrom = DateTimeOffset.UtcNow, reason = "must reject road identity cycle" }, cycleDraft.Headers.ETag!.Tag)).StatusCode);
-        await Login(client, pm.UserName!);
+        using var cycleSubmit = await GeometrySubmissionHttpTests.Send(client, HttpMethod.Post,
+            root + $"/road-geometry-drafts/{cycleDraftId}/submit", etag: cycleDraft.Headers.ETag);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, cycleSubmit.StatusCode);
         var correction = await Send(client, HttpMethod.Post, root + $"/road-sections/{section}/geometry-drafts", complete); Assert.Equal(HttpStatusCode.Created, correction.StatusCode);
         var correctionId = (await correction.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var correctionSubmitted = await GeometrySubmissionHttpTests.Submit(client,
+            root + $"/road-geometry-drafts/{correctionId}", correction.Headers.ETag!);
         await Login(client, supervisor.UserName!);
-        var corrected = await Send(client, HttpMethod.Post, root + $"/road-geometry-drafts/{correctionId}/confirm", new { expectedCurrentVersionId = version, effectiveFrom = DateTimeOffset.UtcNow, reason = "preserve earlier pins and record impact" }, correction.Headers.ETag!.Tag); Assert.Equal(HttpStatusCode.Created, corrected.StatusCode);
+        var corrected = await Send(client, HttpMethod.Post, root + $"/road-geometry-drafts/{correctionId}/confirm", new { expectedCurrentVersionId = version, effectiveFrom = DateTimeOffset.UtcNow, reason = "preserve earlier pins and record impact" }, correctionSubmitted.Headers.ETag!.Tag); Assert.Equal(HttpStatusCode.Created, corrected.StatusCode);
         await using (var inspect = sql.CreateDbContext())
         {
             var impact = await inspect.Set<GeometryLocationImpact>().AsNoTracking().SingleAsync(x => x.PreviousRouteVersionId == version);

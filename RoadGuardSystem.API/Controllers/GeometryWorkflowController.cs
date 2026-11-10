@@ -38,6 +38,16 @@ public sealed class GeometryWorkflowController(IGeometryWorkflowService service)
     [HttpPost("road-geometry-drafts/{draftId:guid}/preview")]
     [HttpPost("road-sections/{roadSectionId:guid}/geometry-drafts/{draftId:guid}/preview")]
     public Task<IActionResult> Preview(Guid projectId, Guid draftId, CancellationToken ct, Guid? roadSectionId = null) => Run(projectId, "draft-preview", ct, roadSectionId, draftId);
+    [HttpPost("road-geometry-drafts/{draftId:guid}/submit")]
+    [ProducesResponseType<GeometrySubmissionView>(StatusCodes.Status201Created)]
+    public Task<IActionResult> Submit(Guid projectId, Guid draftId, CancellationToken ct)
+        => Run(projectId, "draft-submit", ct, draft: draftId);
+
+    [HttpGet("road-geometry-submission")]
+    [ProducesResponseType<GeometrySubmissionView>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Submission(Guid projectId, CancellationToken ct)
+        => Run(projectId, "submission-get", ct);
+
     [HttpPost("road-geometry-drafts/{draftId:guid}/confirm")]
     [HttpPost("road-sections/{roadSectionId:guid}/geometry-drafts/{draftId:guid}/confirm")]
     public Task<IActionResult> Confirm(Guid projectId, Guid draftId, GeometryConfirmInput input, CancellationToken ct, Guid? roadSectionId = null) => Run(projectId, "confirm", ct, roadSectionId, draftId, input: input);
@@ -72,6 +82,7 @@ public sealed class GeometryWorkflowController(IGeometryWorkflowService service)
         if (result.Status == 201)
         {
             if (result.Value is GeometryDraftView d) Response.Headers.Location = $"/api/v1/projects/{project}/road-geometry-drafts/{d.Id}";
+            else if (result.Value is GeometrySubmissionView) Response.Headers.Location = $"/api/v1/projects/{project}/road-geometry-submission";
             else if (result.Value is RoadGeometryVersionView r) Response.Headers.Location = $"/api/v1/projects/{project}/road-sections/{r.RoadSectionId}/versions/{r.RouteVersionId}/geometry";
             else if (result.Value is SegmentSetView s) Response.Headers.Location = $"/api/v1/projects/{project}/road-sections/{section}/versions/{s.RouteVersionId}/segment-sets/{s.Id}";
             else if (result.Value is System.Text.Json.JsonElement json && json.TryGetProperty("Id", out var id)) Response.Headers.Location = action == "draft-create" ? $"/api/v1/projects/{project}/road-geometry-drafts/{id}" : $"/api/v1/projects/{project}/road-sections/{section}/versions/{route}/segment-sets/{id}";

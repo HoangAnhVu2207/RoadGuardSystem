@@ -103,3 +103,36 @@ Trích response GET thực tế, giữ phần cấu hình và phần tử đầu
 ## Footprint qua góc nối tuyến
 
 Layout mới cắt các cạnh offset tại cùng mặt cắt khi hai tấm dùng chung biên. Fixture tuyến 119 tọa độ, dài 701.2905185122771 m, strip 3.5 m và tấm dài 5 m tạo 282 footprint. ID, thứ tự và kích thước thiết kế của cell tiếp tục lấy từ layout. FE dùng footprint từ response lưu hoặc GET lại. Polygon không hợp lệ vẫn bị từ chối.
+
+## Tìm lại layout theo dự án
+
+PM có quyền trong dự án hoặc Supervisor gọi:
+
+```http
+GET /api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions/{routeVersionId}/segment-sets/{segmentSetId}/pavement-layouts?pageSize=25
+```
+
+Kết quả xếp theo `layoutId` tăng dần. `pageSize` từ 1 đến 100, mặc định 25. Nếu `nextCursor` khác null, gửi lại đúng chuỗi ID với `cursor={nextCursor}`. Web dùng `credentials: "include"`. GET dùng cookie hoặc Bearer và không cần CSRF.
+
+```json
+{
+  "items": [
+    {
+      "layoutId": "11111111-1111-4111-8111-111111111111",
+      "projectId": "22222222-2222-4222-8222-222222222222",
+      "roadSectionId": "33333333-3333-4333-8333-333333333333",
+      "routeVersionId": "44444444-4444-4444-8444-444444444444",
+      "segmentSetId": "55555555-5555-4555-8555-555555555555",
+      "kind": "PLANNED",
+      "sourcePlanId": null,
+      "createdAt": "2026-11-10T05:00:00Z",
+      "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+Chuỗi ID đúng nhưng chưa lưu layout trả `200 {"items":[],"nextCursor":null}`. Một bản sau khi đã đọc hết trang thì FE có thể mở trực tiếp. Nhiều bản thì cho người dùng chọn theo loại và thời gian lưu. Sau đó gọi `GET /api/v1/projects/{projectId}/pavement-layouts/{layoutId}` để đọc cấu hình và footprint đã lưu. Bản `AS_BUILT` có `sourcePlanId` để mở cấu hình nguồn. Route và segment set lịch sử vẫn tra được theo đúng chuỗi ID.
+
+Xử lý `401 unauthorized` khi thiếu phiên, `403 access_forbidden` khi thiếu quyền, `404 not_found` khi sai chuỗi ID và `400 validation_error` khi sai phân trang. Danh sách và chi tiết dùng dữ liệu đã lưu, bao gồm layout tạo trước khi có API này.

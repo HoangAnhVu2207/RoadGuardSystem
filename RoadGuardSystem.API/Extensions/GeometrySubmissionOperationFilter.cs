@@ -9,24 +9,44 @@ public sealed class GeometrySubmissionOperationFilter : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
+        if (context.MethodInfo.DeclaringType == typeof(PavementWorkflowController) &&
+            context.MethodInfo.Name == nameof(PavementWorkflowController.ListLayouts))
+        {
+            operation.Description = "Supervisor or current-project PM lists saved layout references for the exact project, road section, route version and segment set, including historical versions. Sorted by layout ID. Follow nextCursor, then GET the chosen layout by ID.";
+            AddError(operation, context, "400", "validation_error: invalid page size or cursor outside this collection.");
+            AddError(operation, context, "401", "unauthorized");
+            AddError(operation, context, "403", "access_forbidden");
+            AddError(operation, context, "404", "not_found: invalid resource chain.");
+            return;
+        }
         if (context.MethodInfo.DeclaringType != typeof(GeometryWorkflowController)) return;
 
         switch (context.MethodInfo.Name)
         {
             case nameof(GeometryWorkflowController.Submit):
-                operation.Description = "Current-project PM submits one ready draft per project. The submitted content becomes immutable. Replay returns the original receipt after current authorization.";
+                operation.Description = "Current-project PM submits one dossier per project. A rejected dossier may be resubmitted with changed route content under the same draft ID. Replay returns the original receipt after current authorization.";
                 AddHeader(operation, "If-Match", "Quoted ETag from the saved draft.");
                 AddHeader(operation, "Idempotency-Key", "One key per submission. Retry the same draft and ETag with the same key.");
                 AddHeaderToResponse(operation.Responses["201"], "ETag", "Draft ETag after submission. Use it for confirm.");
                 AddHeaderToResponse(operation.Responses["201"], "Location", "Project submission lookup URL.");
-                AddError(operation, context, "409", "road_geometry_submission_exists, duplicate_request, project_closed or road_geometry_invalid_state");
+                AddError(operation, context, "409", "road_geometry_submission_exists, road_geometry_submission_unchanged, duplicate_request, project_closed or road_geometry_invalid_state");
                 AddError(operation, context, "412", "concurrency_conflict");
                 AddError(operation, context, "422", "Draft readiness, CRS or topology validation failed.");
                 AddError(operation, context, "428", "validation_error: missing preconditions.");
                 break;
             case nameof(GeometryWorkflowController.Submission):
-                operation.Description = "Supervisor or current-project PM finds the submitted dossier by project ID. Returns SUBMITTED or CONFIRMED and the current draft ETag.";
+                operation.Description = "Supervisor or current-project PM finds the submitted dossier by project ID. Returns SUBMITTED, REJECTED or CONFIRMED and the current draft ETag. currentReview describes the latest round; previousRejection describes an earlier round.";
                 AddHeaderToResponse(operation.Responses["200"], "ETag", "Current draft ETag.");
+                break;
+            case nameof(GeometryWorkflowController.Reject):
+                operation.Description = "Supervisor rejects the current pending round with a required nonblank reason of at most 2000 characters. The PM can edit the same draft. Replay returns the original decision receipt.";
+                AddHeader(operation, "If-Match", "Current quoted ETag of the submitted draft.");
+                AddHeader(operation, "Idempotency-Key", "Retry with the original key, reason and ETag.");
+                AddHeaderToResponse(operation.Responses["200"], "ETag", "Draft ETag after rejection. Use it to edit.");
+                AddError(operation, context, "409", "road_geometry_submission_required, road_geometry_invalid_state, duplicate_request or project_closed");
+                AddError(operation, context, "412", "concurrency_conflict");
+                AddError(operation, context, "422", "road_geometry_rejection_reason_required");
+                AddError(operation, context, "428", "validation_error: missing preconditions.");
                 break;
             case nameof(GeometryWorkflowController.Confirm):
                 operation.Description += " Supervisor confirms the project's submitted draft using its current ETag. A DRAFT without a submission returns road_geometry_submission_required.";

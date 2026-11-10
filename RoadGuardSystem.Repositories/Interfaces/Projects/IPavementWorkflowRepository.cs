@@ -7,6 +7,10 @@ namespace RoadGuardSystem.Repositories.Projects;
 public sealed record PavementWorkflowCommand(Guid ActorId, Guid ProjectId, string Action,
     Guid? RouteVersionId = null, Guid? SegmentSetId = null, Guid? ResourceId = null,
     object? Input = null, string? Key = null, string? ExpectedContentHash = null);
+public sealed record PavementLayoutListQuery(Guid RoadSectionId, int PageSize, Guid? Cursor);
+public sealed record PavementLayoutReference(Guid LayoutId, Guid ProjectId, Guid RoadSectionId, Guid RouteVersionId,
+    Guid SegmentSetId, string Kind, Guid? SourcePlanId, DateTimeOffset CreatedAt, string ContentHash);
+public sealed record PavementLayoutReferencePage(PavementLayoutReference[] Items, Guid? NextCursor);
 public sealed record PavementLayerQuery(string Layer, int Limit, double[]? Bbox, string? Cursor);
 public sealed record PavementLayoutView(Guid Id, Guid ProjectId, Guid RouteVersionId, Guid SegmentSetId,
     Guid? SourcePlanId, Guid? CrsProfileRevisionId, string Kind, string ContentHash,

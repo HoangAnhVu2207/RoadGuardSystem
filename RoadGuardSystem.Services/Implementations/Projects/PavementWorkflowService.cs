@@ -9,7 +9,7 @@ public sealed class PavementWorkflowService(IPavementWorkflowRepository reposito
     public async Task<GeometryWorkflowResult> ExecuteAsync(UserRoleCode role, PavementWorkflowCommand command,
         CancellationToken cancellationToken = default)
     {
-        var read = command.Action is "layout-get" or "manifest" or "page" or "impact-get" or "impact-list";
+        var read = command.Action is "layout-list" or "layout-get" or "manifest" or "page" or "impact-get" or "impact-list";
         var write = command.Action is "plan-create" or "asbuilt-create" or "publish" or "impact-create" or "impact-decide";
         if (!read && !write) return new(400, "validation_error");
         // No FIELD segment-set pin exists in the legacy task schema. Crew access stays denied
@@ -17,6 +17,9 @@ public sealed class PavementWorkflowService(IPavementWorkflowRepository reposito
         if (command.ActorId == Guid.Empty || command.ProjectId == Guid.Empty ||
             (read ? role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) : role != UserRoleCode.ProjectManager))
             return new(403, "access_forbidden");
+        if (command.Action == "layout-list" && (command.Input is not PavementLayoutListQuery query ||
+            query.PageSize is < 1 or > 100 || query.Cursor == Guid.Empty))
+            return new(400, "validation_error");
         if (write && (string.IsNullOrWhiteSpace(command.Key) || command.Key.Length > 150 || command.Key.Any(c => c is < '!' or > '~')))
             return new(428, "idempotency_key_required");
         if (command.Action is "page" or "publish" or "asbuilt-create" && string.IsNullOrWhiteSpace(command.ExpectedContentHash))
@@ -31,6 +34,13 @@ public sealed class PavementWorkflowService(IPavementWorkflowRepository reposito
                 (input, srid) => GeometryEngine.Preview(input, srid),
                 (snapshot, query, hash) => GeometryMapPageEngine.Page(snapshot, query.Layer, hash, query.Limit, query.Bbox, query.Cursor),
                 cancellationToken);
+            if (result.Value is PavementLayoutReferencePage references)
+                return result with
+                {
+                    Value = new PavementLayoutReferencePageDto(references.Items.Select(x => new PavementLayoutReferenceDto(
+                        x.LayoutId, x.ProjectId, x.RoadSectionId, x.RouteVersionId, x.SegmentSetId, x.Kind, x.SourcePlanId,
+                        x.CreatedAt, x.ContentHash)).ToArray(), references.NextCursor)
+                };
             return result with { Value = RoadGuardSystem.DTOs.BoundaryFactMappings.ToWire(result.Value) };
         }
         catch (GeometryValidationException e)

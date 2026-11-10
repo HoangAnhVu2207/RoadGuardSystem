@@ -1,17 +1,27 @@
-# Trình và xác nhận hồ sơ tuyến
+# Xét duyệt hồ sơ tuyến
 
-PM dùng các API draft hiện có để tạo, sửa, xem preview và readiness. Khi draft đã sẵn sàng, PM trình một lần cho dự án. Supervisor tìm hồ sơ bằng project ID và dùng GET draft hiện có để xem hình học.
+Mỗi dự án có một hồ sơ xét duyệt với cùng `draftId` qua các lượt trình. PM sửa nháp bằng API hiện có. Supervisor tìm hồ sơ bằng project ID và dùng GET draft để xem hình học.
 
 | Method và path dưới `/api/v1/projects/{projectId}` | Quyền | Request và kết quả |
 | --- | --- | --- |
-| `POST /road-geometry-drafts/{draftId}/submit` | PM có quyền hiện tại trong dự án | Body rỗng. Gửi `If-Match` từ GET/PUT draft và `Idempotency-Key`. Trả `201` cùng hồ sơ, `ETag` mới và `Location` trỏ tới lookup theo dự án. |
-| `GET /road-geometry-submission` | Supervisor hoặc PM có quyền trong dự án | Trả `200` với `SUBMITTED` hoặc `CONFIRMED` và ETag hiện tại của draft. `404 road_geometry_submission_not_found` nếu chưa trình. |
-| `GET /road-geometry-drafts/{draftId}` | Supervisor hoặc PM có quyền trong dự án | Dùng `draftId` lấy từ lookup. Response hiện có chứa `status`, `editedCoordinates` và metadata geometry. |
-| `POST /road-geometry-drafts/{draftId}/confirm` | Supervisor | Gửi `If-Match` mới từ lookup hoặc GET draft và `Idempotency-Key`. Giữ JSON confirm hiện hành. `201` trả hình học và `routeVersionId` đã xác nhận. Alias confirm theo road section dùng cùng quy tắc. |
+| `POST /road-geometry-drafts/{draftId}/submit` | PM có quyền trong dự án | Body rỗng. Gửi `If-Match` từ GET/PUT draft và `Idempotency-Key`. Trả `201`, `ETag` mới và `Location` trỏ tới lookup theo dự án. |
+| `GET /road-geometry-submission` | Supervisor hoặc PM có quyền trong dự án | Trả `200` với `SUBMITTED`, `REJECTED` hoặc `CONFIRMED` và ETag hiện tại của draft. `404 road_geometry_submission_not_found` nếu chưa trình. |
+| `GET /road-geometry-drafts/{draftId}` | Supervisor hoặc PM có quyền trong dự án | Dùng `draftId` từ lookup. Response giữ `status`, `editedCoordinates` và metadata hình học. |
+| `PUT /road-geometry-drafts/{draftId}` | PM có quyền trong dự án | Khi `REJECTED`, sửa và lưu cùng `draftId` bằng ETag hiện tại và key mới. Lưu trả `200` và vẫn giữ `REJECTED`. |
+| `POST /road-geometry-drafts/{draftId}/reject` | Supervisor | Gửi ETag của lượt đang `SUBMITTED`, key mới và lý do. Trả `200` cùng hồ sơ `REJECTED` và ETag mới. |
+| `POST /road-geometry-drafts/{draftId}/confirm` | Supervisor | Gửi ETag của lượt đang `SUBMITTED`, key mới và JSON confirm hiện có. `201` trả hình học và `routeVersionId`. Alias confirm theo road section dùng cùng quy tắc. |
 
 Web dùng cookie với `credentials: "include"`. Request ghi gửi `X-CSRF-TOKEN` lấy từ `GET /api/v1/auth/web/csrf` trong cùng phiên. GET không cần CSRF. Bearer vẫn được hỗ trợ. Swagger runtime ở `/swagger/v1/swagger.json`.
 
-Ví dụ response sau submit, khi draft chưa gắn road section. ETag mẫu là `"AAAAAAAAAAI="`.
+Body reject mẫu:
+
+```json
+{ "reason": "Cập nhật tọa độ điểm nối với tuyến cha." }
+```
+
+Sau reject, dùng `currentReview.rejectionReason` khi trạng thái hồ sơ là `REJECTED`. PM lưu cùng mã tuyến và sửa nội dung tuyến trước khi trình lại. Chỉ đổi tên, lý do sửa, metadata kiểm toán, hoặc sửa rồi lưu về nội dung lượt trước sẽ bị chặn tại submit.
+
+Ví dụ lookup sau khi PM trình lại. FE đọc `currentReview` để hiển thị lượt đang chờ và có thể hiển thị `previousRejection` ở phần quyết định trước.
 
 ```json
 {
@@ -19,55 +29,61 @@ Ví dụ response sau submit, khi draft chưa gắn road section. ETag mẫu là
   "draftId": "22222222-2222-4222-8222-222222222222",
   "roadSectionId": null,
   "status": "SUBMITTED",
-  "version": "AAAAAAAAAAI=",
-  "submittedContentVersion": "AAAAAAAAAAE=",
+  "version": "AAAAAAAAAAU=",
+  "submittedContentVersion": "AAAAAAAAAAQ=",
   "submittedBy": "33333333-3333-4333-8333-333333333333",
-  "submittedAt": "2026-11-10T04:00:00Z",
-  "confirmedRouteVersionId": null
+  "submittedAt": "2026-11-10T05:00:00Z",
+  "confirmedRouteVersionId": null,
+  "currentReview": {
+    "number": 2,
+    "contentVersion": "AAAAAAAAAAQ=",
+    "outcome": "SUBMITTED",
+    "submittedBy": "33333333-3333-4333-8333-333333333333",
+    "submittedAt": "2026-11-10T05:00:00Z",
+    "decidedBy": null,
+    "decidedAt": null,
+    "rejectionReason": null
+  },
+  "previousRejection": {
+    "number": 1,
+    "contentVersion": "AAAAAAAAAAE=",
+    "outcome": "REJECTED",
+    "submittedBy": "33333333-3333-4333-8333-333333333333",
+    "submittedAt": "2026-11-10T04:00:00Z",
+    "decidedBy": "44444444-4444-4444-8444-444444444444",
+    "decidedAt": "2026-11-10T04:10:00Z",
+    "rejectionReason": "Cập nhật tọa độ điểm nối với tuyến cha."
+  }
 }
 ```
 
-`submittedContentVersion` ghi ETag của nội dung được trình, bỏ dấu ngoặc kép. Confirm dùng ETag **hiện tại** ở header của GET, hoặc thêm dấu ngoặc kép quanh `version`.
+Confirm dùng ETag **hiện tại** ở header, hoặc thêm ngoặc kép quanh `version`. Nếu tuyến đã có phiên bản hiện hành, gửi ID của phiên bản đó vào `expectedCurrentVersionId`.
 
 ```json
 {
   "expectedCurrentVersionId": null,
-  "effectiveFrom": "2026-11-10T04:10:00Z",
-  "reason": "Đã kiểm tra hồ sơ tuyến"
+  "effectiveFrom": "2026-11-10T05:10:00Z",
+  "reason": "Đã kiểm tra hồ sơ tuyến."
 }
 ```
 
-Nếu tuyến đã có phiên bản hiện hành, gửi ID của phiên bản đó vào `expectedCurrentVersionId`. Sau confirm, lookup trả `status: "CONFIRMED"` cùng `roadSectionId`, `confirmedRouteVersionId` và ETag mới. FE đọc lại lookup sau khi nhận confirm hoặc khi mở lại màn.
+Sau confirm, lookup trả `CONFIRMED` với `roadSectionId`, `confirmedRouteVersionId`, quyết định của lượt hiện tại và ETag mới. Mỗi lượt lưu snapshot và quyết định riêng trong DB. Lookup trả lượt hiện tại và lần từ chối gần nhất trước lượt đó.
 
-
-Ví dụ lookup sau confirm. Trường `confirmedRouteVersionId` khớp `routeVersionId` trong response confirm.
-
-```json
-{
-  "projectId": "11111111-1111-4111-8111-111111111111",
-  "draftId": "22222222-2222-4222-8222-222222222222",
-  "roadSectionId": "44444444-4444-4444-8444-444444444444",
-  "status": "CONFIRMED",
-  "version": "AAAAAAAAAAM=",
-  "submittedContentVersion": "AAAAAAAAAAE=",
-  "submittedBy": "33333333-3333-4333-8333-333333333333",
-  "submittedAt": "2026-11-10T04:00:00Z",
-  "confirmedRouteVersionId": "55555555-5555-4555-8555-555555555555"
-}
-```
-
-- `401 unauthorized` nếu phiên hết hiệu lực. `403 access_forbidden` nếu sai role hoặc dự án. `403 csrf_failed` nếu thiếu hoặc sai CSRF khi ghi bằng Web.
+- `401 unauthorized` nếu phiên hết hiệu lực. `403 access_forbidden` nếu sai role hoặc dự án. `403 csrf_failed` nếu ghi bằng Web thiếu CSRF hợp lệ.
 - `404 road_geometry_draft_not_found` nếu draft không thuộc dự án hoặc alias không khớp.
-- `409 road_geometry_submission_exists` nếu dự án đã trình một hồ sơ. `409 road_geometry_submission_locked` nếu tạo hoặc sửa draft sau trình, hoặc ghi trực tiếp tuyến đã khóa. `409 road_geometry_submission_required` nếu Sup xác nhận draft chưa trình. `409 road_geometry_invalid_state` nếu trạng thái draft không cho phép thao tác. `409 project_closed` nếu dự án đã đóng.
-- `409 duplicate_request` nếu dùng cùng key với request khác. `409 road_section_concurrency_conflict` nếu phiên bản tuyến hiện hành khác `expectedCurrentVersionId`.
-- `412 concurrency_conflict` nếu ETag cũ hoặc sai định dạng. `428 validation_error` nếu thiếu precondition. `422` nếu readiness, CRS, geometry, topology hoặc dữ liệu confirm không hợp lệ. Mã thường gặp gồm `geometry_metadata_incomplete`, `unsupported_crs`, `geometry_validation_failed`, `route_topology_cycle` và `branch_junction_mismatch`.
+- `409 road_geometry_submission_unchanged` nếu nội dung tuyến trùng lượt vừa bị từ chối. `409 road_geometry_submission_exists` nếu dự án đã có hồ sơ khác hoặc đã trình xong thao tác tương ứng. `409 road_geometry_submission_locked` khi ghi vào hồ sơ hoặc tuyến đã khóa.
+- `409 road_geometry_submission_required`, `road_geometry_invalid_state` hoặc `project_closed` nếu trạng thái chưa cho phép thao tác. `409 road_section_concurrency_conflict` nếu phiên bản hiện hành khác `expectedCurrentVersionId`.
+- `409 duplicate_request` nếu dùng cùng key cho request khác. `412 concurrency_conflict` nếu ETag cũ hoặc sai định dạng. `428 validation_error` nếu thiếu precondition.
+- `422 road_geometry_rejection_reason_required` nếu lý do trống, chỉ có khoảng trắng hoặc dài quá 2000 ký tự. Các lỗi `422` geometry, CRS và topology vẫn theo contract cũ.
 
-Khi timeout lúc trình, gửi lại cùng draft ID, ETag trước trình và key. Server kiểm lại quyền hiện tại rồi trả receipt gốc nếu thao tác đã thành công. Receipt giữ trạng thái và ETag tại thời điểm trình. GET lookup cho biết trạng thái mới nhất.
+Khi timeout, gửi lại cùng route, body, ETag và key. Server kiểm lại quyền rồi trả receipt gốc dù hồ sơ đã sang lượt khác. Đọc GET lookup để đồng bộ trạng thái mới nhất.
 
-Migration `20261110043224_RoadGeometrySubmission` thêm ba cột nullable, filtered unique index theo project và check constraint. Áp dụng bằng quy trình migration của BE trước khi đưa API mới vào hoạt động. Trong môi trường đã cấu hình `ROADGUARD_MIGRATION_CONNECTION_STRING` trỏ đúng DB và đã sao lưu, chạy từ root repository:
+## Migration
+
+Migration `20261110122600_GeometrySubmissionReviewRounds` thêm bảng lịch sử và cho phép `REJECTED`. Bản `SUBMITTED` và `CONFIRMED` đã từng trình được tạo lượt 1 từ dữ liệu có sẵn. Người và thời điểm xác nhận lấy từ metadata đã lưu nếu có. Các trường chưa từng lưu để null. Draft chưa trình và bản xác nhận cũ chưa từng có hồ sơ trình giữ nguyên. Migration từ chối downgrade khi có lịch sử từ chối hoặc trình lại.
+
+Sau khi sao lưu và cấu hình `ROADGUARD_MIGRATION_CONNECTION_STRING` đúng DB đích, áp migration trước khi cập nhật API:
 
 ```powershell
-dotnet ef database update 20261110043224_RoadGeometrySubmission --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj
+dotnet ef database update 20261110122600_GeometrySubmissionReviewRounds --project RoadGuardSystem.Repositories/RoadGuardSystem.cRepositories.csproj --startup-project RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj
 ```
-
-Draft cũ giữ `DRAFT`, vẫn có thể trình nếu dự án chưa có hồ sơ. Bản `CONFIRMED` cũ giữ nguyên geometry và lịch sử, không chiếm suất trình và không xuất hiện trong lookup mới. Migration từ chối downgrade khi đã có hồ sơ trình để tránh mất dấu vết.

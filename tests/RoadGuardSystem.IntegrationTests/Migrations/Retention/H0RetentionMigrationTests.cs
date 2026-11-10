@@ -32,7 +32,8 @@ public sealed class H0RetentionMigrationTests : IAsyncLifetime
             "20261009043010_AllowVerifiedDefectPostRepairTasks",
             "20261022074647_C1ControlledPublicPublication",
             "20261022181921_B2NotificationSupervisorAssignment",
-            "20261110043224_RoadGeometrySubmission"
+            "20261110043224_RoadGeometrySubmission",
+            "20261110122600_GeometrySubmissionReviewRounds"
         }, discovered);
         Assert.EndsWith("_BaselineCurrentSchema", discovered[0]);
         Assert.EndsWith("_AllowVerifiedDefectPostRepairTasks", discovered[1]);

@@ -96,3 +96,7 @@ public sealed record PavementGeometryPreview(PavementLayoutPreview? Plan, SlabGe
     public static implicit operator PavementGeometryPreview?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.PavementGeometryPreviewFact? value)
         => value is null ? null! : new((global::RoadGuardSystem.DTOs.Projects.PavementLayoutPreview?)value.Plan, value.Slabs?.Select(item => (global::RoadGuardSystem.DTOs.Projects.SlabGeometrySnapshot)item).ToArray()!, value.Warnings, value.DisplayToleranceMeters, value.RenderedGapAreaSquareMeters, value.RenderedOverlapAreaSquareMeters);
 }
+
+public sealed record PavementLayoutReferenceDto(Guid LayoutId, Guid ProjectId, Guid RoadSectionId, Guid RouteVersionId,
+    Guid SegmentSetId, string Kind, Guid? SourcePlanId, DateTimeOffset CreatedAt, string ContentHash);
+public sealed record PavementLayoutReferencePageDto(PavementLayoutReferenceDto[] Items, Guid? NextCursor);

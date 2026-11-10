@@ -19,6 +19,13 @@ public sealed class PavementWorkflowController(IPavementWorkflowService service)
     [HttpPost("route-versions/{routeVersionId:guid}/segment-sets/{segmentSetId:guid}/pavement-plans")]
     public Task<IActionResult> CreatePlan(Guid projectId, Guid routeVersionId, Guid segmentSetId, PavementPlanCreateInput input, CancellationToken ct)
         => Run(projectId, "plan-create", ct, routeVersionId, segmentSetId, input: input);
+    [HttpGet("road-sections/{roadSectionId:guid}/versions/{routeVersionId:guid}/segment-sets/{segmentSetId:guid}/pavement-layouts")]
+    [ProducesResponseType<PavementLayoutReferencePageDto>(StatusCodes.Status200OK)]
+    public Task<IActionResult> ListLayouts(Guid projectId, Guid roadSectionId, Guid routeVersionId, Guid segmentSetId,
+        [FromQuery] int pageSize = 25, [FromQuery] Guid? cursor = null, CancellationToken ct = default)
+        => Run(projectId, "layout-list", ct, routeVersionId, segmentSetId,
+            input: new PavementLayoutListQuery(roadSectionId, pageSize, cursor));
+
     [HttpGet("pavement-layouts/{layoutId:guid}")]
     public Task<IActionResult> GetLayout(Guid projectId, Guid layoutId, CancellationToken ct)
         => Run(projectId, "layout-get", ct, resource: layoutId);

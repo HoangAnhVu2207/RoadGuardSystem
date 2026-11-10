@@ -61,6 +61,7 @@
     "dbo.GeometryLocationImpactDecisions",
     "dbo.GeometryLocationImpacts",
     "dbo.GeometryMapPublications",
+    "dbo.GeometrySubmissionRounds",
     "dbo.GroundTruthMeasurements",
     "dbo.H6NotificationAudits",
     "dbo.H6NotificationCalendar",
@@ -201,9 +202,10 @@
     "20261009043010_AllowVerifiedDefectPostRepairTasks",
     "20261022074647_C1ControlledPublicPublication",
     "20261022181921_B2NotificationSupervisorAssignment",
-    "20261110043224_RoadGeometrySubmission"
+    "20261110043224_RoadGeometrySubmission",
+    "20261110122600_GeometrySubmissionReviewRounds"
   ],
-  "Signature": "FCDF3D5A8A874FDB2B85C4A9EC733CE9BC89F885F803AE11F452C734E19050E1",
+  "Signature": "B3149750B40DBD6775F974C335C8DB7FA4AFB1742C479191638F0CAE9A1CB2B4",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",
@@ -570,6 +572,12 @@
       "Category": "NOT_COVERED",
       "Reason": "No fabricated business state; requires producer-backed scenario",
       "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.GeometrySubmissionRounds",
+      "Category": "TEST_ONLY",
+      "Reason": "Populated by the geometry dossier review workflow.",
+      "Evidence": "GeometrySubmissionHttpTests.RejectedDossierCanOnlyResubmitChangedGeometryAndRetainsEveryRound"
     },
     {
       "Table": "dbo.GroundTruthMeasurements",

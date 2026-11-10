@@ -5924,6 +5924,57 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.GeometrySubmissionRound", b =>
+                {
+                    b.Property<Guid>("DraftId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentFingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ContentVersion")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InputJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OriginalCoordinatesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("SubmittedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SubmittedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("DraftId", "Number");
+
+                    b.ToTable("GeometrySubmissionRounds", (string)null);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.HandoverDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6565,7 +6616,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("RoadGeometryDrafts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_RoadGeometryDrafts_Submission", "([SubmittedAt] IS NULL AND [SubmittedBy] IS NULL AND [SubmittedContentVersion] IS NULL AND [Status] <> 'SUBMITTED') OR ([SubmittedAt] IS NOT NULL AND [SubmittedBy] IS NOT NULL AND [SubmittedContentVersion] IS NOT NULL AND [Status] IN ('SUBMITTED', 'CONFIRMED'))");
+                            t.HasCheckConstraint("CK_RoadGeometryDrafts_Submission", "([SubmittedAt] IS NULL AND [SubmittedBy] IS NULL AND [SubmittedContentVersion] IS NULL AND [Status] NOT IN ('SUBMITTED', 'REJECTED')) OR ([SubmittedAt] IS NOT NULL AND [SubmittedBy] IS NOT NULL AND [SubmittedContentVersion] IS NOT NULL AND [Status] IN ('SUBMITTED', 'CONFIRMED', 'REJECTED'))");
                         });
                 });
 
@@ -12771,6 +12822,15 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("CrsProfileRevisionId", "ProjectId")
                         .HasPrincipalKey("Id", "ProjectId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.GeometrySubmissionRound", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadGeometryDraft", null)
+                        .WithMany()
+                        .HasForeignKey("DraftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Projects.HandoverDocument", b =>

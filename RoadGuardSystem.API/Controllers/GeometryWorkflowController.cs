@@ -48,6 +48,11 @@ public sealed class GeometryWorkflowController(IGeometryWorkflowService service)
     public Task<IActionResult> Submission(Guid projectId, CancellationToken ct)
         => Run(projectId, "submission-get", ct);
 
+    [HttpPost("road-geometry-drafts/{draftId:guid}/reject")]
+    [ProducesResponseType<GeometrySubmissionView>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Reject(Guid projectId, Guid draftId, GeometryRejectInput input, CancellationToken ct)
+        => Run(projectId, "reject", ct, draft: draftId, input: input);
+
     [HttpPost("road-geometry-drafts/{draftId:guid}/confirm")]
     [HttpPost("road-sections/{roadSectionId:guid}/geometry-drafts/{draftId:guid}/confirm")]
     public Task<IActionResult> Confirm(Guid projectId, Guid draftId, GeometryConfirmInput input, CancellationToken ct, Guid? roadSectionId = null) => Run(projectId, "confirm", ct, roadSectionId, draftId, input: input);

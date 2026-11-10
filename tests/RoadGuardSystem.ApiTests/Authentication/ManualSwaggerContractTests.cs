@@ -27,6 +27,12 @@ public sealed class ManualSwaggerContractTests
         var lookup = paths.GetProperty(root + "/road-geometry-submission").GetProperty("get");
         Assert.Contains(lookup.GetProperty("security").EnumerateArray(), item => item.TryGetProperty("WebSession", out _) && !item.TryGetProperty("CsrfToken", out _));
         Assert.True(lookup.GetProperty("responses").TryGetProperty("404", out _));
+        var reject = paths.GetProperty(root + "/road-geometry-drafts/{draftId}/reject").GetProperty("post");
+        Assert.Contains(reject.GetProperty("security").EnumerateArray(), item => item.TryGetProperty("WebSession", out _) && item.TryGetProperty("CsrfToken", out _));
+        Assert.True(reject.GetProperty("responses").TryGetProperty("422", out _));
+        var layouts = paths.GetProperty(root + "/road-sections/{roadSectionId}/versions/{routeVersionId}/segment-sets/{segmentSetId}/pavement-layouts").GetProperty("get");
+        Assert.Contains(layouts.GetProperty("security").EnumerateArray(), item => item.TryGetProperty("WebSession", out _) && !item.TryGetProperty("CsrfToken", out _));
+        Assert.True(layouts.GetProperty("responses").TryGetProperty("404", out _));
         var confirm = paths.GetProperty(root + "/road-geometry-drafts/{draftId}/confirm").GetProperty("post");
         Assert.Contains("road_geometry_submission_required", confirm.GetProperty("responses").GetProperty("409").GetProperty("description").GetString(), StringComparison.Ordinal);
     }

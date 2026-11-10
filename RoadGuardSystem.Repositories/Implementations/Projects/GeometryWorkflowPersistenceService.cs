@@ -34,7 +34,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         var c = command; var ct = cancellationToken;
         try
         {
-            var write = c.Action is "draft-submit" or "draft-create" or "draft-edit" or "confirm" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create";
+            var write = c.Action is "draft-submit" or "draft-create" or "draft-edit" or "confirm" or "reject" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create";
             if (!write && db.Database.CurrentTransaction is not null)
             {
                 await GuardAsync(c, true, ct);
@@ -74,7 +74,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
                 Value = c.Action switch
                 {
                     "draft-create" or "draft-edit" => json.Deserialize<GeometryDraftViewFact>(),
-                    "draft-submit" => json.Deserialize<GeometrySubmissionViewFact>(),
+                    "draft-submit" or "reject" => json.Deserialize<GeometrySubmissionViewFact>(),
                     "confirm" => json.Deserialize<RoadGeometryVersionViewFact>(),
                     "profile-create" => json.Deserialize<CrsProfileViewFact>(),
                     "system-create" => json.Deserialize<RouteSystemViewFact>(),
@@ -103,7 +103,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
     {
         var project = await db.Projects.SingleOrDefaultAsync(x => x.Id == c.ProjectId, ct);
         if (project is null) Reject(404, "project_not_found");
-        if (project!.Status == RoadGuardSystem.aBusinessObjects.Commons.ProjectStatus.Closed && c.Action is "draft-submit" or "draft-create" or "draft-edit" or "confirm" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create") Reject(409, "project_closed");
+        if (project!.Status == RoadGuardSystem.aBusinessObjects.Commons.ProjectStatus.Closed && c.Action is "draft-submit" or "draft-create" or "draft-edit" or "confirm" or "reject" or "set-create" or "set-edit" or "publish" or "profile-create" or "system-create") Reject(409, "project_closed");
         if (c.Action == "submission-get")
         {
             var submission = await SubmittedDrafts(db, c.ProjectId).AsNoTracking().SingleOrDefaultAsync(ct);
@@ -111,7 +111,8 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             var confirmedVersion = await db.Set<RoadGeometryMetadata>().AsNoTracking()
                 .Where(x => x.SourceDraftId == submission.Id)
                 .Select(x => (Guid?)x.RoadSectionVersionId).SingleOrDefaultAsync(ct);
-            return SubmissionResult(200, submission, confirmedVersion);
+            var review = await LatestRound(submission.Id, ct);
+            return await SubmissionResult(200, submission, confirmedVersion, review, ct);
         }
         var srid = project!.EngineeringUtmSrid ?? 0;
         if (c.Action == "profile-create")
@@ -142,7 +143,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             section = await db.RoadSections.SingleOrDefaultAsync(x => x.Id == sid && x.ProjectId == c.ProjectId, ct);
             if (section is null) Reject(404, "road_section_not_found");
         }
-        if (c.Action.StartsWith("draft", StringComparison.Ordinal) || c.Action == "confirm")
+        if (c.Action.StartsWith("draft", StringComparison.Ordinal) || c.Action is "confirm" or "reject")
         {
             RoadGeometryDraft? draft = null;
             if (c.DraftId is Guid did)
@@ -157,7 +158,8 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             }
             if (c.Action is "draft-create" or "draft-edit")
             {
-                if (await SubmittedDrafts(db, c.ProjectId).AnyAsync(ct))
+                var revising = draft is { Status: "REJECTED", SubmittedAt: not null };
+                if (!revising && await SubmittedDrafts(db, c.ProjectId).AnyAsync(ct))
                     Reject(409, "road_geometry_submission_locked");
                 var input = (GeometryDraftInputFact)c.Input!;
                 if (input.SourceKind == "NATIVE_ALIGNMENT")
@@ -171,7 +173,10 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
                 if (draft is null) { draft = RoadGeometryDraft.Create(c.ProjectId, c.RoadSectionId, code!, input.RoadName, JsonSerializer.Serialize(input), JsonSerializer.Serialize(input.Coordinates), null, c.ActorId, clock.GetUtcNow()); db.Add(draft); }
                 else
                 {
-                    Match(draft.RowVersion, c.ExpectedVersion); if (draft.Status != "DRAFT") Reject(409, "road_geometry_invalid_state");
+                    Match(draft.RowVersion, c.ExpectedVersion);
+                    if (draft.Status is not ("DRAFT" or "REJECTED")) Reject(409, "road_geometry_invalid_state");
+                    if (revising && !string.Equals(code, draft.RoadCode, StringComparison.Ordinal))
+                        Reject(409, "road_geometry_submission_locked");
                     var previousInput = Decode<GeometryDraftInputFact>(draft.InputJson);
                     var original = previousInput.SourceKind == input.SourceKind && previousInput.SourceCrs == input.SourceCrs && previousInput.SourceFileId == input.SourceFileId ? draft.OriginalCoordinatesJson : JsonSerializer.Serialize(input.Coordinates);
                     draft.Edit(JsonSerializer.Serialize(input), original, null, code!, input.RoadName, c.ActorId, clock.GetUtcNow());
@@ -195,19 +200,46 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             if (c.Action == "draft-preview") return new(200, Value: preview(stored, srid), Version: Version(draft.RowVersion));
             if (c.Action == "draft-submit")
             {
-                if (await SubmittedDrafts(db, c.ProjectId).AnyAsync(ct))
+                if (await SubmittedDrafts(db, c.ProjectId).AnyAsync(x => x.Id != draft.Id, ct) ||
+                    draft.Status is "SUBMITTED" or "CONFIRMED" && draft.SubmittedAt is not null)
                     Reject(409, "road_geometry_submission_exists");
-                if (draft.Status != "DRAFT") Reject(409, "road_geometry_invalid_state");
+                if (draft.Status is not ("DRAFT" or "REJECTED")) Reject(409, "road_geometry_invalid_state");
                 var ready = preview(stored, srid);
                 if (stored.SourceKind == "NATIVE_ALIGNMENT")
                     await ValidateTopologyAsync(stored, c.ProjectId, section?.Id, ready, preview, segments, ct);
+                var fingerprint = SubmissionFingerprint(stored);
+                var priorRound = await LatestRound(draft.Id, ct);
+                if (draft.Status == "REJECTED")
+                {
+                    if (priorRound is not { Outcome: "REJECTED" }) Reject(409, "road_geometry_invalid_state");
+                    if (fingerprint == (priorRound.ContentFingerprint ?? SubmissionFingerprint(Decode<GeometryDraftInputFact>(priorRound.InputJson))))
+                        Reject(409, "road_geometry_submission_unchanged");
+                }
                 draft.Submit(c.ActorId, clock.GetUtcNow());
+                var round = GeometrySubmissionRound.Start(draft, (priorRound?.Number ?? 0) + 1, fingerprint);
+                db.Add(round);
                 await db.SaveChangesAsync(ct);
-                return SubmissionResult(201, draft, null);
+                return await SubmissionResult(201, draft, null, round, ct);
             }
 
             if (draft.Status != "SUBMITTED" || draft.SubmittedAt is null)
-                Reject(409, draft.Status == "CONFIRMED" ? "road_geometry_invalid_state" : "road_geometry_submission_required");
+                Reject(409, draft.SubmittedAt is not null || draft.Status == "CONFIRMED" ? "road_geometry_invalid_state" : "road_geometry_submission_required");
+            var pending = await LatestRound(draft.Id, ct);
+            if (pending is not { Outcome: "SUBMITTED" } || pending.ContentVersion != draft.SubmittedContentVersion)
+                Reject(409, "road_geometry_invalid_state");
+            if (c.Action == "reject")
+            {
+                var reason = (c.Input as string)?.Trim();
+                if (string.IsNullOrEmpty(reason) || reason.Length > 2000)
+                    Reject(422, "road_geometry_rejection_reason_required");
+                pending.Decide(c.ActorId, clock.GetUtcNow(), reason);
+                draft.Reject();
+                await db.SaveChangesAsync(ct);
+                return await SubmissionResult(200, draft, null, pending, ct);
+            }
+
+            stored = Decode<GeometryDraftInputFact>(pending.InputJson);
+            if (stored.SourceKind == "NATIVE_ALIGNMENT") stored = await ResolveNativeInputAsync(stored, c.ProjectId, ct);
             var confirm = (GeometryConfirmInputFact)c.Input!;
             if (string.IsNullOrWhiteSpace(confirm.Reason) || confirm.EffectiveFrom == default) Reject(422, "geometry_validation_failed");
             var prepared = preview(stored, srid);
@@ -225,8 +257,10 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
                 version.PinNativeProfile(native.CrsProfileRevisionId);
                 db.Add(new NativeRouteVersionFacts { RoadSectionVersionId = version.Id, ProjectId = c.ProjectId, CrsProfileRevisionId = native.CrsProfileRevisionId, RouteSystemId = stored.RouteSystemId!.Value, RouteKind = stored.RouteKind!, ParentRouteVersionId = stored.ParentRouteVersionId, JunctionOffsetMeters = stored.JunctionOffsetMeters, CanonicalLengthMeters = prepared.LengthMeters, DeclaredLengthMeters = stored.DeclaredLengthMeters, CalibrationJson = stored.ChainageCalibration is null ? null : JsonSerializer.Serialize(stored.ChainageCalibration), SampleOnly = prepared.SampleOnly });
             }
+            var decidedAt = clock.GetUtcNow();
+            pending.Decide(c.ActorId, decidedAt, null);
             db.Add(version); draft.Confirm(section.Id);
-            db.Add(RoadGeometryMetadata.Create(version.Id, draft.Id, JsonSerializer.Serialize(stored), Hash(new { srid, coordinates = stored.Coordinates, stored.NativeAlignment, stored.WidthProfile, stored.StationOriginMeters, stored.SurveyWidthMeters }), c.ActorId, prepared.Wgs84Centerline is null ? null : JsonSerializer.Serialize(prepared.Wgs84Centerline), clock.GetUtcNow()));
+            db.Add(RoadGeometryMetadata.Create(version.Id, draft.Id, JsonSerializer.Serialize(stored), Hash(new { srid, coordinates = stored.Coordinates, stored.NativeAlignment, stored.WidthProfile, stored.StationOriginMeters, stored.SurveyWidthMeters }), c.ActorId, prepared.Wgs84Centerline is null ? null : JsonSerializer.Serialize(prepared.Wgs84Centerline), decidedAt));
             if (current is not null)
             {
                 var refs = new List<GeometryAffectedReferenceFact>();
@@ -333,12 +367,75 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
     internal static IQueryable<RoadGeometryDraft> SubmittedDrafts(RoadGuardDbContext context, Guid project)
         => context.Set<RoadGeometryDraft>().Where(x => x.ProjectId == project && x.SubmittedAt != null);
 
-    private static GeometryWorkflowResult SubmissionResult(int status, RoadGeometryDraft draft, Guid? confirmedVersion)
+    private Task<GeometrySubmissionRound?> LatestRound(Guid draftId, CancellationToken ct)
+        => db.Set<GeometrySubmissionRound>().Where(x => x.DraftId == draftId)
+            .OrderByDescending(x => x.Number).FirstOrDefaultAsync(ct);
+
+    private async Task<GeometryWorkflowResult> SubmissionResult(int status, RoadGeometryDraft draft, Guid? confirmedVersion,
+        GeometrySubmissionRound? current, CancellationToken ct)
     {
+        var previous = current is null ? null : await db.Set<GeometrySubmissionRound>().AsNoTracking()
+            .Where(x => x.DraftId == draft.Id && x.Number < current.Number && x.Outcome == "REJECTED")
+            .OrderByDescending(x => x.Number).FirstOrDefaultAsync(ct);
         var version = Version(draft.RowVersion);
         return new(status, Value: new GeometrySubmissionViewFact(draft.ProjectId, draft.Id, draft.RoadSectionId,
-            draft.Status, version, draft.SubmittedContentVersion!, draft.SubmittedBy!.Value, draft.SubmittedAt!.Value, confirmedVersion),
-            Version: version);
+            draft.Status, version, draft.SubmittedContentVersion!, draft.SubmittedBy!.Value, draft.SubmittedAt!.Value,
+            confirmedVersion, ReviewView(current), ReviewView(previous)), Version: version);
+    }
+
+    private static GeometryReviewRoundViewFact? ReviewView(GeometrySubmissionRound? round)
+        => round is null ? null : new(round.Number, round.ContentVersion, round.Outcome, round.SubmittedBy,
+            round.SubmittedAt, round.DecidedBy, round.DecidedAt, round.RejectionReason);
+
+    private static string SubmissionFingerprint(GeometryDraftInputFact input)
+    {
+        // Hash a typed projection of route content only. JSON input spelling, audit and provenance text are irrelevant.
+        static double Number(double value) => value == 0 ? 0d : value;
+        static double? Optional(double? value) => value is double n ? Number(n) : null;
+        static GeometryPointFact? Point(GeometryPointFact? point)
+            => point is null ? null : new(Number(point.X), Number(point.Y));
+
+        var native = input.SourceKind == "NATIVE_ALIGNMENT" ? input.NativeAlignment : null;
+        return Hash(new
+        {
+            input.SourceKind,
+            input.SourceCrs,
+            StationOriginMeters = Number(input.StationOriginMeters),
+            SurveyWidthMeters = Number(input.SurveyWidthMeters),
+            WidthProfile = input.WidthProfile.Select(x => new
+            {
+                FromOffsetMeters = Number(x.FromOffsetMeters),
+                ToOffsetMeters = Number(x.ToOffsetMeters),
+                WidthMeters = Number(x.WidthMeters)
+            }),
+            Coordinates = native is null ? input.Coordinates?.Select(Point) : null,
+            Native = native is null ? null : new
+            {
+                native.CrsProfileRevisionId,
+                native.SpatialSrid,
+                input.RouteSystemId,
+                input.RouteKind,
+                input.ParentRouteVersionId,
+                JunctionOffsetMeters = Optional(input.JunctionOffsetMeters),
+                DeclaredLengthMeters = Optional(input.DeclaredLengthMeters),
+                TessellationToleranceMeters = Optional(input.TessellationToleranceMeters),
+                Controls = input.ChainageCalibration?.Controls.Select(x => new
+                {
+                    GeometricOffsetMeters = Number(x.GeometricOffsetMeters),
+                    StationMeters = Number(x.StationMeters)
+                }),
+                Primitives = native.Primitives.Select(x => new
+                {
+                    x.Kind,
+                    Start = Point(x.Start),
+                    End = Point(x.End),
+                    Center = Point(x.Center),
+                    Radius = Optional(x.Radius),
+                    StartAngleRadians = Optional(x.StartAngleRadians),
+                    SweepRadians = Optional(x.SweepRadians)
+                })
+            }
+        });
     }
 
     private static void Match(byte[] version, string? expected) { if (Version(version) != expected) Reject(412, "concurrency_conflict"); }
@@ -417,7 +514,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == c.ActorId, ct);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || (c.Role is not null && c.Role != user.RoleCode) || !await db.Roles.AsNoTracking().AnyAsync(x => x.Code == user.RoleCode && x.IsActive, ct)) Reject(403, "access_forbidden");
         var read = c.Action is "submission-get" or "draft-get" or "draft-readiness" or "draft-preview" or "geometry-get" or "set-get" or "set-list" or "set-preview" or "package" or "profile-get" or "profile-list" or "system-list";
-        if (c.Action == "confirm" ? user.RoleCode != UserRoleCode.Supervisor : !read ? user.RoleCode != UserRoleCode.ProjectManager : user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.DroneOperator)) Reject(403, "access_forbidden");
+        if (c.Action is "confirm" or "reject" ? user.RoleCode != UserRoleCode.Supervisor : !read ? user.RoleCode != UserRoleCode.ProjectManager : user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.DroneOperator)) Reject(403, "access_forbidden");
         if (user.RoleCode != UserRoleCode.Supervisor)
         {
             var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);

@@ -25,6 +25,14 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         using var supervisorClient = await WebCookieTestClient.Login(factory, supervisor.Email!);
         var root = $"/api/v1/projects/{scope.Project}";
         var path = root + $"/route-versions/{scope.Route}/segment-sets/{scope.Set}/pavement-plans";
+        var collection = root + $"/road-sections/{scope.Section}/versions/{scope.Route}/segment-sets/{scope.Set}/pavement-layouts";
+        var empty = await supervisorClient.GetFromJsonAsync<JsonElement>(collection);
+        Assert.Empty(empty.GetProperty("items").EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, empty.GetProperty("nextCursor").ValueKind);
+        Assert.Equal(HttpStatusCode.NotFound, (await supervisorClient.GetAsync(
+            root + $"/road-sections/{Guid.NewGuid()}/versions/{scope.Route}/segment-sets/{scope.Set}/pavement-layouts")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await supervisorClient.GetAsync(
+            root + $"/road-sections/{scope.Section}/versions/{scope.Route}/segment-sets/{Guid.NewGuid()}/pavement-layouts")).StatusCode);
         var input = new
         {
             layout = new
@@ -44,6 +52,12 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         Assert.Equal(HttpStatusCode.Created, plan.StatusCode); var layout = await plan.Content.ReadFromJsonAsync<JsonElement>();
         var layoutId = layout.GetProperty("id").GetGuid(); var hash = layout.GetProperty("contentHash").GetString()!;
         Assert.Equal($"\"{hash}\"", plan.Headers.ETag!.Tag); Assert.EndsWith($"/pavement-layouts/{layoutId}", plan.Headers.Location!.ToString());
+        var one = await supervisorClient.GetFromJsonAsync<JsonElement>(collection);
+        var reference = Assert.Single(one.GetProperty("items").EnumerateArray());
+        Assert.Equal(layoutId, reference.GetProperty("layoutId").GetGuid());
+        Assert.Equal("PLANNED", reference.GetProperty("kind").GetString());
+        Assert.Equal(scope.Section, reference.GetProperty("roadSectionId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, one.GetProperty("nextCursor").ValueKind);
         var replay = await Send(client, path, input, key); Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
         Assert.Equal(layout.GetRawText(), (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
         var geometry = layout.GetProperty("geometry");
@@ -94,6 +108,46 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         Assert.Equal("AS_BUILT", asBuilt.GetProperty("kind").GetString());
         Assert.Equal(layoutId, asBuilt.GetProperty("sourcePlanId").GetGuid());
         Assert.Equal(JsonValueKind.Null, asBuilt.GetProperty("layout").ValueKind);
+        var legacyId = Guid.NewGuid();
+        await using (var db = sql.CreateDbContext())
+        {
+            var original = await db.Set<PavementLayoutRevision>().AsNoTracking().SingleAsync(x => x.Id == layoutId);
+            db.Add(new PavementLayoutRevision
+            {
+                Id = legacyId,
+                ProjectId = original.ProjectId,
+                RouteVersionId = original.RouteVersionId,
+                SegmentSetId = original.SegmentSetId,
+                DefinitionJson = "{}",
+                SnapshotJson = original.SnapshotJson,
+                ContentHash = new string('f', 64),
+                CreatedBy = pm.Id,
+                CreatedAt = DateTimeOffset.UtcNow.AddYears(-1)
+            });
+            var route = await db.RoadSectionVersions.SingleAsync(x => x.Id == scope.Route);
+            route.ClearCurrent();
+            var segmentSet = await db.RoadSegmentSets.SingleAsync(x => x.Id == scope.Set);
+            segmentSet.Supersede();
+            await db.SaveChangesAsync();
+        }
+        var historical = await supervisorClient.GetFromJsonAsync<JsonElement>(collection + "?pageSize=2");
+        var pageOne = historical.GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal(2, pageOne.Length);
+        var nextCursor = historical.GetProperty("nextCursor").GetGuid();
+        Assert.Equal(pageOne[^1].GetProperty("layoutId").GetGuid(), nextCursor);
+        var nextPage = await supervisorClient.GetFromJsonAsync<JsonElement>(collection + $"?pageSize=2&cursor={nextCursor}");
+        var last = Assert.Single(nextPage.GetProperty("items").EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, nextPage.GetProperty("nextCursor").ValueKind);
+        var references = pageOne.Append(last).ToDictionary(x => x.GetProperty("layoutId").GetGuid());
+        Assert.Contains(layoutId, references.Keys);
+        Assert.Contains(legacyId, references.Keys);
+        var builtReference = references[asBuilt.GetProperty("id").GetGuid()];
+        Assert.Equal("AS_BUILT", builtReference.GetProperty("kind").GetString());
+        Assert.Equal(layoutId, builtReference.GetProperty("sourcePlanId").GetGuid());
+        var legacy = await supervisorClient.GetFromJsonAsync<JsonElement>(root + $"/pavement-layouts/{legacyId}");
+        Assert.Equal(JsonValueKind.Null, legacy.GetProperty("layout").ValueKind);
+        Assert.Equal(geometry.GetRawText(), legacy.GetProperty("geometry").GetRawText());
+        Assert.Equal(HttpStatusCode.BadRequest, (await supervisorClient.GetAsync(collection + $"?cursor={Guid.NewGuid()}")).StatusCode);
         Assert.Single(asBuilt.GetProperty("geometry").GetProperty("slabs").EnumerateArray());
         await using (var revoke = sql.CreateDbContext()) { await revoke.Database.ExecuteSqlInterpolatedAsync($"UPDATE ProjectMembers SET Status=2 WHERE ProjectId={scope.Project} AND UserId={pm.Id}"); }
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, path, input, key)).StatusCode);
@@ -113,7 +167,9 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Send(client, path, input)).StatusCode);
         var duplicate = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(input) };
         duplicate.Headers.Add("Idempotency-Key", new[] { "one", "two" }); Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(duplicate)).StatusCode);
+        var listPath = $"/api/v1/projects/{scope.Project}/road-sections/{scope.Section}/versions/{scope.Route}/segment-sets/{scope.Set}/pavement-layouts";
         await Login(client, unscoped.UserName!); Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, path, input)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(listPath)).StatusCode);
         await Login(client, crew.UserName!); Assert.Equal(HttpStatusCode.Forbidden, (await Send(client, path, input)).StatusCode);
         await using var check = sql.CreateDbContext(); Assert.Equal(0, await check.Set<PavementLayoutRevision>().CountAsync(x => x.ProjectId == scope.Project));
     }
@@ -194,7 +250,7 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         }
     }
 
-    private async Task<(Guid Project, Guid Route, Guid Set)> Seed(Guid pm, LineString? sourceGeometry = null)
+    private async Task<(Guid Project, Guid Section, Guid Route, Guid Set)> Seed(Guid pm, LineString? sourceGeometry = null)
     {
         await using var db = sql.CreateDbContext();
         var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "pavement HTTP sample", null, null, null, null, DateTimeOffset.UtcNow);
@@ -202,7 +258,7 @@ public sealed class H2PavementWorkflowHttpTests(AuthenticationSqlServerFixture s
         var route = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, geometry, DateTimeOffset.UtcNow, "legacy source"); var set = RoadSegmentSet.Create(Guid.NewGuid(), route.Id);
         var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1); segment.SetGeometry(0, geometry.Length, 0, geometry);
         db.AddRange(project, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm, new(2000, 1, 1)), road, route, set, segment); await db.SaveChangesAsync();
-        return (project.Id, route.Id, set.Id);
+        return (project.Id, road.Id, route.Id, set.Id);
     }
     private static async Task Login(HttpClient client, string user)
     {

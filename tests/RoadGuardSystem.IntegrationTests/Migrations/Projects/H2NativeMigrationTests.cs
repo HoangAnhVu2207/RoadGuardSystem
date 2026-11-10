@@ -44,6 +44,21 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
             VALUES({draftId},{project},NULL,'draft','DRAFT',{emptyObject},'[]',{actor},{actor},{now},{now}),
                   ({confirmedId},{project},{section},'legacy','CONFIRMED',{emptyObject},'[]',{actor},{actor},{now},{now})
             """);
+        var submittedProject = Guid.NewGuid();
+        db.Projects.Add(Project.Create(submittedProject, submittedProject.ToString(), "legacy pending", null, null, null, null, now));
+        await db.SaveChangesAsync();
+        var submittedId = Guid.NewGuid();
+        var reviewedId = Guid.NewGuid();
+        const string contentVersion = "AAAAAAAAAAE=";
+        var submittedAt = now.AddMinutes(-10);
+        var approvedAt = now.AddMinutes(-5);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT RoadGeometryDrafts(Id,ProjectId,RoadSectionId,RoadCode,Status,InputJson,OriginalCoordinatesJson,CreatedBy,UpdatedBy,CreatedAt,UpdatedAt,SubmittedBy,SubmittedAt,SubmittedContentVersion)
+            VALUES({submittedId},{submittedProject},NULL,'pending','SUBMITTED',{emptyObject},'[]',{actor},{actor},{now},{now},{actor},{submittedAt},{contentVersion}),
+                  ({reviewedId},{project},{section},'legacy','CONFIRMED',{emptyObject},'[]',{actor},{actor},{now},{now},{actor},{submittedAt},{contentVersion})
+            """);
+        db.Add(RoadGeometryMetadata.Create(route, reviewedId, emptyObject, new string('b', 64), actor, now: approvedAt));
+        await db.SaveChangesAsync();
         var history = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
         await migrator.MigrateAsync(); db.ChangeTracker.Clear();
         var drafts = await db.Set<RoadGeometryDraft>().Where(x => x.ProjectId == project).ToDictionaryAsync(x => x.Id);
@@ -51,7 +66,28 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
         Assert.Null(drafts[draftId].RoadSectionId);
         Assert.Equal("CONFIRMED", drafts[confirmedId].Status);
         Assert.Equal(section, drafts[confirmedId].RoadSectionId);
-        Assert.All(drafts.Values, draft => Assert.Null(draft.SubmittedAt));
+        Assert.Null(drafts[draftId].SubmittedAt);
+        Assert.Null(drafts[confirmedId].SubmittedAt);
+        var rounds = await db.Set<GeometrySubmissionRound>().ToDictionaryAsync(x => x.DraftId);
+        Assert.Equal(2, rounds.Count);
+        var pending = rounds[submittedId];
+        Assert.Equal("SUBMITTED", pending.Outcome);
+        Assert.Null(pending.DecidedBy);
+        Assert.Null(pending.DecidedAt);
+        var approved = rounds[reviewedId];
+        Assert.Equal("CONFIRMED", approved.Outcome);
+        Assert.Equal(actor, approved.DecidedBy);
+        Assert.Equal(approvedAt, approved.DecidedAt);
+        Assert.All(rounds.Values, round =>
+        {
+            Assert.Equal(1, round.Number);
+            Assert.Equal(actor, round.SubmittedBy);
+            Assert.Equal(submittedAt, round.SubmittedAt);
+            Assert.Equal(contentVersion, round.ContentVersion);
+            Assert.Equal(emptyObject, round.InputJson);
+            Assert.Null(round.ContentFingerprint);
+            Assert.Null(round.RejectionReason);
+        });
         var preserved = await db.RoadSectionVersions.AsNoTracking().SingleAsync(x => x.Id == route);
         Assert.Null(preserved.CrsProfileRevisionId); Assert.Equal(32648, preserved.Geometry.SRID); Assert.Equal(100, preserved.Geometry.Length);
         Assert.Equal(receipt.OutcomeJson, (await db.Set<IdempotencyRecord>().AsNoTracking().SingleAsync(x => x.Id == receipt.Id)).OutcomeJson);

@@ -184,6 +184,131 @@ public sealed class GeometrySubmissionHttpTests(AuthenticationSqlServerFixture s
         Assert.Equal(1, await db.IdempotencyRecords.CountAsync(x => x.ProjectId == project && x.Operation == "Geometry:draft-submit"));
     }
 
+    [Fact]
+    public async Task RejectedDossierCanOnlyResubmitChangedGeometryAndRetainsEveryRound()
+    {
+        var pm = await sql.CreateUserAsync($"review-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var supervisor = await sql.CreateUserAsync($"review-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var project = await Seed(pm.Id);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var author = await WebCookieTestClient.Login(factory, pm.Email!);
+        using var reviewer = await WebCookieTestClient.Login(factory, supervisor.Email!);
+        var root = $"/api/v1/projects/{project}";
+        var lookup = root + "/road-geometry-submission";
+        var (path, initial) = await CreateDraft(author, root, "REVIEW");
+        var (other, _) = await CreateDraft(author, root, "OTHER");
+        var draftId = Guid.Parse(path[(path.LastIndexOf('/') + 1)..]);
+        using var first = await Submit(author, path, initial);
+        await Error(await Send(author, HttpMethod.Post, path + "/reject", new { reason = "denied" }, first.Headers.ETag),
+            HttpStatusCode.Forbidden, "access_forbidden");
+        await Error(await Send(reviewer, HttpMethod.Post, path + "/reject", new { reason = "   " }, first.Headers.ETag),
+            HttpStatusCode.UnprocessableEntity, "road_geometry_rejection_reason_required");
+        var key = Guid.NewGuid().ToString();
+        var reason = new { reason = "  revise alignment  " };
+        using var rejected = await Send(reviewer, HttpMethod.Post, path + "/reject", reason, first.Headers.ETag, key);
+        Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
+        using var found = await author.GetAsync(lookup);
+        Assert.Equal(rejected.Headers.ETag, found.Headers.ETag);
+        var reviewed = await found.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(draftId, reviewed.GetProperty("draftId").GetGuid());
+        Assert.Equal("REJECTED", reviewed.GetProperty("status").GetString());
+        Assert.Equal("revise alignment", reviewed.GetProperty("currentReview").GetProperty("rejectionReason").GetString());
+        Assert.Equal(supervisor.Id, reviewed.GetProperty("currentReview").GetProperty("decidedBy").GetGuid());
+        await Error(await Send(author, HttpMethod.Put, other, Draft("OTHER", 30), rejected.Headers.ETag),
+            HttpStatusCode.Conflict, "road_geometry_submission_locked");
+        await using (var db = sql.CreateDbContext())
+            Assert.False(await db.RoadSections.AnyAsync(x => x.ProjectId == project));
+
+        var metadata = JsonSerializer.SerializeToNode(Draft("REVIEW"))!;
+        metadata["changeReason"] = "editorial note";
+        metadata["roadName"] = "display label";
+        using var metadataSave = await Send(author, HttpMethod.Put, path, metadata, rejected.Headers.ETag);
+        Assert.Equal(HttpStatusCode.OK, metadataSave.StatusCode);
+        Assert.Equal("REJECTED", (await metadataSave.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+        await Error(await Send(author, HttpMethod.Post, path + "/submit", etag: metadataSave.Headers.ETag),
+            HttpStatusCode.Conflict, "road_geometry_submission_unchanged");
+        using var changed = await Send(author, HttpMethod.Put, path, Draft("REVIEW", 25), metadataSave.Headers.ETag);
+        Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        using var reverted = await Send(author, HttpMethod.Put, path, Draft("REVIEW"), changed.Headers.ETag);
+        Assert.Equal(HttpStatusCode.OK, reverted.StatusCode);
+        await Error(await Send(author, HttpMethod.Post, path + "/submit", etag: reverted.Headers.ETag),
+            HttpStatusCode.Conflict, "road_geometry_submission_unchanged");
+        using var secondEdit = await Send(author, HttpMethod.Put, path, Draft("REVIEW", 25), reverted.Headers.ETag);
+        Assert.Equal(HttpStatusCode.OK, secondEdit.StatusCode);
+        var resubmitKey = Guid.NewGuid().ToString();
+        using var second = await Send(author, HttpMethod.Post, path + "/submit", etag: secondEdit.Headers.ETag, key: resubmitKey);
+        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        var pending = await second.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, pending.GetProperty("currentReview").GetProperty("number").GetInt32());
+        Assert.Equal(JsonValueKind.Null, pending.GetProperty("currentReview").GetProperty("rejectionReason").ValueKind);
+        Assert.Equal("revise alignment", pending.GetProperty("previousRejection").GetProperty("rejectionReason").GetString());
+
+        using var replay = await Send(reviewer, HttpMethod.Post, path + "/reject", reason, first.Headers.ETag, key);
+        Assert.Equal(await rejected.Content.ReadAsStringAsync(), await replay.Content.ReadAsStringAsync());
+        await Error(await Send(reviewer, HttpMethod.Post, path + "/reject", reason, first.Headers.ETag),
+            HttpStatusCode.PreconditionFailed, "concurrency_conflict");
+        await Error(await Send(reviewer, HttpMethod.Post, path + "/reject", new { reason = "changed request" }, first.Headers.ETag, key),
+            HttpStatusCode.Conflict, "duplicate_request");
+        using var again = await Send(reviewer, HttpMethod.Post, path + "/reject", new { reason = "second review" }, second.Headers.ETag);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        using var thirdEdit = await Send(author, HttpMethod.Put, path, Draft("REVIEW", 30), again.Headers.ETag);
+        Assert.Equal(HttpStatusCode.OK, thirdEdit.StatusCode);
+        using var third = await Submit(author, path, thirdEdit.Headers.ETag!);
+        var approval = new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow, reason = "approved" };
+        await Error(await Send(reviewer, HttpMethod.Post, path + "/confirm", approval, second.Headers.ETag),
+            HttpStatusCode.PreconditionFailed, "concurrency_conflict");
+        using var confirmed = await Send(reviewer, HttpMethod.Post, path + "/confirm", approval, third.Headers.ETag);
+        Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
+        using var submitReplay = await Send(author, HttpMethod.Post, path + "/submit", etag: secondEdit.Headers.ETag, key: resubmitKey);
+        Assert.Equal(await second.Content.ReadAsStringAsync(), await submitReplay.Content.ReadAsStringAsync());
+        using var final = await author.GetAsync(lookup);
+        var result = await final.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("CONFIRMED", result.GetProperty("currentReview").GetProperty("outcome").GetString());
+        Assert.Equal("second review", result.GetProperty("previousRejection").GetProperty("rejectionReason").GetString());
+        await Error(await Send(author, HttpMethod.Put, path, Draft("REVIEW", 35), final.Headers.ETag),
+            HttpStatusCode.Conflict, "road_geometry_submission_locked");
+
+        await using var inspect = sql.CreateDbContext();
+        var rounds = await inspect.Set<GeometrySubmissionRound>().Where(x => x.DraftId == draftId).OrderBy(x => x.Number).ToArrayAsync();
+        Assert.Equal(new[] { 1, 2, 3 }, rounds.Select(x => x.Number));
+        Assert.Equal(new[] { "REJECTED", "REJECTED", "CONFIRMED" }, rounds.Select(x => x.Outcome));
+        Assert.Equal(new[] { "revise alignment", "second review", null }, rounds.Select(x => x.RejectionReason));
+        Assert.All(rounds, x => { Assert.Equal(pm.Id, x.SubmittedBy); Assert.Equal(supervisor.Id, x.DecidedBy); Assert.NotNull(x.DecidedAt); });
+        Assert.Equal(3, rounds.Select(x => x.ContentFingerprint).Distinct().Count());
+        Assert.Equal(new[] { 500020d, 500025d, 500030d }, rounds.Select(x => JsonSerializer.Deserialize<RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.GeometryDraftInputFact>(x.InputJson)!.Coordinates![1].X));
+    }
+
+    [Fact]
+    public async Task SupervisorConfirmAndRejectRaceDecideOneRound()
+    {
+        var pm = await sql.CreateUserAsync($"decision-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var supOne = await sql.CreateUserAsync($"decision-sup-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var supTwo = await sql.CreateUserAsync($"decision-other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var project = await Seed(pm.Id);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var author = await WebCookieTestClient.Login(factory, pm.Email!);
+        using var confirmActor = await WebCookieTestClient.Login(factory, supOne.Email!);
+        using var rejectActor = await WebCookieTestClient.Login(factory, supTwo.Email!);
+        var root = $"/api/v1/projects/{project}";
+        var (path, etag) = await CreateDraft(author, root, "DECIDE");
+        var draftId = Guid.Parse(path[(path.LastIndexOf('/') + 1)..]);
+        using var submitted = await Submit(author, path, etag);
+        var tasks = await Task.WhenAll(
+            Send(confirmActor, HttpMethod.Post, path + "/confirm",
+                new { expectedCurrentVersionId = (Guid?)null, effectiveFrom = DateTimeOffset.UtcNow, reason = "approve" }, submitted.Headers.ETag),
+            Send(rejectActor, HttpMethod.Post, path + "/reject", new { reason = "revise" }, submitted.Headers.ETag));
+        using var confirmed = tasks[0];
+        using var rejected = tasks[1];
+        var confirmWon = confirmed.StatusCode == HttpStatusCode.Created;
+        Assert.Equal(confirmWon ? HttpStatusCode.PreconditionFailed : HttpStatusCode.OK, rejected.StatusCode);
+        if (!confirmWon) Assert.Equal(HttpStatusCode.PreconditionFailed, confirmed.StatusCode);
+        await using var db = sql.CreateDbContext();
+        var round = await db.Set<GeometrySubmissionRound>().SingleAsync(x => x.DraftId == draftId);
+        Assert.Equal(confirmWon ? supOne.Id : supTwo.Id, round.DecidedBy);
+        Assert.Equal(confirmWon ? "CONFIRMED" : "REJECTED", round.Outcome);
+        Assert.Equal(confirmWon ? 1 : 0, await db.Set<RoadGeometryMetadata>().CountAsync(x => x.SourceDraftId == draftId));
+    }
+
     private async Task<Guid> Seed(Guid pm)
     {
         await using var db = sql.CreateDbContext();

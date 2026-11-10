@@ -161,4 +161,8 @@ public sealed record SlabGeometrySnapshotFact(string Key, int? PlannedSequence, 
 public sealed record WidthProfileItemFact(double FromOffsetMeters, double ToOffsetMeters, double WidthMeters);
 
 public sealed record GeometrySubmissionViewFact(Guid ProjectId, Guid DraftId, Guid? RoadSectionId, string Status,
-    string Version, string SubmittedContentVersion, Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? ConfirmedRouteVersionId);
+    string Version, string SubmittedContentVersion, Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? ConfirmedRouteVersionId,
+    GeometryReviewRoundViewFact? CurrentReview = null, GeometryReviewRoundViewFact? PreviousRejection = null);
+
+public sealed record GeometryReviewRoundViewFact(int Number, string ContentVersion, string Outcome,
+    Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? DecidedBy, DateTimeOffset? DecidedAt, string? RejectionReason);

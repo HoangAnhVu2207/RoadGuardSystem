@@ -40,7 +40,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
         async Task Guard(CancellationToken token)
         {
             await Anh02ReceiptAuthority.LockAsync(db, c.ActorId, c.ProjectId, token);
-            var read = c.Action is "layout-get" or "manifest" or "page" or "impact-get" or "impact-list";
+            var read = c.Action is "layout-list" or "layout-get" or "manifest" or "page" or "impact-get" or "impact-list";
             if (read ? role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) : role != UserRoleCode.ProjectManager)
                 Reject(403, "access_forbidden");
             if (!await new AnhHuyFactsRepository(db).IsCurrentActorAsync(c.ActorId, role, token) ||
@@ -63,7 +63,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
         }
         try
         {
-            if (c.Action is "layout-get" or "manifest" or "page" or "impact-get" or "impact-list")
+            if (c.Action is "layout-list" or "layout-get" or "manifest" or "page" or "impact-get" or "impact-list")
             {
                 if (db.Database.CurrentTransaction is not null)
                 { await Guard(ct); return await Read(c, page, ct); }
@@ -111,6 +111,7 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
     private async Task<GeometryWorkflowResult> Read(PavementWorkflowCommand c,
         Func<GeometryMapSnapshotFact, PavementLayerQuery, string, GeometryMapPageFact> page, CancellationToken ct)
     {
+        if (c.Action == "layout-list") return await ListLayouts(c, ct);
         if (c.Action == "layout-get") return new(200, Value: View(await Layout(c.ProjectId, c.ResourceId, ct)));
         if (c.Action == "impact-list")
         {
@@ -133,6 +134,33 @@ public sealed class PavementWorkflowRepository(RoadGuardDbContext db, Idempotenc
             c.SegmentSetId is { } set && set != publication.SegmentSetId) Reject(409, "geometry_version_mismatch");
         return new(200, Value: c.Action == "manifest" ? snapshot.Manifest
             : page(snapshot, c.Input as PavementLayerQuery ?? throw new ArgumentException("A layer query is required."), c.ExpectedContentHash!));
+    }
+
+    private async Task<GeometryWorkflowResult> ListLayouts(PavementWorkflowCommand command, CancellationToken ct)
+    {
+        var request = (PavementLayoutListQuery)command.Input!;
+        var routeId = command.RouteVersionId!.Value;
+        var setId = command.SegmentSetId!.Value;
+        var scoped = await (from section in db.RoadSections
+                            join route in db.RoadSectionVersions on section.Id equals route.RoadSectionId
+                            join set in db.RoadSegmentSets on route.Id equals set.RoadSectionVersionId
+                            where section.ProjectId == command.ProjectId && section.Id == request.RoadSectionId &&
+                                route.Id == routeId && set.Id == setId
+                            select set.Id).AnyAsync(ct);
+        if (!scoped) Reject(404, "not_found");
+
+        var rows = db.Set<PavementLayoutRevision>().AsNoTracking().Where(x => x.ProjectId == command.ProjectId &&
+            x.RouteVersionId == routeId && x.SegmentSetId == setId);
+        if (request.Cursor is Guid cursor)
+        {
+            if (!await rows.AnyAsync(x => x.Id == cursor, ct)) Reject(400, "validation_error");
+            rows = rows.Where(x => x.Id.CompareTo(cursor) > 0);
+        }
+        var items = await rows.OrderBy(x => x.Id).Take(request.PageSize + 1).Select(x =>
+            new PavementLayoutReference(x.Id, x.ProjectId, request.RoadSectionId, x.RouteVersionId, x.SegmentSetId,
+                x.Kind, x.SourcePlanId, x.CreatedAt, x.ContentHash)).ToArrayAsync(ct);
+        var next = items.Length > request.PageSize ? items[request.PageSize - 1].LayoutId : (Guid?)null;
+        return new(200, Value: new PavementLayoutReferencePage(items.Take(request.PageSize).ToArray(), next));
     }
 
     private async Task<(Guid Id, object Value)> Write(PavementWorkflowCommand c,

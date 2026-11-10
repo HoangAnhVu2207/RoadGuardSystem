@@ -181,5 +181,11 @@ public sealed record GeometryPackageView(string SchemaVersion, Guid ProjectId, R
         => value is null ? null! : new(value.SchemaVersion, value.ProjectId, (global::RoadGuardSystem.DTOs.Projects.RoadGeometryVersionView)value.Route, (global::RoadGuardSystem.DTOs.Projects.SegmentSetView)value.SegmentSet);
 }
 
+public sealed record GeometryRejectInput(string? Reason);
+
 public sealed record GeometrySubmissionView(Guid ProjectId, Guid DraftId, Guid? RoadSectionId, string Status,
-    string Version, string SubmittedContentVersion, Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? ConfirmedRouteVersionId);
+    string Version, string SubmittedContentVersion, Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? ConfirmedRouteVersionId,
+    GeometryReviewRoundView? CurrentReview = null, GeometryReviewRoundView? PreviousRejection = null);
+
+public sealed record GeometryReviewRoundView(int Number, string ContentVersion, string Outcome,
+    Guid SubmittedBy, DateTimeOffset SubmittedAt, Guid? DecidedBy, DateTimeOffset? DecidedAt, string? RejectionReason);

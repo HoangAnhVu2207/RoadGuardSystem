@@ -38,17 +38,23 @@ public sealed class RoadGeometryDraft
         };
     public void Edit(string input, string original, string? checksum, string code, string? name, Guid actor, DateTimeOffset? now = null)
     {
-        if (Status != "DRAFT") throw new InvalidOperationException("Submitted and confirmed drafts are immutable.");
+        if (Status is not ("DRAFT" or "REJECTED")) throw new InvalidOperationException("Submitted and confirmed drafts are immutable.");
         InputJson = input; OriginalCoordinatesJson = original; SourceChecksum = checksum;
         RoadCode = code; RoadName = name; UpdatedBy = actor; UpdatedAt = now ?? DateTimeOffset.UtcNow;
     }
     public void Submit(Guid actor, DateTimeOffset now)
     {
-        if (Status != "DRAFT" || RowVersion.Length == 0) throw new InvalidOperationException();
+        if (Status is not ("DRAFT" or "REJECTED") || RowVersion.Length == 0) throw new InvalidOperationException();
         SubmittedContentVersion = Convert.ToBase64String(RowVersion);
         SubmittedBy = actor;
         SubmittedAt = now;
         Status = "SUBMITTED";
+    }
+
+    public void Reject()
+    {
+        if (Status != "SUBMITTED") throw new InvalidOperationException();
+        Status = "REJECTED";
     }
 
     public void Confirm(Guid sectionId)

@@ -229,14 +229,16 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
         var supervisor = await sql.CreateUserAsync($"candidate-s-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         var pm = await sql.CreateUserAsync($"candidate-p-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var project = Guid.NewGuid();
-        // Approved C1 catalog value; all Report/Case/Defect transitions remain genuine HTTP.
+        // Catalog fixtures; all Report/Case/Defect transitions remain genuine HTTP.
         var defectTypeCode = "CRACK";
+        var inactiveTypeCode = $"INACTIVE-{Guid.NewGuid():N}";
         await using (var db = sql.CreateDbContext())
         {
             db.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(project, $"CD-{Guid.NewGuid():N}", "Candidate project", null, 32648, new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), DateTimeOffset.UtcNow));
             db.ProjectMembers.Add(RoadGuardSystem.BusinessObjects.Projects.ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project, pm.Id, new DateOnly(2026, 1, 1)));
             if (!await db.DefectTypes.AnyAsync(x => x.Code == defectTypeCode))
                 db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(defectTypeCode, "Approved surface damage"));
+            db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(inactiveTypeCode, "Retired type", isActive: false));
             await db.SaveChangesAsync();
         }
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
@@ -369,6 +371,16 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
                 .CountAsync(link => link.SourceId == report)).Should().Be(0);
             (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == pm.Id && r.IdempotencyKey == failedKeepKey)).Should().Be(0);
         }
+        using var web = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = true });
+        var webCsrf = await LoginWebAsync(web, pm.UserName!);
+        var catalog = await web.GetFromJsonAsync<JsonElement>("/api/v1/catalog/defect-types");
+        var selected = Assert.Single(catalog.EnumerateArray(), option => option.GetProperty("code").GetString() == defectTypeCode);
+        Assert.False(string.IsNullOrWhiteSpace(selected.GetProperty("name").GetString()));
+        Assert.DoesNotContain(catalog.EnumerateArray(), option => option.GetProperty("code").GetString() == inactiveTypeCode);
+        var invalidKeep = failedKeep with { Classification = new(inactiveTypeCode, null, "LOW", geometry.Route, null) };
+        using var invalidDecision = await SendAsync(web, HttpMethod.Post, path, invalidKeep, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.BadRequest, invalidDecision.StatusCode);
+        Assert.Equal("validation_error", (await invalidDecision.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
         var keepPayload = new
         {
             sourceKind = "REPORT",
@@ -377,12 +389,12 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
             geometryVersion = keepSource.Facts.DomainFacts.GeometryVersion,
             decision = "KEEP_NEW",
             reason = "Verified source needs a distinct defect",
-            classification = new { defectTypeCode, severity = "LOW", roadSectionVersionId = geometry.Route },
+            classification = new { defectTypeCode = selected.GetProperty("code").GetString(), severity = "LOW", roadSectionVersionId = geometry.Route },
             supersedesDecisionId = keepSource.Facts.DomainFacts.ActiveDisposition!.DecisionId,
             previousDecisionVersion = keepSource.Facts.DomainFacts.ActiveDisposition.Version
         };
         var keepKey = Guid.NewGuid().ToString();
-        var keep = await SendAsync(client, HttpMethod.Post, path, keepPayload, keepKey);
+        var keep = await SendAsync(web, HttpMethod.Post, path, keepPayload, keepKey);
         keep.StatusCode.Should().Be(HttpStatusCode.Created);
         var keepReplay = await SendAsync(client, HttpMethod.Post, path, keepPayload, keepKey);
         keepReplay.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -509,8 +521,6 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
         item.GetProperty("distanceMeters").ValueKind.Should().Be(JsonValueKind.Null);
         item.GetProperty("reasonCodes").EnumerateArray().Select(code => code.GetString()).Should().Contain("GPS_MISSING");
         var defectPath = $"/api/v1/projects/{project}/defects/{createdDefectId}";
-        using var web = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = true });
-        var webCsrf = await LoginWebAsync(web, pm.UserName!);
         var activityAnchor = DateTimeOffset.UtcNow.AddMinutes(-2);
         await using (var db = sql.CreateDbContext())
         {

@@ -171,6 +171,107 @@ public sealed class P2SurveyV2ApiTests
         }
     }
 
+    [Fact]
+    public async Task WebPmCreatesPlanAndAssignsOperatorThenReadsBothWithCookie()
+    {
+        var supervisor = await _sql.CreateUserAsync($"survey-web-s-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var pm = await _sql.CreateUserAsync($"survey-web-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var outsider = await _sql.CreateUserAsync($"survey-web-outside-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var droneOperator = await _sql.CreateUserAsync($"survey-web-op-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var setup = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await AuthenticateAsync(setup, supervisor.UserName!);
+        var projectId = await CreateProjectAsync(setup, pm.Id);
+        var routeVersionId = await CreateRoadSectionAsync(setup, projectId);
+        var segmentSetId = Guid.NewGuid();
+        var segmentId = Guid.NewGuid();
+        await using (var db = _sql.CreateDbContext())
+        {
+            db.ProjectMembers.Add(new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                UserId = droneOperator.Id,
+                RoleCode = UserRoleCode.DroneOperator,
+                ValidFrom = new DateOnly(2026, 1, 1),
+                Status = ProjectMemberStatus.Active
+            });
+            db.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId, routeVersionId));
+            db.RoadSegments.Add(RoadSegment.Create(segmentId, segmentSetId, routeVersionId, 1));
+            await db.SaveChangesAsync();
+        }
+
+        using var web = await WebCookieTestClient.Login(factory, pm.Email!);
+        using var wrongProject = await WebCookieTestClient.Login(factory, outsider.Email!);
+        using var wrongRole = await WebCookieTestClient.Login(factory, droneOperator.Email!);
+        var scope = new[] { new { routeVersionId, segmentSetId, segmentIds = new[] { segmentId }, targetBand = "SURFACE" } };
+        var planPath = $"/api/v1/projects/{projectId}/survey-plans";
+        var taskPath = $"/api/v1/projects/{projectId}/survey-tasks";
+        var planInput = new { scope, plannedAt = "2026-10-01T08:00:00Z", surveyType = "BASELINE" };
+        var plan = await CreateWithChecks(planPath, planInput);
+        var planId = plan.GetProperty("id").GetGuid();
+        var taskInput = new { scope, surveyType = "BASELINE", operatorId = droneOperator.Id, planId, dueAt = "2026-10-04T17:00:00Z", accessPoint = (object?)null };
+        using var missingOperator = await Create(web, taskPath, taskInput with { operatorId = Guid.NewGuid() }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.NotFound, missingOperator.StatusCode);
+        Assert.Equal("identity_user_not_found", (await missingOperator.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        var task = await CreateWithChecks(taskPath, taskInput);
+        var taskId = task.GetProperty("id").GetGuid();
+
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        var planRow = await CollectionAssertions.Contains(web, planPath, planId, "id", "projectId", "plannedAt", "status", "version");
+        Assert.NotEqual(plan.GetProperty("version").GetString(), planRow.GetProperty("version").GetString());
+        Assert.Equal("IN_PROGRESS", planRow.GetProperty("status").GetString());
+        var taskRow = await CollectionAssertions.Contains(web, taskPath, taskId, "id", "projectId", "operatorId", "status", "version", "supplementTaskId");
+        Assert.Equal(droneOperator.Id, taskRow.GetProperty("operatorId").GetGuid());
+        var planRead = await web.GetFromJsonAsync<JsonElement>($"/api/v1/survey-plans/{planId}");
+        Assert.Equal(planId, planRead.GetProperty("id").GetGuid());
+        Assert.Equal(planRow.GetProperty("version").GetString(), planRead.GetProperty("version").GetString());
+        Assert.Equal("IN_PROGRESS", planRead.GetProperty("status").GetString());
+        var taskRead = await web.GetFromJsonAsync<JsonElement>($"/api/v1/survey-tasks/{taskId}");
+        Assert.Equal(taskId, taskRead.GetProperty("id").GetGuid());
+        Assert.Equal(droneOperator.Id, taskRead.GetProperty("operatorId").GetGuid());
+        await using var verify = _sql.CreateDbContext();
+        Assert.Equal(planId, (await verify.SurveyRequests.SingleAsync(item => item.ProjectId == projectId)).SurveyPlanId);
+        Assert.Equal(planId, (await verify.SurveyPlans.SingleAsync(item => item.ProjectId == projectId)).Id);
+
+        async Task<JsonElement> CreateWithChecks(string path, object body)
+        {
+            var key = Guid.NewGuid().ToString();
+            using var outside = await Create(wrongProject, path, body, key);
+            Assert.Equal(HttpStatusCode.Forbidden, outside.StatusCode);
+            using var denied = await Create(wrongRole, path, body, key);
+            Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+
+            web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+            using var missing = await Create(web, path, body, key);
+            Assert.Equal(HttpStatusCode.Forbidden, missing.StatusCode);
+            Assert.Equal("csrf_failed", (await missing.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+            web.DefaultRequestHeaders.Add("X-CSRF-TOKEN", "invalid");
+            using var invalid = await Create(web, path, body, key);
+            Assert.Equal(HttpStatusCode.Forbidden, invalid.StatusCode);
+            Assert.Equal("csrf_failed", (await invalid.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+
+            await WebCookieTestClient.RefreshCsrf(web);
+            using var created = await Create(web, path, body, key);
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var result = await created.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal(result.GetProperty("version").GetString(), created.Headers.ETag!.Tag.Trim('"'));
+            using var replay = await Create(web, path, body, key);
+            Assert.Equal(HttpStatusCode.Created, replay.StatusCode);
+            Assert.Equal(created.Headers.ETag, replay.Headers.ETag);
+            Assert.Equal(created.Headers.Location, replay.Headers.Location);
+            Assert.Equal(result.GetRawText(), (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
+            return result;
+        }
+
+        static async Task<HttpResponseMessage> Create(HttpClient client, string path, object body, string key)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(body) };
+            request.Headers.Add("Idempotency-Key", key);
+            return await client.SendAsync(request);
+        }
+    }
+
     private static async Task<HttpResponseMessage> PostponeAsync(HttpClient client, Guid planId, string key, string version)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/survey-plans/{planId}/postpone") { Content = JsonContent.Create(new { reason = "Weather delay" }) };

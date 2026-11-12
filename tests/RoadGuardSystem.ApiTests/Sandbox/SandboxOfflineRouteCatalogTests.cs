@@ -46,6 +46,7 @@ public sealed class SandboxOfflineRouteCatalogTests
         // These newer routes are source-verified; the 260-operation FE handoff is a historical snapshot.
         var additions = new HashSet<(string, string)>
         {
+            ("GET", "/api/v1/catalog/defect-types"),
             ("GET", "/api/v1/projects/{projectId}/members/eligible"),
             ("POST", "/api/v1/projects/{projectId}/members"),
             ("PATCH", "/api/v1/users/{userId}/phone-number"),

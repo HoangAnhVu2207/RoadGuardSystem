@@ -32,6 +32,8 @@ Release classification: **FE_INTEGRATION_PREVIEW**. The new integration kit is u
 
 The draft [auth and client guide](FE-AUTH-AND-CLIENT-GUIDE.md) and [browser client example](examples/roadguard-web-client.mjs) describe explicit Web authentication and request handling. Final-candidate runtime verification remains pending.
 
+The [Web PM defect types and survey guide](PM-DEFECT-TYPES-AND-SURVEY.md) covers the `KEEP_NEW` selector and the plan-to-Operator assignment flow.
+
 Draft [special cases](FE-CONTRACT-SPECIAL-CASES.md), [error diagnostics](FE-API-TROUBLESHOOTING.md) and [sanitized issue template](FE-ISSUE-REPORT-TEMPLATE.md) provide the current boundaries and reporting procedure. Their F07/F08/F10 acceptance remains open.
 
 Current acceptance and missing work are recorded in [the kit checklist](FE-INTEGRATION-ACCEPTANCE-CHECKLIST.md). Source and document hashes are in [the preparation manifest](review-evidence/fe-integration-kit/PREPARATION-MANIFEST.json). This index is not `FE_HANDOFF_DELIVERED` or `FE_HANDOFF_VERIFIED`.

@@ -24,7 +24,9 @@ public sealed class SurveyV2Controller : ControllerBase
     public SurveyV2Controller(ISurveyV2Service service) => _service = service;
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("projects/{projectId:guid}/survey-plans")]
+    [ProducesResponseType<SurveyPlanV2ResponseDto>(StatusCodes.Status201Created)]
     public async Task<IActionResult> CreatePlan(Guid projectId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CreateSurveyPlanV2RequestDto request, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
@@ -62,7 +64,9 @@ public sealed class SurveyV2Controller : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("projects/{projectId:guid}/survey-tasks")]
+    [ProducesResponseType<SurveyTaskV2ResponseDto>(StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateTask(Guid projectId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CreateSurveyTaskV2RequestDto request, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");

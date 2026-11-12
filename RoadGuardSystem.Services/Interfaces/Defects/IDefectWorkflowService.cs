@@ -5,6 +5,7 @@ namespace RoadGuardSystem.Services.Defects;
 
 public interface IDefectWorkflowService
 {
+    Task<DefectTypeOptionDto[]> ListActiveTypesAsync(CancellationToken token);
     Task<DefectWorkflowResult> ReadAsync(Guid actor, UserRoleCode role, Guid project,
         Guid defect, CancellationToken token);
     Task<DefectWorkflowResult> ListAsync(Guid actor, UserRoleCode role, Guid project,

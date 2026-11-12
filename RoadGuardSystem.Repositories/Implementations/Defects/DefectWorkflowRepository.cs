@@ -13,6 +13,13 @@ namespace RoadGuardSystem.Repositories.Implementations.Defects;
 
 public sealed class DefectWorkflowRepository(RoadGuardDbContext db) : IDefectWorkflowRepository
 {
+    public Task<DefectTypeOptionFact[]> ListActiveTypesAsync(CancellationToken token)
+        => db.DefectTypes.AsNoTracking()
+            .Where(type => type.IsActive)
+            .OrderBy(type => type.Code)
+            .Select(type => new DefectTypeOptionFact(type.Code, type.Name))
+            .ToArrayAsync(token);
+
     public Task<DefectViewFact?> ReadAsync(Guid project, Guid defect,
         Func<CancellationToken, Task> guard, CancellationToken token)
         => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>

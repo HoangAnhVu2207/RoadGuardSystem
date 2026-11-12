@@ -6,6 +6,7 @@ namespace RoadGuardSystem.Repositories.Defects;
 
 public interface IDefectWorkflowRepository
 {
+    Task<DefectTypeOptionFact[]> ListActiveTypesAsync(CancellationToken token);
     Task<DefectViewFact> ApplyFieldVerificationAsync(Guid actor, Guid project, Guid defect, string expectedVersion,
         DefectVerificationAction action, RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldVerificationSourceFactsFact source,
         IReadOnlyCollection<Guid> evidenceIds, string reason, Guid? correlation, CancellationToken token)

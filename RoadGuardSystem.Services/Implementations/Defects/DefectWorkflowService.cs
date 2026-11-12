@@ -18,6 +18,12 @@ public sealed class DefectWorkflowService(IDefectWorkflowRepository repository,
     IAnhHuyProducerService producer, IProjectScopeGuard scope,
     IdempotencyOperationService idempotency) : IDefectWorkflowService
 {
+    public async Task<DefectTypeOptionDto[]> ListActiveTypesAsync(CancellationToken token)
+    {
+        var types = await repository.ListActiveTypesAsync(token);
+        return types.Select(type => new DefectTypeOptionDto(type.Code, type.Name)).ToArray();
+    }
+
     public Task<DefectWorkflowResult> ReadAsync(Guid actor, UserRoleCode role, Guid project,
         Guid defect, CancellationToken token) => Run(async () =>
     {

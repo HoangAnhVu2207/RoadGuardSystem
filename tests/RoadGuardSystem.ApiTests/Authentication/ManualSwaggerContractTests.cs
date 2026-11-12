@@ -169,6 +169,41 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Fact]
+    public async Task DefectTypesCatalogAndSurveyWritesAdvertiseCorrectWebSecurity()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var catalog = paths.GetProperty("/api/v1/catalog/defect-types").GetProperty("get");
+        var catalogSecurity = catalog.GetProperty("security").EnumerateArray().ToArray();
+        Assert.Equal(2, catalogSecurity.Length);
+        Assert.Contains(catalogSecurity, x => x.TryGetProperty("Bearer", out _) && x.EnumerateObject().Count() == 1);
+        Assert.Contains(catalogSecurity, x => x.TryGetProperty("WebSession", out _) && x.EnumerateObject().Count() == 1);
+        var array = catalog.GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json").GetProperty("schema");
+        Assert.Equal("array", array.GetProperty("type").GetString());
+        Assert.Equal("#/components/schemas/DefectTypeOptionDto", array.GetProperty("items").GetProperty("$ref").GetString());
+        var fields = root.GetProperty("components").GetProperty("schemas").GetProperty("DefectTypeOptionDto").GetProperty("properties");
+        Assert.Equal(new[] { "code", "name" }, fields.EnumerateObject().Select(p => p.Name).OrderBy(n => n));
+
+        foreach (var suffix in new[] { "survey-plans", "survey-tasks" })
+        {
+            var post = paths.GetProperty("/api/v1/projects/{projectId}/" + suffix).GetProperty("post");
+            var security = post.GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, security.Length);
+            Assert.Contains(security, x => x.TryGetProperty("Bearer", out _) && x.EnumerateObject().Count() == 1);
+            var web = Assert.Single(security, x => x.TryGetProperty("WebSession", out _));
+            Assert.Equal(3, web.EnumerateObject().Count());
+            Assert.True(web.TryGetProperty("CsrfToken", out _));
+            Assert.True(web.TryGetProperty("AntiforgeryCookie", out _));
+            Assert.Contains(post.GetProperty("parameters").EnumerateArray(), x =>
+                x.GetProperty("name").GetString() == "Idempotency-Key" && x.GetProperty("required").GetBoolean());
+            var responses = post.GetProperty("responses");
+            Assert.Contains("csrf_failed", responses.GetProperty("403").GetProperty("description").GetString());
+            Assert.True(responses.GetProperty("201").GetProperty("headers").TryGetProperty("ETag", out _));
+        }
+    }
+
+    [Fact]
     public async Task SurveyDetailsAdvertiseWebAndBearerAtResourceRoutes()
     {
         using var document = await Document();

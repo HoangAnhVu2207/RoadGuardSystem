@@ -10518,6 +10518,16 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid>("ReportId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("RepairAcceptanceFingerprint")
+                        .IsUnicode(false)
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("RepairProgressStatus")
+                        .IsUnicode(false)
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
                     b.HasKey("PublicationId", "ReportId");
 
                     b.HasIndex("ReportId");

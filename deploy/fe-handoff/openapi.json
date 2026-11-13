@@ -63386,6 +63386,7 @@
       "CasePublicationDto": {
         "type": "object",
         "properties": {
+          "repairProgressStatus": {"type": "string", "nullable": true, "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED", null]},
           "reportIds": {
             "type": "array",
             "items": {
@@ -69151,9 +69152,11 @@
         },
         "additionalProperties": false
       },
+      "OwnReportRepairProgressDto": {"type": "object", "properties": {"status": {"type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED"]}, "publishedAt": {"type": "string", "format": "date-time"}}, "additionalProperties": false},
       "OwnReportDto": {
         "type": "object",
         "properties": {
+          "repairProgress": {"nullable": true, "allOf": [{"$ref": "#/components/schemas/OwnReportRepairProgressDto"}]},
           "id": {
             "type": "string",
             "format": "uuid"

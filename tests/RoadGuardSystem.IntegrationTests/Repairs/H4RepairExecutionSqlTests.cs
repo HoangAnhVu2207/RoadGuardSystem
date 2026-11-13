@@ -274,7 +274,7 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
     }
     [Fact]
     public Task IncompleteFormalFieldIntakePinsOneAttemptAndOriginalPmReviewClock()
-        => RunNormalReviewChain(false, false);
+        => RunNormalReviewChain(false, false, checkReporterProgress: true);
 
     [Theory]
     [InlineData(false)]
@@ -294,15 +294,28 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
 
     private async Task RunNormalReviewChain(bool observeFinalBreach, bool revokeSupervisorMembership, bool extendFinal = false, bool globalSupervisor = false,
         Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task>? confirmedFixture = null,
-        Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task>? pendingReviewFixture = null)
+        Func<RoadGuardDbContext, H4GenuineRepairSource.Source, Guid, Guid, Task>? pendingReviewFixture = null,
+        bool checkReporterProgress = false)
     {
         await using var db = sql.CreateDbContext(); var state = await AssignedAndStarted(db);
+        var progress = checkReporterProgress ? await ReporterRepairProgressProbe.CreateAsync(db, state.Source) : null;
+        if (progress is not null)
+        {
+            await progress.PublishAsync("IN_PROGRESS", 409);
+            await progress.PublishAsync("NOT_STARTED");
+            await progress.ReadAsync("NOT_STARTED");
+        }
         var assessed = await Assess(db, state); var assessment = Assert.IsType<RepairAssessmentFact>(assessed.Value);
         var started = await Repo(db).StartExecutionAsync(new(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Project,
             state.Package.Id, state.Item.Id, state.Binding.TaskId,
             new(Guid.NewGuid(), state.FirstStart.Id, DateTimeOffset.UtcNow, assessment.Id),
             Guid.NewGuid().ToString(), assessed.Version!), default);
         Assert.Equal(201, started.Status);
+        if (progress is not null)
+        {
+            await progress.PublishAsync("IN_PROGRESS");
+            await progress.ReadAsync("IN_PROGRESS");
+        }
         var physicalStart = await db.Set<RepairExecutionStart>().AsNoTracking().SingleAsync(row => row.ItemId == state.Item.Id);
         var finished = await Repo(db).FinishExecutionAsync(new(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Project,
             state.Package.Id, state.Item.Id, state.Binding.TaskId,
@@ -334,6 +347,7 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
         }, default)).Status);
         var linked = await Repo(db).SubmitAttemptAsync(command, default);
         Assert.Equal(201, linked.Status); db.ChangeTracker.Clear();
+        if (progress is not null) await progress.ReadAsync("IN_PROGRESS");
         Assert.Equal(200, (await Repo(db).SubmitAttemptAsync(command, default)).Status);
         Assert.Equal(409, (await Repo(db).SubmitAttemptAsync(command with
         {
@@ -561,6 +575,11 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
                 .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync())
         };
         Assert.Equal(201, (await Repo(db).ReviewAttemptAsync(acceptedReview, default)).Status);
+        if (progress is not null)
+        {
+            await progress.PublishAsync("ACCEPTED", 409);
+            await progress.ReadAsync("IN_PROGRESS");
+        }
         db.ChangeTracker.Clear();
         Assert.Equal(RepairItemState.Reviewed, (await db.Set<RepairItem>().SingleAsync(row => row.Id == state.Item.Id)).State);
         Assert.NotNull((await db.Set<DeadlineClock>().SingleAsync(row => row.Id == reviewClock.Id)).CompletedAt);
@@ -662,6 +681,12 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
             Role = UserRoleCode.ProjectManager
         }, default)).Status);
         Assert.Equal(201, (await Repo(db).ConfirmFinalAsync(finalCommand, default)).Status);
+        if (progress is not null)
+        {
+            await progress.ReadAsync("IN_PROGRESS");
+            await progress.PublishAsync("ACCEPTED");
+            await progress.ReadAsync("ACCEPTED");
+        }
         db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).ConfirmFinalAsync(finalCommand, default)).Status);
         Assert.Equal(409, (await Repo(db).ConfirmFinalAsync(finalCommand with
@@ -681,7 +706,7 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
             Assert.Equal("REJECTED", stale.Status);
             await notificationCheck.CommitAsync();
         }
-        Assert.Equal(DefectStatus.Open,
+        Assert.Equal(checkReporterProgress ? DefectStatus.Verified : DefectStatus.Open,
             (await db.Defects.SingleAsync(row => row.Id == state.Item.DefectId)).Status);
         Assert.Equal(intake.ContentHash, (await db.Set<FieldInspectionSubmission>().AsNoTracking()
             .SingleAsync(row => row.Id == intake.Id)).ContentHash);
@@ -722,6 +747,7 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
             Guid.NewGuid().ToString(), Convert.ToBase64String(await db.Set<RepairItem>().AsNoTracking()
                 .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()));
         Assert.Equal(201, (await Repo(db).CorrectAsync(correctionCommand, default)).Status);
+        if (progress is not null) await progress.ReadAsync(null);
         db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).CorrectAsync(correctionCommand, default)).Status);
         Assert.False((await db.Set<RepairObligation>().SingleAsync(row => row.Id == state.Item.ObligationId)).IsResolved);

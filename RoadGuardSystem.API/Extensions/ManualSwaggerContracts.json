@@ -2285,7 +2285,9 @@
           "idempotency_key_reused",
           "reference_scope_conflict",
           "invalid_state_transition",
-          "source_not_ready"
+          "source_not_ready",
+          "repair_progress_scope_unverified",
+          "repair_progress_not_ready"
         ],
         "description": "Command action=publish -> service CommandAsync -> pre-read, GuardCommandAsync, ApplyAsync action switch and caught InvalidOperationException. Geometry producer runs only in triage; evidence/defect resolution only in conclude/publish; sibling action branches excluded. Source-inspected possible mapped response; negative HTTP execution not performed."
       },
@@ -2322,7 +2324,7 @@
       "conclude CONFIRMED needs defects and evidence; NO_DEFECT forbids defects and requires evidence; publication needs reportIds and explicit defectIds/evidenceIds arrays."
     ],
     "wireLimitations": [],
-    "uiDescription": "Publish cases resources. Permissions: PM."
+    "uiDescription": "Publish a case update as current PM. Optional repairProgressStatus requires the full verified repair scope of each selected report. The server validates the requested milestone against current execution and final confirmation facts."
   },
   {
     "id": "SWG-028",
@@ -24842,7 +24844,7 @@
     ],
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "List reports resources. Permissions: Reporter; own record / named publication recipient."
+    "uiDescription": "List reports resources. Permissions: Reporter; own record / named publication recipient. repairProgress is the latest applicable PM-published milestone or null. A superseded final confirmation invalidates a published ACCEPTED milestone."
   },
   {
     "id": "SWG-182",
@@ -24906,7 +24908,7 @@
     ],
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "Read reports resources. Permissions: Reporter; own record / named publication recipient."
+    "uiDescription": "Read reports resources. Permissions: Reporter; own record / named publication recipient. repairProgress is the latest applicable PM-published milestone or null. A superseded final confirmation invalidates a published ACCEPTED milestone."
   },
   {
     "id": "SWG-183",

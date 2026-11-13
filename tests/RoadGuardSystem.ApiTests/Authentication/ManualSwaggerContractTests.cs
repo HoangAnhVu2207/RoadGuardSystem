@@ -11,6 +11,28 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task ReporterRepairProgressUsesExistingRoutesAndDocumentsPublicMilestones()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var publish = paths.GetProperty("/api/v1/cases/{caseId}/publications").GetProperty("post");
+        Assert.Contains(publish.GetProperty("security").EnumerateArray(), item => item.TryGetProperty("Bearer", out _));
+        Assert.Contains(publish.GetProperty("security").EnumerateArray(), item =>
+            item.TryGetProperty("WebSession", out _) && item.TryGetProperty("CsrfToken", out _));
+        Assert.Contains("repair_progress_not_ready", publish.GetProperty("responses").GetProperty("409")
+            .GetProperty("description").GetString(), StringComparison.Ordinal);
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        var request = schemas.GetProperty("CasePublicationDto").GetProperty("properties").GetProperty("repairProgressStatus");
+        Assert.True(request.GetProperty("nullable").GetBoolean());
+        var milestone = schemas.GetProperty("OwnReportRepairProgressDto").GetProperty("properties");
+        Assert.Equal(new[] { "NOT_STARTED", "IN_PROGRESS", "ACCEPTED" },
+            milestone.GetProperty("status").GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(2, milestone.EnumerateObject().Count());
+        Assert.True(schemas.GetProperty("OwnReportDto").GetProperty("properties").TryGetProperty("repairProgress", out _));
+    }
+
+    [Fact]
     public async Task GeometrySubmissionSwaggerDocumentsWebAndBearerWithVersionedReceipt()
     {
         using var document = await Document();

@@ -204,9 +204,10 @@
     "20261022181921_B2NotificationSupervisorAssignment",
     "20261110043224_RoadGeometrySubmission",
     "20261110122600_GeometrySubmissionReviewRounds",
-    "20261113051802_CrewFieldMeasurementDimensions"
+    "20261113051802_CrewFieldMeasurementDimensions",
+    "20261113113000_ReporterRepairProgress"
   ],
-  "Signature": "28F13D327677B42BF27F638F9D0407160B98F2D1E8879EB300B0C3AB9AC3CC39",
+  "Signature": "11CDF40528DA8E5A0D7071860F37667A947EDF75D1D0CA8C2EC93E2E8366E617",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",

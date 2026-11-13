@@ -6,6 +6,7 @@ using RoadGuardSystem.BusinessObjects.Cases;
 using RoadGuardSystem.BusinessObjects.Reports;
 using RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports;
 using RoadGuardSystem.Repositories.Models.Huy01;
+using RoadGuardSystem.Repositories.Implementations.Cases;
 using RoadGuardSystem.Repositories.Reports;
 
 namespace RoadGuardSystem.Repositories.Implementations.Reports;
@@ -101,27 +102,42 @@ public sealed class ReporterLifecycleRepository(RoadGuardDbContext db, IReporter
         var routing = await (from link in db.Set<HuyCaseReportLink>()
                              join incident in db.IncidentCases on link.CaseId equals incident.Id
                              where link.ReportId == reportId && link.EndedAt == null
-                             select incident.ProjectId).SingleAsync(ct);
+                             select new { incident.Id, incident.ProjectId }).SingleAsync(ct);
         var updates = await (from recipient in db.Set<HuyPublicationRecipient>()
                              join p in db.Set<CasePublication>() on recipient.PublicationId equals p.Id
                              where recipient.ReportId == reportId
                              orderby p.PublishedAt, p.Id
-                             select p).AsNoTracking().ToArrayAsync(ct);
+                             select new { Publication = p, recipient.RepairProgressStatus, recipient.RepairAcceptanceFingerprint }).AsNoTracking().ToArrayAsync(ct);
+        var latest = updates.LastOrDefault(row => row.RepairProgressStatus is not null);
+        OwnReportRepairProgressFact? progress = null;
+        if (latest is not null && latest.Publication.CaseId == routing.Id && routing.ProjectId is Guid project &&
+            !await ReporterRepairProgress.HasNoDefectConclusionAsync(db, routing.Id, ct))
+        {
+            var defects = await ReporterRepairProgress.ReadDefectsAsync(db, reportId, ct);
+            if (defects.SequenceEqual(latest.Publication.DefectIds.Order()))
+            {
+                var status = latest.RepairProgressStatus!;
+                if (status != "ACCEPTED" ||
+                    (await ReporterRepairProgress.ResolveAsync(db, project, defects, ct)) is { Status: "ACCEPTED" } current &&
+                    current.AcceptanceFingerprint == latest.RepairAcceptanceFingerprint)
+                    progress = new(status, latest.Publication.PublishedAt);
+            }
+        }
         return new(report.Id, report.Description, report.ReceivedAt, Convert.ToBase64String(version),
             report.OriginalEvidence.Concat(report.Supplements.OrderBy(s => s.ReceivedAt).ThenBy(s => s.Id).SelectMany(s => s.Evidence))
                 .Select(e => new OwnReportEvidenceFact(e.Id, e.FileId, e.FileVersion, e.SupplementId, e.CaptureMetadata?.CapturedAt,
                     e.CaptureMetadata?.LocationSource.ToString().ToUpperInvariant() ?? "UNKNOWN", e.CaptureMetadata?.Latitude is decimal lat
                         ? new ReportEvidenceLocationFact(lat, e.CaptureMetadata.Longitude, e.CaptureMetadata.AccuracyMeters) : null)).ToArray(),
-            routing is null ? "UNASSIGNED" : "ASSIGNED",
-            updates.Select(p => new OwnReportUpdateFact(p.Id, p.Summary, p.PublishedAt, p.EvidenceIds)).ToArray(),
-            report.Supplements.OrderBy(s => s.ReceivedAt).ThenBy(s => s.Id).Select(s => new OwnReportSupplementFact(s.Id, s.Description, s.ReceivedAt)).ToArray());
+            routing.ProjectId is null ? "UNASSIGNED" : "ASSIGNED",
+            updates.Select(row => new OwnReportUpdateFact(row.Publication.Id, row.Publication.Summary, row.Publication.PublishedAt, row.Publication.EvidenceIds)).ToArray(),
+            report.Supplements.OrderBy(s => s.ReceivedAt).ThenBy(s => s.Id).Select(s => new OwnReportSupplementFact(s.Id, s.Description, s.ReceivedAt)).ToArray(), progress);
     }
 
     private Task<int> LockAsync(string sql, Guid id, CancellationToken ct) => db.Database.SqlQueryRaw<int>(sql, id).SingleAsync(ct);
     private Task<T> InReadTransactionAsync<T>(Func<Task<T>> action, CancellationToken ct)
         => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
-            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
             var result = await action(); await transaction.CommitAsync(ct); return result;
         });
     private sealed record PageCursor(Guid ActorId, DateTimeOffset CreatedAt, Guid Id);

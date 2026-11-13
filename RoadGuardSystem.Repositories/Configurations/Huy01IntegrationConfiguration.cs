@@ -203,6 +203,8 @@ public sealed class HuyRecipientConfiguration : IEntityTypeConfiguration<HuyPubl
     public void Configure(EntityTypeBuilder<HuyPublicationRecipient> builder)
     {
         builder.ToTable("CasePublicationRecipients", t => t.UseSqlOutputClause(false)); builder.HasKey(x => new { x.PublicationId, x.ReportId });
+        builder.Property(x => x.RepairProgressStatus).HasMaxLength(16).IsUnicode(false);
+        builder.Property(x => x.RepairAcceptanceFingerprint).HasMaxLength(64).IsUnicode(false);
         builder.HasOne<CasePublication>().WithMany().HasForeignKey(x => x.PublicationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Report>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Restrict);
     }

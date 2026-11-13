@@ -75,9 +75,10 @@ public sealed class CasesController : ControllerBase
             DefectIds: request.DefectIds, EvidenceIds: request.EvidenceIds), cancellationToken);
 
     [HttpPost("{caseId:guid}/publications")]
+    [ProducesResponseType<CasePublicationResponseDto>(StatusCodes.Status201Created)]
     public Task<IActionResult> Publish(Guid caseId, CasePublicationDto request, CancellationToken cancellationToken)
         => Execute(caseId, version => new(caseId, version, "publish", request.Summary ?? "", ReportIds: request.ReportIds,
-            DefectIds: request.DefectIds, EvidenceIds: request.EvidenceIds), cancellationToken);
+            DefectIds: request.DefectIds, EvidenceIds: request.EvidenceIds, RepairProgressStatus: request.RepairProgressStatus), cancellationToken);
 
     private async Task<IActionResult> Execute(Guid caseId, Func<string, CaseCommand> command, CancellationToken ct)
     {

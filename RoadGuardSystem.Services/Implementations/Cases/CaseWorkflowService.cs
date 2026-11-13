@@ -39,6 +39,9 @@ public sealed class CaseWorkflowService(ICaseWorkflowRepository repository, IPro
             if (command.Action == "conclude" && command.Outcome == CaseConclusionOutcome.Confirmed && command.DefectIds is not { Count: > 0 }) return Invalid("defectIds");
             if (command.Action == "conclude" && command.Outcome == CaseConclusionOutcome.NoDefect && command.DefectIds is { Count: > 0 }) return Invalid("defectIds");
             if (command.Action == "conclude" && command.Outcome is CaseConclusionOutcome.NoDefect or CaseConclusionOutcome.Confirmed && command.EvidenceIds is not { Count: > 0 }) return Invalid("evidenceIds");
+            if (command.RepairProgressStatus is not null && (command.Action != "publish" ||
+                command.RepairProgressStatus is not ("NOT_STARTED" or "IN_PROGRESS" or "ACCEPTED") || command.DefectIds is not { Count: > 0 }))
+                return Invalid("repairProgressStatus");
             var normalized = command;
             Task<bool> ProjectAccess(Guid project, CancellationToken token) => AuthorizeAsync(project, token);
             async Task<bool> AuthorizeAsync(Guid project, CancellationToken token) => await scope.AuthorizeAsync(actor, role, project, token) is not null;
@@ -51,8 +54,11 @@ public sealed class CaseWorkflowService(ICaseWorkflowRepository repository, IPro
                 if (facts.Status != AnhHuyProducerStatus.Ready) throw new CaseWorkflowException(facts.Status == AnhHuyProducerStatus.Forbidden ? 403 : facts.Status == AnhHuyProducerStatus.NotFound ? 404 : 409,
                     facts.Status == AnhHuyProducerStatus.Forbidden ? "access_forbidden" : facts.Status == AnhHuyProducerStatus.NotFound ? "not_found" : facts.Status == AnhHuyProducerStatus.StaleGeometry ? "candidate_stale" : "source_not_ready");
             };
-            var result = await Huy01CommandExecution.ExecuteAsync(handler => idempotency.ExecuteAsync(actor, null, $"huy01.case.{normalized.Action}.v1", key.Trim(' '), fingerprint,
-                handler, ct, receiptAccessGuard: token => repository.GuardCommandAsync(actor, role, normalized, ProjectAccess, token)), async token =>
+            var operation = $"huy01.case.{normalized.Action}.v1";
+            Task ReceiptGuard(CancellationToken token) => repository.GuardCommandAsync(actor, role, normalized, ProjectAccess, token);
+            var result = await Huy01CommandExecution.ExecuteAsync(handler => normalized.RepairProgressStatus is null
+                ? idempotency.ExecuteAsync(actor, null, operation, key.Trim(' '), fingerprint, handler, ct, ReceiptGuard)
+                : idempotency.ExecuteSerializableAsync(actor, null, operation, key.Trim(' '), fingerprint, handler, ct, ReceiptGuard), async token =>
                 {
                     var write = await repository.ApplyAsync(actor, role, normalized, ProjectAccess, geometry, correlation, token);
                     return (write.Publication?.Id ?? write.Case.Id, JsonSerializer.Serialize(write));

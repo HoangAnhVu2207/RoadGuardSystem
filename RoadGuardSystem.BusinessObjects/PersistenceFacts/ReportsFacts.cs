@@ -4,7 +4,10 @@ namespace RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports;
 // Materialized persistence commands and snapshots, independent of public transport contracts.
 public sealed record OwnReportFact(Guid Id, string Description, DateTimeOffset CreatedAt, string Version,
     IReadOnlyList<OwnReportEvidenceFact> Evidence, string RoutingStatus,
-    IReadOnlyList<OwnReportUpdateFact> PublicUpdates, IReadOnlyList<OwnReportSupplementFact> Supplements);
+    IReadOnlyList<OwnReportUpdateFact> PublicUpdates, IReadOnlyList<OwnReportSupplementFact> Supplements,
+    OwnReportRepairProgressFact? RepairProgress = null);
+
+public sealed record OwnReportRepairProgressFact(string Status, DateTimeOffset PublishedAt);
 
 public sealed record OwnReportEvidenceFact(Guid Id, Guid FileId, string FileVersion, Guid? SupplementId,
     DateTimeOffset? CapturedAt, string LocationSource, ReportEvidenceLocationFact? Location);

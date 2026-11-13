@@ -96,9 +96,15 @@ public sealed class FastTrackReviewNotificationSqlTests(IdentitySqlServerFixture
         Assert.Equal(task.Version, bootstrap.Version);
         Assert.NotEqual(task.Version, context.ItemVersion);
         Assert.Null(context.Attempt);
+        var progress = complete && !assigned ? await ReporterRepairProgressProbe.CreateAsync(db, source) : null;
         var itemVersion = context.ItemVersion;
         var start = await repairs.StartExecutionAsync(new(source.Crew, UserRoleCode.RepairCrew, source.Project, state.Package, state.Item, state.First.TaskId,
             new(Guid.NewGuid(), state.First.Id, DateTimeOffset.UtcNow, state.Operation.Repair!.Start!.AssessmentId), Guid.NewGuid().ToString(), itemVersion), default); Assert.Equal(201, start.Status);
+        if (progress is not null)
+        {
+            await progress.PublishAsync("IN_PROGRESS");
+            await progress.ReadAsync("IN_PROGRESS");
+        }
         var field = new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         Guid? finishId = null;
         StoredFile? after = null;
@@ -227,6 +233,7 @@ public sealed class FastTrackReviewNotificationSqlTests(IdentitySqlServerFixture
             Assert.Equal(403, (await repairs.ReviewAttemptAsync(review with { ActorId = source.Crew, Role = UserRoleCode.RepairCrew }, default)).Status);
             Assert.Equal(201, (await repairs.ReviewAttemptAsync(review, default)).Status);
             Assert.Equal(200, (await repairs.ReviewAttemptAsync(review, default)).Status);
+            if (progress is not null) await progress.ReadAsync("IN_PROGRESS");
             db.ChangeTracker.Clear();
             var final = new RepairFinalConfirmCommand(source.Pm, UserRoleCode.ProjectManager, source.Project, state.Package, state.Item,
                 new("PM final for genuine FastTrack"), Guid.NewGuid().ToString(),
@@ -264,6 +271,19 @@ public sealed class FastTrackReviewNotificationSqlTests(IdentitySqlServerFixture
             }
             else Assert.Equal(201, (await repairs.ConfirmFinalAsync(final, default)).Status);
             Assert.Equal(200, (await repairs.ConfirmFinalAsync(final, default)).Status);
+            if (progress is not null)
+            {
+                await progress.ReadAsync("IN_PROGRESS");
+                await progress.PublishAsync("ACCEPTED");
+                await progress.ReadAsync("ACCEPTED");
+                var outstanding = RepairObligation.Create(Guid.NewGuid(), source.Project, source.Defect,
+                    RepairObligationKind.FormalRepair, true,
+                    RepairActualScope.Create(Guid.NewGuid(), source.Road, "second-scope", "R", 10, 12, 0, 1));
+                db.Add(RepairPackage.Create(Guid.NewGuid(), source.Project, source.Defect, [outstanding]));
+                await db.SaveChangesAsync();
+                await progress.PublishAsync("ACCEPTED", 409);
+                await progress.ReadAsync(null);
+            }
             db.ChangeTracker.Clear();
             var finalMessage = await db.OutboxMessages.SingleAsync(x => x.MessageType == "repair.work.fast_track_confirmed.v1" &&
                 x.Id == db.RepairItems.Where(i => i.Id == state.Item).Select(i => i.EffectiveDecisionId).First());

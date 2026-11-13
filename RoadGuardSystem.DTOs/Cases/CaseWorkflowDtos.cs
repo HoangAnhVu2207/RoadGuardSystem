@@ -12,7 +12,8 @@ public sealed record CaseSplitDto(IReadOnlyList<Guid>? ReportIds, string? Reason
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CaseConclusionDto(string? Outcome, IReadOnlyList<Guid>? DefectIds, IReadOnlyList<Guid>? EvidenceIds, string? Reason);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record CasePublicationDto(IReadOnlyList<Guid>? ReportIds, IReadOnlyList<Guid>? DefectIds, IReadOnlyList<Guid>? EvidenceIds, string? Summary);
+public sealed record CasePublicationDto(IReadOnlyList<Guid>? ReportIds, IReadOnlyList<Guid>? DefectIds, IReadOnlyList<Guid>? EvidenceIds, string? Summary,
+    string? RepairProgressStatus = null);
 public sealed record InternalCaseDto(Guid Id, Guid? ProjectId, string Status, string Version,
     IReadOnlyList<Guid> ReportIds, IReadOnlyList<Guid> DefectIds, string? VerificationMethod, string WarrantyRouting,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CaseConclusionViewDto? Conclusion, DateTimeOffset CreatedAt)

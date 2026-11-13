@@ -32,15 +32,20 @@ public sealed record OwnReportUpdateDto(Guid Id, string Summary, DateTimeOffset 
 }
 public sealed record OwnReportDto(Guid Id, string Description, DateTimeOffset CreatedAt, string Version,
     IReadOnlyList<OwnReportEvidenceDto> Evidence, string RoutingStatus,
-    IReadOnlyList<OwnReportUpdateDto> PublicUpdates, IReadOnlyList<OwnReportSupplementDto> Supplements)
+    IReadOnlyList<OwnReportUpdateDto> PublicUpdates, IReadOnlyList<OwnReportSupplementDto> Supplements,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] OwnReportRepairProgressDto? RepairProgress = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportFact?(OwnReportDto? value)
-        => value is null ? null! : new(value.Id, value.Description, value.CreatedAt, value.Version, value.Evidence?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportEvidenceFact)item).ToArray()!, value.RoutingStatus, value.PublicUpdates?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportUpdateFact)item).ToArray()!, value.Supplements?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportSupplementFact)item).ToArray()!);
+        => value is null ? null! : new(value.Id, value.Description, value.CreatedAt, value.Version, value.Evidence?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportEvidenceFact)item).ToArray()!, value.RoutingStatus, value.PublicUpdates?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportUpdateFact)item).ToArray()!, value.Supplements?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportSupplementFact)item).ToArray()!,
+            value.RepairProgress is { } progress ? new(progress.Status, progress.PublishedAt) : null);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator OwnReportDto?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reports.OwnReportFact? value)
-        => value is null ? null! : new(value.Id, value.Description, value.CreatedAt, value.Version, value.Evidence?.Select(item => (global::RoadGuardSystem.DTOs.Reports.OwnReportEvidenceDto)item).ToArray()!, value.RoutingStatus, value.PublicUpdates?.Select(item => (global::RoadGuardSystem.DTOs.Reports.OwnReportUpdateDto)item).ToArray()!, value.Supplements?.Select(item => (global::RoadGuardSystem.DTOs.Reports.OwnReportSupplementDto)item).ToArray()!);
+        => value is null ? null! : new(value.Id, value.Description, value.CreatedAt, value.Version, value.Evidence?.Select(item => (global::RoadGuardSystem.DTOs.Reports.OwnReportEvidenceDto)item).ToArray()!, value.RoutingStatus, value.PublicUpdates?.Select(item => (global::RoadGuardSystem.DTOs.Reports.OwnReportUpdateDto)item).ToArray()!, value.Supplements?.Select(item => (global::RoadGuardSystem.DTOs.Reports.OwnReportSupplementDto)item).ToArray()!,
+            value.RepairProgress is { } progress ? new(progress.Status, progress.PublishedAt) : null);
 }
+public sealed record OwnReportRepairProgressDto(string Status, DateTimeOffset PublishedAt);
+
 public sealed record OwnReportPageDto(IReadOnlyList<OwnReportDto> Items, string? NextCursor)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]

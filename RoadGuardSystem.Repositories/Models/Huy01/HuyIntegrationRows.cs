@@ -18,6 +18,8 @@ public sealed class HuyPublicationRecipient
 {
     public Guid PublicationId { get; set; }
     public Guid ReportId { get; set; }
+    public string? RepairProgressStatus { get; set; }
+    public string? RepairAcceptanceFingerprint { get; set; }
 }
 
 public sealed class HuyPublicationEvidence

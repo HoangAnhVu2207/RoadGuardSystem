@@ -51,6 +51,7 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
         Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
     {
         await GuardAsync(actor, role, (command.SourceCaseVersions?.Keys ?? []).Append(command.CaseId).Distinct().ToArray(), command.ProjectId, projectAccess, ct);
+        if (command.Action == "publish" && role != UserRoleCode.ProjectManager) Fail(403, "access_forbidden");
         if (command.EvidenceIds is { Count: > 0 })
         {
             var incident = await db.IncidentCases.AsNoTracking().SingleAsync(c => c.Id == command.CaseId, ct);
@@ -166,18 +167,37 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
                     break;
                 case "publish":
                     var selected = await ResolveEvidenceAsync(incident, command.EvidenceIds!, ct);
-                    var defects = await ResolveDefectsAsync(incident, command.DefectIds!, ct);
+                    var defects = await ResolveDefectsAsync(incident, command.DefectIds!, ct, includeClosed: command.RepairProgressStatus is not null);
+                    var progress = new Dictionary<Guid, ReporterRepairProgress.Progress>();
                     var recipientFacts = new List<CasePublicationRecipientFacts>();
                     foreach (var recipient in movedReports)
                     {
                         var related = await RelatedDefectsAsync(recipient, ct);
+                        if (command.RepairProgressStatus is string requestedStatus)
+                        {
+                            if (!incident.ActiveReportIds.Contains(recipient) || incident.ProjectId is not Guid project ||
+                                (incident.Conclusions.Count > 0 && incident.Conclusions[^1].Outcome == CaseConclusionOutcome.NoDefect) ||
+                                !related.Order().SequenceEqual(defects.Order()))
+                                throw new CaseWorkflowException(409, "repair_progress_scope_unverified");
+                            var current = await ReporterRepairProgress.ResolveAsync(db, project, related, ct);
+                            if (current is null) throw new CaseWorkflowException(409, "repair_progress_scope_unverified");
+                            if (current.Status != requestedStatus) throw new CaseWorkflowException(409, "repair_progress_not_ready");
+                            progress.Add(recipient, current);
+                        }
                         recipientFacts.Add(CasePublicationRecipientFacts.Create(recipient, defects.Where(related.Contains).ToArray(), selected.Where(e => e.ReportId == recipient).Select(e => e.Id).ToArray()));
                     }
                     publication = incident.Publish(Guid.NewGuid(), movedReports, command.DefectIds!, command.EvidenceIds!, command.Reason, now, CasePublicationPrerequisites.Create(recipientFacts));
                     db.Set<CasePublication>().Add(publication);
                     foreach (var recipient in movedReports)
                     {
-                        db.Set<HuyPublicationRecipient>().Add(new() { PublicationId = publication.Id, ReportId = recipient });
+                        progress.TryGetValue(recipient, out var milestone);
+                        db.Set<HuyPublicationRecipient>().Add(new()
+                        {
+                            PublicationId = publication.Id,
+                            ReportId = recipient,
+                            RepairProgressStatus = milestone?.Status,
+                            RepairAcceptanceFingerprint = milestone?.AcceptanceFingerprint
+                        });
                         foreach (var evidence in selected) db.Set<HuyPublicationEvidence>().Add(new()
                         {
                             PublicationId = publication.Id,
@@ -239,22 +259,19 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
         return evidence;
     }
 
-    private async Task<Guid[]> ResolveDefectsAsync(IncidentCase incident, IReadOnlyList<Guid> ids, CancellationToken ct)
+    private async Task<Guid[]> ResolveDefectsAsync(IncidentCase incident, IReadOnlyList<Guid> ids, CancellationToken ct, bool includeClosed = false)
     {
         foreach (var id in ids.Order()) await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Defects] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={0}", id, ct);
         var related = new HashSet<Guid>();
         foreach (var report in incident.ActiveReportIds) foreach (var id in await RelatedDefectsAsync(report, ct)) related.Add(id);
-        var verified = await db.Defects.AsNoTracking().Where(d => ids.Contains(d.Id) && d.ProjectId == incident.ProjectId && d.Status == DefectStatus.Verified).Select(d => d.Id).ToArrayAsync(ct);
+        var verified = await db.Defects.AsNoTracking().Where(d => ids.Contains(d.Id) && d.ProjectId == incident.ProjectId &&
+            (d.Status == DefectStatus.Verified || includeClosed && (d.Status == DefectStatus.Resolved || d.Status == DefectStatus.Closed))).Select(d => d.Id).ToArrayAsync(ct);
         if (verified.Length != ids.Count || ids.Any(id => !related.Contains(id))) Fail(409, "source_not_ready");
         return verified;
     }
 
     private Task<Guid[]> RelatedDefectsAsync(Guid report, CancellationToken ct)
-        => (from head in db.Set<HuyCandidateSourceHead>()
-            join link in db.Set<HuyDefectSourceLink>() on head.DecisionId equals link.DecisionId
-            where head.SourceKind == CandidateSourceKind.Report && head.SourceId == report &&
-                link.SourceKind == CandidateSourceKind.Report && link.SourceId == report && link.EndedAt == null
-            select link.DefectId).ToArrayAsync(ct);
+        => ReporterRepairProgress.ReadDefectsAsync(db, report, ct);
 
     private void PersistHistory(IncidentCase incident)
     {

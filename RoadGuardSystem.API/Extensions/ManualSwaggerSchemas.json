@@ -1,5 +1,7 @@
 {
   "properties": [
+    {"dto": "RoadGuardSystem.DTOs.Cases.CasePublicationDto", "property": "repairProgressStatus", "nullable": true, "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED", null], "description": "Optional milestone request. The server validates current repair facts for every recipient."},
+    {"dto": "RoadGuardSystem.DTOs.Reports.OwnReportRepairProgressDto", "property": "status", "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED"], "description": "Milestone published by the PM for this report."},
     {
       "dto": "RoadGuardSystem.DTOs.Authentication.ChangePasswordRequestDto",
       "property": "currentPassword",

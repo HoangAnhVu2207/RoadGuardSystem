@@ -38,7 +38,7 @@ public sealed class ReporterLifecycleService(IReporterLifecycleRepository reposi
                     var fresh = await ResolveAsync(actorId, normalized.Evidence, token);
                     var report = await repository.SupplementAsync(actorId, reportId, expectedVersion,
                         normalized.Description, fresh, correlationId, token);
-                    return (report.Id, JsonSerializer.Serialize(report));
+                    return (report.Id, JsonSerializer.Serialize(report with { RepairProgress = null }));
                 }, exception => exception is ReporterLifecycleException { Status: 412 });
             return result.Status == IdempotencyOperationStatus.Conflict ? new(409, "idempotency_key_reused")
                 : new(200, Report: JsonSerializer.Deserialize<OwnReportDto>(result.OutcomeJson));

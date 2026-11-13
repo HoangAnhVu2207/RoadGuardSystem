@@ -21,21 +21,25 @@ public sealed class ReportsController : ControllerBase
 
     [Authorize]
     [HttpGet]
+    [ProducesResponseType<OwnReportPageDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] int pageSize = 20, [FromQuery] string? cursor = null, CancellationToken cancellationToken = default)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, "auth_unauthorized", "Unauthorized");
         var lifecycle = Lifecycle;
         if (lifecycle is null) return ProblemResponse(503, "dependency_unavailable", "Report lifecycle is not configured");
+        Response.Headers.CacheControl = "no-store";
         return MapLifecycle(await lifecycle.ListAsync(actor, role, pageSize, cursor, cancellationToken));
     }
 
     [Authorize]
     [HttpGet("{reportId:guid}")]
+    [ProducesResponseType<OwnReportDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Read(Guid reportId, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, "auth_unauthorized", "Unauthorized");
         var lifecycle = Lifecycle;
         if (lifecycle is null) return ProblemResponse(503, "dependency_unavailable", "Report lifecycle is not configured");
+        Response.Headers.CacheControl = "no-store";
         return MapLifecycle(await lifecycle.ReadAsync(actor, role, reportId, cancellationToken));
     }
 

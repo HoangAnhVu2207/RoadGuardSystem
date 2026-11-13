@@ -79,7 +79,7 @@ public sealed class GroundTruthMeasurement
             throw new ArgumentException("Optional measurement ids must be non-empty when supplied.");
         }
 
-        if (measurementType is not (MeasurementType.DepressionDepth or MeasurementType.SlabFaultingHeight or MeasurementType.ShoulderErosionExtent))
+        if (measurementType is not (MeasurementType.DepressionDepth or MeasurementType.SlabFaultingHeight or MeasurementType.ShoulderErosionExtent or MeasurementType.DepressionLength or MeasurementType.DepressionWidth))
         {
             throw new ArgumentOutOfRangeException(nameof(measurementType), "Measurement type must be specified.");
         }

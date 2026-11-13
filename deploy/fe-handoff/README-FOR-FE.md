@@ -34,6 +34,8 @@ The draft [auth and client guide](FE-AUTH-AND-CLIENT-GUIDE.md) and [browser clie
 
 The [Web PM defect types and survey guide](PM-DEFECT-TYPES-AND-SURVEY.md) covers the `KEEP_NEW` selector and the plan-to-Operator assignment flow.
 
+The [FIELD measurement and invitation preview guide](FIELD-MEASUREMENT-AND-INVITATION-PREVIEW.md) covers the typed FIELD measurements and anonymous invitation preview.
+
 Draft [special cases](FE-CONTRACT-SPECIAL-CASES.md), [error diagnostics](FE-API-TROUBLESHOOTING.md) and [sanitized issue template](FE-ISSUE-REPORT-TEMPLATE.md) provide the current boundaries and reporting procedure. Their F07/F08/F10 acceptance remains open.
 
 Current acceptance and missing work are recorded in [the kit checklist](FE-INTEGRATION-ACCEPTANCE-CHECKLIST.md). Source and document hashes are in [the preparation manifest](review-evidence/fe-integration-kit/PREPARATION-MANIFEST.json). This index is not `FE_HANDOFF_DELIVERED` or `FE_HANDOFF_VERIFIED`.

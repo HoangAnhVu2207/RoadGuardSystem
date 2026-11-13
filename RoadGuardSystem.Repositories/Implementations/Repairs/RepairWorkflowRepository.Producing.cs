@@ -558,7 +558,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     Deny(409, "invalid_state_transition");
                 if (input.DefectId != defect.Id || input.RouteVersionId != defect.RoadSectionVersionId ||
                     input.DefectVersion != VersionOf(defect)) Deny(409, "repair_source_conflict");
-                if (input.Purpose != "POST_REPAIR" || input.RequiredMeasurementType is < 1 or > 4) Deny(400, "validation_error");
+                if (input.Purpose != "POST_REPAIR" || input.RequiredMeasurementType is < 1 or > 6) Deny(400, "validation_error");
                 var check = await FieldCore().ValidateRepairTaskSourcesInTransactionAsync(package.ProjectId, input, defect, ct);
                 if (check.Code is not null) Deny(check.Status, check.Code);
                 var declaredFrame = "h4-frame-v1:" + SourceHash(new

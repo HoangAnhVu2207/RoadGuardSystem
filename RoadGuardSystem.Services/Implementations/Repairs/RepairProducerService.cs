@@ -44,7 +44,7 @@ public sealed class RepairProducerService(IRepairProducerRepository repository) 
         if (denial is not null) return Task.FromResult(denial);
         if (package == Guid.Empty || item == Guid.Empty || input is null || !Text(input.Reason) || input.Task is null ||
             input.Task.DefectId == Guid.Empty || input.Task.RouteVersionId == Guid.Empty || input.Task.AssignedToUserId == Guid.Empty ||
-            input.Task.Purpose != "POST_REPAIR" || input.Task.RequiredMeasurementType is < 1 or > 4 ||
+            input.Task.Purpose != "POST_REPAIR" || input.Task.RequiredMeasurementType is < 1 or > 6 ||
             input.Task.DueAt == default || input.Task.SurveyId == Guid.Empty || input.PolicyRevisionId == Guid.Empty)
             return Error(400, "validation_error");
         return RepairContractMapping.ToWireAsync(repository.AssignItemAsync(new(actor, role, project, package, item, RepairContractMapping.ToData(input), key!, version![1..^1]), token));

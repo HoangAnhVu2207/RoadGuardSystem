@@ -204,6 +204,17 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Fact]
+    public async Task InvitationPreviewIsAnonymous()
+    {
+        using var document = await Document();
+        var operation = document.RootElement.GetProperty("paths")
+            .GetProperty("/api/v1/invitations/preview").GetProperty("post");
+        Assert.False(operation.TryGetProperty("security", out var security) && security.GetArrayLength() > 0);
+        Assert.True(operation.GetProperty("responses").TryGetProperty("200", out _));
+        Assert.True(operation.GetProperty("responses").TryGetProperty("404", out _));
+    }
+
+    [Fact]
     public async Task SurveyDetailsAdvertiseWebAndBearerAtResourceRoutes()
     {
         using var document = await Document();

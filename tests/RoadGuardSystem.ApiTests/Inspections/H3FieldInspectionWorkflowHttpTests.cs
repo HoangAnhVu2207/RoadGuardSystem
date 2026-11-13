@@ -146,9 +146,44 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         await Login(client, crew.UserName!); var geometry = await client.GetAsync(path + "/geometry"); Assert.Equal(HttpStatusCode.OK, geometry.StatusCode); Assert.Equal(scope.Set, (await geometry.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("segmentSetId").GetGuid());
         Assert.Equal(HttpStatusCode.Created, (await Post(client, path + "/accept", new { reason = "accepted" }, version: await Version(client, path))).StatusCode);
         var started = await Post(client, path + "/start", new { originId = Guid.NewGuid(), claimedAt = DateTimeOffset.UtcNow }, version: await Version(client, path)); Assert.Equal(HttpStatusCode.Created, started.StatusCode); var start = (await started.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-        var intakeBody = new { originId = Guid.NewGuid(), startOriginId = start, measurements = new[] { new { sampleId = "area", type = "Area", value = (decimal?)null, state = "UNKNOWN", unknownReason = "obscured", dimension = "AREA", unit = "m²", longitude = (double?)null, latitude = (double?)null, locationReason = "GPS missing", instrument = "gauge", method = "area" } }, evidence = new[] { new { captureOriginId = Guid.NewGuid(), fileId = (Guid?)null, purpose = "MEASUREMENT", checksumSha256 = PhotoStorage.Hash, mediaType = "image/jpeg", capturedAt = DateTimeOffset.UtcNow } }, locationProof = new { kind = "UNKNOWN" }, captureType = "MEASUREMENT" };
+        var intakeBody = new
+        {
+            originId = Guid.NewGuid(),
+            startOriginId = start,
+            measurements = new[]
+            {
+                new { sampleId = "area", type = "Area", value = (decimal?)null, state = "UNKNOWN", unknownReason = (string?)"obscured", dimension = "AREA", unit = "m²", longitude = (double?)null, latitude = (double?)null, locationReason = "GPS missing", instrument = "gauge", method = "area" },
+                new { sampleId = "depth", type = "DepressionDepth", value = (decimal?)12.5m, state = "KNOWN", unknownReason = (string?)null, dimension = "LENGTH", unit = "mm", longitude = (double?)null, latitude = (double?)null, locationReason = "GPS missing", instrument = "gauge", method = "depth" },
+                new { sampleId = "length", type = "DepressionLength", value = (decimal?)120m, state = "KNOWN", unknownReason = (string?)null, dimension = "LENGTH", unit = "cm", longitude = (double?)null, latitude = (double?)null, locationReason = "GPS missing", instrument = "tape", method = "length" },
+                new { sampleId = "width", type = "DepressionWidth", value = (decimal?)0.8m, state = "KNOWN", unknownReason = (string?)null, dimension = "LENGTH", unit = "m", longitude = (double?)null, latitude = (double?)null, locationReason = "GPS missing", instrument = "tape", method = "width" }
+            },
+            evidence = new[] { new { captureOriginId = Guid.NewGuid(), fileId = (Guid?)null, purpose = "MEASUREMENT", checksumSha256 = PhotoStorage.Hash, mediaType = "image/jpeg", capturedAt = DateTimeOffset.UtcNow } },
+            locationProof = new { kind = "UNKNOWN" },
+            captureType = "MEASUREMENT"
+        };
         var bad = new { originId = Guid.NewGuid(), startOriginId = start, measurements = new object?[] { null }, captureType = "MEASUREMENT" }; Assert.Equal(HttpStatusCode.BadRequest, (await Post(client, path + "/submissions", bad, version: await Version(client, path))).StatusCode);
         var intake = await Post(client, path + "/submissions", intakeBody, version: await Version(client, path)); Assert.Equal(HttpStatusCode.Created, intake.StatusCode); var first = await intake.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal("INCOMPLETE", first.GetProperty("readiness").GetString());
+        var firstRead = await client.GetAsync(path + "/submissions/" + first.GetProperty("id").GetGuid());
+        Assert.Equal(HttpStatusCode.OK, firstRead.StatusCode);
+        var firstReadBody = await firstRead.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(new[] { "Area", "DepressionDepth", "DepressionLength", "DepressionWidth" },
+            firstReadBody.GetProperty("measurements").EnumerateArray().Select(item => item.GetProperty("type").GetString()).OrderBy(value => value));
+        Assert.Equal(new[] { "cm", "m", "m²", "mm" },
+            firstReadBody.GetProperty("measurements").EnumerateArray().Select(item => item.GetProperty("unit").GetString()).OrderBy(value => value));
+        await using (var measurementsDb = sql.CreateDbContext())
+        {
+            var submissionId = first.GetProperty("id").GetGuid();
+            var sessionId = await measurementsDb.FieldInspectionSubmissions.AsNoTracking()
+                .Where(item => item.Id == submissionId)
+                .Select(item => item.SessionId)
+                .SingleAsync();
+            var stored = await measurementsDb.GroundTruthMeasurements.AsNoTracking()
+                .Where(item => item.FieldInspectionSessionId == sessionId)
+                .ToArrayAsync();
+            Assert.Equal(4, stored.Length);
+            Assert.Contains(stored, item => item.MeasurementType == MeasurementType.DepressionLength && item.Value == 120m && item.Unit == "cm");
+            Assert.Contains(stored, item => item.MeasurementType == MeasurementType.DepressionWidth && item.Value == 0.8m && item.Unit == "m");
+        }
         await Login(client, pm.UserName!); Assert.Equal(HttpStatusCode.Conflict, (await Post(client, path + "/reviews", new { submissionId = first.GetProperty("id").GetGuid(), decision = "CONFIRM", reason = "insufficient" }, version: await Version(client, path))).StatusCode);
         var supplement = await Post(client, path + "/reviews", new { submissionId = first.GetProperty("id").GetGuid(), decision = "SUPPLEMENT", reason = "need actual capture" }, version: await Version(client, path)); Assert.Equal(HttpStatusCode.Created, supplement.StatusCode); Assert.Equal("BUSINESS_ACK_REQUIRED", (await supplement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("receiptActivation").GetString());
         Guid receivingId;

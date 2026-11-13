@@ -90,12 +90,53 @@ public sealed class V2IdentityOnboardingFlowTests
         created.Headers.Location.Should().NotBeNull();
         created.Headers.ETag.Should().NotBeNull();
         sender.InvitationToken.Should().NotBeNullOrWhiteSpace();
+        var firstToken = sender.InvitationToken;
+        var projectId = Guid.NewGuid();
+        await using (var projectDb = _sql.CreateDbContext())
+        {
+            projectDb.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(
+                projectId, $"INV-{Guid.NewGuid():N}", "Invitation preview project", null, null, null, null, DateTimeOffset.UtcNow));
+            await projectDb.SaveChangesAsync();
+        }
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var withProject = await client.PostAsJsonAsync("/api/v1/invitations", new
+        {
+            email = $"preview.{Guid.NewGuid():N}@example.test",
+            role = "CREW",
+            projectIds = new[] { projectId }
+        });
+        withProject.StatusCode.Should().Be(HttpStatusCode.Created);
+        sender.InvitationToken.Should().NotBeNullOrWhiteSpace();
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        var preview = await client.PostAsJsonAsync("/api/v1/invitations/preview", new { invitationToken = sender.InvitationToken });
+        preview.StatusCode.Should().Be(HttpStatusCode.OK);
+        preview.Headers.CacheControl!.NoStore.Should().BeTrue();
+        var previewBody = await preview.Content.ReadFromJsonAsync<JsonElement>();
+        previewBody.GetProperty("role").GetString().Should().Be("CREW");
+        previewBody.GetProperty("projects")[0].GetProperty("id").GetGuid().Should().Be(projectId);
+        previewBody.GetProperty("projects")[0].GetProperty("name").GetString().Should().Be("Invitation preview project");
+        previewBody.GetProperty("expiresAt").GetDateTimeOffset().Should().BeAfter(DateTimeOffset.UtcNow);
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var acceptedPreviewed = await client.PostAsJsonAsync("/api/v1/invitations/accept", new
+        {
+            invitationToken = sender.InvitationToken,
+            displayName = "Previewed Crew",
+            password = "Crew1!"
+        });
+        acceptedPreviewed.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await acceptedPreviewed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("user").GetProperty("role").GetString().Should().Be("CREW");
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        var invalidPreview = await client.PostAsJsonAsync("/api/v1/invitations/preview", new { invitationToken = "invalid-token" });
+        invalidPreview.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var missingPreview = await client.PostAsJsonAsync("/api/v1/invitations/preview", new { });
+        missingPreview.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         client.DefaultRequestHeaders.Authorization = null;
         client.DefaultRequestHeaders.Remove("Idempotency-Key");
         client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
         var accepted = await client.PostAsJsonAsync("/api/v1/invitations/accept", new
         {
-            invitationToken = sender.InvitationToken,
+            invitationToken = firstToken,
             displayName = "Invited Operator",
             password = "Operator1!"
         });
@@ -105,11 +146,64 @@ public sealed class V2IdentityOnboardingFlowTests
         body.GetProperty("user").GetProperty("role").GetString().Should().Be("OPERATOR");
         (await client.PostAsJsonAsync("/api/v1/invitations/accept", new
         {
-            invitationToken = sender.InvitationToken,
+            invitationToken = firstToken,
             displayName = "Invited Operator",
             password = "Operator1!"
         })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var usedPreview = await client.PostAsJsonAsync("/api/v1/invitations/preview", new { invitationToken = firstToken });
+        usedPreview.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task InvitationPreviewExpiredAndRevokedTokensReturnSameNotFound()
+    {
+        var supervisorName = $"preview_states_supervisor_{Guid.NewGuid():N}";
+        await _sql.CreateUserAsync(supervisorName, "Supervisor1!", UserRoleCode.Supervisor);
+        var sender = new CapturingIdentityMessageSender();
+        await using var factory = Factory(sender);
+        using var client = factory.CreateClient();
+        await AuthenticateAsync(client, supervisorName, "Supervisor1!");
+
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var expiredEmail = $"expired.{Guid.NewGuid():N}@example.test";
+        var expired = await client.PostAsJsonAsync("/api/v1/invitations", new
+        {
+            email = expiredEmail,
+            role = "OPERATOR",
+            projectIds = Array.Empty<Guid>()
+        });
+        expired.StatusCode.Should().Be(HttpStatusCode.Created);
+        var expiredToken = sender.InvitationToken!;
+        await using (var db = _sql.CreateDbContext())
+        {
+            var invitation = await db.StaffInvitations.SingleAsync(item => item.Email == expiredEmail);
+            invitation.ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        }
+        var expiredPreview = await client.PostAsJsonAsync("/api/v1/invitations/preview", new { invitationToken = expiredToken });
+        expiredPreview.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var revokedEmail = $"revoked.{Guid.NewGuid():N}@example.test";
+        var revoked = await client.PostAsJsonAsync("/api/v1/invitations", new
+        {
+            email = revokedEmail,
+            role = "CREW",
+            projectIds = Array.Empty<Guid>()
+        });
+        revoked.StatusCode.Should().Be(HttpStatusCode.Created);
+        var revokedToken = sender.InvitationToken!;
+        await using (var db = _sql.CreateDbContext())
+        {
+            var invitation = await db.StaffInvitations.SingleAsync(item => item.Email == revokedEmail);
+            invitation.RevokedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        var revokedPreview = await client.PostAsJsonAsync("/api/v1/invitations/preview", new { invitationToken = revokedToken });
+        revokedPreview.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
 
     [Fact]
     public async Task ReporterRegistration_ResendInvalidatesOldOtp_UsingFakeSender()

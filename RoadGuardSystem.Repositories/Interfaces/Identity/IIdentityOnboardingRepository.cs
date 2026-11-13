@@ -12,6 +12,11 @@ public interface IIdentityOnboardingRepository
         string tokenHash,
         CancellationToken cancellationToken = default);
 
+    Task<InvitationPreviewPersistence?> GetInvitationPreviewByTokenHashAsync(
+        string tokenHash,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default);
+
     Task<ReporterRegistrationPersistenceResult> RegisterReporterAsync(
         ApplicationUser pendingUser,
         ReporterRegistrationIntent intent,
@@ -64,3 +69,9 @@ public interface IIdentityOnboardingRepository
         DateTimeOffset now,
         CancellationToken cancellationToken = default);
 }
+
+public sealed record InvitationPreviewPersistence(
+    string Role,
+    IReadOnlyList<(Guid Id, string Name)> Projects,
+    DateTimeOffset ExpiresAt,
+    string? InviterName);

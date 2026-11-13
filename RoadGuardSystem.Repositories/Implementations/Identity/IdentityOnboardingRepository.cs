@@ -33,6 +33,27 @@ public sealed class IdentityOnboardingRepository : IIdentityOnboardingRepository
         _context.StaffInvitations.AsNoTracking()
             .SingleOrDefaultAsync(item => item.TokenHash == tokenHash, cancellationToken);
 
+    public async Task<InvitationPreviewPersistence?> GetInvitationPreviewByTokenHashAsync(
+        string tokenHash, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        var invitation = await _context.StaffInvitations.AsNoTracking()
+            .Where(item => item.TokenHash == tokenHash && item.RevokedAt == null &&
+                item.AcceptedAt == null && item.ExpiresAt > now)
+            .Select(item => new { item.Id, item.RoleCode, item.ExpiresAt, item.CreatedByUserId })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (invitation is null) return null;
+        var projects = await (from link in _context.StaffInvitationProjects.AsNoTracking()
+                              join project in _context.Projects.AsNoTracking() on link.ProjectId equals project.Id
+                              where link.InvitationId == invitation.Id
+                              orderby project.Name, project.Id
+                              select new { project.Id, project.Name }).ToArrayAsync(cancellationToken);
+        var inviter = await _context.Users.AsNoTracking()
+            .Where(user => user.Id == invitation.CreatedByUserId)
+            .Select(user => user.DisplayName)
+            .SingleOrDefaultAsync(cancellationToken);
+        return new InvitationPreviewPersistence(invitation.RoleCode.ToString(), projects.Select(x => (x.Id, x.Name)).ToArray(), invitation.ExpiresAt, inviter);
+    }
+
     public async Task<ReporterRegistrationPersistenceResult> RegisterReporterAsync(
         ApplicationUser pendingUser,
         ReporterRegistrationIntent intent,

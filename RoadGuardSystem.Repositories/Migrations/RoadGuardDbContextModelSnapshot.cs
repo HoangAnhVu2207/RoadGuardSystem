@@ -2975,9 +2975,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasCheckConstraint("CK_GroundTruthMeasurements_Location", "([Location] IS NOT NULL AND [LocationState]='CAPTURED' AND [Location].STSrid=4326 AND [Location].STIsEmpty()=0) OR ([Location] IS NULL AND [LocationState]='UNKNOWN' AND [LocationReason] IS NOT NULL AND LEN(LTRIM(RTRIM([LocationReason])))>0)");
 
-                            t.HasCheckConstraint("CK_GroundTruthMeasurements_MeasurementType", "[MeasurementType] IN (1, 2, 3, 4)");
+                            t.HasCheckConstraint("CK_GroundTruthMeasurements_MeasurementType", "[MeasurementType] IN (1, 2, 3, 4, 5, 6)");
 
-                            t.HasCheckConstraint("CK_GroundTruthMeasurements_Unit", "([MeasurementType] IN (1,2,3) AND [Dimension]='LENGTH' AND LOWER([Unit]) IN ('mm','cm','m')) OR ([MeasurementType]=4 AND [Dimension]='AREA' AND [Unit]=N'm²')");
+                            t.HasCheckConstraint("CK_GroundTruthMeasurements_Unit", "([MeasurementType] IN (1,2,3,5,6) AND [Dimension]='LENGTH' AND LOWER([Unit]) IN ('mm','cm','m')) OR ([MeasurementType]=4 AND [Dimension]='AREA' AND [Unit]=N'm²')");
 
                             t.HasCheckConstraint("CK_GroundTruthMeasurements_Value", "([ValueState]='KNOWN' AND [Value] IS NOT NULL AND [Value]>=0) OR ([ValueState]='UNKNOWN' AND [Value] IS NULL AND [UnknownReason] IS NOT NULL AND LEN(LTRIM(RTRIM([UnknownReason])))>0)");
                         });

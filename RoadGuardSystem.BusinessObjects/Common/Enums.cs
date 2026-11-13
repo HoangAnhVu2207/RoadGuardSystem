@@ -314,7 +314,9 @@ namespace RoadGuardSystem.aBusinessObjects.Commons
         DepressionDepth = 1,
         SlabFaultingHeight = 2,
         ShoulderErosionExtent = 3,
-        Area = 4
+        Area = 4,
+        DepressionLength = 5,
+        DepressionWidth = 6
     }
 
     public enum QualityCheckScope : byte

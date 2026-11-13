@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +53,31 @@ public sealed class InvitationsController : ControllerBase
         }
 
         return Map(result);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("preview")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Preview(JsonElement request, CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "no-store";
+        if (!request.TryGetProperty("invitationToken", out var token) ||
+            token.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(token.GetString()))
+            return ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Invitation token is required");
+        var result = await _service.PreviewInvitationAsync(token.GetString()!, cancellationToken);
+        if (result.Status == IdentityOnboardingStatus.NotFound)
+            return ProblemResponse(StatusCodes.Status404NotFound, ApiErrorCodes.NotFound, "Not found");
+        if (result.Status != IdentityOnboardingStatus.Success)
+            return ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Invalid request");
+        return Ok(new
+        {
+            role = result.Role,
+            projects = result.Projects!.Select(project => new { id = project.Id, name = project.Name }),
+            expiresAt = result.ExpiresAt,
+            inviterName = result.InviterName
+        });
     }
 
     [AllowAnonymous]

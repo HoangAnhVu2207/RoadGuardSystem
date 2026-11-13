@@ -35,4 +35,6 @@ public interface IIdentityOnboardingService
         string password,
         string idempotencyKey,
         CancellationToken cancellationToken = default);
+
+    Task<InvitationPreviewResult> PreviewInvitationAsync(string invitationToken, CancellationToken cancellationToken = default);
 }

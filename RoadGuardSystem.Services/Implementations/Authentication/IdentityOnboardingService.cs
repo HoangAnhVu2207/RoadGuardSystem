@@ -315,6 +315,27 @@ public sealed class IdentityOnboardingService : IIdentityOnboardingService
             : new IdentityOnboardingResult(Map(persisted.Status), Invitation: ToView(persisted.Invitation));
     }
 
+    public async Task<InvitationPreviewResult> PreviewInvitationAsync(string invitationToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(invitationToken))
+            return new(IdentityOnboardingStatus.InvalidInput);
+        var preview = await _onboardingRepository.GetInvitationPreviewByTokenHashAsync(HashSecret(invitationToken), _timeProvider.GetUtcNow(), cancellationToken);
+        return preview is null
+            ? new(IdentityOnboardingStatus.NotFound)
+            : new(IdentityOnboardingStatus.Success, PreviewRole(preview.Role),
+                preview.Projects.Select(x => new InvitationPreviewProject(x.Id, x.Name)).ToArray(),
+                preview.ExpiresAt, preview.InviterName);
+    }
+
+    private static string PreviewRole(string role) => role switch
+    {
+        "ProjectManager" => "PM",
+        "DroneOperator" => "OPERATOR",
+        "RepairCrew" => "CREW",
+        "Supervisor" => "SUPERVISOR",
+        _ => role
+    };
+
     private (UserSession Session, RefreshToken RefreshToken, DateTimeOffset IssuedAt) CreateCredentials(
         Guid userId,
         Guid operationId,

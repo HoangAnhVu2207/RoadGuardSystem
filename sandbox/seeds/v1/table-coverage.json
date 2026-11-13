@@ -203,9 +203,10 @@
     "20261022074647_C1ControlledPublicPublication",
     "20261022181921_B2NotificationSupervisorAssignment",
     "20261110043224_RoadGeometrySubmission",
-    "20261110122600_GeometrySubmissionReviewRounds"
+    "20261110122600_GeometrySubmissionReviewRounds",
+    "20261113051802_CrewFieldMeasurementDimensions"
   ],
-  "Signature": "B3149750B40DBD6775F974C335C8DB7FA4AFB1742C479191638F0CAE9A1CB2B4",
+  "Signature": "28F13D327677B42BF27F638F9D0407160B98F2D1E8879EB300B0C3AB9AC3CC39",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",

@@ -12,6 +12,7 @@ namespace RoadGuardSystem.IntegrationTests.Projects;
 
 public sealed class H2NativeMigrationTests : IAsyncLifetime
 {
+    private const string GeometrySubmissionMigration = "20261110043224_RoadGeometrySubmission";
     private readonly SqlServerTestFixture fixture = new(createSpatialProbeSchema: false);
     public Task InitializeAsync() => fixture.InitializeAsync();
     public Task DisposeAsync() => fixture.DisposeAsync();
@@ -27,7 +28,7 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
         var triggers = await db.Database.SqlQueryRaw<string>("SELECT name AS [Value] FROM sys.triggers WHERE name LIKE '%Pavement%' OR name LIKE '%CrsProfile%' OR name LIKE '%NativeRoute%' OR name='TR_RoadSectionVersions_ProfileScope' OR name LIKE '%GeometryMapPublications%' OR name LIKE '%GeometryLocationImpact%'").ToArrayAsync();
         Assert.Equal(13, triggers.Length);
 
-        await migrator.MigrateAsync(discovered[^2]);
+        await migrator.MigrateAsync(GeometrySubmissionMigration);
         var project = Guid.NewGuid(); var actor = Guid.NewGuid(); var section = Guid.NewGuid(); var route = Guid.NewGuid(); var now = DateTimeOffset.UtcNow;
         db.Projects.Add(Project.Create(project, project.ToString(), "legacy survivor", null, null, null, null, now));
         await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS(SELECT 1 FROM Roles WHERE Code='SUPERVISOR') INSERT Roles(Code,Name,NormalizedName,IsActive) VALUES('SUPERVISOR','Supervisor','SUPERVISOR',1)");
@@ -59,7 +60,6 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
             """);
         db.Add(RoadGeometryMetadata.Create(route, reviewedId, emptyObject, new string('b', 64), actor, now: approvedAt));
         await db.SaveChangesAsync();
-        var history = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
         await migrator.MigrateAsync(); db.ChangeTracker.Clear();
         var drafts = await db.Set<RoadGeometryDraft>().Where(x => x.ProjectId == project).ToDictionaryAsync(x => x.Id);
         Assert.Equal("DRAFT", drafts[draftId].Status);
@@ -91,7 +91,7 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
         var preserved = await db.RoadSectionVersions.AsNoTracking().SingleAsync(x => x.Id == route);
         Assert.Null(preserved.CrsProfileRevisionId); Assert.Equal(32648, preserved.Geometry.SRID); Assert.Equal(100, preserved.Geometry.Length);
         Assert.Equal(receipt.OutcomeJson, (await db.Set<IdempotencyRecord>().AsNoTracking().SingleAsync(x => x.Id == receipt.Id)).OutcomeJson);
-        Assert.Equal(history.Append(discovered[^1]), await db.Database.GetAppliedMigrationsAsync());
+        Assert.Equal(discovered, await db.Database.GetAppliedMigrationsAsync());
         var profile = new CrsProfileRevision { Id = Guid.NewGuid(), ProjectId = project, Code = "candidate", Revision = 1, SourceSrid = 0, SampleOnly = true, PayloadJson = "{}", CreatedBy = actor, CreatedAt = now }; db.Add(profile); await db.SaveChangesAsync();
         var system = new RoadRouteSystem { Id = Guid.NewGuid(), ProjectId = project, Code = "fixture", Name = "fixture" }; db.Add(system);
         var firstRoad = RoadSection.Create(Guid.NewGuid(), project, "first"); var secondRoad = RoadSection.Create(Guid.NewGuid(), project, "second"); db.AddRange(firstRoad, secondRoad); await db.SaveChangesAsync();

@@ -8,6 +8,7 @@ using RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Integration;
 using RoadGuardSystem.Repositories.Models.Huy01;
+using RoadGuardSystem.Repositories.Spatial;
 namespace RoadGuardSystem.Repositories.Implementations.Inspections;
 
 public sealed partial class FieldInspectionWorkflowRepository
@@ -98,6 +99,8 @@ public sealed partial class FieldInspectionWorkflowRepository
         var route = await db.RoadSectionVersions.AsNoTracking().SingleAsync(x => x.Id == task.RoadSectionVersionId, token);
         if (set is null || set.Status is not ("PUBLISHED" or "SUPERSEDED")) Deny(409, "source_not_ready");
         var segments = await db.RoadSegments.AsNoTracking().Where(x => x.SegmentSetId == setId).OrderBy(x => x.Sequence).Select(x => new { x.Id, x.Sequence, x.FromOffsetMeters, x.ToOffsetMeters, x.StartStationMeters, x.EndStationMeters, x.Geometry }).ToArrayAsync(token);
+        int? displaySrid = task.CrsProfileRevisionId is null && route.CrsProfileRevisionId is null
+            ? route.Geometry.SRID : null;
         object? layout = null;
         if (task.LayoutRevisionId is Guid layoutId)
         {
@@ -116,8 +119,8 @@ public sealed partial class FieldInspectionWorkflowRepository
             task.SlabId,
             task.MapPublicationId,
             task.CrsProfileRevisionId,
-            route = new { spatialSrid = route.Geometry.SRID, wkt = route.Geometry.AsText(), profileStatus = task.CrsProfileRevisionId is null ? "LEGACY_UNKNOWN" : "PINNED_PROFILE" },
-            segments = segments.Select(x => new { x.Id, x.Sequence, x.FromOffsetMeters, x.ToOffsetMeters, x.StartStationMeters, x.EndStationMeters, spatialSrid = x.Geometry?.SRID, wkt = x.Geometry?.AsText() }),
+            route = new { spatialSrid = route.Geometry.SRID, wkt = route.Geometry.AsText(), wgs84Geometry = Wgs84DisplayProjection.LineString(route.Geometry, displaySrid), profileStatus = task.CrsProfileRevisionId is null ? "LEGACY_UNKNOWN" : "PINNED_PROFILE" },
+            segments = segments.Select(x => new { x.Id, x.Sequence, x.FromOffsetMeters, x.ToOffsetMeters, x.StartStationMeters, x.EndStationMeters, spatialSrid = x.Geometry?.SRID, wkt = x.Geometry?.AsText(), wgs84Geometry = Wgs84DisplayProjection.LineString(x.Geometry, displaySrid) }),
             layout
         },
             Version: Convert.ToBase64String(task.RowVersion));

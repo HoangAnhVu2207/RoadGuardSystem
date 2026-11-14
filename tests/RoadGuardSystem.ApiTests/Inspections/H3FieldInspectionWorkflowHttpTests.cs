@@ -47,6 +47,61 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(request)).StatusCode);
     }
 
+    [Theory]
+    [InlineData(32648, 32648, 105.9149000982043)]
+    [InlineData(32649, 32649, 111.91490009820423)]
+    [InlineData(32648, 3857, 105.9149000982043)]
+    public async Task CrewGeometryReturnsDisplayLinesForSupportedSource(int srid, int segmentSrid, double longitude)
+    {
+        var pm = await sql.CreateUserAsync($"line-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var crew = await sql.CreateUserAsync($"line-crew-{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var other = await sql.CreateUserAsync($"line-other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var reporter = await sql.CreateUserAsync($"line-reporter-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var scope = await Seed(sql, pm.Id, crew.Id, other.Id, reporter.Id, srid, segmentSrid);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") });
+        await Login(client, pm.UserName!);
+        var root = $"/api/v1/projects/{scope.Project}/field-inspection-tasks";
+        using var created = await Post(client, root, new
+        {
+            defectId = scope.Defect,
+            defectVersion = scope.Version,
+            sourceKind = "REPORTER",
+            routeVersionId = scope.Route,
+            segmentSetId = scope.Set,
+            purpose = "PRE_MEASUREMENT",
+            requiredMeasurementType = 4,
+            measurementScope = "{}",
+            assignedToUserId = crew.Id,
+            dueAt = DateTimeOffset.UtcNow.AddDays(1)
+        }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var path = root + "/" + (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid() + "/geometry";
+        await Login(client, other.UserName!);
+        using var forbidden = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        await Login(client, crew.UserName!);
+        var geometry = await client.GetFromJsonAsync<JsonElement>(path);
+        Assert.Equal(scope.Route, geometry.GetProperty("routeVersionId").GetGuid());
+        Assert.Equal(scope.Set, geometry.GetProperty("segmentSetId").GetGuid());
+        var route = geometry.GetProperty("route");
+        var segment = Assert.Single(geometry.GetProperty("segments").EnumerateArray());
+        Assert.Equal(srid, route.GetProperty("spatialSrid").GetInt32());
+        Assert.Equal(segmentSrid, segment.GetProperty("spatialSrid").GetInt32());
+        Assert.Equal("LINESTRING (600000 1200000, 600020 1200000)", segment.GetProperty("wkt").GetString());
+        void CheckLine(JsonElement source)
+        {
+            var line = source.GetProperty("wgs84Geometry");
+            Assert.Equal("LineString", line.GetProperty("type").GetString());
+            var point = line.GetProperty("coordinates")[0];
+            Assert.InRange(point[0].GetDouble(), longitude - 1e-7, longitude + 1e-7);
+            Assert.InRange(point[1].GetDouble(), 10.854121291, 10.854121491);
+        }
+        CheckLine(route);
+        if (srid == segmentSrid) CheckLine(segment);
+        else Assert.Equal(JsonValueKind.Null, segment.GetProperty("wgs84Geometry").ValueKind);
+    }
+
     [Fact]
     public async Task AssignedCrewReadsOnlyStoredDefectPointWithoutNeedingSegmentSet()
     {
@@ -451,9 +506,9 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
     private static async Task Login(HttpClient client, string user) { var r = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = AuthenticationSqlServerFixture.EmailFor(user), password = "Current1!" }); Assert.Equal(HttpStatusCode.OK, r.StatusCode); client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString()); }
     private static async Task<string> Version(HttpClient client, string path) { var r = await client.GetAsync(path); Assert.Equal(HttpStatusCode.OK, r.StatusCode); return (await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("version").GetString()!; }
     private static Task<HttpResponseMessage> Post(HttpClient client, string path, object body, string? key = null, string? version = null) { var r = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(body) }; r.Headers.Add("Idempotency-Key", key ?? Guid.NewGuid().ToString()); if (version is not null) r.Headers.Add("If-Match", "\"" + version + "\""); return client.SendAsync(r); }
-    internal static async Task<(Guid Project, Guid Route, Guid Set, Guid Defect, string Version)> Seed(AuthenticationSqlServerFixture sql, Guid pm, Guid crew, Guid other, Guid reporter)
+    internal static async Task<(Guid Project, Guid Route, Guid Set, Guid Defect, string Version)> Seed(AuthenticationSqlServerFixture sql, Guid pm, Guid crew, Guid other, Guid reporter, int srid = 32648, int? segmentSrid = null)
     {
-        await using var db = sql.CreateDbContext(); var now = DateTimeOffset.UtcNow; var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "FIELD HTTP", null, 32648, null, null, now); var road = RoadSection.Create(Guid.NewGuid(), project.Id, "fixture"); var line = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new(0, 0), new(20, 0)]); var route = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, line, now, "fixture"); var set = RoadSegmentSet.Create(Guid.NewGuid(), route.Id); var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1); segment.SetGeometry(0, 20, 0, line); var type = DefectType.Create("F" + Guid.NewGuid().ToString("N"), "FIELD");
+        await using var db = sql.CreateDbContext(); var now = DateTimeOffset.UtcNow; var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "FIELD HTTP", null, srid, null, null, now); var road = RoadSection.Create(Guid.NewGuid(), project.Id, "fixture"); var line = new GeometryFactory(new PrecisionModel(), srid).CreateLineString(segmentSrid is null ? [new(0, 0), new(20, 0)] : [new(600000, 1200000), new(600020, 1200000)]); var route = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, line, now, "fixture"); var set = RoadSegmentSet.Create(Guid.NewGuid(), route.Id); var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1); segment.SetGeometry(0, 20, 0, segmentSrid is null ? line : new GeometryFactory(new PrecisionModel(), segmentSrid.Value).CreateLineString(line.Coordinates)); var type = DefectType.Create("F" + Guid.NewGuid().ToString("N"), "FIELD");
         db.AddRange(project, road, route, set, segment, type, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm, new(2000, 1, 1)), new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = crew, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) }, new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = other, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) }); await db.SaveChangesAsync();
         var file = StoredFile.Create(Guid.NewGuid(), "reporter/private-" + Guid.NewGuid().ToString("N"), "source.jpg", "image/jpeg", 4, new string('b', 64), reporter, now, null); db.AddRange(file, FileScope.CreatePrivate(Guid.NewGuid(), file.Id, reporter, now)); await db.SaveChangesAsync(); var report = Report.Create(Guid.NewGuid(), reporter, "genuine noSurvey source", now, [VerifiedEvidenceReference.Create(Guid.NewGuid(), file.Id, "fixture-version", reporter)]); var incident = IncidentCase.CreateUnassigned(Guid.NewGuid(), report.Id, now); incident.Triage(project.Id, CaseVerificationMethod.ExistingEvidence, "retained source", now); db.AddRange(report, incident); db.Set<HuyCaseReportLink>().Add(new() { Id = Guid.NewGuid(), CaseId = incident.Id, ReportId = report.Id, StartedAt = now }); await db.SaveChangesAsync();
         var facts = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(CandidateSourceKind.Report, report.Id, "fixture-source"), project.Id, "fixture-geometry"); var accepted = await new CandidateDecisionRepository(db).SaveAcceptedAsync(pm, facts, CandidateDecisionKind.KeepNew, CandidateClassification.Create(route.Id, type.Code, null, DefectSeverity.Low, null), null, null, null, "PM keep-new", null, default);

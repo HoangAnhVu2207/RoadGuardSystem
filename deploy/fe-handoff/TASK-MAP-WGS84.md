@@ -18,13 +18,23 @@ Trích `segmentSet.segments[]`:
 
 ## Crew · API-080
 
-Gọi `GET /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}` với Bearer Crew. Dùng `defectTarget` làm marker. API-080 được chọn vì marker có thể đọc được khi thiếu segment set khiến API-087 trả `409 source_not_ready`. API-087 vẫn trả geometry nguồn như trước.
+Gọi `GET /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}` với Bearer Crew. Dùng `defectTarget` làm marker. API-080 được chọn vì marker có thể đọc được khi thiếu segment set khiến API-087 trả `409 source_not_ready`. API-087 vẫn trả geometry nguồn và có thêm polyline WGS84 như bên dưới.
 
 ```json
 {"defectTarget":{"longitude":105.914900098,"latitude":10.854121391}}
 ```
 
 Điểm lấy từ defect của task, cùng project và route version. Điểm WGS84 EPSG:4326 hợp lệ được dùng trực tiếp. Điểm UTM dùng phép chiếu ngược khi SRID khớp route UTM chuẩn đã pin. Giá trị null nghĩa là không có điểm phù hợp để vẽ. Ẩn marker và báo chưa có vị trí hư hại. Không thay bằng tâm đoạn, tâm tấm hoặc vị trí hiện tại của Crew.
+
+## Crew · API-087
+
+Gọi `GET /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}/geometry` với Bearer Crew đang được giao task. Vẽ tuyến từ `route.wgs84Geometry`, vẽ từng đoạn từ `segments[].wgs84Geometry`. Hai trường dùng cùng định dạng với API-104.
+
+```json
+{"type":"LineString","coordinates":[[105.914900098,10.854121391],[105.915083062,10.854120847]]}
+```
+
+Thứ tự là **[longitude, latitude]**. BE dùng geometry đã pin theo task và phép chiếu chung với API-104 cho EPSG:32648/32649. Giữ `wkt`, `spatialSrid` và lý trình nguồn. Nếu geometry thiếu, SRID đoạn lệch nguồn hoặc CRS/profile không được hỗ trợ, trường tương ứng trả `null`. Bỏ qua lớp hoặc đoạn WGS84 đó. Khi API-087 trả `409 source_not_ready` vì chưa có segment set phù hợp, app vẫn có thể đọc marker qua API-080.
 
 ## Xác minh vị trí FIELD
 

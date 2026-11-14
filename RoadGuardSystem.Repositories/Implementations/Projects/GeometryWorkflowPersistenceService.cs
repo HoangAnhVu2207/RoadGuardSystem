@@ -527,18 +527,6 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
         if (c.RouteVersionId is Guid version && !await (from v in db.RoadSectionVersions.AsNoTracking() join s in db.RoadSections.AsNoTracking() on v.RoadSectionId equals s.Id where v.Id == version && s.ProjectId == c.ProjectId && (c.RoadSectionId == null || v.RoadSectionId == c.RoadSectionId) select v.Id).AnyAsync(ct)) Reject(404, "road_section_version_not_found");
         if (c.SetId is Guid setId && !await db.RoadSegmentSets.AsNoTracking().AnyAsync(x => x.Id == setId && x.RoadSectionVersionId == c.RouteVersionId, ct)) Reject(404, "segment_set_not_found");
     }
-    private static GeometryShapeFact? DisplayShape(LineString? line, int? sourceSrid)
-    {
-        if (line is null || line.IsEmpty || line.SRID != sourceSrid) return null;
-        var coordinates = new List<double[]>(line.NumPoints);
-        foreach (var point in line.Coordinates)
-        {
-            if (Wgs84DisplayProjection.Coordinates(point, line.SRID) is not { } xy) return null;
-            coordinates.Add(xy);
-        }
-        return new("LineString", coordinates.ToArray());
-    }
-
     private async Task<SegmentSetViewFact> SetView(RoadSegmentSet set, CancellationToken ct, int? displaySrid = null)
     {
         var rows = await db.RoadSegments.AsNoTracking().Where(x => x.SegmentSetId == set.Id && x.RoadSectionVersionId == set.RoadSectionVersionId).OrderBy(x => x.Sequence).ToListAsync(ct);
@@ -551,7 +539,7 @@ public sealed class GeometryWorkflowPersistenceService(RoadGuardDbContext db, Id
             if (x.EndStationMeters is null) missing.Add("endStationMeters");
             if (x.Geometry is null) missing.Add("metricGeometry");
             return new SegmentGeometryViewFact(x.Id, x.Sequence, x.FromOffsetMeters, x.ToOffsetMeters, x.StartStationMeters, x.EndStationMeters,
-                x.ToOffsetMeters - x.FromOffsetMeters, x.Geometry is null ? null : Shape(x.Geometry), DisplayShape(x.Geometry, displaySrid), missing.ToArray());
+                x.ToOffsetMeters - x.FromOffsetMeters, x.Geometry is null ? null : Shape(x.Geometry), Wgs84DisplayProjection.LineString(x.Geometry, displaySrid), missing.ToArray());
         }).ToArray();
         var setMissing = new List<string>();
         if (set.DefinitionJson is null) setMissing.Add("definition");

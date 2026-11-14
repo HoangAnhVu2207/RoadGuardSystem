@@ -14508,6 +14508,7 @@
                         "spatialSrid": {
                           "type": "integer"
                         },
+                        "wgs84Geometry": {"type": "object", "nullable": true, "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.", "properties": {"type": {"type": "string", "enum": ["LineString"]}, "coordinates": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "format": "double"}}}}, "required": ["type", "coordinates"]},
                         "wkt": {
                           "type": "string"
                         },
@@ -14567,6 +14568,7 @@
                             "type": "integer",
                             "nullable": true
                           },
+                          "wgs84Geometry": {"type": "object", "nullable": true, "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.", "properties": {"type": {"type": "string", "enum": ["LineString"]}, "coordinates": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "format": "double"}}}}, "required": ["type", "coordinates"]},
                           "wkt": {
                             "type": "string",
                             "nullable": true

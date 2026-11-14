@@ -1,4 +1,5 @@
 using NetTopologySuite.Geometries;
+using RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects;
 
 namespace RoadGuardSystem.Repositories.Spatial;
 
@@ -42,6 +43,18 @@ internal static class Wgs84DisplayProjection
         var offset = longitude * (180 / Math.PI);
         return degrees is >= 0 and <= 84 && Math.Abs(offset) <= 3.000001
             ? Geographic((srid == SpatialConstants.UtmZone48NSrid ? 105 : 111) + offset, degrees) : null;
+    }
+
+    internal static GeometryShapeFact? LineString(LineString? line, int? sourceSrid)
+    {
+        if (line is null || line.IsEmpty || line.SRID != sourceSrid) return null;
+        var coordinates = new List<double[]>(line.NumPoints);
+        foreach (var point in line.Coordinates)
+        {
+            if (Coordinates(point, line.SRID) is not { } xy) return null;
+            coordinates.Add(xy);
+        }
+        return new("LineString", coordinates.ToArray());
     }
 
     private static double[]? Geographic(double longitude, double latitude)

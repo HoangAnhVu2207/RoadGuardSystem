@@ -24,6 +24,33 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
     private sealed class Denied(int status, string code) : Exception { public SafetyResult Result { get; } = new(status, code); }
     private sealed class ExistingReceipt : Exception { }
 
+    public async Task<SafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
+        Guid item, CancellationToken token)
+    {
+        if (role != UserRoleCode.RepairCrew) return new(403, "access_forbidden");
+        try
+        {
+            return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            {
+                await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+                await Guard(actor, role, project, package, item, null, false, token);
+                var ids = await (from assignment in db.Set<RepairSafetyActionSource>()
+                                 join monitoring in db.Set<RepairSafetyMonitoring>() on assignment.MeasureId equals monitoring.MeasureId
+                                 join work in db.Set<RepairItem>() on assignment.ItemId equals work.Id
+                                 join obligation in db.Set<RepairObligation>() on monitoring.SafetyObligationId equals obligation.Id
+                                 where assignment.ProjectId == project && assignment.ItemId == item && assignment.Kind == "ASSIGNED" &&
+                                     monitoring.Measure.ResponsibleActorId == actor && monitoring.Measure.ProjectId == project &&
+                                     monitoring.Measure.DefectId == work.DefectId && monitoring.FormalObligationId == work.ObligationId &&
+                                     obligation.ProjectId == project && obligation.DefectId == work.DefectId &&
+                                     obligation.Kind == RepairObligationKind.TemporarySafety && obligation.EffectiveResolutionDecisionId == null
+                                 select monitoring.MeasureId).Distinct().OrderBy(id => id).ToArrayAsync(token);
+                await tx.CommitAsync(token);
+                return new SafetyMeasureListResult(200, MeasureIds: ids);
+            });
+        }
+        catch (Denied denied) { return new(denied.Result.Status, denied.Result.Code); }
+    }
+
     public async Task<SafetyResult> ReadAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid packageId,
         Guid itemId, Guid measureId, CancellationToken cancellationToken)
     {
@@ -35,8 +62,10 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 await Guard(actorId, role, projectId, packageId, itemId, measureId, false, cancellationToken);
                 var monitoring = await Monitoring(measureId, cancellationToken);
                 var fact = View(monitoring);
+                var links = role == UserRoleCode.RepairCrew
+                    ? await EligibleEvidenceAsync(projectId, packageId, itemId, measureId, actorId, cancellationToken) : null;
                 await tx.CommitAsync(cancellationToken);
-                return new SafetyResult(200, Value: fact);
+                return new SafetyResult(200, Value: fact, EvidenceLinks: links);
             });
         }
         catch (Denied denied) { db.ChangeTracker.Clear(); return denied.Result; }
@@ -323,6 +352,29 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
         .Include(row => row.Measure).Include(row => row.Checks).ThenInclude(row => row.Evidence)
         .Include(row => row.Warnings).Include(row => row.Acknowledgements)
         .SingleAsync(row => row.MeasureId == measure, ct);
+
+    private async Task<SafetyEvidenceLinkFact[]> EligibleEvidenceAsync(Guid project, Guid package, Guid item,
+        Guid measure, Guid actor, CancellationToken token)
+    {
+        RepairFieldTaskBinding binding;
+        try { (_, _, binding) = await ActiveMonitoring(project, package, item, measure, token); }
+        catch (Denied) { return []; }
+        if (binding.CrewId != actor) return [];
+        var links = await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().Where(row =>
+            row.ProjectId == binding.ProjectId && row.TaskId == binding.TaskId && row.AssignmentId == binding.AssignmentId &&
+            row.Purpose == "MEASUREMENT" && row.FileId != null).OrderBy(row => row.Id).ToArrayAsync(token);
+        var eligible = new List<SafetyEvidenceLinkFact>();
+        foreach (var link in links)
+        {
+            try
+            {
+                await VerifiedEvidence(binding, [link.Id], token);
+                eligible.Add(new(link.Id, link.FileId!.Value));
+            }
+            catch (Denied) { /* Only include evidence that passes the same scope and verification checks as POST. */ }
+        }
+        return eligible.ToArray();
+    }
 
     private async Task<RepairSafetyEvidenceReference[]> VerifiedEvidence(RepairFieldTaskBinding binding, Guid[] ids, CancellationToken ct)
     {

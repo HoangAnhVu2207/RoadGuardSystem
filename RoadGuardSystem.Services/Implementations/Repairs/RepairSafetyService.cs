@@ -7,6 +7,15 @@ namespace RoadGuardSystem.Services.Implementations.Repairs;
 
 public sealed class RepairSafetyService(IRepairSafetyRepository repository) : IRepairSafetyService
 {
+    public async Task<CrewSafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
+        Guid item, CancellationToken token)
+    {
+        if (actor == Guid.Empty || project == Guid.Empty || package == Guid.Empty || item == Guid.Empty)
+            return new(400, "validation_error");
+        var result = await repository.ListCrewAsync(actor, role, project, package, item, token);
+        return new(result.Status, result.Code, result.MeasureIds is { } ids ? new(ids) : null);
+    }
+
     public Task<RepairSafetyServiceResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
         Guid item, Guid measure, CancellationToken token)
         => actor == Guid.Empty || project == Guid.Empty || package == Guid.Empty || item == Guid.Empty || measure == Guid.Empty
@@ -98,7 +107,8 @@ public sealed class RepairSafetyService(IRepairSafetyRepository repository) : IR
             fact.Warnings.Select(row => new RepairSafetyWarningView(row.Id, row.SourceCheckId,
                 row.IntendedActorId, row.ServerReceivedAt, row.OriginalDueAt, row.Reason)).ToArray(),
             fact.Acknowledgements.Select(row => new RepairSafetyAcknowledgementView(row.Id, row.WarningId,
-                row.ActorId, row.At, row.AfterOriginalDue)).ToArray(), fact.Version);
+                row.ActorId, row.At, row.AfterOriginalDue)).ToArray(), fact.Version,
+            result.EvidenceLinks?.Select(row => new RepairSafetyEvidenceLink(row.EvidenceLinkId, row.FileId)).ToArray());
         return new(result.Status, result.Code, view);
     }
 }

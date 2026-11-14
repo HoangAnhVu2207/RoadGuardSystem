@@ -60,6 +60,7 @@ public sealed partial class FieldInspectionWorkflowRepository
                                 item.CurrentIntakeLinkId,
                                 item.EffectiveIntakeSubmissionId,
                                 item.CurrentReviewId,
+                                item.EffectiveDecisionId,
                                 item.State,
                                 Version = EF.Property<byte[]>(item, "RowVersion"),
                                 item.RepairPlan,
@@ -112,7 +113,19 @@ public sealed partial class FieldInspectionWorkflowRepository
                 attempt = new(attemptId, submissionId, review);
             }
         }
+        var decisions = db.Set<RepairDecision>().AsNoTracking().Where(row => row.ItemId == source.ItemId &&
+            row.ObligationId == source.ObligationId && row.DefectId == task.DefectId && row.Mode == mode);
+        var head = await decisions.Where(row => row.Id == source.EffectiveDecisionId)
+            .Select(row => new { row.Id, row.Result, row.At }).SingleOrDefaultAsync(token);
+        var requests = await (from request in db.Set<RepairReviewRequest>().AsNoTracking()
+                              join decision in decisions on request.DecisionId equals decision.Id
+                              where request.ProjectId == task.ProjectId && request.ItemId == source.ItemId &&
+                                  request.ActorId == actor && request.Role == UserRoleCode.RepairCrew
+                              orderby request.At descending, request.Id descending
+                              select new CrewReviewRequestFact(request.Id, request.DecisionId, request.Reason, request.At))
+            .ToArrayAsync(token);
         return new(source.PackageId, source.ItemId, source.BindingId, mode == RepairMode.FastTrack ? "FAST_TRACK" : "NORMAL",
-            source.State.ToString(), Convert.ToBase64String(source.Version), source.RepairPlan!, source.ChecklistVersion!, attempt);
+            source.State.ToString(), Convert.ToBase64String(source.Version), source.RepairPlan!, source.ChecklistVersion!, attempt,
+            head is null ? null : new(head.Id, RepairWorkflowRepository.ResultName(head.Result), head.At), requests);
     }
 }

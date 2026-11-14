@@ -136,19 +136,27 @@ public sealed record FieldTaskView(Guid Id, Guid ProjectId, Guid DefectId, Guid?
         => value is null ? null! : new(value.Id, value.ProjectId, value.DefectId, value.SurveyId, value.SourceKind, value.RouteVersionId, value.SegmentSetId, value.LayoutRevisionId, value.SlabId, value.Purpose, value.Mode, value.Status, value.AssignmentId, value.AssignedToUserId, value.Version, value.FirstStartOriginId, value.LatestSubmissionId, value.MapPublicationId, value.CrsProfileRevisionId, value.RequiredMeasurementType, value.MeasurementScope, value.Instructions, value.DueAt, value.RepairContext);
 }
 public sealed record CrewRepairContext(Guid PackageId, Guid ItemId, Guid BindingId, string Mode,
-    string Status, string ItemVersion, string RepairPlan, string ChecklistVersion, CrewRepairAttempt? Attempt = null)
+    string Status, string ItemVersion, string RepairPlan, string ChecklistVersion, CrewRepairAttempt? Attempt = null,
+    CrewFinalDecision? FinalDecision = null, CrewReviewRequest[]? ReviewRequests = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact?(CrewRepairContext? value)
         => value is null ? null : new(value.PackageId, value.ItemId, value.BindingId, value.Mode, value.Status, value.ItemVersion, value.RepairPlan, value.ChecklistVersion,
             value.Attempt is { } attempt ? new(attempt.AttemptId, attempt.EffectiveSubmissionId,
-                attempt.Review is { } review ? new(review.ReviewId, review.Decision) : null) : null);
+                attempt.Review is { } review ? new(review.ReviewId, review.Decision) : null) : null,
+            value.FinalDecision is { } final ? new(final.DecisionId, final.Result, final.At) : null,
+            value.ReviewRequests?.Select(row => new global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewReviewRequestFact(
+                row.RequestId, row.DecisionId, row.Reason, row.At)).ToArray());
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator CrewRepairContext?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact? value)
         => value is null ? null : new(value.PackageId, value.ItemId, value.BindingId, value.Mode, value.Status, value.ItemVersion, value.RepairPlan, value.ChecklistVersion,
             value.Attempt is { } attempt ? new(attempt.AttemptId, attempt.EffectiveSubmissionId,
-                attempt.Review is { } review ? new(review.ReviewId, review.Decision) : null) : null);
+                attempt.Review is { } review ? new(review.ReviewId, review.Decision) : null) : null,
+            value.FinalDecision is { } final ? new(final.DecisionId, final.Result, final.At) : null,
+            value.ReviewRequests?.Select(row => new CrewReviewRequest(row.RequestId, row.DecisionId, row.Reason, row.At)).ToArray());
 }
+public sealed record CrewFinalDecision(Guid DecisionId, string Result, DateTimeOffset At);
+public sealed record CrewReviewRequest(Guid RequestId, Guid DecisionId, string Reason, DateTimeOffset At);
 public sealed record CrewRepairAttempt(Guid AttemptId, Guid EffectiveSubmissionId, CrewRepairReview? Review);
 public sealed record CrewRepairReview(Guid ReviewId, string Decision);
 public sealed record FieldSubmissionView(Guid Id, Guid TaskId, Guid RootId, Guid? ParentId, int Revision,

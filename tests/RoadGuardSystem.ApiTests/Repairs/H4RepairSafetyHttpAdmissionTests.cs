@@ -55,6 +55,43 @@ public sealed class H4RepairSafetyHttpAdmissionTests(AuthenticationSqlServerFixt
             Input("create"))).StatusCode);
     }
 
+    [Fact]
+    public async Task CrewSafetyListChecksRoleAndProjectBeforeReturningMeasureIds()
+    {
+        await using var db = fixture.CreateDbContext();
+        var source = await GenuineProtectedSource.Seed(db, fixture);
+        var obligation = RoadGuardSystem.BusinessObjects.Repairs.RepairObligation.Create(Guid.NewGuid(), source.Project,
+            source.Defect, RoadGuardSystem.BusinessObjects.Repairs.RepairObligationKind.FormalRepair, true,
+            RoadGuardSystem.BusinessObjects.Repairs.RepairActualScope.Create(Guid.NewGuid(), source.Road, "fixture", "R", 1, 2, 0, 1));
+        var package = RoadGuardSystem.BusinessObjects.Repairs.RepairPackage.Create(Guid.NewGuid(), source.Project, source.Defect, [obligation]);
+        var item = RoadGuardSystem.BusinessObjects.Repairs.RepairItem.Propose(Guid.NewGuid(), obligation,
+            RoadGuardSystem.BusinessObjects.Repairs.RepairMode.Normal, source.Pm, UserRoleCode.ProjectManager, DateTimeOffset.UtcNow);
+        package.AddItem(item);
+        db.Add(package);
+        await db.SaveChangesAsync();
+
+        await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
+        using var client = factory.CreateClient();
+        async Task Login(Guid actor)
+        {
+            var email = await db.Users.Where(row => row.Id == actor).Select(row => row.Email).SingleAsync();
+            using var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Current1!" });
+            login.EnsureSuccessStatusCode();
+            var result = await login.Content.ReadFromJsonAsync<JsonElement>();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.GetProperty("accessToken").GetString());
+        }
+        var route = $"/api/v1/projects/{source.Project}/repair-packages/{package.Id}/items/{item.Id}/safety-measures";
+        await Login(source.Crew);
+        using var empty = await client.GetAsync(route);
+        Assert.Equal(HttpStatusCode.OK, empty.StatusCode);
+        Assert.Empty((await empty.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("measureIds").EnumerateArray());
+        using var wrongProject = await client.GetAsync(route.Replace(source.Project.ToString(), Guid.NewGuid().ToString(), StringComparison.Ordinal));
+        Assert.Equal(HttpStatusCode.Forbidden, wrongProject.StatusCode);
+        await Login(source.Pm);
+        using var wrongRole = await client.GetAsync(route);
+        Assert.Equal(HttpStatusCode.Forbidden, wrongRole.StatusCode);
+    }
+
     private static string Path(string action)
     {
         var root = $"/api/v1/projects/{Guid.NewGuid()}/repair-packages/{Guid.NewGuid()}/items/{Guid.NewGuid()}/safety-measures";

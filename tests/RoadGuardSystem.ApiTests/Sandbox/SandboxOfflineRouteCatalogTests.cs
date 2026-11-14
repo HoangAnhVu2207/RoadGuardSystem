@@ -47,6 +47,7 @@ public sealed class SandboxOfflineRouteCatalogTests
         var additions = new HashSet<(string, string)>
         {
             ("GET", "/api/v1/catalog/defect-types"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/safety-measures"),
             ("POST", "/api/v1/invitations/preview"),
             ("GET", "/api/v1/projects/{projectId}/members/eligible"),
             ("POST", "/api/v1/projects/{projectId}/members"),

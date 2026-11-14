@@ -358,7 +358,7 @@ public sealed class ManualSwaggerContractTests
         var context = schemas.GetProperty("CrewRepairContextFact").GetProperty("properties");
         context.EnumerateObject().Select(x => x.Name).Should().BeEquivalentTo(new[]
         {
-            "packageId", "itemId", "bindingId", "mode", "status", "itemVersion", "repairPlan", "checklistVersion", "attempt"
+            "packageId", "itemId", "bindingId", "mode", "status", "itemVersion", "repairPlan", "checklistVersion", "attempt", "finalDecision", "reviewRequests"
         });
         context.GetProperty("itemVersion").GetProperty("type").GetString().Should().Be("string");
         context.GetProperty("attempt").GetRawText().Should().Contain("CrewRepairAttemptFact");

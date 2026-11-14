@@ -595,6 +595,18 @@ public sealed class H3FieldInspectionWorkflowSqlTests(IdentitySqlServerFixture s
         var submission = await Submit(db, s, id, payload); Assert.Equal("INCOMPLETE", submission.GetProperty("readiness").GetString());
         Assert.Contains(submission.GetProperty("missingReasons").EnumerateArray(), x => x.GetString() == "GPS_SOURCE_BINDING_UNAVAILABLE");
         Assert.Equal(409, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "review", new FieldReviewInput(submission.GetProperty("id").GetGuid(), "CONFIRM", "range alone is not task binding"))).Status);
+        var submissionId = submission.GetProperty("id").GetGuid();
+        Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "review",
+            new FieldReviewInput(submissionId, "SUPPLEMENT", "Capture a location checklist"))).Status);
+        var wrong = Input(start.GetProperty("id").GetGuid(), submissionId, false, file) with
+        {
+            LocationProof = new("POSITION_CHECKLIST", "SEGMENT_MARKINGS_CONFIRMED", null, null,
+                ObservedSegmentId: Guid.NewGuid(), ObservedChainageMeters: 5)
+        };
+        var wrongScope = await Submit(db, s, id, wrong);
+        Assert.Equal("INCOMPLETE", wrongScope.GetProperty("readiness").GetString());
+        Assert.Contains(wrongScope.GetProperty("missingReasons").EnumerateArray(),
+            x => x.GetString() == "POSITION_CHECKLIST_INSUFFICIENT");
     }
     [Fact]
     public async Task Modern_and_legacy_impact_inventory_preserves_actual_pins_and_FIELD_continue_has_real_history()

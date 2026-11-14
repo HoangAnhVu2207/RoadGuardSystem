@@ -15,6 +15,18 @@ namespace RoadGuardSystem.API.Controllers;
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/repair-packages/{packageId:guid}/items/{itemId:guid}/safety-measures")]
 public sealed class RepairSafetyController(IRepairSafetyService service) : ControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType<CrewSafetyMeasureList>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListCrew(Guid projectId, Guid packageId, Guid itemId, CancellationToken token)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actor) ||
+            !ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out var role)) return Error(401, "unauthorized");
+        var result = await service.ListCrewAsync(actor, role, projectId, packageId, itemId, token);
+        return result.Code is null ? Ok(result.Value) : Error(result.Status, result.Code);
+    }
+
     [HttpPost]
     public Task<IActionResult> Create(Guid projectId, Guid packageId, Guid itemId,
         RepairSafetyCreateInput input, CancellationToken token)

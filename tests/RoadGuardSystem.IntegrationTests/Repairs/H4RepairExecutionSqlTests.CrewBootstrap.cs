@@ -42,7 +42,8 @@ public sealed partial class H4RepairExecutionSqlTests
         Assert.NotEqual(task.Version, context.ItemVersion);
         FieldTaskView wire = task;
         FieldTaskViewFact roundTrip = wire;
-        Assert.Equal(task, roundTrip);
+        Assert.Empty(roundTrip.RepairContext!.ReviewRequests!);
+        Assert.Equal(task, roundTrip with { RepairContext = roundTrip.RepairContext with { ReviewRequests = context.ReviewRequests } });
         var command = new RoadGuardSystem.Repositories.Repairs.RepairAssessmentCommand(state.Source.Crew,
             UserRoleCode.RepairCrew, state.Source.Project, context.PackageId, context.ItemId, task.Id,
             new(Guid.NewGuid(), state.FirstStart.Id, null, null, null), Guid.NewGuid().ToString(), context.ItemVersion);

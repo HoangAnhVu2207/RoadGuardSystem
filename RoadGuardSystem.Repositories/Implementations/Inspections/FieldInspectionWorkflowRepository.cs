@@ -195,7 +195,11 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         {
             var view = await ViewAsync(task, token);
             if (c.Admission.CallerRole == UserRoleCode.RepairCrew)
-                view = view with { RepairContext = await CrewRepairContextAsync(c, task, token) };
+                view = view with
+                {
+                    RepairContext = await CrewRepairContextAsync(c, task, token),
+                    DefectTarget = await DefectTargetAsync(task, token)
+                };
             return new(200, Value: view, Version: Convert.ToBase64String(task.RowVersion));
         }
         if (c.Action == "history") return new(200, Value: new
@@ -213,6 +217,19 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         if (c.Action == "geometry") return await GeometryAsync(task, token);
         if (c.Action == "evidence") return await EvidenceAsync(c, task, token);
         Deny(404, "not_found"); return null!;
+    }
+
+    private async Task<DefectTargetPointFact?> DefectTargetAsync(FieldInspectionTask task, CancellationToken token)
+    {
+        var geometry = await db.Defects.AsNoTracking()
+            .Where(row => row.Id == task.DefectId && row.ProjectId == task.ProjectId && row.RoadSectionVersionId == task.RoadSectionVersionId)
+            .Select(row => row.Geometry).SingleOrDefaultAsync(token);
+        if (geometry is not NetTopologySuite.Geometries.Point { IsEmpty: false } point) return null;
+        if (point.SRID != RoadGuardSystem.Repositories.Spatial.SpatialConstants.GpsGeographySrid &&
+            !await db.RoadSectionVersions.AsNoTracking().AnyAsync(row => row.Id == task.RoadSectionVersionId &&
+                row.CrsProfileRevisionId == null && row.Geometry.SRID == point.SRID, token)) return null;
+        var coordinates = RoadGuardSystem.Repositories.Spatial.Wgs84DisplayProjection.Coordinates(point.Coordinate, point.SRID);
+        return coordinates is null ? null : new(coordinates[0], coordinates[1]);
     }
 
     private Task<FieldInspectionTask> TaskAsync(Guid id, CancellationToken token) => db.FieldInspectionTasks.SingleAsync(x => x.Id == id, token);

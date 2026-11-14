@@ -24828,7 +24828,7 @@
         "tags": [
           "GeometryWorkflow"
         ],
-        "description": "Package geometry workflow resources. Permissions: PM / Supervisor / assigned Operator.",
+        "description": "Segment wgs84Geometry uses [longitude, latitude] for supported source CRS. Package geometry workflow resources. Permissions: PM / Supervisor / assigned Operator.",
         "parameters": [
           {
             "name": "projectId",
@@ -66514,6 +66514,7 @@
       "FieldTaskViewFact": {
         "type": "object",
         "properties": {
+          "defectTarget": {"type": "object", "nullable": true, "description": "Stored defect point in WGS84 for the assigned Crew, independent of segment-set availability.", "properties": {"longitude": {"type": "number", "format": "double"}, "latitude": {"type": "number", "format": "double"}}, "required": ["longitude", "latitude"], "additionalProperties": false},
           "id": {
             "type": "string",
             "format": "uuid"

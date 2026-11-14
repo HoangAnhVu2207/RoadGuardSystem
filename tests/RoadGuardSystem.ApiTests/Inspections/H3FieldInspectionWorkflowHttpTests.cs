@@ -47,6 +47,55 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(request)).StatusCode);
     }
 
+    [Fact]
+    public async Task AssignedCrewReadsOnlyStoredDefectPointWithoutNeedingSegmentSet()
+    {
+        var pm = await sql.CreateUserAsync($"marker-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var crew = await sql.CreateUserAsync($"marker-crew-{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var other = await sql.CreateUserAsync($"marker-other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var reporter = await sql.CreateUserAsync($"marker-reporter-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var scope = await Seed(sql, pm.Id, crew.Id, other.Id, reporter.Id);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") });
+        await Login(client, pm.UserName!);
+        var root = $"/api/v1/projects/{scope.Project}/field-inspection-tasks";
+        using var created = await Post(client, root, new
+        {
+            defectId = scope.Defect,
+            defectVersion = scope.Version,
+            sourceKind = "REPORTER",
+            routeVersionId = scope.Route,
+            purpose = "PRE_MEASUREMENT",
+            requiredMeasurementType = 4,
+            measurementScope = "{}",
+            assignedToUserId = crew.Id,
+            dueAt = DateTimeOffset.UtcNow.AddDays(1)
+        }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var path = root + "/" + (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        await Login(client, other.UserName!);
+        using var forbidden = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        await Login(client, crew.UserName!);
+        await using var db = sql.CreateDbContext();
+        async Task SetPoint(int srid, double x, double y) =>
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Defects SET Geometry=geometry::Point({x},{y},{srid}) WHERE Id={scope.Defect}");
+        async Task<JsonElement> ReadTarget() =>
+            (await client.GetFromJsonAsync<JsonElement>(path)).GetProperty("defectTarget");
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Defects SET Geometry=NULL WHERE Id={scope.Defect}");
+        Assert.Equal(JsonValueKind.Null, (await ReadTarget()).ValueKind);
+        await SetPoint(3857, 600000, 1200000);
+        Assert.Equal(JsonValueKind.Null, (await ReadTarget()).ValueKind);
+        await SetPoint(4326, 106.25, 10.75);
+        var stored = await ReadTarget();
+        Assert.Equal(106.25, stored.GetProperty("longitude").GetDouble());
+        Assert.Equal(10.75, stored.GetProperty("latitude").GetDouble());
+        await SetPoint(32648, 600000, 1200000);
+        var projected = await ReadTarget();
+        Assert.InRange(projected.GetProperty("longitude").GetDouble(), 105.9149000, 105.9149002);
+        Assert.InRange(projected.GetProperty("latitude").GetDouble(), 10.85412129, 10.85412150);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

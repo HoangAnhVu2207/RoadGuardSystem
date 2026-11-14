@@ -45,7 +45,9 @@ public sealed record FieldTaskViewFact(Guid Id, Guid ProjectId, Guid DefectId, G
     string Mode, string Status, Guid? AssignmentId, Guid? AssignedToUserId, string Version,
     Guid? FirstStartOriginId, Guid? LatestSubmissionId, Guid? MapPublicationId, Guid? CrsProfileRevisionId,
     byte RequiredMeasurementType = 0, string? MeasurementScope = null, string? Instructions = null, DateTimeOffset? DueAt = null,
-    CrewRepairContextFact? RepairContext = null);
+    CrewRepairContextFact? RepairContext = null, DefectTargetPointFact? DefectTarget = null);
+
+public sealed record DefectTargetPointFact(double Longitude, double Latitude);
 
 public sealed record CrewRepairContextFact(Guid PackageId, Guid ItemId, Guid BindingId, string Mode,
     string Status, string ItemVersion, string RepairPlan, string ChecklistVersion, CrewRepairAttemptFact? Attempt = null,

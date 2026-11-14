@@ -13,6 +13,60 @@ namespace RoadGuardSystem.ApiTests.Projects;
 [Collection(AuthenticationApiFixture.Name)]
 public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sql)
 {
+    [Theory]
+    [InlineData(32648, 105.9149000982043)]
+    [InlineData(32649, 111.91490009820423)]
+    public async Task AssignedOperatorReadsPinnedSegmentCoordinates(int srid, double longitude)
+    {
+        var op = await sql.CreateUserAsync($"map-op-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
+        var pm = await sql.CreateUserAsync($"map-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        await using var db = sql.CreateDbContext();
+        var now = DateTimeOffset.UtcNow;
+        var project = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Map fixture", null, srid, null, null, now);
+        var road = RoadSection.Create(Guid.NewGuid(), project.Id, "MAP");
+        var gf = new NetTopologySuite.Geometries.GeometryFactory(new NetTopologySuite.Geometries.PrecisionModel(), srid);
+        var line = gf.CreateLineString([new(600000, 1200000), new(600020, 1200000)]);
+        var route = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, line, now, "fixture");
+        var set = RoadSegmentSet.Create(Guid.NewGuid(), route.Id);
+        var segment = RoadSegment.Create(Guid.NewGuid(), set.Id, route.Id, 1);
+        segment.SetGeometry(0, 20, 100, line);
+        var task = RoadGuardSystem.BusinessObjects.Surveys.SurveyRequest.Create(Guid.NewGuid(), project.Id, road.Id, null, pm.Id,
+            SurveyType.Periodic, SurveyRequestStatus.Accepted, now, roadSectionVersionId: route.Id);
+        db.AddRange(project, road, route, set, segment, task,
+            RoadGuardSystem.BusinessObjects.Surveys.SurveyRequestScope.Create(Guid.NewGuid(), task.Id, route.Id, set.Id,
+                JsonSerializer.Serialize(new[] { segment.Id }), "SURFACE"),
+            RoadGuardSystem.BusinessObjects.Surveys.SurveyAssignment.Create(Guid.NewGuid(), task.Id, op.Id, pm.Id, now, now, null, null, null, null),
+            new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = op.Id,
+                RoleCode = UserRoleCode.DroneOperator,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new(2000, 1, 1)
+            });
+        await db.SaveChangesAsync();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") });
+        await Login(client, op.UserName!);
+        static string PathFor(Guid projectId, Guid routeId, Guid setId)
+            => $"/api/v1/projects/{projectId}/geometry-package?routeVersionId={routeId}&segmentSetId={setId}";
+        var package = await client.GetFromJsonAsync<JsonElement>(PathFor(project.Id, route.Id, set.Id));
+        var row = Assert.Single(package.GetProperty("segmentSet").GetProperty("segments").EnumerateArray());
+        Assert.Equal(segment.Id, row.GetProperty("id").GetGuid());
+        Assert.Equal(600000, row.GetProperty("metricGeometry").GetProperty("coordinates")[0][0].GetDouble());
+        var point = row.GetProperty("wgs84Geometry").GetProperty("coordinates")[0];
+        // Independent PROJ reference, always_xy=True.
+        Assert.InRange(point[0].GetDouble(), longitude - 1e-7, longitude + 1e-7);
+        Assert.InRange(point[1].GetDouble(), 10.854121391203831 - 1e-7, 10.854121391203831 + 1e-7);
+        using var wrongRoute = await client.GetAsync(PathFor(project.Id, Guid.NewGuid(), set.Id));
+        using var wrongSet = await client.GetAsync(PathFor(project.Id, route.Id, Guid.NewGuid()));
+        using var wrongProject = await client.GetAsync(PathFor(Guid.NewGuid(), route.Id, set.Id));
+        Assert.Equal(HttpStatusCode.Forbidden, wrongRoute.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, wrongSet.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, wrongProject.StatusCode);
+    }
+
     [Fact]
     public async Task Metric_draft_confirm_publish_replay_and_historical_read_are_durable()
     {

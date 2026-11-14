@@ -4926,7 +4926,7 @@
         "minLength": null,
         "pattern": null,
         "example": "SWG-HUY-SWG-042-new-client-key",
-        "uiDescription": "Unique key for this command. Reuse only for an intentional replay of the same request."
+        "uiDescription": "Unique key for this command. Reuse only for an intentional replay of the same request. For the assigned Crew, defectTarget is a WGS84 longitude/latitude marker or null. This does not establish GPS readiness."
       },
       {
         "name": "If-Match",
@@ -11402,7 +11402,7 @@
         "minLength": null,
         "pattern": null,
         "example": "SWG-ANH-{client-operation-key}",
-        "uiDescription": "Unique key for this command. Reuse only for an intentional replay of the same request."
+        "uiDescription": "Unique key for this command. Reuse only for an intentional replay of the same request. Segment wgs84Geometry uses [longitude, latitude] for supported source CRS and is null when unavailable."
       },
       {
         "name": "If-Match",

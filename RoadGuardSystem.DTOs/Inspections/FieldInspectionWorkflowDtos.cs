@@ -126,15 +126,16 @@ public sealed record FieldTaskView(Guid Id, Guid ProjectId, Guid DefectId, Guid?
     string Mode, string Status, Guid? AssignmentId, Guid? AssignedToUserId, string Version,
     Guid? FirstStartOriginId, Guid? LatestSubmissionId, Guid? MapPublicationId, Guid? CrsProfileRevisionId,
     byte RequiredMeasurementType = 0, string? MeasurementScope = null, string? Instructions = null, DateTimeOffset? DueAt = null,
-    CrewRepairContext? RepairContext = null)
+    CrewRepairContext? RepairContext = null, DefectTargetPoint? DefectTarget = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskViewFact?(FieldTaskView? value)
-        => value is null ? null! : new(value.Id, value.ProjectId, value.DefectId, value.SurveyId, value.SourceKind, value.RouteVersionId, value.SegmentSetId, value.LayoutRevisionId, value.SlabId, value.Purpose, value.Mode, value.Status, value.AssignmentId, value.AssignedToUserId, value.Version, value.FirstStartOriginId, value.LatestSubmissionId, value.MapPublicationId, value.CrsProfileRevisionId, value.RequiredMeasurementType, value.MeasurementScope, value.Instructions, value.DueAt, value.RepairContext);
+        => value is null ? null! : new(value.Id, value.ProjectId, value.DefectId, value.SurveyId, value.SourceKind, value.RouteVersionId, value.SegmentSetId, value.LayoutRevisionId, value.SlabId, value.Purpose, value.Mode, value.Status, value.AssignmentId, value.AssignedToUserId, value.Version, value.FirstStartOriginId, value.LatestSubmissionId, value.MapPublicationId, value.CrsProfileRevisionId, value.RequiredMeasurementType, value.MeasurementScope, value.Instructions, value.DueAt, value.RepairContext, value.DefectTarget is { } target ? new(target.Longitude, target.Latitude) : null);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator FieldTaskView?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldTaskViewFact? value)
-        => value is null ? null! : new(value.Id, value.ProjectId, value.DefectId, value.SurveyId, value.SourceKind, value.RouteVersionId, value.SegmentSetId, value.LayoutRevisionId, value.SlabId, value.Purpose, value.Mode, value.Status, value.AssignmentId, value.AssignedToUserId, value.Version, value.FirstStartOriginId, value.LatestSubmissionId, value.MapPublicationId, value.CrsProfileRevisionId, value.RequiredMeasurementType, value.MeasurementScope, value.Instructions, value.DueAt, value.RepairContext);
+        => value is null ? null! : new(value.Id, value.ProjectId, value.DefectId, value.SurveyId, value.SourceKind, value.RouteVersionId, value.SegmentSetId, value.LayoutRevisionId, value.SlabId, value.Purpose, value.Mode, value.Status, value.AssignmentId, value.AssignedToUserId, value.Version, value.FirstStartOriginId, value.LatestSubmissionId, value.MapPublicationId, value.CrsProfileRevisionId, value.RequiredMeasurementType, value.MeasurementScope, value.Instructions, value.DueAt, value.RepairContext, value.DefectTarget is { } target ? new(target.Longitude, target.Latitude) : null);
 }
+public sealed record DefectTargetPoint(double Longitude, double Latitude);
 public sealed record CrewRepairContext(Guid PackageId, Guid ItemId, Guid BindingId, string Mode,
     string Status, string ItemVersion, string RepairPlan, string ChecklistVersion, CrewRepairAttempt? Attempt = null,
     CrewFinalDecision? FinalDecision = null, CrewReviewRequest[]? ReviewRequests = null)

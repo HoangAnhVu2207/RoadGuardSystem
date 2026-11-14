@@ -231,10 +231,23 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
             Guid.NewGuid().ToString(), version, admission), _ => Task.FromResult(true), default);
         Assert.Equal(201, submitted.Status);
         var link = await db.Set<FieldInspectionEvidenceLink>().SingleAsync(row => row.TaskId == taskId);
+        var discovered = await safety.ListCrewAsync(source.Crew, UserRoleCode.RepairCrew, source.Project, source.Package, source.Item, default);
+        Assert.Equal(200, discovered.Status);
+        Assert.Equal(measure.Id, Assert.Single(discovered.MeasureIds!));
+        Assert.Equal(403, (await safety.ListCrewAsync(source.Pm, UserRoleCode.ProjectManager, source.Project, source.Package, source.Item, default)).Status);
+        var read = await safety.ReadAsync(source.Crew, UserRoleCode.RepairCrew, source.Project, source.Package, source.Item, measure.Id, default);
+        var eligible = Assert.Single(read.EvidenceLinks!);
+        Assert.Equal(link.Id, eligible.EvidenceLinkId);
+        Assert.Equal(fileId, eligible.FileId);
         var checkTime = DateTimeOffset.UtcNow.AddHours(2);
+        var wrongIdentifier = await safety.CheckAsync(new(source.Crew, UserRoleCode.RepairCrew, source.Project,
+            source.Package, source.Item, measure.Id, "Safe", "Incorrect identifier", [fileId],
+            Guid.NewGuid().ToString(), Assert.IsType<SafetyFact>(installed.Value).Version), default);
+        Assert.Equal(409, wrongIdentifier.Status);
+        Assert.Equal("safety_evidence_source_conflict", wrongIdentifier.Code);
         var checkRepo = new RepairSafetyRepository(db, new IdempotencyOperationService(db), new FixedClock(checkTime));
         var check = await checkRepo.CheckAsync(new(source.Crew, UserRoleCode.RepairCrew, source.Project,
-            source.Package, source.Item, measure.Id, "Danger", "barrier displaced", [link.Id],
+            source.Package, source.Item, measure.Id, "Danger", "barrier displaced", [eligible.EvidenceLinkId],
             Guid.NewGuid().ToString(), Assert.IsType<SafetyFact>(installed.Value).Version), default);
         Assert.Equal(201, check.Status);
         var checkedFact = Assert.IsType<SafetyFact>(check.Value);

@@ -740,6 +740,23 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
             .Where(row => row.Code == "repairItemsByStatus")).Dimensions.Status);
         var originalDecision = await db.Set<RepairDecision>().AsNoTracking().SingleAsync(row =>
             row.ItemId == state.Item.Id && row.SupersedesDecisionId == null);
+        RepairReviewRequestCommand? reviewRequest = null;
+        if (checkReporterProgress)
+        {
+            var current = Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state)).Value).RepairContext!;
+            Assert.Equal(originalDecision.Id, current.FinalDecision!.DecisionId);
+            Assert.Empty(current.ReviewRequests!);
+            reviewRequest = new(state.Source.Crew, UserRoleCode.RepairCrew, state.Source.Project, state.Package.Id,
+                state.Item.Id, new("Please revisit the final result"), Guid.NewGuid().ToString(), current.ItemVersion);
+            Assert.Equal(201, (await Repo(db).RequestReviewAsync(reviewRequest, default)).Status);
+            var readBack = Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state)).Value).RepairContext!;
+            var request = Assert.Single(readBack.ReviewRequests!);
+            Assert.Equal(originalDecision.Id, request.DecisionId);
+            Assert.Equal(reviewRequest.Input.Reason, request.Reason);
+            var replay = await Repo(db).RequestReviewAsync(reviewRequest, default);
+            Assert.Equal(200, replay.Status);
+            Assert.Equal(request.RequestId, Assert.IsType<RepairReviewRequestFact>(replay.Value).Id);
+        }
         var correctionCommand = new RepairCorrectionCommand(state.Source.Supervisor, UserRoleCode.Supervisor,
             state.Source.Project, state.Package.Id, state.Item.Id,
             new(originalDecision.Id, "UNREPAIRED", "final confirmation was mistaken",
@@ -748,6 +765,15 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
                 .Where(row => row.Id == state.Item.Id).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync()));
         Assert.Equal(201, (await Repo(db).CorrectAsync(correctionCommand, default)).Status);
         if (progress is not null) await progress.ReadAsync(null);
+        if (reviewRequest is not null)
+        {
+            var corrected = Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state)).Value).RepairContext!;
+            Assert.Equal("UNREPAIRED", corrected.FinalDecision!.Result);
+            Assert.NotEqual(originalDecision.Id, corrected.FinalDecision.DecisionId);
+            Assert.Equal(originalDecision.Id, Assert.Single(corrected.ReviewRequests!).DecisionId);
+            Assert.Equal(200, (await Repo(db).RequestReviewAsync(reviewRequest, default)).Status);
+            Assert.Equal(409, (await Repo(db).RequestReviewAsync(reviewRequest with { Key = Guid.NewGuid().ToString() }, default)).Status);
+        }
         db.ChangeTracker.Clear();
         Assert.Equal(200, (await Repo(db).CorrectAsync(correctionCommand, default)).Status);
         Assert.False((await db.Set<RepairObligation>().SingleAsync(row => row.Id == state.Item.ObligationId)).IsResolved);

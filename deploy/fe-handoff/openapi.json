@@ -46226,6 +46226,7 @@
       }
     },
     "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/safety-measures": {
+      "get": {"summary": "List safety measures assigned to the current Crew for this item", "parameters": [{"name": "projectId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}, {"name": "packageId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}, {"name": "itemId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}], "security": [{"Bearer": []}, {"WebSession": []}], "responses": {"200": {"description": "Current measure IDs", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CrewSafetyMeasureList"}}}}, "401": {"description": "Authentication required"}, "403": {"description": "Crew role or membership required"}, "404": {"description": "Resource outside route scope"}}},
       "post": {
         "tags": [
           "RepairSafety"
@@ -64548,6 +64549,8 @@
       "CrewRepairContextFact": {
         "type": "object",
         "properties": {
+          "reviewRequests": {"type": "array", "items": {"$ref": "#/components/schemas/CrewReviewRequestFact"}},
+          "finalDecision": {"nullable": true, "allOf": [{"$ref": "#/components/schemas/CrewFinalDecisionFact"}]},
           "packageId": {
             "type": "string",
             "format": "uuid"
@@ -72157,9 +72160,14 @@
         },
         "additionalProperties": false
       },
+      "CrewFinalDecisionFact": {"type": "object", "properties": {"decisionId": {"type": "string", "format": "uuid"}, "result": {"type": "string", "enum": ["CONFIRMED", "UNREPAIRED", "REPORTED_AWAITING_REVIEW"]}, "at": {"type": "string", "format": "date-time"}}},
+      "CrewReviewRequestFact": {"type": "object", "properties": {"requestId": {"type": "string", "format": "uuid"}, "decisionId": {"type": "string", "format": "uuid"}, "reason": {"type": "string"}, "at": {"type": "string", "format": "date-time"}}},
+      "RepairSafetyEvidenceLink": {"type": "object", "properties": {"evidenceLinkId": {"type": "string", "format": "uuid"}, "fileId": {"type": "string", "format": "uuid"}}},
+      "CrewSafetyMeasureList": {"type": "object", "properties": {"measureIds": {"type": "array", "items": {"type": "string", "format": "uuid"}}}},
       "RepairSafetyView": {
         "type": "object",
         "properties": {
+          "eligibleEvidenceLinks": {"type": "array", "items": {"$ref": "#/components/schemas/RepairSafetyEvidenceLink"}},
           "id": {
             "type": "string",
             "format": "uuid"

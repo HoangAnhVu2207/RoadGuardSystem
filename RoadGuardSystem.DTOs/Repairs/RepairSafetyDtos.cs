@@ -9,7 +9,10 @@ public sealed record RepairSafetyAcknowledgementInput(string Reason);
 public sealed record RepairSafetyView(Guid Id, Guid ProjectId, Guid DefectId, Guid FormalObligationId,
     Guid SafetyObligationId, Guid ResponsibleActorId, DateTimeOffset? InstalledAt, DateTimeOffset? FirstCheckDueAt,
     Guid? CurrentCheckId, RepairSafetyCheckView[] Checks, RepairSafetyWarningView[] Warnings,
-    RepairSafetyAcknowledgementView[] Acknowledgements, string Version);
+    RepairSafetyAcknowledgementView[] Acknowledgements, string Version,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RepairSafetyEvidenceLink[]? EligibleEvidenceLinks = null);
+public sealed record RepairSafetyEvidenceLink(Guid EvidenceLinkId, Guid FileId);
+public sealed record CrewSafetyMeasureList(Guid[] MeasureIds);
 public sealed record RepairSafetyCheckView(Guid Id, Guid ActorId, DateTimeOffset At, string Result, string Findings,
     Guid[] EvidenceLinkIds);
 public sealed record RepairSafetyWarningView(Guid Id, Guid SourceCheckId, Guid IntendedActorId,

@@ -255,7 +255,7 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
         "CONFIRMED" => RepairPresentationState.Confirmed,
         _ => throw new ArgumentException("Unknown repair correction result.", nameof(value))
     };
-    private static string ResultName(RepairPresentationState value) => value switch
+    internal static string ResultName(RepairPresentationState value) => value switch
     {
         RepairPresentationState.Unrepaired => "UNREPAIRED",
         RepairPresentationState.ReportedAwaitingReview => "REPORTED_AWAITING_REVIEW",

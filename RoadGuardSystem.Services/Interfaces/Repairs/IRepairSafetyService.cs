@@ -3,9 +3,11 @@ using RoadGuardSystem.DTOs.Repairs;
 
 namespace RoadGuardSystem.Services.Repairs;
 
+public sealed record CrewSafetyMeasureListResult(int Status, string? Code = null, CrewSafetyMeasureList? Value = null);
 public sealed record RepairSafetyServiceResult(int Status, string? Code = null, RepairSafetyView? Value = null);
 public interface IRepairSafetyService
 {
+    Task<CrewSafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token);
     Task<RepairSafetyServiceResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
         Guid item, Guid measure, CancellationToken token);
     Task<RepairSafetyServiceResult> CreateAsync(Guid actor, UserRoleCode role, Guid project, Guid package,

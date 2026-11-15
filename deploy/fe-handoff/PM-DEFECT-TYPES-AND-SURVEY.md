@@ -156,3 +156,9 @@ Khi còn trang, gửi nguyên `nextCursor` trong query `cursor` của danh sách
 | `428` | `validation_error` do thiếu `Idempotency-Key`. |
 
 OpenAPI của API đang chạy nằm ở `/swagger/v1/swagger.json` khi Swagger được bật. [Danh sách Web và GET chi tiết](FE-APPROVED-COLLECTIONS.md)
+
+### Đọc lại nhiệm vụ khảo sát bổ sung
+
+API-232 `POST /api/v1/survey-tasks/{taskId}/supplements` trả `supplementTaskId` của task vừa tạo. Khi mở lại task gốc, API-226 `GET /api/v1/survey-tasks/{taskId}` trả cùng ID nếu có đúng một task bổ sung trực tiếp đã liên kết. Dùng ID đó để gọi API-226 lần nữa và mở task bổ sung.
+
+FE ẩn nút mở nhanh khi `supplementTaskId` là `null`. FE không nên suy ra “chưa có lượt bổ sung” từ giá trị này. API có thể trả null vì chưa có task con, Operator không có quyền mở task con, hoặc có nhiều task bổ sung trực tiếp. Trường số ít chưa có quy tắc chọn giữa nhiều lượt. Sau API-232, FE có thể dùng ID trong response hoặc `Location` để mở chính lượt vừa tạo nếu có quyền. Task cũ có liên kết đã lưu vẫn đọc được, kể cả task gốc thiếu scope rows.

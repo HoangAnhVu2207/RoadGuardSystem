@@ -169,6 +169,14 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             .FirstOrDefaultAsync(cancellationToken);
         if (row is null) return null;
 
+        // Multiple direct rounds are allowed; the singular field has no approved precedence.
+        var children = await (from child in _context.SurveyRequests
+                              join supplement in _context.SupplementarySurveyRequests on child.SupplementRequestId equals (Guid?)supplement.Id
+                              where child.ParentTaskId == taskId && child.ProjectId == row.task.ProjectId &&
+                                  child.SurveyType == SurveyType.Supplementary && supplement.SurveyRequestId == taskId
+                              select child.Id).Take(2).ToArrayAsync(cancellationToken);
+        Guid? supplementTaskId = children.Length == 1 ? children[0] : null;
+
         var scopeRows = await _context.SurveyRequestScopes
             .AsNoTracking()
             .Where(scope => scope.SurveyRequestId == taskId)
@@ -176,7 +184,11 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             .ToListAsync(cancellationToken);
 
         if (scopeRows.Count == 0) return ToTaskView(row.task, row.OperatorUserId) with
-        { AssignmentIsActive = row.EndedAt is null, AssignmentWasDeclined = row.RejectedAt is not null };
+        {
+            AssignmentIsActive = row.EndedAt is null,
+            AssignmentWasDeclined = row.RejectedAt is not null,
+            SupplementTaskId = supplementTaskId
+        };
 
         JsonElement? accessPoint = null;
         try
@@ -201,7 +213,11 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         });
         var normalizedPayload = JsonSerializer.Serialize(new { scope = scopes, accessPoint });
         return ToTaskView(row.task, row.OperatorUserId, normalizedPayload) with
-        { AssignmentIsActive = row.EndedAt is null, AssignmentWasDeclined = row.RejectedAt is not null };
+        {
+            AssignmentIsActive = row.EndedAt is null,
+            AssignmentWasDeclined = row.RejectedAt is not null,
+            SupplementTaskId = supplementTaskId
+        };
     }
 
     public async Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, CancellationToken cancellationToken = default)

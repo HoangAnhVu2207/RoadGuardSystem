@@ -79,6 +79,13 @@ public sealed class SurveyV2Service : ISurveyV2Service
         if (task is null) return new(SurveyV2ServiceStatus.NotFound);
         if (role == UserRoleCode.DroneOperator && (task.OperatorId != actorUserId || !task.AssignmentIsActive)) return new(SurveyV2ServiceStatus.Forbidden);
         if (!await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
+        if (role == UserRoleCode.DroneOperator && task.SupplementTaskId is Guid childId)
+        {
+            var child = await _repository.GetTaskAsync(childId, cancellationToken);
+            if (child is null || child.ProjectId != task.ProjectId || child.OperatorId != actorUserId ||
+                !child.AssignmentIsActive || ToTask(child) is null)
+                task = task with { SupplementTaskId = null };
+        }
         return new(SurveyV2ServiceStatus.Success, Task: ToTask(task));
     }
 

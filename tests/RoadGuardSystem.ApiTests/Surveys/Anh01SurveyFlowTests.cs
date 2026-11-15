@@ -354,6 +354,7 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         (await Command(client, replacementSetsPath + $"/{replacementSetId}/publish", new { expectedPublishedSetId = (Guid?)null, reason = "Publish replacement route" }, replacementSet.Headers.ETag!.Tag))
             .StatusCode.Should().Be(HttpStatusCode.OK);
         var parent = await client.GetAsync($"/api/v1/survey-tasks/{task}");
+        (await Body(parent)).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
         var supplementKey = Guid.NewGuid().ToString("N");
         var supplementBody = new { scope = new[] { Scope("RIGHT_EDGE") }, operatorId = second.Id, reason = "Missing right edge" };
         var supplemented = await Command(client, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
@@ -363,11 +364,29 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var supplementReplay = await Command(client, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
         (await Body(supplementReplay)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
         var parentAfterSupplement = await client.GetAsync($"/api/v1/survey-tasks/{task}");
+        parentAfterSupplement.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(parentAfterSupplement)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
+        (await Body(await client.GetAsync($"/api/v1/survey-tasks/{child}"))).GetProperty("id").GetGuid().Should().Be(child);
+        if (!withAccessPoint)
+        {
+            await using var db = sql.CreateDbContext();
+            var originalScopes = await db.SurveyRequestScopes.AsNoTracking().Where(row => row.SurveyRequestId == task).ToArrayAsync();
+            originalScopes.Should().NotBeEmpty();
+            await db.SurveyRequestScopes.Where(row => row.SurveyRequestId == task).ExecuteDeleteAsync();
+            var legacyRead = await client.GetAsync($"/api/v1/survey-tasks/{task}");
+            legacyRead.StatusCode.Should().Be(HttpStatusCode.OK);
+            (await Body(legacyRead)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
+            db.SurveyRequestScopes.AddRange(originalScopes);
+            await db.SaveChangesAsync();
+        }
         var reopenParent = await Command(client, $"/api/v1/survey-tasks/{task}/reassign",
             new { operatorId = second.Id, reason = "Attempt to bypass supplement child" }, parentAfterSupplement.Headers.ETag!.Tag);
         reopenParent.StatusCode.Should().Be(HttpStatusCode.Conflict);
         await Login(client, first.UserName!);
         (await client.GetAsync($"/api/v1/survey-tasks/{child}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var originalOperatorRead = await client.GetAsync($"/api/v1/survey-tasks/{task}");
+        originalOperatorRead.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(originalOperatorRead)).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
         // Fixture authority change isolates replay authorization from the already submitted task lifecycle.
         await using (var db = sql.CreateDbContext())
         {
@@ -382,11 +401,30 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         (await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await client.GetAsync(eligiblePath + "?cursor=" + Uri.EscapeDataString(foreignDroneCursor))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         await Login(client, second.UserName!);
+        var bothAssigned = await client.GetAsync($"/api/v1/survey-tasks/{task}");
+        bothAssigned.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(bothAssigned)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
         var childRead = await client.GetAsync(supplemented.Headers.Location);
         childRead.StatusCode.Should().Be(HttpStatusCode.OK);
         (await client.GetAsync($"/api/v1/survey-tasks/{child}/eligible-drones?cursor=" + Uri.EscapeDataString(foreignDroneCursor)))
             .StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await Command(client, $"/api/v1/survey-tasks/{child}/accept", null, childRead.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.OK);
+        await Login(client, manager.UserName!);
+        var reassignChild = $"/api/v1/survey-tasks/{child}/reassign";
+        using var moved = await Command(client, reassignChild, new { operatorId = first.Id, reason = "Move supplement assignment" },
+            childRead.Headers.ETag!.Tag);
+        moved.StatusCode.Should().Be(HttpStatusCode.OK);
+        await Login(client, second.UserName!);
+        using var parentAfterMove = await client.GetAsync($"/api/v1/survey-tasks/{task}");
+        parentAfterMove.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(parentAfterMove)).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
+        (await client.GetAsync($"/api/v1/survey-tasks/{child}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        await Login(client, manager.UserName!);
+        using var returned = await Command(client, reassignChild, new { operatorId = second.Id, reason = "Restore supplement assignment" },
+            moved.Headers.ETag!.Tag);
+        returned.StatusCode.Should().Be(HttpStatusCode.OK);
+        await Login(client, second.UserName!);
+        (await Command(client, $"/api/v1/survey-tasks/{child}/accept", null, returned.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.OK);
         var childAccepted = await client.GetAsync($"/api/v1/survey-tasks/{child}");
         var largeVideos = new List<Guid>();
         for (var index = 0; index < 4; index++) largeVideos.Add(await VerifiedSource(project, child, second.Id, "SURVEY_VIDEO", 8_589_934_592L));
@@ -426,6 +464,13 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             membership.Status = ProjectMemberStatus.Ended; await db.SaveChangesAsync();
         }
         (await client.GetAsync($"/api/v1/survey-tasks/{child}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await Login(client, manager.UserName!);
+        var another = await Command(client, $"/api/v1/survey-tasks/{task}/supplements",
+            new { scope = new[] { Scope("RIGHT_EDGE") }, operatorId = first.Id, reason = "Second direct round" },
+            parentAfterSupplement.Headers.ETag!.Tag);
+        another.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await Body(another)).GetProperty("supplementTaskId").GetGuid().Should().NotBe(child);
+        (await Body(await client.GetAsync($"/api/v1/survey-tasks/{task}"))).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
     }
     private async Task<Guid> VerifiedSource(Guid project, Guid task, Guid actor, string purpose, long size)
     {

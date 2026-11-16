@@ -36419,6 +36419,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ]
       },
@@ -52620,6 +52625,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ]
       },
@@ -53021,6 +53029,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ]
       },

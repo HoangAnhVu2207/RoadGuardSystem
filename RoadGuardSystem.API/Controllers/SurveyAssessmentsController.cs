@@ -14,6 +14,7 @@ namespace RoadGuardSystem.API.Controllers;
 [ApiController, ApiVersion("1.0"), Authorize, Route("api/v{version:apiVersion}")]
 public sealed class SurveyAssessmentsController(ISurveyAssessmentService service) : ControllerBase
 {
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("datasets/{id:guid}/assessments")]
     public async Task<IActionResult> Create(Guid id, CreateAssessmentDto body, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? key,
         [FromHeader(Name = "If-Match")] string? version, CancellationToken token)
@@ -32,6 +33,7 @@ public sealed class SurveyAssessmentsController(ISurveyAssessmentService service
         if (result.Assessment is { } view) { Response.Headers.ETag = $"\"{view.Version}\""; return Ok(view); }
         return Error(result.Code);
     }
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("projects/{projectId:guid}/baseline-selections")]
     public async Task<IActionResult> Select(Guid projectId, CreateBaselineDto body, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? key, CancellationToken token)
     {
@@ -41,6 +43,7 @@ public sealed class SurveyAssessmentsController(ISurveyAssessmentService service
         if (result.Baseline is { } view) { Response.Headers.ETag = $"\"{view.Version}\""; return Created($"/api/v1/projects/{projectId}/baseline-selections/{view.Id}", view); }
         return Error(result.Code);
     }
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("projects/{projectId:guid}/baseline-selections")]
     public Task<IActionResult> Current(Guid projectId, [FromQuery] Guid? segmentSetId, CancellationToken token) => ReadBaseline(projectId, null, segmentSetId, token);
     [HttpGet("projects/{projectId:guid}/baseline-selections/{id:guid}")]

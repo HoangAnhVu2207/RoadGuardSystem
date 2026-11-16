@@ -53568,6 +53568,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-195",
@@ -53973,6 +53978,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-197",
@@ -54113,6 +54123,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-198",

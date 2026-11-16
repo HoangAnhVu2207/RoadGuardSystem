@@ -270,6 +270,49 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Fact]
+    public async Task SurveyAssessmentAndBaselineAdvertiseWebSessionsAndCommandCsrf()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        const string assessment = "/api/v1/datasets/{id}/assessments";
+        const string baseline = "/api/v1/projects/{projectId}/baseline-selections";
+
+        foreach (var (path, requiresIfMatch) in new[] { (assessment, true), (baseline, false) })
+        {
+            var post = paths.GetProperty(path).GetProperty("post");
+            var security = post.GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, security.Length);
+            var bearer = Assert.Single(security.Where(s => s.TryGetProperty("Bearer", out _)));
+            Assert.Equal("Bearer", Assert.Single(bearer.EnumerateObject()).Name);
+            var web = Assert.Single(security.Where(s => s.TryGetProperty("WebSession", out _)));
+            web.EnumerateObject().Select(s => s.Name).Should().BeEquivalentTo(new[] { "WebSession", "CsrfToken", "AntiforgeryCookie" });
+            var headers = post.GetProperty("parameters").EnumerateArray()
+                .Where(p => p.GetProperty("in").GetString() == "header").ToArray();
+            var key = Assert.Single(headers, p => p.GetProperty("name").GetString() == "Idempotency-Key");
+            Assert.True(key.GetProperty("required").GetBoolean());
+            var versions = headers.Where(p => p.GetProperty("name").GetString() == "If-Match").ToArray();
+            Assert.Equal(requiresIfMatch ? 1 : 0, versions.Length);
+            if (requiresIfMatch) Assert.True(versions[0].GetProperty("required").GetBoolean());
+        }
+
+        var current = paths.GetProperty(baseline).GetProperty("get");
+        var readSecurity = current.GetProperty("security").EnumerateArray().ToArray();
+        Assert.Equal(2, readSecurity.Length);
+        readSecurity.Select(s => Assert.Single(s.EnumerateObject()).Name).Should().BeEquivalentTo(new[] { "Bearer", "WebSession" });
+        Assert.Contains(current.GetProperty("parameters").EnumerateArray(), p =>
+            p.GetProperty("in").GetString() == "query" && p.GetProperty("name").GetString() == "segmentSetId");
+        Assert.DoesNotContain(current.GetProperty("parameters").EnumerateArray(), p =>
+            p.GetProperty("name").GetString() == "X-CSRF-TOKEN");
+
+        foreach (var path in new[] { assessment + "/{assessmentId}", baseline + "/{id}" })
+        {
+            var get = paths.GetProperty(path).GetProperty("get");
+            var bearer = Assert.Single(get.GetProperty("security").EnumerateArray());
+            Assert.Equal("Bearer", Assert.Single(bearer.EnumerateObject()).Name);
+        }
+    }
+
+    [Fact]
     public async Task SurveyTaskDatasetListAdvertisesPageAndLeavesSubmissionBearerOnly()
     {
         using var document = await Document();

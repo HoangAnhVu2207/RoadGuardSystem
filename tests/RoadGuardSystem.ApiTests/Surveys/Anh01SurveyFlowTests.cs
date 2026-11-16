@@ -114,18 +114,23 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             supRead.StatusCode.Should().Be(HttpStatusCode.OK);
             outsideRead.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
-        async Task<HttpResponseMessage> WebMutation(string path, object input, string version, string? key = null)
+        async Task<HttpResponseMessage> WebMutation(string path, object input, string? version = null, string? key = null)
         {
             pmWeb.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
             using var missingCsrf = await Command(pmWeb, path, input, version);
             missingCsrf.StatusCode.Should().Be(HttpStatusCode.Forbidden);
             (await Body(missingCsrf)).GetProperty("code").GetString().Should().Be("csrf_failed");
+            pmWeb.DefaultRequestHeaders.Add("X-CSRF-TOKEN", "invalid-token");
+            using var invalidCsrf = await Command(pmWeb, path, input, version);
+            invalidCsrf.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+            (await Body(invalidCsrf)).GetProperty("code").GetString().Should().Be("csrf_failed");
             await WebCookieTestClient.RefreshCsrf(pmWeb);
             using var wrongRole = await Command(supWeb, path, input, version);
             wrongRole.StatusCode.Should().Be(HttpStatusCode.Forbidden);
             (await Body(wrongRole)).GetProperty("code").GetString().Should().Be("access_forbidden");
             using var wrongProject = await Command(outsideWeb, path, input, version);
             wrongProject.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+            (await Body(wrongProject)).GetProperty("code").GetString().Should().Be("access_forbidden");
             return await Command(pmActions, path, input, version, key);
         }
         await Login(client, manager.UserName!);
@@ -322,15 +327,24 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var assessmentBody = new { methodVersion = "pm-evidence-review.v1", items = new[] { Item("SURFACE", "PASS"), Item("RIGHT_EDGE", "UNKNOWN") } };
         (await Command(client, $"/api/v1/datasets/{dataset}/assessments", new { methodVersion = "unapproved.v1", items = assessmentBody.items }, submitted.Headers.ETag!.Tag))
             .StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await Command(client, $"/api/v1/datasets/{dataset}/assessments", assessmentBody, "\"//////////8=\""))
-            .StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
         (await Command(client, $"/api/v1/datasets/{dataset}/assessments", assessmentBody, "\"malformed\""))
             .StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        var assessmentPath = $"/api/v1/datasets/{dataset}/assessments";
+        using var datasetForReview = await pmWeb.GetAsync($"/api/v1/datasets/{dataset}");
+        datasetForReview.StatusCode.Should().Be(HttpStatusCode.OK);
+        var datasetETag = datasetForReview.Headers.ETag!.Tag;
+        datasetETag.Should().Be(submitted.Headers.ETag!.Tag);
+        using var staleAssessment = await Command(pmActions, assessmentPath, assessmentBody, "\"//////////8=\"");
+        staleAssessment.StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        (await Body(staleAssessment)).GetProperty("code").GetString().Should().Be("concurrency_conflict");
         var assessmentKey = Guid.NewGuid().ToString("N");
-        var assessed = await Command(client, $"/api/v1/datasets/{dataset}/assessments", assessmentBody, submitted.Headers.ETag!.Tag, assessmentKey);
+        var assessed = await WebMutation(assessmentPath, assessmentBody, datasetETag, assessmentKey);
         assessed.StatusCode.Should().Be(HttpStatusCode.Created);
-        var assessment = (await Body(assessed)).GetProperty("id").GetGuid();
-        var replay = await Command(client, $"/api/v1/datasets/{dataset}/assessments", assessmentBody, submitted.Headers.ETag!.Tag, assessmentKey);
+        var assessmentView = await Body(assessed);
+        var assessment = assessmentView.GetProperty("id").GetGuid();
+        assessmentView.GetProperty("datasetId").GetGuid().Should().Be(dataset);
+        assessed.Headers.Location!.OriginalString.Should().Be($"{assessmentPath}/{assessment}");
+        var replay = await Command(pmActions, assessmentPath, assessmentBody, datasetETag, assessmentKey);
         replay.StatusCode.Should().Be(HttpStatusCode.Created);
         (await Body(replay)).GetProperty("id").GetGuid().Should().Be(assessment);
         (await client.GetAsync(assessed.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -361,22 +375,80 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             assessmentId = assessment,
             expectedBaselineSelectionId = expected
         };
-        var denied = await Command(client, $"/api/v1/projects/{project}/baseline-selections", new { items = new[] { Selection("SURFACE"), Selection("RIGHT_EDGE") }, reason = "Partial baseline" });
+        var baselinePath = $"/api/v1/projects/{project}/baseline-selections";
+        var denied = await Command(pmActions, baselinePath, new { items = new[] { Selection("SURFACE"), Selection("RIGHT_EDGE") }, reason = "Partial baseline" });
         denied.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await Body(denied)).GetProperty("code").GetString().Should().Be("baseline_not_eligible");
         await using (var db = sql.CreateDbContext()) { (await db.Set<BaselineSelection>().CountAsync(x => x.ProjectId == project)).Should().Be(0); }
         var selectionKey = Guid.NewGuid().ToString("N");
         var selectBody = new { items = new[] { Selection("SURFACE") }, reason = "Surface evidence accepted" };
-        var selected = await Command(client, $"/api/v1/projects/{project}/baseline-selections", selectBody, key: selectionKey);
+        var selected = await WebMutation(baselinePath, selectBody, key: selectionKey);
         selected.StatusCode.Should().Be(HttpStatusCode.Created);
+        var selectedBody = await Body(selected);
+        var selectedItem = selectedBody.GetProperty("items").EnumerateArray().Should().ContainSingle().Which;
+        selectedItem.GetProperty("datasetId").GetGuid().Should().Be(dataset);
+        selectedItem.GetProperty("assessmentId").GetGuid().Should().Be(assessment);
+        selectedItem.GetProperty("segmentId").GetGuid().Should().Be(segment);
+        selectedItem.GetProperty("targetBand").GetString().Should().Be("SURFACE");
         (await client.GetAsync(selected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
-        var selectedReplay = await Command(client, $"/api/v1/projects/{project}/baseline-selections", selectBody, key: selectionKey);
-        (await Body(selectedReplay)).GetProperty("id").GetGuid().Should().Be((await Body(selected)).GetProperty("id").GetGuid());
-        var stale = await Command(client, $"/api/v1/projects/{project}/baseline-selections", selectBody);
+        var selectedReplay = await Command(pmActions, baselinePath, selectBody, key: selectionKey);
+        selectedReplay.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await Body(selectedReplay)).GetProperty("id").GetGuid().Should().Be(selectedBody.GetProperty("id").GetGuid());
+        var stale = await Command(pmActions, baselinePath, selectBody);
         stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        var currentSelectionId = (await Body(selected)).GetProperty("items")[0].GetProperty("selectionId").GetGuid();
-        var compareBody = new { items = new[] { Selection("SURFACE", currentSelectionId) }, reason = "PM reconfirmation" };
-        var selectionRace = await Task.WhenAll(Command(client, $"/api/v1/projects/{project}/baseline-selections", compareBody),
-            Command(client, $"/api/v1/projects/{project}/baseline-selections", compareBody));
+        (await Body(stale)).GetProperty("code").GetString().Should().Be("baseline_selection_conflict");
+
+        var baselineCurrentPath = $"{baselinePath}?segmentSetId={set}";
+        async Task<Guid> ReadCurrentSelection(HttpClient reader)
+        {
+            using var response = await reader.GetAsync(baselineCurrentPath);
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var item = (await Body(response)).GetProperty("items").EnumerateArray().Should().ContainSingle().Which;
+            item.GetProperty("routeVersionId").GetGuid().Should().Be(route);
+            item.GetProperty("segmentSetId").GetGuid().Should().Be(set);
+            item.GetProperty("segmentId").GetGuid().Should().Be(segment);
+            item.GetProperty("targetBand").GetString().Should().Be("SURFACE");
+            return item.GetProperty("selectionId").GetGuid();
+        }
+
+        using var reloadedPmWeb = await WebCookieTestClient.Login(factory, manager.Email!);
+        reloadedPmWeb.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        var originalSelectionId = await ReadCurrentSelection(reloadedPmWeb);
+        originalSelectionId.Should().Be(selectedItem.GetProperty("selectionId").GetGuid());
+        (await ReadCurrentSelection(supWeb)).Should().Be(originalSelectionId);
+        (await ReadCurrentSelection(client)).Should().Be(originalSelectionId);
+        using var outsideCurrent = await outsideWeb.GetAsync(baselineCurrentPath);
+        outsideCurrent.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Body(outsideCurrent)).GetProperty("code").GetString().Should().Be("access_forbidden");
+        using var otherSet = await reloadedPmWeb.GetAsync($"{baselinePath}?segmentSetId={Guid.NewGuid()}");
+        otherSet.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(otherSet)).GetProperty("items").GetArrayLength().Should().Be(0);
+
+        await WebCookieTestClient.RefreshCsrf(reloadedPmWeb);
+        var replaceBody = new { items = new[] { Selection("SURFACE", originalSelectionId) }, reason = "Replace after reloading" };
+        using var replaced = await Command(reloadedPmWeb, baselinePath, replaceBody);
+        replaced.StatusCode.Should().Be(HttpStatusCode.Created);
+        var replacedSelectionId = (await Body(replaced)).GetProperty("items")[0].GetProperty("selectionId").GetGuid();
+        replacedSelectionId.Should().NotBe(originalSelectionId);
+
+        using var staleReplacement = await Command(reloadedPmWeb, baselinePath, replaceBody);
+        staleReplacement.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Body(staleReplacement)).GetProperty("code").GetString().Should().Be("baseline_selection_conflict");
+
+        reloadedPmWeb.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        var refreshedSelectionId = await ReadCurrentSelection(reloadedPmWeb);
+        refreshedSelectionId.Should().Be(replacedSelectionId);
+        await WebCookieTestClient.RefreshCsrf(reloadedPmWeb);
+        var confirmedBody = new { items = new[] { Selection("SURFACE", refreshedSelectionId) }, reason = "PM confirmed current baseline after conflict" };
+        using var confirmed = await Command(reloadedPmWeb, baselinePath, confirmedBody);
+        confirmed.StatusCode.Should().Be(HttpStatusCode.Created);
+        var confirmedSelectionId = (await Body(confirmed)).GetProperty("items")[0].GetProperty("selectionId").GetGuid();
+        confirmedSelectionId.Should().NotBe(refreshedSelectionId);
+        (await ReadCurrentSelection(reloadedPmWeb)).Should().Be(confirmedSelectionId);
+
+        var compareBody = new { items = new[] { Selection("SURFACE", confirmedSelectionId) }, reason = "PM reconfirmation" };
+        var selectionRace = await Task.WhenAll(Command(client, baselinePath, compareBody),
+            Command(client, baselinePath, compareBody));
         selectionRace.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(1);
         selectionRace.Single(r => r.StatusCode != HttpStatusCode.Created).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await client.GetAsync(selected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -519,7 +591,7 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         await using (var db = sql.CreateDbContext())
         {
             (await db.Set<DatasetAssessment>().CountAsync(x => x.DatasetId == dataset)).Should().Be(2);
-            (await db.Set<BaselineSelection>().CountAsync(x => x.ProjectId == project)).Should().Be(2);
+            (await db.Set<BaselineSelection>().CountAsync(x => x.ProjectId == project)).Should().Be(4);
             (await db.SurveyRequests.CountAsync(x => x.ParentTaskId == task)).Should().Be(1);
             (await db.Surveys.CountAsync(x => x.SurveyRequestId == child)).Should().Be(1);
             var membership = await db.ProjectMembers.SingleAsync(x => x.UserId == second.Id && x.ProjectId == project);

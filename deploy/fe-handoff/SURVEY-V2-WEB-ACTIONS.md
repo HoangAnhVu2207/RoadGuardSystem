@@ -57,4 +57,95 @@ Gọi `GET /api/v1/survey-tasks/{taskId}/datasets?limit=25` bằng Web cookie ho
 - 400 `validation_error` khi limit/cursor sai. 401 `auth_unauthorized` khi thiếu phiên hợp lệ. 403 `access_forbidden` khi sai role hoặc project. 404 `survey_request_not_found` khi task ID hợp lệ về định dạng UUID nhưng không tồn tại.
 - Với luồng nộp V2, lần ghi mới yêu cầu task ở trạng thái `Accepted` hoặc `InProgress` và chưa có task bổ sung. Nộp thành công đưa task sang `Submitted`. Retry cùng request trả lại bản trước. Bản nộp bổ sung đi theo task con riêng. Danh sách đọc được nhiều bản đã lưu cùng task nếu dữ liệu lịch sử có các bản đó. Chọn bản mặc định trên UI không đổi baseline.
 
+## Đánh giá dataset và khóa baseline trên /pm/surveys
+
+Cả hai POST dành cho **PM có quyền trên project**. Khi dùng phiên Web, gửi `credentials: "include"`, `Content-Type: application/json`, `X-CSRF-TOKEN` lấy từ `requestToken` của `GET /api/v1/auth/web/csrf` và `Idempotency-Key` cho thao tác. Với Bearer, gửi `Authorization: Bearer …` cùng các header nghiệp vụ của từng POST. Khi retry, dùng cùng key và request ban đầu, gồm `If-Match` của assessment.
+
+### Tạo assessment
+
+`POST /api/v1/datasets/{id}/assessments` dùng `id` của dataset đã chọn. Đọc `GET /api/v1/datasets/{id}` và gửi nguyên ETag của dataset vào `If-Match`, gồm dấu ngoặc kép. Lấy tuyến, bộ đoạn, đoạn và dải từ `scope`, lấy `fileId` từ `sourceFiles` của chính dataset. Điểm `PASS` ở bất kỳ tiêu chí nào cần dẫn chứng file đã xác minh.
+
+```json
+{
+  "methodVersion": "pm-evidence-review.v1",
+  "items": [{
+    "routeVersionId": "<routeVersionId>",
+    "segmentSetId": "<segmentSetId>",
+    "segmentId": "<segmentId>",
+    "targetBand": "SURFACE",
+    "positionStatus": "PASS",
+    "qualityStatus": "PASS",
+    "coverageStatus": "PASS",
+    "reason": "Đã kiểm tra video tại đoạn khảo sát",
+    "evidence": [{ "fileId": "<fileId>", "fromMilliseconds": 0, "toMilliseconds": 1000 }]
+  }]
+}
+```
+
+`201 Created` hoặc replay hợp lệ trả assessment đã ghi. Ví dụ rút gọn:
+
+```json
+{
+  "id": "<assessmentId>",
+  "datasetId": "<datasetId>",
+  "methodVersion": "pm-evidence-review.v1",
+  "version": "AAAAAAAAAAI="
+}
+```
+
+Response còn có `reviewedBy`, `reviewedAt`, `items` và header ETag của assessment. Lấy `id` để gửi vào `assessmentId` khi khóa baseline. Web có thể tải lại `/api/v1/datasets/{id}/coverage` để xem kết quả theo đoạn/dải. URL đọc assessment trong `Location` hiện dùng Bearer.
+
+### Khóa hoặc thay baseline
+
+`POST /api/v1/projects/{projectId}/baseline-selections` dùng `Idempotency-Key` và không cần `If-Match`. Mỗi item trỏ đúng dataset và assessment của dataset đó. Vị trí, chất lượng và độ phủ phải cùng `PASS` trên chính đoạn/dải được chọn.
+
+```json
+{
+  "items": [{
+    "routeVersionId": "<routeVersionId>",
+    "segmentSetId": "<segmentSetId>",
+    "segmentId": "<segmentId>",
+    "targetBand": "SURFACE",
+    "datasetId": "<datasetId>",
+    "assessmentId": "<assessmentId>",
+    "expectedBaselineSelectionId": null
+  }],
+  "reason": "Chốt bộ dữ liệu cho dải mặt đường"
+}
+```
+
+`201 Created` hoặc replay hợp lệ trả đợt selection và từng item. Ví dụ rút gọn:
+
+```json
+{
+  "id": "<baselineBatchId>",
+  "items": [{
+    "selectionId": "<selectionId>",
+    "routeVersionId": "<routeVersionId>",
+    "segmentSetId": "<segmentSetId>",
+    "segmentId": "<segmentId>",
+    "targetBand": "SURFACE",
+    "datasetId": "<datasetId>",
+    "assessmentId": "<assessmentId>"
+  }],
+  "version": "AAAAAAAAAAM="
+}
+```
+
+- Lần khóa đầu gửi `expectedBaselineSelectionId: null` cho item chưa có baseline. Khi thay, gửi `selectionId` của item hiện hành khớp cả tuyến, bộ đoạn, đoạn và dải. `id` ngoài cùng là ID đợt selection.
+- Khi mở lại màn, gọi `GET /api/v1/projects/{projectId}/baseline-selections?segmentSetId=<segmentSetId>`. PM có quyền trong project và Supervisor được đọc qua Web cookie (`credentials: "include"`) hoặc Bearer. GET không cần CSRF. Response là `{"items":[…]}` với cùng cấu trúc item như ví dụ POST. Bộ lọc `segmentSetId` chỉ lấy item trong bộ đoạn đã chọn.
+- Trong `items`, tìm mục khớp cả `routeVersionId`, `segmentSetId`, `segmentId` và `targetBand`. Dùng `selectionId` của đúng mục đó làm `expectedBaselineSelectionId`. Nếu không có mục khớp, gửi `null` cho lần khóa đầu.
+- Khi gặp `409 baseline_selection_conflict`, gọi lại GET và hiển thị baseline vừa tải để PM xác nhận. Sau khi PM xác nhận, gửi lệnh mới với ID hiện hành và `Idempotency-Key` mới. URL lịch sử trong `Location` vẫn dùng Bearer.
+
+| HTTP | Mã lỗi và cách xử lý |
+| --- | --- |
+| 400 | `validation_error` khi JSON hoặc header sai quy cách. |
+| 401 | `auth_unauthorized` khi thiếu phiên hợp lệ. |
+| 403 | `csrf_failed` khi token cookie POST thiếu/sai. `access_forbidden` khi sai role hoặc PM ngoài project. |
+| 404 | `not_found` khi dataset không đọc được theo điều kiện hiện hành, hoặc cặp dataset/assessment không thuộc project trong lệnh khóa. |
+| 409 | `duplicate_request` khi dùng lại key với request khác. `baseline_selection_conflict` khi selection kỳ vọng đã đổi. |
+| 412 | Assessment trả `concurrency_conflict` khi ETag dataset cũ hoặc sai. Tải lại dataset và dùng key mới cho thao tác mới. |
+| 422 | Assessment có thể trả `assessment_method_not_approved` hoặc `assessment_validation_failed`. Khóa baseline trả `baseline_not_eligible` khi item không hợp lệ hoặc thiếu ba tiêu chí PASS. |
+| 428 | `validation_error` khi thiếu `Idempotency-Key`, hoặc thiếu `If-Match` ở POST assessment. |
+
 [OpenAPI bàn giao](openapi.json). Runtime Swagger tại `/swagger/v1/swagger.json` khi được bật.

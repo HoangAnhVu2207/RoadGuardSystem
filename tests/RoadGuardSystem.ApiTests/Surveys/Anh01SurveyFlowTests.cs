@@ -100,6 +100,34 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         }
         object Scope(string band) => new { routeVersionId = route, segmentSetId = set, segmentIds = new[] { segment }, targetBand = band };
         var scopes = new[] { Scope("SURFACE"), Scope("RIGHT_EDGE") };
+        using var pmWeb = await WebCookieTestClient.Login(factory, manager.Email!);
+        using var supWeb = await WebCookieTestClient.Login(factory, supervisor.Email!);
+        var outside = await sql.CreateUserAsync($"outside-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        using var outsideWeb = await WebCookieTestClient.Login(factory, outside.Email!);
+        var pmActions = withAccessPoint ? pmWeb : client;
+        async Task CheckReads(string path)
+        {
+            using var pmRead = await pmWeb.GetAsync(path);
+            using var supRead = await supWeb.GetAsync(path);
+            using var outsideRead = await outsideWeb.GetAsync(path);
+            pmRead.StatusCode.Should().Be(HttpStatusCode.OK);
+            supRead.StatusCode.Should().Be(HttpStatusCode.OK);
+            outsideRead.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+        async Task<HttpResponseMessage> WebMutation(string path, object input, string version, string? key = null)
+        {
+            pmWeb.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+            using var missingCsrf = await Command(pmWeb, path, input, version);
+            missingCsrf.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+            (await Body(missingCsrf)).GetProperty("code").GetString().Should().Be("csrf_failed");
+            await WebCookieTestClient.RefreshCsrf(pmWeb);
+            using var wrongRole = await Command(supWeb, path, input, version);
+            wrongRole.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+            (await Body(wrongRole)).GetProperty("code").GetString().Should().Be("access_forbidden");
+            using var wrongProject = await Command(outsideWeb, path, input, version);
+            wrongProject.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+            return await Command(pmActions, path, input, version, key);
+        }
         await Login(client, manager.UserName!);
         var plan = await Command(client, $"/api/v1/projects/{project}/survey-plans", new { scope = scopes, plannedAt = "2026-10-02T08:00:00Z", surveyType = "BASELINE" });
         plan.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -116,6 +144,24 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         });
         taskResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var task = (await Body(taskResponse)).GetProperty("id").GetGuid();
+        await CheckReads($"/api/v1/survey-tasks/{task}/work-package");
+        var sparePlan = await Command(client, $"/api/v1/projects/{project}/survey-plans",
+            new { scope = scopes, plannedAt = "2026-10-04T08:00:00Z", surveyType = "PERIODIC" });
+        sparePlan.StatusCode.Should().Be(HttpStatusCode.Created);
+        var sparePlanId = (await Body(sparePlan)).GetProperty("id").GetGuid();
+        var spare = await Command(client, $"/api/v1/projects/{project}/survey-tasks",
+            new { scope = scopes, surveyType = "PERIODIC", operatorId = second.Id, dueAt = "2026-10-03T08:00:00Z", planId = sparePlanId });
+        spare.StatusCode.Should().Be(HttpStatusCode.Created);
+        var spareId = (await Body(spare)).GetProperty("id").GetGuid();
+        using var cancelled = await WebMutation($"/api/v1/survey-tasks/{spareId}/cancel", new { reason = "Cancel spare task" }, spare.Headers.ETag!.Tag);
+        cancelled.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(cancelled)).GetProperty("status").GetString().Should().Be("CANCELLED");
+        using var freshPlan = await pmWeb.GetAsync($"/api/v1/survey-plans/{sparePlanId}");
+        freshPlan.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var postponed = await WebMutation($"/api/v1/survey-plans/{sparePlanId}/postpone",
+            new { reason = "Weather" }, freshPlan.Headers.ETag!.Tag);
+        postponed.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(postponed)).GetProperty("status").GetString().Should().Be("POSTPONED");
         await Login(client, first.UserName!);
         var work = await client.GetAsync($"/api/v1/survey-tasks/{task}/work-package");
         work.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -288,6 +334,8 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         replay.StatusCode.Should().Be(HttpStatusCode.Created);
         (await Body(replay)).GetProperty("id").GetGuid().Should().Be(assessment);
         (await client.GetAsync(assessed.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
+        await CheckReads($"/api/v1/datasets/{dataset}");
+        await CheckReads($"/api/v1/datasets/{dataset}/coverage");
         var coverage = await Body(await client.GetAsync($"/api/v1/datasets/{dataset}/coverage"));
         coverage.GetProperty("assessmentId").GetGuid().Should().Be(assessment);
         object Selection(string band, Guid? expected = null) => new
@@ -357,13 +405,13 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         (await Body(parent)).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
         var supplementKey = Guid.NewGuid().ToString("N");
         var supplementBody = new { scope = new[] { Scope("RIGHT_EDGE") }, operatorId = second.Id, reason = "Missing right edge" };
-        var supplemented = await Command(client, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
+        var supplemented = await WebMutation($"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
         supplemented.StatusCode.Should().Be(HttpStatusCode.Created);
         var child = (await Body(supplemented)).GetProperty("supplementTaskId").GetGuid();
         (await Body(supplemented)).GetProperty("id").GetGuid().Should().Be(task);
-        var supplementReplay = await Command(client, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
+        var supplementReplay = await Command(pmActions, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
         (await Body(supplementReplay)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
-        var parentAfterSupplement = await client.GetAsync($"/api/v1/survey-tasks/{task}");
+        var parentAfterSupplement = await pmActions.GetAsync($"/api/v1/survey-tasks/{task}");
         parentAfterSupplement.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(parentAfterSupplement)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
         (await Body(await client.GetAsync($"/api/v1/survey-tasks/{child}"))).GetProperty("id").GetGuid().Should().Be(child);
@@ -410,9 +458,10 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             .StatusCode.Should().Be(HttpStatusCode.BadRequest);
         await Login(client, manager.UserName!);
         var reassignChild = $"/api/v1/survey-tasks/{child}/reassign";
-        using var moved = await Command(client, reassignChild, new { operatorId = first.Id, reason = "Move supplement assignment" },
+        using var moved = await WebMutation(reassignChild, new { operatorId = first.Id, reason = "Move supplement assignment" },
             childRead.Headers.ETag!.Tag);
         moved.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(moved)).GetProperty("operatorId").GetGuid().Should().Be(first.Id);
         await Login(client, second.UserName!);
         using var parentAfterMove = await client.GetAsync($"/api/v1/survey-tasks/{task}");
         parentAfterMove.StatusCode.Should().Be(HttpStatusCode.OK);

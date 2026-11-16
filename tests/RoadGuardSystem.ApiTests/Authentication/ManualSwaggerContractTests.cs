@@ -237,6 +237,38 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Fact]
+    public async Task SurveyV2WebActionsAdvertiseBearerAndCookieWithCommandCsrf()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        var routes = new (string Path, string Verb)[]
+        {
+            ("datasets/{datasetId}/coverage", "get"),
+            ("datasets/{id}", "get"),
+            ("survey-tasks/{id}/work-package", "get"),
+            ("survey-tasks/{taskId}/cancel", "post"),
+            ("survey-tasks/{taskId}/reassign", "post"),
+            ("survey-tasks/{taskId}/supplements", "post"),
+            ("survey-plans/{planId}/postpone", "post")
+        };
+        foreach (var (path, verb) in routes)
+        {
+            var operation = paths.GetProperty("/api/v1/" + path).GetProperty(verb);
+            var security = operation.GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, security.Length);
+            Assert.Contains(security, requirement => requirement.TryGetProperty("Bearer", out _) &&
+                requirement.EnumerateObject().Count() == 1);
+            var web = Assert.Single(security.Where(requirement => requirement.TryGetProperty("WebSession", out _)));
+            Assert.Equal(verb == "post", web.TryGetProperty("CsrfToken", out _));
+            Assert.Equal(verb == "post", web.TryGetProperty("AntiforgeryCookie", out _));
+            if (verb == "post")
+                foreach (var header in new[] { "If-Match", "Idempotency-Key" })
+                    Assert.Contains(operation.GetProperty("parameters").EnumerateArray(), parameter =>
+                        parameter.GetProperty("name").GetString() == header && parameter.GetProperty("required").GetBoolean());
+        }
+    }
+
+    [Fact]
     public async Task SurveyDetailsAdvertiseWebAndBearerAtResourceRoutes()
     {
         using var document = await Document();

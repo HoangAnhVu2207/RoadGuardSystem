@@ -55236,6 +55236,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-204",
@@ -55626,6 +55631,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-208",
@@ -55756,6 +55764,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-209",
@@ -56326,6 +56337,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-212",
@@ -57137,6 +57151,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-215",
@@ -57427,6 +57446,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-216",
@@ -57724,6 +57748,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-217",

@@ -45,6 +45,7 @@ public sealed class SurveyV2Controller : ControllerBase
 
     [Authorize]
     [HttpPost("survey-plans/{planId:guid}/postpone")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> Postpone(Guid planId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, PostponeSurveyPlanV2RequestDto request, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
@@ -145,8 +146,10 @@ public sealed class SurveyV2Controller : ControllerBase
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public Task<IActionResult> ReadPlan(Guid id, CancellationToken token) => ReadResource(id, "plan", token);
     [Authorize, HttpGet("datasets/{id:guid}")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public Task<IActionResult> ReadDataset(Guid id, CancellationToken token) => ReadResource(id, "dataset", token);
     [Authorize, HttpGet("survey-tasks/{id:guid}/work-package")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public Task<IActionResult> ReadWorkPackage(Guid id, CancellationToken token) => ReadResource(id, "work-package", token);
     private async Task<IActionResult> ReadResource(Guid id, string resource, CancellationToken token)
     {
@@ -196,6 +199,7 @@ public sealed class SurveyV2Controller : ControllerBase
 
     [Authorize]
     [HttpGet("datasets/{datasetId:guid}/coverage")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> GetDatasetCoverage(Guid datasetId, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
@@ -229,6 +233,7 @@ public sealed class SurveyV2Controller : ControllerBase
 
     [Authorize]
     [HttpPost("survey-tasks/{taskId:guid}/cancel")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> CancelTask(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, SurveyTaskReasonV2RequestDto request, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
@@ -238,6 +243,7 @@ public sealed class SurveyV2Controller : ControllerBase
 
     [Authorize]
     [HttpPost("survey-tasks/{taskId:guid}/reassign")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> ReassignTask(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, ReassignSurveyTaskV2RequestDto request, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
@@ -247,6 +253,7 @@ public sealed class SurveyV2Controller : ControllerBase
 
     [Authorize]
     [HttpPost("survey-tasks/{taskId:guid}/supplements")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     public async Task<IActionResult> RequestSupplement(Guid taskId, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, SupplementSurveyTaskV2RequestDto request, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");

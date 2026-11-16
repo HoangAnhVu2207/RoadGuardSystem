@@ -30,10 +30,31 @@ Cả bốn trả ETag qua response header và version qua JSON body. Sau supplem
 - Cancel, reassign và supplements có thể trả 404 `survey_request_not_found`, 409 `survey_invalid_state_transition` hoặc `survey_scope_incompatible`, 422 `survey_validation_failed`. Reassign và supplements có thể trả 404 `identity_user_not_found` cho Operator không hợp lệ.
 - Postpone có thể trả 404 `survey_plan_not_found`, 409 `survey_scope_incompatible` hoặc 422 `survey_validation_failed`. JSON không hợp lệ có thể bị trả 400 ở tầng API.
 
-## Nguồn datasetId
+## Chọn bộ dữ liệu trên /pm/surveys
 
-Biên nhận nộp dataset từ `POST /survey-tasks/{taskId}/datasets` trả `id` và `dataVersionId` của bản vừa nộp. Nếu FE đã có ID này, dùng nó cho cả hai GET dataset. API-226, work-package và GET plan không có danh sách dataset. Nếu màn hình cần đúng dataset đang được chọn làm baseline, `GET /api/v1/projects/{projectId}/baseline-selections?segmentSetId=…` trả `items[].datasetId` theo segment và band cho PM/Supervisor được phép qua Bearer của route đó. Đường đọc baseline chỉ bao phủ các bản đã được chọn làm baseline. Web chưa có đường đọc danh sách bản nộp theo task hoặc plan để chọn đúng phiên bản.
+Gọi `GET /api/v1/survey-tasks/{taskId}/datasets?limit=25` bằng Web cookie hoặc Bearer. Lấy `taskId` từ `id` của task trên API-226 hoặc danh sách task. Backend xác định project từ task đã lưu. PM cần quyền trên project đó, Supervisor theo quyền đọc dự án hiện hành. GET không cần CSRF, If-Match hay Idempotency-Key.
 
-Đề xuất để nhóm duyệt: `GET /api/v1/survey-tasks/{taskId}/datasets?limit=20&cursor=…` theo quyền PM/Supervisor hiện hành. Trả `items[]` có `datasetId`, `versionNo`, `status`, `submittedAt`, `recordedAt` và `nextCursor`. Sắp theo version giảm dần và ID làm khóa phụ. Task có nhiều bản thì FE hiển thị từng bản cho người dùng chọn. Nếu màn plan chỉ có planId, cần thêm bộ lọc planId có kiểm scope cho danh sách task để lấy taskId trước. Đề xuất này chưa triển khai.
+```json
+{
+  "items": [
+    {
+      "id": "bb92e0c9-f112-490d-97ef-83a0e3d581b2",
+      "surveyTaskId": "06c58571-b48d-4eb7-9bcf-a08a3082ff2c",
+      "versionNo": 1,
+      "submittedAt": "2026-11-16T08:30:00+00:00",
+      "integrityStatus": "PASSED",
+      "version": "AAAAAAAAAAE=",
+      "assessmentId": null
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+- Mặc định chọn item đầu. Lấy `items[].id` gọi `GET /api/v1/datasets/{id}` và `GET /api/v1/datasets/{id}/coverage`. Hai API này vẫn kiểm quyền khi mở bản đã chọn và trả 404 nếu task không còn assignment hiện hành, kể cả khi danh sách còn bản đã lưu. `version` là Base64 rowversion của dataset, `versionNo` là số thứ tự bản trong survey.
+- Các bản có `submittedAt` mới hơn đứng trước. Khi trùng thời gian, BE dùng ID giảm dần theo thứ tự SQL Server. Bản cũ thiếu thời gian có `submittedAt: null` và đứng cuối. `limit` mặc định 25, từ 1 đến 100. Gửi lại `nextCursor` nguyên vẹn qua query `cursor` (URL-encode), bằng cùng tài khoản và task. Khi `nextCursor: null`, đã hết trang. Task hợp lệ chưa có dữ liệu trả `200 {"items":[],"nextCursor":null}`.
+- `assessmentId` lấy theo cùng thứ tự với coverage, `ReviewedAt` giảm dần rồi ID giảm dần. Trả `null` khi chưa có assessment. Coverage trả các kết quả đánh giá theo đoạn và band tại thời điểm đọc.
+- 400 `validation_error` khi limit/cursor sai. 401 `auth_unauthorized` khi thiếu phiên hợp lệ. 403 `access_forbidden` khi sai role hoặc project. 404 `survey_request_not_found` khi task ID hợp lệ về định dạng UUID nhưng không tồn tại.
+- Với luồng nộp V2, lần ghi mới yêu cầu task ở trạng thái `Accepted` hoặc `InProgress` và chưa có task bổ sung. Nộp thành công đưa task sang `Submitted`. Retry cùng request trả lại bản trước. Bản nộp bổ sung đi theo task con riêng. Danh sách đọc được nhiều bản đã lưu cùng task nếu dữ liệu lịch sử có các bản đó. Chọn bản mặc định trên UI không đổi baseline.
 
 [OpenAPI bàn giao](openapi.json). Runtime Swagger tại `/swagger/v1/swagger.json` khi được bật.

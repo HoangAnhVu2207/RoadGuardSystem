@@ -338,6 +338,19 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         await CheckReads($"/api/v1/datasets/{dataset}/coverage");
         var coverage = await Body(await client.GetAsync($"/api/v1/datasets/{dataset}/coverage"));
         coverage.GetProperty("assessmentId").GetGuid().Should().Be(assessment);
+        await CheckReads(submitPath);
+        using var datasetList = await client.GetAsync(submitPath);
+        datasetList.StatusCode.Should().Be(HttpStatusCode.OK);
+        var singlePage = await Body(datasetList);
+        var datasetItem = singlePage.GetProperty("items").EnumerateArray().Should().ContainSingle().Which;
+        datasetItem.GetProperty("id").GetGuid().Should().Be(dataset);
+        datasetItem.GetProperty("surveyTaskId").GetGuid().Should().Be(task);
+        datasetItem.GetProperty("versionNo").GetInt32().Should().Be(1);
+        datasetItem.GetProperty("integrityStatus").GetString().Should().Be("PASSED");
+        datasetItem.GetProperty("version").GetString().Should().Be(submitted.Headers.ETag!.Tag.Trim('"'));
+        datasetItem.GetProperty("submittedAt").GetDateTimeOffset().Should().Be((await Body(detail)).GetProperty("submittedAt").GetDateTimeOffset());
+        datasetItem.GetProperty("assessmentId").GetGuid().Should().Be(assessment);
+        singlePage.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
         object Selection(string band, Guid? expected = null) => new
         {
             routeVersionId = route,
@@ -520,6 +533,48 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         another.StatusCode.Should().Be(HttpStatusCode.Created);
         (await Body(another)).GetProperty("supplementTaskId").GetGuid().Should().NotBe(child);
         (await Body(await client.GetAsync($"/api/v1/survey-tasks/{task}"))).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
+
+        // V2 submits once per task. Seed two additional versions to verify historical readback.
+        var earlierTieId = Guid.NewGuid();
+        var laterTieId = Guid.NewGuid();
+        if (new System.Data.SqlTypes.SqlGuid(earlierTieId).CompareTo(new System.Data.SqlTypes.SqlGuid(laterTieId)) > 0)
+            (earlierTieId, laterTieId) = (laterTieId, earlierTieId);
+        await using (var db = sql.CreateDbContext())
+        {
+            var original = await db.SurveyDataVersions.SingleAsync(d => d.Id == dataset);
+            var tiedTime = original.ConfirmedAt!.Value.AddMinutes(1);
+            db.SurveyDataVersions.AddRange(
+                SurveyDataVersion.CreateSubmitted(laterTieId, original.SurveyId, 2, original.RecordedAt!.Value,
+                    tiedTime, device, original.SourceManifest, original.ScopeManifest!),
+                SurveyDataVersion.CreateSubmitted(earlierTieId, original.SurveyId, 3, original.RecordedAt.Value,
+                    tiedTime, device, original.SourceManifest, original.ScopeManifest!));
+            await db.SaveChangesAsync();
+        }
+        pmWeb.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        string? cursor = null;
+        foreach (var expected in new[] { laterTieId, earlierTieId, dataset })
+        {
+            var path = submitPath + "?limit=1" + (cursor is null ? "" : "&cursor=" + Uri.EscapeDataString(cursor));
+            using var response = await pmWeb.GetAsync(path);
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var page = await Body(response);
+            var item = page.GetProperty("items").EnumerateArray().Should().ContainSingle().Which;
+            item.GetProperty("id").GetGuid().Should().Be(expected);
+            cursor = page.GetProperty("nextCursor").GetString();
+            if (expected == dataset)
+            {
+                using var latestCoverage = await pmWeb.GetAsync($"/api/v1/datasets/{dataset}/coverage");
+                item.GetProperty("assessmentId").GetGuid().Should().Be((await Body(latestCoverage)).GetProperty("assessmentId").GetGuid());
+                cursor.Should().BeNull();
+            }
+            else
+            {
+                item.GetProperty("assessmentId").ValueKind.Should().Be(JsonValueKind.Null);
+                cursor.Should().NotBeNullOrEmpty();
+                using var mismatchedTask = await pmWeb.GetAsync($"/api/v1/survey-tasks/{child}/datasets?cursor={Uri.EscapeDataString(cursor!)}");
+                mismatchedTask.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            }
+        }
     }
     private async Task<Guid> VerifiedSource(Guid project, Guid task, Guid actor, string purpose, long size)
     {

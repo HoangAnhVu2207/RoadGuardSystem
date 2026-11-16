@@ -132,6 +132,11 @@ public sealed class P2V2SurveyServiceTests
         public Task<Guid?> GetPlanProjectIdAsync(Guid planId, CancellationToken cancellationToken = default) => Task.FromResult<Guid?>(null);
         public Task<SurveyDatasetPersistenceResult> SubmitDatasetAsync(SurveyDatasetSubmissionRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(new SurveyDatasetPersistenceResult(SurveyDatasetPersistenceStatus.InvalidInput));
+        public Task<Guid?> GetTaskProjectIdAsync(Guid taskId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<SurveyDatasetListRecord>> ListTaskDatasetsAsync(Guid taskId, Guid projectId,
+            DateTimeOffset? afterSubmittedAt, Guid? afterId, int take, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<SurveyDatasetAccessView?> GetDatasetAccessAsync(Guid datasetId, CancellationToken cancellationToken = default)
             => Task.FromResult<SurveyDatasetAccessView?>(null);
     }

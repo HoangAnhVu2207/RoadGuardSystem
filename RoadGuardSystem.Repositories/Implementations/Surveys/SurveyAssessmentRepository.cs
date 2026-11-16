@@ -13,10 +13,13 @@ namespace RoadGuardSystem.Repositories.Implementations.Surveys;
 public sealed class SurveyAssessmentRepository(RoadGuardDbContext context, IdempotencyOperationService idempotency) : ISurveyAssessmentRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    internal static IOrderedQueryable<DatasetAssessment> LatestFirst(IQueryable<DatasetAssessment> assessments) =>
+        assessments.OrderByDescending(x => x.ReviewedAt).ThenByDescending(x => x.Id);
+
     public async Task<AssessmentRecord?> ReadAsync(Guid dataset, Guid? assessment, CancellationToken token)
     {
-        var row = await context.Set<DatasetAssessment>().AsNoTracking().Where(x => x.DatasetId == dataset && (!assessment.HasValue || x.Id == assessment))
-            .OrderByDescending(x => x.ReviewedAt).ThenByDescending(x => x.Id).FirstOrDefaultAsync(token);
+        var query = context.Set<DatasetAssessment>().AsNoTracking().Where(x => x.DatasetId == dataset && (!assessment.HasValue || x.Id == assessment));
+        var row = await LatestFirst(query).FirstOrDefaultAsync(token);
         if (row is null) return null;
         var items = await context.Set<DatasetAssessmentItem>().AsNoTracking().Where(x => x.AssessmentId == row.Id).OrderBy(x => x.Id).ToListAsync(token);
         return new(row.Id, dataset, row.MethodVersion, row.ReviewedBy, row.ReviewedAt, items.Select(ToItem).ToArray(), Convert.ToBase64String(row.RowVersion));

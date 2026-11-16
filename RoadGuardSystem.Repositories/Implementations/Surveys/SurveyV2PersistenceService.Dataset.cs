@@ -163,6 +163,40 @@ public sealed partial class SurveyV2PersistenceService
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception)) { return new(SurveyDatasetPersistenceStatus.Conflict); }
     }
 
+    public Task<Guid?> GetTaskProjectIdAsync(Guid taskId, CancellationToken cancellationToken = default) =>
+        _context.SurveyRequests.AsNoTracking().Where(task => task.Id == taskId)
+            .Select(task => (Guid?)task.ProjectId).SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<SurveyDatasetListRecord>> ListTaskDatasetsAsync(Guid taskId, Guid projectId,
+        DateTimeOffset? afterSubmittedAt, Guid? afterId, int take, CancellationToken cancellationToken = default)
+    {
+        var query = from dataset in _context.SurveyDataVersions.AsNoTracking()
+                    join survey in _context.Surveys.AsNoTracking() on dataset.SurveyId equals survey.Id
+                    where survey.SurveyRequestId == taskId && survey.ProjectId == projectId
+                    select dataset;
+        if (afterId is Guid id)
+        {
+            query = afterSubmittedAt is DateTimeOffset submittedAt
+                ? query.Where(d => d.ConfirmedAt == null || d.ConfirmedAt < submittedAt ||
+                    d.ConfirmedAt == submittedAt && d.Id.CompareTo(id) < 0)
+                : query.Where(d => d.ConfirmedAt == null && d.Id.CompareTo(id) < 0);
+        }
+
+        var assessments = SurveyAssessmentRepository.LatestFirst(_context.Set<DatasetAssessment>().AsNoTracking());
+        var rows = await query.OrderByDescending(d => d.ConfirmedAt).ThenByDescending(d => d.Id).Take(take)
+            .Select(d => new
+            {
+                d.Id,
+                d.VersionNo,
+                d.ConfirmedAt,
+                d.IntegrityStatus,
+                d.RowVersion,
+                AssessmentId = assessments.Where(a => a.DatasetId == d.Id).Select(a => (Guid?)a.Id).FirstOrDefault()
+            }).ToArrayAsync(cancellationToken);
+        return rows.Select(row => new SurveyDatasetListRecord(row.Id, row.VersionNo, row.ConfirmedAt,
+            row.IntegrityStatus.ToString().ToUpperInvariant(), Convert.ToBase64String(row.RowVersion), row.AssessmentId)).ToArray();
+    }
+
     public async Task<SurveyDatasetAccessView?> GetDatasetAccessAsync(Guid datasetId, CancellationToken cancellationToken = default)
     {
         var row = await (

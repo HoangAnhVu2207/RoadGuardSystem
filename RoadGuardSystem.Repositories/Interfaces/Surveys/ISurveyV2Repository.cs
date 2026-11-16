@@ -13,6 +13,9 @@ public interface ISurveyV2Repository
     Task<SurveyV2TaskPersistenceResult> MutateTaskAsync(SurveyV2TaskMutationRequest request, CancellationToken cancellationToken = default);
     Task<Guid?> GetPlanProjectIdAsync(Guid planId, CancellationToken cancellationToken = default);
     Task<SurveyDatasetPersistenceResult> SubmitDatasetAsync(SurveyDatasetSubmissionRequest request, CancellationToken cancellationToken = default);
+    Task<Guid?> GetTaskProjectIdAsync(Guid taskId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SurveyDatasetListRecord>> ListTaskDatasetsAsync(Guid taskId, Guid projectId,
+        DateTimeOffset? afterSubmittedAt, Guid? afterId, int take, CancellationToken cancellationToken = default);
     Task<SurveyDatasetAccessView?> GetDatasetAccessAsync(Guid datasetId, CancellationToken cancellationToken = default);
     Task<SurveyV2PlanPersistenceView?> ReadPlanAsync(Guid id, CancellationToken token = default) => Task.FromResult<SurveyV2PlanPersistenceView?>(null);
     Task<DatasetDetailRecord?> ReadDatasetAsync(Guid id, CancellationToken token = default) => Task.FromResult<DatasetDetailRecord?>(null);

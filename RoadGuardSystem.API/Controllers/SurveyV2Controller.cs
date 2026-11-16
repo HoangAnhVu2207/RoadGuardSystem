@@ -1,4 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -170,6 +172,53 @@ public sealed class SurveyV2Controller : ControllerBase
         var page = await _service.ListMyTasksAsync(actor, role, cursor, limit, cancellationToken);
         return page is null ? ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid survey task list parameters") : Ok(page);
     }
+
+    [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [HttpGet("survey-tasks/{taskId:guid}/datasets")]
+    [ProducesResponseType<CollectionPage<DatasetListItemDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListTaskDatasets(Guid taskId, [FromServices] IDataProtectionProvider protection,
+        CancellationToken cancellationToken, [FromQuery, Range(1, 100)] int limit = 25,
+        [FromQuery, StringLength(4096)] string? cursor = null)
+    {
+        Response.Headers.CacheControl = "private, no-store";
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (limit is < 1 or > 100 || Request.Query.Any(q => q.Key is not ("limit" or "cursor") || q.Value.Count != 1))
+            return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid query");
+        if (Request.Query.ContainsKey("cursor") && string.IsNullOrEmpty(cursor) || cursor is { Length: > 4096 })
+            return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor");
+
+        var protector = protection.CreateProtector("RoadGuard.SurveyTaskDatasets.v1", actor.ToString("D"), taskId.ToString("D"));
+        DatasetListCursor? after = null;
+        if (cursor is not null)
+        {
+            try
+            {
+                after = JsonSerializer.Deserialize<DatasetListCursor>(protector.Unprotect(cursor));
+                if (after is null || after.Id == Guid.Empty)
+                    return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor");
+            }
+            catch (Exception exception) when (exception is CryptographicException or FormatException or JsonException)
+            {
+                return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor");
+            }
+        }
+
+        var result = await _service.ListTaskDatasetsAsync(actor, role, taskId, after?.SubmittedAt, after?.Id, limit + 1, cancellationToken);
+        if (result.Status == SurveyV2ServiceStatus.Forbidden) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+        if (result.Status != SurveyV2ServiceStatus.Success) return ProblemResponse(404, ApiErrorCodes.SurveyRequestNotFound, "Not found");
+        var items = result.Items.Take(limit).ToArray();
+        var nextCursor = result.Items.Count > limit
+            ? protector.Protect(JsonSerializer.Serialize(new DatasetListCursor(items[^1].SubmittedAt, items[^1].Id)))
+            : null;
+        return Ok(new CollectionPage<DatasetListItemDto>(items, nextCursor));
+    }
+
+    private sealed record DatasetListCursor(DateTimeOffset? SubmittedAt, Guid Id);
 
     [Authorize]
     [HttpPost("survey-tasks/{taskId:guid}/datasets")]

@@ -162,6 +162,21 @@ public sealed class SurveyV2Service : ISurveyV2Service
         };
     }
 
+    public async Task<(SurveyV2ServiceStatus Status, IReadOnlyList<DatasetListItemDto> Items)> ListTaskDatasetsAsync(
+        Guid actor, UserRoleCode role, Guid taskId, DateTimeOffset? afterSubmittedAt, Guid? afterId, int take,
+        CancellationToken cancellationToken = default)
+    {
+        if (actor == Guid.Empty || role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor))
+            return (SurveyV2ServiceStatus.Forbidden, []);
+        var projectId = await _repository.GetTaskProjectIdAsync(taskId, cancellationToken);
+        if (projectId is null) return (SurveyV2ServiceStatus.NotFound, []);
+        if (!await InScope(actor, role, projectId.Value, cancellationToken)) return (SurveyV2ServiceStatus.Forbidden, []);
+
+        var datasets = await _repository.ListTaskDatasetsAsync(taskId, projectId.Value, afterSubmittedAt, afterId, take, cancellationToken);
+        return (SurveyV2ServiceStatus.Success, datasets.Select(d => new DatasetListItemDto(
+            d.Id, taskId, d.VersionNo, d.SubmittedAt, d.IntegrityStatus, d.Version, d.AssessmentId)).ToArray());
+    }
+
     public async Task<DatasetCoverageServiceResult> GetDatasetCoverageAsync(Guid actorUserId, UserRoleCode role, Guid datasetId, CancellationToken cancellationToken = default)
     {
         if (actorUserId == Guid.Empty || datasetId == Guid.Empty || role is not (UserRoleCode.DroneOperator or UserRoleCode.ProjectManager or UserRoleCode.Supervisor)) return new(SurveyV2ServiceStatus.Forbidden);

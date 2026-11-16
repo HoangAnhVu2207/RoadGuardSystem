@@ -147,10 +147,37 @@ public sealed class P2SurveyV2ApiTests
         Assert.Equal(HttpStatusCode.OK, (await webOperator.GetAsync(taskPath)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await webOperator.GetAsync(planPath)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await webOtherOperator.GetAsync(taskPath)).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await webPm.GetAsync(taskPath + "/work-package")).StatusCode);
+        using var webWorkPackage = await webPm.GetAsync(taskPath + "/work-package");
+        Assert.Equal(HttpStatusCode.OK, webWorkPackage.StatusCode);
+        Assert.Equal(taskId, (await webWorkPackage.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("task").GetProperty("id").GetGuid());
+        Assert.Equal(HttpStatusCode.Forbidden, (await webOutside.GetAsync(taskPath + "/work-package")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await webReporter.GetAsync(taskPath + "/work-package")).StatusCode);
+        using var anonymous = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(taskPath + "/work-package")).StatusCode);
+        var datasetsPath = taskPath + "/datasets";
+        webPm.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        using var emptyDatasets = await webPm.GetAsync(datasetsPath);
+        Assert.Equal(HttpStatusCode.OK, emptyDatasets.StatusCode);
+        var emptyPage = await emptyDatasets.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Empty(emptyPage.GetProperty("items").EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, emptyPage.GetProperty("nextCursor").ValueKind);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(datasetsPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await webOutside.GetAsync(datasetsPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await webOperator.GetAsync(datasetsPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await webReporter.GetAsync(datasetsPath)).StatusCode);
+        using var missingTask = await webPm.GetAsync($"/api/v1/survey-tasks/{Guid.NewGuid()}/datasets");
+        Assert.Equal(HttpStatusCode.NotFound, missingTask.StatusCode);
+        Assert.Equal("survey_request_not_found", (await missingTask.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        foreach (var query in new[] { "limit=0", "limit=101", "limit=abc", "cursor=", "cursor=!", "limit=2&limit=3" })
+        {
+            using var badPage = await webPm.GetAsync(datasetsPath + "?" + query);
+            Assert.Equal(HttpStatusCode.BadRequest, badPage.StatusCode);
+            Assert.Equal("validation_error", (await badPage.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        }
         clock.Now += TimeSpan.FromHours(13);
         Assert.Equal(HttpStatusCode.Unauthorized, (await webPm.GetAsync(planPath)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await webPm.GetAsync(taskPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await webPm.GetAsync(taskPath + "/work-package")).StatusCode);
         clock.Now -= TimeSpan.FromHours(13);
 
         var read = await client.GetAsync($"/api/v1/survey-tasks/{taskId}");

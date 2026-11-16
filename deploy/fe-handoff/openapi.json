@@ -55905,6 +55905,102 @@
       }
     },
     "/api/v1/survey-tasks/{taskId}/datasets": {
+      "get": {
+        "tags": [
+          "SurveyV"
+        ],
+        "description": "List datasets for the stored survey task project. PM project scope or Supervisor. Newest submissions first, then dataset ID descending. Undated legacy records sort last. GET does not require CSRF.",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque nextCursor from the preceding page for the same actor and task.",
+            "schema": {
+              "type": "string",
+              "maxLength": 4096
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataset page. Empty items if the task has no datasets.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetListPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "auth_unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "survey_request_not_found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      },
       "post": {
         "tags": [
           "SurveyV"
@@ -64982,6 +65078,67 @@
           }
         },
         "additionalProperties": false
+      },
+      "DatasetListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "surveyTaskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "integrityStatus": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "assessmentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "surveyTaskId",
+          "versionNo",
+          "submittedAt",
+          "integrityStatus",
+          "version",
+          "assessmentId"
+        ]
+      },
+      "DatasetListPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DatasetListItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
       },
       "DatasetResponseDto": {
         "type": "object",

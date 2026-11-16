@@ -243,6 +243,7 @@ public sealed class ManualSwaggerContractTests
         var paths = document.RootElement.GetProperty("paths");
         var routes = new (string Path, string Verb)[]
         {
+            ("survey-tasks/{taskId}/datasets", "get"),
             ("datasets/{datasetId}/coverage", "get"),
             ("datasets/{id}", "get"),
             ("survey-tasks/{id}/work-package", "get"),
@@ -266,6 +267,33 @@ public sealed class ManualSwaggerContractTests
                     Assert.Contains(operation.GetProperty("parameters").EnumerateArray(), parameter =>
                         parameter.GetProperty("name").GetString() == header && parameter.GetProperty("required").GetBoolean());
         }
+    }
+
+    [Fact]
+    public async Task SurveyTaskDatasetListAdvertisesPageAndLeavesSubmissionBearerOnly()
+    {
+        using var document = await Document();
+        var path = document.RootElement.GetProperty("paths").GetProperty("/api/v1/survey-tasks/{taskId}/datasets");
+        var list = path.GetProperty("get");
+        var limit = Assert.Single(list.GetProperty("parameters").EnumerateArray(), p => p.GetProperty("name").GetString() == "limit")
+            .GetProperty("schema");
+        Assert.Equal(1, limit.GetProperty("minimum").GetInt32());
+        Assert.Equal(100, limit.GetProperty("maximum").GetInt32());
+        Assert.Equal(25, limit.GetProperty("default").GetInt32());
+        var responseSchema = list.GetProperty("responses").GetProperty("200").GetProperty("content")
+            .GetProperty("application/json").GetProperty("schema");
+        var schemaName = responseSchema.GetProperty("$ref").GetString()!.Split('/')[^1];
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var page = schemas.GetProperty(schemaName).GetProperty("properties");
+        Assert.Equal("#/components/schemas/DatasetListItemDto", page.GetProperty("items").GetProperty("items").GetProperty("$ref").GetString());
+        Assert.True(page.GetProperty("nextCursor").GetProperty("nullable").GetBoolean());
+        var item = schemas.GetProperty("DatasetListItemDto").GetProperty("properties");
+        item.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(
+            new[] { "id", "surveyTaskId", "versionNo", "submittedAt", "integrityStatus", "version", "assessmentId" });
+        Assert.True(item.GetProperty("assessmentId").GetProperty("nullable").GetBoolean());
+        Assert.True(item.GetProperty("submittedAt").GetProperty("nullable").GetBoolean());
+        var submit = Assert.Single(path.GetProperty("post").GetProperty("security").EnumerateArray());
+        Assert.Equal("Bearer", Assert.Single(submit.EnumerateObject()).Name);
     }
 
     [Fact]

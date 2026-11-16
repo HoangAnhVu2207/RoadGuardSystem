@@ -120,7 +120,7 @@ internal static class PostmanDisposableBootstrap
                     await db.SaveChangesAsync(ct);
                 }
             }
-            Console.WriteLine("SUCCESS: production migrations and repeatable synthetic fixtures; no seeded files/VERIFIED objects or Huy approvals.");
+            Console.WriteLine("SUCCESS: migrations and repeatable synthetic fixtures; TEST_ONLY road coverage metadata, no uploaded fixture bytes or approvals.");
             return 0;
         }
         catch (Exception ex)

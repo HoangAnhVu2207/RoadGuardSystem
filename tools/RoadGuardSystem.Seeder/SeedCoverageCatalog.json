@@ -1052,9 +1052,9 @@
       "dbo.Projects",
       "dbo.Users"
     ],
-    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
+    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync; TestOnlyRoadCoverageSeed (synthetic SQL fixture)",
+    "EmptyReason": "No isolated handover fixture and no storage-backed upload scenario executed for this database.",
+    "Scenario": "Supported uploads use real bytes and the verifier. The isolated TEST_ONLY road coverage fixture seeds synthetic scoped metadata only for mapping UI; it is excluded from execution and has no downloadable object.",
     "Source": [
       "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs",
       "RoadGuardSystem.Repositories/Implementations/Retention/RetentionRepository.cs",
@@ -1063,7 +1063,8 @@
       "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
       "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Intake.cs",
-      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs"
+      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/TestOnlyRoadCoverageSeed.cs"
     ]
   },
   {
@@ -1073,9 +1074,9 @@
     "Prerequisites": [
       "dbo.Users"
     ],
-    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
+    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync; TestOnlyRoadCoverageSeed (synthetic SQL fixture)",
+    "EmptyReason": "No isolated handover fixture and no storage-backed upload scenario executed for this database.",
+    "Scenario": "Supported uploads use real bytes and the verifier. The isolated TEST_ONLY road coverage fixture seeds synthetic scoped metadata only for mapping UI; it is excluded from execution and has no downloadable object.",
     "Source": [
       "RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyPersistenceService.cs",
       "RoadGuardSystem.Services/Implementations/Surveys/SurveyV2Service.cs",
@@ -1084,7 +1085,8 @@
       "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyDataValidationAdmissionPersistenceService.cs",
       "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssessmentRepository.cs",
       "RoadGuardSystem.Services/Implementations/Reports/ReporterLifecycleService.cs",
-      "RoadGuardSystem.Services/Implementations/Reporting/ReportingDefinitions.cs"
+      "RoadGuardSystem.Services/Implementations/Reporting/ReportingDefinitions.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/TestOnlyRoadCoverageSeed.cs"
     ]
   },
   {
@@ -1327,9 +1329,9 @@
       "dbo.Projects",
       "dbo.Users"
     ],
-    "Producer": "ProjectCreationService/project memberships, warranty creation, IProjectLifecycleService",
+    "Producer": "ProjectCreationService/project memberships, warranty creation, IProjectLifecycleService; TestOnlyRoadCoverageSeed (synthetic SQL fixture)",
     "EmptyReason": "Foundational synthetic data, domain invariants plus identity hasher required; existing owned records must be preserved.",
-    "Scenario": "Task-owned synthetic project with PM/operator/crew memberships valid at reference date, handover without file when allowed. Use supported warranty service. Distinct graph for renewal/closure after dependencies are real; never fabricate lifecycle evidence.",
+    "Scenario": "Task-owned synthetic project with PM/operator/crew memberships valid at reference date, handover without file when allowed. Use supported warranty service. Distinct graph for renewal/closure after dependencies are real; never fabricate lifecycle evidence. Attach TEST_ONLY read/mapping fixture metadata to the seed-owned document only when empty.",
     "Source": [
       "RoadGuardSystem.Repositories/Implementations/Warranties/WarrantyPersistenceService.cs",
       "RoadGuardSystem.Repositories/Implementations/Seeding/PostmanScenarioSeedStep.cs",
@@ -1337,7 +1339,8 @@
       "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageResolver.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageRepository.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairEligibilityRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Projects/ProjectCreationPersistenceService.cs"
+      "RoadGuardSystem.Repositories/Implementations/Projects/ProjectCreationPersistenceService.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/TestOnlyRoadCoverageSeed.cs"
     ]
   },
   {
@@ -2588,9 +2591,9 @@
       "dbo.RepairItems",
       "dbo.RepairPackages"
     ],
-    "Producer": "IRepairPolicyService; IRepairProducerService; IRepairExecutionService; IRepairSafetyService; IRepairLifecycleService",
+    "Producer": "IRepairPolicyService; IRepairProducerService; IRepairExecutionService; IRepairSafetyService; IRepairLifecycleService; TestOnlyRoadCoverageSeed (synthetic SQL fixture)",
     "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "Create valid policy draft/revision via current actions. CreatePackage -> ProposeItem -> ApproveItem -> AssignItem; genuine generated FIELD binding drives Assess -> StartExecution -> FinishExecution -> SubmitAttempt -> ReviewAttempt -> ConfirmFinal. Separate normal, FT, correction/rework and safety graphs. FT needs current policy, eligibility, published defect, coverage/warranty facts; do not fabricate them.",
+    "Scenario": "Create valid policy draft/revision via current actions. CreatePackage -> ProposeItem -> ApproveItem -> AssignItem; genuine generated FIELD binding drives Assess -> StartExecution -> FinishExecution -> SubmitAttempt -> ReviewAttempt -> ConfirmFinal. Separate normal, FT, correction/rework and safety graphs. FT needs current policy, eligibility, published defect, coverage/warranty facts; do not fabricate them. The legacy Postman fallback can add a TEST_ONLY obligation for its own deterministic defect; it does not grant execution.",
     "Source": [
       "RoadGuardSystem.Services/Implementations/Reporting/CurrentRepairCaptureConsumer.cs",
       "RoadGuardSystem.Repositories/Implementations/Reporting/DefectStatisticsRepository.cs",
@@ -2599,7 +2602,8 @@
       "RoadGuardSystem.Repositories/Implementations/Repairs/RoadCoverageRepository.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Offline.cs",
-      "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Execution.cs"
+      "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Execution.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/TestOnlyRoadCoverageSeed.cs"
     ]
   },
   {
@@ -2610,16 +2614,17 @@
       "dbo.Defects",
       "dbo.Projects"
     ],
-    "Producer": "IRepairPolicyService; IRepairProducerService; IRepairExecutionService; IRepairSafetyService; IRepairLifecycleService",
+    "Producer": "IRepairPolicyService; IRepairProducerService; IRepairExecutionService; IRepairSafetyService; IRepairLifecycleService; TestOnlyRoadCoverageSeed (synthetic SQL fixture)",
     "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "Create valid policy draft/revision via current actions. CreatePackage -> ProposeItem -> ApproveItem -> AssignItem; genuine generated FIELD binding drives Assess -> StartExecution -> FinishExecution -> SubmitAttempt -> ReviewAttempt -> ConfirmFinal. Separate normal, FT, correction/rework and safety graphs. FT needs current policy, eligibility, published defect, coverage/warranty facts; do not fabricate them.",
+    "Scenario": "Create valid policy draft/revision via current actions. CreatePackage -> ProposeItem -> ApproveItem -> AssignItem; genuine generated FIELD binding drives Assess -> StartExecution -> FinishExecution -> SubmitAttempt -> ReviewAttempt -> ConfirmFinal. Separate normal, FT, correction/rework and safety graphs. FT needs current policy, eligibility, published defect, coverage/warranty facts; do not fabricate them. The legacy Postman fallback can add a TEST_ONLY obligation for its own deterministic defect; it does not grant execution.",
     "Source": [
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.RepairFirstStart.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.ReviewRequests.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Producing.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.Lifecycle.cs",
       "RoadGuardSystem.Repositories/Implementations/Repairs/RepairWorkflowRepository.cs",
-      "RoadGuardSystem.Repositories/Implementations/Repairs/RepairSafetyRepository.cs"
+      "RoadGuardSystem.Repositories/Implementations/Repairs/RepairSafetyRepository.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/TestOnlyRoadCoverageSeed.cs"
     ]
   },
   {
@@ -3562,9 +3567,9 @@
       "dbo.Files",
       "dbo.Users"
     ],
-    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync",
-    "EmptyReason": "Current steps do not create this table; extension must execute the group producer with current prerequisites.",
-    "Scenario": "Generate minimal valid JPEG/SRT/video bytes; calculate checksum,size,MIME; create session, obtain part URLs, upload real bytes, complete with actual ETags and current version, then invoke supported verifier. Only verifier may create verified state. Recovery sweep rows only through multipart recovery, never manual inserts.",
+    "Producer": "IReporterEvidenceService or IUploadService -> IUploadObjectStorage -> CompleteAsync -> IUploadService.ProcessOneVerificationAsync; TestOnlyRoadCoverageSeed (synthetic SQL fixture)",
+    "EmptyReason": "No isolated handover fixture and no storage-backed upload scenario executed for this database.",
+    "Scenario": "Supported uploads use real bytes and the verifier. The isolated TEST_ONLY road coverage fixture seeds synthetic scoped metadata only for mapping UI; it is excluded from execution and has no downloadable object.",
     "Source": [
       "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyV2PersistenceService.Dataset.cs",
       "RoadGuardSystem.Repositories/Implementations/Surveys/SurveyAssessmentRepository.cs",
@@ -3573,7 +3578,8 @@
       "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.cs",
       "RoadGuardSystem.Repositories/Implementations/Reporting/ReportingRepository.CaseDefect.cs",
       "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Intake.cs",
-      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs"
+      "RoadGuardSystem.Repositories/Implementations/Inspections/FieldInspectionWorkflowRepository.Evidence.cs",
+      "RoadGuardSystem.Repositories/Implementations/Seeding/TestOnlyRoadCoverageSeed.cs"
     ]
   },
   {

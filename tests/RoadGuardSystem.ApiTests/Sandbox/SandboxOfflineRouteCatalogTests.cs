@@ -55,6 +55,7 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("GET", "/api/v1/me/phone-number"),
             ("PATCH", "/api/v1/me/phone-number"),
             ("GET", "/api/v1/survey-tasks/{taskId}/datasets"),
+            ("POST", "/api/v1/projects/{projectId}/handover-documents"),
             ("GET", "/api/v1/survey-tasks/{taskId}/eligible-drones"),
             ("GET", "/api/v1/cases/{caseId}/reports"),
             ("GET", "/api/v1/cases/{caseId}/reports/{reportId}/evidence/{evidenceId}/content"),

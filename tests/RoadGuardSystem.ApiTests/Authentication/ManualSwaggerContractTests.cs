@@ -270,6 +270,30 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Fact]
+    public async Task ProjectHandoverAndDocumentUploadAdvertiseBrowserTransport()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        foreach (var (path, verb) in new[]
+        {
+            ("/api/v1/projects/{projectId}/handover-documents", "post"),
+            ("/api/v1/uploads", "post"),
+            ("/api/v1/uploads/{uploadId}", "get"),
+            ("/api/v1/uploads/{uploadId}/part-urls", "post"),
+            ("/api/v1/uploads/{uploadId}/complete", "post")
+        })
+        {
+            var operation = paths.GetProperty(path).GetProperty(verb);
+            var alternatives = operation.GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, alternatives.Length);
+            Assert.Equal("Bearer", Assert.Single(Assert.Single(alternatives, option => option.TryGetProperty("Bearer", out _)).EnumerateObject()).Name);
+            var web = Assert.Single(alternatives, option => option.TryGetProperty("WebSession", out _));
+            Assert.Equal(verb == "post", web.TryGetProperty("CsrfToken", out _));
+            Assert.Equal(verb == "post", web.TryGetProperty("AntiforgeryCookie", out _));
+        }
+    }
+
+    [Fact]
     public async Task SurveyAssessmentAndBaselineAdvertiseWebSessionsAndCommandCsrf()
     {
         using var document = await Document();

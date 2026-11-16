@@ -2,6 +2,11 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Security.Cryptography;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using RoadGuardSystem.Repositories.Storage;
+using RoadGuardSystem.Services.Files;
 using Xunit.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
@@ -53,14 +58,102 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         var upload = UploadSession.Create(Guid.NewGuid(), file.Id, supervisor.Id, file.StorageUri, "TEST_ONLY_COVERAGE", file.MimeType, 4, file.Checksum, 8388608, now.AddHours(24));
         upload.StartUploading("TEST_ONLY", now); db.AddRange(file, upload, FileScope.Create(Guid.NewGuid(), file.Id, project.Id, project.Id, supervisor.Id, "TEST_ONLY_COVERAGE", now));
         await db.SaveChangesAsync(); upload.StartVerification(Convert.ToBase64String(upload.RowVersion), now); await db.SaveChangesAsync(); upload.MarkVerified(); await db.SaveChangesAsync();
-        var handover = HandoverDocument.Create(Guid.NewGuid(), project.Id, "TEST_ONLY-" + Guid.NewGuid(), DateOnly.FromDateTime(now.UtcDateTime).AddDays(-2), supervisor.Id, file.Id, "TEST_ONLY");
+        var handover = HandoverDocument.Create(Guid.NewGuid(), project.Id, "TEST_ONLY-" + Guid.NewGuid(), DateOnly.FromDateTime(now.UtcDateTime).AddDays(-2), supervisor.Id, null, "TEST_ONLY");
         db.Add(handover); await db.SaveChangesAsync();
-        await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString);
+        var other = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Other project", null, null, null, null, now);
+        db.Add(other);
+        await db.SaveChangesAsync();
+        var data = "%PDF-test"u8.ToArray();
+        var checksum = Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant();
+        await using var factory = new AuthenticationWebApplicationFactory(fixture.ConnectionString, configureTestServices: services =>
+        {
+            services.RemoveAll<IUploadObjectStorage>();
+            services.AddSingleton<IUploadObjectStorage>(new DocumentStorage(data.Length, checksum));
+        });
         using var client = factory.CreateClient(); using var pmClient = factory.CreateClient();
         await Login(client, supervisor.Email!); await Login(pmClient, pm.Email!);
+        using var web = await WebCookieTestClient.Login(factory, supervisor.Email!);
         await db.ProjectMembers.Where(row => row.UserId == supervisor.Id).ExecuteDeleteAsync();
         var path = $"/api/v1/projects/{project.Id}/road-coverage";
-        var initial = await client.GetAsync(path); Assert.Equal(HttpStatusCode.OK, initial.StatusCode);
+        var attachPath = $"/api/v1/projects/{project.Id}/handover-documents";
+        using var noHandover = await web.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, noHandover.StatusCode);
+        Assert.DoesNotContain((await noHandover.Content.ReadFromJsonAsync<RoadCoverageReadFact>())!.Sources, row => row.Kind == "HANDOVER");
+
+        async Task<(Guid UploadId, Guid FileId)> OpenUpload(Guid projectId)
+        {
+            using var create = await Send(web, "/api/v1/uploads", new
+            {
+                purpose = "DOCUMENT",
+                projectId,
+                targetId = projectId,
+                fileName = "handover.pdf",
+                mediaType = "application/pdf",
+                sizeBytes = data.Length,
+                checksumSha256 = checksum
+            }, Guid.NewGuid().ToString());
+            Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+            var uploadBody = await create.Content.ReadFromJsonAsync<JsonElement>();
+            return (uploadBody.GetProperty("id").GetGuid(), uploadBody.GetProperty("fileId").GetGuid());
+        }
+
+        async Task VerifyUpload(Guid uploadId)
+        {
+            var uploadPath = $"/api/v1/uploads/{uploadId}";
+            using var parts = await Send(web, uploadPath + "/part-urls", new { partNumbers = new[] { 1 } }, Guid.NewGuid().ToString());
+            Assert.Equal(HttpStatusCode.OK, parts.StatusCode);
+            using var session = await web.GetAsync(uploadPath);
+            using var complete = await Send(web, uploadPath + "/complete",
+                new { parts = new[] { new { partNumber = 1, eTag = "fixture-1" } }, checksumSha256 = checksum },
+                Guid.NewGuid().ToString(), session.Headers.ETag!.Tag);
+            Assert.Equal(HttpStatusCode.Accepted, complete.StatusCode);
+            using (var scope = factory.Services.CreateScope())
+                await scope.ServiceProvider.GetRequiredService<IUploadService>().ProcessOneVerificationAsync();
+            using var verified = await web.GetAsync(uploadPath);
+            Assert.Equal("VERIFIED", (await verified.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+        }
+
+        var uploadIds = await OpenUpload(project.Id);
+        var attach = new { fileId = uploadIds.FileId };
+        var version = noHandover.Headers.ETag!.Tag;
+        using var pending = await Send(web, attachPath, attach, Guid.NewGuid().ToString(), version);
+        Assert.Equal(HttpStatusCode.Conflict, pending.StatusCode);
+        Assert.Equal("handover_file_not_ready", (await pending.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        await VerifyUpload(uploadIds.UploadId);
+        var outsideUpload = await OpenUpload(other.Id);
+        await VerifyUpload(outsideUpload.UploadId);
+        var noDocumentPath = $"/api/v1/projects/{other.Id}/handover-documents";
+        using var otherCoverage = await web.GetAsync($"/api/v1/projects/{other.Id}/road-coverage");
+        using var newDocument = await Send(web, noDocumentPath, new
+        {
+            fileId = outsideUpload.FileId,
+            documentNo = "TEST-HANDOVER-NEW",
+            handoverDate = DateOnly.FromDateTime(now.UtcDateTime)
+        }, Guid.NewGuid().ToString(), otherCoverage.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.OK, newDocument.StatusCode);
+        Assert.Contains((await newDocument.Content.ReadFromJsonAsync<RoadCoverageReadFact>())!.Sources,
+            row => row.Kind == "HANDOVER" && row.FileId == outsideUpload.FileId);
+
+        // A verified DOCUMENT is itself now visible as a maintenance source, so fetch a fresh aggregate ETag.
+        using var beforeAttach = await web.GetAsync(path);
+        var attachVersion = beforeAttach.Headers.ETag!.Tag;
+        Assert.Equal(HttpStatusCode.Forbidden, (await Send(pmClient, attachPath, attach, Guid.NewGuid().ToString(), attachVersion)).StatusCode);
+        using var wrongProject = await Send(web, attachPath, new { fileId = outsideUpload.FileId }, Guid.NewGuid().ToString(), attachVersion);
+        Assert.Equal(HttpStatusCode.Conflict, wrongProject.StatusCode);
+        Assert.Equal("handover_file_not_ready", (await wrongProject.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        Assert.Equal(HttpStatusCode.Forbidden, (await Send(web, attachPath, attach, Guid.NewGuid().ToString(), attachVersion)).StatusCode);
+        await WebCookieTestClient.RefreshCsrf(web);
+        using var staleAttach = await Send(web, attachPath, attach, Guid.NewGuid().ToString(), version);
+        Assert.Equal(HttpStatusCode.Conflict, staleAttach.StatusCode);
+        Assert.Equal("concurrency_conflict", (await staleAttach.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        var attachKey = Guid.NewGuid().ToString();
+        using var attached = await Send(web, attachPath, attach, attachKey, attachVersion);
+        Assert.Equal(HttpStatusCode.OK, attached.StatusCode);
+        using var replay = await Send(web, attachPath, attach, attachKey, attachVersion);
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.Equal(attached.Headers.ETag, replay.Headers.ETag);
+        var initial = await web.GetAsync(path); Assert.Equal(HttpStatusCode.OK, initial.StatusCode);
         var view = (await initial.Content.ReadFromJsonAsync<RoadCoverageReadFact>())!;
         var handoverPin = view.Sources.Single(row => row.Kind == "HANDOVER" && row.Id == handover.Id);
         var sourcePin = view.Sources.Single(row => row.Kind == "MAINTENANCE_BASIS" && row.Id == file.Id);
@@ -71,9 +164,14 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/road-coverage")).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Send(client, path, input with { HandoverVersion = new string('0', 64) }, Guid.NewGuid().ToString(), initial.Headers.ETag!.ToString())).StatusCode);
         var key = Guid.NewGuid().ToString();
-        var confirmed = await Send(client, path, input, key, initial.Headers.ETag!.ToString()); Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
+        var confirmed = await Send(web, path, input, key, initial.Headers.ETag!.ToString()); Assert.Equal(HttpStatusCode.Created, confirmed.StatusCode);
         var mapping = Assert.Single((await confirmed.Content.ReadFromJsonAsync<RoadCoverageReadFact>())!.History);
         Assert.Equal(sourcePin.Version, mapping.SourceVersion); Assert.Equal(handoverPin.Version, mapping.HandoverVersion); Assert.Equal("TEST_ONLY", mapping.Provenance);
+        Assert.Equal(uploadIds.FileId, handoverPin.FileId);
+        using var replace = await Send(web, attachPath, attach, Guid.NewGuid().ToString(), confirmed.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.Conflict, replace.StatusCode);
+        Assert.Equal("handover_document_already_linked", (await replace.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(1, await db.AuditLogs.CountAsync(row => row.EntityId == handover.Id && row.EventType == "handover_file_attached"));
         Assert.Equal(HttpStatusCode.OK, (await Send(client, path, input, key, initial.Headers.ETag.ToString())).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Send(client, path, input with { Reason = "changed" }, key, initial.Headers.ETag.ToString())).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Send(client, path, input, Guid.NewGuid().ToString(), initial.Headers.ETag.ToString())).StatusCode);
@@ -120,9 +218,25 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Current1!" }); Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
     }
-    private static Task<HttpResponseMessage> Send(HttpClient client, string path, object input, string key, string version)
+    private static Task<HttpResponseMessage> Send(HttpClient client, string path, object input, string key, string? version = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(input) };
-        request.Headers.Add("Idempotency-Key", key); request.Headers.TryAddWithoutValidation("If-Match", version); return client.SendAsync(request);
+        request.Headers.Add("Idempotency-Key", key);
+        if (version is not null) request.Headers.TryAddWithoutValidation("If-Match", version);
+        return client.SendAsync(request);
+    }
+
+    private sealed class DocumentStorage(int bytes, string checksum) : IUploadObjectStorage
+    {
+        public Task<string> InitiateAsync(string objectKey, string mediaType, CancellationToken cancellationToken = default) => Task.FromResult("fixture-upload");
+
+        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string objectKey, string uploadId, IReadOnlyList<int> partNumbers,
+            DateTimeOffset expiresAt, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<PresignedUploadPart>>(partNumbers.Select(n => new PresignedUploadPart(n, $"https://storage.test/{n}", expiresAt)).ToArray());
+
+        public Task<UploadObjectVerification> CompleteAndVerifyAsync(string objectKey, string uploadId, IReadOnlyList<CompletedStoragePart> parts,
+            CancellationToken cancellationToken = default) => Task.FromResult(new UploadObjectVerification(bytes, checksum, "application/pdf"));
+
+        public Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

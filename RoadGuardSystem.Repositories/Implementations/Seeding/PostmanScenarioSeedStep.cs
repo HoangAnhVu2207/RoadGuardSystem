@@ -319,7 +319,10 @@ public sealed class PostmanScenarioSeedStep : ISeedStep
         {
             context.ChangeTracker.Clear();
             await SeedCoreAsync(context, allowDuplicateRetry: false, cancellationToken);
+            return;
         }
+        await TestOnlyRoadCoverageSeed.EnsureAsync(context, ProjectId, "RG-POSTMAN-HD-001", projectManagerId,
+            fixtureTime, cancellationToken, DefectId, RoadSectionId);
     }
 
     private static async Task AddMembershipIfMissingAsync(

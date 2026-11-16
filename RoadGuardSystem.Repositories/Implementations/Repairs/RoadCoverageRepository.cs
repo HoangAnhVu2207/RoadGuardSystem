@@ -61,6 +61,64 @@ public sealed class RoadCoverageRepository(RoadGuardDbContext db, TimeProvider c
         var facts = new RoadCoverageReadFact(project, scopes, sources.ToArray(), history, "");
         return facts with { Version = RoadCoverageResolver.Hash(facts) };
     }
+    public async Task<RoadCoverageResult> AttachHandoverAsync(HandoverAttachmentCommand command, CancellationToken token)
+    {
+        const string operation = "project.handover.attach.v1";
+        async Task Guard(CancellationToken ct) => await Authority(command.ActorId, command.Role, command.ProjectId, true, ct);
+        try
+        {
+            var result = await new IdempotencyOperationService(db).ExecuteSerializableAsync(command.ActorId, command.ProjectId,
+                operation, command.Key, RoadCoverageResolver.Hash(command), async ct =>
+                {
+                    await Guard(ct);
+                    if (await db.IdempotencyRecords.AnyAsync(row => row.ActorUserId == command.ActorId && row.ProjectId == command.ProjectId &&
+                        row.Operation == operation && row.IdempotencyKey == command.Key, ct)) throw new ReceiptRace();
+                    var before = await ReadCore(command.ProjectId, ct);
+                    if (before.Version != command.ExpectedVersion) throw new Rejected(409, "concurrency_conflict");
+                    var ready = await (from scope in db.FileScopes.AsNoTracking()
+                                       join upload in db.UploadSessions.AsNoTracking() on scope.FileId equals upload.FileId
+                                       where scope.FileId == command.FileId && scope.ProjectId == command.ProjectId &&
+                                           scope.TargetId == command.ProjectId && scope.Purpose == "DOCUMENT" &&
+                                           upload.Purpose == "DOCUMENT" && upload.Status == UploadSessionStatus.Verified
+                                       select scope.FileId).AnyAsync(ct);
+                    if (!ready) throw new Rejected(409, "handover_file_not_ready");
+
+                    var rows = db.HandoverDocuments.Where(row => row.ProjectId == command.ProjectId);
+                    HandoverDocument document;
+                    if (command.DocumentNo is { } number && command.HandoverDate is { } date)
+                    {
+                        if (await rows.AnyAsync(ct)) throw new Rejected(409, "handover_document_exists");
+                        document = HandoverDocument.Create(Guid.NewGuid(), command.ProjectId, number, date, command.ActorId, command.FileId, null);
+                        db.HandoverDocuments.Add(document);
+                    }
+                    else
+                    {
+                        var matches = await rows.Where(row => command.HandoverDocumentId == null || row.Id == command.HandoverDocumentId)
+                            .OrderBy(row => row.Id).Take(2).ToArrayAsync(ct);
+                        if (matches.Length == 0) throw new Rejected(404, "handover_document_not_found");
+                        if (matches.Length > 1) throw new Rejected(409, "handover_document_selection_required");
+                        document = matches[0];
+                        if (document.FileId is not null || await db.Set<RoadCoverageMapping>().AnyAsync(row => row.HandoverDocumentId == document.Id, ct))
+                            throw new Rejected(409, "handover_document_already_linked");
+                        document.FileId = command.FileId;
+                        document.AcceptedByUserId ??= command.ActorId;
+                    }
+
+                    db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), command.ActorId, clock.GetUtcNow(),
+                        "handover_file_attached", nameof(HandoverDocument), document.Id, null,
+                        JsonSerializer.Serialize(new { fileId = command.FileId }, RoadCoverageResolver.Json),
+                        "Attach verified project handover document", operation, null, ["fileId"]));
+                    await db.SaveChangesAsync(ct);
+                    return (document.Id, JsonSerializer.Serialize(await ReadCore(command.ProjectId, ct), RoadCoverageResolver.Json));
+                }, token, receiptAccessGuard: Guard);
+            if (result.Status == IdempotencyOperationStatus.Conflict) return new(409, "idempotency_key_reused");
+            return new(200, Value: JsonSerializer.Deserialize<RoadCoverageReadFact>(result.OutcomeJson, RoadCoverageResolver.Json));
+        }
+        catch (Rejected rejected) { db.ChangeTracker.Clear(); return rejected.Result; }
+        catch (ReceiptRace) { db.ChangeTracker.Clear(); return await AttachHandoverAsync(command, token); }
+        catch (DbUpdateConcurrencyException) { db.ChangeTracker.Clear(); return new(409, "concurrency_conflict"); }
+    }
+
     public async Task<RoadCoverageResult> ConfirmAsync(RoadCoverageCommand command, CancellationToken token)
     {
         var input = command.Input;

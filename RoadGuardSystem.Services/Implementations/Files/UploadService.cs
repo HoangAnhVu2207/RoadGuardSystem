@@ -121,6 +121,14 @@ public sealed class UploadService : IUploadService
         };
     }
 
+    public async Task<bool> IsOwnProjectDocumentAsync(Guid actorUserId, UserRoleCode role, Guid uploadId, CancellationToken cancellationToken = default)
+    {
+        if (role != UserRoleCode.Supervisor) return false;
+        var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
+        return session is { ProjectId: Guid project, Purpose: "DOCUMENT" } &&
+            session.TargetId == project && session.OwnerUserId == actorUserId;
+    }
+
     public async Task<UploadServiceResult> GetSessionAsync(Guid actorUserId, UserRoleCode role, Guid uploadId, CancellationToken cancellationToken = default)
     {
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);

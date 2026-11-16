@@ -177,8 +177,29 @@ public sealed class SeederTests : IClassFixture<SqlServerTestFixture>
 
         await seeder.SeedAsync(context);
         context.ChangeTracker.Clear();
+        var document = await context.HandoverDocuments.SingleAsync(row => row.Id == PostmanScenarioSeedStep.HandoverDocumentId);
+        var linked = document.FileId;
+        linked.Should().NotBeNull();
+        // Emulate the legacy fixture and a user's unrelated edit before rerunning.
+        document.FileId = null;
+        document.Notes = "Keep user-edited handover notes.";
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
         await seeder.SeedAsync(context);
         context.ChangeTracker.Clear();
+
+        document = await context.HandoverDocuments.SingleAsync(row => row.Id == PostmanScenarioSeedStep.HandoverDocumentId);
+        document.FileId.Should().Be(linked);
+        document.Notes.Should().Be("Keep user-edited handover notes.");
+        var coverage = await new RoadGuardSystem.Repositories.Implementations.Repairs.RoadCoverageRepository(context, TimeProvider.System)
+            .ReadAsync(PostmanUserSeedStep.SupervisorUserId, RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.Supervisor,
+                PostmanScenarioSeedStep.ProjectId, CancellationToken.None);
+        coverage.Status.Should().Be(200);
+        coverage.Value!.Sources.Should().ContainSingle(row => row.Kind == "HANDOVER" && row.FileId == linked && row.Provenance == "TEST_ONLY");
+        coverage.Value.Sources.Should().Contain(row => row.Kind == "MAINTENANCE_BASIS" && row.FileId != linked && row.Provenance == "TEST_ONLY");
+        coverage.Value.Scopes.Should().ContainSingle(row => row.RoadSectionId == PostmanScenarioSeedStep.RoadSectionId);
+        (await context.FileScopes.CountAsync(row => row.ProjectId == PostmanScenarioSeedStep.ProjectId && row.Purpose == "TEST_ONLY_COVERAGE"))
+            .Should().Be(2);
 
         (await context.Projects.CountAsync(item => item.Id == Guid.Parse("6a4dbd16-a646-46da-9e5c-200000000001")))
             .Should().Be(1);

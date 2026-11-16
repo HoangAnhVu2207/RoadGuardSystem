@@ -52712,6 +52712,152 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/projects/{projectId}/handover-documents": {
+      "post": {
+        "tags": [
+          "RoadCoverage"
+        ],
+        "description": "Supervisor attaches a verified project DOCUMENT to an empty handover record, or creates a record when the project has none. Existing mappings and linked files remain immutable.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 150
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "description": "Strong ETag from GET road-coverage after upload verification.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoverAttachmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current road coverage with the newly linked handover source. ETag is the current coverage version.",
+            "headers": {
+              "ETag": {
+                "description": "Current strong quoted content-hash ETag.",
+                "schema": {
+                  "pattern": "^\"[0-9a-f]{64}\"$",
+                  "type": "string"
+                }
+              },
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadCoverageReadFact"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "auth_unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found or handover_document_not_found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "concurrency_conflict, handover_file_not_ready, handover_document_exists, handover_document_selection_required, handover_document_already_linked or idempotency_key_reused",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "precondition_required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/road-coverage": {
       "get": {
         "tags": [
@@ -59253,6 +59399,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-223",
@@ -59384,6 +59535,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-224",
@@ -59907,6 +60061,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-226",
@@ -60201,6 +60360,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-227",
@@ -62037,6 +62201,34 @@
   },
   "components": {
     "schemas": {
+      "HandoverAttachmentDto": {
+        "type": "object",
+        "required": [
+          "fileId"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "handoverDocumentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "documentNo": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true
+          },
+          "handoverDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
       "AcceptInvitationRequestDto": {
         "required": [
           "displayName",

@@ -28,6 +28,23 @@ public sealed class RoadCoverageController(IRoadCoverageService service) : Contr
         return Map(await service.ConfirmAsync(actor, role, projectId, input, Request.Headers["Idempotency-Key"].ToString(),
             Request.Headers.IfMatch.ToString(), token));
     }
+    [HttpPost("/api/v{version:apiVersion}/projects/{projectId:guid}/handover-documents")]
+    [ProducesResponseType<RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageReadFact>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status428PreconditionRequired)]
+    public async Task<IActionResult> AttachHandover(Guid projectId, HandoverAttachmentDto input,
+        [FromHeader(Name = "Idempotency-Key")] string? key, [FromHeader(Name = "If-Match")] string? version,
+        CancellationToken token)
+    {
+        if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
+        if (Request.Headers["Idempotency-Key"].Count > 1 || Request.Headers.IfMatch.Count > 1) return Error(400, "validation_error");
+        return Map(await service.AttachHandoverAsync(actor, role, projectId, input, key, version, token));
+    }
+
     private bool Actor(out Guid actor, out UserRoleCode role)
     {
         role = default;

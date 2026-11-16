@@ -34,10 +34,16 @@ public sealed class LD07RoadCoverageSqlTests(IdentitySqlServerFixture sql) : ICl
     [Fact]
     public async Task TestOnlyWarrantyPinsActualScopeAndEligibilityWithoutExecutionAndRetainsHistory()
     {
-        await using var db = sql.CreateDbContext(); var state = await Seed(db);
+        await using var db = sql.CreateDbContext(); var state = await Seed(db, attachRequired: true);
         var repository = new RoadCoverageRepository(db, TimeProvider.System);
         var before = await repository.ReadAsync(state.Source.Supervisor, UserRoleCode.Supervisor, state.Source.Project, default);
         Assert.Equal(200, before.Status);
+        Assert.DoesNotContain(before.Value!.Sources, row => row.Kind == "HANDOVER");
+        var attachment = await repository.AttachHandoverAsync(new(state.Source.Supervisor, UserRoleCode.Supervisor,
+            state.Source.Project, state.SourceFile, state.Handover, null, null, Guid.NewGuid().ToString(), before.Value.Version), default);
+        Assert.Equal(200, attachment.Status);
+        Assert.Contains(attachment.Value!.Sources, row => row.Kind == "HANDOVER" && row.Id == state.Handover && row.Provenance == "TEST_ONLY");
+        before = await repository.ReadAsync(state.Source.Supervisor, UserRoleCode.Supervisor, state.Source.Project, default);
         var input = Input(before.Value!, state, "WARRANTY");
         var command = new RoadCoverageCommand(state.Source.Supervisor, UserRoleCode.Supervisor, state.Source.Project, input, Guid.NewGuid().ToString(), before.Value!.Version);
         Assert.Equal(403, (await repository.ConfirmAsync(command with { ActorId = state.Source.Pm, Role = UserRoleCode.ProjectManager }, default)).Status);
@@ -203,7 +209,7 @@ public sealed class LD07RoadCoverageSqlTests(IdentitySqlServerFixture sql) : ICl
     }
     private sealed record State(H4GenuineRepairSource.Source Source, Guid Package, Guid Item, RepairFieldTaskBinding Binding,
         FieldTaskStartOrigin FirstStart, Guid SourceFile, Guid Handover, Guid Warranty);
-    private async Task<State> Seed(RoadGuardDbContext db)
+    private async Task<State> Seed(RoadGuardDbContext db, bool attachRequired = false)
     {
         var source = await H4GenuineRepairSource.Seed(db, sql);
         var defect = await db.Defects.AsNoTracking().SingleAsync(row => row.Id == source.Defect);
@@ -241,12 +247,13 @@ public sealed class LD07RoadCoverageSqlTests(IdentitySqlServerFixture sql) : ICl
         var first = await db.Set<FieldTaskStartOrigin>().SingleAsync(row => row.TaskId == native.Id);
         var now = DateTimeOffset.UtcNow;
         var file = StoredFile.Create(Guid.NewGuid(), "TEST_ONLY/ld07/" + Guid.NewGuid(), "coverage.pdf", "application/pdf", 4, new string('e', 64), source.Supervisor, now, null);
-        var upload = UploadSession.Create(Guid.NewGuid(), file.Id, source.Supervisor, file.StorageUri, "TEST_ONLY_COVERAGE", file.MimeType, 4, file.Checksum, 8388608, now.AddHours(24));
+        var purpose = attachRequired ? "DOCUMENT" : "TEST_ONLY_COVERAGE";
+        var upload = UploadSession.Create(Guid.NewGuid(), file.Id, source.Supervisor, file.StorageUri, purpose, file.MimeType, 4, file.Checksum, 8388608, now.AddHours(24));
         upload.StartUploading("TEST_ONLY", now); db.AddRange(file, upload, FileScope.Create(Guid.NewGuid(), file.Id, source.Project, source.Project,
-            source.Supervisor, "TEST_ONLY_COVERAGE", now)); await db.SaveChangesAsync();
+            source.Supervisor, purpose, now)); await db.SaveChangesAsync();
         upload.StartVerification(Convert.ToBase64String(upload.RowVersion), now); await db.SaveChangesAsync(); upload.MarkVerified(); await db.SaveChangesAsync();
         var day = DateOnly.FromDateTime(now.UtcDateTime);
-        var handover = HandoverDocument.Create(Guid.NewGuid(), source.Project, "TEST_ONLY-" + Guid.NewGuid(), day.AddDays(-2), source.Supervisor, file.Id, "TEST_ONLY source");
+        var handover = HandoverDocument.Create(Guid.NewGuid(), source.Project, "TEST_ONLY-" + Guid.NewGuid(), day.AddDays(-2), source.Supervisor, attachRequired ? null : file.Id, "TEST_ONLY source");
         db.Add(handover); await db.SaveChangesAsync();
         var warranty = Warranty.Create(Guid.NewGuid(), source.Project, source.Road, handover.Id, day.AddDays(-2), day.AddDays(-1), day.AddDays(30),
             null, WarrantyScope.RoadSection, "TEST_ONLY", file.Id, WarrantyStatus.Active); db.Add(warranty); await db.SaveChangesAsync();

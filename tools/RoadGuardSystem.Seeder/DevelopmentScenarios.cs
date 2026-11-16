@@ -73,6 +73,10 @@ public static class DevelopmentScenarios
         }
         // Existing project identity is never reassigned; mutable details and lifecycle state are preserved.
         var reference = project.CreatedAt;
+        if (project.Status == ProjectStatus.Active)
+            await TestOnlyRoadCoverageSeed.EnsureAsync(db, project.Id, "RG-CI-01-SYNTHETIC-HANDOVER",
+                PostmanUserSeedStep.SupervisorUserId, reference, ct);
+        gaps.Add("TEST_ONLY road coverage source metadata is for SQL mapping practice; no downloadable source document or execution authority is seeded.");
         var guard = new ProjectScopeGuard(new ProjectMembershipReadModel(db), clock);
         var geometry = new GeometryWorkflowService(new GeometryWorkflowPersistenceService(db, receipts, clock), guard);
         if (project.Status == ProjectStatus.Active)

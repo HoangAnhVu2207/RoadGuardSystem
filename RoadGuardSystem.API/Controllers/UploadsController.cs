@@ -25,6 +25,7 @@ public sealed class UploadsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("uploads")]
     [ProducesResponseType<UploadSessionResponseDto>(StatusCodes.Status201Created)]
     public async Task<IActionResult> Create(
@@ -33,6 +34,9 @@ public sealed class UploadsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (UsesWebSession && (role != UserRoleCode.Supervisor || request.ProjectId is not Guid project ||
+            request.TargetId != project || !string.Equals(request.Purpose?.Trim(), "DOCUMENT", StringComparison.OrdinalIgnoreCase)))
+            return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         var result = await _service.CreateAsync(actorUserId, role, request, idempotencyKey, CorrelationId(), cancellationToken);
         if (result.Status == UploadServiceStatus.InvalidInput && result.MaxBytes is not null)
@@ -48,11 +52,14 @@ public sealed class UploadsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("uploads/{uploadId:guid}")]
     [ProducesResponseType<UploadSessionResponseDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSession(Guid uploadId, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (UsesWebSession && !await _service.IsOwnProjectDocumentAsync(actorUserId, role, uploadId, cancellationToken))
+            return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
         return MapSession(await _service.GetSessionAsync(actorUserId, role, uploadId, cancellationToken), StatusCodes.Status200OK, null);
     }
 
@@ -69,6 +76,7 @@ public sealed class UploadsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("uploads/{uploadId:guid}/part-urls")]
     [ProducesResponseType<UploadPartUrlsResponseDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPartUrls(
@@ -78,6 +86,8 @@ public sealed class UploadsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (UsesWebSession && !await _service.IsOwnProjectDocumentAsync(actorUserId, role, uploadId, cancellationToken))
+            return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         return MapPartUrls(await _service.GetPartUrlsAsync(actorUserId, role, uploadId, request, idempotencyKey, cancellationToken));
     }
@@ -105,6 +115,7 @@ public sealed class UploadsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("uploads/{uploadId:guid}/complete")]
     [ProducesResponseType<UploadSessionResponseDto>(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> Complete(
@@ -115,6 +126,8 @@ public sealed class UploadsController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (UsesWebSession && !await _service.IsOwnProjectDocumentAsync(actorUserId, role, uploadId, cancellationToken))
+            return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
         if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
         return MapSession(
             await _service.CompleteAsync(actorUserId, role, uploadId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken),
@@ -182,6 +195,8 @@ public sealed class UploadsController : ControllerBase
             UploadServiceStatus.StorageUnavailable => ProblemResponse(503, ApiErrorCodes.UploadStorageUnavailable, "Storage unavailable"),
             _ => ProblemResponse(422, ApiErrorCodes.UploadValidationFailed, "Upload validation failed")
         };
+
+    private bool UsesWebSession => User.Identity?.AuthenticationType == RoadGuardSystem.API.Authentication.WebCookieConfiguration.Scheme;
 
     private bool TryGetActor(out Guid actorUserId, out UserRoleCode role)
     {

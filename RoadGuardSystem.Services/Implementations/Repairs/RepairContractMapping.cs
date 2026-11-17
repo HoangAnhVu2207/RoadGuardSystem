@@ -216,7 +216,13 @@ internal static class RepairContractMapping
         value.EffectiveDecisionId,
         value.AttemptIds,
         value.DecisionIds,
-        value.Version);
+        value.Version,
+        value.RepairPlan,
+        value.ChecklistVersion,
+        value.ProposalPlanHash,
+        value.ApprovedPlanHash,
+        value.CurrentBinding is { } binding ? new(binding.Id, binding.TaskId, binding.AssignmentId,
+            binding.PolicyRevisionId, binding.PolicyContentHash, binding.PlanHash, binding.ChecklistVersion) : null);
     public static RepairMeasurementAssessmentData ToData(RepairMeasurementAssessmentInput value) => new(value.OriginId,
         value.FieldFirstStartId,
         value.Measurements is null ? null : value.Measurements.Select(element => element is null ? null! : ToData(element)).ToArray(),

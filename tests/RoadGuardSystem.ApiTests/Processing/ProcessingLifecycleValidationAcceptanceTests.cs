@@ -55,6 +55,8 @@ public sealed class ProcessingLifecycleValidationAcceptanceTests(AuthenticationS
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
         var created = await client.PostAsJsonAsync("/api/v1/projects", new
         {
             projectCode = $"ANH-{Guid.NewGuid():N}",
@@ -63,9 +65,10 @@ public sealed class ProcessingLifecycleValidationAcceptanceTests(AuthenticationS
             startDate = "2026-09-01",
             endDate = "2027-09-01",
             primaryProjectManagerUserId = manager.Id,
-            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" },
+            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31", fileId = staged.FileId },
             operationId = Guid.NewGuid()
         });
+        client.DefaultRequestHeaders.IfMatch.Clear();
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await Body(created)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!);
@@ -249,7 +252,17 @@ public sealed class ProcessingLifecycleValidationAcceptanceTests(AuthenticationS
             await Error(path, input, HttpStatusCode.Conflict, stored: true);
         }
         await using (var db = sql.CreateDbContext()) await db.AIModelVersions.Where(m => m.Id == model).ExecuteUpdateAsync(u => u.SetProperty(m => m.Status, AIModelVersionStatus.Released));
-        using var admission = await Command(client, path, input); admission.StatusCode.Should().Be(HttpStatusCode.Accepted); var job = (await Body(admission)).GetProperty("id").GetGuid(); var retryPath = $"{path}/{job}/retry";
+        using var web = await WebCookieTestClient.Login(factory, manager.Email!);
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        using (var rejected = await Command(web, path, input)) rejected.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        web.DefaultRequestHeaders.Add("X-CSRF-TOKEN", "invalid");
+        using (var rejected = await Command(web, path, input)) rejected.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await WebCookieTestClient.RefreshCsrf(web);
+        var admissionKey = Guid.NewGuid().ToString("N");
+        using var admission = await Command(web, path, input, key: admissionKey);
+        using var replay = await Command(client, path, input, key: admissionKey);
+        replay.StatusCode.Should().Be(admission.StatusCode);
+        (await Body(replay)).GetProperty("id").GetGuid().Should().Be((await Body(admission)).GetProperty("id").GetGuid()); admission.StatusCode.Should().Be(HttpStatusCode.Accepted); var job = (await Body(admission)).GetProperty("id").GetGuid(); var retryPath = $"{path}/{job}/retry";
         var version = (await Body(admission)).GetProperty("version").GetString();
         foreach (var reason in new[] { "", new string('r', 1001) }) await Error(retryPath, new { reason }, HttpStatusCode.BadRequest, version);
         await Error(retryPath, new { reason = " " }, HttpStatusCode.BadRequest, version);
@@ -257,7 +270,7 @@ public sealed class ProcessingLifecycleValidationAcceptanceTests(AuthenticationS
         {
             await using (var db = sql.CreateDbContext()) await db.ProcessingJobs.Where(j => j.Id == job).ExecuteUpdateAsync(u => u.SetProperty(j => j.Status, state));
             await using (var db = sql.CreateDbContext()) version = Convert.ToBase64String((await db.ProcessingJobs.AsNoTracking().SingleAsync(j => j.Id == job)).RowVersion);
-            using (var read = await client.GetAsync($"{path}/{job}"))
+            using (var read = await web.GetAsync($"{path}/{job}"))
             {
                 read.StatusCode.Should().Be(HttpStatusCode.OK); var value = await Body(read);
                 value.GetProperty("status").GetString().Should().Be(state switch { ProcessingJobStatus.Completed => "SUCCEEDED", ProcessingJobStatus.RetryableFailure or ProcessingJobStatus.DataFailure => "FAILED", _ => state.ToString().ToUpperInvariant() });
@@ -267,7 +280,7 @@ public sealed class ProcessingLifecycleValidationAcceptanceTests(AuthenticationS
             if (state != ProcessingJobStatus.RetryableFailure) await Error(retryPath, new { reason = "lifecycle" }, HttpStatusCode.Conflict, version, stored: true);
             else
             {
-                using var retry = await Command(client, retryPath, new { reason = new string('r', 1000) }, version); retry.StatusCode.Should().Be(HttpStatusCode.OK); (await Body(retry)).GetProperty("status").GetString().Should().Be("QUEUED");
+                using var retry = await Command(web, retryPath, new { reason = new string('r', 1000) }, version); retry.StatusCode.Should().Be(HttpStatusCode.OK); (await Body(retry)).GetProperty("status").GetString().Should().Be("QUEUED");
             }
         }
     }

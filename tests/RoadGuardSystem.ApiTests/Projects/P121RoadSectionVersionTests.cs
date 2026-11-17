@@ -309,9 +309,9 @@ public sealed class P121RoadSectionVersionTests
         (await verification.RoadSections.CountAsync(section => section.ProjectId == projectId)).Should().Be(0);
     }
 
-    private static async Task<Guid> CreateProjectAsync(HttpClient client, Guid projectManagerId)
+    private async Task<Guid> CreateProjectAsync(HttpClient client, Guid projectManagerId)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new
         {
             projectCode = $"P-{Guid.NewGuid():N}",
             name = "Road section test project",

@@ -20,7 +20,7 @@ namespace RoadGuardSystem.ApiTests.Inspections;
 public sealed class Huy02InspectionRetentionTests(AuthenticationSqlServerFixture fixture)
 {
     [Fact]
-    public async Task ProductionScope_CompositeIncludesInspectionAndPreservesIncompleteHuy()
+    public async Task ProductionScope_CompositeIncludesInspectionAndReportsMissingWarranty()
     {
         var actor = await fixture.CreateUserAsync($"h0_retention_{Guid.NewGuid():N}", "Current1!");
         await using var db = fixture.CreateDbContext();
@@ -35,7 +35,8 @@ public sealed class Huy02InspectionRetentionTests(AuthenticationSqlServerFixture
         var inventory = await requestScope.ServiceProvider.GetRequiredService<IRetentionInventoryRepository>().ReadAsync(file.Id, default);
         Assert.NotNull(inventory);
         Assert.Contains(inventory.References, x => x.Kind == "FIELD_INSPECTION_SESSION" && x.Id == scope.Session.Id && x.ProjectId == scope.Project.Id);
-        Assert.Contains("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.DoesNotContain("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.Contains("WARRANTY_OBLIGATION_MISSING", inventory.ReasonCodes);
         Assert.False(inventory.Complete);
     }
 
@@ -68,7 +69,8 @@ public sealed class Huy02InspectionRetentionTests(AuthenticationSqlServerFixture
             [new Huy01RetentionInventoryContributor(db), contributor]).ReadAsync(file.Id, default);
         Assert.NotNull(inventory);
         Assert.False(inventory.Complete);
-        Assert.Contains("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.DoesNotContain("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.Contains("WARRANTY_OBLIGATION_MISSING", inventory.ReasonCodes);
         Assert.Contains(inventory.References, x => x.ProjectId == first.Project.Id);
         Assert.Contains(inventory.References, x => x.ProjectId == second.Project.Id);
     }

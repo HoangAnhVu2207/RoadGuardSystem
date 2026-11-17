@@ -55,7 +55,7 @@ public sealed class AiCandidateReadBoundaryAcceptanceTests(AuthenticationSqlServ
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var created = await client.PostAsJsonAsync("/api/v1/projects", new
+        var created = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
         {
             projectCode = $"ANH-{Guid.NewGuid():N}",
             name = "DEMO survey evidence",
@@ -247,7 +247,7 @@ public sealed class AiCandidateReadBoundaryAcceptanceTests(AuthenticationSqlServ
         foreach (var role in new[] { UserRoleCode.Reporter, UserRoleCode.DroneOperator, UserRoleCode.RepairCrew, UserRoleCode.ProjectManager })
         { var outsider = await sql.CreateUserAsync("candidate-boundary-" + Guid.NewGuid().ToString("N"), "Current1!", role); await Login(client, outsider.UserName!); await Denied(candidatePath, HttpStatusCode.Forbidden, "access_forbidden"); }
         await Login(client, supervisor.UserName!); (await Read()).GetRawText().Should().Be(view.GetRawText());
-        using var otherProject = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = "CANDIDATE-" + Guid.NewGuid().ToString("N"), name = "Other scoped resource", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = manager.Id, handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() }); otherProject.StatusCode.Should().Be(HttpStatusCode.Created); var otherId = (await Body(otherProject)).GetProperty("projectId").GetGuid();
+        using var otherProject = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new { projectCode = "CANDIDATE-" + Guid.NewGuid().ToString("N"), name = "Other scoped resource", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = manager.Id, handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() }); otherProject.StatusCode.Should().Be(HttpStatusCode.Created); var otherId = (await Body(otherProject)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!); await Denied($"/api/v1/projects/{otherId}/ai-candidates/{detectionId}", HttpStatusCode.NotFound, "not_found");
         await Denied($"/api/v1/projects/{project}/ai-candidates/{Guid.NewGuid()}", HttpStatusCode.NotFound, "not_found");
         var jobId = result.GetProperty("jobId").GetGuid();

@@ -166,10 +166,21 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
                     .Include(row => row.Attempts).Include(row => row.ReviewRequests).SingleAsync(row => row.Id == itemId, cancellationToken);
                 var version = await db.Set<RepairItem>().Where(row => row.Id == itemId)
                     .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync(cancellationToken);
-                var view = new RepairItemFact(item.Id, item.ProjectId, item.DefectId, item.ObligationId, item.Mode.ToString(),
-                    item.State.ToString(), ResultName(item.Presentation), item.EffectiveDecisionId,
-                    item.Attempts.Select(row => row.Id).Order().ToArray(), item.Decisions.Select(row => row.Id).Order().ToArray(),
-                    Convert.ToBase64String(version));
+                var binding = item.CurrentBindingId is Guid bindingId
+                    ? await db.Set<RepairFieldTaskBinding>().AsNoTracking()
+                        .Where(row => row.Id == bindingId && row.ProjectId == projectId && row.ItemId == item.Id &&
+                            row.ObligationId == item.ObligationId && row.DefectId == item.DefectId)
+                        .Select(row => new RepairCurrentBindingFact(row.Id, row.TaskId, row.AssignmentId, row.PolicyRevisionId,
+                            row.PolicyContentHash, row.PlanHash, row.ChecklistVersion)).SingleOrDefaultAsync(cancellationToken)
+                    : null;
+                var view = ItemView(item, Convert.ToBase64String(version)) with
+                {
+                    RepairPlan = item.RepairPlan,
+                    ChecklistVersion = item.ChecklistVersion,
+                    ProposalPlanHash = item.ProposalPlanHash,
+                    ApprovedPlanHash = item.ApprovedPlanHash,
+                    CurrentBinding = binding
+                };
                 object value = history ? HistoryView(item, view) : view;
                 // History includes immutable child appends that intentionally do not mutate the command item head.
                 // Its finite canonical representation has a separate token, never accepted as a command rowversion.

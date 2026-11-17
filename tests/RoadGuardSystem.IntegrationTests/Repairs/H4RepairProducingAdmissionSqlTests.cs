@@ -176,8 +176,15 @@ public sealed class H4RepairProducingAdmissionSqlTests(IdentitySqlServerFixture 
         await db.ProjectMembers.Where(x => x.UserId == source.Supervisor).ExecuteDeleteAsync();
         db.ChangeTracker.Clear();
         var repo = Repo(db);
-        Assert.Equal(200, (await repo.ReadItemAsync(source.Supervisor, UserRoleCode.Supervisor,
-            source.Project, package.Id, item.Id, false, default)).Status);
+        var detail = await repo.ReadItemAsync(source.Supervisor, UserRoleCode.Supervisor,
+            source.Project, package.Id, item.Id, false, default);
+        Assert.Equal(200, detail.Status);
+        var proposal = Assert.IsType<RepairItemFact>(detail.Value);
+        Assert.Equal(item.RepairPlan, proposal.RepairPlan);
+        Assert.Equal(item.ChecklistVersion, proposal.ChecklistVersion);
+        Assert.Equal(item.ProposalPlanHash, proposal.ProposalPlanHash);
+        Assert.Null(proposal.ApprovedPlanHash);
+        Assert.Null(proposal.CurrentBinding);
         Assert.Equal(404, (await repo.ReadItemAsync(source.Supervisor, UserRoleCode.Supervisor,
             Guid.NewGuid(), package.Id, item.Id, false, default)).Status);
         var command = new RepairItemApprovalCommand(source.Supervisor, UserRoleCode.Supervisor, source.Project,
@@ -186,6 +193,13 @@ public sealed class H4RepairProducingAdmissionSqlTests(IdentitySqlServerFixture 
         Assert.Equal(409, (await repo.ApproveItemAsync(command with { ExpectedItemVersion = Convert.ToBase64String(new byte[8]) }, default)).Status);
         Assert.Equal(201, (await repo.ApproveItemAsync(command, default)).Status);
         Assert.Equal(200, (await repo.ApproveItemAsync(command, default)).Status);
+        await using var reloaded = sql.CreateDbContext();
+        var history = await Repo(reloaded).ReadItemAsync(source.Pm, UserRoleCode.ProjectManager,
+            source.Project, package.Id, item.Id, true, default);
+        Assert.Equal(200, history.Status);
+        var approved = Assert.IsType<RepairHistoryFact>(history.Value).Item;
+        Assert.Equal(proposal.RepairPlan, approved.RepairPlan);
+        Assert.Equal(proposal.ProposalPlanHash, approved.ApprovedPlanHash);
         var head = Convert.ToBase64String(await db.RepairItems.AsNoTracking().Where(x => x.Id == item.Id)
             .Select(x => EF.Property<byte[]>(x, "RowVersion")).SingleAsync());
         Assert.Equal(409, (await repo.ApproveItemAsync(command with { Key = Guid.NewGuid().ToString(), ExpectedItemVersion = head }, default)).Status);

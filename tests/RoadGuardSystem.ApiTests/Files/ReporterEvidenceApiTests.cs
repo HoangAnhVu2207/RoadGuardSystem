@@ -248,6 +248,8 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
         await Login(client, supervisor.UserName!);
         async Task<Guid> Project(Guid manager)
         {
+            var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+            client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
             var created = await client.PostAsJsonAsync("/api/v1/projects", new
             {
                 projectCode = $"META-{Guid.NewGuid():N}",
@@ -256,9 +258,10 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
                 startDate = "2026-09-01",
                 endDate = "2027-09-01",
                 primaryProjectManagerUserId = manager,
-                handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
+                handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31", fileId = staged.FileId },
                 operationId = Guid.NewGuid()
             });
+            client.DefaultRequestHeaders.IfMatch.Clear();
             created.StatusCode.Should().Be(HttpStatusCode.Created);
             return (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
         }
@@ -605,6 +608,8 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
         { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new PhotoStorage()); });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
         var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new
         {
             projectCode = $"PUB-{Guid.NewGuid():N}",
@@ -613,9 +618,10 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
             startDate = "2026-09-01",
             endDate = "2027-09-01",
             primaryProjectManagerUserId = pm.Id,
-            handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
+            handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31", fileId = staged.FileId },
             operationId = Guid.NewGuid()
         });
+        client.DefaultRequestHeaders.IfMatch.Clear();
         projectResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await projectResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
         await Login(client, owner.UserName!); var owned = await UploadVerified(client, factory);

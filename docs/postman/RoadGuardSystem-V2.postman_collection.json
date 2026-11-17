@@ -1083,6 +1083,7 @@
             "description": "Purpose: create a project smoke record. Role: project-management policy. Setup: authenticate an allowed role and set primaryProjectManagerUserId; run only with disposable data. Expected: 201 or documented validation/authorization/conflict error. Data change: creates project.",
             "method": "POST",
             "header": [
+              {"key":"If-Match","value":"{{projectHandoverUploadETag}}","description":"Quoted ETag from VERIFIED staging upload. Set projectHandoverFileId from the same upload."},
               {
                 "key": "Authorization",
                 "value": "Bearer {{supervisorAccessToken}}"
@@ -1098,7 +1099,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"RG-POSTMAN-{{$guid}}\",\n  \"name\": \"Postman smoke project\",\n  \"primaryPmId\": \"{{primaryProjectManagerUserId}}\",\n  \"handoverDate\": \"2026-08-31\",\n  \"warrantyEndDate\": \"2027-08-31\",\n  \"handoverFileIds\": []\n}",
+              "raw": "{\n  \"code\": \"RG-POSTMAN-{{$guid}}\",\n  \"name\": \"Postman smoke project\",\n  \"primaryPmId\": \"{{primaryProjectManagerUserId}}\",\n  \"handoverDate\": \"2026-08-31\",\n  \"warrantyEndDate\": \"2027-08-31\",\n  \"handoverFileIds\": [\"{{projectHandoverFileId}}\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"

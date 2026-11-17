@@ -44,10 +44,12 @@ public sealed class UploadApiTests
 
         int beforeSessions;
         int beforeFiles;
+        int beforeScopes;
         await using (var before = _sql.CreateDbContext())
         {
             beforeSessions = await before.UploadSessions.AsNoTracking().CountAsync();
             beforeFiles = await before.Files.AsNoTracking().CountAsync();
+            beforeScopes = await before.FileScopes.AsNoTracking().CountAsync(scope => scope.ProjectId == projectId);
         }
 
         foreach (var sizeBytes in new[] { (long)int.MaxValue + 1, 8L * 1024 * 1024 * 1024 })
@@ -74,7 +76,7 @@ public sealed class UploadApiTests
         }
 
         await using var verification = _sql.CreateDbContext();
-        (await verification.FileScopes.AsNoTracking().CountAsync(scope => scope.ProjectId == projectId)).Should().Be(0);
+        (await verification.FileScopes.AsNoTracking().CountAsync(scope => scope.ProjectId == projectId)).Should().Be(beforeScopes);
         (await verification.UploadSessions.AsNoTracking().CountAsync()).Should().Be(beforeSessions);
         (await verification.Files.AsNoTracking().CountAsync()).Should().Be(beforeFiles);
     }
@@ -307,6 +309,17 @@ public sealed class UploadApiTests
         using var actual = await s3.GetObjectAsync(bucket, stored.ObjectKey);
         using var buffer = new MemoryStream(); await actual.ResponseStream.CopyToAsync(buffer);
         buffer.ToArray().Should().Equal(bytes);
+        // The staging cleanup adapter deletes an unused object and is safe to retry.
+        var unusedKey = "uploads/" + Guid.NewGuid().ToString("N");
+        await s3.PutObjectAsync(new PutObjectRequest
+        { BucketName = bucket, Key = unusedKey, InputStream = new MemoryStream(bytes) });
+        await shortAdapter.DeleteStagedObjectAsync(unusedKey);
+        await shortAdapter.DeleteStagedObjectAsync(unusedKey);
+        var absent = await Assert.ThrowsAsync<AmazonS3Exception>(() => s3.GetObjectMetadataAsync(bucket, unusedKey));
+        Assert.Equal(HttpStatusCode.NotFound, absent.StatusCode);
+        // Cleanup of an unused object leaves the verified private file unchanged.
+        using var preserved = await s3.GetObjectAsync(bucket, stored.ObjectKey);
+        Assert.Equal(bytes.Length, preserved.ContentLength);
     }
 
     private async Task VerifyMinioMultipartAsync(Action<IServiceCollection>? configureStorage = null)
@@ -424,9 +437,9 @@ public sealed class UploadApiTests
         return await client.SendAsync(request);
     }
 
-    private static async Task<Guid> CreateProjectAsync(HttpClient client, Guid managerId)
+    private async Task<Guid> CreateProjectAsync(HttpClient client, Guid managerId)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new
         {
             projectCode = $"UPLOAD-{Guid.NewGuid():N}",
             name = "Upload endpoint project",

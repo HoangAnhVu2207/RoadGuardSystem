@@ -9,7 +9,7 @@ using RoadGuardSystem.Repositories.Options;
 
 namespace RoadGuardSystem.Repositories.Storage;
 
-public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IMultipartRecoveryStorage
+public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IStagingCleanupStorage
 {
     private const int PrefixLength = 512;
     private const int BufferSize = 81920;
@@ -108,6 +108,23 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IMultipartR
         }
         catch (Exception e) when (e is AmazonS3Exception or HttpRequestException or IOException)
         { throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Multipart parts unavailable.", e); }
+    }
+
+    public async Task DeleteStagedObjectAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var client = CreateClient();
+            await client.DeleteObjectAsync(new DeleteObjectRequest
+            {
+                BucketName = _options.BucketName,
+                Key = objectKey
+            }, cancellationToken);
+        }
+        catch (Exception error) when (error is AmazonS3Exception or HttpRequestException or IOException)
+        {
+            throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Staging deletion unavailable.", error);
+        }
     }
 
     public async Task AbortMultipartAsync(string objectKey, string uploadId, CancellationToken cancellationToken = default)

@@ -29,6 +29,13 @@ public sealed class DefectType
         };
     }
 
+    public void Update(string name, string? description, bool isActive)
+    {
+        Name = ValidateRequired(name, nameof(name), 150);
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        IsActive = isActive;
+    }
+
     private static string ValidateRequired(string value, string parameterName, int maxLength)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);

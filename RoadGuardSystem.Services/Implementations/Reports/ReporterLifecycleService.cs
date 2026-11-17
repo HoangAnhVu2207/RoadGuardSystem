@@ -63,7 +63,7 @@ public sealed class ReporterLifecycleService(IReporterLifecycleRepository reposi
             }
             return reference.PublicationId is Guid publication
                 ? await files.DownloadPublicationAsync(actorId, role, publication, reportId, evidenceId, ct)
-                : await files.DownloadAsync(actorId, role, reference.FileId, ct);
+                : await files.DownloadAsync(actorId, role, reference.FileId, cancellationToken: ct);
         }
         catch (ReporterLifecycleException e) { return new(e.Status == 403 ? UploadServiceStatus.Forbidden : UploadServiceStatus.NotFound); }
         catch (ReporterIntakeFactsException) { return new(UploadServiceStatus.Forbidden); }

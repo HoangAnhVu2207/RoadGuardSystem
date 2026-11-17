@@ -66,7 +66,11 @@ public sealed record RepairAttemptIntakeView(Guid AttemptId, Guid LinkId, Guid I
     Guid ReviewClockId, DateTimeOffset OriginalReviewDueAt, string IntakeReadiness);
 public sealed record RepairAttemptReviewView(Guid ReviewId, Guid ItemId, Guid SubmissionId, string Decision,
     string ReceiptActivation);
+public sealed record RepairCurrentBindingView(Guid Id, Guid TaskId, Guid AssignmentId, Guid? PolicyRevisionId,
+    string? PolicyContentHash, string PlanHash, string ChecklistVersion);
 public sealed record RepairItemView(Guid Id, Guid ProjectId, Guid DefectId, Guid ObligationId, string Mode,
-    string State, string Result, Guid? EffectiveDecisionId, Guid[] AttemptIds, Guid[] DecisionIds, string Version);
+    string State, string Result, Guid? EffectiveDecisionId, Guid[] AttemptIds, Guid[] DecisionIds, string Version,
+    string? RepairPlan = null, string? ChecklistVersion = null, string? ProposalPlanHash = null,
+    string? ApprovedPlanHash = null, RepairCurrentBindingView? CurrentBinding = null);
 public sealed record RepairPackageView(Guid Id, Guid ProjectId, Guid DefectId, bool AllMandatoryResolved,
     Guid[] UnresolvedMandatoryObligationIds, RepairItemView[] Items, string Version);

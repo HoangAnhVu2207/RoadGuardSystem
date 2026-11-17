@@ -17,6 +17,7 @@ public static class UploadAdmissionPolicy
             "TELEMETRY" when mime == "application/x-subrip" => TelemetryMaxBytes,
             // These purposes retain the existing int ceiling; PR-38 assigns no new limit.
             "DOCUMENT" or "ROUTE_SOURCE" => int.MaxValue,
+            FileScope.ProjectHandoverStaging when mime == "application/pdf" => 20L * 1024 * 1024,
             _ => null
         };
     }

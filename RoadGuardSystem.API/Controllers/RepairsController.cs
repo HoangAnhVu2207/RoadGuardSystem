@@ -17,10 +17,12 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class RepairsController(IRepairWorkflowService service) : ControllerBase
 {
     [HttpGet("{itemId:guid}")]
+    [ProducesResponseType<RepairItemView>(200)]
     public Task<IActionResult> Item(Guid projectId, Guid packageId, Guid itemId, CancellationToken ct)
         => Run((actor, role, _, _) => service.ReadItemAsync(actor, role, projectId, packageId, itemId, false, ct), false);
 
     [HttpGet("{itemId:guid}/history")]
+    [ProducesResponseType<RepairHistoryView>(200)]
     public Task<IActionResult> History(Guid projectId, Guid packageId, Guid itemId, CancellationToken ct)
         => Run((actor, role, _, _) => service.ReadItemAsync(actor, role, projectId, packageId, itemId, true, ct), false);
 

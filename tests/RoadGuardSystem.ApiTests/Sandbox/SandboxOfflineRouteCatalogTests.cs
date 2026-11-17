@@ -47,6 +47,9 @@ public sealed class SandboxOfflineRouteCatalogTests
         var additions = new HashSet<(string, string)>
         {
             ("GET", "/api/v1/catalog/defect-types"),
+            ("GET", "/api/v1/catalog/defect-types/admin"),
+            ("POST", "/api/v1/catalog/defect-types/admin"),
+            ("PUT", "/api/v1/catalog/defect-types/admin/{code}"),
             ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/safety-measures"),
             ("POST", "/api/v1/invitations/preview"),
             ("GET", "/api/v1/projects/{projectId}/members/eligible"),
@@ -58,6 +61,7 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("POST", "/api/v1/auth/reporter/password-reset/request"),
             ("POST", "/api/v1/auth/reporter/password-reset/confirm"),
             ("POST", "/api/v1/projects/{projectId}/handover-documents"),
+            ("POST", "/api/v1/projects/handover-upload-intents"),
             ("GET", "/api/v1/survey-tasks/{taskId}/eligible-drones"),
             ("GET", "/api/v1/cases/{caseId}/reports"),
             ("GET", "/api/v1/cases/{caseId}/reports/{reportId}/evidence/{evidenceId}/content"),

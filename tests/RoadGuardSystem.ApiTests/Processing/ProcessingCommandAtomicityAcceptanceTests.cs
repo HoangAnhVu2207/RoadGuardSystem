@@ -63,7 +63,7 @@ public sealed class ProcessingCommandAtomicityAcceptanceTests(AuthenticationSqlS
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var created = await client.PostAsJsonAsync("/api/v1/projects", new
+        var created = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
         {
             projectCode = $"ANH-{Guid.NewGuid():N}",
             name = "DEMO survey evidence",

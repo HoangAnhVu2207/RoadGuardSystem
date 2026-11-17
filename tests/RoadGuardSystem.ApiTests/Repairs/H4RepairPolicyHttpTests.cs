@@ -38,6 +38,8 @@ public sealed class H4RepairPolicyHttpTests(AuthenticationSqlServerFixture fixtu
         var response = await client.PostAsJsonAsync(root + "/drafts", definition);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var draft = (await response.Content.ReadFromJsonAsync<RepairPolicyView>())!;
+        Assert.Equal(definition.Reason, draft.DraftChangeReason);
+        Assert.Null(draft.PublishReason);
         Assert.Equal('"' + draft.Version + '"', response.Headers.ETag!.ToString());
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(root + "/drafts", definition)).StatusCode);
         client.DefaultRequestHeaders.Remove("Idempotency-Key"); client.DefaultRequestHeaders.Add("Idempotency-Key", "publish-" + project.Id);
@@ -46,10 +48,27 @@ public sealed class H4RepairPolicyHttpTests(AuthenticationSqlServerFixture fixtu
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var revision = (await response.Content.ReadFromJsonAsync<RepairPolicyView>())!;
         Assert.Empty(revision.Measurements); Assert.Equal("PUBLISHED", revision.State);
+        Assert.Equal("publish exact draft", revision.PublishReason);
+        Assert.Equal("", revision.Reason);
+        Assert.Null(revision.RevokeReason);
+        var revisionPath = root + $"/revisions/{revision.Id}";
+        var published = await client.GetAsync(revisionPath);
+        Assert.Equal(HttpStatusCode.OK, published.StatusCode);
+        Assert.Equal(response.Headers.ETag, published.Headers.ETag);
+        Assert.Equal(revision.PublishReason, (await published.Content.ReadFromJsonAsync<RepairPolicyView>())!.PublishReason);
         client.DefaultRequestHeaders.IfMatch.Clear(); client.DefaultRequestHeaders.IfMatch.Add(new('"' + revision.Version + '"'));
         client.DefaultRequestHeaders.Remove("Idempotency-Key"); client.DefaultRequestHeaders.Add("Idempotency-Key", "revoke-" + project.Id);
         var revokePath = root + $"/revisions/{revision.Id}/revoke";
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync(revokePath, new RepairPolicyReasonInput("withdraw"))).StatusCode);
+        var revoked = await client.PostAsJsonAsync(revokePath, new RepairPolicyReasonInput("withdraw"));
+        Assert.Equal(HttpStatusCode.Created, revoked.StatusCode);
+        Assert.NotEqual(published.Headers.ETag, revoked.Headers.ETag);
+        var reloaded = await client.GetAsync(revisionPath);
+        Assert.Equal(HttpStatusCode.OK, reloaded.StatusCode);
+        Assert.Equal(revoked.Headers.ETag, reloaded.Headers.ETag);
+        var readback = (await reloaded.Content.ReadFromJsonAsync<RepairPolicyView>())!;
+        Assert.Equal("publish exact draft", readback.PublishReason);
+        Assert.Equal("withdraw", readback.RevokeReason);
+        Assert.Equal("withdraw", readback.Reason);
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(revokePath, new RepairPolicyReasonInput("withdraw"))).StatusCode);
         await using (var db = fixture.CreateDbContext())
         {

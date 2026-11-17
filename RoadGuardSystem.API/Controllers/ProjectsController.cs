@@ -209,6 +209,9 @@ public sealed class ProjectsController : ControllerBase
         {
             return ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         }
+        var version = Request.Headers.IfMatch;
+        if (version.Count > 1 || (version.Count == 1 && !TryFileVersion(version.ToString(), out _)))
+            return ProblemResponse(400, ApiErrorCodes.ValidationError, "Expected a quoted upload ETag");
         var documentNo = canonical ? $"PROJECT-{projectCode}" : request.Handover!.DocumentNo;
 
         var result = await _service.CreateAsync(
@@ -230,7 +233,8 @@ public sealed class ProjectsController : ControllerBase
                 CorrelationId(),
                 warrantyEndDate,
                 fileIds,
-                idempotencyKey),
+                idempotencyKey,
+                version.Count == 1 ? version.ToString()[1..^1] : null),
             cancellationToken);
 
         return result.Status switch
@@ -243,12 +247,23 @@ public sealed class ProjectsController : ControllerBase
                 StatusCodes.Status404NotFound, ApiErrorCodes.ProjectPrimaryManagerNotFound, "Not found"),
             ProjectCreationStatus.HandoverFileNotFound => ProblemResponse(
                 StatusCodes.Status404NotFound, ApiErrorCodes.ProjectHandoverFileNotFound, "Not found"),
+            ProjectCreationStatus.HandoverRequired => ProblemResponse(428, "handover_required", "Verified handover and upload ETag required"),
+            ProjectCreationStatus.HandoverFileNotReady => ProblemResponse(409, "handover_file_not_ready", "Handover upload is not ready"),
+            ProjectCreationStatus.HandoverVersionConflict => ProblemResponse(409, "concurrency_conflict", "Handover upload version changed"),
             ProjectCreationStatus.ProjectCodeConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.ProjectCodeConflict, "Conflict"),
             ProjectCreationStatus.IdempotentConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Duplicate request"),
             _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request")
         };
+    }
+
+    private static bool TryFileVersion(string etag, out int count)
+    {
+        count = 0;
+        Span<byte> bytes = stackalloc byte[8];
+        return etag.Length == 14 && etag[0] == '"' && etag[^1] == '"' &&
+            Convert.TryFromBase64Chars(etag.AsSpan(1, 12), bytes, out count) && count == 8;
     }
 
     private static CreateProjectResponseDto ToResponse(CreatedProjectView project) => new(

@@ -22,7 +22,7 @@ public sealed class Anh02RetentionPersistenceTests : IAsyncLifetime
     public Task DisposeAsync() => fixture.DisposeAsync();
     private RoadGuardDbContext Db(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors) => new(new DbContextOptionsBuilder<RoadGuardDbContext>().UseSqlServer(fixture.ConnectionString, o => o.UseNetTopologySuite()).AddInterceptors(interceptors).Options);
     private static RetentionRepository Repository(RoadGuardDbContext db, bool completeFixture = false) => new(db, new IdempotencyOperationService(db), Inventory(db, completeFixture), TimeProvider.System);
-    private static RetentionInventoryRepository Inventory(RoadGuardDbContext db, bool completeFixture) => new(db, completeFixture ? [new AvailableEmptyContributor("HUY"), new AvailableEmptyContributor("AI"), new AvailableEmptyContributor("EXPORT")] : []);
+    private static RetentionInventoryRepository Inventory(RoadGuardDbContext db, bool completeFixture) => new(db, completeFixture ? [new AvailableEmptyContributor("HUY"), new AvailableEmptyContributor("HUY02_INSPECTION"), new AvailableEmptyContributor("AI"), new AvailableEmptyContributor("EXPORT")] : []);
     private async Task<(Guid Supervisor, Guid Pm, Guid Project, Guid File, Guid Warranty)> SeedAsync()
     {
         await using var db = Db();
@@ -85,6 +85,7 @@ public sealed class Anh02RetentionPersistenceTests : IAsyncLifetime
         var seed = await SeedAsync(); await using var db = Db(); var repo = Repository(db);
         var file = await repo.GetFileAsync(seed.Pm, seed.Project, seed.File, default);
         Assert.False(file.InventoryComplete); Assert.Contains("HUY_REFERENCE_INVENTORY_UNAVAILABLE", file.InventoryReasonCodes); Assert.Single(file.ApplicableObligations);
+        Assert.Contains("HUY_REPAIR_REFERENCE_UNAVAILABLE", file.InventoryReasonCodes);
         Assert.Equal("WAITING_RETENTION_BASIS", file.Evaluation.Eligibility);
         var error = await Assert.ThrowsAsync<RetentionRequestException>(() => repo.ConfirmBasisAsync(seed.Supervisor, seed.Project, seed.File, new([seed.Warranty], file.InventoryVersion, "Confirm all known references"), Guid.NewGuid().ToString(), "none", default));
         Assert.Equal("retention_inventory_incomplete", error.Code);
@@ -214,7 +215,7 @@ public sealed class Anh02RetentionPersistenceTests : IAsyncLifetime
         db.Files.Add(StoredFile.Create(outputFile, $"fixture/{outputFile}", "dossier.zip", "application/zip", 10, new string('d', 64), seed.Supervisor, completedAt.AddYears(-10), null)); db.Add(GeneratedArtifact.Create(artifactId, job.Id, snapshotId, outputFile, completedAt)); await db.SaveChangesAsync();
         job.Complete(lease, artifactId, completedAt); await db.SaveChangesAsync();
         db.Warranties.Add(Warranty.Create(Guid.NewGuid(), seed.Project, null, null, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 1), new DateOnly(2027, 10, 2), null, WarrantyScope.Project, null, null, WarrantyStatus.Active)); await db.SaveChangesAsync();
-        var reader = new RetentionInventoryRepository(db, [new AvailableEmptyContributor("HUY"), new AvailableEmptyContributor("AI"), new ExportRetentionInventoryContributor(db)]);
+        var reader = new RetentionInventoryRepository(db, [new AvailableEmptyContributor("HUY"), new AvailableEmptyContributor("HUY02_INSPECTION"), new AvailableEmptyContributor("AI"), new ExportRetentionInventoryContributor(db)]);
         var initial = await reader.ReadAsync(outputFile, default); Assert.NotNull(initial); Assert.True(initial!.Complete); Assert.Equal("TEMPORARY_EXPORT", initial.Classification); Assert.Empty(initial.Warranties); Assert.Equal(completedAt.AddDays(30), initial.AdditionalEligibleAfter!.Single());
         var repo = new RetentionRepository(db, new IdempotencyOperationService(db), reader, new FixedTimeProvider(DateTimeOffset.Parse("2026-10-02T00:00:00Z")));
         var basis = await repo.ConfirmBasisAsync(seed.Supervisor, seed.Project, outputFile, new([], initial.Version, "Confirmed temporary export"), Guid.NewGuid().ToString(), "none", default);

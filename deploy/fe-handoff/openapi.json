@@ -6,82 +6,6 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/v1/auth/reporter/password-reset/confirm": {
-      "post": {
-        "tags": [
-          "ReporterPasswordReset"
-        ],
-        "security": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReporterPasswordResetConfirmDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Password changed and previous sessions revoked."
-          },
-          "400": {
-            "description": "validation_error or invalid_reset_otp",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "password_policy_failed",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/reporter/password-reset/request": {
-      "post": {
-        "tags": [
-          "ReporterPasswordReset"
-        ],
-        "security": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReporterPasswordResetRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Uniform acknowledgment for every well-formed email, including no delivery."
-          },
-          "400": {
-            "description": "validation_error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/admin/users/{userId}/password-reset": {
       "post": {
         "tags": [
@@ -389,7 +313,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -544,6 +468,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-002",
@@ -839,6 +768,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-003",
@@ -998,6 +930,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-004",
@@ -1477,7 +1412,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
             "schema": {
               "type": "string"
             },
@@ -1623,7 +1558,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
             "schema": {
               "type": "string"
             },
@@ -3595,7 +3530,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -4026,6 +3961,285 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/cases/{caseId}/reports": {
+      "get": {
+        "tags": [
+          "CaseReportDetails"
+        ],
+        "description": "Supervisor or current-project PM reads currently linked Reports, ordered by receivedAt DESC then reportId DESC. Follow nextCursor using the same actor, Case and limit (1-100). Every page includes each Report's original evidence and all supplements. Reporter name, phone and phone confirmation come from the current account and can change after submission; a missing phone is null. Missing evidence position/time stays null or UNKNOWN.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseReportDetailPageDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseReportDetailPageDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseReportDetailPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cases/{caseId}/reports/{reportId}/evidence/{evidenceId}/content": {
+      "get": {
+        "tags": [
+          "CaseReportDetails"
+        ],
+        "description": "Authenticated private image stream. Checks current Case authority, active Report-Case link, evidence and verified private file before opening storage. No signed URL is issued. An already opened stream cannot be recalled retroactively after rights change.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/cases": {
       "get": {
         "tags": [
@@ -4440,7 +4654,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -4733,7 +4947,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5026,7 +5240,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5326,7 +5540,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5605,7 +5819,7 @@
         "tags": [
           "Cases"
         ],
-        "description": "Publish cases resources. Permissions: PM.",
+        "description": "Publish a case update as current PM. Optional repairProgressStatus requires the full verified repair scope of each selected report. The server validates the requested milestone against current execution and final confirmation facts.",
         "parameters": [
           {
             "name": "caseId",
@@ -5619,7 +5833,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5772,7 +5986,7 @@
             }
           },
           "409": {
-            "description": "Error codes: idempotency_key_reused, reference_scope_conflict, invalid_state_transition, source_not_ready.",
+            "description": "Error codes: idempotency_key_reused, reference_scope_conflict, invalid_state_transition, source_not_ready, repair_progress_scope_unverified, repair_progress_not_ready.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -7713,7 +7927,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -7996,7 +8210,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -8691,6 +8905,305 @@
         ],
         "x-roadguard-api-id": "SWG-031",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/catalog/defect-types/admin": {
+      "get": {
+        "tags": [
+          "DefectTypeAdministration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DefectTypeAdminDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DefectTypeAdminDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DefectTypeAdminDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "DefectTypeAdministration"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDefectTypeDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDefectTypeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDefectTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/catalog/defect-types/admin/{code}": {
+      "put": {
+        "tags": [
+          "DefectTypeAdministration"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDefectTypeDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDefectTypeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDefectTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectTypeAdminDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/catalog/defect-types": {
+      "get": {
+        "tags": [
+          "DefectTypes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DefectTypeOptionDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DefectTypeOptionDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DefectTypeOptionDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
       }
     },
     "/api/v1/projects/{projectId}/repair-packages": {
@@ -10304,7 +10817,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -10459,6 +10972,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-203",
@@ -10725,7 +11243,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -10880,6 +11398,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-205",
@@ -12542,7 +13065,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -12697,6 +13220,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-188",
@@ -13722,7 +14250,7 @@
         "tags": [
           "FieldInspectionWorkflow"
         ],
-        "description": "Get field inspection workflow resources. Permissions: PM / Supervisor / assigned Crew.",
+        "description": "Read a FIELD task as PM, Supervisor or assigned Crew. Eligible Crew can read current NORMAL or FAST_TRACK repair context and effective attempt/review. Outer version and ETag are the task version; repairContext.itemVersion is the repair item version.",
         "parameters": [
           {
             "name": "projectId",
@@ -13745,7 +14273,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command. Reuse only for an intentional replay of the same request. For the assigned Crew, defectTarget is a WGS84 longitude/latitude marker or null. This does not establish GPS readiness.",
             "schema": {
               "type": "string"
             },
@@ -14584,7 +15112,35 @@
                         "spatialSrid": {
                           "type": "integer"
                         },
-                        "wgs84Geometry": {"type": "object", "nullable": true, "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.", "properties": {"type": {"type": "string", "enum": ["LineString"]}, "coordinates": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "format": "double"}}}}, "required": ["type", "coordinates"]},
+                        "wgs84Geometry": {
+                          "required": [
+                            "type",
+                            "coordinates"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "enum": [
+                                "LineString"
+                              ],
+                              "type": "string"
+                            },
+                            "coordinates": {
+                              "type": "array",
+                              "items": {
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": "array",
+                                "items": {
+                                  "type": "number",
+                                  "format": "double"
+                                }
+                              }
+                            }
+                          },
+                          "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.",
+                          "nullable": true
+                        },
                         "wkt": {
                           "type": "string"
                         },
@@ -14644,7 +15200,35 @@
                             "type": "integer",
                             "nullable": true
                           },
-                          "wgs84Geometry": {"type": "object", "nullable": true, "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.", "properties": {"type": {"type": "string", "enum": ["LineString"]}, "coordinates": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "format": "double"}}}}, "required": ["type", "coordinates"]},
+                          "wgs84Geometry": {
+                            "required": [
+                              "type",
+                              "coordinates"
+                            ],
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "enum": [
+                                  "LineString"
+                                ],
+                                "type": "string"
+                              },
+                              "coordinates": {
+                                "type": "array",
+                                "items": {
+                                  "maxItems": 2,
+                                  "minItems": 2,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number",
+                                    "format": "double"
+                                  }
+                                }
+                              }
+                            },
+                            "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.",
+                            "nullable": true
+                          },
                           "wkt": {
                             "type": "string",
                             "nullable": true
@@ -20181,7 +20765,7 @@
         "tags": [
           "GeometryWorkflow"
         ],
-        "description": "Readiness geometry workflow resources. Permissions: PM / Supervisor.",
+        "description": "Read draft readiness. COORDINATES uses project UTM and preview validation. NATIVE_ALIGNMENT uses the pinned CRS profile, calibration and tolerance. Permissions: PM / Supervisor.",
         "parameters": [
           {
             "name": "projectId",
@@ -20346,7 +20930,7 @@
             }
           },
           "422": {
-            "description": "Error codes: crs_profile_scope_mismatch, crs_profile_srid_mismatch.",
+            "description": "Error codes: geometry_validation_failed, unsupported_crs, crs_profile_scope_mismatch, crs_profile_srid_mismatch.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -21315,7 +21899,7 @@
         "tags": [
           "GeometryWorkflow"
         ],
-        "description": "Draft geometry workflow resources. Permissions: PM / Supervisor.",
+        "description": "Read the saved draft including optional native route metadata and its pinned nativeAlignment CRS profile reference. Permissions: PM / Supervisor.",
         "parameters": [
           {
             "name": "projectId",
@@ -21847,7 +22431,7 @@
         "tags": [
           "GeometryWorkflow"
         ],
-        "description": "Draft geometry workflow resources. Permissions: PM / Supervisor.",
+        "description": "Read the saved draft for this road section, including optional native route metadata and its pinned nativeAlignment CRS profile reference. Permissions: PM / Supervisor.",
         "parameters": [
           {
             "name": "projectId",
@@ -22524,12 +23108,436 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/projects/{projectId}/road-geometry-drafts/{draftId}/submit": {
+      "post": {
+        "tags": [
+          "GeometryWorkflow"
+        ],
+        "description": "Current-project PM submits one dossier per project. A rejected dossier may be resubmitted with changed route content under the same draft ID. Replay returns the original receipt after current authorization.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted ETag from the saved draft.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "One key per submission. Retry the same draft and ETag with the same key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "Draft ETag after submission. Use it for confirm.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Location": {
+                "description": "Project submission lookup URL.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "road_geometry_submission_exists, road_geometry_submission_unchanged, duplicate_request, project_closed or road_geometry_invalid_state",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "concurrency_conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Draft readiness, CRS or topology validation failed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "validation_error: missing preconditions.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed for a Web write.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "road_geometry_submission_not_found, road_geometry_draft_not_found or project_not_found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/road-geometry-submission": {
+      "get": {
+        "tags": [
+          "GeometryWorkflow"
+        ],
+        "description": "Supervisor or current-project PM finds the submitted dossier by project ID. Returns SUBMITTED, REJECTED or CONFIRMED and the current draft ETag. currentReview describes the latest round; previousRejection describes an earlier round.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Current draft ETag.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed for a Web write.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "road_geometry_submission_not_found, road_geometry_draft_not_found or project_not_found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/road-geometry-drafts/{draftId}/reject": {
+      "post": {
+        "tags": [
+          "GeometryWorkflow"
+        ],
+        "description": "Supervisor rejects the current pending round with a required nonblank reason of at most 2000 characters. The PM can edit the same draft. Replay returns the original decision receipt.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Current quoted ETag of the submitted draft.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Retry with the original key, reason and ETag.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeometryRejectInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeometryRejectInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeometryRejectInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Draft ETag after rejection. Use it to edit.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeometrySubmissionView"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "road_geometry_submission_required, road_geometry_invalid_state, duplicate_request or project_closed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "concurrency_conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "road_geometry_rejection_reason_required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "validation_error: missing preconditions.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed for a Web write.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "road_geometry_submission_not_found, road_geometry_draft_not_found or project_not_found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/road-geometry-drafts/{draftId}/confirm": {
       "post": {
         "tags": [
           "GeometryWorkflow"
         ],
-        "description": "Confirm geometry workflow resources. Permissions: Supervisor.",
+        "description": "Confirm geometry workflow resources. Permissions: Supervisor. Supervisor confirms the project's submitted draft using its current ETag. A DRAFT without a submission returns road_geometry_submission_required.",
         "parameters": [
           {
             "name": "projectId",
@@ -22708,7 +23716,7 @@
             }
           },
           "409": {
-            "description": "Error codes: duplicate_request, project_closed, road_geometry_invalid_state, road_section_code_conflict, road_section_concurrency_conflict, segment_publication_conflict.",
+            "description": "Error codes: duplicate_request, project_closed, road_geometry_invalid_state, road_section_code_conflict, road_section_concurrency_conflict, segment_publication_conflict. Also returns road_geometry_submission_required for an unsubmitted draft.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -22841,7 +23849,7 @@
         "tags": [
           "GeometryWorkflow"
         ],
-        "description": "Confirm geometry workflow resources. Permissions: Supervisor.",
+        "description": "Confirm geometry workflow resources. Permissions: Supervisor. Supervisor confirms the project's submitted draft using its current ETag. A DRAFT without a submission returns road_geometry_submission_required.",
         "parameters": [
           {
             "name": "projectId",
@@ -23029,7 +24037,7 @@
             }
           },
           "409": {
-            "description": "Error codes: duplicate_request, project_closed, road_geometry_invalid_state, road_section_code_conflict, road_section_concurrency_conflict, segment_publication_conflict.",
+            "description": "Error codes: duplicate_request, project_closed, road_geometry_invalid_state, road_section_code_conflict, road_section_concurrency_conflict, segment_publication_conflict. Also returns road_geometry_submission_required for an unsubmitted draft.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -24906,7 +25914,7 @@
         "tags": [
           "GeometryWorkflow"
         ],
-        "description": "Segment wgs84Geometry uses [longitude, latitude] for supported source CRS. Package geometry workflow resources. Permissions: PM / Supervisor / assigned Operator.",
+        "description": "Package geometry workflow resources. Permissions: PM / Supervisor / assigned Operator.",
         "parameters": [
           {
             "name": "projectId",
@@ -24936,7 +25944,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command. Reuse only for an intentional replay of the same request. Segment wgs84Geometry uses [longitude, latitude] for supported source CRS and is null when unavailable.",
             "schema": {
               "type": "string"
             },
@@ -25796,7 +26804,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -25894,10 +26902,80 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-086",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/invitations/preview": {
+      "post": {
+        "tags": [
+          "Invitations"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "text/json": {
+              "schema": {}
+            },
+            "application/*+json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/invitations/accept": {
@@ -26058,6 +27136,81 @@
         },
         "x-roadguard-api-id": "SWG-087",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/me/phone-number": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Me"
+        ],
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneNumberUpdateRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneNumberUpdateRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneNumberUpdateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
       }
     },
     "/api/v1/me": {
@@ -33546,7 +34699,7 @@
         "tags": [
           "PavementWorkflow"
         ],
-        "description": "Create plan pavement workflow resources. Permissions: PM.",
+        "description": "Create a pinned planned pavement layout. Permissions: scoped PM. Save the response id or Location to reopen it. Layout includes the original width profile and supplied thickness/joint metadata. Joint metadata does not change slab footprints or generate physical joints.",
         "parameters": [
           {
             "name": "projectId",
@@ -33888,12 +35041,145 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions/{routeVersionId}/segment-sets/{segmentSetId}/pavement-layouts": {
+      "get": {
+        "tags": [
+          "PavementWorkflow"
+        ],
+        "description": "Supervisor or current-project PM lists saved layout references for the exact project, road section, route version and segment set, including historical versions. Sorted by layout ID. Follow nextCursor, then GET the chosen layout by ID.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "roadSectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "routeVersionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "segmentSetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PavementLayoutReferencePageDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PavementLayoutReferencePageDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PavementLayoutReferencePageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error: invalid page size or cursor outside this collection.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: invalid resource chain.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/pavement-layouts/{layoutId}": {
       "get": {
         "tags": [
           "PavementWorkflow"
         ],
-        "description": "Get layout pavement workflow resources. Permissions: PM / Supervisor.",
+        "description": "Read a pinned pavement layout. Permissions: scoped PM or Supervisor. The layout field restores the saved planned input. Geometry remains the stored snapshot. For AS_BUILT, read sourcePlanId separately to recover the original planned input.",
         "parameters": [
           {
             "name": "projectId",
@@ -36400,7 +37686,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -36555,6 +37841,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-121",
@@ -36704,6 +37995,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-122",
@@ -36820,7 +38114,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -36994,6 +38288,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-123",
@@ -37365,7 +38664,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -37501,6 +38800,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-125",
@@ -37624,6 +38928,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-126",
@@ -38770,7 +40077,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -38868,6 +40175,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-132",
@@ -38987,7 +40299,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -39085,6 +40397,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-133",
@@ -39193,7 +40510,7 @@
         "tags": [
           "Projects"
         ],
-        "description": "Create projects resources. Permissions: Supervisor.",
+        "description": "Supervisor only. Obtain CSRF from GET /api/v1/auth/web/csrf for Web writes. Create a staging upload, wait for VERIFIED, then send its fileId in handoverFileIds and ETag in If-Match. Retry the same request with the same Idempotency-Key.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -39204,6 +40521,14 @@
             },
             "example": "swagger-template-operation-001",
             "x-requirement": "alternative"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted ETag from GET /api/v1/uploads/{uploadId} after VERIFIED. Required for new projects.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -39212,6 +40537,16 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateProjectRequestDto"
+              },
+              "example": {
+                "code": "RG-2026-001",
+                "name": "Road maintenance project",
+                "primaryPmId": "11111111-1111-1111-1111-111111111111",
+                "handoverDate": "2026-11-01",
+                "warrantyEndDate": "2027-11-01",
+                "handoverFileIds": [
+                  "22222222-2222-2222-2222-222222222222"
+                ]
               }
             },
             "text/json": {
@@ -39301,7 +40636,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -39394,11 +40729,28 @@
                 }
               }
             }
+          },
+          "428": {
+            "description": "handover_required: one staged fileId and its quoted upload ETag are required.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
           }
         },
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-138",
@@ -39502,7 +40854,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -39600,6 +40952,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-136",
@@ -39749,7 +41106,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -39847,6 +41204,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-137",
@@ -39950,7 +41312,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -40048,6 +41410,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-134",
@@ -40171,6 +41538,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-135",
@@ -46304,7 +47674,110 @@
       }
     },
     "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/safety-measures": {
-      "get": {"summary": "List safety measures assigned to the current Crew for this item", "parameters": [{"name": "projectId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}, {"name": "packageId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}, {"name": "itemId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}], "security": [{"Bearer": []}, {"WebSession": []}], "responses": {"200": {"description": "Current measure IDs", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CrewSafetyMeasureList"}}}}, "401": {"description": "Authentication required"}, "403": {"description": "Crew role or membership required"}, "404": {"description": "Resource outside route scope"}}},
+      "get": {
+        "tags": [
+          "RepairSafety"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrewSafetyMeasureList"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrewSafetyMeasureList"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrewSafetyMeasureList"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      },
       "post": {
         "tags": [
           "RepairSafety"
@@ -48132,6 +49605,81 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/reporter-evidence/uploads/{uploadId}/cancel": {
+      "post": {
+        "tags": [
+          "ReporterEvidence"
+        ],
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCancelResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCancelResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCancelResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/reporter-evidence/uploads/{uploadId}/part-urls": {
       "post": {
         "tags": [
@@ -49179,6 +50727,130 @@
         ],
         "x-roadguard-api-id": "SWG-174",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/auth/reporter/password-reset/request": {
+      "post": {
+        "tags": [
+          "ReporterPasswordReset"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reporter/password-reset/confirm": {
+      "post": {
+        "tags": [
+          "ReporterPasswordReset"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetConfirmDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetConfirmDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetConfirmDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/auth/reporter-registrations": {
@@ -50424,7 +52096,7 @@
         "tags": [
           "Reports"
         ],
-        "description": "List reports resources. Permissions: Reporter; own record / named publication recipient.",
+        "description": "List reports resources. Permissions: Reporter; own record / named publication recipient. repairProgress is the latest applicable PM-published milestone or null. A superseded final confirmation invalidates a published ACCEPTED milestone.",
         "parameters": [
           {
             "name": "pageSize",
@@ -50598,7 +52270,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -50873,7 +52545,7 @@
         "tags": [
           "Reports"
         ],
-        "description": "Read reports resources. Permissions: Reporter; own record / named publication recipient.",
+        "description": "Read reports resources. Permissions: Reporter; own record / named publication recipient. repairProgress is the latest applicable PM-published milestone or null. A superseded final confirmation invalidates a published ACCEPTED milestone.",
         "parameters": [
           {
             "name": "reportId",
@@ -51039,7 +52711,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -51651,6 +53323,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-186",
@@ -51776,7 +53451,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -51950,6 +53625,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-187",
@@ -52107,6 +53787,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-189",
@@ -52208,7 +53891,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -52363,6 +54046,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-190",
@@ -52492,6 +54180,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-191",
@@ -52608,7 +54299,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -52782,156 +54473,15 @@
         "security": [
           {
             "Bearer": []
-          }
-        ],
-        "x-roadguard-api-id": "SWG-192",
-        "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
-      }
-    },
-    "/api/v1/projects/{projectId}/handover-documents": {
-      "post": {
-        "tags": [
-          "RoadCoverage"
-        ],
-        "description": "Supervisor attaches a verified project DOCUMENT to an empty handover record, or creates a record when the project has none. Existing mappings and linked files remain immutable.",
-        "parameters": [
-          {
-            "name": "projectId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 150
-            }
-          },
-          {
-            "name": "If-Match",
-            "in": "header",
-            "required": true,
-            "description": "Strong ETag from GET road-coverage after upload verification.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HandoverAttachmentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Current road coverage with the newly linked handover source. ETag is the current coverage version.",
-            "headers": {
-              "ETag": {
-                "description": "Current strong quoted content-hash ETag.",
-                "schema": {
-                  "pattern": "^\"[0-9a-f]{64}\"$",
-                  "type": "string"
-                }
-              },
-              "X-Correlation-ID": {
-                "description": "Request correlation UUID, emitted by middleware on all responses.",
-                "schema": {
-                  "type": "string",
-                  "format": "uuid"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoadCoverageReadFact"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "validation_error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "auth_unauthorized",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "access_forbidden or csrf_failed",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "not_found or handover_document_not_found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "concurrency_conflict, handover_file_not_ready, handover_document_exists, handover_document_selection_required, handover_document_already_linked or idempotency_key_reused",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "428": {
-            "description": "precondition_required",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
           },
           {
             "WebSession": [],
             "CsrfToken": [],
             "AntiforgeryCookie": []
           }
-        ]
+        ],
+        "x-roadguard-api-id": "SWG-192",
+        "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
     "/api/v1/projects/{projectId}/road-coverage": {
@@ -53330,6 +54880,221 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/projects/{projectId}/handover-documents": {
+      "post": {
+        "tags": [
+          "RoadCoverage"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoverAttachmentDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoverAttachmentDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoverAttachmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadCoverageReadFact"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadCoverageReadFact"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadCoverageReadFact"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "RoadGuardSystem.eAPI"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -53497,6 +55262,158 @@
             "WebSession": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "StaffDirectory"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProjectMemberRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProjectMemberRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProjectMemberRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectMemberResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectMemberResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectMemberResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/members/eligible": {
+      "get": {
+        "tags": [
+          "StaffDirectory"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleProjectMemberDtoStaffPageResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleProjectMemberDtoStaffPageResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleProjectMemberDtoStaffPageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
       }
     },
     "/api/v1/datasets/{id}/assessments": {
@@ -53616,7 +55533,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -53934,6 +55851,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-196",
@@ -54045,7 +55965,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -54480,6 +56400,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-199",
@@ -55297,7 +57220,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -55606,10 +57529,165 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-206",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/survey-tasks/{taskId}/eligible-drones": {
+      "get": {
+        "tags": [
+          "SurveyV"
+        ],
+        "description": "Assigned DroneOperator with current project membership lists Active drones from the shared registry. Selection records the drone used and does not reserve it. Stable ID order; follow nextCursor. New dataset submissions recheck Active status; committed replay retains its result.",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleDroneDtoCollectionPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleDroneDtoCollectionPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleDroneDtoCollectionPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
       }
     },
     "/api/v1/survey-plans/{id}": {
@@ -55736,6 +57814,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-207",
@@ -56144,7 +58225,6 @@
         "tags": [
           "SurveyV"
         ],
-        "description": "List datasets for the stored survey task project. PM project scope, Supervisor, or the currently assigned Operator with active project membership (Bearer only). Newest submissions first, then dataset ID descending. Undated legacy records sort last. GET does not require CSRF.",
         "parameters": [
           {
             "name": "taskId",
@@ -56159,37 +58239,58 @@
             "name": "limit",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "minimum": 1,
               "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
               "default": 25
             }
           },
           {
             "name": "cursor",
             "in": "query",
-            "description": "Opaque nextCursor from the preceding page for the same actor and task.",
             "schema": {
-              "type": "string",
-              "maxLength": 4096
+              "maxLength": 4096,
+              "minLength": 0,
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Dataset page. Empty items if the task has no datasets.",
+            "description": "OK",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetListItemDtoCollectionPage"
+                }
+              },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DatasetListPageDto"
+                  "$ref": "#/components/schemas/DatasetListItemDtoCollectionPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetListItemDtoCollectionPage"
                 }
               }
             }
           },
           "400": {
-            "description": "validation_error",
+            "description": "Bad Request",
             "content": {
-              "application/problem+json": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
                 }
@@ -56197,9 +58298,19 @@
             }
           },
           "401": {
-            "description": "auth_unauthorized",
+            "description": "Unauthorized",
             "content": {
-              "application/problem+json": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
                 }
@@ -56207,9 +58318,19 @@
             }
           },
           "403": {
-            "description": "access_forbidden",
+            "description": "Forbidden",
             "content": {
-              "application/problem+json": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
                 }
@@ -56217,9 +58338,19 @@
             }
           },
           "404": {
-            "description": "survey_request_not_found",
+            "description": "Not Found",
             "content": {
-              "application/problem+json": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
                 }
@@ -57308,7 +59439,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -57603,7 +59734,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -57905,7 +60036,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -58109,7 +60240,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -58689,7 +60820,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -58970,7 +61101,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -59339,7 +61470,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -59484,6 +61615,73 @@
         ],
         "x-roadguard-api-id": "SWG-223",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/projects/handover-upload-intents": {
+      "post": {
+        "tags": [
+          "Uploads"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCreateRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCreateRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCreateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSessionResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSessionResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSessionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
       }
     },
     "/api/v1/uploads/{uploadId}": {
@@ -59982,7 +62180,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -60148,6 +62346,92 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/uploads/{uploadId}/cancel": {
+      "post": {
+        "tags": [
+          "Uploads"
+        ],
+        "description": "Cancel an owned PENDING or UPLOADING session using Bearer. RepairCrew can cancel BEFORE, AFTER, and MEASUREMENT photos. DroneOperator can cancel SURVEY_VIDEO and TELEMETRY. Current project membership and task upload authority are required, including on repeat. No body, If-Match, or Idempotency-Key.",
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCancelResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCancelResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCancelResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "upload_not_cancellable. The upload is VERIFYING, VERIFIED, or failed for another reason.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/uploads/{uploadId}/complete": {
       "post": {
         "tags": [
@@ -60281,7 +62565,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -60578,6 +62862,9 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-228",
@@ -60728,10 +63015,230 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ],
         "x-roadguard-api-id": "SWG-229",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/users/{userId}/phone-number": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "description": "Supervisor sets or changes the phone number of an active PM, Drone Operator, or Repair Crew account. Get the current ETag from GET /api/v1/users/{userId}. Changing the number clears phone confirmation; this route does not verify a number. Browser cookie requests require a valid CSRF token.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Current quoted base64 user rowversion from GET /users/{userId}.",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Nonblank request key, at most 200 characters. Reuse only with the same target, phone number, and version.",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneNumberUpdateRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneNumberUpdateRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneNumberUpdateRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Phone number saved, or the same request replayed.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error: invalid phone number, key, ETag, or JSON body.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credential or session.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden: caller is not a current Supervisor; csrf_failed for invalid browser CSRF.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "identity_user_not_found: target is not an active PM, Operator, or Crew account.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "idempotency_key_reused: the key was used for a different request.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "auth_concurrency_conflict: the user version changed.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "validation_error: If-Match is required.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
       }
     },
     "/api/v1/users/{userId}": {
@@ -61013,7 +63520,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -61168,6 +63675,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-231",
@@ -61257,7 +63769,7 @@
             }
           },
           "403": {
-            "description": "Error codes: access_forbidden.",
+            "description": "Error codes: access_forbidden. Cookie unsafe requests also return csrf_failed when the antiforgery pair is invalid.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -61374,6 +63886,11 @@
         "security": [
           {
             "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-232",
@@ -62109,7 +64626,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1\u2013200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -62261,87 +64778,10 @@
         "x-roadguard-api-id": "SWG-237",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
-    },
-    "/ready": {
-      "get": {
-        "tags": [
-          "RoadGuardSystem.eAPI"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
-      "ReporterPasswordResetConfirmDto": {
-        "type": "object",
-        "required": [
-          "email",
-          "otp",
-          "newPassword"
-        ],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          },
-          "otp": {
-            "type": "string",
-            "pattern": "^[0-9]{6}$"
-          },
-          "newPassword": {
-            "type": "string",
-            "maxLength": 1024,
-            "format": "password"
-          }
-        }
-      },
-      "ReporterPasswordResetRequestDto": {
-        "type": "object",
-        "required": [
-          "email"
-        ],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254
-          }
-        }
-      },
-      "HandoverAttachmentDto": {
-        "type": "object",
-        "required": [
-          "fileId"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "fileId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "handoverDocumentId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "documentNo": {
-            "type": "string",
-            "maxLength": 80,
-            "nullable": true
-          },
-          "handoverDate": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          }
-        }
-      },
       "AcceptInvitationRequestDto": {
         "required": [
           "displayName",
@@ -62426,6 +64866,16 @@
           "version": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddProjectMemberRequestDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -63832,7 +66282,6 @@
       "CasePublicationDto": {
         "type": "object",
         "properties": {
-          "repairProgressStatus": {"type": "string", "nullable": true, "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED", null]},
           "reportIds": {
             "type": "array",
             "items": {
@@ -63860,6 +66309,17 @@
           "summary": {
             "type": "string",
             "nullable": true
+          },
+          "repairProgressStatus": {
+            "enum": [
+              "NOT_STARTED",
+              "IN_PROGRESS",
+              "ACCEPTED",
+              null
+            ],
+            "type": "string",
+            "description": "Optional milestone request. The server validates current repair facts for every recipient.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -63881,6 +66341,138 @@
           },
           "version": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CaseReportDetailDto": {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reporterUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reporterDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporterPhoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporterPhoneNumberConfirmed": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "originalEvidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseReportEvidenceDto"
+            },
+            "nullable": true
+          },
+          "supplements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseReportSupplementDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CaseReportDetailPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseReportDetailDto"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CaseReportEvidenceDto": {
+        "type": "object",
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "capturedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "locationSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "location": {
+            "$ref": "#/components/schemas/ReportEvidenceLocationDto"
+          },
+          "contentPath": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CaseReportSupplementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseReportEvidenceDto"
+            },
             "nullable": true
           }
         },
@@ -64146,6 +66738,31 @@
               "$ref": "#/components/schemas/BaselineItemDto"
             },
             "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateDefectTypeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
           },
           "reason": {
             "type": "string",
@@ -64991,11 +67608,51 @@
         },
         "additionalProperties": false
       },
+      "CrewFinalDecisionFact": {
+        "type": "object",
+        "properties": {
+          "decisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "type": "string",
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CrewRepairAttemptFact": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "effectiveSubmissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "review": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CrewRepairReviewFact"
+              }
+            ],
+            "description": "PM decision for the effective submission. Null while awaiting review.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CrewRepairContextFact": {
         "type": "object",
         "properties": {
-          "reviewRequests": {"type": "array", "items": {"$ref": "#/components/schemas/CrewReviewRequestFact"}},
-          "finalDecision": {"nullable": true, "allOf": [{"$ref": "#/components/schemas/CrewFinalDecisionFact"}]},
           "packageId": {
             "type": "string",
             "format": "uuid"
@@ -65009,8 +67666,11 @@
             "format": "uuid"
           },
           "mode": {
-            "type": "string",
-            "nullable": true
+            "enum": [
+              "NORMAL",
+              "FAST_TRACK"
+            ],
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -65018,7 +67678,7 @@
           },
           "itemVersion": {
             "type": "string",
-            "nullable": true
+            "description": "Current repair item rowversion in Base64. Use for repair commands."
           },
           "repairPlan": {
             "type": "string",
@@ -65026,6 +67686,79 @@
           },
           "checklistVersion": {
             "type": "string",
+            "nullable": true
+          },
+          "attempt": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CrewRepairAttemptFact"
+              }
+            ],
+            "description": "Current attempt and effective intake on the current task binding, when present.",
+            "nullable": true
+          },
+          "finalDecision": {
+            "$ref": "#/components/schemas/CrewFinalDecisionFact"
+          },
+          "reviewRequests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CrewReviewRequestFact"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CrewRepairReviewFact": {
+        "type": "object",
+        "properties": {
+          "reviewId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decision": {
+            "enum": [
+              "SUPPLEMENT",
+              "ACCEPT"
+            ],
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CrewReviewRequestFact": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CrewSafetyMeasureList": {
+        "type": "object",
+        "properties": {
+          "measureIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
             "nullable": true
           }
         },
@@ -65378,25 +68111,6 @@
         },
         "additionalProperties": false
       },
-      "DatasetPairDto": {
-        "type": "object",
-        "properties": {
-          "videoFileId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "telemetryFileId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "timeOffsetMilliseconds": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "additionalProperties": false
-      },
       "DatasetListItemDto": {
         "type": "object",
         "properties": {
@@ -65418,10 +68132,12 @@
             "nullable": true
           },
           "integrityStatus": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "version": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "assessmentId": {
             "type": "string",
@@ -65429,34 +68145,43 @@
             "nullable": true
           }
         },
-        "required": [
-          "id",
-          "surveyTaskId",
-          "versionNo",
-          "submittedAt",
-          "integrityStatus",
-          "version",
-          "assessmentId"
-        ]
+        "additionalProperties": false
       },
-      "DatasetListPageDto": {
+      "DatasetListItemDtoCollectionPage": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DatasetListItemDto"
-            }
+            },
+            "nullable": true
           },
           "nextCursor": {
             "type": "string",
             "nullable": true
           }
         },
-        "required": [
-          "items",
-          "nextCursor"
-        ]
+        "additionalProperties": false
+      },
+      "DatasetPairDto": {
+        "type": "object",
+        "properties": {
+          "videoFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "telemetryFileId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "timeOffsetMilliseconds": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
       },
       "DatasetResponseDto": {
         "type": "object",
@@ -65833,6 +68558,59 @@
         },
         "additionalProperties": false
       },
+      "DefectTargetPointFact": {
+        "type": "object",
+        "properties": {
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DefectTypeAdminDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DefectTypeOptionDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DefectVerificationRequestDto": {
         "type": "object",
         "properties": {
@@ -65927,6 +68705,76 @@
           "version": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibleDroneDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serialNo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibleDroneDtoCollectionPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EligibleDroneDto"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibleProjectMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EligibleProjectMemberDtoStaffPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EligibleProjectMemberDto"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -67020,7 +69868,6 @@
       "FieldTaskViewFact": {
         "type": "object",
         "properties": {
-          "defectTarget": {"type": "object", "nullable": true, "description": "Stored defect point in WGS84 for the assigned Crew, independent of segment-set availability.", "properties": {"longitude": {"type": "number", "format": "double"}, "latitude": {"type": "number", "format": "double"}}, "required": ["longitude", "latitude"], "additionalProperties": false},
           "id": {
             "type": "string",
             "format": "uuid"
@@ -67124,7 +69971,16 @@
             "nullable": true
           },
           "repairContext": {
-            "$ref": "#/components/schemas/CrewRepairContextFact"
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CrewRepairContextFact"
+              }
+            ],
+            "nullable": true
+          },
+          "defectTarget": {
+            "$ref": "#/components/schemas/DefectTargetPointFact"
           }
         },
         "additionalProperties": false
@@ -67504,6 +70360,38 @@
           },
           "readiness": {
             "$ref": "#/components/schemas/GeometryDraftReadiness"
+          },
+          "routeSystemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "routeKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentRouteVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "junctionOffsetMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "declaredLengthMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "chainageCalibration": {
+            "$ref": "#/components/schemas/ChainageCalibrationInput"
+          },
+          "tessellationToleranceMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -67914,6 +70802,56 @@
         },
         "additionalProperties": false
       },
+      "GeometryRejectInput": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GeometryReviewRoundView": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "outcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GeometryShape": {
         "type": "object",
         "properties": {
@@ -67923,6 +70861,56 @@
           },
           "coordinates": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GeometrySubmissionView": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "draftId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedContentVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmedRouteVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "currentReview": {
+            "$ref": "#/components/schemas/GeometryReviewRoundView"
+          },
+          "previousRejection": {
+            "$ref": "#/components/schemas/GeometryReviewRoundView"
           }
         },
         "additionalProperties": false
@@ -68261,6 +71249,30 @@
           },
           "resolverVersion": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HandoverAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "handoverDocumentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "documentNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "handoverDate": {
+            "type": "string",
+            "format": "date",
             "nullable": true
           }
         },
@@ -69662,11 +72674,9 @@
         },
         "additionalProperties": false
       },
-      "OwnReportRepairProgressDto": {"type": "object", "properties": {"status": {"type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED"]}, "publishedAt": {"type": "string", "format": "date-time"}}, "additionalProperties": false},
       "OwnReportDto": {
         "type": "object",
         "properties": {
-          "repairProgress": {"nullable": true, "allOf": [{"$ref": "#/components/schemas/OwnReportRepairProgressDto"}]},
           "id": {
             "type": "string",
             "format": "uuid"
@@ -69707,6 +72717,9 @@
               "$ref": "#/components/schemas/OwnReportSupplementDto"
             },
             "nullable": true
+          },
+          "repairProgress": {
+            "$ref": "#/components/schemas/OwnReportRepairProgressDto"
           }
         },
         "additionalProperties": false
@@ -69759,6 +72772,26 @@
           "nextCursor": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OwnReportRepairProgressDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "NOT_STARTED",
+              "IN_PROGRESS",
+              "ACCEPTED"
+            ],
+            "type": "string",
+            "description": "Milestone published by the PM for this report.",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -69878,6 +72911,74 @@
             },
             "description": "Nonempty width intervals, at most100000; multiple intervals emit a transition warning and are not rejected solely for count>1. Genuine sourced widths required.",
             "nullable": true
+          },
+          "slabThicknessCentimeters": {
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "type": "number",
+            "description": "Optional slab thickness in centimeters. Decimal value preserved without rounding. Null or absent means unspecified.",
+            "nullable": true
+          },
+          "contractionJointSpacingMeters": {
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "type": "number",
+            "description": "Optional contraction joint spacing in meters. Decimal value preserved without rounding. Null or absent means unspecified.",
+            "nullable": true
+          },
+          "expansionJointSpacingMeters": {
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "type": "number",
+            "description": "Optional expansion joint spacing in meters. Decimal value preserved without rounding. Null or absent means unspecified.",
+            "nullable": true
+          },
+          "expansionJointGapMillimeters": {
+            "minimum": 0,
+            "type": "number",
+            "description": "Optional expansion joint gap in millimeters. Decimal value preserved without rounding. Null or absent means unspecified.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PavementLayoutInputFact": {
+        "type": "object",
+        "properties": {
+          "stripWidthMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "slabLengthMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "widthProfile": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PavementWidthIntervalFact"
+            },
+            "nullable": true
+          },
+          "slabThicknessCentimeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "contractionJointSpacingMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "expansionJointSpacingMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "expansionJointGapMillimeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -69909,6 +73010,67 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PavementLayoutReferenceDto": {
+        "type": "object",
+        "properties": {
+          "layoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "segmentSetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePlanId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contentHash": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PavementLayoutReferencePageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PavementLayoutReferenceDto"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
@@ -69957,6 +73119,16 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "layout": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PavementLayoutInput"
+              }
+            ],
+            "description": "Original planned configuration. Null for as-built and when no original input is available. Optional values absent if unspecified. Some historical create receipts omit this property.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -69988,6 +73160,37 @@
           "widthMeters": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PavementWidthIntervalFact": {
+        "type": "object",
+        "properties": {
+          "fromOffsetMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "toOffsetMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "widthMeters": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PhoneNumberUpdateRequestDto": {
+        "required": [
+          "phoneNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "minLength": 1,
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -71417,6 +74620,41 @@
         },
         "additionalProperties": false
       },
+      "RepairCurrentBindingView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "policyRevisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "policyContentHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "planHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "checklistVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RepairDecisionHistoryView": {
         "type": "object",
         "properties": {
@@ -72014,6 +75252,25 @@
           "version": {
             "type": "string",
             "nullable": true
+          },
+          "repairPlan": {
+            "type": "string",
+            "nullable": true
+          },
+          "checklistVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "proposalPlanHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedPlanHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentBinding": {
+            "$ref": "#/components/schemas/RepairCurrentBindingView"
           }
         },
         "additionalProperties": false
@@ -72434,6 +75691,18 @@
           "version": {
             "type": "string",
             "nullable": true
+          },
+          "draftChangeReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "revokeReason": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -72653,6 +75922,20 @@
         },
         "additionalProperties": false
       },
+      "RepairSafetyEvidenceLink": {
+        "type": "object",
+        "properties": {
+          "evidenceLinkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "RepairSafetyInstallInput": {
         "type": "object",
         "properties": {
@@ -72667,14 +75950,9 @@
         },
         "additionalProperties": false
       },
-      "CrewFinalDecisionFact": {"type": "object", "properties": {"decisionId": {"type": "string", "format": "uuid"}, "result": {"type": "string", "enum": ["CONFIRMED", "UNREPAIRED", "REPORTED_AWAITING_REVIEW"]}, "at": {"type": "string", "format": "date-time"}}},
-      "CrewReviewRequestFact": {"type": "object", "properties": {"requestId": {"type": "string", "format": "uuid"}, "decisionId": {"type": "string", "format": "uuid"}, "reason": {"type": "string"}, "at": {"type": "string", "format": "date-time"}}},
-      "RepairSafetyEvidenceLink": {"type": "object", "properties": {"evidenceLinkId": {"type": "string", "format": "uuid"}, "fileId": {"type": "string", "format": "uuid"}}},
-      "CrewSafetyMeasureList": {"type": "object", "properties": {"measureIds": {"type": "array", "items": {"type": "string", "format": "uuid"}}}},
       "RepairSafetyView": {
         "type": "object",
         "properties": {
-          "eligibleEvidenceLinks": {"type": "array", "items": {"$ref": "#/components/schemas/RepairSafetyEvidenceLink"}},
           "id": {
             "type": "string",
             "format": "uuid"
@@ -72737,6 +76015,13 @@
           },
           "version": {
             "type": "string",
+            "nullable": true
+          },
+          "eligibleEvidenceLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepairSafetyEvidenceLink"
+            },
             "nullable": true
           }
         },
@@ -72965,6 +76250,34 @@
             "pattern": "^[a-f0-9]{64}$",
             "type": "string",
             "description": "Canonical lowercase SHA256; actual bytes must match verification.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReporterPasswordResetConfirmDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "otp": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPassword": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReporterPasswordResetRequestDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -75388,6 +78701,27 @@
         },
         "additionalProperties": false
       },
+      "UpdateDefectTypeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateMeRequestDto": {
         "required": [
           "displayName"
@@ -75484,6 +78818,24 @@
             "nullable": true
           },
           "rowVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UploadCancelResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureCode": {
             "type": "string",
             "nullable": true
           }

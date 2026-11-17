@@ -257,7 +257,7 @@ public sealed class Rf1003SameRowSurveyTests
             var scenario = new Scenario(factory, client, manager.UserName!, other.UserName!);
             scenario.ManagerId = manager.Id;
             await scenario.AuthenticateAsync(supervisor.UserName!);
-            var project = await client.PostAsJsonAsync("/api/v1/projects", new
+            var project = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
             {
                 projectCode = $"RF1003-{Guid.NewGuid():N}",
                 name = "RF-10-03 same-row test",

@@ -148,6 +148,28 @@ public sealed class UploadSession
         FailureCode = CancelledFailureCode;
     }
 
+    public void ExpireStaging(DateTimeOffset nextCheck)
+    {
+        if (nextCheck <= ExpiresAt) throw new InvalidOperationException("Staging is still valid.");
+        Status = UploadSessionStatus.Failed;
+        FailureCode = "staging_expired";
+        MultipartPhase = "STAGING_CLEANUP";
+        MultipartFence = Guid.NewGuid();
+        MultipartNextCheckAt = nextCheck;
+    }
+
+    public void CompleteStagingCleanup()
+    {
+        if (Status != UploadSessionStatus.Failed || FailureCode != "staging_expired")
+            throw new InvalidOperationException("Staging cleanup has not claimed this upload.");
+        FailureCode = "staging_expired_cleaned";
+        StorageUploadId = null;
+        MultipartPhase = "STAGING_CLEANED";
+        MultipartFence = null;
+        MultipartDeadline = null;
+        MultipartNextCheckAt = null;
+    }
+
     public void MarkVerified()
     {
         if (Status != UploadSessionStatus.Verifying)

@@ -131,9 +131,9 @@ public sealed class Rf1002ProjectGisCharacterizationTests
 
     private sealed record GeometryFacts(string Type, int Srid, (double X, double Y)[] Coordinates);
 
-    private static async Task<Guid> CreateProjectAsync(HttpClient client, Guid projectManagerId)
+    private async Task<Guid> CreateProjectAsync(HttpClient client, Guid projectManagerId)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new
         {
             projectCode = $"RF1002-P-{Guid.NewGuid():N}",
             name = "RF-10-02 characterization project",

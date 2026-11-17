@@ -25,6 +25,7 @@ public sealed class ProcessingV2Controller : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("processing-jobs")]
     public async Task<IActionResult> CreateProcessingJob([FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? idempotencyKey, CreateProcessingJobRequestDto request, CancellationToken cancellationToken)
     {
@@ -34,6 +35,7 @@ public sealed class ProcessingV2Controller : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("processing-jobs/{jobId:guid}")]
     public async Task<IActionResult> GetProcessingJob(Guid jobId, CancellationToken cancellationToken)
     {
@@ -42,6 +44,7 @@ public sealed class ProcessingV2Controller : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("processing-jobs/{jobId:guid}/retry")]
     public async Task<IActionResult> RetryProcessingJob(Guid jobId, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, RetryProcessingJobRequestDto request, CancellationToken cancellationToken)
     {
@@ -60,6 +63,7 @@ public sealed class ProcessingV2Controller : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("projects/{projectId:guid}/validation-runs")]
     public async Task<IActionResult> CreateValidationRun(Guid projectId, [FromHeader(Name = "Idempotency-Key"), MaxLength(200)] string? idempotencyKey, CreateValidationRunRequestDto request, CancellationToken cancellationToken)
     {
@@ -77,6 +81,7 @@ public sealed class ProcessingV2Controller : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("validation-runs/{runId:guid}")]
     public async Task<IActionResult> GetValidationResult(Guid runId, CancellationToken cancellationToken)
     {

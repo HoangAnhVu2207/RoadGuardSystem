@@ -1,4 +1,5 @@
 using System.Data;
+using RoadGuardSystem.BusinessObjects.Files;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -61,12 +62,28 @@ public static class DevelopmentScenarios
         {
             var now = clock.GetUtcNow();
             var day = DateOnly.FromDateTime(now.UtcDateTime);
+            // Synthetic metadata only. Its TEST_ONLY key is preserved after finalize and never
+            // establishes REAL_SOURCE coverage or claims an object was uploaded to storage.
+            var fileId = Guid.NewGuid();
+            var checksum = new string('a', 64);
+            var file = StoredFile.Create(fileId, $"TEST_ONLY/{fileId:N}", "synthetic-handover.pdf",
+                "application/pdf", 100, checksum, PostmanUserSeedStep.SupervisorUserId, now, null);
+            var staged = UploadSession.Create(Guid.NewGuid(), fileId, PostmanUserSeedStep.SupervisorUserId,
+                file.StorageUri, "DOCUMENT", file.MimeType, file.SizeBytes, checksum, 8388608, now.AddHours(24));
+            staged.StartUploading("TEST_ONLY", now);
+            db.AddRange(file, staged, FileScope.CreateHandoverStaging(Guid.NewGuid(), fileId, PostmanUserSeedStep.SupervisorUserId, now));
+            await db.SaveChangesAsync(ct);
+            staged.StartVerification(Convert.ToBase64String(staged.RowVersion), now);
+            await db.SaveChangesAsync(ct);
+            staged.MarkVerified();
+            await db.SaveChangesAsync(ct);
             var create = await new ProjectCreationService(new ProjectCreationPersistenceService(db, receipts))
                 .CreateAsync(PostmanUserSeedStep.SupervisorUserId, UserRoleCode.Supervisor,
                     new(ProjectCode, "Synthetic development project", "RG-CI-01 synthetic dev/test; no construction authority.",
                         32648, day, day.AddYears(1), PostmanUserSeedStep.ProjectManagerUserId,
                         "RG-CI-01-SYNTHETIC-HANDOVER", day, null, "Synthetic demonstration only", OperationId, null,
-                        day.AddYears(1), IdempotencyKey: "rg-ci-01/project"), ct);
+                        day.AddYears(1), HandoverFileIds: [fileId], IdempotencyKey: "rg-ci-01/project",
+                        HandoverFileVersion: Convert.ToBase64String(staged.RowVersion)), ct);
             if (create.Project is null) throw new InvalidOperationException($"Development project producer rejected: {create.Status}.");
             db.ChangeTracker.Clear();
             project = await db.Projects.SingleAsync(x => x.Id == create.Project.ProjectId, ct);

@@ -1223,7 +1223,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("FileScopes", null, t =>
                         {
-                            t.HasCheckConstraint("CK_FileScopes_PrivateShape", "[ProjectId] IS NOT NULL OR ([Purpose] = 'REPORT_PHOTO' AND [TargetId] IS NULL)");
+                            t.HasCheckConstraint("CK_FileScopes_PrivateShape", "[ProjectId] IS NOT NULL OR ([Purpose] IN ('REPORT_PHOTO','PROJECT_HANDOVER_STAGING') AND [TargetId] IS NULL)");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);

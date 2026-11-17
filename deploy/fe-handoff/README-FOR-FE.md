@@ -1,8 +1,10 @@
 # RoadGuard FE handoff — preparation
 
-Current source addition: [Case Report details for PM/Supervisor](CASE-REPORT-DETAILS.md). Its runtime-generated Swagger contract is newer than this package's frozen preview `openapi.json`.
+[Đọc lại phương án repair, policy và tích hợp Web PM/Supervisor](PM-REPAIR-READBACK-AND-WEB.md).
 
-Current source addition: [Create project from Web](PROJECT-CREATE-WEB-COOKIE.md). Cookie transport is enabled only for `POST /api/v1/projects` and requires the existing CSRF pair.
+Contract local hiện hành: [openapi.json](openapi.json) được sinh lại từ runtime của bản sửa đang review (250 path, 285 operation, 420 schema), gồm [Case Report details](CASE-REPORT-DETAILS.md) và protocol staging hồ sơ bàn giao. Catalog 260 operation và các ghi nhận preview bên dưới là mốc lịch sử; route inventory test kiểm thêm các action phát sinh. Snapshot này không chứng minh môi trường FE đã cập nhật.
+
+[Tạo project từ Web](PROJECT-CREATE-WEB-COOKIE.md) yêu cầu upload hồ sơ bàn giao, xác minh file và gửi ETag upload khi hoàn tất.
 
 [Cấu hình pavement layout](PAVEMENT-LAYOUT-CONFIGURATION.md) hướng dẫn lưu và mở lại layout sau F5.
 

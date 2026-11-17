@@ -27,7 +27,7 @@ public sealed class AnhHuyGeometrySourceTests(AuthenticationSqlServerFixture sql
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new
+        var projectResponse = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
         {
             projectCode = $"P-{Guid.NewGuid():N}",
             name = "Geometry workflow test",
@@ -40,7 +40,7 @@ public sealed class AnhHuyGeometrySourceTests(AuthenticationSqlServerFixture sql
         });
         projectResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await projectResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
-        var otherProjectResponse = await client.PostAsJsonAsync("/api/v1/projects", new
+        var otherProjectResponse = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
         {
             projectCode = $"P-OTHER-{Guid.NewGuid():N}",
             name = "Wrong project fixture",

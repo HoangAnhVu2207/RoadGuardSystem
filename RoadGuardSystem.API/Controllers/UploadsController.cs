@@ -53,6 +53,20 @@ public sealed class UploadsController : ControllerBase
 
     [Authorize]
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [HttpPost("projects/handover-upload-intents")]
+    [ProducesResponseType<UploadSessionResponseDto>(StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateHandoverIntent(UploadCreateRequestDto request,
+        [FromHeader(Name = "Idempotency-Key")] string? key, CancellationToken token)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (Request.Headers["Idempotency-Key"].Count != 1 || string.IsNullOrWhiteSpace(key))
+            return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
+        var result = await _service.CreateHandoverIntentAsync(actor, role, request, key, CorrelationId(), token);
+        return MapSession(result, StatusCodes.Status201Created, $"/api/v1/uploads/{result.Session?.Id:D}");
+    }
+
+    [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("uploads/{uploadId:guid}")]
     [ProducesResponseType<UploadSessionResponseDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSession(Guid uploadId, CancellationToken cancellationToken)
@@ -136,13 +150,14 @@ public sealed class UploadsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("files/{fileId:guid}")]
     [ProducesResponseType<FileMetadataResponseDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFileMetadata(Guid fileId, CancellationToken cancellationToken)
     {
         Response.Headers.CacheControl = "private, no-store";
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
-        var result = await _service.GetFileMetadataAsync(actorUserId, role, fileId, cancellationToken);
+        var result = await _service.GetFileMetadataAsync(actorUserId, role, fileId, UsesWebSession, cancellationToken);
         if (result.File is not null) Response.Headers.ETag = $"\"{result.File.Version}\"";
         return result.Status switch
         {
@@ -153,12 +168,13 @@ public sealed class UploadsController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("files/{fileId:guid}/content")]
     public async Task<IActionResult> Download(Guid fileId, CancellationToken cancellationToken)
     {
         Response.Headers.CacheControl = "private, no-store";
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
-        var result = await _service.DownloadAsync(actorUserId, role, fileId, cancellationToken);
+        var result = await _service.DownloadAsync(actorUserId, role, fileId, UsesWebSession, cancellationToken);
         return result.Status switch
         {
             UploadServiceStatus.Success when result.Content is not null && result.File is not null => File(result.Content, result.File.MediaType),

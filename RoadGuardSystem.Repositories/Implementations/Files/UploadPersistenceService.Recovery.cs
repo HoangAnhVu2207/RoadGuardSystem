@@ -28,7 +28,12 @@ public sealed partial class UploadPersistenceService
         if (fileId is not { } id) throw new UploadNotFoundException();
         var scope = await _context.FileScopes.AsNoTracking().SingleOrDefaultAsync(s => s.FileId == id, token)
             ?? throw new UploadNotFoundException();
-        if (scope.ProjectId is not { } project) { await GuardPrivateAsync(actor, fileId, token); return; }
+        if (scope.ProjectId is not { } project)
+        {
+            if (scope.Purpose == FileScope.ProjectHandoverStaging) await GuardHandoverStagingAsync(actor, id, token);
+            else await GuardPrivateAsync(actor, id, token);
+            return;
+        }
         await MultipartReceiptAuthority.LockAsync(_context, actor, project, token);
         var user = await _context.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == actor, token);
         if (user is null || user.RoleCode is not (UserRoleCode.Supervisor or UserRoleCode.ProjectManager or UserRoleCode.DroneOperator or UserRoleCode.RepairCrew)
@@ -140,6 +145,7 @@ public sealed partial class UploadPersistenceService
     {
         var token = cancellationToken;
         var now = DateTimeOffset.UtcNow;
+        await CleanupExpiredStagingAsync(now, token);
         var uploads = await (from s in _context.UploadSessions.AsNoTracking()
                              join scope in _context.FileScopes.AsNoTracking() on s.FileId equals scope.FileId
                              where (s.MultipartPhase == "TERMINAL" || s.Status == UploadSessionStatus.Pending

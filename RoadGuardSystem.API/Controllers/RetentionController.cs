@@ -16,38 +16,45 @@ namespace RoadGuardSystem.API.Controllers;
 [Route("api/v{version:apiVersion}")]
 public sealed class RetentionController(IRetentionService service) : ControllerBase
 {
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("projects/{projectId:guid}/retention/files/{fileId:guid}")]
     public Task<IActionResult> File(Guid projectId, Guid fileId, CancellationToken token) => Run(async actor =>
     {
         var view = await service.GetFileAsync(actor, projectId, fileId, token); Tag(view.BasisVersion); return Ok(view);
     });
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPut("projects/{projectId:guid}/retention/files/{fileId:guid}/basis")]
     public Task<IActionResult> Basis(Guid projectId, Guid fileId, ConfirmRetentionBasisRequest request, CancellationToken token) => Run(async actor =>
     {
         var view = await service.ConfirmBasisAsync(actor, projectId, fileId, request, Key(), Expected(), token); Tag(view.Version); return Ok(view);
     });
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("projects/{projectId:guid}/retention/evaluations")]
     public Task<IActionResult> Evaluate(Guid projectId, CreateRetentionEvaluationRequest request, CancellationToken token) => Run(async actor =>
     {
         var view = await service.AdmitEvaluationAsync(actor, projectId, request, Key(), token); Tag(view.Version);
         Response.Headers.Location = $"/api/v1/projects/{projectId}/retention/evaluations/{view.Id}"; return StatusCode(202, view);
     });
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("projects/{projectId:guid}/retention/evaluations/{id:guid}")]
     public Task<IActionResult> Evaluation(Guid projectId, Guid id, CancellationToken token, [FromQuery] Guid? cursor = null, [FromQuery] int pageSize = 50) => Run(async actor =>
     {
         var view = await service.GetEvaluationAsync(actor, projectId, id, cursor, pageSize, token); Tag(view.Version); return Ok(view);
     });
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("retention/holds")]
     public Task<IActionResult> CreateHold(CreateRetentionHoldRequest request, CancellationToken token) => Run(async actor =>
     {
         var view = await service.CreateHoldAsync(actor, request, Key(), token); Tag(view.Version);
         Response.Headers.Location = $"/api/v1/retention/holds/{view.Id}"; return StatusCode(201, view);
     });
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("retention/holds/{id:guid}")]
     public Task<IActionResult> Hold(Guid id, CancellationToken token) => Run(async actor =>
     {
         var view = await service.GetHoldAsync(actor, id, token); Tag(view.Version); return Ok(view);
     });
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("retention/holds/{id:guid}/release")]
     public Task<IActionResult> Release(Guid id, ReleaseRetentionHoldRequest request, CancellationToken token) => Run(async actor =>
     {

@@ -15,21 +15,27 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class RepairPoliciesController(IRepairPolicyService service) : ControllerBase
 {
     [HttpPost("drafts")]
+    [ProducesResponseType<RepairPolicyView>(201)]
     public Task<IActionResult> Create(Guid projectId, RepairPolicyDefinitionInput input, CancellationToken token)
         => Execute(projectId, "create", null, input, null, token);
     [HttpGet("drafts/{draftId:guid}")]
+    [ProducesResponseType<RepairPolicyView>(200)]
     public Task<IActionResult> Draft(Guid projectId, Guid draftId, CancellationToken token)
         => Execute(projectId, "draft-get", draftId, null, null, token);
     [HttpPut("drafts/{draftId:guid}")]
+    [ProducesResponseType<RepairPolicyView>(201)]
     public Task<IActionResult> Update(Guid projectId, Guid draftId, RepairPolicyDefinitionInput input, CancellationToken token)
         => Execute(projectId, "update", draftId, input, null, token);
     [HttpPost("drafts/{draftId:guid}/publish")]
+    [ProducesResponseType<RepairPolicyView>(201)]
     public Task<IActionResult> Publish(Guid projectId, Guid draftId, RepairPolicyReasonInput input, CancellationToken token)
         => Execute(projectId, "publish", draftId, null, input.Reason, token);
     [HttpGet("revisions/{revisionId:guid}")]
+    [ProducesResponseType<RepairPolicyView>(200)]
     public Task<IActionResult> Revision(Guid projectId, Guid revisionId, CancellationToken token)
         => Execute(projectId, "revision-get", revisionId, null, null, token);
     [HttpPost("revisions/{revisionId:guid}/revoke")]
+    [ProducesResponseType<RepairPolicyView>(201)]
     public Task<IActionResult> Revoke(Guid projectId, Guid revisionId, RepairPolicyReasonInput input, CancellationToken token)
         => Execute(projectId, "revoke", revisionId, null, input.Reason, token);
     private async Task<IActionResult> Execute(Guid project, string action, Guid? resource,

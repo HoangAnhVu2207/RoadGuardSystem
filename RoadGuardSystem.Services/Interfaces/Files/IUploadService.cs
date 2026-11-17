@@ -13,8 +13,10 @@ public interface IUploadService
     Task<UploadServiceResult> GetSessionAsync(Guid actorUserId, UserRoleCode role, Guid uploadId, CancellationToken cancellationToken = default);
     Task<UploadServiceResult> GetPartUrlsAsync(Guid actorUserId, UserRoleCode role, Guid uploadId, UploadPartUrlsRequestDto request, string idempotencyKey, CancellationToken cancellationToken = default);
     Task<UploadServiceResult> CompleteAsync(Guid actorUserId, UserRoleCode role, Guid uploadId, UploadCompleteRequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default);
-    Task<UploadServiceResult> GetFileMetadataAsync(Guid actorUserId, UserRoleCode role, Guid fileId, CancellationToken cancellationToken = default);
-    Task<UploadServiceResult> DownloadAsync(Guid actorUserId, UserRoleCode role, Guid fileId, CancellationToken cancellationToken = default);
+    Task<UploadServiceResult> CreateHandoverIntentAsync(Guid actor, UserRoleCode role, UploadCreateRequestDto request,
+        string key, Guid? correlationId, CancellationToken token);
+    Task<UploadServiceResult> GetFileMetadataAsync(Guid actorUserId, UserRoleCode role, Guid fileId, bool webSession = false, CancellationToken cancellationToken = default);
+    Task<UploadServiceResult> DownloadAsync(Guid actorUserId, UserRoleCode role, Guid fileId, bool webSession = false, CancellationToken cancellationToken = default);
     Task ProcessOneVerificationAsync(CancellationToken cancellationToken = default);
     Task ProcessOneVerificationInRoundAsync(UploadVerificationRound round, CancellationToken cancellationToken = default);
 }

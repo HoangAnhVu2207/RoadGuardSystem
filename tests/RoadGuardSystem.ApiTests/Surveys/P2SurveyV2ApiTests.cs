@@ -307,9 +307,9 @@ public sealed class P2SurveyV2ApiTests
         return await client.SendAsync(request);
     }
 
-    private static async Task<Guid> CreateProjectAsync(HttpClient client, Guid managerId)
+    private async Task<Guid> CreateProjectAsync(HttpClient client, Guid managerId)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new
         {
             projectCode = $"P2V2-{Guid.NewGuid():N}",
             name = "P2 V2 API project",

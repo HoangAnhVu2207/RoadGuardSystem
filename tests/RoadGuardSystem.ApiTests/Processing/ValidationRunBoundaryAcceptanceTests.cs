@@ -54,7 +54,13 @@ public sealed class ValidationRunBoundaryAcceptanceTests(AuthenticationSqlServer
         object Input(Guid datasetSplit, Guid? modelOverride = null) => new { pairs = new[] { new { groundTruthId = truth.Id, derivedMeasurementId = derived.Id } }, modelVersionId = modelOverride ?? model.Id, datasetSplitId = datasetSplit, measurementType = "DEPRESSION_DEPTH", unit = "mm" };
         var key = Guid.NewGuid().ToString("N");
         await Login(client, manager.UserName!);
-        var created = await Command(client, path, Input(split), key);
+        using var web = await WebCookieTestClient.Login(factory, manager.Email!);
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        await Problem(await Command(web, path, Input(split), key), HttpStatusCode.Forbidden, "csrf_failed");
+        web.DefaultRequestHeaders.Add("X-CSRF-TOKEN", "invalid");
+        await Problem(await Command(web, path, Input(split), key), HttpStatusCode.Forbidden, "csrf_failed");
+        await WebCookieTestClient.RefreshCsrf(web);
+        var created = await Command(web, path, Input(split), key);
         Assert.Equal(HttpStatusCode.Accepted, created.StatusCode);
         Assert.Equal("application/json", created.Content.Headers.ContentType!.MediaType);
         var receipt = await Body(created);
@@ -97,7 +103,7 @@ public sealed class ValidationRunBoundaryAcceptanceTests(AuthenticationSqlServer
             ownCompleted = await db.ValidationRuns.AnyAsync(x => x.Id == runId && x.Status == ValidationRunStatus.Completed);
         }
         Assert.True(ownCompleted);
-        var completed = await client.GetAsync(readPath);
+        var completed = await web.GetAsync(readPath);
         Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
         Assert.Equal("application/json", completed.Content.Headers.ContentType!.MediaType);
         Correlation(completed);

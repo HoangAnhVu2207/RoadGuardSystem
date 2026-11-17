@@ -54,27 +54,8 @@ public sealed class ProjectCreationService : IProjectCreationService
             command.CorrelationId,
             command.WarrantyEndDate,
             fileIds,
-            command.IdempotencyKey);
-        var replay = await _persistence.TryGetReplayAsync(request, cancellationToken);
-        if (replay is not null)
-        {
-            return ToResult(replay);
-        }
-
-        var facts = await _persistence.GetFactsAsync(
-            command.PrimaryProjectManagerUserId,
-            fileIds,
-            cancellationToken);
-        if (!facts.PrimaryProjectManagerIsEligible)
-        {
-            return new(ProjectCreationStatus.ProjectManagerNotFound);
-        }
-
-        if (!facts.HandoverFileExists)
-        {
-            return new(ProjectCreationStatus.HandoverFileNotFound);
-        }
-
+            command.IdempotencyKey,
+            command.HandoverFileVersion);
         if (command.WarrantyEndDate is DateOnly warrantyEndDate && warrantyEndDate < command.HandoverDate)
         {
             return new(ProjectCreationStatus.InvalidInput);
@@ -108,6 +89,9 @@ public sealed class ProjectCreationService : IProjectCreationService
         ProjectCreationPersistenceStatus.ActorNotAuthorized => ProjectCreationStatus.Forbidden,
         ProjectCreationPersistenceStatus.ProjectManagerNotFound => ProjectCreationStatus.ProjectManagerNotFound,
         ProjectCreationPersistenceStatus.HandoverFileNotFound => ProjectCreationStatus.HandoverFileNotFound,
+        ProjectCreationPersistenceStatus.HandoverRequired => ProjectCreationStatus.HandoverRequired,
+        ProjectCreationPersistenceStatus.HandoverFileNotReady => ProjectCreationStatus.HandoverFileNotReady,
+        ProjectCreationPersistenceStatus.HandoverVersionConflict => ProjectCreationStatus.HandoverVersionConflict,
         ProjectCreationPersistenceStatus.ProjectCodeConflict => ProjectCreationStatus.ProjectCodeConflict,
         ProjectCreationPersistenceStatus.IdempotentConflict => ProjectCreationStatus.IdempotentConflict,
         _ => ProjectCreationStatus.InvalidInput

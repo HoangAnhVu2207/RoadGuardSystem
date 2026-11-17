@@ -130,7 +130,7 @@ class DemoApi:
     def upload(self, role, filename, purpose, project_id, target_id=None):
         return self.upload_path(role, ASSETS / filename, purpose, project_id, target_id)
 
-    def upload_path(self, role, path, purpose, project_id, target_id=None, exact_size=None):
+    def upload_path(self, role, path, purpose, project_id, target_id=None, exact_size=None, staging=False):
         path = Path(path)
         filename = path.name
         size = path.stat().st_size
@@ -149,15 +149,17 @@ class DemoApi:
         if known and known.get("identity", identity) != identity:
             raise ValueError("State belongs to different file bytes or scope; use a separate demo state")
         if known and known.get("verified"):
-            file = self.call(role, "GET", prefix + "files/" + known["fileId"])
-            if file["status"] != "VERIFIED" or file["sizeBytes"] != size or file["checksumSha256"] != checksum:
+            file = self.call(role, "GET", "uploads/" + known["id"] if staging else prefix + "files/" + known["fileId"])
+            if file["status"] != "VERIFIED" or (staging and file["fileId"] != known["fileId"]) or (
+                not staging and (file["sizeBytes"] != size or file["checksumSha256"] != checksum)
+            ):
                 raise RuntimeError("Previously verified fixture no longer verified")
             return known["fileId"]
         if not known:
             body = {"fileName": filename, "mediaType": mime, "sizeBytes": size, "checksumSha256": checksum}
             if not prefix:
                 body.update({"purpose": purpose, "projectId": project_id, "targetId": target_id})
-            session = self.call(role, "POST", prefix + "uploads", body, label)
+            session = self.call(role, "POST", "projects/handover-upload-intents" if staging else prefix + "uploads", body, label)
             known = {"id": session["id"], "fileId": session["fileId"], "identity": identity}
             self.state[label] = known
             self.save()
@@ -193,9 +195,13 @@ class DemoApi:
         # A full 8 GiB verifier read can legitimately outlast the tiny-fixture polling window.
         deadline = time.monotonic() + (1800 if exact_size == 8589934592 else 60)
         while time.monotonic() < deadline:
-            file = self.call(role, "GET", prefix + "files/" + known["fileId"])
+            file = self.call(role, "GET", "uploads/" + known["id"] if staging else prefix + "files/" + known["fileId"])
             if file["status"] == "VERIFIED":
-                if file["sizeBytes"] != size or file.get("checksumSha256", file.get("checksum")) != checksum:
+                # Session readback has no size/checksum fields. VERIFIED binds this fileId to
+                # the original create request's persisted size/checksum and server verifier.
+                if (staging and file["fileId"] != known["fileId"]) or (
+                    not staging and (file["sizeBytes"] != size or file.get("checksumSha256", file.get("checksum")) != checksum)
+                ):
                     raise RuntimeError("Verified metadata differs from actual source bytes")
                 known["verified"] = True
                 self.save()
@@ -276,14 +282,15 @@ class DemoApi:
         print("SYNTHETIC ANH-02 flow executed; intake remains private/unassigned; Huy readers pending")
 
     def prepare(self, pm_id):
+        document = self.upload_path("supervisor", ASSETS / "dossier-demo.pdf", "DOCUMENT", None, staging=True)
+        staged = self.call("supervisor", "GET", "uploads/" + self.state["upload:dossier-demo.pdf"]["id"])
         project = self.call("supervisor", "POST", "projects", {"code": FACTS["code"], "name": FACTS["name"],
             "primaryPmId": pm_id, "handoverDate": FACTS["handoverDate"], "warrantyEndDate": FACTS["warrantyEndDate"],
-            "handoverFileIds": [], "description": "DEMO FICTIONAL - NOT LEGAL EVIDENCE",
-            "engineeringUtmSrid": FACTS["engineeringSrid"], "operationId": operation("project")}, "project")
+            "handoverFileIds": [document], "description": "DEMO FICTIONAL - NOT LEGAL EVIDENCE",
+            "engineeringUtmSrid": FACTS["engineeringSrid"], "operationId": operation("project")}, "project", staged["version"])
         pid = project["id"]
         self.state["projectId"] = pid
         self.save()
-        document = self.upload("supervisor", "dossier-demo.pdf", "DOCUMENT", pid)
         self.call("supervisor", "POST", f"projects/{pid}/warranties", {"roadSectionId": None,
             "handoverDocumentId": project["handoverDocumentId"], "handoverDate": FACTS["handoverDate"],
             "warrantyStartDate": FACTS["warrantyStartDate"], "warrantyEndDate": FACTS["warrantyEndDate"],

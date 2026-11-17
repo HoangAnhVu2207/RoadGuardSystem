@@ -24,8 +24,17 @@ public sealed class Anh02RetentionHttpTests(AuthenticationSqlServerFixture sql)
         var payload = new { scopeType = "FILE", scopeId = seed.File, reason = "Review requested" }; var key = Guid.NewGuid().ToString();
         Assert.Equal((HttpStatusCode)428, (await client.PostAsJsonAsync("/api/v1/retention/holds", payload)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Command(client, "/api/v1/retention/holds", new { scopeType = "FILE", scopeId = seed.File, reason = "Review", execute = true }, Guid.NewGuid().ToString())).StatusCode);
-        var created = await Command(client, "/api/v1/retention/holds", payload, key); Assert.Equal(HttpStatusCode.Created, created.StatusCode); Assert.NotNull(created.Headers.ETag); Assert.NotNull(created.Headers.Location);
+        using var web = await WebCookieTestClient.Login(factory, AuthenticationSqlServerFixture.EmailFor(seed.Supervisor));
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        Assert.Equal(HttpStatusCode.Forbidden, (await Command(web, "/api/v1/retention/holds", payload, key)).StatusCode);
+        web.DefaultRequestHeaders.Add("X-CSRF-TOKEN", "invalid-token");
+        Assert.Equal(HttpStatusCode.Forbidden, (await Command(web, "/api/v1/retention/holds", payload, key)).StatusCode);
+        await WebCookieTestClient.RefreshCsrf(web);
+        var created = await Command(web, "/api/v1/retention/holds", payload, key); Assert.Equal(HttpStatusCode.Created, created.StatusCode); Assert.NotNull(created.Headers.ETag); Assert.NotNull(created.Headers.Location);
         var body = await created.Content.ReadAsStringAsync(); var id = JsonDocument.Parse(body).RootElement.GetProperty("id").GetGuid();
+        using var readByWeb = await web.GetAsync(created.Headers.Location);
+        Assert.Equal(HttpStatusCode.OK, readByWeb.StatusCode);
+        Assert.Equal(id, (await readByWeb.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
         var replay = await Command(client, "/api/v1/retention/holds", payload, key); Assert.Equal(body, await replay.Content.ReadAsStringAsync()); Assert.Equal(created.Headers.ETag, replay.Headers.ETag);
         Assert.Equal(HttpStatusCode.Conflict, (await Command(client, "/api/v1/retention/holds", new { scopeType = "FILE", scopeId = seed.File, reason = "Changed" }, key)).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Command(client, "/api/v1/retention/holds", new { scopeType = "PROJECT", scopeId = seed.Project, reason = "Review requested" }, key)).StatusCode);

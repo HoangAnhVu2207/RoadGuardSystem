@@ -25,6 +25,7 @@ public sealed class SurveyAssessmentsController(ISurveyAssessmentService service
         if (result.Assessment is { } view) { Response.Headers.ETag = $"\"{view.Version}\""; return Created($"/api/v1/datasets/{id}/assessments/{view.Id}", view); }
         return Error(result.Code);
     }
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("datasets/{id:guid}/assessments/{assessmentId:guid}")]
     public async Task<IActionResult> Read(Guid id, Guid assessmentId, CancellationToken token)
     {
@@ -46,6 +47,7 @@ public sealed class SurveyAssessmentsController(ISurveyAssessmentService service
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("projects/{projectId:guid}/baseline-selections")]
     public Task<IActionResult> Current(Guid projectId, [FromQuery] Guid? segmentSetId, CancellationToken token) => ReadBaseline(projectId, null, segmentSetId, token);
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("projects/{projectId:guid}/baseline-selections/{id:guid}")]
     public Task<IActionResult> History(Guid projectId, Guid id, CancellationToken token) => ReadBaseline(projectId, id, null, token);
     private async Task<IActionResult> ReadBaseline(Guid project, Guid? id, Guid? set, CancellationToken token)

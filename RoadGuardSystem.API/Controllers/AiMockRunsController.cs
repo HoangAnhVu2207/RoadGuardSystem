@@ -15,6 +15,7 @@ namespace RoadGuardSystem.API.Controllers;
 [ApiController, ApiVersion("1.0"), Authorize, Route("api/v{version:apiVersion}/projects/{projectId:guid}")]
 public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFactsReader candidates) : ControllerBase
 {
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("ai-mock-runs")]
     public async Task<IActionResult> Create(Guid projectId, CreateAiMockRunRequest request,
         [FromHeader(Name = "Idempotency-Key")] string? key, CancellationToken ct)
@@ -29,6 +30,7 @@ public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFa
         }
         catch (AiRequestException ex) { return Error(ex.Status, ex.Code); }
     }
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("ai-mock-runs/{runId:guid}")]
     public async Task<IActionResult> Get(Guid projectId, Guid runId, CancellationToken ct)
     {
@@ -36,6 +38,7 @@ public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFa
         try { var view = await service.GetAsync(actor, role, projectId, runId, ct); Response.Headers.ETag = $"\"{view.Version}\""; return Ok(view); }
         catch (AiRequestException ex) { return Error(ex.Status, ex.Code); }
     }
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("ai-mock-runs/{runId:guid}/result")]
     public async Task<IActionResult> Result(Guid projectId, Guid runId, CancellationToken ct)
     {

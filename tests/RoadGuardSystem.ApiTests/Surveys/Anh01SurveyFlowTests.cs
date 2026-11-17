@@ -36,6 +36,8 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new SurveyVideoStorage(media, checksum)); });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
         var created = await client.PostAsJsonAsync("/api/v1/projects", new
         {
             projectCode = $"ANH-{Guid.NewGuid():N}",
@@ -44,9 +46,10 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             startDate = "2026-09-01",
             endDate = "2027-09-01",
             primaryProjectManagerUserId = manager.Id,
-            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" },
+            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31", fileId = staged.FileId },
             operationId = Guid.NewGuid()
         });
+        client.DefaultRequestHeaders.IfMatch.Clear();
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await Body(created)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!);
@@ -368,6 +371,11 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         replay.StatusCode.Should().Be(HttpStatusCode.Created);
         (await Body(replay)).GetProperty("id").GetGuid().Should().Be(assessment);
         (await client.GetAsync(assessed.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
+        using var webAssessment = await pmWeb.GetAsync(assessed.Headers.Location);
+        webAssessment.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(webAssessment)).GetProperty("id").GetGuid().Should().Be(assessment);
+        using var outsideAssessment = await outsideWeb.GetAsync(assessed.Headers.Location);
+        outsideAssessment.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         await CheckReads($"/api/v1/datasets/{dataset}");
         await CheckReads($"/api/v1/datasets/{dataset}/coverage");
         var coverage = await Body(await client.GetAsync($"/api/v1/datasets/{dataset}/coverage"));
@@ -411,6 +419,11 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         selectedItem.GetProperty("segmentId").GetGuid().Should().Be(segment);
         selectedItem.GetProperty("targetBand").GetString().Should().Be("SURFACE");
         (await client.GetAsync(selected.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
+        using var webHistory = await supWeb.GetAsync(selected.Headers.Location);
+        webHistory.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(webHistory)).GetProperty("id").GetGuid().Should().Be(selectedBody.GetProperty("id").GetGuid());
+        using var outsideHistory = await outsideWeb.GetAsync(selected.Headers.Location);
+        outsideHistory.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         var selectedReplay = await Command(pmActions, baselinePath, selectBody, key: selectionKey);
         selectedReplay.StatusCode.Should().Be(HttpStatusCode.Created);
         (await Body(selectedReplay)).GetProperty("id").GetGuid().Should().Be(selectedBody.GetProperty("id").GetGuid());

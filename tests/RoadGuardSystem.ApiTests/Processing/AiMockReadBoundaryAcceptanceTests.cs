@@ -55,6 +55,8 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
         var created = await client.PostAsJsonAsync("/api/v1/projects", new
         {
             projectCode = $"ANH-{Guid.NewGuid():N}",
@@ -63,9 +65,10 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
             startDate = "2026-09-01",
             endDate = "2027-09-01",
             primaryProjectManagerUserId = manager.Id,
-            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" },
+            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31", fileId = staged.FileId },
             operationId = Guid.NewGuid()
         });
+        client.DefaultRequestHeaders.IfMatch.Clear();
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await Body(created)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!);
@@ -227,6 +230,21 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
         var runFields = new[] { "id", "projectId", "stage", "mode", "status", "processingJobId", "attemptId", "manifestHash", "resultId", "fixtureVersion", "errorCode", "version" };
         var resultFields = new[] { "schemaVersion", "runId", "stage", "mode", "jobId", "attemptId", "manifestHash", "modelVersionId", "fixtureVersion", "resultHash", "completedAt", "detections", "matches" };
         var view = await Read(detailPath, runFields); var result = await Read(resultPath, resultFields);
+        using var web = await WebCookieTestClient.Login(factory, manager.Email!);
+        web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        using var webRun = await web.GetAsync(detailPath);
+        webRun.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(webRun)).GetProperty("id").GetGuid().Should().Be(run);
+        using var webResult = await web.GetAsync(resultPath);
+        webResult.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstFrame = (await Body(webResult)).GetProperty("detections")[0].GetProperty("frameFileId").GetGuid();
+        using var metadata = await web.GetAsync($"/api/v1/files/{firstFrame}");
+        metadata.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var frame = await web.GetAsync($"/api/v1/files/{firstFrame}/content");
+        frame.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await frame.Content.ReadAsByteArrayAsync()).Should().NotBeEmpty();
+        using var surveyVideo = await web.GetAsync($"/api/v1/files/{video}");
+        surveyVideo.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         view.GetProperty("id").GetGuid().Should().Be(run); view.GetProperty("projectId").GetGuid().Should().Be(project); view.GetProperty("status").GetString().Should().Be("SUCCEEDED");
         result.GetProperty("runId").GetGuid().Should().Be(run); result.GetProperty("mode").GetString().Should().Be("MOCK"); result.GetProperty("modelVersionId").GetGuid().Should().Be(model);
         result.GetProperty("jobId").GetGuid().Should().Be(view.GetProperty("processingJobId").GetGuid()); result.GetProperty("attemptId").GetGuid().Should().Be(view.GetProperty("attemptId").GetGuid());
@@ -267,7 +285,10 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
             await Login(client, outsider.UserName!); foreach (var url in new[] { detailPath, resultPath }) await Denied(url, HttpStatusCode.Forbidden, "access_forbidden");
         }
         await Login(client, supervisor.UserName!); await Read(detailPath, runFields); await Read(resultPath, resultFields);
-        using var otherProject = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = "MOCK-READ-" + Guid.NewGuid().ToString("N"), name = "Other scoped resource", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = manager.Id, handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
+        var otherStaged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", otherStaged.ETag);
+        using var otherProject = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = "MOCK-READ-" + Guid.NewGuid().ToString("N"), name = "Other scoped resource", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = manager.Id, handover = new { documentNo = "DEMO", handoverDate = "2026-08-31", fileId = otherStaged.FileId }, operationId = Guid.NewGuid() });
+        client.DefaultRequestHeaders.IfMatch.Clear();
         otherProject.StatusCode.Should().Be(HttpStatusCode.Created); var otherId = (await Body(otherProject)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!);
         foreach (var url in new[] { $"/api/v1/projects/{otherId}/ai-mock-runs/{run}", $"/api/v1/projects/{otherId}/ai-mock-runs/{run}/result" }) await Denied(url, HttpStatusCode.NotFound, "not_found");

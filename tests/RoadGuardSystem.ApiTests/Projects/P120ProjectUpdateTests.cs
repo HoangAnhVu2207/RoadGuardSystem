@@ -256,7 +256,7 @@ public sealed class P120ProjectUpdateTests
         var client = CreateClient(factory);
         await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
         var projectCode = $"P-{Guid.NewGuid():N}";
-        var create = await client.PostAsJsonAsync("/api/v1/projects", new
+        var create = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new
         {
             projectCode,
             name = "Project before update",

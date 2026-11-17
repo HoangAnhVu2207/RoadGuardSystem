@@ -64,7 +64,12 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                 async token =>
                 {
                     var capture = offline is null ? null : await OfflineUploads.GuardNewUploadAsync(offline, token);
-                    if (request.ProjectId is null) await GuardPrivateAsync(request.ActorUserId, null, token);
+                    if (request.ProjectId is null)
+                    {
+                        if (request.Purpose == FileScope.ProjectHandoverStaging)
+                            await GuardHandoverStagingAsync(request.ActorUserId, null, token);
+                        else await GuardPrivateAsync(request.ActorUserId, null, token);
+                    }
                     else if (offline is null && FieldPurpose(request.Purpose)) await GuardFieldScopeAsync(request.ActorUserId, request.ProjectId.Value, request.TargetId, request.Purpose, true, token);
                     var now = _fieldClock.GetUtcNow();
                     var fileId = Guid.NewGuid();
@@ -84,7 +89,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                         fileId,
                         request.ActorUserId,
                         objectKey,
-                        request.Purpose,
+                        request.Purpose == FileScope.ProjectHandoverStaging ? "DOCUMENT" : request.Purpose,
                         request.MediaType,
                         request.SizeBytes,
                         request.ChecksumSha256,
@@ -95,7 +100,9 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                         ? FileScope.Create(Guid.NewGuid(), fileId, projectId, request.TargetId, request.ActorUserId, request.Purpose, now)
                         : request.Purpose == "REPORT_PHOTO" && request.TargetId is null
                             ? FileScope.CreatePrivate(Guid.NewGuid(), fileId, request.ActorUserId, now)
-                            : throw new ArgumentException("Invalid private scope."));
+                            : request.Purpose == FileScope.ProjectHandoverStaging && request.TargetId is null
+                                ? FileScope.CreateHandoverStaging(Guid.NewGuid(), fileId, request.ActorUserId, now)
+                                : throw new ArgumentException("Invalid private scope."));
                     _context.UploadSessions.Add(session);
                     _context.AuditLogs.Add(AuditLog.Create(
                         Guid.NewGuid(),
@@ -120,7 +127,10 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                 },
                 cancellationToken,
                 receiptAccessGuard: offline is not null ? token => GuardOfflineUploadReceiptAsync(offline, token) : request.ProjectId is null
-                    ? token => GuardPrivateAsync(request.ActorUserId, null, token) : FieldPurpose(request.Purpose)
+                    ? request.Purpose == FileScope.ProjectHandoverStaging
+                        ? token => GuardHandoverStagingAsync(request.ActorUserId, null, token)
+                        : token => GuardPrivateAsync(request.ActorUserId, null, token)
+                    : FieldPurpose(request.Purpose)
                         ? token => GuardFieldScopeAsync(request.ActorUserId, request.ProjectId.Value, request.TargetId, request.Purpose, false, token) : null);
 
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
@@ -423,12 +433,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                 {
                     var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == request.UploadId)
                         .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token);
-                    if (request.ProjectId is null)
-                    {
-                        if (fileId is null) throw new UploadNotFoundException();
-                        await GuardPrivateAsync(request.ActorUserId, fileId, token);
-                    }
-                    else await GuardMultipartAsync(request.ActorUserId, fileId, token);
+                    await GuardMultipartAsync(request.ActorUserId, fileId, token);
                     if (await IsCancelledAsync(request.UploadId, token)) throw new UploadPartConflictException();
                 });
 
@@ -472,6 +477,9 @@ public sealed partial class UploadPersistenceService : IUploadRepository
         }
     }
 
+    public Task<bool> IsHandoverDocumentFileAsync(Guid project, Guid fileId, CancellationToken token)
+        => _context.HandoverDocuments.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.FileId == fileId, token);
+
     public async Task<FileMetadataPersistenceView?> GetFileMetadataAsync(Guid fileId, CancellationToken cancellationToken = default)
     {
         var row = await (
@@ -510,6 +518,22 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                 row.File.MimeType,
                 row.File.SizeBytes,
                 Convert.ToBase64String(row.Session.RowVersion), row.Scope.Purpose, row.Scope.TargetId);
+    }
+
+    private async Task GuardHandoverStagingAsync(Guid actor, Guid? fileId, CancellationToken token)
+    {
+        await MultipartReceiptAuthority.LockAsync(_context, actor, null, token);
+        if (!await new RoadGuardSystem.Repositories.Integration.AnhHuyFactsRepository(_context)
+            .IsCurrentActorAsync(actor, UserRoleCode.Supervisor, token)) throw new UploadNotFoundException();
+        if (fileId is not Guid id) return;
+        await _context.Files.FromSqlInterpolated($"SELECT * FROM [Files] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={id}").AsNoTracking().ToListAsync(token);
+        var scope = await _context.FileScopes.FromSqlInterpolated($"SELECT * FROM [FileScopes] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={id}")
+            .AsNoTracking().SingleOrDefaultAsync(token);
+        var session = await _context.UploadSessions.FromSqlInterpolated($"SELECT * FROM [UploadSessions] WITH (UPDLOCK,HOLDLOCK) WHERE [FileId]={id}")
+            .AsNoTracking().SingleOrDefaultAsync(token);
+        if (scope is not { ProjectId: null, TargetId: null, Purpose: FileScope.ProjectHandoverStaging } ||
+            session is not { Purpose: "DOCUMENT" } || scope.OwnerUserId != actor || session.OwnerUserId != actor)
+            throw new UploadNotFoundException();
     }
 
     private async Task GuardPrivateAsync(Guid actor, Guid? fileId, CancellationToken token)

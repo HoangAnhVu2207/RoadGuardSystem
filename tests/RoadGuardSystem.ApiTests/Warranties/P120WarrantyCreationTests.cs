@@ -126,7 +126,7 @@ public sealed class P120WarrantyCreationTests
     public async Task CreateWarrantyRejectsInvalidReferencesDatesAndChangedReplay()
     {
         var setup = await CreateProjectSetupAsync();
-        var otherProject = await CreateProjectAsync(setup.Client, setup.ProjectManagerId);
+        var otherProject = await CreateProjectAsync(setup.Client, setup.SupervisorId, setup.ProjectManagerId);
         var currentRoadSectionId = Guid.NewGuid();
         var otherRoadSectionId = Guid.NewGuid();
         await using (var arrange = _sql.CreateDbContext())
@@ -237,7 +237,7 @@ public sealed class P120WarrantyCreationTests
         var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
         var client = CreateClient(factory);
         await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
-        var project = await CreateProjectAsync(client, projectManager.Id);
+        var project = await CreateProjectAsync(client, supervisor.Id, projectManager.Id);
         await using var verification = _sql.CreateDbContext();
         var initialWarrantyCount = await verification.Warranties.CountAsync(
             warranty => warranty.ProjectId == project.ProjectId);
@@ -294,13 +294,10 @@ public sealed class P120WarrantyCreationTests
             audit.EntityId == record.OperationId && audit.EventType == "warranty_created")).Should().Be(1);
     }
 
-    private static async Task<CreatedProject> CreateProjectAsync(HttpClient client, Guid? projectManagerId = null)
+    private async Task<CreatedProject> CreateProjectAsync(HttpClient client, Guid supervisorId, Guid projectManagerId)
     {
-        if (projectManagerId is null)
-        {
-            throw new InvalidOperationException("A project manager is required for project setup.");
-        }
-
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisorId);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
         var response = await client.PostAsJsonAsync("/api/v1/projects", new
         {
             projectCode = $"P-{Guid.NewGuid():N}",
@@ -308,14 +305,16 @@ public sealed class P120WarrantyCreationTests
             engineeringUtmSrid = 32648,
             startDate = "2026-09-01",
             endDate = "2029-09-01",
-            primaryProjectManagerUserId = projectManagerId.Value,
+            primaryProjectManagerUserId = projectManagerId,
             handover = new
             {
                 documentNo = $"HD-{Guid.NewGuid():N}",
-                handoverDate = "2026-08-31"
+                handoverDate = "2026-08-31",
+                fileId = staged.FileId
             },
             operationId = Guid.NewGuid()
         });
+        client.DefaultRequestHeaders.IfMatch.Clear();
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         return new CreatedProject(

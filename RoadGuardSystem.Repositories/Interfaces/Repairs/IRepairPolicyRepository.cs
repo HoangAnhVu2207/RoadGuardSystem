@@ -9,7 +9,8 @@ public sealed record RepairPolicyCommand(Guid ActorId, UserRoleCode Role, Guid P
     Guid? ResourceId, RepairPolicyDefinition? Definition, string? Reason, string? Key, string? ExpectedVersion);
 public sealed record RepairPolicyRecord(Guid Id, Guid ProjectId, Guid? CurrentChangeId, Guid? PublishedRevisionId,
     int? Revision, string DefectTypeCode, string ChecklistVersion, RepairMeasurementRule[] Measurements,
-    string[] StopConditions, string State, Guid ActorId, DateTimeOffset At, string Reason, string Version);
+    string[] StopConditions, string State, Guid ActorId, DateTimeOffset At, string Reason, string Version,
+    string? DraftChangeReason = null, string? PublishReason = null, string? RevokeReason = null);
 public sealed record RepairPolicyResult(int Status, string? Code = null, RepairPolicyRecord? Value = null,
     bool Replayed = false);
 public interface IRepairPolicyRepository

@@ -71,8 +71,12 @@ public sealed record RepairHistoryFact(RepairItemFact Item, RepairDecisionHistor
 public sealed record RepairItemAssignData(RepairFieldTaskData Task, Guid? PolicyRevisionId, string Reason);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairItemProposeData(Guid ObligationId, string Mode, string RepairPlan, string ChecklistVersion, string Reason);
+public sealed record RepairCurrentBindingFact(Guid Id, Guid TaskId, Guid AssignmentId, Guid? PolicyRevisionId,
+    string? PolicyContentHash, string PlanHash, string ChecklistVersion);
 public sealed record RepairItemFact(Guid Id, Guid ProjectId, Guid DefectId, Guid ObligationId, string Mode,
-    string State, string Result, Guid? EffectiveDecisionId, Guid[] AttemptIds, Guid[] DecisionIds, string Version);
+    string State, string Result, Guid? EffectiveDecisionId, Guid[] AttemptIds, Guid[] DecisionIds, string Version,
+    string? RepairPlan = null, string? ChecklistVersion = null, string? ProposalPlanHash = null,
+    string? ApprovedPlanHash = null, RepairCurrentBindingFact? CurrentBinding = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairMeasurementAssessmentData(Guid OriginId, Guid FieldFirstStartId,
     RepairFieldMeasurementData[]? Measurements, RepairFieldEvidenceData[]? Evidence,

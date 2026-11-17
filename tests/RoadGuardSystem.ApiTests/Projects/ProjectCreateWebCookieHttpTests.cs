@@ -22,24 +22,27 @@ public sealed class ProjectCreateWebCookieHttpTests(AuthenticationSqlServerFixtu
         using var web = await WebCookieTestClient.Login(factory, supervisor.Email!);
         using var pm = await WebCookieTestClient.Login(factory, manager.Email!);
         using var bearer = await Bearer(factory, bearerSupervisor.Email!);
-        var request = Payload(manager.Id);
+        using var missingFile = await Post(web, Payload(manager.Id), Guid.NewGuid().ToString("N"));
+        await Problem(missingFile, HttpStatusCode.PreconditionRequired, "handover_required");
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+        var request = Payload(manager.Id) with { HandoverFileIds = [staged.FileId] };
         var key = Guid.NewGuid().ToString("N");
 
-        using var created = await Post(web, request, key);
+        using var created = await Post(web, request, key, staged.ETag);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         Assert.Null(web.DefaultRequestHeaders.Authorization);
         var projectId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         Assert.NotNull(created.Headers.ETag);
-        using var replay = await Post(web, request, key);
+        using var replay = await Post(web, request, key, staged.ETag);
         Assert.Equal(HttpStatusCode.Created, replay.StatusCode);
         Assert.Equal(projectId, (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
-        using var changed = await Post(web, request with { Name = "Changed request" }, key);
+        using var changed = await Post(web, request with { Name = "Changed request" }, key, staged.ETag);
         await Problem(changed, HttpStatusCode.Conflict, "duplicate_request");
         await using (var db = sql.CreateDbContext())
         {
             Assert.Equal(1, await db.Projects.CountAsync(p => p.ProjectCode == request.Code));
-            Assert.Null((await db.HandoverDocuments.SingleAsync(h => h.ProjectId == projectId)).FileId);
-            Assert.Null((await db.Warranties.SingleAsync(w => w.ProjectId == projectId)).SourceDocumentId);
+            Assert.Equal(staged.FileId, (await db.HandoverDocuments.SingleAsync(h => h.ProjectId == projectId)).FileId);
+            Assert.Equal(staged.FileId, (await db.Warranties.SingleAsync(w => w.ProjectId == projectId)).SourceDocumentId);
             Assert.Equal(1, await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == supervisor.Id &&
                 r.Operation == "ProjectCreated"));
         }
@@ -59,12 +62,13 @@ public sealed class ProjectCreateWebCookieHttpTests(AuthenticationSqlServerFixtu
         using var pmDenied = await Post(pm, Payload(manager.Id), Guid.NewGuid().ToString("N"));
         await Problem(pmDenied, HttpStatusCode.Forbidden, "access_forbidden");
 
-        var bearerPayload = Payload(manager.Id);
+        var bearerFile = await VerifiedProjectHandoverFixture.StageAsync(sql, bearerSupervisor.Id);
+        var bearerPayload = Payload(manager.Id) with { HandoverFileIds = [bearerFile.FileId] };
         var bearerKey = Guid.NewGuid().ToString("N");
-        using var bearerCreated = await Post(bearer, bearerPayload, bearerKey);
+        using var bearerCreated = await Post(bearer, bearerPayload, bearerKey, bearerFile.ETag);
         Assert.Equal(HttpStatusCode.Created, bearerCreated.StatusCode);
         var bearerProject = (await bearerCreated.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-        using var bearerReplay = await Post(bearer, bearerPayload, bearerKey);
+        using var bearerReplay = await Post(bearer, bearerPayload, bearerKey, bearerFile.ETag);
         Assert.Equal(HttpStatusCode.Created, bearerReplay.StatusCode);
         Assert.Equal(bearerProject, (await bearerReplay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
 
@@ -100,7 +104,7 @@ public sealed class ProjectCreateWebCookieHttpTests(AuthenticationSqlServerFixtu
         Assert.Contains(alternatives, x => x.TryGetProperty("WebSession", out _) &&
             x.TryGetProperty("CsrfToken", out _) && x.TryGetProperty("AntiforgeryCookie", out _));
         Assert.Contains("GET /api/v1/auth/web/csrf", create.GetProperty("description").GetString());
-        Assert.Equal(0, create.GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
+        Assert.Equal(1, create.GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
             .GetProperty("example").GetProperty("handoverFileIds").GetArrayLength());
     }
 
@@ -110,11 +114,12 @@ public sealed class ProjectCreateWebCookieHttpTests(AuthenticationSqlServerFixtu
     private static ProjectPayload Payload(Guid manager) => new("WEB-" + Guid.NewGuid().ToString("N"),
         "Web project", manager, new(2026, 11, 1), new(2027, 11, 1), []);
 
-    private static async Task<HttpResponseMessage> Post(HttpClient client, ProjectPayload payload, string key)
+    private static async Task<HttpResponseMessage> Post(HttpClient client, ProjectPayload payload, string key, string? etag = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/projects")
         { Content = JsonContent.Create(payload) };
         request.Headers.Add("Idempotency-Key", key);
+        if (etag is not null) request.Headers.TryAddWithoutValidation("If-Match", etag);
         return await client.SendAsync(request);
     }
 

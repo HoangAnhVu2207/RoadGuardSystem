@@ -38,7 +38,7 @@ public sealed class BaselineCommandAcceptanceTests(AuthenticationSqlServerFixtur
         { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new SurveyVideoStorage(media, checksum)); });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var created = await client.PostAsJsonAsync("/api/v1/projects", new
+        var created = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
         {
             projectCode = $"ANH-{Guid.NewGuid():N}",
             name = "DEMO survey evidence",
@@ -218,7 +218,7 @@ public sealed class BaselineCommandAcceptanceTests(AuthenticationSqlServerFixtur
             if (role == UserRoleCode.ProjectManager)
             {
                 await Login(client, supervisor.UserName!);
-                using var other = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = "BASE-CMD-" + Guid.NewGuid().ToString("N"), name = "Other authority", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = outsider.Id, handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
+                using var other = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new { projectCode = "BASE-CMD-" + Guid.NewGuid().ToString("N"), name = "Other authority", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = outsider.Id, handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
                 other.StatusCode.Should().Be(HttpStatusCode.Created);
             }
             await Login(client, outsider.UserName!); await Denied(request, HttpStatusCode.Forbidden, "access_forbidden");

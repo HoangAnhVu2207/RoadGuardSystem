@@ -55,7 +55,8 @@ public sealed class RepairPolicyService(IRepairPolicyRepository repository) : IR
         var result = await pending; var row = result.Value;
         return new(result.Status, result.Code, row is null ? null : new(row.Id, row.ProjectId, row.CurrentChangeId,
             row.PublishedRevisionId, row.Revision, row.DefectTypeCode, row.ChecklistVersion, row.Measurements.ToArray(),
-            row.StopConditions.ToArray(), row.State, row.ActorId, row.At, row.Reason, row.Version), result.Replayed);
+            row.StopConditions.ToArray(), row.State, row.ActorId, row.At, row.Reason, row.Version,
+            row.DraftChangeReason, row.PublishReason, row.RevokeReason), result.Replayed);
     }
     private static Task<RepairPolicyServiceResult> Error(int status, string code) => Task.FromResult(new RepairPolicyServiceResult(status, code));
 }

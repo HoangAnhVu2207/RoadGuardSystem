@@ -938,7 +938,7 @@ public sealed class IdempotencyPerCommandCharacterizationTests
             operationId
         };
 
-        var firstResponse = await client.PostAsJsonAsync("/api/v1/projects", payload);
+        var firstResponse = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, payload);
         firstResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var firstBodyText = await firstResponse.Content.ReadAsStringAsync();
         var projectId = (await firstResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
@@ -960,7 +960,7 @@ public sealed class IdempotencyPerCommandCharacterizationTests
 
         await AuthenticateAsync(client, supervisor.UserName!);
 
-        var replayResponse = await client.PostAsJsonAsync("/api/v1/projects", payload);
+        var replayResponse = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, payload);
         replayResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden,
             "replay must enforce current authorization, preventing revoked actors from accessing stored outcomes");
 
@@ -1071,9 +1071,9 @@ public sealed class IdempotencyPerCommandCharacterizationTests
         }
     }
 
-    private static async Task<Guid> CreateProjectAsync(HttpClient client, Guid managerId)
+    private async Task<Guid> CreateProjectAsync(HttpClient client, Guid managerId)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new
         {
             projectCode = $"IDEM-{Guid.NewGuid():N}",
             name = "Idempotency test project",

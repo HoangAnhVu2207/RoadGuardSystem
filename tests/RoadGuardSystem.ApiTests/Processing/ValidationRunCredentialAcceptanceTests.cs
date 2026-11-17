@@ -22,7 +22,7 @@ public sealed class ValidationRunCredentialAcceptanceTests(AuthenticationSqlServ
     [Theory]
     [InlineData("API-204", "POST", "/api/v1/projects/{id}/validation-runs", 403)]
     [InlineData("API-241", "GET", "/api/v1/validation-runs/{id}", 404)]
-    public async Task ExactValidationRouteEnforcesBearerExpiryRevocationAndNoCookieFallback(string operation, string method, string route, int admittedStatus)
+    public async Task ExactValidationRouteEnforcesBearerExpiryRevocationAndWebSession(string operation, string method, string route, int admittedStatus)
     {
         Assert.Contains(operation, new[] { "API-204", "API-241" });
         var actor = await sql.CreateUserAsync("validation-credentials-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
@@ -42,8 +42,7 @@ public sealed class ValidationRunCredentialAcceptanceTests(AuthenticationSqlServ
         bearer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using (var admitted = await Send(bearer)) Assert.Equal(admittedStatus, (int)admitted.StatusCode);
         await Denied(anonymous, "auth_unauthorized");
-        // These two exact operations intentionally have no WebCookieEligible metadata.
-        await Denied(web, "auth_unauthorized");
+        using (var admitted = await Send(web)) Assert.Equal(admittedStatus, (int)admitted.StatusCode);
         foreach (var badToken in new[] { "malformed", expired })
         {
             bearer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", badToken);

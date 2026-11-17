@@ -2,6 +2,8 @@ namespace RoadGuardSystem.BusinessObjects.Files;
 
 public sealed class FileScope
 {
+    public const string ProjectHandoverStaging = "PROJECT_HANDOVER_STAGING";
+
     private FileScope()
     {
     }
@@ -28,6 +30,22 @@ public sealed class FileScope
             TargetId = null,
             CreatedAt = createdAt.ToUniversalTime()
         };
+    }
+
+    public static FileScope CreateHandoverStaging(Guid id, Guid fileId, Guid owner, DateTimeOffset createdAt)
+    {
+        var scope = CreatePrivate(id, fileId, owner, createdAt);
+        scope.Purpose = ProjectHandoverStaging;
+        return scope;
+    }
+
+    public void AttachStagedHandover(Guid projectId)
+    {
+        if (ProjectId is not null || TargetId is not null || Purpose != ProjectHandoverStaging || projectId == Guid.Empty)
+            throw new InvalidOperationException("File scope is not an unused project handover staging scope.");
+        ProjectId = projectId;
+        TargetId = projectId;
+        Purpose = "DOCUMENT";
     }
 
     public static FileScope Create(

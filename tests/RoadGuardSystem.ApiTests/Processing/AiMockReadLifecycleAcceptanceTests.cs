@@ -55,6 +55,8 @@ public sealed class AiMockReadLifecycleAcceptanceTests(AuthenticationSqlServerFi
         });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
         var created = await client.PostAsJsonAsync("/api/v1/projects", new
         {
             projectCode = $"ANH-{Guid.NewGuid():N}",
@@ -63,9 +65,10 @@ public sealed class AiMockReadLifecycleAcceptanceTests(AuthenticationSqlServerFi
             startDate = "2026-09-01",
             endDate = "2027-09-01",
             primaryProjectManagerUserId = manager.Id,
-            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31" },
+            handover = new { documentNo = "DEMO", handoverDate = "2026-08-31", fileId = staged.FileId },
             operationId = Guid.NewGuid()
         });
+        client.DefaultRequestHeaders.IfMatch.Clear();
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var project = (await Body(created)).GetProperty("projectId").GetGuid();
         await Login(client, manager.UserName!);

@@ -230,14 +230,12 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
         var pm = await sql.CreateUserAsync($"candidate-p-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var project = Guid.NewGuid();
         // Catalog fixtures; all Report/Case/Defect transitions remain genuine HTTP.
-        var defectTypeCode = "CRACK";
+        var defectTypeCode = $"WEB-CATALOG-{Guid.NewGuid():N}".ToUpperInvariant();
         var inactiveTypeCode = $"INACTIVE-{Guid.NewGuid():N}";
         await using (var db = sql.CreateDbContext())
         {
             db.Projects.Add(RoadGuardSystem.BusinessObjects.Projects.Project.Create(project, $"CD-{Guid.NewGuid():N}", "Candidate project", null, 32648, new DateOnly(2026, 1, 1), new DateOnly(2027, 1, 1), DateTimeOffset.UtcNow));
             db.ProjectMembers.Add(RoadGuardSystem.BusinessObjects.Projects.ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project, pm.Id, new DateOnly(2026, 1, 1)));
-            if (!await db.DefectTypes.AnyAsync(x => x.Code == defectTypeCode))
-                db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(defectTypeCode, "Approved surface damage"));
             db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(inactiveTypeCode, "Retired type", isActive: false));
             await db.SaveChangesAsync();
         }
@@ -352,6 +350,16 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
         }
         var keepSource = await producer.ResolveCandidateSourceAsync(pm.Id, UserRoleCode.ProjectManager, project,
             RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, report);
+        const string adminCatalog = "/api/v1/catalog/defect-types/admin";
+        using var supervisorWeb = await WebCookieTestClient.Login(factory, supervisor.Email!);
+        using var catalogCreated = await SendAsync(supervisorWeb, HttpMethod.Post, adminCatalog, new
+        {
+            code = defectTypeCode,
+            name = "Approved surface damage",
+            isActive = true,
+            reason = "Approve isolated fixture code"
+        }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Created, catalogCreated.StatusCode);
         var failedKeepKey = Guid.NewGuid().ToString();
         var failedKeep = new CandidateDecisionRequestDto("REPORT", report,
             keepSource.Facts!.DomainFacts.Source.SourceVersion, keepSource.Facts.DomainFacts.GeometryVersion,
@@ -438,6 +446,29 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
         var secondSource = await producer.ResolveCandidateSourceAsync(pm.Id, UserRoleCode.ProjectManager, project,
             RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report, secondReport);
         secondSource.Status.Should().Be(RoadGuardSystem.Services.Integration.AnhHuyProducerStatus.Ready);
+        using var catalogRetired = await SendAsync(supervisorWeb, HttpMethod.Put, adminCatalog + "/" + defectTypeCode, new
+        {
+            name = "Approved surface damage",
+            isActive = false,
+            reason = "Retire the code for new decisions"
+        }, Guid.NewGuid().ToString(), catalogCreated.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.OK, catalogRetired.StatusCode);
+        var activeAfterRetirement = await web.GetFromJsonAsync<JsonElement>("/api/v1/catalog/defect-types");
+        Assert.DoesNotContain(activeAfterRetirement.EnumerateArray(), option => option.GetProperty("code").GetString() == defectTypeCode);
+        using var rejectedNew = await SendAsync(web, HttpMethod.Post, path, new
+        {
+            sourceKind = "REPORT",
+            sourceId = secondReport,
+            sourceVersion = secondSource.Facts!.DomainFacts.Source.SourceVersion,
+            geometryVersion = secondSource.Facts.DomainFacts.GeometryVersion,
+            decision = "KEEP_NEW",
+            reason = "Retired code must be denied",
+            classification = new { defectTypeCode, severity = "LOW", roadSectionVersionId = geometry.Route }
+        }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedNew.StatusCode);
+        Assert.Equal("validation_error", (await rejectedNew.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        var persistedDefect = await web.GetFromJsonAsync<JsonElement>($"/api/v1/projects/{project}/defects/{createdDefectId}");
+        Assert.Equal(defectTypeCode, persistedDefect.GetProperty("defectTypeCode").GetString());
         string targetVersion;
         await using (var db = sql.CreateDbContext())
             targetVersion = Convert.ToBase64String(await db.Defects.Where(item => item.Id == createdDefectId)
@@ -507,7 +538,7 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
             composite!.Complete.Should().BeFalse();
             composite.References.Should().Contain(reference => reference.Kind == "DEFECT_SOURCE_LINK" &&
                 reference.ProjectId == project);
-            composite.ReasonCodes.Should().Contain("HUY_INVENTORY_INCOMPLETE");
+            composite.ReasonCodes.Should().NotContain("HUY_INVENTORY_INCOMPLETE");
         }
         var reportingSummary = await client.GetAsync($"/api/v1/projects/{project}/reports/summary");
         reportingSummary.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -540,6 +571,14 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
             createdDefectId, defectTypeCode, source.Facts.EvidenceIds, webCsrf, cookieRead.Headers.ETag!.ToString());
         var defectRead = await client.GetAsync(defectPath);
         defectRead.StatusCode.Should().Be(HttpStatusCode.OK);
+        // Resume the original public-publication test with a mapped public category.
+        defectTypeCode = "CRACK";
+        await using (var db = sql.CreateDbContext())
+        {
+            if (!await db.DefectTypes.AnyAsync(row => row.Code == defectTypeCode))
+                db.DefectTypes.Add(RoadGuardSystem.BusinessObjects.Catalogs.DefectType.Create(defectTypeCode, "Crack"));
+            await db.SaveChangesAsync();
+        }
         var beforeCookieAssessment = await DefectCookieEffectsAsync(pm.Id, createdDefectId);
         var assessment = await SendAsync(web, HttpMethod.Post, defectPath + "/assessments", new
         {
@@ -981,8 +1020,8 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
             inventory.References.Where(row => row.Kind == "TRAINING_LABEL_REVISION")
                 .Should().Contain(row => row.SourceVersion == historicalRevisionVersion);
             inventory.References.Count(row => row.Kind == "TRAINING_LABEL_REVIEW").Should().Be(1);
-            inventory.Complete.Should().BeFalse();
-            inventory.ReasonCodes.Should().Contain("HUY_REPAIR_REFERENCE_UNAVAILABLE");
+            inventory.Complete.Should().BeTrue();
+            inventory.ReasonCodes.Should().BeEmpty();
             (await Assert.ThrowsAsync<SqlException>(() => db.Database.ExecuteSqlInterpolatedAsync(
                 $"UPDATE [TrainingLabelRevisions] SET [Reason]={"Changed history"} WHERE [LabelId]={labelId}")))
                 .Number.Should().Be(51001);
@@ -1084,7 +1123,7 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
             await Denied(() => web.GetAsync(path), HttpStatusCode.BadRequest, "validation_error");
         }
         web.DefaultRequestHeaders.Authorization = null;
-        await Denied(() => web.GetAsync($"/api/v1/projects/{project}/ai-mock-runs/{Guid.NewGuid()}"), HttpStatusCode.Unauthorized);
+        await Denied(() => web.GetAsync($"/api/v1/projects/{project}/ai-mock-runs/{Guid.NewGuid()}"), HttpStatusCode.NotFound);
         await using (var db = sql.CreateDbContext())
         {
             var role = await db.Roles.SingleAsync(value => value.Code == UserRoleCode.ProjectManager);

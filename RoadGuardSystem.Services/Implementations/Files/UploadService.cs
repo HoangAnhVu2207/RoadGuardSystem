@@ -107,6 +107,26 @@ public sealed class UploadService : IUploadService
         return MapMutation(result);
     }
 
+    public async Task<UploadServiceResult> CreateHandoverIntentAsync(Guid actor, UserRoleCode role,
+        UploadCreateRequestDto request, string key, Guid? correlationId, CancellationToken token)
+    {
+        if (role != UserRoleCode.Supervisor) return new(UploadServiceStatus.Forbidden);
+        if (request.ProjectId is not null || request.TargetId is not null ||
+            !string.Equals(request.Purpose?.Trim(), "DOCUMENT", StringComparison.OrdinalIgnoreCase) ||
+            !IsValidCreate(actor, request with { ProjectId = actor }, key) || !ValidOptions())
+            return new(UploadServiceStatus.InvalidInput);
+        var normalized = Normalize(request);
+        var maximum = UploadAdmissionPolicy.MaximumBytes(FileScope.ProjectHandoverStaging, normalized.MediaType);
+        if (maximum is null || normalized.SizeBytes > maximum)
+            return new(UploadServiceStatus.InvalidInput);
+        var result = await _repository.CreateAsync(new(actor, null, null, FileScope.ProjectHandoverStaging,
+            normalized.FileName, normalized.MediaType, normalized.SizeBytes, normalized.ChecksumSha256, _options.PartSizeBytes,
+            _timeProvider.GetUtcNow().AddHours(_options.SessionLifetimeHours), key.Trim(),
+            Fingerprint($"{FileScope.ProjectHandoverStaging}|{normalized.FileName}|{normalized.MediaType}|{normalized.SizeBytes}|{normalized.ChecksumSha256}"),
+            correlationId), token);
+        return MapMutation(result);
+    }
+
     public async Task<UploadServiceStatus> CancelProjectUploadAsync(Guid actorUserId, UserRoleCode role, Guid uploadId,
         CancellationToken cancellationToken = default)
     {
@@ -125,15 +145,16 @@ public sealed class UploadService : IUploadService
     {
         if (role != UserRoleCode.Supervisor) return false;
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
-        return session is { ProjectId: Guid project, Purpose: "DOCUMENT" } &&
-            session.TargetId == project && session.OwnerUserId == actorUserId;
+        return session is { Purpose: "DOCUMENT" } && session.OwnerUserId == actorUserId &&
+            session.TargetId == session.ProjectId;
     }
 
     public async Task<UploadServiceResult> GetSessionAsync(Guid actorUserId, UserRoleCode role, Guid uploadId, CancellationToken cancellationToken = default)
     {
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
+        if (!IsOwnHandoverStaging(session, actorUserId, role) &&
+            !await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
             !await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, false, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         return new(UploadServiceStatus.Success, ToDto(session));
     }
@@ -149,7 +170,8 @@ public sealed class UploadService : IUploadService
         if (string.IsNullOrWhiteSpace(idempotencyKey) || request?.PartNumbers is null) return new(UploadServiceStatus.InvalidInput);
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
+        if (!IsOwnHandoverStaging(session, actorUserId, role) &&
+            !await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
             !await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         var now = _timeProvider.GetUtcNow();
         var urlExpiresAt = now.AddMinutes(_options.SignedPutUrlLifetimeMinutes);
@@ -193,7 +215,8 @@ public sealed class UploadService : IUploadService
         if (request?.Parts is null || string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(expectedVersion)) return new(UploadServiceStatus.InvalidInput);
         var session = await _repository.GetSessionAsync(uploadId, cancellationToken);
         if (session is null) return new(UploadServiceStatus.NotFound);
-        if (!await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
+        if (!IsOwnHandoverStaging(session, actorUserId, role) &&
+            !await _repository.IsCurrentOfflineFileActorAsync(actorUserId, role, session.FileId, cancellationToken) &&
             !await CanAccessAssetAsync(actorUserId, role, session.ProjectId, session.Purpose, session.TargetId, true, cancellationToken,
             requireActiveTask: session.Status is not ("VERIFYING" or "VERIFIED"))) return new(UploadServiceStatus.Forbidden);
         var result = await _repository.CompleteAsync(new UploadCompletePersistenceRequest(
@@ -209,28 +232,33 @@ public sealed class UploadService : IUploadService
         return MapMutation(result);
     }
 
-    public async Task<UploadServiceResult> GetFileMetadataAsync(Guid actorUserId, UserRoleCode role, Guid fileId, CancellationToken cancellationToken = default)
+    public async Task<UploadServiceResult> GetFileMetadataAsync(Guid actorUserId, UserRoleCode role, Guid fileId, bool webSession = false, CancellationToken cancellationToken = default)
     {
         var file = await _repository.GetFileMetadataAsync(fileId, cancellationToken);
         if (file is null) return new(UploadServiceStatus.NotFound);
+        if (webSession && !await CanReadWebFileAsync(role, file, cancellationToken))
+            return new(UploadServiceStatus.Forbidden);
         if (!await CanReadFileAsync(actorUserId, role, file, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         return new(UploadServiceStatus.Success, File: ToDto(file));
     }
 
-    public async Task<UploadServiceResult> DownloadAsync(Guid actorUserId, UserRoleCode role, Guid fileId, CancellationToken cancellationToken = default)
+    public async Task<UploadServiceResult> DownloadAsync(Guid actorUserId, UserRoleCode role, Guid fileId, bool webSession = false, CancellationToken cancellationToken = default)
     {
         var file = await _repository.GetFileMetadataAsync(fileId, cancellationToken);
         if (file is null || file.Status != "VERIFIED") return new(UploadServiceStatus.NotFound);
+        if (webSession && !await CanReadWebFileAsync(role, file, cancellationToken))
+            return new(UploadServiceStatus.Forbidden);
         if (!await CanReadFileAsync(actorUserId, role, file, cancellationToken)) return new(UploadServiceStatus.Forbidden);
         try
         {
             var stream = await _repository.OpenFileAsync(file.ObjectKey, cancellationToken);
-            if (IsFieldPurpose(file.Purpose) || file.Purpose == "AI_FRAME")
+            if (webSession || IsFieldPurpose(file.Purpose) || file.Purpose == "AI_FRAME")
             {
                 try
                 {
                     var fresh = await _repository.GetFileMetadataAsync(fileId, cancellationToken);
                     if (fresh is null || fresh.Status != "VERIFIED" || fresh.Version != file.Version ||
+                        (webSession && !await CanReadWebFileAsync(role, fresh, cancellationToken)) ||
                         !await CanReadFileAsync(actorUserId, role, fresh, cancellationToken))
                     { await stream.DisposeAsync(); return new(UploadServiceStatus.Forbidden); }
                 }
@@ -253,6 +281,12 @@ public sealed class UploadService : IUploadService
     {
         await round.ProcessOneAsync(_repository, cancellationToken);
     }
+
+    private async Task<bool> CanReadWebFileAsync(UserRoleCode role, FileMetadataPersistenceView file, CancellationToken token)
+        => role is UserRoleCode.ProjectManager or UserRoleCode.Supervisor &&
+            (file.Purpose == "AI_FRAME" ||
+             (file.Purpose == "DOCUMENT" && file.Status == "VERIFIED" && file.ProjectId is Guid project &&
+              file.TargetId == project && await _repository.IsHandoverDocumentFileAsync(project, file.Id, token)));
 
     private async Task<bool> CanReadFileAsync(Guid actor, UserRoleCode role, FileMetadataPersistenceView file, CancellationToken token)
     {
@@ -280,6 +314,10 @@ public sealed class UploadService : IUploadService
         return role == UserRoleCode.DroneOperator && targetId is { } taskId &&
             await _repository.IsCurrentSurveyOperatorAsync(actorUserId, scopedProjectId, taskId, mutation && requireActiveTask, cancellationToken);
     }
+
+    private static bool IsOwnHandoverStaging(UploadSessionPersistenceView session, Guid actor, UserRoleCode role)
+        => role == UserRoleCode.Supervisor && session is { ProjectId: null, TargetId: null, Purpose: "DOCUMENT" } &&
+            session.OwnerUserId == actor;
 
     private static bool IsFieldPurpose(string? purpose) => purpose?.Trim().ToUpperInvariant() is "BEFORE" or "AFTER" or "MEASUREMENT";
 

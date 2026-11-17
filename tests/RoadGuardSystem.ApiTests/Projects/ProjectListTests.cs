@@ -394,14 +394,13 @@ public sealed class ProjectListTests(AuthenticationSqlServerFixture sql)
         var i = 0;
         foreach (var client in new[] { firstClient, secondClient })
         {
-            var response = await client.PostAsJsonAsync("/api/v1/projects", new
+            var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
             {
                 code = prefix + "-" + i++,
                 name = "TEST_ONLY different creator",
                 primaryPmId = pm.Id,
                 handoverDate = Today,
                 warrantyEndDate = Today.AddYears(1),
-                handoverFileIds = Array.Empty<Guid>(),
                 operationId = Guid.NewGuid()
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);

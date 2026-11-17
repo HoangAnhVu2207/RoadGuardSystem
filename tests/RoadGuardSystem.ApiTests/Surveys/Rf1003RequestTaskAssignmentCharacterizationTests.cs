@@ -324,7 +324,7 @@ public sealed class Rf1003RequestTaskAssignmentCharacterizationTests
 
     private async Task<Guid> CreateProjectAsync(HttpClient client, Guid managerId)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/projects", new { projectCode = $"RF1003C02-{Guid.NewGuid():N}", name = "RF-10-03-C02", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = managerId, handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
+        var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new { projectCode = $"RF1003C02-{Guid.NewGuid():N}", name = "RF-10-03-C02", engineeringUtmSrid = 32648, startDate = "2026-09-01", endDate = "2027-09-01", primaryProjectManagerUserId = managerId, handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" }, operationId = Guid.NewGuid() });
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
     }

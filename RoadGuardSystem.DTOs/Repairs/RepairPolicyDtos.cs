@@ -10,5 +10,6 @@ public sealed record RepairPolicyDefinitionInput(string DefectTypeCode, string C
 public sealed record RepairPolicyReasonInput(string Reason);
 public sealed record RepairPolicyView(Guid Id, Guid ProjectId, Guid? CurrentChangeId, Guid? PublishedRevisionId,
     int? Revision, string DefectTypeCode, string ChecklistVersion, RepairMeasurementRule[] Measurements,
-    string[] StopConditions, string State, Guid ActorId, DateTimeOffset At, string Reason, string Version);
+    string[] StopConditions, string State, Guid ActorId, DateTimeOffset At, string Reason, string Version,
+    string? DraftChangeReason = null, string? PublishReason = null, string? RevokeReason = null);
 public sealed record RepairPolicyServiceResult(int Status, string? Code = null, RepairPolicyView? Value = null, bool Replayed = false);

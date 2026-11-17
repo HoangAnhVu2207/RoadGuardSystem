@@ -121,8 +121,9 @@ public sealed partial class Huy01ReporterReportsApiTests
             Assert.NotNull(inventory); Assert.False(inventory.Complete);
             Assert.Contains(inventory.References, r => r.Kind == "REPORT" && r.Id == report && r.ProjectId == null);
             Assert.Contains(inventory.References, r => r.Kind == "CASE_REPORT_LINK");
-            Assert.Contains("HUY_INVENTORY_INCOMPLETE", inventory.ReasonCodes);
-            Assert.Contains("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+            Assert.DoesNotContain("HUY_INVENTORY_INCOMPLETE", inventory.ReasonCodes);
+            Assert.DoesNotContain("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+            Assert.Contains("OBLIGATION_SCOPE_UNRESOLVED", inventory.ReasonCodes);
             Assert.Empty(inventory.PublicProjectIds);
         }
         await LoginAsync(client, manager.UserName!);

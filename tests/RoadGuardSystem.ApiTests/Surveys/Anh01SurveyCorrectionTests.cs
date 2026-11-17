@@ -111,7 +111,7 @@ public sealed class Anh01SurveyCorrectionTests(AuthenticationSqlServerFixture sq
         var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
         var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new
+        var projectResponse = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
         {
             projectCode = $"FIX-{Guid.NewGuid():N}",
             name = "Isolated correction test",

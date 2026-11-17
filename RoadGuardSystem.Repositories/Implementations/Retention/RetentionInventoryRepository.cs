@@ -60,6 +60,7 @@ public sealed class RetentionInventoryRepository(RoadGuardDbContext context, IEn
         // Huy owns report/supplement/publication/candidate/defect/repair references. Their absence
         // must be visible even when an Anh file has no observed Huy reference today.
         if (!contributors.Any(x => x.Name == "HUY")) reasons.Add("HUY_REFERENCE_INVENTORY_UNAVAILABLE");
+        if (!contributors.Any(x => x.Name == "HUY02_INSPECTION")) reasons.Add("HUY_REPAIR_REFERENCE_UNAVAILABLE");
         if (!contributors.Any(x => x.Name == "AI")) reasons.Add("AI_REFERENCE_INVENTORY_UNAVAILABLE");
         if (!contributors.Any(x => x.Name == "EXPORT")) reasons.Add("EXPORT_REFERENCE_INVENTORY_UNAVAILABLE");
         if (refs.Count == 0 || refs.All(x => x.ProjectId is null)) reasons.Add("OBLIGATION_SCOPE_UNRESOLVED");

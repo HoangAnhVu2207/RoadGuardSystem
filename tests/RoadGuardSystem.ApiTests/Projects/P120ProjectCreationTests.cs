@@ -34,12 +34,14 @@ public sealed class P120ProjectCreationTests
             $"create_pm_{Guid.NewGuid():N}",
             "Current1!",
             UserRoleCode.ProjectManager);
-        var request = ValidRequest(projectManager.Id);
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisor.Id);
+        var request = WithFile(ValidRequest(projectManager.Id), staged.FileId);
 
         await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
 
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", staged.ETag);
         var created = await client.PostAsJsonAsync("/api/v1/projects", request);
 
         created.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -101,7 +103,9 @@ public sealed class P120ProjectCreationTests
             await reactivate.SaveChangesAsync();
         }
 
-        var concurrentRequest = ValidRequest(projectManager.Id);
+        var concurrentFile = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisor.Id);
+        SetUploadVersion(client, concurrentFile.ETag);
+        var concurrentRequest = WithFile(ValidRequest(projectManager.Id), concurrentFile.FileId);
         var concurrentResponses = await Task.WhenAll(
             client.PostAsJsonAsync("/api/v1/projects", concurrentRequest),
             client.PostAsJsonAsync("/api/v1/projects", concurrentRequest));
@@ -164,6 +168,8 @@ public sealed class P120ProjectCreationTests
         await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
         using var client = CreateClient(factory);
         await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisor.Id);
+        SetUploadVersion(client, staged.ETag);
         const string idempotencyKey = "canonical-project-create-test";
         client.DefaultRequestHeaders.Add("Idempotency-Key", idempotencyKey);
         var request = new
@@ -173,7 +179,7 @@ public sealed class P120ProjectCreationTests
             primaryPmId = projectManager.Id,
             handoverDate = "2026-09-29",
             warrantyEndDate = "2027-09-29",
-            handoverFileIds = Array.Empty<Guid>()
+            handoverFileIds = new[] { staged.FileId }
         };
 
         var created = await client.PostAsJsonAsync("/api/v1/projects", request);
@@ -261,7 +267,9 @@ public sealed class P120ProjectCreationTests
         invalidSridResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await ProblemCodeAsync(invalidSridResponse)).Should().Be("validation_error");
 
-        var invalidDateRange = ValidRequest(projectManager.Id) with
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisor.Id);
+        SetUploadVersion(client, staged.ETag);
+        var invalidDateRange = WithFile(ValidRequest(projectManager.Id), staged.FileId) with
         {
             StartDate = new DateOnly(2027, 1, 2),
             EndDate = new DateOnly(2027, 1, 1)
@@ -279,7 +287,7 @@ public sealed class P120ProjectCreationTests
         missingFileResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await ProblemCodeAsync(missingFileResponse)).Should().Be("project_handover_file_not_found");
 
-        var first = ValidRequest(projectManager.Id);
+        var first = WithFile(ValidRequest(projectManager.Id), staged.FileId);
         (await client.PostAsJsonAsync("/api/v1/projects", first))
             .StatusCode.Should().Be(HttpStatusCode.Created);
         var changedPayload = first with { Name = "Changed project name" };
@@ -287,16 +295,20 @@ public sealed class P120ProjectCreationTests
         conflict.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ProblemCodeAsync(conflict)).Should().Be("duplicate_request");
 
+        var duplicateFile = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisor.Id);
+        SetUploadVersion(client, duplicateFile.ETag);
         var duplicateCode = first with
         {
             OperationId = Guid.NewGuid(),
-            Handover = first.Handover! with { DocumentNo = $"HD-{Guid.NewGuid():N}" }
+            Handover = first.Handover! with { DocumentNo = $"HD-{Guid.NewGuid():N}", FileId = duplicateFile.FileId }
         };
         var duplicateCodeConflict = await client.PostAsJsonAsync("/api/v1/projects", duplicateCode);
         duplicateCodeConflict.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ProblemCodeAsync(duplicateCodeConflict)).Should().Be("project_code_conflict");
 
-        var delimiterFirst = ValidRequest(projectManager.Id) with
+        var delimiterFile = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisor.Id);
+        SetUploadVersion(client, delimiterFile.ETag);
+        var delimiterFirst = WithFile(ValidRequest(projectManager.Id), delimiterFile.FileId) with
         {
             ProjectCode = "A|B",
             Name = "C"
@@ -323,6 +335,15 @@ public sealed class P120ProjectCreationTests
             .Should().BeFalse();
     }
 
+    private static CreateProjectRequest WithFile(CreateProjectRequest request, Guid fileId)
+        => request with { Handover = request.Handover! with { FileId = fileId } };
+
+    private static void SetUploadVersion(HttpClient client, string etag)
+    {
+        client.DefaultRequestHeaders.IfMatch.Clear();
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", etag);
+    }
+
     private static CreateProjectRequest ValidRequest(Guid projectManagerUserId) => new(
         $"P-{Guid.NewGuid():N}",
         "Northern bypass rehabilitation",
@@ -343,6 +364,7 @@ public sealed class P120ProjectCreationTests
         Guid projectManagerId,
         FailOnceTransactionInterceptor interceptor)
     {
+        var staged = await VerifiedProjectHandoverFixture.StageAsync(_sql, supervisorId);
         var projectCode = $"P-RETRY-{Guid.NewGuid():N}";
         var operationId = Guid.NewGuid();
         await using (var context = CommitFailureDbContext.Create(_sql.ConnectionString, interceptor))
@@ -361,10 +383,12 @@ public sealed class P120ProjectCreationTests
                 projectManagerId,
                 $"HD-{Guid.NewGuid():N}",
                 new DateOnly(2026, 8, 31),
-                null,
+                staged.FileId,
                 null,
                 operationId,
-                null));
+                null,
+                HandoverFileIds: [staged.FileId],
+                HandoverFileVersion: staged.ETag.Trim('"')));
             result.Status.Should().Be(
                 interceptor is FailOnceAfterCommitInterceptor
                     ? ProjectCreationPersistenceStatus.Replayed

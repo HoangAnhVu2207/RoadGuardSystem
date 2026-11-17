@@ -12,6 +12,9 @@ public enum ProjectCreationStatus
     Forbidden,
     ProjectManagerNotFound,
     HandoverFileNotFound,
+    HandoverRequired,
+    HandoverFileNotReady,
+    HandoverVersionConflict,
     ProjectCodeConflict,
     IdempotentConflict
 }
@@ -32,7 +35,8 @@ public sealed record CreateProjectCommand(
     Guid? CorrelationId,
     DateOnly? WarrantyEndDate = null,
     IReadOnlyList<Guid>? HandoverFileIds = null,
-    string? IdempotencyKey = null);
+    string? IdempotencyKey = null,
+    string? HandoverFileVersion = null);
 
 public sealed record CreatedProjectView(
     Guid ProjectId,

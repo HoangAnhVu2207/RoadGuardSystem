@@ -226,6 +226,55 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Fact]
+    public async Task RepairReadbackAndSelectedPmRoutesAdvertiseRuntimeContracts()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var item = schemas.GetProperty("RepairItemView").GetProperty("properties");
+        Assert.True(item.TryGetProperty("repairPlan", out _));
+        Assert.True(item.TryGetProperty("currentBinding", out _));
+        var policy = schemas.GetProperty("RepairPolicyView").GetProperty("properties");
+        Assert.True(policy.TryGetProperty("publishReason", out _));
+        Assert.True(policy.TryGetProperty("revokeReason", out _));
+        var routes = new (string Verb, string Path, bool Csrf)[]
+        {
+            ("get", "/api/v1/datasets/{id}/assessments/{assessmentId}", false),
+            ("get", "/api/v1/projects/{projectId}/baseline-selections/{id}", false),
+            ("post", "/api/v1/processing-jobs", true),
+            ("get", "/api/v1/processing-jobs/{jobId}", false),
+            ("post", "/api/v1/processing-jobs/{jobId}/retry", true),
+            ("get", "/api/v1/validation-runs/{runId}", false),
+            ("post", "/api/v1/projects/{projectId}/validation-runs", true),
+            ("post", "/api/v1/projects/{projectId}/ai-mock-runs", true),
+            ("get", "/api/v1/projects/{projectId}/ai-mock-runs/{runId}", false),
+            ("get", "/api/v1/projects/{projectId}/ai-mock-runs/{runId}/result", false),
+            ("post", "/api/v1/projects/{projectId}/retention/evaluations", true),
+            ("get", "/api/v1/projects/{projectId}/retention/evaluations/{id}", false),
+            ("get", "/api/v1/projects/{projectId}/retention/files/{fileId}", false),
+            ("put", "/api/v1/projects/{projectId}/retention/files/{fileId}/basis", true),
+            ("post", "/api/v1/retention/holds", true),
+            ("get", "/api/v1/retention/holds/{id}", false),
+            ("post", "/api/v1/retention/holds/{id}/release", true),
+            ("post", "/api/v1/projects/{projectId}/warranties", true),
+            ("get", "/api/v1/files/{fileId}", false),
+            ("get", "/api/v1/files/{fileId}/content", false),
+            ("get", "/api/v1/catalog/defect-types/admin", false),
+            ("post", "/api/v1/catalog/defect-types/admin", true),
+            ("put", "/api/v1/catalog/defect-types/admin/{code}", true)
+        };
+        foreach (var route in routes)
+        {
+            var security = paths.GetProperty(route.Path).GetProperty(route.Verb).GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, security.Length);
+            Assert.Contains(security, entry => entry.TryGetProperty("Bearer", out _) && entry.EnumerateObject().Count() == 1);
+            var web = Assert.Single(security, entry => entry.TryGetProperty("WebSession", out _));
+            Assert.Equal(route.Csrf, web.TryGetProperty("CsrfToken", out _));
+            Assert.Equal(route.Csrf, web.TryGetProperty("AntiforgeryCookie", out _));
+        }
+    }
+
+    [Fact]
     public async Task InvitationPreviewIsAnonymous()
     {
         using var document = await Document();
@@ -348,8 +397,10 @@ public sealed class ManualSwaggerContractTests
         foreach (var path in new[] { assessment + "/{assessmentId}", baseline + "/{id}" })
         {
             var get = paths.GetProperty(path).GetProperty("get");
-            var bearer = Assert.Single(get.GetProperty("security").EnumerateArray());
-            Assert.Equal("Bearer", Assert.Single(bearer.EnumerateObject()).Name);
+            var alternatives = get.GetProperty("security").EnumerateArray().ToArray();
+            Assert.Equal(2, alternatives.Length);
+            alternatives.Select(entry => Assert.Single(entry.EnumerateObject()).Name)
+                .Should().BeEquivalentTo(new[] { "Bearer", "WebSession" });
         }
     }
 

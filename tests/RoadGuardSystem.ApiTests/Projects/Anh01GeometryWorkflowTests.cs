@@ -75,7 +75,7 @@ public sealed class Anh01GeometryWorkflowTests(AuthenticationSqlServerFixture sq
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
-        var projectResponse = await client.PostAsJsonAsync("/api/v1/projects", new
+        var projectResponse = await VerifiedProjectHandoverFixture.CreateProjectAsync(sql, client, new
         {
             projectCode = $"P-{Guid.NewGuid():N}",
             name = "Geometry workflow test",

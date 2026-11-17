@@ -46,7 +46,7 @@ public sealed class RepairPolicyRepository(RoadGuardDbContext db, IdempotencyOpe
                     await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
                     await Guard(cancellationToken);
                     var view = command.Action == "draft-get" ? DraftView(await Draft(command.ResourceId!.Value, cancellationToken))
-                        : RevisionView(await Revision(command.ResourceId!.Value, cancellationToken));
+                        : await ReadRevisionView(command.ResourceId!.Value, cancellationToken);
                     await tx.CommitAsync(cancellationToken); return new RepairPolicyResult(200, Value: view);
                 });
             var operation = "h4.repair.policy." + command.Action + ".v1";
@@ -107,15 +107,17 @@ public sealed class RepairPolicyRepository(RoadGuardDbContext db, IdempotencyOpe
                             RepairPolicyRevision? revision = null;
                             Transition(() => revision = draft.Publish(Guid.NewGuid(), next, command.ActorId, command.Role, now));
                             await AppendBeforeHeads(() => db.Add(revision!), token);
-                            await db.SaveChangesAsync(token); view = RevisionView(revision!);
+                            await db.SaveChangesAsync(token); view = RevisionView(revision!, command.Reason);
                         }
                     }
                     else if (command.Action == "revoke")
                     {
                         var revision = await Revision(command.ResourceId!.Value, token);
-                        if (RevisionView(revision).Version != command.ExpectedVersion) throw new Denied(409, "concurrency_conflict");
+                        var publishReason = await ReadPublishReason(revision.Id, token);
+                        if (RevisionView(revision, publishReason).Version != command.ExpectedVersion &&
+                            LegacyRevisionVersion(revision) != command.ExpectedVersion) throw new Denied(409, "concurrency_conflict");
                         Transition(() => revision.Revoke(Guid.NewGuid(), command.ActorId, command.Role, command.Reason!, now));
-                        await db.SaveChangesAsync(token); view = RevisionView(revision);
+                        await db.SaveChangesAsync(token); view = RevisionView(revision, publishReason);
                     }
                     else throw new ArgumentException("Unknown policy command.");
                     db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), command.ActorId, now, "repair_policy_" + command.Action,
@@ -157,12 +159,32 @@ public sealed class RepairPolicyRepository(RoadGuardDbContext db, IdempotencyOpe
         var head = draft.Changes.Single(row => row.Id == draft.CurrentChangeId);
         return new(draft.Id, draft.ProjectId, head.Id, draft.PublishedRevisionId, null, head.DefectTypeCode,
             head.ChecklistVersion, head.Measurements.ToArray(), head.StopConditions.ToArray(),
-            draft.PublishedRevisionId is null ? "DRAFT" : "PUBLISHED", head.ActorId, head.At, head.Reason, Version(draft));
+            draft.PublishedRevisionId is null ? "DRAFT" : "PUBLISHED", head.ActorId, head.At, head.Reason, Version(draft), DraftChangeReason: head.Reason);
     }
-    private static RepairPolicyRecord RevisionView(RepairPolicyRevision revision) => new(revision.Id, revision.ProjectId,
-        null, revision.Id, revision.Revision, revision.DefectTypeCode, revision.ChecklistVersion,
-        revision.Measurements.ToArray(), revision.StopConditions.ToArray(), revision.IsRevoked ? "REVOKED" : "PUBLISHED",
-        revision.PublishedBy, revision.PublishedAt, revision.Revocations.Count == 0 ? "" : revision.Revocations[0].Reason,
-        "h4-policy-v1-" + Hash(JsonSerializer.Serialize(new { revision.Id, revocations = revision.Revocations.OrderBy(row => row.Id).ToArray() }, Json)));
+    private async Task<RepairPolicyRecord> ReadRevisionView(Guid id, CancellationToken token)
+    {
+        var revision = await Revision(id, token);
+        return RevisionView(revision, await ReadPublishReason(id, token));
+    }
+
+    private Task<string?> ReadPublishReason(Guid revisionId, CancellationToken token)
+        => db.AuditLogs.AsNoTracking().Where(row => row.EntityId == revisionId && row.CorrelationId == revisionId &&
+                row.EntityType == "RepairPolicy" && row.EventType == "repair_policy_publish" && row.Source == "h4.policy.v1")
+            .Select(row => row.Reason).SingleOrDefaultAsync(token);
+
+    private static RepairPolicyRecord RevisionView(RepairPolicyRevision revision, string? publishReason)
+    {
+        var revokeReason = revision.IsRevoked ? revision.Revocations[0].Reason : null;
+        var version = LegacyRevisionVersion(revision);
+        if (publishReason is not null)
+            version = "h4-policy-v1-" + Hash(JsonSerializer.Serialize(new { version, publishReason }, Json));
+        return new(revision.Id, revision.ProjectId, null, revision.Id, revision.Revision, revision.DefectTypeCode,
+            revision.ChecklistVersion, revision.Measurements.ToArray(), revision.StopConditions.ToArray(),
+            revision.IsRevoked ? "REVOKED" : "PUBLISHED", revision.PublishedBy, revision.PublishedAt, revokeReason ?? "", version,
+            PublishReason: publishReason, RevokeReason: revokeReason);
+    }
+
+    private static string LegacyRevisionVersion(RepairPolicyRevision revision) => "h4-policy-v1-" +
+        Hash(JsonSerializer.Serialize(new { revision.Id, revocations = revision.Revocations.OrderBy(row => row.Id).ToArray() }, Json));
     private static string Hash(string text) => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
 }

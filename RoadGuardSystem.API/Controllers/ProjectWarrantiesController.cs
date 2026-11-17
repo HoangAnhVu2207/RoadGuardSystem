@@ -24,6 +24,7 @@ public sealed class ProjectWarrantiesController : ControllerBase
     }
 
     [Authorize]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost]
     [ProducesResponseType<CreateWarrantyResponseDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]

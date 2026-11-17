@@ -131,9 +131,9 @@ public sealed class P122SurveyPlanningTests
         (await postponed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetByte().Should().Be(2);
     }
 
-    private static async Task<Guid> CreateProjectAsync(HttpClient client, Guid projectManagerId)
+    private async Task<Guid> CreateProjectAsync(HttpClient client, Guid projectManagerId)
     {
-        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        var response = await VerifiedProjectHandoverFixture.CreateProjectAsync(_sql, client, new
         {
             projectCode = $"P-{Guid.NewGuid():N}",
             name = "P1-22 planning project",

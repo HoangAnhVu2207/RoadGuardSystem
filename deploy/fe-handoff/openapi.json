@@ -6,6 +6,82 @@
     "version": "1.0"
   },
   "paths": {
+    "/api/v1/auth/reporter/password-reset/confirm": {
+      "post": {
+        "tags": [
+          "ReporterPasswordReset"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetConfirmDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed and previous sessions revoked."
+          },
+          "400": {
+            "description": "validation_error or invalid_reset_otp",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "password_policy_failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reporter/password-reset/request": {
+      "post": {
+        "tags": [
+          "ReporterPasswordReset"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReporterPasswordResetRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Uniform acknowledgment for every well-formed email, including no delivery."
+          },
+          "400": {
+            "description": "validation_error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/users/{userId}/password-reset": {
       "post": {
         "tags": [
@@ -56068,7 +56144,7 @@
         "tags": [
           "SurveyV"
         ],
-        "description": "List datasets for the stored survey task project. PM project scope or Supervisor. Newest submissions first, then dataset ID descending. Undated legacy records sort last. GET does not require CSRF.",
+        "description": "List datasets for the stored survey task project. PM project scope, Supervisor, or the currently assigned Operator with active project membership (Bearer only). Newest submissions first, then dataset ID descending. Undated legacy records sort last. GET does not require CSRF.",
         "parameters": [
           {
             "name": "taskId",
@@ -62201,6 +62277,43 @@
   },
   "components": {
     "schemas": {
+      "ReporterPasswordResetConfirmDto": {
+        "type": "object",
+        "required": [
+          "email",
+          "otp",
+          "newPassword"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "otp": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "newPassword": {
+            "type": "string",
+            "maxLength": 1024,
+            "format": "password"
+          }
+        }
+      },
+      "ReporterPasswordResetRequestDto": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          }
+        }
+      },
       "HandoverAttachmentDto": {
         "type": "object",
         "required": [

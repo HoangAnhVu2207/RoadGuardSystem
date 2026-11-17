@@ -1801,6 +1801,40 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.ReporterPasswordResetChallenge", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Consumed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("NextSendAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("OtpHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("SendsInWindow")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("WindowStartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("ReporterPasswordResetChallenges", (string)null);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.ReporterRegistrationIntent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11293,6 +11327,15 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .IsRequired();
 
                     b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.ReporterPasswordResetChallenge", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Identity.ReporterRegistrationIntent", b =>

@@ -50,6 +50,7 @@ public sealed class ReporterRepairProgressMigrationTests
             while (!File.Exists(Path.Combine(dir.FullName, "AGENTS.md")))
                 dir = dir.Parent ?? throw new InvalidOperationException("Repository root not found.");
             var expected = SandboxSeedCatalog.Load(Path.Combine(dir.FullName, "sandbox", "seeds", "v1")).Schema;
+            await db.GetService<IMigrator>().MigrateAsync();
             var actual = await SandboxSeedGuard.ReadSchemaAsync(db);
             Assert.Equal(expected.Signature, actual.Signature);
             Assert.Equal(expected.Migrations, actual.Migrations);

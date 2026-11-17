@@ -31,6 +31,12 @@ public sealed class GmailIdentityMessageSender : IIdentityMessageSender
             $"Chào bạn,\n\nMã xác minh tài khoản Reporter trên hệ thống {_options.BrandName}: {otp}\n\nMã có hiệu lực trong {_options.OtpLifetimeMinutes} phút và chỉ sử dụng một lần.",
             cancellationToken);
 
+    public Task<bool> SendReporterResetOtpAsync(string email, string otp, CancellationToken cancellationToken = default) =>
+        SendAsync(email, $"[{_options.BrandName}] Mã đặt lại mật khẩu Reporter",
+            $"<p>Mã đặt lại mật khẩu: <strong>{WebUtility.HtmlEncode(otp)}</strong></p><p>Hết hạn sau {_options.OtpLifetimeMinutes} phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>",
+            $"Mã đặt lại mật khẩu: {otp}. Hết hạn sau {_options.OtpLifetimeMinutes} phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.",
+            cancellationToken);
+
     public Task<bool> SendInvitationAsync(
         string email,
         string displayName,

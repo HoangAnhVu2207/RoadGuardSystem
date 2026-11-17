@@ -162,6 +162,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.IH6NotificationUnknownAuditRepository, RoadGuardSystem.Repositories.Messaging.H6NotificationUnknownAuditRepository>();
         services.AddScoped<IIdentityRepository, IdentityRepository>();
         services.AddScoped<IIdentityV2Repository, IdentityRepository>();
+        services.AddScoped<IReporterPasswordResetRepository, RoadGuardSystem.Repositories.Implementations.Identity.ReporterPasswordResetRepository>();
         services.AddScoped<IIdentityOnboardingRepository, IdentityOnboardingRepository>();
         services.AddSingleton<IFileContentStore>(provider =>
             new LocalFileContentStore(provider.GetRequiredService<IOptions<FileStorageOptions>>().Value));

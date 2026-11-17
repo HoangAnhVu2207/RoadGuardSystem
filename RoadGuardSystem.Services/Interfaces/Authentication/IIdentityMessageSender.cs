@@ -7,6 +7,9 @@ public interface IIdentityMessageSender
         string otp,
         CancellationToken cancellationToken = default);
 
+    Task<bool> SendReporterResetOtpAsync(string email, string otp, CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
+
     Task<bool> SendInvitationAsync(
         string email,
         string displayName,

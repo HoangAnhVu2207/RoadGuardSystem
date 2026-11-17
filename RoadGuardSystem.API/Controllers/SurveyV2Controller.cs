@@ -192,6 +192,10 @@ public sealed class SurveyV2Controller : ControllerBase
         if (Request.Query.ContainsKey("cursor") && string.IsNullOrEmpty(cursor) || cursor is { Length: > 4096 })
             return ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid cursor");
 
+        if (role == UserRoleCode.DroneOperator &&
+            User.Identity?.AuthenticationType == RoadGuardSystem.API.Authentication.WebCookieConfiguration.Scheme)
+            return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+
         var protector = protection.CreateProtector("RoadGuard.SurveyTaskDatasets.v1", actor.ToString("D"), taskId.ToString("D"));
         DatasetListCursor? after = null;
         if (cursor is not null)

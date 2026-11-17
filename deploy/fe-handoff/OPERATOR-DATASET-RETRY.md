@@ -150,3 +150,11 @@ Các TRX nằm trong `TestResults/DatasetRetry` của checkout D:/RG-dataset. Nh
 Self-review lượt 1 đối chiếu quyền trước truy vấn, không đặt chỗ drone, ràng buộc cursor, raw If-Match trong fingerprint, Active chỉ kiểm ở lần ghi mới và transaction receipt/dataset/audit. Lượt 2 kiểm scope file, nhánh huy-review, DI/interface/fake unit fixture, schema/OpenAPI và giới hạn app/retention. Đã sửa ca cursor rỗng bị model binding đổi thành null. Đồng bộ các bản lưu chứng cứ source trong Swagger schema/test sau khi thêm method service/repository. Review ngoài phiên này chưa thực hiện.
 
 Quyết định eligibility drone đã được chốt và triển khai. Source app Operator và runtime DB retention vẫn cần nguồn riêng. Đã tìm trong workspace D:/DO_AN các manifest Flutter/Android/Expo và caller survey-tasks trong checkout FE, đồng thời đối chiếu tài liệu môi trường/integration của repo. Chưa xác định được repo/branch app Operator. Vì vậy bộ chọn UI và hàng đợi retry bền trên app còn giao FE triển khai theo contract trên.
+
+## Nộp chỉ có video và mở lại video đã nộp
+
+- Có thể ẩn ô SRT khi nộp. Gửi `telemetryFileIds: []`. Nếu gửi `pairs`, mỗi video vẫn có mục riêng với `telemetryFileId: null`; cũng có thể bỏ `pairs` nếu không cần thông tin ghép cặp. Nộp thành công trả `201`, `telemetryStatus: "MISSING"`. Video và telemetry cũ vẫn đọc được.
+- Khi mở lại task, dùng Bearer gọi `GET /api/v1/survey-tasks/{taskId}/datasets?limit=25`. Response có `items` và `nextCursor`. Chọn `items[].id`, gọi `GET /api/v1/datasets/{id}`, rồi lấy `sourceFiles[].fileId` của mục `purpose: "SURVEY_VIDEO"`. GET danh sách yêu cầu assignment hiện hành và membership của project lưu trên task.
+- Ví dụ danh sách rút gọn: `{"items":[{"id":"<datasetId>","surveyTaskId":"<taskId>","versionNo":1}],"nextCursor":null}`. Tải GET `/api/v1/files/{fileId}/content` với `Authorization: Bearer …`. File phải được xác minh. Xử lý `401` bằng đăng nhập lại, `403` khi hết quyền, `404` khi nguồn chưa sẵn sàng hoặc không tồn tại. GET danh sách trả `400 validation_error` khi limit/cursor không hợp lệ.
+- Manifest AI chấp nhận `MISSING` với danh sách cặp video–telemetry rỗng. Tính năng nào cần lấy vị trí từ telemetry vẫn cần dữ liệu telemetry tương ứng. Đánh giá PM vẫn áp quy tắc bằng chứng hiện có.
+- Endpoint content hiện stream toàn bộ đối tượng. Kiểm phát/tua trên player và hỗ trợ HTTP Range còn mở.

@@ -276,7 +276,9 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             await db.DroneDevices.Where(d => d.Id == device).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Active));
         var submitted = await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey);
         submitted.StatusCode.Should().Be(HttpStatusCode.Created);
-        var dataset = (await Body(submitted)).GetProperty("id").GetGuid();
+        var submittedBody = await Body(submitted);
+        var dataset = submittedBody.GetProperty("id").GetGuid();
+        submittedBody.GetProperty("telemetryStatus").GetString().Should().Be("MISSING");
         // Model a lost response: the client retries the original body, key and If-Match after commit.
         await using (var db = sql.CreateDbContext())
             await db.DroneDevices.Where(d => d.Id == device).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Maintenance));
@@ -308,6 +310,24 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         await using (var db = sql.CreateDbContext())
             await db.ProjectMembers.Where(m => m.UserId == first.Id && m.ProjectId == project)
                 .ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Active));
+        using var reopened = factory.CreateClient();
+        await Login(reopened, first.UserName!);
+        using var reopenedList = await reopened.GetAsync(submitPath);
+        reopenedList.StatusCode.Should().Be(HttpStatusCode.OK);
+        var reopenedItem = (await Body(reopenedList)).GetProperty("items").EnumerateArray().Should().ContainSingle().Which;
+        reopenedItem.GetProperty("id").GetGuid().Should().Be(dataset);
+        using var reopenedDetail = await reopened.GetAsync($"/api/v1/datasets/{reopenedItem.GetProperty("id").GetGuid()}");
+        reopenedDetail.StatusCode.Should().Be(HttpStatusCode.OK);
+        var videoSource = (await Body(reopenedDetail)).GetProperty("sourceFiles").EnumerateArray().Should().ContainSingle().Which;
+        videoSource.GetProperty("purpose").GetString().Should().Be("SURVEY_VIDEO");
+        using var downloaded = await reopened.GetAsync($"/api/v1/files/{videoSource.GetProperty("fileId").GetGuid()}/content");
+        downloaded.StatusCode.Should().Be(HttpStatusCode.OK);
+        downloaded.Content.Headers.ContentType!.MediaType.Should().Be("video/mp4");
+        (await downloaded.Content.ReadAsByteArrayAsync()).Should().Equal(media);
+        await Login(reopened, second.UserName!);
+        (await reopened.GetAsync(submitPath)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await reopened.GetAsync($"/api/v1/datasets/{dataset}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await reopened.GetAsync($"/api/v1/files/{video}/content")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         var detail = await client.GetAsync(submitted.Headers.Location);
         detail.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(detail)).GetProperty("submittedBy").GetGuid().Should().Be(first.Id);
@@ -533,6 +553,8 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         await Login(client, first.UserName!);
         (await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await client.GetAsync(eligiblePath + "?cursor=" + Uri.EscapeDataString(foreignDroneCursor))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await client.GetAsync(submitPath)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await client.GetAsync($"/api/v1/files/{video}/content")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         await Login(client, second.UserName!);
         var bothAssigned = await client.GetAsync($"/api/v1/survey-tasks/{task}");
         bothAssigned.StatusCode.Should().Be(HttpStatusCode.OK);

@@ -2895,6 +2895,20 @@
     ]
   },
   {
+    "Table": "dbo.ReporterPasswordResetChallenges",
+    "Group": "identity",
+    "DependencyOrder": 10,
+    "Prerequisites": [
+      "dbo.Users"
+    ],
+    "Producer": "ReporterPasswordResetService",
+    "EmptyReason": "Recovery challenges are issued only on request and are never seeded.",
+    "Scenario": "Use a verified active Reporter and a test mail sink to exercise self-service recovery.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Identity/ReporterPasswordResetRepository.cs"
+    ]
+  },
+  {
     "Table": "dbo.ReporterRegistrationIntents",
     "Group": "identity",
     "DependencyOrder": 10,

@@ -270,6 +270,23 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Fact]
+    public async Task ReporterPasswordResetUsesAnonymousJsonWithDistinctOutcomes()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        const string root = "/api/v1/auth/reporter/password-reset/";
+        foreach (var (path, success) in new[] { ("request", "202"), ("confirm", "204") })
+        {
+            var post = paths.GetProperty(root + path).GetProperty("post");
+            Assert.False(post.TryGetProperty("security", out var security) && security.GetArrayLength() > 0);
+            Assert.True(post.GetProperty("requestBody").GetProperty("required").GetBoolean());
+            Assert.True(post.GetProperty("responses").TryGetProperty(success, out _));
+            Assert.True(post.GetProperty("responses").TryGetProperty("400", out _));
+        }
+        Assert.True(paths.GetProperty(root + "confirm").GetProperty("post").GetProperty("responses").TryGetProperty("422", out _));
+    }
+
+    [Fact]
     public async Task ProjectHandoverAndDocumentUploadAdvertiseBrowserTransport()
     {
         using var document = await Document();

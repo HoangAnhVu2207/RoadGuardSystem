@@ -166,11 +166,18 @@ public sealed class SurveyV2Service : ISurveyV2Service
         Guid actor, UserRoleCode role, Guid taskId, DateTimeOffset? afterSubmittedAt, Guid? afterId, int take,
         CancellationToken cancellationToken = default)
     {
-        if (actor == Guid.Empty || role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor))
+        if (actor == Guid.Empty || role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.DroneOperator))
             return (SurveyV2ServiceStatus.Forbidden, []);
         var projectId = await _repository.GetTaskProjectIdAsync(taskId, cancellationToken);
         if (projectId is null) return (SurveyV2ServiceStatus.NotFound, []);
         if (!await InScope(actor, role, projectId.Value, cancellationToken)) return (SurveyV2ServiceStatus.Forbidden, []);
+
+        if (role == UserRoleCode.DroneOperator)
+        {
+            var task = await _repository.GetTaskAsync(taskId, cancellationToken);
+            if (task is null || task.ProjectId != projectId || task.OperatorId != actor || !task.AssignmentIsActive)
+                return (SurveyV2ServiceStatus.Forbidden, []);
+        }
 
         var datasets = await _repository.ListTaskDatasetsAsync(taskId, projectId.Value, afterSubmittedAt, afterId, take, cancellationToken);
         return (SurveyV2ServiceStatus.Success, datasets.Select(d => new DatasetListItemDto(

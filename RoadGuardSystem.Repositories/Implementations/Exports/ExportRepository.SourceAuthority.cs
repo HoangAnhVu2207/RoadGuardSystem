@@ -17,6 +17,17 @@ public sealed partial class ExportRepository
     public async Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId,
         ExportSourceAuthorityQuery query, CancellationToken ct)
     {
+        if (_db.Database.CurrentTransaction is not null) return await CanReadSnapshotSourcesCoreAsync(actorId, projectId, query, ct);
+        return await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+            var permitted = await CanReadSnapshotSourcesCoreAsync(actorId, projectId, query, ct);
+            await transaction.CommitAsync(ct); return permitted;
+        });
+    }
+    private async Task<bool> CanReadSnapshotSourcesCoreAsync(Guid actorId, Guid projectId,
+        ExportSourceAuthorityQuery query, CancellationToken ct)
+    {
         ArgumentNullException.ThrowIfNull(query);
         if (query.ManifestProjectId != projectId) return false;
         var repairRefs = query.RepairSources;
@@ -51,6 +62,13 @@ public sealed partial class ExportRepository
                 _ => false
             };
             if (!exists) return false;
+            if (source.Kind == "RepairItem")
+            {
+                var item = await _db.RepairItems.AsNoTracking().Where(row => row.Id == source.Id)
+                    .Select(row => new { row.ProjectId, row.ObligationId }).SingleAsync(ct);
+                if (await RoadGuardSystem.Repositories.Repairs.ObligationResponsibilityScope.ResolveAsync(_db, item.ObligationId, item.ProjectId, ct) != projectId) return false;
+            }
+
         }
         if (caseFacts is not null)
         {

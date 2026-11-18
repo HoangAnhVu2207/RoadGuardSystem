@@ -70,7 +70,7 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
     public async Task<AiMockRunView> GetAsync(Guid actor, UserRoleCode role, Guid project, Guid run, CancellationToken ct)
     {
         Enabled(); await repository.AuthorizeAsync(actor, role, project, false, ct);
-        return Anh02AiRepository.View(await repository.GetAsync(project, run, ct) ?? throw new AiRequestException(404, "not_found"));
+        return await repository.ReadViewAsync(project, run, ct);
     }
     public async Task<AiResultV1> GetResultAsync(Guid actor, UserRoleCode role, Guid project, Guid run, CancellationToken ct)
     {

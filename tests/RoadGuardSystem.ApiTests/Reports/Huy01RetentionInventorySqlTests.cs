@@ -6,6 +6,7 @@ using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Reports;
 using RoadGuardSystem.Repositories.Implementations.Retention;
 using RoadGuardSystem.Repositories.Models.Huy01;
+using RoadGuardSystem.Repositories.Retention;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 
@@ -46,7 +47,8 @@ public sealed class Huy01RetentionInventorySqlTests(AuthenticationSqlServerFixtu
             await using (var plainDb = fixture.CreateDbContext())
             {
                 var plain = await new Huy01RetentionInventoryContributor(plainDb).ReadAsync(fileId, default);
-                Assert.False(plain.Complete);
+                // Completeness here covers the HUY slice. The aggregate check below still requires the other readers.
+                Assert.True(plain.Complete);
                 Assert.Contains(plain.References, reference => reference.Kind == "REPORT_EVIDENCE" && reference.Id == evidenceId);
                 Assert.Contains(plain.References, reference => reference.Kind == "CASE_REPORT_LINK" && reference.ProjectId == projectId);
             }
@@ -68,10 +70,18 @@ public sealed class Huy01RetentionInventorySqlTests(AuthenticationSqlServerFixtu
         var first = await reader.ReadAsync(fileId, default);
         var again = await reader.ReadAsync(fileId, default);
         Assert.Equal("HUY", first.Name);
-        Assert.False(first.Complete);
+        Assert.True(first.Complete);
         Assert.Contains(first.References, reference => reference.Kind == "CASE_CONCLUSION_EVIDENCE" &&
             reference.Id == conclusionId && reference.ProjectId == projectId);
         Assert.Equal(first.References, again.References);
+        var inventory = await new RetentionInventoryRepository(readerDb, [reader]).ReadAsync(fileId, default);
+        Assert.NotNull(inventory);
+        Assert.False(inventory.Complete);
+        Assert.Contains("HUY_REPAIR_REFERENCE_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.Contains("AI_REFERENCE_INVENTORY_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.Contains("EXPORT_REFERENCE_INVENTORY_UNAVAILABLE", inventory.ReasonCodes);
+        Assert.Contains(inventory.References, reference => reference.Kind == "CASE_CONCLUSION_EVIDENCE" &&
+            reference.Id == conclusionId && reference.ProjectId == projectId);
         Assert.Contains(fileId, await reader.KnownProjectFilesAsync(projectId, default));
         var priorLinkVersion = Assert.Single(first.References.Where(reference => reference.Kind == "CASE_REPORT_LINK")).SourceVersion;
         await using (var db = fixture.CreateDbContext())
@@ -83,6 +93,8 @@ public sealed class Huy01RetentionInventorySqlTests(AuthenticationSqlServerFixtu
         Assert.Contains(fileId, await reader.KnownProjectFilesAsync(projectId, default));
         var closed = await reader.ReadAsync(fileId, default);
         Assert.NotEqual(priorLinkVersion, Assert.Single(closed.References.Where(reference => reference.Kind == "CASE_REPORT_LINK")).SourceVersion);
-        Assert.False((await reader.ReadAsync(Guid.NewGuid(), default)).Complete);
+        var unrelated = await reader.ReadAsync(Guid.NewGuid(), default);
+        Assert.True(unrelated.Complete);
+        Assert.Empty(unrelated.References);
     }
 }

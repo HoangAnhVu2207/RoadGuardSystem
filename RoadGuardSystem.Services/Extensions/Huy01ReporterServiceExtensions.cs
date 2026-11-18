@@ -26,6 +26,7 @@ public static class Huy01ReporterServiceExtensions
     public static IServiceCollection AddHuy01ReporterServices(this IServiceCollection services)
     {
         services.AddHuy01ReporterCaseServices();
+        services.TryAddScoped<RoadGuardSystem.Services.Web.WebCoordinationService>();
         services.TryAddScoped<RoadGuardSystem.Services.Defects.ICandidateDecisionService, RoadGuardSystem.Services.Implementations.Defects.CandidateDecisionService>();
         services.TryAddScoped<RoadGuardSystem.Services.Candidates.ICandidateMatchingService, RoadGuardSystem.Services.Implementations.Defects.CandidateMatchingService>();
         services.TryAddScoped<RoadGuardSystem.Services.Implementations.Defects.DefectTypeAdminService>();

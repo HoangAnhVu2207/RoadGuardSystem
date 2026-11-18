@@ -1616,6 +1616,10 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Organization")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -3461,8 +3465,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.ToTable("H6NotificationScopes", null, t =>
                         {
-                            t.HasTrigger("TR_H6NotificationScopes_Source");
                             t.HasTrigger("TR_H6NotificationScopes_AssignmentProof");
+
+                            t.HasTrigger("TR_H6NotificationScopes_Source");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -6383,6 +6388,10 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<int?>("EngineeringUtmSrid")
                         .HasColumnType("int");
 
+                    b.Property<string>("Locality")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -7832,6 +7841,18 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<Guid?>("PackageId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("PlannedMaterials")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<decimal?>("PlannedQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("PlannedUnit")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<Guid?>("PredecessorItemId")
                         .HasColumnType("uniqueidentifier");
 
@@ -7909,6 +7930,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.ToTable("RepairItems", null, t =>
                         {
                             t.HasTrigger("TR_RepairItems_Scope");
+
+                            t.HasCheckConstraint("CK_RepairItems_PlannedQuantity", "([PlannedQuantity] IS NULL AND [PlannedUnit] IS NULL) OR ([PlannedQuantity] IS NOT NULL AND [PlannedQuantity] > 0 AND [PlannedUnit] IS NOT NULL)");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -8250,10 +8273,21 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<byte?>("DefectStatusAtAnchor")
                         .HasColumnType("tinyint");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
                     b.Property<long>("MutationRevision")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L);
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset?>("PlannedDueAt")
+                        .HasColumnType("datetimeoffset(7)");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -10553,13 +10587,13 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RepairAcceptanceFingerprint")
-                        .IsUnicode(false)
                         .HasMaxLength(64)
+                        .IsUnicode(false)
                         .HasColumnType("varchar(64)");
 
                     b.Property<string>("RepairProgressStatus")
-                        .IsUnicode(false)
                         .HasMaxLength(16)
+                        .IsUnicode(false)
                         .HasColumnType("varchar(16)");
 
                     b.HasKey("PublicationId", "ReportId");

@@ -200,7 +200,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-001",
@@ -467,12 +467,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-002",
@@ -511,6 +511,24 @@
               "maxLength": 4096,
               "minLength": 1,
               "type": "string"
+            }
+          },
+          {
+            "name": "datasetId",
+            "in": "query",
+            "description": "Filter by the persisted processing/dataset/task relation in this project. Bound to cursor.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "surveyTaskId",
+            "in": "query",
+            "description": "Filter by the persisted processing/dataset/task relation in this project. Bound to cursor.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -626,10 +644,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -767,10 +785,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-003",
@@ -929,10 +947,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-004",
@@ -1089,7 +1107,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-005",
@@ -2003,7 +2021,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-011",
@@ -2347,12 +2365,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-013",
@@ -2567,10 +2585,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-014",
@@ -2709,10 +2727,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-015",
@@ -2979,12 +2997,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-016",
@@ -3251,12 +3269,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-017",
@@ -3501,10 +3519,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-018",
@@ -3788,12 +3806,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-019",
@@ -3951,10 +3969,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-020",
@@ -4078,10 +4096,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -4232,10 +4250,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -4435,10 +4453,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-021",
@@ -4625,10 +4643,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-022",
@@ -4916,12 +4934,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-023",
@@ -5209,12 +5227,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-024",
@@ -5509,12 +5527,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-025",
@@ -5802,12 +5820,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-026",
@@ -6102,12 +6120,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-027",
@@ -6832,12 +6850,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-028",
@@ -7562,12 +7580,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-029",
@@ -7747,10 +7765,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-032",
@@ -7889,10 +7907,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-033",
@@ -8170,12 +8188,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-034",
@@ -8453,12 +8471,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-035",
@@ -8634,10 +8652,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-030",
@@ -8895,12 +8913,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-031",
@@ -8945,10 +8963,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -9028,12 +9046,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -9110,12 +9128,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -9198,10 +9216,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -9355,10 +9373,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -9633,12 +9651,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-148",
@@ -9814,10 +9832,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -10101,12 +10119,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-149",
@@ -10262,10 +10280,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -10273,7 +10291,7 @@
         "tags": [
           "Exports"
         ],
-        "description": "Create exports resources. Permissions: PM / Supervisor.",
+        "description": "Create exports resources. Permissions: PM / Supervisor. DOSSIER supports repairItemIds (max 100) or repairPackageIds (max 20), with at most 100 resolved items. These scopes cannot combine with segmentIds/defectIds/time filters. Snapshot is immutable; missing sections are explicit. ZIP may include authorized original JPEG/PNG evidence; PDF does not embed original files. Source authority is checked at admission, processing and download.",
         "parameters": [
           {
             "name": "projectId",
@@ -10545,12 +10563,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-036",
@@ -10706,10 +10724,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -10971,12 +10989,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-203",
@@ -11132,10 +11150,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -11397,12 +11415,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-205",
@@ -11558,10 +11576,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -11715,10 +11733,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -12069,12 +12087,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-093",
@@ -12230,10 +12248,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -12387,10 +12405,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -12794,12 +12812,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-102",
@@ -12955,10 +12973,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -13219,12 +13237,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-188",
@@ -13382,10 +13400,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-037",
@@ -13543,10 +13561,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-038",
@@ -13780,10 +13798,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-039",
@@ -14055,12 +14073,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-040",
@@ -14235,10 +14253,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-041",
@@ -14414,10 +14432,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-042",
@@ -14702,10 +14720,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-043",
@@ -14968,10 +14986,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-044",
@@ -15389,10 +15407,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-045",
@@ -15684,12 +15702,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-046",
@@ -15981,12 +15999,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-047",
@@ -16278,12 +16296,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-048",
@@ -16575,12 +16593,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-049",
@@ -16872,12 +16890,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-050",
@@ -17343,12 +17361,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-051",
@@ -17640,12 +17658,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-052",
@@ -17830,10 +17848,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-053",
@@ -18113,12 +18131,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-054",
@@ -18818,12 +18836,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-055",
@@ -19185,12 +19203,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-056",
@@ -19394,10 +19412,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-057",
@@ -19596,10 +19614,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-058",
@@ -19888,12 +19906,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-059",
@@ -20076,10 +20094,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-060",
@@ -20277,10 +20295,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-061",
@@ -20562,12 +20580,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-062",
@@ -20750,10 +20768,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-063",
@@ -20970,10 +20988,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-064",
@@ -21269,12 +21287,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-065",
@@ -21579,12 +21597,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-066",
@@ -21884,12 +21902,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-067",
@@ -22104,10 +22122,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-069",
@@ -22416,12 +22434,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-068",
@@ -22645,10 +22663,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-070",
@@ -22865,12 +22883,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-071",
@@ -23096,12 +23114,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-072",
@@ -23260,12 +23278,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -23349,10 +23367,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -23522,12 +23540,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -23832,12 +23850,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-073",
@@ -24153,12 +24171,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-074",
@@ -24365,10 +24383,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-075",
@@ -24627,12 +24645,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-076",
@@ -24946,12 +24964,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-077",
@@ -25038,10 +25056,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -25357,12 +25375,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-078",
@@ -25576,10 +25594,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-080",
@@ -25897,12 +25915,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-079",
@@ -26107,14 +26125,100 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-081",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/notifications/read-batch": {
+      "post": {
+        "tags": [
+          "H6NotificationOperations"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1–100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkNotificationsReadRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkNotificationsReadRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkNotificationsReadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkNotificationsReadResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkNotificationsReadResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkNotificationsReadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
+          }
+        ]
       }
     },
     "/api/v1/projects/{projectId}/weekly-digests/{digestId}": {
@@ -26242,10 +26346,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-082",
@@ -26368,10 +26472,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-083",
@@ -26528,10 +26632,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-084",
@@ -26661,10 +26765,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-085",
@@ -26901,12 +27005,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-086",
@@ -26921,13 +27025,13 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": { }
             },
             "text/json": {
-              "schema": {}
+              "schema": { }
             },
             "application/*+json": {
-              "schema": {}
+              "schema": { }
             }
           }
         },
@@ -27150,10 +27254,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -27203,12 +27307,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -27318,10 +27422,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-088",
@@ -27581,12 +27685,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-089",
@@ -27735,10 +27839,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-090",
@@ -27867,10 +27971,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-091",
@@ -28099,12 +28203,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-092",
@@ -28238,10 +28342,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -28532,12 +28636,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       },
@@ -28741,12 +28845,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -28960,10 +29064,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-094",
@@ -29346,12 +29450,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-095",
@@ -30711,12 +30815,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-096",
@@ -31425,10 +31529,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-097",
@@ -31671,12 +31775,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-098",
@@ -32020,12 +32124,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-099",
@@ -32369,12 +32473,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-100",
@@ -32584,10 +32688,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-101",
@@ -32820,10 +32924,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-103",
@@ -33240,12 +33344,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-104",
@@ -33488,12 +33592,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-105",
@@ -33672,10 +33776,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-106",
@@ -33854,10 +33958,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-107",
@@ -34100,12 +34204,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-108",
@@ -34441,12 +34545,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-109",
@@ -34684,10 +34788,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-110",
@@ -35029,12 +35133,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-111",
@@ -35166,10 +35270,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -35368,10 +35472,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-112",
@@ -35697,12 +35801,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-113",
@@ -36028,12 +36132,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-114",
@@ -36234,10 +36338,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-115",
@@ -36565,10 +36669,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-116",
@@ -36878,12 +36982,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-117",
@@ -37066,10 +37170,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-118",
@@ -37263,10 +37367,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-119",
@@ -37578,12 +37682,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-120",
@@ -37840,12 +37944,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-121",
@@ -37994,10 +38098,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-122",
@@ -38287,12 +38391,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-123",
@@ -38552,7 +38656,7 @@
         },
         "security": [
           {
-            "AiServiceBearer": []
+            "AiServiceBearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-124",
@@ -38799,12 +38903,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-125",
@@ -38927,10 +39031,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-126",
@@ -39042,10 +39146,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-127",
@@ -39214,12 +39318,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-128",
@@ -39368,10 +39472,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-129",
@@ -39650,12 +39754,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-130",
@@ -39961,12 +40065,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-131",
@@ -40174,12 +40278,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-132",
@@ -40396,12 +40500,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-133",
@@ -40499,10 +40603,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -40745,12 +40849,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-138",
@@ -40951,12 +41055,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-136",
@@ -41001,10 +41105,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -41203,12 +41307,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-137",
@@ -41409,12 +41513,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-134",
@@ -41537,10 +41641,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-135",
@@ -41596,12 +41700,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -41655,12 +41759,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -41884,10 +41988,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-139",
@@ -42193,12 +42297,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-140",
@@ -42504,12 +42608,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-141",
@@ -42815,12 +42919,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-142",
@@ -43126,12 +43230,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-143",
@@ -43437,12 +43541,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-144",
@@ -43748,12 +43852,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-145",
@@ -44050,12 +44154,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-146",
@@ -44352,12 +44456,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-147",
@@ -44654,12 +44758,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-150",
@@ -44956,12 +45060,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-151",
@@ -45258,12 +45362,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-152",
@@ -45511,12 +45615,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-153",
@@ -45693,10 +45797,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-154",
@@ -45982,12 +46086,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-155",
@@ -46275,12 +46379,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-156",
@@ -46457,10 +46561,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-157",
@@ -46748,12 +46852,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-158",
@@ -46901,10 +47005,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-164",
@@ -47052,10 +47156,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-165",
@@ -47359,12 +47463,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-166",
@@ -47661,12 +47765,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-167",
@@ -47771,10 +47875,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -48067,12 +48171,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-159",
@@ -48267,10 +48371,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-160",
@@ -48576,12 +48680,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-161",
@@ -48887,12 +48991,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-162",
@@ -49207,12 +49311,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-163",
@@ -49468,7 +49572,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-168",
@@ -49598,7 +49702,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-169",
@@ -49675,7 +49779,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ]
       }
@@ -49943,7 +50047,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-170",
@@ -50238,7 +50342,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-171",
@@ -50368,7 +50472,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-172",
@@ -50536,7 +50640,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-173",
@@ -50722,7 +50826,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-174",
@@ -51611,10 +51715,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-178",
@@ -51861,10 +51965,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-179",
@@ -52081,10 +52185,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-180",
@@ -52252,10 +52356,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-181",
@@ -52528,12 +52632,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-185",
@@ -52682,10 +52786,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-182",
@@ -52973,12 +53077,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-183",
@@ -53181,10 +53285,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-184",
@@ -53322,10 +53426,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-186",
@@ -53624,12 +53728,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-187",
@@ -53786,10 +53890,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-189",
@@ -54045,12 +54149,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-190",
@@ -54179,10 +54283,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-191",
@@ -54472,12 +54576,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-192",
@@ -54607,10 +54711,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-193",
@@ -54868,12 +54972,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-194",
@@ -55073,26 +55177,14 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
-      }
-    },
-    "/ready": {
-      "get": {
-        "tags": [
-          "RoadGuardSystem.eAPI"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
       }
     },
     "/api/v1/users": {
@@ -55163,10 +55255,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -55256,10 +55348,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -55328,12 +55420,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -55408,10 +55500,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -55706,12 +55798,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-195",
@@ -55850,10 +55942,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-196",
@@ -56119,12 +56211,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-197",
@@ -56264,10 +56356,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-198",
@@ -56399,10 +56491,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-199",
@@ -56638,7 +56730,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-200",
@@ -56874,7 +56966,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-201",
@@ -57103,7 +57195,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-202",
@@ -57393,12 +57485,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-204",
@@ -57528,10 +57620,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-206",
@@ -57685,7 +57777,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ]
       }
@@ -57813,10 +57905,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-207",
@@ -57946,10 +58038,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-208",
@@ -58079,10 +58171,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-209",
@@ -58213,7 +58305,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-210",
@@ -58360,10 +58452,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -58656,7 +58748,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-211",
@@ -58798,10 +58890,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-212",
@@ -59032,7 +59124,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-213",
@@ -59322,7 +59414,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-214",
@@ -59612,12 +59704,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-215",
@@ -59907,12 +59999,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-216",
@@ -60209,12 +60301,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-217",
@@ -60479,12 +60571,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-218",
@@ -60640,10 +60732,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-220",
@@ -60782,10 +60874,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-219",
@@ -61070,12 +61162,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-221",
@@ -61344,12 +61436,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-222",
@@ -61605,12 +61697,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-223",
@@ -61674,12 +61766,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -61808,10 +61900,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-224",
@@ -62060,12 +62152,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-225",
@@ -62334,12 +62426,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-226",
@@ -62427,7 +62519,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ]
       }
@@ -62719,12 +62811,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-227",
@@ -62861,10 +62953,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-228",
@@ -62876,7 +62968,7 @@
         "tags": [
           "Uploads"
         ],
-        "description": "Download uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator. AI frame reads require current AI-result project authority (PM or Supervisor); no signed URL is issued.",
+        "description": "Authenticated private content. Web PM/Supervisor may play a VERIFIED SURVEY_VIDEO linked to a dataset on the stored task. Operator Bearer requires current task assignment and project membership. Each request rechecks authority. Single bytes Range supports start-end, start-, and -suffix. Multiple or invalid ranges return 416. If-Range accepts only the exact strong current ETag; other validators return the whole 200 representation. Storage ranges are streamed directly; codec/container support is the player's responsibility.",
         "parameters": [
           {
             "name": "fileId",
@@ -62886,29 +62978,51 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "description": "Optional single byte interval.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Range",
+            "in": "header",
+            "description": "Optional exact strong ETag; dates and weak validators fall back to 200.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Success.",
+            "description": "Full representation",
             "headers": {
-              "Cache-Control": {
-                "description": "private, no-store",
+              "Accept-Ranges": {
                 "schema": {
-                  "type": "string",
-                  "format": "string"
+                  "type": "string"
                 }
               },
-              "X-Correlation-ID": {
-                "description": "Request correlation UUID, emitted by middleware on all responses.",
+              "Content-Range": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
+                  "type": "string"
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
                 }
               }
             },
             "content": {
-              "application/octet-stream": {
+              "video/mp4": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -63010,14 +63124,72 @@
                 }
               }
             }
+          },
+          "206": {
+            "description": "Selected byte interval",
+            "headers": {
+              "Accept-Ranges": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Range": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Unsupported or unsatisfiable byte interval",
+            "headers": {
+              "Accept-Ranges": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Range": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-229",
@@ -63231,12 +63403,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -63402,10 +63574,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-230",
@@ -63674,12 +63846,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-231",
@@ -63885,12 +64057,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-232",
@@ -64222,8 +64394,8 @@
         },
         "security": [
           {
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-234",
@@ -64436,9 +64608,9 @@
         },
         "security": [
           {
-            "WebRenewal": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebRenewal": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-235",
@@ -64609,7 +64781,7 @@
         },
         "security": [
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-236",
@@ -64770,13 +64942,1137 @@
         },
         "security": [
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-237",
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
+      }
+    },
+    "/api/v1/projects/{projectId}/task-assignees": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskAssignee"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskAssignee"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskAssignee"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{userId}/organization": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationProfile"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationProfile"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Persist the key and exact body before sending; replay the same request after timeout.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted current resource rowversion from its GET response. A stale version returns 409 concurrency_conflict.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/overviews": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectOverview"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectOverview"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectOverview"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/member-contacts": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectContactWebPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectContactWebPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectContactWebPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-policies": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "REVISION"
+            }
+          },
+          {
+            "name": "defectTypeCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "applicableOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyDiscoveryWebPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyDiscoveryWebPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyDiscoveryWebPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/planning": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePlanning"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePlanning"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagePlanning"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Persist the key and exact body before sending; replay the same request after timeout.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted current resource rowversion from its GET response. A stale version returns 409 concurrency_conflict.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackagePlanningInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackagePlanningInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackagePlanningInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/planning": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPlanning"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPlanning"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPlanning"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Persist the key and exact body before sending; replay the same request after timeout.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted current resource rowversion from its GET response. A stale version returns 409 concurrency_conflict.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemPlanningInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemPlanningInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemPlanningInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-defect": {
+      "get": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectSourceReview"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectSourceReview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefectSourceReview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/locality": {
+      "put": {
+        "tags": [
+          "WebCoordination"
+        ],
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Persist the key and exact body before sending; replay the same request after timeout.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted current resource rowversion from its GET response. A stale version returns 409 concurrency_conflict.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectLocalityInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectLocalityInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectLocalityInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebMetadataVersion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "Authentication missing or no longer valid"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict or duplicate_request"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
+          }
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "RoadGuardSystem.eAPI"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     }
   },
@@ -65259,6 +66555,30 @@
           },
           "version": {
             "type": "string",
+            "nullable": true
+          },
+          "datasetId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "datasetVersionNo": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "datasetVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "surveyTaskId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -66812,6 +68132,22 @@
           },
           "includeOriginalFiles": {
             "type": "boolean"
+          },
+          "repairItemIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "repairPackageIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -68290,6 +69626,25 @@
         },
         "additionalProperties": false
       },
+      "DefectOriginReference": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "caseId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DefectPageDto": {
         "type": "object",
         "properties": {
@@ -68302,6 +69657,89 @@
           },
           "nextCursor": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DefectSourceEvidence": {
+        "type": "object",
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "capturedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DefectSourceReview": {
+        "type": "object",
+        "properties": {
+          "defectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "defectTypeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "geometryWkt": {
+            "type": "string",
+            "nullable": true
+          },
+          "srid": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "dataKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefectOriginReference"
+            },
+            "nullable": true
+          },
+          "missingSections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefectSourceEvidence"
+            },
             "nullable": true
           }
         },
@@ -71208,7 +72646,7 @@
           },
           "appointments": {
             "type": "array",
-            "items": {},
+            "items": { },
             "nullable": true
           }
         },
@@ -71250,6 +72688,30 @@
           "resolverVersion": {
             "type": "string",
             "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "priorityPolicy": {
+            "type": "string",
+            "nullable": true
+          },
+          "senderKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "deadlines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDeadlineReference"
+            },
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -71412,6 +72874,56 @@
             "format": "date-time"
           },
           "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ItemPlanning": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plannedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "plannedUnit": {
+            "type": "string",
+            "nullable": true
+          },
+          "plannedMaterials": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ItemPlanningInput": {
+        "type": "object",
+        "properties": {
+          "plannedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "plannedUnit": {
+            "type": "string",
+            "nullable": true
+          },
+          "plannedMaterials": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
             "type": "string",
             "nullable": true
           }
@@ -71653,6 +73165,45 @@
         },
         "additionalProperties": false
       },
+      "MarkNotificationsReadRequest": {
+        "type": "object",
+        "properties": {
+          "through": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "snapshotVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MarkNotificationsReadResponse": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "through": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshotVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "MockRunSummary": {
         "type": "object",
         "properties": {
@@ -71695,6 +73246,30 @@
           },
           "version": {
             "type": "string",
+            "nullable": true
+          },
+          "datasetId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "datasetVersionNo": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "datasetVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "surveyTaskId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -71795,6 +73370,25 @@
           "height": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationDeadlineReference": {
+        "type": "object",
+        "properties": {
+          "clockId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -72674,6 +74268,76 @@
         },
         "additionalProperties": false
       },
+      "OpenDefectMetric": {
+        "type": "object",
+        "properties": {
+          "definitionVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "includedStatuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "value": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "availability": {
+            "type": "string",
+            "nullable": true
+          },
+          "unknownCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrganizationInput": {
+        "type": "object",
+        "properties": {
+          "organization": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrganizationProfile": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "OwnReportDto": {
         "type": "object",
         "properties": {
@@ -72835,6 +74499,66 @@
               "type": "string",
               "format": "uuid"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackagePlanning": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "plannedDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PackagePlanningInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "plannedDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -73255,6 +74979,65 @@
         },
         "additionalProperties": false
       },
+      "PolicyDiscovery": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "defectTypeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "checklistVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "applicable": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PolicyDiscoveryWebPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolicyDiscovery"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PositionDto": {
         "required": [
           "point",
@@ -73412,7 +75195,7 @@
             "nullable": true
           }
         },
-        "additionalProperties": {}
+        "additionalProperties": { }
       },
       "ProcessingJobResponseDto": {
         "type": "object",
@@ -73561,7 +75344,61 @@
             "format": "uuid"
           }
         },
-        "additionalProperties": {}
+        "additionalProperties": { }
+      },
+      "ProjectContact": {
+        "type": "object",
+        "properties": {
+          "membershipId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumberConfirmed": {
+            "type": "boolean"
+          },
+          "organization": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectContactWebPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectContact"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "ProjectLifecycleHistoryDto": {
         "type": "object",
@@ -73766,6 +75603,20 @@
         },
         "additionalProperties": false
       },
+      "ProjectLocalityInput": {
+        "type": "object",
+        "properties": {
+          "locality": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ProjectMemberResponseDto": {
         "type": "object",
         "properties": {
@@ -73825,6 +75676,91 @@
           "asOf": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectOverview": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "locality": {
+            "type": "string",
+            "nullable": true
+          },
+          "engineeringUtmSrid": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectRouteOverview"
+            },
+            "nullable": true
+          },
+          "totalLengthMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lengthAvailability": {
+            "type": "string",
+            "nullable": true
+          },
+          "warranties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WarrantyOverview"
+            },
+            "nullable": true
+          },
+          "openDefects": {
+            "$ref": "#/components/schemas/OpenDefectMetric"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectRouteOverview": {
+        "type": "object",
+        "properties": {
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceSrid": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "crsProfileRevisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "lengthMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -78383,6 +80319,22 @@
           "version": {
             "type": "string",
             "nullable": true
+          },
+          "plannedEndAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "scopeSummary": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SurveyScopeSummary"
+            },
+            "nullable": true
+          },
+          "scopeAvailability": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -78454,6 +80406,28 @@
         "type": "integer",
         "format": "int32"
       },
+      "SurveyScopeSummary": {
+        "type": "object",
+        "properties": {
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "segmentSetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetBand": {
+            "type": "string",
+            "nullable": true
+          },
+          "segmentCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "SurveyTaskPageV2ResponseDto": {
         "type": "object",
         "properties": {
@@ -78515,6 +80489,40 @@
           "supplementTaskId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "operatorDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "operatorNameSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "datasetCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "scopeSummary": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SurveyScopeSummary"
+            },
+            "nullable": true
+          },
+          "scopeAvailability": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -78616,6 +80624,48 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "TaskAssignee": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "current": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
       "TrainingLabelPageDto": {
         "type": "object",
@@ -79069,6 +81119,37 @@
         },
         "additionalProperties": false
       },
+      "WarrantyOverview": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "handoverDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "WarrantyScope": {
         "enum": [
           0,
@@ -79139,6 +81220,16 @@
             "nullable": true
           },
           "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebMetadataVersion": {
+        "type": "object",
+        "properties": {
+          "version": {
             "type": "string",
             "nullable": true
           }

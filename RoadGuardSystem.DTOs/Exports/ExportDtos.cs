@@ -1,17 +1,19 @@
+using System.Text.Json;
+using RoadGuardSystem.DTOs.Repairs;
 using System.Text.Json.Serialization;
 using RoadGuardSystem.DTOs.Reporting;
 
 namespace RoadGuardSystem.DTOs.Exports;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record CreateExportRequestDto(string Kind, string Format, Guid[]? SegmentIds = null, Guid[]? DefectIds = null, DateTimeOffset? From = null, DateTimeOffset? To = null, bool IncludeOriginalFiles = false)
+public sealed record CreateExportRequestDto(string Kind, string Format, Guid[]? SegmentIds = null, Guid[]? DefectIds = null, DateTimeOffset? From = null, DateTimeOffset? To = null, bool IncludeOriginalFiles = false, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid[]? RepairItemIds = null, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid[]? RepairPackageIds = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.CreateExportRequestFact?(CreateExportRequestDto? value)
-        => value is null ? null! : new(value.Kind, value.Format, value.SegmentIds, value.DefectIds, value.From, value.To, value.IncludeOriginalFiles);
+        => value is null ? null! : new(value.Kind, value.Format, value.SegmentIds, value.DefectIds, value.From, value.To, value.IncludeOriginalFiles, value.RepairItemIds, value.RepairPackageIds);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator CreateExportRequestDto?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.CreateExportRequestFact? value)
-        => value is null ? null! : new(value.Kind, value.Format, value.SegmentIds, value.DefectIds, value.From, value.To, value.IncludeOriginalFiles);
+        => value is null ? null! : new(value.Kind, value.Format, value.SegmentIds, value.DefectIds, value.From, value.To, value.IncludeOriginalFiles, value.RepairItemIds, value.RepairPackageIds);
 }
 public sealed record ExportJobViewDto(Guid Id, Guid ProjectId, string Kind, string Format, string Status, Guid SnapshotId, string SnapshotHash, Guid? ArtifactId, DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt, DateTimeOffset? ExpiresAt, string? ErrorCode, string Completeness, string[] MissingSections, string Version);
 public sealed record ExportSourceRevisionDto(string Kind, Guid Id, string Version)
@@ -59,12 +61,16 @@ public sealed record ExportManifestV1Dto(string SchemaVersion, Guid SnapshotId, 
     public static implicit operator ExportManifestV1Dto?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.ExportManifestV1Fact? value)
         => value is null ? null! : new(value.SchemaVersion, value.SnapshotId, value.ProjectId, value.Kind, value.Format, value.RequestedBy, value.CreatedAt, value.SnapshotAt, value.DefinitionVersions, (global::RoadGuardSystem.DTOs.Exports.CreateExportRequestDto)value.Filters, value.SourceRevisions?.Select(item => (global::RoadGuardSystem.DTOs.Exports.ExportSourceRevisionDto)item).ToArray()!, value.Files?.Select(item => (global::RoadGuardSystem.DTOs.Exports.ExportFileDto)item).ToArray()!, value.Sections?.Select(item => (global::RoadGuardSystem.DTOs.Exports.ExportSectionDto)item).ToArray()!, value.Labels?.Select(item => (global::RoadGuardSystem.DTOs.Exports.ExportLabelDto)item).ToArray(), value.SnapshotHash);
 }
-public sealed record ExportSnapshotPayloadDto(ExportManifestV1Dto Manifest, ReportingCaptureDto? Dossier)
+public sealed record ExportSnapshotPayloadDto(ExportManifestV1Dto Manifest, ReportingCaptureDto? Dossier, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RepairDossierDto? RepairDossier = null)
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.ExportSnapshotPayloadFact?(ExportSnapshotPayloadDto? value)
-        => value is null ? null! : new((global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.ExportManifestV1Fact)value.Manifest, (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingCaptureFact?)value.Dossier);
+        => value is null ? null! : new((global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.ExportManifestV1Fact)value.Manifest, (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingCaptureFact?)value.Dossier, value.RepairDossier is null ? null : JsonSerializer.SerializeToElement(value.RepairDossier, Json));
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator ExportSnapshotPayloadDto?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.ExportSnapshotPayloadFact? value)
-        => value is null ? null! : new((global::RoadGuardSystem.DTOs.Exports.ExportManifestV1Dto)value.Manifest, (global::RoadGuardSystem.DTOs.Reporting.ReportingCaptureDto?)value.Dossier);
+        => value is null ? null! : new((global::RoadGuardSystem.DTOs.Exports.ExportManifestV1Dto)value.Manifest, (global::RoadGuardSystem.DTOs.Reporting.ReportingCaptureDto?)value.Dossier, value.RepairDossier?.Deserialize<RepairDossierDto>(Json));
 }
+
+public sealed record RepairDossierDto(string SchemaVersion, RepairDossierItemDto[] Items);
+public sealed record RepairDossierItemDto(Guid PackageId, RepairHistoryView History, JsonElement Scope, JsonElement[] Submissions, JsonElement[] Reviews);

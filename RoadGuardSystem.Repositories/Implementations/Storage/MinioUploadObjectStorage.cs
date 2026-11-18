@@ -9,7 +9,7 @@ using RoadGuardSystem.Repositories.Options;
 
 namespace RoadGuardSystem.Repositories.Storage;
 
-public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IStagingCleanupStorage
+public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IStagingCleanupStorage, IRangedUploadObjectStorage
 {
     private const int PrefixLength = 512;
     private const int BufferSize = 81920;
@@ -252,15 +252,35 @@ public sealed class MinioUploadObjectStorage : IUploadObjectStorage, IStagingCle
 
     public async Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default)
     {
+        var client = CreateClient();
         try
         {
-            var client = CreateClient();
             var response = await client.GetObjectAsync(_options.BucketName, objectKey, cancellationToken);
             return new S3ResponseStream(response.ResponseStream, response, client);
         }
-        catch (AmazonS3Exception exception)
+        catch (Exception exception) when (exception is AmazonS3Exception or HttpRequestException or IOException or OperationCanceledException)
         {
+            client.Dispose();
+            if (exception is OperationCanceledException) throw;
             throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Object storage is unavailable.", exception);
+        }
+    }
+
+    public async Task<Stream> OpenRangeAsync(string objectKey, long first, long last, CancellationToken token = default)
+    {
+        if (first < 0 || last < first) throw new ArgumentOutOfRangeException(nameof(first));
+        var client = CreateClient();
+        try
+        {
+            var response = await client.GetObjectAsync(new GetObjectRequest
+            { BucketName = _options.BucketName, Key = objectKey, ByteRange = new ByteRange(first, last) }, token);
+            return new S3ResponseStream(response.ResponseStream, response, client);
+        }
+        catch (Exception error) when (error is AmazonS3Exception or HttpRequestException or IOException or OperationCanceledException)
+        {
+            client.Dispose();
+            if (error is OperationCanceledException) throw;
+            throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Object range unavailable.", error);
         }
     }
 

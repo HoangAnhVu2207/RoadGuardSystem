@@ -172,7 +172,7 @@ public sealed class RepairPolicyRepository(RoadGuardDbContext db, IdempotencyOpe
                 row.EntityType == "RepairPolicy" && row.EventType == "repair_policy_publish" && row.Source == "h4.policy.v1")
             .Select(row => row.Reason).SingleOrDefaultAsync(token);
 
-    private static RepairPolicyRecord RevisionView(RepairPolicyRevision revision, string? publishReason)
+    internal static RepairPolicyRecord RevisionView(RepairPolicyRevision revision, string? publishReason)
     {
         var revokeReason = revision.IsRevoked ? revision.Revocations[0].Reason : null;
         var version = LegacyRevisionVersion(revision);

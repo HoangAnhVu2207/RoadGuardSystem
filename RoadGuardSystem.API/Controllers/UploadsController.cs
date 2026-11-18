@@ -174,10 +174,45 @@ public sealed class UploadsController : ControllerBase
     {
         Response.Headers.CacheControl = "private, no-store";
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        var metadata = await _service.GetFileMetadataAsync(actorUserId, role, fileId, UsesWebSession, cancellationToken);
+        if (metadata.Status == UploadServiceStatus.Forbidden) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+        if (metadata.File is not { Status: "VERIFIED" } file) return ProblemResponse(404, ApiErrorCodes.FileNotFound, "Not found");
+        Response.Headers.ETag = $"\"{file.Version}\"";
+        if (file.MediaType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
+        {
+            Response.Headers.AcceptRanges = "bytes";
+            // Only a strong current ETag is an If-Range validator. Dates/weak/mismatched
+            // validators fall back to the complete representation, without using the range.
+            if (Request.Headers.Range.Count > 0 && (Request.Headers.IfRange.Count == 0 ||
+                Request.Headers.IfRange.Count == 1 && Request.Headers.IfRange.ToString() == Response.Headers.ETag.ToString()))
+            {
+                if (Request.Headers.Range.Count != 1 || !RoadGuardSystem.API.Files.VideoByteRange.TryParse(
+                    Request.Headers.Range.ToString(), file.SizeBytes, out var first, out var last))
+                {
+                    Response.Headers.ContentRange = $"bytes */{file.SizeBytes}";
+                    return StatusCode(416);
+                }
+                var partial = await _service.DownloadRangeAsync(actorUserId, role, fileId, first, last, file.Version, UsesWebSession, cancellationToken);
+                if (partial.Status == UploadServiceStatus.Forbidden) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
+                if (partial.Content is null) return ProblemResponse(partial.Status == UploadServiceStatus.StorageUnavailable ? 503 : 404,
+                    partial.Status == UploadServiceStatus.StorageUnavailable ? ApiErrorCodes.UploadStorageUnavailable : ApiErrorCodes.FileNotFound, "Video unavailable");
+                await using var stream = partial.Content;
+                Response.StatusCode = 206;
+                Response.ContentType = file.MediaType;
+                Response.ContentLength = last - first + 1;
+                Response.Headers.ContentRange = $"bytes {first}-{last}/{file.SizeBytes}";
+                await stream.CopyToAsync(Response.Body, cancellationToken);
+                return new EmptyResult();
+            }
+        }
         var result = await _service.DownloadAsync(actorUserId, role, fileId, UsesWebSession, cancellationToken);
+        if (result.Status == UploadServiceStatus.Success && result.Content is not null && result.File is not null)
+        {
+            Response.ContentLength = result.File.SizeBytes;
+            return File(result.Content, result.File.MediaType);
+        }
         return result.Status switch
         {
-            UploadServiceStatus.Success when result.Content is not null && result.File is not null => File(result.Content, result.File.MediaType),
             UploadServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             UploadServiceStatus.StorageUnavailable => ProblemResponse(503, ApiErrorCodes.UploadStorageUnavailable, "Storage unavailable"),
             _ => ProblemResponse(404, ApiErrorCodes.FileNotFound, "Not found")

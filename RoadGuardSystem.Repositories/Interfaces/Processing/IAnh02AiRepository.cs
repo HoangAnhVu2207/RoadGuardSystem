@@ -27,6 +27,7 @@ public interface IAnh02AiRepository
     Task<AiDatasetSourceFacts> ReadSourcesAsync(Guid projectId, CreateAiMockRunRequestFact request, CancellationToken ct);
     Task<AiMockRunViewFact> AdmitAsync(Guid actorId, UserRoleCode role, Guid projectId, CreateAiMockRunRequestFact request,
         string key, string fingerprint, Func<Guid, Guid, Guid, AiDatasetSourceFacts, CancellationToken, Task<AiAdmissionManifest>> createManifest, CancellationToken ct);
+    Task<AiMockRunViewFact> ReadViewAsync(Guid projectId, Guid runId, CancellationToken ct);
     Task<AiMockRun?> GetAsync(Guid projectId, Guid runId, CancellationToken ct);
     Task<AiResultProvenance?> GetResultAsync(Guid runId, CancellationToken ct);
     Task<AiMockRun?> ClaimAsync(Guid owner, DateTimeOffset now, CancellationToken ct);

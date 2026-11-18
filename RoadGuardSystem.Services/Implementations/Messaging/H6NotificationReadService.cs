@@ -6,6 +6,19 @@ namespace RoadGuardSystem.Services.Messaging;
 
 public sealed class H6NotificationReadService(IH6NotificationOperationsRepository repository)
 {
+    public Task<H6BulkReadFact> MarkManyReadAsync(Guid actor, UserRoleCode role, MarkNotificationsReadRequest input,
+        string? key, CancellationToken token)
+    {
+        if (input.Limit is < 1 or > 100 || input.Through == default || input.Through > DateTimeOffset.UtcNow ||
+            string.IsNullOrWhiteSpace(key) || key.Length > 150 || key.Any(c => c is < '!' or > '~'))
+            return Task.FromResult(new H6BulkReadFact(400, "validation_error", 0, false, input.Through));
+        if (input.SnapshotVersion is not null)
+        {
+            try { if (Convert.FromBase64String(input.SnapshotVersion).Length != 8) return Task.FromResult(new H6BulkReadFact(400, "validation_error", 0, false, input.Through)); }
+            catch (FormatException) { return Task.FromResult(new H6BulkReadFact(400, "validation_error", 0, false, input.Through)); }
+        }
+        return repository.MarkManyReadAsync(actor, role, input.Through.ToUniversalTime(), input.Limit, key, input.SnapshotVersion, token);
+    }
     public async Task<WeeklyDigestView?> WeeklyDigestAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid digestId, CancellationToken token)
     {
         var fact = await repository.WeeklyDigestAsync(actorId, role, projectId, digestId, token);
@@ -19,7 +32,8 @@ public sealed class H6NotificationReadService(IH6NotificationOperationsRepositor
         if (actorId == Guid.Empty || notificationId == Guid.Empty || role == UserRoleCode.Unknown) return null;
         var fact = await repository.ScopeAsync(actorId, role, notificationId, cancellationToken);
         return fact is null ? null : new(fact.NotificationId, fact.ProjectId, fact.OccurrenceId,
-            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion);
+            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,
+            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray());
     }
 
     public async Task<H6ClockPage> ClocksPageAsync(Guid actorId, UserRoleCode role, Guid projectId,

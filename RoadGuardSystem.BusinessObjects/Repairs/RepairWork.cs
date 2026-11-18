@@ -228,6 +228,9 @@ public sealed class RepairAttempt
 }
 public sealed class RepairItem
 {
+    public decimal? PlannedQuantity { get; set; }
+    public string? PlannedUnit { get; set; }
+    public string? PlannedMaterials { get; set; }
     public string? RepairPlan { get; private set; }
     public string? ChecklistVersion { get; private set; }
     public string? ProposalPlanHash { get; private set; }

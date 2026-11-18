@@ -18,5 +18,7 @@ public interface IUploadService
     Task<UploadServiceResult> GetFileMetadataAsync(Guid actorUserId, UserRoleCode role, Guid fileId, bool webSession = false, CancellationToken cancellationToken = default);
     Task<UploadServiceResult> DownloadAsync(Guid actorUserId, UserRoleCode role, Guid fileId, bool webSession = false, CancellationToken cancellationToken = default);
     Task ProcessOneVerificationAsync(CancellationToken cancellationToken = default);
+    Task<UploadServiceResult> DownloadRangeAsync(Guid actor, UserRoleCode role, Guid fileId, long first, long last,
+        string expectedVersion, bool webSession, CancellationToken token = default);
     Task ProcessOneVerificationInRoundAsync(UploadVerificationRound round, CancellationToken cancellationToken = default);
 }

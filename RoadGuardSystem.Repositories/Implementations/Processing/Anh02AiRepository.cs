@@ -283,6 +283,24 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
     private static bool Unique(JsonElement value) => value.ValueKind == JsonValueKind.Object
         && value.EnumerateObject().Select(p => p.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() == value.EnumerateObject().Count();
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+    public async Task<AiMockRunViewFact> ReadViewAsync(Guid projectId, Guid runId, CancellationToken ct)
+    {
+        var run = await GetAsync(projectId, runId, ct) ?? throw new AiRequestException(404, "not_found");
+        var source = await (from job in db.ProcessingJobs.AsNoTracking()
+                            join block in db.ProcessingBlocks.AsNoTracking() on job.ProcessingBlockId equals block.Id
+                            join dataset in db.SurveyDataVersions.AsNoTracking() on block.SurveyDataVersionId equals dataset.Id
+                            join survey in db.Surveys.AsNoTracking() on dataset.SurveyId equals survey.Id
+                            where job.Id == run.ProcessingJobId && job.ProjectId == projectId && survey.ProjectId == projectId && dataset.Id == run.DatasetVersionId
+                            select new { dataset.Id, dataset.VersionNo, dataset.RowVersion, survey.SurveyRequestId }).SingleOrDefaultAsync(ct);
+        return View(run) with
+        {
+            DatasetId = source?.Id,
+            DatasetVersionNo = source?.VersionNo,
+            DatasetVersion = source is null ? null : Convert.ToBase64String(source.RowVersion),
+            SurveyTaskId = source?.SurveyRequestId,
+            CreatedAt = run.CreatedAt
+        };
+    }
     public static AiMockRunViewFact View(AiMockRun run) => new(run.Id, run.ProjectId, run.Stage, "MOCK", run.Status, run.ProcessingJobId,
         run.AttemptId, run.ManifestHash, run.ResultId, run.FixtureVersion, run.ErrorCode, Convert.ToBase64String(run.RowVersion));
 }

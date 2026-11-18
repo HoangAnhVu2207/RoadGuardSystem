@@ -16,6 +16,10 @@ public sealed class ExportRepositoryOptions
 }
 public interface IExportRepository
 {
+    Task<RepairExportSelection[]> ResolveRepairItemsAsync(Guid project, Guid[] packages, Guid[] items, CancellationToken token)
+        => Task.FromResult(Array.Empty<RepairExportSelection>());
+    Task<RepairExportSupplement?> ReadRepairSupplementAsync(Guid project, Guid item, CancellationToken token)
+        => Task.FromResult<RepairExportSupplement?>(null);
     Task<ExportAdmissionResult> AdmitAsync(Guid actorId, Guid projectId, CreateExportRequestFact request, string key, string fingerprint, Guid? correlationId, Func<Guid, DateTimeOffset, CancellationToken, Task<ExportCaptureResult>> capture, CancellationToken ct);
     Task<ExportPersistenceView?> GetAsync(Guid projectId, Guid id, CancellationToken ct);
     Task<ExportClaim?> ClaimAsync(CancellationToken ct);
@@ -27,3 +31,6 @@ public interface IExportRepository
     Task<bool> CanReadSnapshotSourcesAsync(Guid actorId, Guid projectId, ExportSourceAuthorityQuery query, CancellationToken ct);
     Task<bool> HasCurrentProjectMembershipAsync(Guid actorId, Guid projectId, CancellationToken ct);
 }
+public sealed record RepairExportSelection(Guid PackageId, Guid ItemId);
+public sealed record RepairExportSupplement(System.Text.Json.JsonElement Scope,
+    System.Text.Json.JsonElement[] Submissions, System.Text.Json.JsonElement[] Reviews);

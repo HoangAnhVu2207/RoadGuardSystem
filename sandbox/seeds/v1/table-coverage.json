@@ -208,9 +208,10 @@
     "20261113051802_CrewFieldMeasurementDimensions",
     "20261113113000_ReporterRepairProgress",
     "20261117063514_ReporterPasswordReset",
-    "20261117101500_ProjectHandoverStaging"
+    "20261117101500_ProjectHandoverStaging",
+    "20261117183505_WebPmCoordinationMetadata"
   ],
-  "Signature": "D650E32EC9E38F5A41731CA425AF16742AD35498E8E7AB5592B181DBB2AFFF28",
+  "Signature": "B12BC4405C40E36B5179F6D94F6E82AEFA449A266C162A9C5256D14F673F7851",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",

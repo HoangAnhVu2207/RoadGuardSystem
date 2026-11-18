@@ -4,6 +4,9 @@ namespace RoadGuardSystem.BusinessObjects.Repairs;
 public sealed class RepairPackage
 {
     public Guid Id { get; private set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public DateTimeOffset? PlannedDueAt { get; set; }
     public Guid ProjectId { get; private set; }
     public Guid DefectId { get; private set; }
     // Nullable preserves legacy unknown provenance; only the actual package producer captures this source status.

@@ -480,6 +480,30 @@ public sealed partial class UploadPersistenceService : IUploadRepository
     public Task<bool> IsHandoverDocumentFileAsync(Guid project, Guid fileId, CancellationToken token)
         => _context.HandoverDocuments.AsNoTracking().AnyAsync(row => row.ProjectId == project && row.FileId == fileId, token);
 
+    public Task<Stream> OpenFileRangeAsync(string objectKey, long first, long last, CancellationToken token = default)
+        => _storage is IRangedUploadObjectStorage ranged ? ranged.OpenRangeAsync(objectKey, first, last, token)
+            : throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Storage ranges are not supported.");
+
+    public async Task<bool> IsSubmittedSurveyVideoAsync(Guid project, Guid task, Guid file, CancellationToken token = default)
+    {
+        var manifests = await (from dataset in _context.SurveyDataVersions.AsNoTracking()
+                               join survey in _context.Surveys.AsNoTracking() on dataset.SurveyId equals survey.Id
+                               where survey.ProjectId == project && survey.SurveyRequestId == task
+                               select dataset.SourceManifest).ToArrayAsync(token);
+        foreach (var manifest in manifests)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(manifest);
+                if (document.RootElement.ValueKind == JsonValueKind.Array && document.RootElement.EnumerateArray().Any(row =>
+                    row.ValueKind == JsonValueKind.Object && row.TryGetProperty("fileId", out var id) &&
+                    id.ValueKind == JsonValueKind.String && id.TryGetGuid(out var value) && value == file)) return true;
+            }
+            catch (JsonException) { /* Ambiguous legacy source is not playback authority. */ }
+        }
+        return false;
+    }
+
     public async Task<FileMetadataPersistenceView?> GetFileMetadataAsync(Guid fileId, CancellationToken cancellationToken = default)
     {
         var row = await (

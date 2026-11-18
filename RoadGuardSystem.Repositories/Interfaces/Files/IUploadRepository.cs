@@ -20,6 +20,10 @@ public interface IUploadRepository
     Task<bool> IsHandoverDocumentFileAsync(Guid project, Guid fileId, CancellationToken token);
     Task<FileMetadataPersistenceView?> GetFileMetadataAsync(Guid fileId, CancellationToken cancellationToken = default);
     Task<Stream> OpenFileAsync(string objectKey, CancellationToken cancellationToken = default);
+    Task<Stream> OpenFileRangeAsync(string objectKey, long first, long last, CancellationToken token = default)
+        => throw new NotSupportedException("Storage ranges are not supported.");
+    Task<bool> IsSubmittedSurveyVideoAsync(Guid project, Guid task, Guid file, CancellationToken token = default)
+        => Task.FromResult(false);
     Task<UploadPersistenceStatus> VerifyNextAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetVerifyingIdsAsync(CancellationToken cancellationToken = default);
     Task<UploadPersistenceStatus> VerifyAsync(Guid uploadId, CancellationToken cancellationToken = default);

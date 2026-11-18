@@ -26,6 +26,7 @@ public static class Huy01ReporterPersistenceExtensions
     public static IServiceCollection AddHuy01ReporterPersistence(this IServiceCollection services)
     {
         services.AddHuy01ReporterCasePersistence();
+        services.TryAddScoped<RoadGuardSystem.Repositories.Web.IWebCoordinationRepository, RoadGuardSystem.Repositories.Implementations.Web.WebCoordinationRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.ICandidateDecisionRepository, RoadGuardSystem.Repositories.Implementations.Defects.CandidateDecisionRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.IDefectTypeAdminRepository, RoadGuardSystem.Repositories.Implementations.Defects.DefectTypeAdminRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.IDefectWorkflowRepository, RoadGuardSystem.Repositories.Implementations.Defects.DefectWorkflowRepository>();

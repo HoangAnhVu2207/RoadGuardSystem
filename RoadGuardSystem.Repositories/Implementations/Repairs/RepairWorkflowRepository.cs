@@ -160,7 +160,8 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
         {
             return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
             {
-                await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+                await using var transaction = db.Database.CurrentTransaction is null
+                    ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
                 await GuardAsync(actorId, role, projectId, packageId, itemId, false, cancellationToken);
                 var item = await db.Set<RepairItem>().AsNoTracking().Include(row => row.Decisions)
                     .Include(row => row.Attempts).Include(row => row.ReviewRequests).SingleAsync(row => row.Id == itemId, cancellationToken);
@@ -186,7 +187,7 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
                 // Its finite canonical representation has a separate token, never accepted as a command rowversion.
                 var representationVersion = history ? "h4-history-v1-" + Convert.ToHexString(SHA256.HashData(
                     JsonSerializer.SerializeToUtf8Bytes(value, Json))).ToLowerInvariant() : view.Version;
-                await transaction.CommitAsync(cancellationToken); return new RepairWorkflowResult(200, Value: value, Version: representationVersion);
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken); return new RepairWorkflowResult(200, Value: value, Version: representationVersion);
             });
         }
         catch (Denied denial) { db.ChangeTracker.Clear(); return denial.Result; }

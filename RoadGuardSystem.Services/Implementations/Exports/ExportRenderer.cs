@@ -47,6 +47,8 @@ public sealed class ExportRenderer : IExportRenderer
                 await Text("evidence-index.json", JsonSerializer.Serialize(payload.Manifest.Files, ExportSerialization.Options));
                 if (payload.Manifest.Kind == "DOSSIER")
                 {
+                    if (payload.RepairDossier is not null)
+                        await Text("repair-dossier.json", JsonSerializer.Serialize(payload.RepairDossier, ExportSerialization.Options));
                     await using var spool = MinioAnh02ArtifactStore.Temporary(); await RenderPdfAsync(payload, spool, ct); spool.Position = 0;
                     await using var pdf = Entry("dossier.pdf").Open(); await spool.CopyToAsync(pdf, 81920, ct);
                 }
@@ -175,6 +177,20 @@ public sealed class ExportRenderer : IExportRenderer
             foreach (var item in payload.Dossier?.Timeline ?? []) Line($"{item.OccurredAt:O} | {item.Action} | {item.Source.Type} {item.Source.Id} {item.Source.Version} | {item.Summary}");
             if (payload.Dossier is { } dossier) Line($"Timeline: {dossier.TimelineAvailability.Availability} | {string.Join(", ", dossier.TimelineAvailability.ReasonCodes)}");
             Line("CÁC PHẦN CHƯA CÓ NGUỒN");
+            foreach (var repair in payload.RepairDossier?.Items ?? [])
+            {
+                Line($"HẠNG MỤC {repair.History.Item.Id} | Gói {repair.PackageId} | Snapshot tại {payload.Manifest.SnapshotAt:O}");
+                Line("Phương án: " + (repair.History.Item.RepairPlan ?? "UNKNOWN"));
+                Line("Checklist: " + (repair.History.Item.ChecklistVersion ?? "UNKNOWN"));
+                Line("Phạm vi: " + repair.Scope.GetRawText());
+                foreach (var attempt in repair.History.Attempts)
+                    Line($"Lần thi công {attempt.Id} | {attempt.StartedAt:O} → {attempt.FinishedAt:O} | Đã thực hiện: {attempt.Performed}");
+                foreach (var submission in repair.Submissions) Line("Bản nộp/số đo: " + submission.GetRawText());
+                foreach (var review in repair.Reviews) Line("PM review: " + review.GetRawText());
+                foreach (var decision in repair.History.Decisions) Line($"Xác nhận {decision.Id} | {decision.Result} | {decision.Role} | {decision.At:O} | {decision.Reason}");
+                foreach (var evidence in repair.History.Attempts.SelectMany(attempt => attempt.Evidence))
+                    Line($"Bằng chứng {evidence.Purpose}: {evidence.FileId} | {evidence.FileVersion} | {evidence.Sha256}");
+            }
             foreach (var section in payload.Manifest.Sections.Where(s => s.Availability != "AVAILABLE")) Line($"{section.Name}: {section.Availability} | {string.Join(", ", section.ReasonCodes)}");
             foreach (var l in payload.Manifest.Labels ?? []) if (l.Mode != "REAL") Line($"MOCK/SYNTHETIC | label {l.LabelId} | mode {l.Mode}");
             graphics?.Dispose(); graphics = null;
@@ -232,8 +248,18 @@ public static class ExportArchive
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var e in zip.Entries) { ValidatePath(e.FullName); if (!names.Add(e.FullName)) return false; }
         var expected = new HashSet<string>(manifest.Kind == "DOSSIER" ? ["manifest.json", "evidence-index.json", "dossier.pdf"] : new[] { "manifest.json", "evidence-index.json", "labels.jsonl", "README.txt" }, StringComparer.OrdinalIgnoreCase);
+        if (manifest.DefinitionVersions.Contains("repair.dossier.v1")) expected.Add("repair-dossier.json");
         foreach (var f in manifest.Files.Where(f => f.Included)) if (f.ArchivePath is null || !expected.Add(f.ArchivePath)) return false;
         if (!names.SetEquals(expected)) return false;
+        if (manifest.DefinitionVersions.Contains("repair.dossier.v1"))
+        {
+            var repairEntry = zip.GetEntry("repair-dossier.json");
+            if (repairEntry is null || repairEntry.Length > 64 * 1024 * 1024) return false;
+            await using var repairInput = repairEntry.Open();
+            var repair = await JsonSerializer.DeserializeAsync<RepairDossierDto>(repairInput, ExportSerialization.Options, ct);
+            var proof = manifest.SourceRevisions.SingleOrDefault(row => row.Kind == "DossierContent" && row.Id == manifest.SnapshotId);
+            if (repair is null || proof is null || proof.Version != ExportSerialization.Hash(JsonSerializer.Serialize(repair, ExportSerialization.Options))) return false;
+        }
         var entry = zip.GetEntry("manifest.json"); if (entry is null || entry.Length > 64 * 1024 * 1024) return false;
         await using var stream = entry.Open(); var stored = await JsonSerializer.DeserializeAsync<ExportManifestV1Dto>(stream, ExportSerialization.Options, ct);
         if (stored is null || JsonSerializer.Serialize(stored, ExportSerialization.Options) != JsonSerializer.Serialize(manifest, ExportSerialization.Options)) return false;

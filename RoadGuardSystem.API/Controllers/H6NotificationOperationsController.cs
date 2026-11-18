@@ -17,6 +17,16 @@ namespace RoadGuardSystem.API.Controllers;
 [Route("api/v{version:apiVersion}")]
 public sealed class H6NotificationOperationsController(H6NotificationReadService service) : ControllerBase
 {
+    [HttpPost("notifications/read-batch")]
+    [ProducesResponseType<MarkNotificationsReadResponse>(200)]
+    public async Task<IActionResult> MarkManyRead(MarkNotificationsReadRequest input,
+        [FromHeader(Name = "Idempotency-Key")] string? key, CancellationToken token)
+    {
+        if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
+        if (Request.Headers["Idempotency-Key"].Count != 1 || string.IsNullOrWhiteSpace(key)) return Error(428, "precondition_required");
+        var result = await service.MarkManyReadAsync(actor, role, input, key, token);
+        return result.Code is not null ? Error(result.Status, result.Code) : Ok(new MarkNotificationsReadResponse(result.Updated, result.HasMore, result.Through, result.SnapshotVersion!));
+    }
     [HttpGet("projects/{projectId:guid}/weekly-digests/{digestId:guid}")]
     public async Task<IActionResult> WeeklyDigest(Guid projectId, Guid digestId, CancellationToken token)
     {

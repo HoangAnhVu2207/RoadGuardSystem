@@ -57,6 +57,7 @@ public sealed class H6NotificationOperationsHttpTests(AuthenticationSqlServerFix
         Assert.Equal(HttpStatusCode.OK, scopeResponse.StatusCode);
         var scope = await scopeResponse.Content.ReadFromJsonAsync<H6NotificationScopeDto>();
         Assert.NotNull(scope); Assert.Equal(project.Id, scope.ProjectId); Assert.Equal("PROJECT", scope.Classification);
+        Assert.Equal("NOT_CONFIGURED", scope.Priority);
         Assert.Equal(HttpStatusCode.NotFound, (await outsiderClient.GetAsync(scopePath)).StatusCode);
         var clocksPath = $"/api/v1/projects/{project.Id}/clocks";
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(clocksPath)).StatusCode);

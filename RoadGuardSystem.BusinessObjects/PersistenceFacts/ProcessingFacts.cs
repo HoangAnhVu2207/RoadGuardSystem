@@ -4,7 +4,8 @@ namespace RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing;
 // Materialized persistence commands and snapshots, independent of public transport contracts.
 public sealed record AiMockRunViewFact(Guid Id, Guid ProjectId, string Stage, string Mode, string Status,
     Guid ProcessingJobId, Guid AttemptId, string ManifestHash, Guid? ResultId, string FixtureVersion,
-    string? ErrorCode, string Version);
+    string? ErrorCode, string Version, Guid? DatasetId = null, int? DatasetVersionNo = null,
+    string? DatasetVersion = null, Guid? SurveyTaskId = null, DateTimeOffset? CreatedAt = null);
 
 public sealed record AiMockScopeRequestFact(Guid RouteVersionId, Guid SegmentSetId, Guid[] SegmentIds, string TargetBand);
 

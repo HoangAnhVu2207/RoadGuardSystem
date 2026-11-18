@@ -31,11 +31,22 @@ public sealed partial class H6ProtectedNotificationRepository
         }, () => null, token, role);
     public Task<H6ScopeFact?> ScopeAsync(Guid actorId, UserRoleCode authenticatedRole, Guid notificationId, CancellationToken cancellationToken)
         => ReadAsync<H6ScopeFact?>(actorId, async (role, token) =>
-            await db.Set<H6NotificationScopeRow>().AsNoTracking().Where(scope => scope.NotificationId == notificationId &&
-                Visible(actorId, role).Any(notification => notification.Id == scope.NotificationId))
-                .Select(scope => new H6ScopeFact(scope.NotificationId, scope.ProjectId, scope.OccurrenceId,
-                    scope.Classification, scope.SourceKind, scope.SourceId, scope.EventType, scope.ResolverVersion)).SingleOrDefaultAsync(token),
-            () => null, cancellationToken, authenticatedRole);
+        {
+            var notification = await Visible(actorId, role).AsNoTracking().SingleOrDefaultAsync(row => row.Id == notificationId, token);
+            if (notification is null) return null;
+            var scope = await db.Set<H6NotificationScopeRow>().AsNoTracking().SingleOrDefaultAsync(row => row.NotificationId == notificationId, token);
+            var occurrence = scope?.OccurrenceId is Guid occurrenceId
+                ? await db.Set<H6NotificationOccurrenceRow>().AsNoTracking().SingleOrDefaultAsync(row => row.Id == occurrenceId, token) : null;
+            var originEventId = occurrence?.OriginEventId;
+            var deadlines = scope?.ProjectId is Guid project ? await db.Set<DeadlineClock>().AsNoTracking()
+                .Where(row => row.ProjectId == project && (row.TargetId == scope.SourceId || originEventId.HasValue && row.OriginEventId == originEventId.Value))
+                .OrderBy(row => row.CurrentDueAt).ThenBy(row => row.Id)
+                .Select(row => new H6DeadlineReference(row.Id, row.CurrentDueAt, row.CompletedAt)).ToArrayAsync(token) : [];
+            return new(notificationId, scope?.ProjectId, scope?.OccurrenceId, scope?.Classification ?? "UNRESOLVED",
+                scope?.SourceKind ?? notification.SourceEntityType, scope?.SourceId ?? notification.SourceEntityId,
+                notification.EventType, scope?.ResolverVersion ?? "legacy-visible.v1", notification.Title,
+                "NOT_CONFIGURED", occurrence is not null ? "SYSTEM" : "UNKNOWN", deadlines);
+        }, () => null, cancellationToken, authenticatedRole);
     public Task<H6ClockPageFact> ClocksPageAsync(Guid actorId, UserRoleCode authenticatedRole, Guid projectId,
         H6ClockCursorFact? cursor, int limit, CancellationToken cancellationToken)
     {

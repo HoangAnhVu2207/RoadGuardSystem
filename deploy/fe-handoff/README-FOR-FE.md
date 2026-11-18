@@ -1,8 +1,10 @@
 # RoadGuard FE handoff — preparation
 
+[Bộ contract Web PM/Supervisor bổ sung 13 mục](WEB-PM-SUPERVISOR-COMPLETION.md).
+
 [Đọc lại phương án repair, policy và tích hợp Web PM/Supervisor](PM-REPAIR-READBACK-AND-WEB.md).
 
-Contract local hiện hành: [openapi.json](openapi.json) được sinh lại từ runtime của bản sửa đang review (250 path, 285 operation, 420 schema), gồm [Case Report details](CASE-REPORT-DETAILS.md) và protocol staging hồ sơ bàn giao. Catalog 260 operation và các ghi nhận preview bên dưới là mốc lịch sử; route inventory test kiểm thêm các action phát sinh. Snapshot này không chứng minh môi trường FE đã cập nhật.
+Contract local hiện hành: [openapi.json](openapi.json) được sinh lại từ runtime của bản sửa đang review (260 path, 298 operation, 444 schema), gồm [Case Report details](CASE-REPORT-DETAILS.md) và protocol staging hồ sơ bàn giao. Catalog 260 operation và các ghi nhận preview bên dưới là mốc lịch sử; route inventory test kiểm thêm các action phát sinh. Snapshot này không chứng minh môi trường FE đã cập nhật.
 
 [Tạo project từ Web](PROJECT-CREATE-WEB-COOKIE.md) yêu cầu upload hồ sơ bàn giao, xác minh file và gửi ETag upload khi hoàn tất.
 

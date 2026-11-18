@@ -13,7 +13,7 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.Services.Exports;
 
-public sealed class ExportService : IExportService
+public sealed partial class ExportService : IExportService
 {
     private readonly IExportRepository _repo;
     private readonly IIdentityRepository _identity;
@@ -26,10 +26,12 @@ public sealed class ExportService : IExportService
     private readonly IExportRenderer _renderer;
     private readonly TimeProvider _clock;
     private readonly IServiceScopeFactory _workerScopes;
+    private readonly RoadGuardSystem.Services.Repairs.IRepairWorkflowService? _repairs;
+    private readonly RoadGuardSystem.Services.Files.IUploadService? _files;
     public ExportService(IExportRepository repo, IIdentityRepository identity, IProjectScopeGuard scope, IReportingService reporting,
         IEnumerable<IApprovedTrainingLabelReader> labels, IEnumerable<ITrainingSourceAccessReader> sourceAccess,
-        IAnh02ArtifactStore artifacts, IUploadObjectStorage sourceStorage, IExportRenderer renderer, TimeProvider clock, IServiceScopeFactory workerScopes)
-    { _repo = repo; _identity = identity; _scope = scope; _reporting = reporting; _labels = labels.SingleOrDefault(); _sourceAccess = sourceAccess.SingleOrDefault(); _artifacts = artifacts; _sourceStorage = sourceStorage; _renderer = renderer; _clock = clock; _workerScopes = workerScopes; }
+        IAnh02ArtifactStore artifacts, IUploadObjectStorage sourceStorage, IExportRenderer renderer, TimeProvider clock, IServiceScopeFactory workerScopes, RoadGuardSystem.Services.Repairs.IRepairWorkflowService? repairs = null, RoadGuardSystem.Services.Files.IUploadService? files = null)
+    { _repo = repo; _identity = identity; _scope = scope; _reporting = reporting; _labels = labels.SingleOrDefault(); _sourceAccess = sourceAccess.SingleOrDefault(); _artifacts = artifacts; _sourceStorage = sourceStorage; _renderer = renderer; _clock = clock; _workerScopes = workerScopes; _repairs = repairs; _files = files; }
     private async Task<UserRoleCode?> AuthorizeAsync(Guid actor, Guid project, CancellationToken ct)
     {
         var user = await _identity.GetUserSecurityStateAsync(actor, ct);
@@ -63,12 +65,21 @@ public sealed class ExportService : IExportService
         if (request is null) return null;
         var kind = request.Kind?.Trim().ToUpperInvariant(); var format = request.Format?.Trim().ToUpperInvariant();
         if (kind is not ("DOSSIER" or "TRAINING") || format is not ("PDF" or "ZIP") || kind == "TRAINING" && format != "ZIP" || format == "PDF" && request.IncludeOriginalFiles || request.From >= request.To || request.SegmentIds?.Contains(Guid.Empty) == true || request.DefectIds?.Contains(Guid.Empty) == true || (request.SegmentIds?.Length ?? 0) > 1000 || (request.DefectIds?.Length ?? 0) > 1000) return null;
+        if ((request.RepairItemIds?.Length ?? 0) > 100 || (request.RepairPackageIds?.Length ?? 0) > 20 ||
+            request.RepairItemIds?.Contains(Guid.Empty) == true || request.RepairPackageIds?.Contains(Guid.Empty) == true) return null;
+        if (request.RepairItemIds is { Length: > 0 } || request.RepairPackageIds is { Length: > 0 })
+        {
+            if (kind != "DOSSIER" || request.From is not null || request.To is not null || request.SegmentIds is { Length: > 0 } || request.DefectIds is { Length: > 0 }) return null;
+            request = request with { RepairItemIds = request.RepairItemIds?.Distinct().Order().ToArray(), RepairPackageIds = request.RepairPackageIds?.Distinct().Order().ToArray() };
+        }
         // No authoritative defect mapping exists in the Anh reporting reader; reject instead of silently dropping the filter.
         if (request.DefectIds is { Length: > 0 }) return null;
         return request with { Kind = kind, Format = format, SegmentIds = (request.SegmentIds ?? []).Distinct().Order().ToArray(), DefectIds = (request.DefectIds ?? []).Distinct().Order().ToArray(), From = request.From?.ToUniversalTime(), To = request.To?.ToUniversalTime() };
     }
     private async Task<ExportCaptureResult> CaptureAsync(Guid actor, UserRoleCode role, Guid project, CreateExportRequestDto request, Guid snapshotId, DateTimeOffset now, CancellationToken ct)
     {
+        if (request.RepairItemIds is { Length: > 0 } || request.RepairPackageIds is { Length: > 0 })
+            return await CaptureRepairAsync(actor, role, project, request, snapshotId, now, ct);
         ReportingCaptureDto? dossier = null; ExportLabelDto[]? labels = null; ExportFileDto[] files; ExportSectionDto[] sections; ExportSourceRevisionDto[] revisions; string[] definitions;
         if (request.Kind == "DOSSIER")
         {
@@ -127,11 +138,13 @@ public sealed class ExportService : IExportService
     }
     public async Task<ExportResult<ExportManifestV1Dto>> ManifestAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct)
     {
-        if (await AuthorizeAsync(actorId, projectId, ct) is null) return new("forbidden");
+        var role = await AuthorizeAsync(actorId, projectId, ct);
+        if (role is null) return new("forbidden");
         var data = await _repo.GetAsync(projectId, exportId, ct);
         if (data is null) return new("not_found");
         var payload = ExportSerialization.Read(data.Snapshot);
-        return await CanReadSnapshotSourcesAsync(actorId, projectId, payload, ct)
+        return await CanReadSnapshotSourcesAsync(actorId, projectId, payload, ct) &&
+            (payload.RepairDossier is null || await CanReadFilesAsync(actorId, role.Value, projectId, payload.Manifest, ct))
             ? new("success", payload.Manifest with { SnapshotHash = data.Snapshot.Hash }) : new("forbidden");
     }
     public async Task<ExportResult<ExportContentDto>> ContentAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct)
@@ -168,12 +181,23 @@ public sealed class ExportService : IExportService
                 caseFacts.Defects.Select(value => value.DefectId).ToArray()));
         return _repo.CanReadSnapshotSourcesAsync(actorId, projectId, query, ct);
     }
-    private Task<bool> CanReadFilesAsync(Guid actor, UserRoleCode role, Guid project, ExportManifestV1Dto manifest, CancellationToken ct)
+    private async Task<bool> CanReadFilesAsync(Guid actor, UserRoleCode role, Guid project, ExportManifestV1Dto manifest, CancellationToken ct)
     {
+        if (manifest.Kind == "DOSSIER" && manifest.DefinitionVersions.Contains("repair.dossier.v1"))
+        {
+            if (manifest.Files.Length == 0) return true;
+            if (_files is null) return false;
+            foreach (var file in manifest.Files)
+            {
+                var result = await _files.GetFileMetadataAsync(actor, role, file.FileId, cancellationToken: ct);
+                if (result.File is not { Status: "VERIFIED" } source || source.Version != file.FileVersion || source.ChecksumSha256 != file.Sha256) return false;
+            }
+            return true;
+        }
         var ids = manifest.Files.Where(f => f.Included).Select(f => f.FileId).ToArray();
-        if (ids.Length == 0) return Task.FromResult(true);
-        if (manifest.Kind == "DOSSIER") return _repo.CanReadSurveySourcesAsync(project, ids, ct);
-        return _sourceAccess?.CanReadAsync(actor, role, project, ids, ct) ?? Task.FromResult(false);
+        if (ids.Length == 0) return true;
+        if (manifest.Kind == "DOSSIER") return await _repo.CanReadSurveySourcesAsync(project, ids, ct);
+        return _sourceAccess is not null && await _sourceAccess.CanReadAsync(actor, role, project, ids, ct);
     }
     public async Task<bool> ProcessNextAsync(CancellationToken ct)
     {

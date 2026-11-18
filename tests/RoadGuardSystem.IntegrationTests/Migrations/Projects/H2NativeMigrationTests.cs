@@ -30,9 +30,9 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
 
         await migrator.MigrateAsync(GeometrySubmissionMigration);
         var project = Guid.NewGuid(); var actor = Guid.NewGuid(); var section = Guid.NewGuid(); var route = Guid.NewGuid(); var now = DateTimeOffset.UtcNow;
-        db.Projects.Add(Project.Create(project, project.ToString(), "legacy survivor", null, null, null, null, now));
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT Projects(Id,ProjectCode,Name,Status,CreatedAt) VALUES ({project},{project.ToString()},{"legacy survivor"},1,{DateTimeOffset.UtcNow})");
         await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS(SELECT 1 FROM Roles WHERE Code='SUPERVISOR') INSERT Roles(Code,Name,NormalizedName,IsActive) VALUES('SUPERVISOR','Supervisor','SUPERVISOR',1)");
-        db.Users.Add(new ApplicationUser { Id = actor, UserName = actor.ToString(), NormalizedUserName = actor.ToString().ToUpperInvariant(), DisplayName = "fixture", RoleCode = UserRoleCode.Supervisor, Status = UserStatus.Active, CreatedAt = now, PasswordHash = "not-a-login" });
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT Users(Id,UserName,NormalizedUserName,DisplayName,RoleCode,Status,CreatedAt,PasswordHash,MustChangePassword,EmailConfirmed,PhoneNumberConfirmed,TwoFactorEnabled,LockoutEnabled,AccessFailedCount) VALUES ({actor},{actor.ToString()},{actor.ToString().ToUpperInvariant()},{"migration fixture"},'SUPERVISOR',1,{now},{"fixture-no-login"},0,0,0,0,0,0)");
         db.RoadSections.Add(RoadSection.Create(section, project, "legacy"));
         var receipt = IdempotencyRecord.Create(actor, project, "H2.fixture", "preserved", new string('a', 64), route, "{}", now); db.Add(receipt);
         await db.SaveChangesAsync();
@@ -46,7 +46,7 @@ public sealed class H2NativeMigrationTests : IAsyncLifetime
                   ({confirmedId},{project},{section},'legacy','CONFIRMED',{emptyObject},'[]',{actor},{actor},{now},{now})
             """);
         var submittedProject = Guid.NewGuid();
-        db.Projects.Add(Project.Create(submittedProject, submittedProject.ToString(), "legacy pending", null, null, null, null, now));
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT Projects(Id,ProjectCode,Name,Status,CreatedAt) VALUES ({submittedProject},{submittedProject.ToString()},{"legacy pending"},1,{now})");
         await db.SaveChangesAsync();
         var submittedId = Guid.NewGuid();
         var reviewedId = Guid.NewGuid();

@@ -227,7 +227,7 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
             foreach (var forbidden in new[] { "storageUri", "storageKey", "objectKey", "password", "accessToken", "email", "phoneNumber", "fixture://", "https://storage.test" }) value.GetRawText().Should().NotContain(forbidden);
             return value;
         }
-        var runFields = new[] { "id", "projectId", "stage", "mode", "status", "processingJobId", "attemptId", "manifestHash", "resultId", "fixtureVersion", "errorCode", "version" };
+        var runFields = new[] { "id", "projectId", "stage", "mode", "status", "processingJobId", "attemptId", "manifestHash", "resultId", "fixtureVersion", "errorCode", "version", "datasetId", "datasetVersionNo", "datasetVersion", "surveyTaskId", "createdAt" };
         var resultFields = new[] { "schemaVersion", "runId", "stage", "mode", "jobId", "attemptId", "manifestHash", "modelVersionId", "fixtureVersion", "resultHash", "completedAt", "detections", "matches" };
         var view = await Read(detailPath, runFields); var result = await Read(resultPath, resultFields);
         using var web = await WebCookieTestClient.Login(factory, manager.Email!);
@@ -235,6 +235,16 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
         using var webRun = await web.GetAsync(detailPath);
         webRun.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(webRun)).GetProperty("id").GetGuid().Should().Be(run);
+        var sourceRead = await Body(webRun);
+        Assert.Equal(dataset, sourceRead.GetProperty("datasetId").GetGuid());
+        Assert.Equal(task, sourceRead.GetProperty("surveyTaskId").GetGuid());
+        Assert.True(sourceRead.GetProperty("datasetVersionNo").GetInt32() > 0);
+        Assert.NotNull(sourceRead.GetProperty("datasetVersion").GetString());
+        Assert.NotEqual(default, sourceRead.GetProperty("createdAt").GetDateTimeOffset());
+        using var sourceList = await web.GetAsync(path + $"?datasetId={dataset}&surveyTaskId={task}&limit=1");
+        Assert.Equal(run, Assert.Single((await Body(sourceList)).GetProperty("items").EnumerateArray()).GetProperty("id").GetGuid());
+        using var otherSource = await web.GetAsync(path + $"?surveyTaskId={Guid.NewGuid()}");
+        Assert.Empty((await Body(otherSource)).GetProperty("items").EnumerateArray());
         using var webResult = await web.GetAsync(resultPath);
         webResult.StatusCode.Should().Be(HttpStatusCode.OK);
         var firstFrame = (await Body(webResult)).GetProperty("detections")[0].GetProperty("frameFileId").GetGuid();
@@ -244,7 +254,8 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
         frame.StatusCode.Should().Be(HttpStatusCode.OK);
         (await frame.Content.ReadAsByteArrayAsync()).Should().NotBeEmpty();
         using var surveyVideo = await web.GetAsync($"/api/v1/files/{video}");
-        surveyVideo.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        surveyVideo.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(surveyVideo)).GetProperty("id").GetGuid().Should().Be(video);
         view.GetProperty("id").GetGuid().Should().Be(run); view.GetProperty("projectId").GetGuid().Should().Be(project); view.GetProperty("status").GetString().Should().Be("SUCCEEDED");
         result.GetProperty("runId").GetGuid().Should().Be(run); result.GetProperty("mode").GetString().Should().Be("MOCK"); result.GetProperty("modelVersionId").GetGuid().Should().Be(model);
         result.GetProperty("jobId").GetGuid().Should().Be(view.GetProperty("processingJobId").GetGuid()); result.GetProperty("attemptId").GetGuid().Should().Be(view.GetProperty("attemptId").GetGuid());

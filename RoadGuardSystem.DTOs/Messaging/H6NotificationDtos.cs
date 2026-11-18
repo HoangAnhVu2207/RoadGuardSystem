@@ -4,6 +4,9 @@ using RoadGuardSystem.aBusinessObjects.Commons;
 
 namespace RoadGuardSystem.DTOs.Messaging;
 
+public sealed record MarkNotificationsReadRequest(DateTimeOffset Through, int Limit = 100, string? SnapshotVersion = null);
+public sealed record MarkNotificationsReadResponse(int Updated, bool HasMore, DateTimeOffset Through, string SnapshotVersion);
+
 public sealed record WeeklyDigestDutyView(Guid ClockId, Guid TargetId, string Kind, Guid OriginEventId,
     DateTimeOffset OriginAtUtc, DateTimeOffset DueAtRecoveryUtc);
 public sealed record WeeklyDigestView(Guid Id, Guid ProjectId, Guid? RecipientId, DateTimeOffset ScheduledAtUtc,
@@ -16,7 +19,13 @@ public sealed record H6NotificationEventDto(int SchemaVersion, Guid EventId, str
     FastTrackReviewSnapshot? FastTrackReview = null,
     NotificationAssignmentSnapshot? NotificationAssignmentSnapshot = null, FastTrackFinalSource? FastTrackFinal = null);
 public sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId, Guid? OccurrenceId,
-    string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion);
+    string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion,
+    string? Title = null, string PriorityPolicy = "NOT_CONFIGURED", string SenderKind = "UNKNOWN",
+    NotificationDeadlineReference[]? Deadlines = null)
+{
+    public string Priority => PriorityPolicy;
+}
+public sealed record NotificationDeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);
 public sealed record H6DispatchResult(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,
     int Delivered = 0, int Unresolved = 0, string? ReasonCode = null);
 public sealed record H6NotificationPlan(H6NotificationEventDto Source, NotificationEventEnvelope? Envelope,

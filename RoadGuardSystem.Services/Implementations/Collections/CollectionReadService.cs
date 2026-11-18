@@ -57,10 +57,13 @@ public sealed class CollectionReadService(ICollectionReadRepository repository, 
         while (visible.Count <= limit)
         {
             var ids = await repository.CandidatesAsync(resource, actor, project, parent, mode, scanned, 100, ct);
+            var batch = role is UserRoleCode.ProjectManager or UserRoleCode.Supervisor &&
+                resource is CollectionResource.SurveyPlans or CollectionResource.SurveyTasks
+                ? (await repository.SurveySummariesAsync(resource, project, ids, ct)).ToDictionary(row => row.Id) : null;
             foreach (var id in ids)
             {
                 ct.ThrowIfCancellationRequested();
-                var value = await ReadOneAsync(actor, role, project, resource, parent, id, ct);
+                var value = batch is not null ? batch.GetValueOrDefault(id) : await ReadOneAsync(actor, role, project, resource, parent, id, ct);
                 scanned = id;
                 if (value is not null)
                 {

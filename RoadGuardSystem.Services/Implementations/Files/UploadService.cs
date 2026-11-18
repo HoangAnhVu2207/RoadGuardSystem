@@ -285,6 +285,8 @@ public sealed class UploadService : IUploadService
     private async Task<bool> CanReadWebFileAsync(UserRoleCode role, FileMetadataPersistenceView file, CancellationToken token)
         => role is UserRoleCode.ProjectManager or UserRoleCode.Supervisor &&
             (file.Purpose == "AI_FRAME" ||
+             (file.Purpose == "SURVEY_VIDEO" && file.Status == "VERIFIED" && file.ProjectId is Guid videoProject &&
+              file.TargetId is Guid task && await _repository.IsSubmittedSurveyVideoAsync(videoProject, task, file.Id, token)) ||
              (file.Purpose == "DOCUMENT" && file.Status == "VERIFIED" && file.ProjectId is Guid project &&
               file.TargetId == project && await _repository.IsHandoverDocumentFileAsync(project, file.Id, token)));
 
@@ -302,6 +304,30 @@ public sealed class UploadService : IUploadService
         }
         return await _repository.IsCurrentOfflineFileActorAsync(actor, role, file.Id, token) || await CanAccessAssetAsync(actor, role, file.ProjectId, file.Purpose, file.TargetId, false, token) ||
             (file.ProjectId is Guid project && IsFieldPurpose(file.Purpose) && await _repository.IsCurrentLegacyFieldFileReaderAsync(actor, role, project, file.Id, file.Purpose!, token));
+    }
+
+    public async Task<UploadServiceResult> DownloadRangeAsync(Guid actor, UserRoleCode role, Guid fileId, long first, long last,
+        string expectedVersion, bool webSession, CancellationToken token = default)
+    {
+        var file = await _repository.GetFileMetadataAsync(fileId, token);
+        if (file is null || file.Status != "VERIFIED" || file.Purpose != "SURVEY_VIDEO" || file.Version != expectedVersion ||
+            first < 0 || last < first || last >= file.SizeBytes) return new(UploadServiceStatus.NotFound);
+        if ((webSession && !await CanReadWebFileAsync(role, file, token)) || !await CanReadFileAsync(actor, role, file, token))
+            return new(UploadServiceStatus.Forbidden);
+        try
+        {
+            var stream = await _repository.OpenFileRangeAsync(file.ObjectKey, first, last, token);
+            try
+            {
+                var fresh = await _repository.GetFileMetadataAsync(fileId, token);
+                if (fresh is null || fresh.Status != "VERIFIED" || fresh.Version != file.Version ||
+                    (webSession && !await CanReadWebFileAsync(role, fresh, token)) || !await CanReadFileAsync(actor, role, fresh, token))
+                { await stream.DisposeAsync(); return new(UploadServiceStatus.Forbidden); }
+                return new(UploadServiceStatus.Success, File: ToDto(fresh), Content: stream);
+            }
+            catch { await stream.DisposeAsync(); throw; }
+        }
+        catch (FileStorageException) { return new(UploadServiceStatus.StorageUnavailable); }
     }
 
     private async Task<bool> CanAccessAssetAsync(Guid actorUserId, UserRoleCode role, Guid? projectId, string? purpose, Guid? targetId, bool mutation, CancellationToken cancellationToken, bool requireActiveTask = true)

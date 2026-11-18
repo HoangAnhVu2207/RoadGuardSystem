@@ -174,13 +174,49 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             Assert.NotNull((await persisted.Set<DeadlineClock>().SingleAsync(x => x.TargetId == item && x.Kind == DeadlineClockKind.SupervisorFinalConfirmation)).CompletedAt);
         }
         Assert.Equal(HttpStatusCode.Forbidden, (await crew.GetAsync(root)).StatusCode);
+        var exports = $"/api/v1/projects/{source.Project}/exports";
+        var archived = await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { item } });
+        var originalManifest = await ReadManifest(archived);
+        Assert.Equal("AVAILABLE", Acceptance(originalManifest));
+        var finalDecision = (await (await pm.GetAsync(itemPath)).Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("effectiveDecisionId").GetGuid();
+        var correction = await Send(supervisor, itemPath + "/corrections", new
+        {
+            supersedesDecisionId = finalDecision,
+            result = "UNREPAIRED",
+            reason = "Reopen after site review",
+            basis = new { text = "Physical finish no longer meets acceptance criteria", evidenceReferenceIds = Array.Empty<Guid>() }
+        }, Guid.NewGuid().ToString(), await Version(supervisor, itemPath));
+        Assert.True(correction.StatusCode == HttpStatusCode.Created, await correction.Content.ReadAsStringAsync());
+        Assert.Equal(originalManifest.GetRawText(), (await ReadManifest(archived)).GetRawText());
+        var refreshed = await ReadManifest(await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } }));
+        Assert.Equal("UNAVAILABLE", Acceptance(refreshed));
+        Assert.Equal(2, refreshed.GetProperty("sourceRevisions").EnumerateArray().Count(row => row.GetProperty("kind").GetString() == "RepairDecision"));
         // Current project admission denies unknown/unauthorized projects before resource lookup.
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(itemPath.Replace(source.Project.ToString(), Guid.NewGuid().ToString()))).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await pm.GetAsync(itemPath.Replace(package.ToString(), Guid.NewGuid().ToString()))).StatusCode);
         await db.ProjectMembers.Where(x => x.ProjectId == source.Project && x.UserId == source.Pm)
             .ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(root)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync($"{exports}/{archived}/manifest")).StatusCode);
         Assert.Single(await db.Set<RepairFieldTaskBinding>().Where(x => x.ItemId == item).ToArrayAsync());
+
+        async Task<Guid> CaptureDossier(object filters)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, exports) { Content = JsonContent.Create(filters) };
+            request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+            using var response = await pm.SendAsync(request);
+            Assert.True(response.StatusCode == HttpStatusCode.Accepted, await response.Content.ReadAsStringAsync());
+            return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        }
+        async Task<JsonElement> ReadManifest(Guid exportId)
+        {
+            using var response = await pm.GetAsync($"{exports}/{exportId}/manifest");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return await response.Content.ReadFromJsonAsync<JsonElement>();
+        }
+        string? Acceptance(JsonElement manifest) => manifest.GetProperty("sections").EnumerateArray()
+            .Single(row => row.GetProperty("name").GetString() == $"item/{item}/currentAcceptance").GetProperty("availability").GetString();
 
         async Task<HttpClient> Client(Guid actor)
         {

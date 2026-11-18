@@ -115,12 +115,28 @@ public sealed class DiscoveryCollectionsController(CollectionReadService service
         {
             // Admission precedes query/token validation to avoid revealing non-visible parents.
             await service.AuthorizeAsync(actor, role, project, resource, parent, ct);
-            var allowed = resource == CollectionResource.RepairItems ? new[] { "limit", "cursor", "mode" } : new[] { "limit", "cursor" };
+            var allowed = resource == CollectionResource.RepairItems ? new[] { "limit", "cursor", "mode" } :
+                resource == CollectionResource.MockRuns ? new[] { "limit", "cursor", "datasetId", "surveyTaskId" } : new[] { "limit", "cursor" };
             if (Request.Query.Any(x => !allowed.Contains(x.Key, StringComparer.Ordinal) || x.Value.Count != 1)) return Error(400, "validation_error");
             var limit = 25;
             if (Request.Query.TryGetValue("limit", out var size) && (!int.TryParse(size.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out limit) || limit is < 1 or > 100)) return Error(400, "validation_error");
             string? mode = Request.Query.TryGetValue("mode", out var filter) ? filter.ToString() : null;
             if (mode is not (null or "NORMAL" or "FAST_TRACK")) return Error(400, "validation_error");
+            if (resource == CollectionResource.MockRuns)
+            {
+                Guid? dataset = null, task = null;
+                if (Request.Query.TryGetValue("datasetId", out var datasetQuery))
+                {
+                    if (!Guid.TryParse(datasetQuery, out var id) || id == Guid.Empty) return Error(400, "validation_error");
+                    dataset = id;
+                }
+                if (Request.Query.TryGetValue("surveyTaskId", out var taskQuery))
+                {
+                    if (!Guid.TryParse(taskQuery, out var id) || id == Guid.Empty) return Error(400, "validation_error");
+                    task = id;
+                }
+                mode = $"{dataset:D}|{task:D}";
+            }
             var cursor = protection.CreateProtector("RoadGuard.Collection.v1", actor.ToString("D"), project.ToString("D"), resource.ToString(), parent?.ToString("D") ?? "", mode ?? "");
             Guid? after = null;
             if (Request.Query.TryGetValue("cursor", out var token))

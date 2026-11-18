@@ -12,6 +12,7 @@ namespace RoadGuardSystem.BusinessObjects.Identity;
 public class ApplicationUser : IdentityUser<Guid>
 {
     public string DisplayName { get; set; } = string.Empty;
+    public string? Organization { get; set; }
 
     public UserRoleCode RoleCode { get; set; } = UserRoleCode.Unknown;
 

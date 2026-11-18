@@ -9,7 +9,7 @@ using RoadGuardSystem.Repositories.Collections;
 using RoadGuardSystem.Repositories.Repairs;
 namespace RoadGuardSystem.Repositories.Implementations.Collections;
 
-public sealed class CollectionReadRepository(RoadGuardDbContext db) : ICollectionReadRepository
+public sealed partial class CollectionReadRepository(RoadGuardDbContext db) : ICollectionReadRepository
 {
     public Task<bool> ProjectExistsAsync(Guid project, CancellationToken ct) => db.Projects.AsNoTracking().AnyAsync(x => x.Id == project, ct);
     public async Task<Guid[]> CandidatesAsync(CollectionResource resource, Guid actor, Guid project, Guid? parent, string? mode, Guid? after, int take, CancellationToken ct)
@@ -29,6 +29,22 @@ public sealed class CollectionReadRepository(RoadGuardDbContext db) : ICollectio
             CollectionResource.RetentionEvaluations => db.Set<RetentionEvaluation>().AsNoTracking().Where(x => x.ProjectId == project).Select(x => x.Id),
             _ => throw new ArgumentOutOfRangeException(nameof(resource))
         };
+        if (resource == CollectionResource.MockRuns && mode is not null)
+        {
+            var filters = mode.Split('|');
+            Guid? datasetId = Guid.TryParse(filters[0], out var dataset) ? dataset : null;
+            Guid? taskId = filters.Length == 2 && Guid.TryParse(filters[1], out var task) ? task : null;
+            if (datasetId.HasValue || taskId.HasValue)
+                ids = from run in db.Set<AiMockRun>().AsNoTracking()
+                      join job in db.ProcessingJobs.AsNoTracking() on run.ProcessingJobId equals job.Id
+                      join block in db.ProcessingBlocks.AsNoTracking() on job.ProcessingBlockId equals block.Id
+                      join data in db.SurveyDataVersions.AsNoTracking() on block.SurveyDataVersionId equals data.Id
+                      join survey in db.Surveys.AsNoTracking() on data.SurveyId equals survey.Id
+                      where run.ProjectId == project && job.ProjectId == project && survey.ProjectId == project &&
+                          run.DatasetVersionId == data.Id && (!datasetId.HasValue || data.Id == datasetId) &&
+                          (!taskId.HasValue || survey.SurveyRequestId == taskId)
+                      select run.Id;
+        }
         // Guid.CompareTo is translated by EF SQL Server; both ordering and boundary use uniqueidentifier ordering.
         if (after.HasValue) ids = ids.Where(x => x.CompareTo(after.Value) > 0);
         return await ids.OrderBy(x => x).Take(take).ToArrayAsync(ct);

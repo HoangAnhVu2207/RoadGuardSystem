@@ -5,6 +5,7 @@ using Amazon.S3.Model;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.Repositories.Options;
+using RoadGuardSystem.Repositories;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.IO.Compression;
@@ -13,6 +14,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NetTopologySuite.Geometries;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.ApiTests.Infrastructure;
@@ -337,10 +339,18 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         using var pm = await WebCookieTestClient.Login(factory, seed.Pm.Email!);
         var path = $"/api/v1/projects/overviews?ids={seed.Project.Id}";
         var metric = (await Body(await pm.GetAsync(path)))[0].GetProperty("openDefects");
+        Assert.Equal(2, metric.GetProperty("value").GetInt64());
+        Assert.Equal("AVAILABLE", metric.GetProperty("availability").GetString());
+        Assert.Equal("defect.open.v2", metric.GetProperty("definitionVersion").GetString());
+        Assert.Equal(0, metric.GetProperty("unknownCount").GetInt64());
+        var unknownId = rows.Single(row => row.Status == DefectStatus.Open).Id;
+        await db.Defects.Where(row => row.Id == unknownId).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, DefectStatus.Unknown));
+        metric = (await Body(await pm.GetAsync(path)))[0].GetProperty("openDefects");
         Assert.Equal(JsonValueKind.Null, metric.GetProperty("value").ValueKind);
         Assert.Equal(1, metric.GetProperty("unknownCount").GetInt64());
         Assert.Equal("INCOMPLETE", metric.GetProperty("availability").GetString());
         Assert.Equal("LEGACY_DEFECT_STATUS_UNCLASSIFIED", Assert.Single(metric.GetProperty("reasonCodes").EnumerateArray()).GetString());
+        await db.Defects.Where(row => row.Id == unknownId).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, DefectStatus.Open));
         // Projection fixture updates persisted status; lifecycle command authority remains in its own tests.
         var legacy = rows.Single(row => row.Status == DefectStatus.Resolved).Id;
         await db.Defects.Where(row => row.Id == legacy).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, DefectStatus.Open));
@@ -351,6 +361,17 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         var closed = rows.Single(row => row.Status == DefectStatus.Closed).Id;
         await db.Defects.Where(row => row.Id == closed).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, DefectStatus.Open));
         Assert.Equal(4, (await Body(await pm.GetAsync(path)))[0].GetProperty("openDefects").GetProperty("value").GetInt64());
+        await using var missingSource = new AuthenticationWebApplicationFactory(sql.ConnectionString,
+            configureTestServices: services =>
+            {
+                services.RemoveAll<DbContextOptions<RoadGuardDbContext>>();
+                services.AddDbContext<RoadGuardDbContext>(options => options.UseSqlServer(sql.ConnectionString, config => config.UseNetTopologySuite()).AddInterceptors(new MissingMetricSource()));
+            });
+        using var missingPm = await WebCookieTestClient.Login(missingSource, seed.Pm.Email!);
+        metric = (await Body(await missingPm.GetAsync(path)))[0].GetProperty("openDefects");
+        Assert.Equal(JsonValueKind.Null, metric.GetProperty("value").ValueKind);
+        Assert.Equal("INCOMPLETE", metric.GetProperty("availability").GetString());
+        Assert.Equal("DEFECT_SOURCE_UNAVAILABLE", Assert.Single(metric.GetProperty("reasonCodes").EnumerateArray()).GetString());
     }
 
     [Fact]
@@ -379,14 +400,18 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         }
     }
 
-    [MinioSmokeFact]
+    [Fact]
     public async Task ScopedRepairExportPersistsOnlySelectedItemAndRendersPdfAndZipToRealStorage()
     {
+        await using var minio = await OwnedWebMinio.StartAsync();
         var seed = await Seed();
         using var exportLogs = new InMemoryLogProvider();
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, allowExternalStorage: true, loggerProvider: exportLogs,
-            configureTestServices: services => services.PostConfigure<ExportOptions>(options =>
-                options.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? throw new InvalidOperationException("A licensed Unicode font is required.")));
+            configureTestServices: services =>
+            {
+                minio.Configure(services);
+                services.PostConfigure<ExportOptions>(options => options.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? throw new InvalidOperationException("A licensed Unicode font is required."));
+            });
         // Persist a real verified source object, an immutable attempt and a different item.
         // This is a SQL history fixture, not a claim that the Crew command workflow was executed here.
         var now = DateTimeOffset.UtcNow;
@@ -430,6 +455,7 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         var storage = factory.Services.GetRequiredService<IOptions<MinioStorageOptions>>().Value;
         using var s3 = new AmazonS3Client(storage.AccessKey, storage.SecretKey,
             new AmazonS3Config { ServiceURL = storage.Endpoint, ForcePathStyle = true, AuthenticationRegion = "us-east-1" });
+        await s3.PutBucketAsync(new PutBucketRequest { BucketName = storage.BucketName });
         await s3.PutObjectAsync(new PutObjectRequest
         {
             BucketName = storage.BucketName,
@@ -497,10 +523,32 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         var packageExport = await Body(await pm.SendAsync(packageRequest), HttpStatusCode.Accepted);
         var packageManifest = await Body(await pm.GetAsync(root + $"/{packageExport.GetProperty("id").GetGuid()}/manifest"));
         Assert.Equal(2, packageManifest.GetProperty("sourceRevisions").EnumerateArray().Count(row => row.GetProperty("kind").GetString() == "RepairItem"));
+        var packageId = packageExport.GetProperty("id").GetGuid();
+        for (var retry = 0; retry < 10; retry++)
+        {
+            using var scope = factory.Services.CreateScope(); await scope.ServiceProvider.GetRequiredService<IExportService>().ProcessNextAsync(default);
+            var state = (await Body(await pm.GetAsync(root + $"/{packageId}"))).GetProperty("status").GetString();
+            Assert.NotEqual("FAILED", state); if (state == "SUCCEEDED") break;
+            await Task.Delay(100);
+        }
+        Assert.Equal("SUCCEEDED", (await Body(await pm.GetAsync(root + $"/{packageId}"))).GetProperty("status").GetString());
         await using (var revoked = sql.CreateDbContext())
             await revoked.ProjectMembers.Where(row => row.ProjectId == seed.Project.Id && row.UserId == seed.Pm.Id)
                 .ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(root + $"/{lastExportId}/content")).StatusCode);
         await s3.DeleteObjectAsync(storage.BucketName, objectKey);
     }
+    private sealed class MissingMetricSource : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader>> ReaderExecutingAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("[Defects]", StringComparison.Ordinal) && command.CommandText.Contains("GROUP BY", StringComparison.Ordinal))
+                command.CommandText = "SELECT * FROM dbo.DeliberatelyMissingMetricSource";
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
 }

@@ -1,4 +1,6 @@
 using System.Net;
+using System.Diagnostics;
+using Xunit.Abstractions;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -20,11 +22,12 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Files;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql)
+public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql, ITestOutputHelper output)
 {
-    [MinioSmokeFact]
+    [Fact]
     public async Task RealMinioRangesPreserveBytesAndCurrentWebAndOperatorAuthority()
     {
+        await using var minio = await OwnedWebMinio.StartAsync();
         var stamp = Guid.NewGuid().ToString("N"); var now = DateTimeOffset.UtcNow;
         var sup = await sql.CreateUserAsync("range-sup-" + stamp, "Current1!", UserRoleCode.Supervisor);
         var pm = await sql.CreateUserAsync("range-pm-" + stamp, "Current1!", UserRoleCode.ProjectManager);
@@ -43,12 +46,24 @@ public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql)
         var file = StoredFile.Create(id, key, "video.mp4", "video/mp4", bytes.Length, hash, op.Id, now, null);
         var upload = UploadSession.Create(Guid.NewGuid(), id, op.Id, key, "SURVEY_VIDEO", "video/mp4", bytes.Length, hash, 8388608, now.AddHours(1));
         upload.StartUploading("fixture", now);
-        var manifest = JsonSerializer.Serialize(new[] { new { fileId = id, purpose = "SURVEY_VIDEO" } });
+        const long largeSize = 256L * 1024 * 1024;
+        var largeId = Guid.NewGuid(); var largeKey = $"uploads/{largeId:N}";
+        var localLargeFile = Path.Combine(Path.GetTempPath(), $"rg-video-{largeId:N}.mp4");
+        await using (var sparse = new FileStream(localLargeFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
+            sparse.SetLength(largeSize);
+        string largeHash;
+        await using (var hashStream = File.OpenRead(localLargeFile))
+            largeHash = Convert.ToHexString(await SHA256.HashDataAsync(hashStream)).ToLowerInvariant();
+        var largeFile = StoredFile.Create(largeId, largeKey, "range-byte-fixture.mp4", "video/mp4", largeSize, largeHash, op.Id, now, null);
+        var largeUpload = UploadSession.Create(Guid.NewGuid(), largeId, op.Id, largeKey, "SURVEY_VIDEO", "video/mp4", largeSize, largeHash, 8388608, now.AddHours(1));
+        largeUpload.StartUploading("fixture", now);
+        var manifest = JsonSerializer.Serialize(new[] { new { fileId = id, purpose = "SURVEY_VIDEO" }, new { fileId = largeId, purpose = "SURVEY_VIDEO" } });
         var data = SurveyDataVersion.Create(Guid.NewGuid(), survey.Id, 1, SurveyDataVersionStatus.ServerConfirmed,
             SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend, manifest);
         await using (var db = sql.CreateDbContext())
         {
-            db.AddRange(project, road, route, task, assignment, survey, data, file, upload,
+            db.AddRange(project, road, route, task, assignment, survey, data, file, upload, largeFile, largeUpload,
+                FileScope.Create(Guid.NewGuid(), largeId, project.Id, task.Id, op.Id, "SURVEY_VIDEO", now),
                 FileScope.Create(Guid.NewGuid(), id, project.Id, task.Id, op.Id, "SURVEY_VIDEO", now),
                 ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project.Id, pm.Id, DateOnly.FromDateTime(now.UtcDateTime)),
                 new ProjectMember
@@ -61,11 +76,14 @@ public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql)
                     Status = ProjectMemberStatus.Active
                 });
             await db.SaveChangesAsync(); upload.StartVerification(Convert.ToBase64String(upload.RowVersion), now); await db.SaveChangesAsync(); upload.MarkVerified(); await db.SaveChangesAsync();
+            largeUpload.StartVerification(Convert.ToBase64String(largeUpload.RowVersion), now);
+            await db.SaveChangesAsync(); largeUpload.MarkVerified(); await db.SaveChangesAsync();
         }
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, allowExternalStorage: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, allowExternalStorage: true, configureTestServices: minio.Configure);
         var options = factory.Services.GetRequiredService<IOptions<MinioStorageOptions>>().Value;
         using var s3 = new AmazonS3Client(options.AccessKey, options.SecretKey, new AmazonS3Config
         { ServiceURL = options.Endpoint, ForcePathStyle = true, AuthenticationRegion = "us-east-1" });
+        await s3.PutBucketAsync(new PutBucketRequest { BucketName = options.BucketName });
         await s3.PutObjectAsync(new PutObjectRequest
         {
             BucketName = options.BucketName,
@@ -75,6 +93,13 @@ public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql)
         });
         try
         {
+            await s3.PutObjectAsync(new PutObjectRequest
+            {
+                BucketName = options.BucketName,
+                Key = largeKey,
+                FilePath = localLargeFile,
+                ContentType = "video/mp4"
+            });
             using (var storageScope = factory.Services.CreateScope())
             {
                 var storage = Assert.IsAssignableFrom<IRangedUploadObjectStorage>(storageScope.ServiceProvider.GetRequiredService<IUploadObjectStorage>());
@@ -99,6 +124,26 @@ public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql)
             Assert.Equal(bytes, await full.Content.ReadAsByteArrayAsync()); Assert.Equal(bytes.Length, full.Content.Headers.ContentLength);
             Assert.Equal("video/mp4", full.Content.Headers.ContentType!.MediaType); Assert.Contains("bytes", full.Headers.AcceptRanges);
             var etag = full.Headers.ETag!.ToString();
+            using var process = Process.GetCurrentProcess();
+            process.Refresh(); var beforeWorkingSet = process.WorkingSet64;
+            var allocatedBefore = GC.GetTotalAllocatedBytes(true);
+            for (var sample = 0; sample < 5; sample++)
+            {
+                using var smallRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/files/{largeId}/content");
+                smallRequest.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(largeSize - 65536, largeSize - 1);
+                using var ranged = await pmWeb.SendAsync(smallRequest);
+                Assert.Equal(HttpStatusCode.PartialContent, ranged.StatusCode);
+                Assert.Equal(65536, ranged.Content.Headers.ContentLength);
+                Assert.Equal($"bytes {largeSize - 65536}-{largeSize - 1}/{largeSize}", ranged.Content.Headers.ContentRange!.ToString());
+                var slice = await ranged.Content.ReadAsByteArrayAsync();
+                Assert.Equal(65536, slice.Length);
+                Assert.True(slice.All(value => value == 0));
+            }
+            var allocated = GC.GetTotalAllocatedBytes(true) - allocatedBefore;
+            process.Refresh(); var workingSetDelta = process.WorkingSet64 - beforeWorkingSet;
+            output.WriteLine($"Range fixture {largeSize} bytes; 5 x 65536-byte HTTP ranges. Managed allocated delta={allocated}; working set delta={workingSetDelta}. TestServer client and BE share this process.");
+            Assert.True(allocated < largeSize / 2, $"Range reads allocated {allocated} bytes for a {largeSize}-byte object.");
+
             foreach (var client in new[] { pmWeb, supWeb, operatorBearer })
                 foreach (var range in new[] { ("bytes=0-7", 0, 7), ("bytes=1048576-", 1048576, bytes.Length - 1), ("bytes=-17", bytes.Length - 17, bytes.Length - 1), ("bytes=9-99999999", 9, bytes.Length - 1) })
                 {
@@ -121,6 +166,46 @@ public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql)
                 request.Headers.TryAddWithoutValidation("If-Range", validator);
                 using var response = await pmWeb.SendAsync(request); Assert.Equal(HttpStatusCode.OK, response.StatusCode); Assert.Equal(bytes.Length, response.Content.Headers.ContentLength);
             }
+            var browserVideo = Environment.GetEnvironmentVariable("RG_BROWSER_VIDEO");
+            if (browserVideo is not null)
+            {
+                var browserId = Guid.NewGuid(); var browserKey = $"uploads/{browserId:N}";
+                var info = new FileInfo(browserVideo);
+                string browserHash;
+                await using (var input = File.OpenRead(browserVideo))
+                    browserHash = Convert.ToHexString(await SHA256.HashDataAsync(input)).ToLowerInvariant();
+                var browserFile = StoredFile.Create(browserId, browserKey, "browser-test.mp4", "video/mp4", info.Length, browserHash, op.Id, now, null);
+                var browserUpload = UploadSession.Create(Guid.NewGuid(), browserId, op.Id, browserKey, "SURVEY_VIDEO", "video/mp4", info.Length, browserHash, 8388608, now.AddHours(1));
+                browserUpload.StartUploading("fixture", now);
+                await using (var browserDb = sql.CreateDbContext())
+                {
+                    browserDb.AddRange(browserFile, browserUpload,
+                        FileScope.Create(Guid.NewGuid(), browserId, project.Id, task.Id, op.Id, "SURVEY_VIDEO", now),
+                        SurveyDataVersion.Create(Guid.NewGuid(), survey.Id, 2, SurveyDataVersionStatus.ServerConfirmed,
+                            SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend,
+                            JsonSerializer.Serialize(new[] { new { fileId = browserId, purpose = "SURVEY_VIDEO" } })));
+                    await browserDb.SaveChangesAsync();
+                    browserUpload.StartVerification(Convert.ToBase64String(browserUpload.RowVersion), now);
+                    await browserDb.SaveChangesAsync(); browserUpload.MarkVerified(); await browserDb.SaveChangesAsync();
+                }
+                await s3.PutObjectAsync(new PutObjectRequest { BucketName = options.BucketName, Key = browserKey, FilePath = browserVideo, ContentType = "video/mp4" });
+                try
+                {
+                    using var proofRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/files/{browserId}/content");
+                    proofRequest.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(info.Length - 65536, info.Length - 1);
+                    using var proof = await pmWeb.SendAsync(proofRequest);
+                    Assert.Equal(HttpStatusCode.PartialContent, proof.StatusCode);
+                    Assert.Equal($"bytes {info.Length - 65536}-{info.Length - 1}/{info.Length}", proof.Content.Headers.ContentRange!.ToString());
+                    Assert.Equal(65536, proof.Content.Headers.ContentLength);
+                    await using var expectedFile = File.OpenRead(browserVideo); expectedFile.Position = info.Length - 65536;
+                    var expectedTail = new byte[65536]; await expectedFile.ReadExactlyAsync(expectedTail);
+                    Assert.Equal(expectedTail, await proof.Content.ReadAsByteArrayAsync());
+                    output.WriteLine($"MP4 {info.Length} bytes: authenticated tail Range 206 matches local source bytes.");
+                    if (Environment.GetEnvironmentVariable("RG_BROWSER_READY") is not null)
+                        await BrowserVideoProbe.RunAsync(factory, pm.Email!, sup.Email!, browserId, output);
+                }
+                finally { await s3.DeleteObjectAsync(options.BucketName, browserKey); }
+            }
             using var otherBearer = factory.CreateClient(new() { HandleCookies = false });
             using var otherLogin = await otherBearer.PostAsJsonAsync("/api/v1/auth/login", new { email = other.Email, password = "Current1!" });
             otherBearer.DefaultRequestHeaders.Authorization = new("Bearer", (await otherLogin.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
@@ -131,6 +216,11 @@ public sealed class WebPmVideoRangeHttpTests(AuthenticationSqlServerFixture sql)
             await changed.ProjectMembers.Where(row => row.ProjectId == project.Id && row.UserId == pm.Id).ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
             Assert.Equal(HttpStatusCode.Forbidden, (await pmWeb.GetAsync(path)).StatusCode);
         }
-        finally { await s3.DeleteObjectAsync(options.BucketName, key); }
+        finally
+        {
+            await s3.DeleteObjectAsync(options.BucketName, key);
+            await s3.DeleteObjectAsync(options.BucketName, largeKey);
+            File.Delete(localLargeFile);
+        }
     }
 }

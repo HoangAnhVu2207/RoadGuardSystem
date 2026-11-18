@@ -1,6 +1,6 @@
 # Web PM/Supervisor — bộ contract bổ sung
 
-Bản local trên base `de4e97bb46f45bb41ad6de8a66f61035ca1db04d`, nhánh `codex/web-pm-api-completion`. Chưa commit/push/deploy. Các ID, version trong ví dụ là ký hiệu để thay bằng dữ liệu API thật, không phải dữ liệu môi trường FE.
+Bản follow-up trên base `947166e395e93c707def4db01f2770bb3d20f980`, nhánh làm việc `codex/web-pm-api-completion`. Trạng thái push/CI xem commit và bàn giao của bản này; không đồng nghĩa runtime FE đã được cập nhật. Các ID, version trong ví dụ là ký hiệu để thay bằng dữ liệu API thật, không phải dữ liệu môi trường FE.
 
 ## Quy ước tích hợp
 
@@ -90,9 +90,16 @@ Không có source/evidence được phép → báo thiếu, không mở public �
 
 ## 7. Chỉ số defect mở
 
-Trong overview: `definitionVersion: defect.open.v1`, distinct Defect theo project gốc, toàn bộ lịch sử không lọc thời gian/tuyến/đoạn. OPEN và VERIFIED tính mở; CLOSED/REJECTED không tính. Đã nghiệm thu repair item nhưng Defect chưa đóng vẫn tính theo trạng thái Defect. Correction hiện hành có thể mở Defect lại.
+Trong `GET /api/v1/projects/overviews?ids=<projectId>`: `definitionVersion: "defect.open.v2"`, đếm distinct Defect theo project của chính Defect, không đếm item và không lọc thời gian/tuyến/đoạn. `OPEN`/`VERIFIED` tính mở; `RESOLVED` không tính. Giữ cách loại `CLOSED`/`REJECTED` đã có. Quyết định bổ sung ngày 18/11/2026 chỉ phân loại khi đọc, không đổi trạng thái/backfill. `RESOLVED` không chứng minh “Đã nghiệm thu”, không mở quyền đánh giá hoặc bỏ điều kiện repair.
 
-UNKNOWN, mã không nhận diện, trạng thái null và RESOLVED legacy thiếu căn cứ phân loại → `value:null,availability:INCOMPLETE,unknownCount>0,reasonCodes:["LEGACY_DEFECT_STATUS_UNCLASSIFIED"]`. `0` AVAILABLE chỉ khi thật sự không có defect mở và không có trạng thái chưa phân loại. Không đếm số repair item, nên nhiều item cùng defect không tăng count. Bộ lọc thời gian/tuyến/đoạn của reporting hiện có giữ riêng; không trình bày overview lifetime như metric đã lọc. `DefectStatus.Resolved` có mã 4, nhưng không có writer production hiện hành xác lập nó như trạng thái riêng có provenance. `RepairWorkflowRepository` ghi rõ provenance của `Resolved` legacy là chưa xác định khi correction mở lại defect. Vì vậy nhóm này vẫn chưa phân loại.
+Project rỗng trả `value:0,availability:"AVAILABLE"`. Project có OPEN/VERIFIED/RESOLVED và không có trạng thái chưa phân loại trả số xác định. UNKNOWN, mã không nhận diện hoặc null → `value:null,availability:"INCOMPLETE",unknownCount>0,reasonCodes:["LEGACY_DEFECT_STATUS_UNCLASSIFIED"]`. DB hiện chặn null/mã ngoài enum; projection vẫn đọc nullable để không suy chúng thành 0 nếu gặp schema legacy. Thiếu bảng/cột nguồn defect trả `value:null,availability:"INCOMPLETE",reasonCodes:["DEFECT_SOURCE_UNAVAILABLE"]`; lỗi SQL khác tiếp tục fail, không trả số 0 giả.
+
+Đọc trạng thái Defect hiện hành: item đã hoàn tất nhưng Defect còn OPEN/VERIFIED vẫn tính; reopen đưa Defect về OPEN thì lần GET sau tính lại. Nhiều obligation/item cùng Defect không nhân count. Metric reporting có bộ lọc riêng; không trình bày overview toàn project như metric đã lọc.
+
+Ví dụ xác định:
+```json
+{"definitionVersion":"defect.open.v2","includedStatuses":["OPEN","VERIFIED"],"value":2,"availability":"AVAILABLE","unknownCount":0,"reasonCodes":[]}
+```
 
 ## 8. Metadata kế hoạch repair
 
@@ -174,7 +181,7 @@ dotnet ef database update --project RoadGuardSystem.Repositories/RoadGuardSystem
 
 Không tự chạy lên DB FE. Nâng DB trước runtime đọc các cột mới, cập nhật backend rồi FE kiểm các màn bằng runtime Swagger thực. Code local và OpenAPI không đồng nghĩa runtime đã cập nhật.
 
-Kiểm chứng: TestServer đi qua login/session Web thật và Bearer, SQL Server cô lập; Range và artifact PDF/ZIP dùng MinIO local thật. Fixture Repair history được tạo ở SQL, không thay cho chứng minh toàn bộ Crew workflow qua HTTP. Nguồn Case/AI tái dùng resolver có kiểm quyền; browser/player, môi trường FE, CORS triển khai và tải video hàng GB chưa kiểm. Xem bảng kết quả ở bàn giao cuối; các lượt test có thể trùng ca, không cộng thành số test độc lập.
+Kiểm chứng: TestServer đi qua login/session Web thật và Bearer, SQL Server cô lập; Range và artifact PDF/ZIP dùng MinIO local thật. Fixture Repair history được tạo ở SQL, không thay cho chứng minh toàn bộ Crew workflow qua HTTP. Nguồn Case/AI tái dùng resolver có kiểm quyền; Chrome local được kiểm trong follow-up bên dưới; môi trường FE, CORS triển khai và tải video hàng GB chưa kiểm. Xem bảng kết quả ở bàn giao cuối; các lượt test có thể trùng ca, không cộng thành số test độc lập.
 
 Hai self-review local: (1) authority/scope, replay/concurrency, stream disposal, dữ liệu cũ; (2) wire DTO, schema upgrade/catalog, inventory/OpenAPI, test/handoff. Đây không phải review bên ngoài hoặc CI PASS.
 
@@ -223,7 +230,7 @@ Không cộng các lượt dưới đây thành số ca độc lập vì có ca 
 
 Build solution có analyzer:0 error, còn warnings được compiler báo (không tắt analyzer). Format toàn repo và diff-check phải đạt trước bàn giao. SQL migration/catalog và Development Seeder dùng DB Testcontainers riêng; không ghi DB sandbox dùng chung/DB FE. Không thêm/đổi identity SQL test nên không đổi sql-lanes.json hoặc Verify-SqlLanes.ps1. Full Unit/API/4 SQL lane và CI chưa chạy trong lượt này.
 
-Giới hạn: chưa kiểm ma trận đầy đủ mọi source Case/AI bị đổi liên kết trong endpoint source-defect mới; các resolver quyền gốc được tái dùng. Export fixture kiểm immutable attempt và ảnh gốc, test MinIO này dùng fixture SQL. Chuỗi NORMAL qua HTTP riêng đã đi từ Crew nộp đến PM review, Sup xác nhận, tạo snapshot dossier, reopen và đọc hai manifest; snapshot lịch sử/guard correction có bộ kiểm riêng của repo. Chưa kiểm browser/player, dữ liệu FE hoặc storage triển khai thực. Priority đã dùng policy deadline. `RESOLVED` legacy vẫn thiếu căn cứ để phân loại.
+Giới hạn: chưa kiểm ma trận đầy đủ mọi source Case/AI bị đổi liên kết trong endpoint source-defect mới; các resolver quyền gốc được tái dùng. Export fixture kiểm immutable attempt và ảnh gốc, test MinIO này dùng fixture SQL. Chuỗi NORMAL qua HTTP riêng đã đi từ Crew nộp đến PM review, Sup xác nhận, tạo snapshot dossier, reopen và đọc hai manifest; snapshot lịch sử/guard correction có bộ kiểm riêng của repo. Đã kiểm Chrome local trong follow-up bên dưới; chưa kiểm app/dữ liệu FE hoặc storage triển khai thực. Priority đã dùng policy deadline. `RESOLVED` đã được owner chốt loại khỏi tập mở của metric v2; không thay đổi lifecycle.
 
 
 ### Kiểm bổ sung trước review
@@ -231,7 +238,7 @@ Giới hạn: chưa kiểm ma trận đầy đủ mọi source Case/AI bị đ�
 - CI base `de4e97b`, run `44142682988` trên `huy-review`. TRX `api-results` ghi `Assert.False()` ở `Huy01RetentionInventorySqlTests.cs:49`, expected False, actual True. HUY đã đọc đủ lớp nguồn của mình. Test hiện kiểm cả reference conclusion đúng project và aggregate vẫn `Complete=false` khi thiếu HUY02/AI/EXPORT reader. Không thay đổi logic retention production. Ca `UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio` bị skip trên CI do thiếu cấu hình MinIO smoke. [Job API gốc](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/44142682988/job/134249423273)
 - Retention, policy reload/revoke, metric hỗn hợp và bulk 103 thông báo: 16 đạt, 0 lỗi, 0 skip. Bulk trả 100/3, replay cả hai batch, giữ cùng watermark và loại thông báo backdate chèn sau khi mở snapshot.
 - Journey NORMAL, metric, scope notification, Swagger và route inventory: 5 đạt, 0 lỗi, 0 skip sau khi sửa payload correction của test sang `basis.evidenceReferenceIds`. Journey dùng ảnh có trạng thái VERIFIED từ fixture SQL. Đã kiểm snapshot dossier cũ giữ nguyên và manifest package mới giữ hai quyết định, trả `NO_EFFECTIVE_ACCEPTANCE`. Render/tải bytes PDF/ZIP được kiểm riêng bằng MinIO.
-- MinIO follow-up: 3 đạt, 0 lỗi, 0 skip, bao gồm smoke test bị skip trên CI. Có kiểm đọc dải 10 byte trực tiếp từ provider, token đã hủy làm copy dừng, dispose và mở dải lại thành công. Chưa đo RSS, chưa mô phỏng ngắt TCP giữa một response lớn hoặc kiểm phát/tua qua browser. TestServer không mở cổng để browser dùng cùng phiên và dữ liệu fixture.
+- MinIO follow-up: 3 đạt, 0 lỗi, 0 skip, bao gồm smoke test bị skip trên CI. Có kiểm đọc dải 10 byte trực tiếp từ provider, token đã hủy làm copy dừng, dispose và mở dải lại thành công. Giới hạn tại lượt lịch sử đó; follow-up bên dưới đã mở transport loopback cho Chrome và đo working set/managed allocation.
 - FE kiểm lại sau migration và deploy backend: đăng nhập Web mới, reload danh sách và policy, đánh dấu batch tới `hasMore=false`, mở lại hồ sơ trước/sau reopen, và thử phát/tua video MP4 có quyền. Giữ nguyên giới hạn của fixture và kiểm lại dữ liệu thực ở môi trường đích.
 
 
@@ -240,11 +247,11 @@ Giới hạn: chưa kiểm ma trận đầy đủ mọi source Case/AI bị đ�
 | Mục | Kịch bản kiểm bằng phiên Web mới | Bằng chứng BE và giới hạn |
 |---|---|---|
 | AI run | Chọn task rồi lọc run theo task/dataset, mở detail | API kiểm đúng dataset/version và phạm vi hiện hành |
-| Video | Mở MP4 bằng Web PM/Sup, tua và kiểm request Range. Kiểm lại sau thu hồi quyền | SQL/MinIO đã kiểm byte `200/206/416`, Operator Bearer và hủy copy ở tầng storage. Browser, ngắt TCP và RSS chưa đo |
+| Video | Mở MP4 bằng Web PM/Sup, tua và kiểm request Range. Kiểm lại sau thu hồi quyền | SQL/MinIO đã kiểm byte `200/206/416`, Operator Bearer và hủy copy ở tầng storage. Chrome PM/Sup phát/tua đã đạt; đo tiến trình chung TestServer được ghi ở follow-up, không phải tải production |
 | Overview | Mở batch project và đọc lại địa bàn sau khi Sup cập nhật | HTTP kiểm quyền, ETag và replay |
 | Notification | So cùng một thông báo trên list, detail và scope. Đọc lại sau hạn hoặc khi deadline hoàn tất | HTTP kiểm thiếu nguồn và wire. SQL kiểm clock trước/sau hạn, đổi hạn và hoàn tất |
 | Liên hệ | Reload danh bạ và kiểm thành viên hết hiệu lực biến mất | HTTP kiểm phạm vi project và Supervisor sửa đơn vị |
-| Defect nguồn | Mở từ item/package, mở ảnh nếu còn quyền rồi thử lại sau đổi liên kết | Ca quyền Report/Case và AI chạy riêng. Chưa chứng minh toàn chuỗi ảnh nguồn đến dossier |
+| Defect nguồn | Mở từ item/package, mở ảnh nếu còn quyền rồi thử lại sau đổi liên kết | Case đọc ảnh rồi merge và tải dossier được kiểm; dossier không tự đóng gói ảnh private Reporter hoặc frame AI. Xem phạm vi chặt hơn bên dưới |
 | Defect mở | Kiểm số đang mở của project rỗng, project hỗn hợp và sau reopen | HTTP kiểm `0`, `INCOMPLETE` và đếm theo trạng thái hiện hành |
 | Kế hoạch repair | Đọc ETag đúng resource, lưu rồi reload. Thử stale version | HTTP kiểm ETag, audit, replay và quyền |
 | Người được giao | Tải lại tên sau reassign và xem lịch sử | Batch trả tên tài khoản hiện hành |
@@ -258,4 +265,52 @@ CI base `d39c8f8`, run `44237220044` trên `huy-review`, có 11 lỗi API và 2 
 
 Lượt chốt follow-up dùng SQL cô lập. Nhóm migration `Anh02MigrationTests` đạt 3/3. Nhóm deadline đạt 3/3 qua SQL, sau đó ca mở rộng kiểm task hủy đạt 1/1. Nhóm inbox, quyền và bulk đạt 50/50 sau khi sửa rollback/retry sidecar. Nhóm Range và PDF/ZIP trên MinIO đạt 2/2. Chuỗi NORMAL qua HTTP với PDF trên MinIO đạt 1/1. Các lượt có ca trùng nhau. Suite API tập trung đầu ghi 49 đạt và 1 lỗi fixture đọc bằng model mới ở schema cũ; ca migration này đạt ở lượt sau. Full suite chưa chạy local.
 
-Hồ sơ chỉ đóng gói ảnh gốc đủ quyền từ evidence đã gắn với attempt hoặc basis quyết định. Việc đọc ảnh ở `source-defect` không tự đưa ảnh Report/Case và AI vào PDF/ZIP. Chưa có ca xác minh một dossier chứa cả hai loại ảnh đó rồi đổi liên kết, thu hồi quyền và thử tải lại. Không đánh dấu kịch bản này đã nghiệm thu.
+Hồ sơ repair chỉ đóng gói ảnh gốc đủ quyền từ evidence đã pin với attempt hoặc basis quyết định, đồng thời vẫn kiểm quyền đọc file nguồn. Dossier tổng quát không tự đưa ảnh Report/Case hoặc frame AI vào PDF/ZIP. Không có contract cho phép đóng gói mọi ảnh xem được ở `source-defect`; đợt này giữ phạm vi chặt hơn đó và kiểm việc loại ảnh khỏi archive.
+
+
+## Follow-up chốt metric, video và CI — 18/11/2026
+
+Base `947166e395e93c707def4db01f2770bb3d20f980`. Hai lượt self-review kiểm contract/quyền trước, rồi scope/fixture/tài liệu. Không có migration mới, không sửa workflow, gate TRX hay danh sách skip. Không thay đổi priority `HIGH/NORMAL/UNKNOWN`: vẫn dựa deadline bắt buộc còn hiệu lực và UTC server, không suy từ message hoặc severity.
+
+**CI base:** [run 44240686879](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/44240686879), event push `huy-review`, đúng SHA base. Unit, source contracts, bốn SQL lane và job SQL tổng hợp pass. [Job API](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/44240686879/job/134587560639) đỏ tại `Verify-TestResults.ps1`, dù `api.trx` ghi 1.673 pass, 0 fail và 3 NotExecuted. Hai ca mới `WebPmVideoRangeHttpTests.RealMinioRangesPreserveBytesAndCurrentWebAndOperatorAuthority` và `WebPmCoordinationHttpTests.ScopedRepairExportPersistsOnlySelectedItemAndRendersPdfAndZipToRealStorage` bị skip ngoài whitelist. Ca smoke upload cũ là skip duy nhất được gate cho phép khi chưa cấu hình. Đã tải TRX và chạy lại đúng gate trên artifact gốc để tái hiện lỗi; API tải raw job log trả 403 khi không có credential GitHub, nên không gọi phần raw log đó là đã đọc. Job/step conclusion được đối chiếu qua API GitHub.
+
+Hai ca mới dùng `[Fact]` và MinIO container/bucket/credential tạm do test sở hữu, theo image `RG_MINIO_IMAGE` mà CI đã build. Không còn phụ thuộc `ROADGUARD_MINIO_SMOKE` hoặc storage ngoài. Thiếu image hoặc lỗi provider làm test fail, không skip. Gate/whitelist giữ nguyên. Worker fixture chờ đúng job mình đã tạo và hoàn tất export package trước khi hủy storage, tránh giả định job vừa tạo luôn được claim đầu tiên.
+
+| Lượt local | Pass | Fail | Skip | Phạm vi |
+|---|---:|---:|---:|---|
+| Nhóm cuối SQL/HTTP/Swagger |15|0|0|Metric, thiếu reader (fault injection SQL 208), metadata/policy/bulk, Case merge/split, AI MOCK, dossier và migration hiện có. Gate TRX pass |
+| Hai ca MinIO sau bổ sung kiểm MP4 qua CLI |2|0|0|SQL + MinIO container thật; video và repair PDF/ZIP. Gate TRX với `-AllowMinioSmokeSkip` pass, thực tế không skip |
+| Chrome local đã ghi nhận trước khi dừng Computer Use |1|0|0|PM/Sup login cookie thật, phát MP4 rồi tua tới phần chưa tải, tiếp tục phát |
+
+Các lượt có ca trùng nhau, không cộng thành tổng test độc lập. Lượt nhóm trước từng có 14 pass/1 fail do fixture gọi worker một lần trong DB dùng chung; đã sửa chờ đúng job và chạy lại nhóm 15 ca đạt. Lượt browser đầu có lỗi test harness đổi tài khoản thiếu logout key; lượt thành công dùng logout/CSRF đúng contract. Lượt browser cuối bị dừng, không dùng làm PASS; phần byte MP4 được kiểm lại qua CLI. Full API/SQL suite của SHA mới chưa được chạy local; cần kết quả CI trên đúng SHA đã push.
+
+Lệnh trọng tâm (PowerShell, SDK từ `global.json`):
+```powershell
+# RG_MINIO_IMAGE trỏ image MinIO test đã build; RG_TEST_UNICODE_FONT trỏ TTF có quyền nhúng.
+# Để kiểm MP4 qua CLI, RG_BROWSER_VIDEO trỏ file MP4; không đặt RG_BROWSER_READY.
+dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --filter "FullyQualifiedName~WebPmVideoRangeHttpTests|FullyQualifiedName~ScopedRepairExportPersistsOnlySelectedItemAndRendersPdfAndZipToRealStorage" --logger "trx;LogFileName=minio-final.trx" --results-directory <isolated-results>
+pwsh -File tests/CI/Verify-TestResults.ps1 -ResultsPath <isolated-results> -AllowMinioSmokeSkip
+dotnet build RoadGuardSystem.slnx --no-restore
+dotnet format --verify-no-changes --no-restore
+git diff --check
+```
+
+Build/analyzer đạt (còn warning hiện có). Các script source contracts trong workflow đã chạy đạt; format toàn repo đã đạt. Runtime Swagger được sinh lại và đối chiếu: 260 paths, không có thay đổi route/schema/security so với snapshot `openapi.json`; quy tắc metric v2 và reason code nằm trong phần 7 ở trên. Không thêm/đổi identity SQL integration nên không đổi lane manifest.
+
+### Bằng chứng video và giới hạn đo
+
+- MP4 H.264 local dài 120 giây, kích thước `60.041.915` byte. Chrome qua transport loopback `http://localhost:18199` chuyển tiếp nguyên cookie tới pipeline auth thật TestServer, SQL và MinIO thật. Transport test giới hạn tốc độ để buộc seek ra ngoài buffer, không thay authentication hoặc cấp URL public.
+- PM chỉ buffer `[0,1.875]` giây trước khi tua; sau tua/phát ở `90.8092` giây. Supervisor buffer `[0,3.248]`; sau tua/phát ở `90.8001`. Trace có `206`, `video/mp4`, `Content-Range`/`Content-Length`, gồm dải `41648128-60041914/60041915` và `46301184-60041914/60041915`.
+- CLI cuối lấy 65.536 byte cuối bằng Web PM cookie: `206`, `Content-Range: bytes 59976379-60041914/60041915`, `Content-Length: 65536`, đối chiếu byte-for-byte với file MP4 gốc đạt. Các ca `200`, Range đầu/cuối/suffix/If-Range và `416` vẫn đạt cho PM/Sup cookie, Operator Bearer.
+- Fixture lớn riêng `268.435.456` byte (256 MiB, dữ liệu byte để đo Range, không gọi là video có thể phát). Năm HTTP Range, mỗi dải 65.536 byte ở cuối file, đối chiếu nội dung đạt. Lượt CLI cuối đo `GC.GetTotalAllocatedBytes(true)` tăng `5.994.344` byte và `Process.WorkingSet64` tăng `376.832` byte. Client TestServer và BE chung tiến trình; đây là allocation toàn tiến trình và working set Windows tại hai thời điểm, không phải RSS riêng backend/container, peak hay load benchmark. Không suy khả năng phục vụ mọi kích thước/tải từ phép đo này.
+- Provider `OpenRangeAsync` gửi `ByteRange(first,last)` tới MinIO; không đọc toàn object để cắt. Test cấp phát chặn hồi quy buffer toàn 256 MiB. Hủy copy với cancellation token, dispose rồi mở lại dải thành công. Chrome seek hủy request trước, bridge ghi upstream response đã dispose; controller dùng `await using` cho stream và truyền request cancellation vào copy. Chưa đo tài nguyên dưới tải hủy đồng thời dài hạn.
+- Sau mất assignment Operator hoặc membership PM, request tải kế tiếp trả 403. Không cam kết thu hồi những byte đã gửi trước đó. Chưa kiểm app/player Tùng, CORS/reverse proxy hoặc runtime FE.
+
+### Ảnh nguồn và dossier: giữ phạm vi quyền chặt hơn
+
+- Report/Case: `SourceBackedExportHttpTests` dùng PNG hợp lệ, metadata/VERIFIED là fixture SQL cô lập, byte lưu trên MinIO thật. PM tải qua Case content path được 200 và đúng byte; route file chung vẫn 403 với ảnh private Reporter. Chuyển Report bằng API `report-links` có If-Match/key: URL Case cũ 404, URL Case mới 200 đúng ảnh. Test merge/split/khác project hiện có tiếp tục đạt.
+- Dossier tổng quát chỉ đóng gói survey originals theo contract hiện hành. Metadata nguồn Report được giữ trong snapshot nhưng ảnh private không nằm trong `manifest.files` hoặc archive; section vẫn ghi `REPORTER_EVIDENCE_ACCESS_NOT_AVAILABLE`. Export mới sau merge không tự mở thêm ảnh. Archive cũ giữ nguyên byte, không ghi lại snapshot. Membership bị thu hồi chặn status/manifest/content bằng 403 trước khi mở storage.
+- AI: chạy producer HTTP/worker `MOCK/SYNTHETIC`, frame/artifact dùng storage giả lập trong test. Frame có quyền tải được; dossier tổng quát không tự đóng gói frame này. SQL chặn sửa provenance bằng trigger bất biến; không giả lập một workflow chuyển frame/run mà BE không hỗ trợ. Dossier mới/cũ giữ giới hạn nguồn đó; archive cũ byte-for-byte không đổi, mất membership chặn cả frame và dossier bằng 403. Chưa chứng minh một archive được phép chứa mọi ảnh Report/Case lẫn AI, vì contract hiện hành không cấp quyền đó.
+- Hồ sơ repair chọn item/package có kiểm riêng trên MinIO thật: chỉ ảnh đã pin và còn quyền từ attempt/basis mới được đóng gói; item ngoài lựa chọn không lẫn vào archive. Quyền dossier không cấp thêm quyền tải file nguồn.
+
+FE: dùng metric v2 theo `value/availability/reasonCodes`, hiển thị chưa đầy đủ khi null; không đổi `RESOLVED` thành nhãn nghiệm thu. Giữ priority hiện hành. Phát/tua bằng cookie phiên Web hoặc Bearer đúng caller, xử lý 401/403 và không giữ URL ảnh Case cũ sau đổi liên kết. Sau backend được cập nhật, thử lại bằng phiên Web mới trên đúng môi trường FE. Đợt follow-up không có migration mới; nếu môi trường chưa có migration của bản trước, triển khai migration hiện hành trước backend rồi FE kiểm lại. Đã push source không đồng nghĩa đã deploy, seed hoặc áp migration lên DB FE.

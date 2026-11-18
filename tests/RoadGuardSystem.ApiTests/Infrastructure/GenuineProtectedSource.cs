@@ -22,7 +22,7 @@ namespace RoadGuardSystem.ApiTests.Infrastructure;
 // Reuses H4 genuine Reporter -> case -> accepted Defect lineage with authenticated test actors.
 internal static class GenuineProtectedSource
 {
-    internal static async Task<Source> Seed(RoadGuardDbContext db, AuthenticationSqlServerFixture sql)
+    internal static async Task<Source> Seed(RoadGuardDbContext db, AuthenticationSqlServerFixture sql, byte[]? reporterPng = null)
     {
         sql.GetOwnedSeedDatabaseIdentity(); var now = DateTimeOffset.UtcNow;
         async Task<ApplicationUser> User(UserRoleCode role) => await sql.CreateUserAsync("source-" + Guid.NewGuid().ToString("N"), "Current1!", role);
@@ -57,11 +57,13 @@ internal static class GenuineProtectedSource
                 Status = ProjectMemberStatus.Active
             });
         await db.SaveChangesAsync();
+        var photoMediaType = reporterPng is null ? "image/jpeg" : "image/png";
+        var photoHash = reporterPng is null ? new string('b', 64) : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(reporterPng)).ToLowerInvariant();
         var file = StoredFile.Create(Guid.NewGuid(), "private/h4-reporter-" + Guid.NewGuid().ToString("N"), "source.jpg",
-            "image/jpeg", 4, new string('b', 64), reporter.Id, now, null);
+            photoMediaType, reporterPng?.LongLength ?? 4, photoHash, reporter.Id, now, null);
         db.AddRange(file, FileScope.CreatePrivate(Guid.NewGuid(), file.Id, reporter.Id, now)); await db.SaveChangesAsync();
-        var upload = UploadSession.Create(Guid.NewGuid(), file.Id, reporter.Id, file.StorageUri, "REPORT_PHOTO", "image/jpeg", 4,
-            new string('b', 64), 8388608, now.AddHours(24)); upload.StartUploading("fixture", now);
+        var upload = UploadSession.Create(Guid.NewGuid(), file.Id, reporter.Id, file.StorageUri, "REPORT_PHOTO", photoMediaType, reporterPng?.LongLength ?? 4,
+            photoHash, 8388608, now.AddHours(24)); upload.StartUploading("fixture", now);
         db.Add(upload); await db.SaveChangesAsync(); upload.StartVerification(Convert.ToBase64String(upload.RowVersion), now);
         await db.SaveChangesAsync(); upload.MarkVerified(); await db.SaveChangesAsync();
         var report = Report.Create(Guid.NewGuid(), reporter.Id, "genuine Reporter without Survey", now,

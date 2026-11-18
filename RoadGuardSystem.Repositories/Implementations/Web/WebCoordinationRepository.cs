@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.PersistenceFacts.Web;
@@ -69,8 +70,21 @@ public sealed class WebCoordinationRepository(RoadGuardDbContext db, Idempotency
         var native = await db.Set<NativeRouteVersionFacts>().AsNoTracking().Where(row => routeIds.Contains(row.RoadSectionVersionId))
             .ToDictionaryAsync(row => row.RoadSectionVersionId, token);
         var warranties = await db.Warranties.AsNoTracking().Where(row => ids.Contains(row.ProjectId)).OrderBy(row => row.Id).ToArrayAsync(token);
-        var counts = await db.Defects.AsNoTracking().Where(row => row.ProjectId.HasValue && ids.Contains(row.ProjectId.Value))
-            .GroupBy(row => new { row.ProjectId, row.Status }).Select(group => new { group.Key.ProjectId, group.Key.Status, Count = group.LongCount() }).ToArrayAsync(token);
+        (Guid? ProjectId, DefectStatus? Status, long Count)[] counts = [];
+        var sourceAvailable = true;
+        try
+        {
+            var rows = await db.Defects.AsNoTracking().Where(row => row.ProjectId.HasValue && ids.Contains(row.ProjectId.Value))
+                .GroupBy(row => new { row.ProjectId, Status = (DefectStatus?)row.Status })
+                .Select(group => new { group.Key.ProjectId, group.Key.Status, Count = group.LongCount() }).ToArrayAsync(token);
+            counts = rows.Select(row => (row.ProjectId, row.Status, row.Count)).ToArray();
+        }
+        catch (SqlException error) when (error.Number is 207 or 208)
+        {
+            // Missing source table/column cannot be interpreted as an empty defect set.
+            // Authentication, timeouts and other SQL errors retain their normal failure behavior.
+            sourceAvailable = false;
+        }
         return projects.Select(project =>
         {
             var lines = routes.Where(row => row.ProjectId == project.Id).Select(row =>
@@ -80,14 +94,14 @@ public sealed class WebCoordinationRepository(RoadGuardDbContext db, Idempotency
                     (source.Geometry is { IsEmpty: false, SRID: 32648 or 32649 } ? source.Geometry.Length : null);
                 return new ProjectRouteOverview(source.RoadSectionId, source.Id, source.VersionNo, source.Geometry.SRID, source.CrsProfileRevisionId, length);
             }).OrderBy(row => row.RoadSectionId).ToArray();
-            var unknown = counts.Where(row => row.ProjectId == project.Id && row.Status is not (DefectStatus.Open or DefectStatus.Verified or DefectStatus.Rejected or DefectStatus.Closed)).Sum(row => row.Count);
+            var unknown = counts.Where(row => row.ProjectId == project.Id && row.Status is not (DefectStatus.Open or DefectStatus.Verified or DefectStatus.Resolved or DefectStatus.Rejected or DefectStatus.Closed)).Sum(row => row.Count);
             var open = counts.Where(row => row.ProjectId == project.Id && row.Status is DefectStatus.Open or DefectStatus.Verified).Sum(row => row.Count);
             return new ProjectOverview(project.Id, project.Name, project.Locality, project.EngineeringUtmSrid, lines,
                 lines.Length > 0 && lines.All(row => row.LengthMeters.HasValue) ? lines.Sum(row => row.LengthMeters!.Value) : null,
                 lines.Length == 0 ? "MISSING" : lines.Any(row => row.LengthMeters is null) ? "INCOMPLETE" : "AVAILABLE",
                 warranties.Where(row => row.ProjectId == project.Id).Select(row => new WarrantyOverview(row.Id, row.RoadSectionId,
                     row.HandoverDate, row.WarrantyStartDate, row.WarrantyEndDate, row.Status.ToString().ToUpperInvariant())).ToArray(),
-                new("defect.open.v1", ["OPEN", "VERIFIED"], unknown == 0 ? open : null, unknown == 0 ? "AVAILABLE" : "INCOMPLETE", unknown),
+                new("defect.open.v2", ["OPEN", "VERIFIED"], sourceAvailable && unknown == 0 ? open : null, sourceAvailable && unknown == 0 ? "AVAILABLE" : "INCOMPLETE", unknown),
                 Convert.ToBase64String(project.RowVersion));
         }).ToArray();
     }

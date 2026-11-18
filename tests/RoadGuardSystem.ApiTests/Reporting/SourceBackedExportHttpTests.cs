@@ -31,6 +31,9 @@ using RoadGuardSystem.Repositories.Implementations.Inspections;
 using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.BusinessObjects.Devices;
+using RoadGuardSystem.BusinessObjects.Cases;
+using RoadGuardSystem.BusinessObjects.Reports;
+using RoadGuardSystem.Repositories.Models.Huy01;
 
 // Actual reporting capture and worker rendering, with domain-valid persisted survey and Reporter-derived Case/Defect sources.
 // Synthetic bytes are not a claim of drone/video semantic validation or Reporter-original export policy.
@@ -67,10 +70,16 @@ public sealed class SourceBackedExportHttpTests(AuthenticationSqlServerFixture s
             InputStream = new MemoryStream(original),
             ContentType = "video/mp4"
         });
-        Guid datasetId;
+        Guid datasetId, reportId, caseId, reportPhoto;
+        var privatePhoto = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6VVAAAAAASUVORK5CYII=");
         await using (var db = sql.CreateDbContext())
         {
-            source = await GenuineProtectedSource.Seed(db, sql);
+            source = await GenuineProtectedSource.Seed(db, sql, privatePhoto);
+            var link = await db.Set<HuyCaseReportLink>().SingleAsync(row => db.IncidentCases.Any(c => c.Id == row.CaseId && c.ProjectId == source.Project));
+            caseId = link.CaseId; reportId = link.ReportId;
+            reportPhoto = await db.Reports.Where(row => row.Id == reportId).SelectMany(row => row.OriginalEvidence).Select(row => row.FileId).SingleAsync();
+            var photo = await db.Files.SingleAsync(row => row.Id == reportPhoto);
+            await s3.PutObjectAsync(new PutObjectRequest { BucketName = bucket, Key = photo.StorageUri, InputStream = new MemoryStream(privatePhoto), ContentType = "image/png" });
             var defectVersion = Convert.ToBase64String(await db.Defects.Where(x => x.Id == source.Defect).Select(x => EF.Property<byte[]>(x, "RowVersion")).SingleAsync());
             var field = await new FieldInspectionWorkflowRepository(db, new IdempotencyOperationService(db), TimeProvider.System).ExecuteAsync(
                 new(source.Project, null, "create", new FieldTaskCreateInputFact(source.Defect, defectVersion, null, "REPORTER", source.Route, source.Set, null, null, "PRE_MEASUREMENT", 1, "{}", "task23 FIELD source", source.Crew, now.AddDays(1)),
@@ -102,6 +111,11 @@ public sealed class SourceBackedExportHttpTests(AuthenticationSqlServerFixture s
         string email; await using (var db = sql.CreateDbContext()) email = (await db.Users.SingleAsync(u => u.Id == source.Pm)).Email!;
         var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Current1!" }); Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
+        var reportPath = $"/api/v1/cases/{caseId}/reports";
+        var reportResponse = await client.GetAsync(reportPath); Assert.Equal(HttpStatusCode.OK, reportResponse.StatusCode);
+        var photoPath = (await reportResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items")[0].GetProperty("originalEvidence")[0].GetProperty("contentPath").GetString()!;
+        using (var photoResponse = await client.GetAsync(photoPath)) { Assert.Equal(HttpStatusCode.OK, photoResponse.StatusCode); Assert.Equal(privatePhoto, await photoResponse.Content.ReadAsByteArrayAsync()); }
+        using (var privateDirect = await client.GetAsync($"/api/v1/files/{reportPhoto}/content")) Assert.Equal(HttpStatusCode.Forbidden, privateDirect.StatusCode);
         Guid jobId; string path; string frozenJson; string frozenHash;
         await using (var scope = factory.Services.CreateAsyncScope())
         {
@@ -119,6 +133,9 @@ public sealed class SourceBackedExportHttpTests(AuthenticationSqlServerFixture s
         var payload = JsonSerializer.Deserialize<ExportSnapshotPayloadDto>(frozenJson, ExportSerialization.Options)!;
         Assert.NotNull(payload.Dossier); Assert.NotEmpty(payload.Dossier.Items);
         Assert.NotNull(payload.Dossier.CaseDefectFacts); Assert.NotEmpty(payload.Dossier.CaseDefectFacts.Cases);
+        Assert.Contains(payload.Dossier.CaseDefectFacts.AuthorizedEvidence, evidence => evidence.FileId == reportPhoto);
+        Assert.DoesNotContain(payload.Manifest.Files, file => file.FileId == reportPhoto);
+        Assert.Contains(payload.Manifest.Sections, section => section.ReasonCodes.Contains("REPORTER_EVIDENCE_ACCESS_NOT_AVAILABLE"));
         var manifestFile = Assert.Single(payload.Manifest.Files); Assert.Equal(fileId, manifestFile.FileId); Assert.True(manifestFile.Included);
         Assert.Equal(originalHash, manifestFile.Sha256); Assert.Contains(payload.Manifest.SourceRevisions, r => r.Id == datasetId);
         async Task State(string status, HttpStatusCode content)
@@ -186,6 +203,54 @@ public sealed class SourceBackedExportHttpTests(AuthenticationSqlServerFixture s
             var job = await db.Set<ExportJob>().SingleAsync(j => j.Id == jobId); var snap = await db.Set<ExportSnapshot>().SingleAsync(s => s.Id == job.SnapshotId); Assert.Equal(frozenJson, snap.PayloadJson); Assert.Equal(frozenHash, snap.Hash); Assert.Single(await db.Set<GeneratedArtifact>().Where(a => a.ExportJobId == jobId).ToListAsync());
             var events = await db.Set<AuditLog>().Where(a => a.EntityId == jobId).Select(a => a.EventType).ToListAsync();
             Assert.Equal(1, events.Count(e => e == "Anh02.Export.Admitted")); Assert.Equal(1, events.Count(e => e == "Anh02.Export.Completed"));
+        }
+        // Moving a Report must revoke the old Case content path. Dossier does not
+        // export private Reporter photo bytes and preserves that stricter policy.
+        Guid targetCase;
+        await using (var db = sql.CreateDbContext())
+        {
+            var originalReport = await db.Reports.Include(row => row.OriginalEvidence).SingleAsync(row => row.Id == reportId);
+            var evidence = originalReport.OriginalEvidence.Single(); var moveTime = DateTimeOffset.UtcNow;
+            var anotherReport = Report.Create(Guid.NewGuid(), originalReport.ReporterUserId, "Second fixture report", moveTime,
+                [VerifiedEvidenceReference.Create(Guid.NewGuid(), reportPhoto, evidence.FileVersion, originalReport.ReporterUserId)]);
+            var target = IncidentCase.CreateUnassigned(Guid.NewGuid(), anotherReport.Id, moveTime);
+            target.Triage(source.Project, CaseVerificationMethod.ExistingEvidence, "Controlled merge target", moveTime);
+            targetCase = target.Id;
+            db.AddRange(anotherReport, target, new HuyCaseReportLink { Id = Guid.NewGuid(), CaseId = target.Id, ReportId = anotherReport.Id, StartedAt = moveTime });
+            await db.SaveChangesAsync();
+        }
+        using (var sourceCase = await client.GetAsync($"/api/v1/cases/{caseId}"))
+        using (var target = await client.GetAsync($"/api/v1/cases/{targetCase}"))
+        using (var merge = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/cases/{targetCase}/report-links")
+        {
+            Content = JsonContent.Create(new
+            {
+                reportIds = new[] { reportId },
+                sourceCaseVersions = new Dictionary<Guid, string>
+                { [caseId] = (await sourceCase.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("version").GetString()! },
+                reason = "Move source through the real Case workflow"
+            })
+        })
+        {
+            merge.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N")); merge.Headers.Add("If-Match", target.Headers.ETag!.Tag);
+            using var merged = await client.SendAsync(merge); Assert.Equal(HttpStatusCode.OK, merged.StatusCode);
+        }
+        using (var stalePhoto = await client.GetAsync(photoPath)) Assert.Equal(HttpStatusCode.NotFound, stalePhoto.StatusCode);
+        using (var movedPhoto = await client.GetAsync(photoPath.Replace(caseId.ToString(), targetCase.ToString(), StringComparison.Ordinal))) { Assert.Equal(HttpStatusCode.OK, movedPhoto.StatusCode); Assert.Equal(privatePhoto, await movedPhoto.Content.ReadAsByteArrayAsync()); }
+        using (var oldArchive = await client.GetAsync(path + "/content")) { Assert.Equal(HttpStatusCode.OK, oldArchive.StatusCode); Assert.Equal(archiveBytes, await oldArchive.Content.ReadAsByteArrayAsync()); }
+        using (var newRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/projects/{source.Project}/exports")
+        { Content = JsonContent.Create(new { kind = "DOSSIER", format = "ZIP", includeOriginalFiles = true }) })
+        {
+            newRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+            using var created = await client.SendAsync(newRequest); Assert.Equal(HttpStatusCode.Accepted, created.StatusCode);
+            var newId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+            using var scope = factory.Services.CreateScope(); Assert.True(await scope.ServiceProvider.GetRequiredService<IExportService>().ProcessNextAsync(default));
+            using var newArchive = await client.GetAsync($"/api/v1/projects/{source.Project}/exports/{newId}/content"); Assert.Equal(HttpStatusCode.OK, newArchive.StatusCode);
+            using var zip = new ZipArchive(new MemoryStream(await newArchive.Content.ReadAsByteArrayAsync()));
+            Assert.DoesNotContain(zip.Entries, entry => entry.FullName.Contains(reportPhoto.ToString(), StringComparison.OrdinalIgnoreCase));
+            using var newManifestResponse = await client.GetAsync($"/api/v1/projects/{source.Project}/exports/{newId}/manifest");
+            var newManifest = await newManifestResponse.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.DoesNotContain(newManifest.GetProperty("files").EnumerateArray(), file => file.GetProperty("fileId").GetGuid() == reportPhoto);
         }
         // Current membership revocation blocks new indirect reads; stored archive is retained.
         await using (var db = sql.CreateDbContext()) await db.ProjectMembers.Where(m => m.ProjectId == source.Project && m.UserId == source.Pm).ExecuteUpdateAsync(u => u.SetProperty(m => m.Status, ProjectMemberStatus.Ended));

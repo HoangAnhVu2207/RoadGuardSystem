@@ -11,10 +11,12 @@ public sealed record WarrantyOverview(Guid Id, Guid? RoadSectionId, DateOnly Han
 {
     public static implicit operator WarrantyOverview(Facts.WarrantyOverview value) => new(value.Id, value.RoadSectionId, value.HandoverDate, value.StartDate, value.EndDate, value.Status);
 }
+/// <summary>Project-wide distinct defects: OPEN/VERIFIED count; RESOLVED is excluded, not an acceptance signal.
+/// Unclassified statuses or unavailable source data produce an INCOMPLETE metric with a null value.</summary>
 public sealed record OpenDefectMetric(string DefinitionVersion, string[] IncludedStatuses, long? Value,
     string Availability, long UnknownCount)
 {
-    public string[] ReasonCodes => UnknownCount > 0 ? ["LEGACY_DEFECT_STATUS_UNCLASSIFIED"] : [];
+    public string[] ReasonCodes => UnknownCount > 0 ? ["LEGACY_DEFECT_STATUS_UNCLASSIFIED"] : Availability == "INCOMPLETE" ? ["DEFECT_SOURCE_UNAVAILABLE"] : [];
     public static implicit operator OpenDefectMetric(Facts.OpenDefectMetric value) => new(value.DefinitionVersion, value.IncludedStatuses, value.Value, value.Availability, value.UnknownCount);
 }
 public sealed record ProjectOverview(Guid ProjectId, string Name, string? Locality, int? EngineeringUtmSrid,

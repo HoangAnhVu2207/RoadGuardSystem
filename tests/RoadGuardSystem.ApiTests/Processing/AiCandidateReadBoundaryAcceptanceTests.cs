@@ -22,6 +22,8 @@ using RoadGuardSystem.BusinessObjects.Devices;
 using RoadGuardSystem.BusinessObjects.Auditing;
 using RoadGuardSystem.BusinessObjects.Reports;
 using RoadGuardSystem.BusinessObjects.Cases;
+using RoadGuardSystem.Repositories.Exports;
+using RoadGuardSystem.Services.Exports;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 
@@ -49,6 +51,7 @@ public sealed class AiCandidateReadBoundaryAcceptanceTests(AuthenticationSqlServ
         var sourceStorage = new SurveyVideoStorage(media, checksum) { Frames = artifacts };
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
         {
+            services.Configure<ExportOptions>(o => o.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? throw new InvalidOperationException("Licensed Unicode test font required."));
             services.RemoveAll<IHostedService>(); services.Configure<Anh02AiOptions>(o => o.MockEnabled = true);
             services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(artifacts);
             services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(sourceStorage);
@@ -228,6 +231,45 @@ public sealed class AiCandidateReadBoundaryAcceptanceTests(AuthenticationSqlServ
             return value;
         }
         var view = await Read();
+        // General DOSSIER has a stricter source policy: it exports survey originals,
+        // not arbitrary AI frames, even when PM may read the frame through its own route.
+        var frame = view.GetProperty("frameFileId").GetGuid();
+        var exportRoot = $"/api/v1/projects/{project}/exports";
+        async Task<(Guid Id, byte[] Bytes)> Dossier()
+        {
+            using var admitted = await Command(client, exportRoot, new { kind = "DOSSIER", format = "ZIP", includeOriginalFiles = true });
+            Assert.Equal(HttpStatusCode.Accepted, admitted.StatusCode);
+            var id = (await Body(admitted)).GetProperty("id").GetGuid();
+            // The shared SQL fixture may contain older queued exports. The worker
+            // claims globally; wait for this admitted job rather than assuming it is next.
+            for (var retry = 0; retry < 10; retry++)
+            {
+                using var worker = factory.Services.CreateScope();
+                await worker.ServiceProvider.GetRequiredService<IExportService>().ProcessNextAsync(default);
+                using var statusResponse = await client.GetAsync(exportRoot + $"/{id}");
+                var status = (await Body(statusResponse)).GetProperty("status").GetString();
+                Assert.NotEqual("FAILED", status);
+                if (status == "SUCCEEDED") break;
+                await Task.Delay(100);
+            }
+            using var content = await client.GetAsync(exportRoot + $"/{id}/content"); Assert.Equal(HttpStatusCode.OK, content.StatusCode);
+            var bytes = await content.Content.ReadAsByteArrayAsync();
+            using var zip = new ZipArchive(new MemoryStream(bytes));
+            Assert.DoesNotContain(zip.Entries, entry => entry.FullName.Contains(frame.ToString(), StringComparison.OrdinalIgnoreCase));
+            using var manifestResponse = await client.GetAsync(exportRoot + $"/{id}/manifest");
+            var manifest = await Body(manifestResponse);
+            Assert.DoesNotContain(manifest.GetProperty("files").EnumerateArray(), file => file.GetProperty("fileId").GetGuid() == frame);
+            Assert.Contains(manifest.GetProperty("files").EnumerateArray(), file => file.GetProperty("fileId").GetGuid() == video);
+            return (id, bytes);
+        }
+        using (var allowedFrame = await client.GetAsync($"/api/v1/files/{frame}/content")) Assert.Equal(HttpStatusCode.OK, allowedFrame.StatusCode);
+        var oldDossier = await Dossier();
+        // The persisted AI proof has an immutable SQL trigger, unlike movable Case/Report links.
+        // Verify that boundary instead of fabricating a supported reassignment workflow.
+        await using (var db = sql.CreateDbContext())
+            await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(() => db.Set<AiDetectionProvenance>().Where(proof => proof.FrameFileId == frame).ExecuteUpdateAsync(setters => setters.SetProperty(proof => proof.FrameFileVersion, new string('0', 64))));
+        await Dossier();
+        using (var unchanged = await client.GetAsync(exportRoot + $"/{oldDossier.Id}/content")) Assert.Equal(oldDossier.Bytes, await unchanged.Content.ReadAsByteArrayAsync());
         async Task<string> Snapshot()
         {
             await using var db = sql.CreateDbContext(); return JsonSerializer.Serialize(new
@@ -261,6 +303,8 @@ public sealed class AiCandidateReadBoundaryAcceptanceTests(AuthenticationSqlServ
         (await Read()).GetRawText().Should().Be(view.GetRawText()); (await Snapshot()).Should().Be(before); artifacts.Writes.Should().Be(writes);
         await using (var db = sql.CreateDbContext()) await db.ProjectMembers.Where(m => m.ProjectId == project && m.UserId == manager.Id).ExecuteUpdateAsync(u => u.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
         await Denied(candidatePath, HttpStatusCode.Forbidden, "access_forbidden");
+        using (var revokedFrame = await client.GetAsync($"/api/v1/files/{frame}/content")) Assert.Equal(HttpStatusCode.Forbidden, revokedFrame.StatusCode);
+        using (var revokedArchive = await client.GetAsync(exportRoot + $"/{oldDossier.Id}/content")) Assert.Equal(HttpStatusCode.Forbidden, revokedArchive.StatusCode);
         var currentSid = Guid.Parse(new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(client.DefaultRequestHeaders.Authorization!.Parameter).Claims.Single(c => c.Type == "sid").Value);
         await using (var db = sql.CreateDbContext()) await db.Sessions.Where(r => r.Id == currentSid).ExecuteUpdateAsync(u => u.SetProperty(r => r.RevokedAt, DateTimeOffset.UtcNow));
         await Denied(candidatePath, HttpStatusCode.Unauthorized, "auth_session_revoked"); (await Snapshot()).Should().Be(before); artifacts.Writes.Should().Be(writes);

@@ -21,9 +21,14 @@ public sealed partial class H6ProtectedNotificationRepository : INotificationRep
 
     public Task<NotificationReadView?> GetAsync(Guid recipientUserId, Guid notificationId, CancellationToken cancellationToken = default)
         => ReadAsync<NotificationReadView?>(recipientUserId, async (role, token) =>
-            await Visible(recipientUserId, role).AsNoTracking().Where(row => row.Id == notificationId)
+        {
+            var view = await Visible(recipientUserId, role).AsNoTracking().Where(row => row.Id == notificationId)
                 .Select(row => new NotificationReadView(row.Id, row.Body, row.SourceEntityId, row.ReadAt != null, row.OccurredAtUtc, row.RowVersion))
-                .SingleOrDefaultAsync(token), () => null, cancellationToken);
+                .SingleOrDefaultAsync(token);
+            if (view is null) return null;
+            var priority = await ReadPrioritiesAsync([view.Id], clock.GetUtcNow().ToUniversalTime(), token);
+            return view with { Priority = priority[view.Id] };
+        }, () => null, cancellationToken);
 
     public Task<NotificationPageReadResult> ListAsync(Guid recipientUserId, DateTimeOffset? beforeOccurredAtUtc,
         Guid? beforeId, int limit, CancellationToken cancellationToken = default)
@@ -42,7 +47,10 @@ public sealed partial class H6ProtectedNotificationRepository : INotificationRep
                 .ToListAsync(token);
             var more = rows.Count > limit; if (more) rows.RemoveAt(rows.Count - 1);
             var last = more ? rows[^1] : null;
-            return new NotificationPageReadResult(rows, last?.OccurredAtUtc, last?.Id, clock.GetUtcNow());
+            var now = clock.GetUtcNow().ToUniversalTime();
+            var priorities = await ReadPrioritiesAsync(rows.Select(row => row.Id).ToArray(), now, token);
+            return new NotificationPageReadResult(rows.Select(row => row with { Priority = priorities[row.Id] }).ToArray(),
+                last?.OccurredAtUtc, last?.Id, now);
         }, () => new NotificationPageReadResult([], null, null, clock.GetUtcNow()), cancellationToken);
     }
 
@@ -119,7 +127,19 @@ public sealed partial class H6ProtectedNotificationRepository : INotificationRep
         return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
-            var value = await Read(); await transaction.CommitAsync(token); return value;
+            try
+            {
+                var value = await Read();
+                await transaction.CommitAsync(token);
+                return value;
+            }
+            catch
+            {
+                // The owned transaction also writes legacy scope sidecars. A retry must reload
+                // from SQL after rollback instead of reusing the failed attempt's tracked rows.
+                db.ChangeTracker.Clear();
+                throw;
+            }
         });
     }
     private async Task<UserRoleCode?> PrincipalAsync(Guid actor, UserRoleCode? expectedRole, CancellationToken token)

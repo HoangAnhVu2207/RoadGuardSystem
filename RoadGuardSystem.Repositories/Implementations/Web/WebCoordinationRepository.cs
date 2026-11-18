@@ -80,7 +80,7 @@ public sealed class WebCoordinationRepository(RoadGuardDbContext db, Idempotency
                     (source.Geometry is { IsEmpty: false, SRID: 32648 or 32649 } ? source.Geometry.Length : null);
                 return new ProjectRouteOverview(source.RoadSectionId, source.Id, source.VersionNo, source.Geometry.SRID, source.CrsProfileRevisionId, length);
             }).OrderBy(row => row.RoadSectionId).ToArray();
-            var unknown = counts.Where(row => row.ProjectId == project.Id && row.Status is DefectStatus.Unknown or DefectStatus.Resolved).Sum(row => row.Count);
+            var unknown = counts.Where(row => row.ProjectId == project.Id && row.Status is not (DefectStatus.Open or DefectStatus.Verified or DefectStatus.Rejected or DefectStatus.Closed)).Sum(row => row.Count);
             var open = counts.Where(row => row.ProjectId == project.Id && row.Status is DefectStatus.Open or DefectStatus.Verified).Sum(row => row.Count);
             return new ProjectOverview(project.Id, project.Name, project.Locality, project.EngineeringUtmSrid, lines,
                 lines.Length > 0 && lines.All(row => row.LengthMeters.HasValue) ? lines.Sum(row => row.LengthMeters!.Value) : null,

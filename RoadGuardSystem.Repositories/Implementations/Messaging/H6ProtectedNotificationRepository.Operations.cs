@@ -45,7 +45,8 @@ public sealed partial class H6ProtectedNotificationRepository
             return new(notificationId, scope?.ProjectId, scope?.OccurrenceId, scope?.Classification ?? "UNRESOLVED",
                 scope?.SourceKind ?? notification.SourceEntityType, scope?.SourceId ?? notification.SourceEntityId,
                 notification.EventType, scope?.ResolverVersion ?? "legacy-visible.v1", notification.Title,
-                "NOT_CONFIGURED", occurrence is not null ? "SYSTEM" : "UNKNOWN", deadlines);
+                NotificationPriorityFact.Policy, occurrence is not null ? "SYSTEM" : "UNKNOWN", deadlines,
+                (await ReadPrioritiesAsync([notificationId], clock.GetUtcNow().ToUniversalTime(), token))[notificationId]);
         }, () => null, cancellationToken, authenticatedRole);
     public Task<H6ClockPageFact> ClocksPageAsync(Guid actorId, UserRoleCode authenticatedRole, Guid projectId,
         H6ClockCursorFact? cursor, int limit, CancellationToken cancellationToken)

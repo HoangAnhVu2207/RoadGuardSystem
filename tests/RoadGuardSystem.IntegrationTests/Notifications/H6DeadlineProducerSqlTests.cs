@@ -36,6 +36,35 @@ public sealed class H6DeadlineProducerSqlTests(IdentitySqlServerFixture sql) : I
         Assert.Equal("VERIFIED", proof.Status); Assert.Equal(seed.Manager, proof.ResponsibleUserId);
         Assert.Equal(UserRoleCode.ProjectManager, proof.ResponsibleRole);
         await transaction.CommitAsync();
+        await transaction.DisposeAsync();
+        var observed = breach.ObservedAt;
+        db.Attach(message);
+        var fence = Guid.NewGuid();
+        message.AcquireLease("h6:" + fence.ToString("N"), observed, TimeSpan.FromMinutes(2), 32);
+        await db.SaveChangesAsync();
+        var claim = new H6Claim(message.Id, message.MessageType, observed, message.PayloadJson,
+            fence, message.LeaseExpiresAtUtc!.Value, message.DeliveryAttemptCount);
+        var delivered = await repository.DispatchAsync(claim, plan, default);
+        Assert.Equal(1, delivered.Delivered);
+        var notification = await db.Notifications.SingleAsync(row => row.RecipientUserId == seed.Manager && row.SourceEntityId == seed.Clock);
+        H6ProtectedNotificationRepository Inbox(DateTimeOffset at) => new(db, new IdempotencyOperationService(db),
+            new FixedClock(at), [new H6DeadlineNotificationSourceAdapter(db, new FixedClock(at))]);
+        var current = Inbox(observed);
+        Assert.Equal("NORMAL", (await Inbox(clock.CurrentDueAt.AddTicks(-1)).GetAsync(seed.Manager, notification.Id))!.Priority!.Value);
+        Assert.Equal("HIGH", (await current.GetAsync(seed.Manager, notification.Id))!.Priority!.Value);
+        var page = await current.ListAsync(seed.Manager, null, null, 25);
+        Assert.Equal("HIGH", Assert.Single(page.Items, row => row.Id == notification.Id).Priority!.Value);
+        var tracked = await db.Set<DeadlineClock>().Include(row => row.Extensions).SingleAsync(row => row.Id == seed.Clock);
+        tracked.Extend(Guid.NewGuid(), seed.Manager, observed.AddHours(2), "Test later deadline", observed);
+        await db.SaveChangesAsync();
+        Assert.Equal("NORMAL", (await current.GetAsync(seed.Manager, notification.Id))!.Priority!.Value);
+        var task = await db.FieldInspectionTasks.SingleAsync(row => row.Id == tracked.TargetId);
+        task.Transition(FieldInspectionTaskStatus.Cancelled);
+        await db.SaveChangesAsync();
+        Assert.Equal("NORMAL", (await Inbox(observed.AddHours(3)).GetAsync(seed.Manager, notification.Id))!.Priority!.Value);
+        tracked.Complete(observed.AddMinutes(1));
+        await db.SaveChangesAsync();
+        Assert.Equal("NORMAL", (await Inbox(observed.AddHours(3)).GetAsync(seed.Manager, notification.Id))!.Priority!.Value);
     }
     [Fact]
     public async Task UnadmittedEarlierBreachIsNotLostWhenClockWasExtendedAndCompleted()

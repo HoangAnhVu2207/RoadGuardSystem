@@ -86,7 +86,8 @@ public sealed class ProtectedSourceInboxHttpTests(AuthenticationSqlServerFixture
         Assert.Equal(before.Body, dto.GetProperty("message").GetString());
         Assert.Equal(before.SourceEntityId, dto.GetProperty("resourceId").GetGuid());
         Assert.Equal(before.OccurredAtUtc, dto.GetProperty("occurredAt").GetDateTimeOffset());
-        Assert.Equal(6, dto.EnumerateObject().Count()); // Finite public projection; no recipient, storage URL/key or private report metadata.
+        Assert.Equal(new[] { "id", "message", "occurredAt", "priority", "priorityEvaluatedAt", "priorityPolicy", "priorityReasonCode", "read", "resourceId", "version" },
+            dto.EnumerateObject().Select(property => property.Name).Order().ToArray()); // Finite public projection; no recipient, storage URL/key or private report metadata.
         var auditCount = await query.Set<H6NotificationAuditRow>().CountAsync(x => x.NotificationId == notificationId);
         Assert.True(auditCount > 0);
         var scope = await query.Set<H6NotificationScopeRow>().AsNoTracking().SingleAsync(x => x.NotificationId == notificationId);

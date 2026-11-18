@@ -256,7 +256,7 @@ public sealed class AiMockReadLifecycleAcceptanceTests(AuthenticationSqlServerFi
             using var failed = await client.GetAsync(detailPath);
             Assert.Equal(HttpStatusCode.OK, failed.StatusCode);
             var body = await Body(failed);
-            Assert.Equal(new[] { "attemptId", "errorCode", "fixtureVersion", "id", "manifestHash", "mode", "processingJobId", "projectId", "resultId", "stage", "status", "version" }, body.EnumerateObject().Select(p => p.Name).Order().ToArray());
+            Assert.Equal(new[] { "attemptId", "createdAt", "datasetId", "datasetVersion", "datasetVersionNo", "errorCode", "fixtureVersion", "id", "manifestHash", "mode", "processingJobId", "projectId", "resultId", "stage", "status", "surveyTaskId", "version" }, body.EnumerateObject().Select(p => p.Name).Order().ToArray());
             Assert.Equal("FAILED", body.GetProperty("status").GetString());
             Assert.Equal("mock_fixture_source_mismatch", body.GetProperty("errorCode").GetString());
             Assert.Equal(JsonValueKind.Null, body.GetProperty("resultId").ValueKind);

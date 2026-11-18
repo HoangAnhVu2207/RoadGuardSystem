@@ -128,7 +128,13 @@ public sealed class NotificationService : INotificationService
             value.ResourceId,
             value.Read,
             value.OccurredAtUtc,
-            Convert.ToBase64String(value.RowVersion));
+            Convert.ToBase64String(value.RowVersion))
+        {
+            Priority = value.Priority?.Value,
+            PriorityPolicy = value.Priority is null ? null : NotificationPriorityFact.Policy,
+            PriorityReasonCode = value.Priority?.ReasonCode,
+            PriorityEvaluatedAt = value.Priority?.EvaluatedAt
+        };
 
     private static string EncodeCursor(NotificationCursor cursor)
         => Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(cursor)));

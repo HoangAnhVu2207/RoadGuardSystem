@@ -23,7 +23,9 @@ public sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId
     string? Title = null, string PriorityPolicy = "NOT_CONFIGURED", string SenderKind = "UNKNOWN",
     NotificationDeadlineReference[]? Deadlines = null)
 {
-    public string Priority => PriorityPolicy;
+    public string Priority { get; init; } = "UNKNOWN";
+    public string? PriorityReasonCode { get; init; }
+    public DateTimeOffset? PriorityEvaluatedAt { get; init; }
 }
 public sealed record NotificationDeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);
 public sealed record H6DispatchResult(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,

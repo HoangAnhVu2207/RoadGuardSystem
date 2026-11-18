@@ -3,11 +3,13 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.Services.Exports;
 using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Repairs;
@@ -22,7 +24,10 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
     {
         await using var db = sql.CreateDbContext();
         var source = await GenuineProtectedSource.Seed(db, sql);
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        var useMinio = MinioSmokeFactAttribute.IsConfigured();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, allowExternalStorage: useMinio,
+            configureTestServices: services => services.PostConfigure<ExportOptions>(options =>
+                options.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? options.UnicodeFontPath));
         using var pm = await Client(source.Pm);
         using var supervisor = await Client(source.Supervisor);
         using var crew = await Client(source.Crew);
@@ -178,6 +183,7 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         var archived = await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { item } });
         var originalManifest = await ReadManifest(archived);
         Assert.Equal("AVAILABLE", Acceptance(originalManifest));
+        var originalPdf = useMinio ? await RenderAndRead(archived) : null;
         var finalDecision = (await (await pm.GetAsync(itemPath)).Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("effectiveDecisionId").GetGuid();
         var correction = await Send(supervisor, itemPath + "/corrections", new
@@ -189,9 +195,16 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         }, Guid.NewGuid().ToString(), await Version(supervisor, itemPath));
         Assert.True(correction.StatusCode == HttpStatusCode.Created, await correction.Content.ReadAsStringAsync());
         Assert.Equal(originalManifest.GetRawText(), (await ReadManifest(archived)).GetRawText());
-        var refreshed = await ReadManifest(await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } }));
+        var refreshedId = await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } });
+        var refreshed = await ReadManifest(refreshedId);
         Assert.Equal("UNAVAILABLE", Acceptance(refreshed));
         Assert.Equal(2, refreshed.GetProperty("sourceRevisions").EnumerateArray().Count(row => row.GetProperty("kind").GetString() == "RepairDecision"));
+        if (originalPdf is not null)
+        {
+            var revisedPdf = await RenderAndRead(refreshedId);
+            Assert.False(originalPdf.AsSpan().SequenceEqual(revisedPdf));
+            Assert.Equal(originalPdf, await pm.GetByteArrayAsync($"{exports}/{archived}/content"));
+        }
         // Current project admission denies unknown/unauthorized projects before resource lookup.
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(itemPath.Replace(source.Project.ToString(), Guid.NewGuid().ToString()))).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await pm.GetAsync(itemPath.Replace(package.ToString(), Guid.NewGuid().ToString()))).StatusCode);
@@ -199,6 +212,7 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             .ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(root)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync($"{exports}/{archived}/manifest")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync($"{exports}/{archived}/content")).StatusCode);
         Assert.Single(await db.Set<RepairFieldTaskBinding>().Where(x => x.ItemId == item).ToArrayAsync());
 
         async Task<Guid> CaptureDossier(object filters)
@@ -214,6 +228,16 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             using var response = await pm.GetAsync($"{exports}/{exportId}/manifest");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             return await response.Content.ReadFromJsonAsync<JsonElement>();
+        }
+        async Task<byte[]> RenderAndRead(Guid exportId)
+        {
+            using var serviceScope = factory.Services.CreateScope();
+            Assert.True(await serviceScope.ServiceProvider.GetRequiredService<IExportService>().ProcessNextAsync(default));
+            using var response = await pm.GetAsync($"{exports}/{exportId}/content");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            Assert.True(bytes.AsSpan().StartsWith("%PDF-"u8));
+            return bytes;
         }
         string? Acceptance(JsonElement manifest) => manifest.GetProperty("sections").EnumerateArray()
             .Single(row => row.GetProperty("name").GetString() == $"item/{item}/currentAcceptance").GetProperty("availability").GetString();

@@ -14,10 +14,11 @@ public sealed class PublicPublicationMigrationTests
         var sql = new AuthenticationSqlServerFixture();
         try
         {
-            await sql.InitializeAtMigrationAsync("20261009043010_AllowVerifiedDefectPostRepairTasks");
+            await sql.InitializeAsync();
             var actor = await sql.CreateUserAsync("c1-upgrade-" + Guid.NewGuid().ToString("N"), "Current1!");
             await using (var db = sql.CreateDbContext())
             {
+                await db.GetService<IMigrator>().MigrateAsync("20261009043010_AllowVerifiedDefectPostRepairTasks");
                 Assert.DoesNotContain("20261022074647_C1ControlledPublicPublication", await db.Database.GetAppliedMigrationsAsync());
                 await db.GetService<IMigrator>().MigrateAsync();
                 Assert.True(await db.Users.AnyAsync(x => x.Id == actor.Id));

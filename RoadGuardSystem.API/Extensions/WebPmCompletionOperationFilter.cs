@@ -29,22 +29,20 @@ public sealed class WebPmCompletionOperationFilter : IOperationFilter
                     Description = status switch
                     { "400" => "validation_error", "401" => "Authentication missing or no longer valid", "403" => "access_forbidden or csrf_failed", "404" => "not_found", "409" => "concurrency_conflict or duplicate_request", _ => "precondition_required" }
                 });
-            if (action == "MarkManyRead") operation.Description += " Batch limit 1–100. First call captures a database rowversion snapshot. " +
+            if (action == "MarkManyRead") operation.Description += " Batch limit 1â€“100. First call captures a database rowversion snapshot. " +
                 "Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. " +
                 "Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.";
         }
         if (controller == typeof(UploadsController) && action == "Download")
         {
-            operation.Description = "Authenticated private content. Web PM/Supervisor may play a VERIFIED SURVEY_VIDEO linked to a dataset on the stored task. " +
-                "Operator Bearer requires current task assignment and project membership. Each request rechecks authority. " +
-                "Single bytes Range supports start-end, start-, and -suffix. Multiple or invalid ranges return 416. " +
-                "If-Range accepts only the exact strong current ETag; other validators return the whole 200 representation. " +
-                "Storage ranges are streamed directly; codec/container support is the player's responsibility.";
+            operation.Description = "Private AI frame, handover document or authorized source video. Video supports one byte range (206 or 416). If-Range requires the current strong ETag; a mismatch returns the full video (200).";
             foreach (var status in new[] { "200", "206", "416" })
             {
-                var response = new OpenApiResponse { Description = status == "206" ? "Selected byte interval" : status == "416" ? "Unsupported or unsatisfiable byte interval" : "Full representation" };
+                var response = operation.Responses.TryGetValue(status, out var existing) ? existing : new OpenApiResponse
+                { Description = status == "206" ? "Selected byte interval" : "Unsupported or unsatisfiable byte interval" };
+                response.Headers.TryAdd("X-Correlation-ID", new OpenApiHeader { Schema = new OpenApiSchema { Type = "string", Format = "uuid" } });
                 foreach (var header in new[] { "Accept-Ranges", "Content-Range", "Content-Length", "ETag" })
-                    response.Headers[header] = new OpenApiHeader { Schema = new OpenApiSchema { Type = "string" } };
+                    response.Headers.TryAdd(header, new OpenApiHeader { Schema = new OpenApiSchema { Type = "string" } });
                 if (status != "416") response.Content["video/mp4"] = new OpenApiMediaType { Schema = new OpenApiSchema { Type = "string", Format = "binary" } };
                 operation.Responses[status] = response;
             }
@@ -58,9 +56,7 @@ public sealed class WebPmCompletionOperationFilter : IOperationFilter
                 { Name = name, In = ParameterLocation.Query, Schema = new OpenApiSchema { Type = "string", Format = "uuid" }, Description = "Filter by the persisted processing/dataset/task relation in this project. Bound to cursor." });
         }
         if (controller == typeof(ExportsController) && action == "Create")
-            operation.Description += " DOSSIER supports repairItemIds (max 100) or repairPackageIds (max 20), with at most 100 resolved items. " +
-                "These scopes cannot combine with segmentIds/defectIds/time filters. Snapshot is immutable; missing sections are explicit. " +
-                "ZIP may include authorized original JPEG/PNG evidence; PDF does not embed original files. Source authority is checked at admission, processing and download.";
+            operation.Description = "Create an export snapshot. DOSSIER accepts up to 100 item IDs or 20 package IDs, resolving up to 100 items. Do not mix repair scope with segment, defect or time filters. ZIP can include authorized originals.";
 
         void Header(string name, string description, bool required = true)
         {

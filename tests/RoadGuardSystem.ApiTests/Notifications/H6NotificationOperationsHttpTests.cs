@@ -57,7 +57,17 @@ public sealed class H6NotificationOperationsHttpTests(AuthenticationSqlServerFix
         Assert.Equal(HttpStatusCode.OK, scopeResponse.StatusCode);
         var scope = await scopeResponse.Content.ReadFromJsonAsync<H6NotificationScopeDto>();
         Assert.NotNull(scope); Assert.Equal(project.Id, scope.ProjectId); Assert.Equal("PROJECT", scope.Classification);
-        Assert.Equal("NOT_CONFIGURED", scope.Priority);
+        Assert.Equal("UNKNOWN", scope.Priority);
+        Assert.Equal("MANDATORY_DEADLINE_V1", scope.PriorityPolicy);
+        Assert.Equal("DEADLINE_SOURCE_INCOMPLETE", scope.PriorityReasonCode);
+        var detail = await ownerClient.GetFromJsonAsync<NotificationDto>($"/api/v1/notifications/{notification.Id}");
+        Assert.NotNull(detail);
+        Assert.Equal(scope.Priority, detail.Priority);
+        var inbox = await ownerClient.GetFromJsonAsync<NotificationPageDto>("/api/v1/notifications");
+        Assert.NotNull(inbox);
+        var row = Assert.Single(inbox.Items, item => item.Id == notification.Id);
+        Assert.Equal(detail.Priority, row.Priority);
+        Assert.Equal(detail.PriorityReasonCode, row.PriorityReasonCode);
         Assert.Equal(HttpStatusCode.NotFound, (await outsiderClient.GetAsync(scopePath)).StatusCode);
         var clocksPath = $"/api/v1/projects/{project.Id}/clocks";
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(clocksPath)).StatusCode);

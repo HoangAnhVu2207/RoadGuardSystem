@@ -56,13 +56,13 @@ Sup `PUT /projects/{projectId}/locality` với If-Match từ overview, body `{"l
 
 ## 4. Notification metadata
 
-`GET /notifications/{id}/scope` giữ quyền nguồn và recipient, thêm `title,priority,priorityPolicy,senderKind,deadlines[]`. Cùng `projectId,occurrenceId,classification,sourceKind,sourceId,eventType,resolverVersion` cũ để điều hướng theo loại nguồn; không phân tích message.
+`GET /notifications`, `GET /notifications/{id}` và `GET /notifications/{id}/scope` trả `priority`, `priorityPolicy`, `priorityReasonCode`, `priorityEvaluatedAt`. Scope còn trả `title,senderKind,deadlines[]`. Cùng `projectId,occurrenceId,classification,sourceKind,sourceId,eventType,resolverVersion` cũ để điều hướng theo loại nguồn; không phân tích message.
 
 ```json
-{"notificationId":"<id>","projectId":"<projectId>","occurrenceId":null,"classification":"UNRESOLVED","sourceKind":"RepairItem","sourceId":"<itemId>","eventType":"<event>","resolverVersion":"legacy-visible.v1","title":"Thông báo","priority":"NOT_CONFIGURED","priorityPolicy":"NOT_CONFIGURED","senderKind":"UNKNOWN","deadlines":[]}
+{"notificationId":"<id>","projectId":"<projectId>","occurrenceId":null,"classification":"UNRESOLVED","sourceKind":"RepairItem","sourceId":"<itemId>","eventType":"<event>","resolverVersion":"legacy-visible.v1","title":"Thông báo","priority":"UNKNOWN","priorityPolicy":"MANDATORY_DEADLINE_V1","priorityReasonCode":"DEADLINE_SOURCE_INCOMPLETE","priorityEvaluatedAt":"2026-11-18T00:00:00Z","senderKind":"UNKNOWN","deadlines":[]}
 ```
 
-`SYSTEM` chỉ khi có occurrence hệ thống đã lưu; không suy ra người gửi từ recipient/assignee/audit gần nhất. Chưa có policy ưu tiên nên `priority` và `priorityPolicy` đều là `NOT_CONFIGURED`. FE để giao diện ở mức mặc định và có thể ẩn badge ưu tiên. Clock liên quan theo source target/origin event đã lưu, cùng project; trả `clockId,dueAt,completedAt`, dùng API clock để đọc đầy đủ SLA. Ví dụ clock có thể xuất hiện ở thông báo PM review, Sup duyệt ban đầu/xác nhận cuối, kiểm an toàn lần đầu và xác nhận cảnh báo nguy hiểm. FE chỉ hiện deadline từ `deadlines[]` thực sự được trả. Không có clock thì nhận `[]`. Vị trí lấy tiếp từ API scope/geometry được cấp quyền. Thông báo legacy vẫn đọc nếu còn Visible(), reference không tự cho quyền mở nguồn. Mất quyền nguồn thì resolver từ chối/không trả scope theo contract cũ.
+`SYSTEM` chỉ khi có occurrence hệ thống đã lưu; không suy ra người gửi từ recipient/assignee/audit gần nhất. `MANDATORY_DEADLINE_V1` tính lại theo UTC server khi đọc. `HIGH` (`MANDATORY_DEADLINE_OVERDUE`) khi clock bắt buộc còn hiệu lực, chưa hoàn tất và đã tới hạn. `NORMAL` (`NO_CURRENT_OVERDUE_DEADLINE`) khi nguồn xác định đủ và không còn clock quá hạn. `UNKNOWN` (`DEADLINE_SOURCE_INCOMPLETE`) khi thiếu lineage hoặc không xác minh được clock hiện hành. FE có thể để UNKNOWN ở nhóm chưa xác định và giữ tương thích với response cũ `NOT_CONFIGURED`. Hạn đã đổi dùng `CurrentDueAt`. Hạn đã hoàn tất hoặc xác định không còn hiệu lực không tạo HIGH. Ưu tiên chỉ dùng để sắp xếp hiển thị, không phải severity hay SLA mới. POST đánh dấu đã đọc giữ receipt cũ; FE đọc lại GET để lấy priority mới. Clock liên quan theo source target/origin event đã lưu, cùng project; trả `clockId,dueAt,completedAt`, dùng API clock để đọc đầy đủ SLA. Ví dụ clock có thể xuất hiện ở thông báo PM review, Sup duyệt ban đầu/xác nhận cuối, kiểm an toàn lần đầu và xác nhận cảnh báo nguy hiểm. FE chỉ hiện deadline từ `deadlines[]` thực sự được trả. Không có clock thì nhận `[]`. Vị trí lấy tiếp từ API scope/geometry được cấp quyền. Thông báo legacy vẫn đọc nếu còn Visible(), reference không tự cho quyền mở nguồn. Mất quyền nguồn thì resolver từ chối/không trả scope theo contract cũ.
 
 ## 5. Liên hệ và đơn vị công tác
 
@@ -92,7 +92,7 @@ Không có source/evidence được phép → báo thiếu, không mở public �
 
 Trong overview: `definitionVersion: defect.open.v1`, distinct Defect theo project gốc, toàn bộ lịch sử không lọc thời gian/tuyến/đoạn. OPEN và VERIFIED tính mở; CLOSED/REJECTED không tính. Đã nghiệm thu repair item nhưng Defect chưa đóng vẫn tính theo trạng thái Defect. Correction hiện hành có thể mở Defect lại.
 
-UNKNOWN và RESOLVED legacy thiếu căn cứ closure đầy đủ → `value:null,availability:INCOMPLETE,unknownCount>0,reasonCodes:["LEGACY_DEFECT_STATUS_UNCLASSIFIED"]`. `0` AVAILABLE chỉ khi thật sự không có defect mở và không có trạng thái chưa phân loại. Không đếm số repair item, nên nhiều item cùng defect không tăng count. Bộ lọc thời gian/tuyến/đoạn của reporting hiện có giữ riêng; không trình bày overview lifetime như metric đã lọc. Cần quyết định nghiệp vụ riêng nếu muốn gộp RESOLVED legacy vào closed.
+UNKNOWN, mã không nhận diện, trạng thái null và RESOLVED legacy thiếu căn cứ phân loại → `value:null,availability:INCOMPLETE,unknownCount>0,reasonCodes:["LEGACY_DEFECT_STATUS_UNCLASSIFIED"]`. `0` AVAILABLE chỉ khi thật sự không có defect mở và không có trạng thái chưa phân loại. Không đếm số repair item, nên nhiều item cùng defect không tăng count. Bộ lọc thời gian/tuyến/đoạn của reporting hiện có giữ riêng; không trình bày overview lifetime như metric đã lọc. `DefectStatus.Resolved` có mã 4, nhưng không có writer production hiện hành xác lập nó như trạng thái riêng có provenance. `RepairWorkflowRepository` ghi rõ provenance của `Resolved` legacy là chưa xác định khi correction mở lại defect. Vì vậy nhóm này vẫn chưa phân loại.
 
 ## 8. Metadata kế hoạch repair
 
@@ -223,7 +223,7 @@ Không cộng các lượt dưới đây thành số ca độc lập vì có ca 
 
 Build solution có analyzer:0 error, còn warnings được compiler báo (không tắt analyzer). Format toàn repo và diff-check phải đạt trước bàn giao. SQL migration/catalog và Development Seeder dùng DB Testcontainers riêng; không ghi DB sandbox dùng chung/DB FE. Không thêm/đổi identity SQL test nên không đổi sql-lanes.json hoặc Verify-SqlLanes.ps1. Full Unit/API/4 SQL lane và CI chưa chạy trong lượt này.
 
-Giới hạn: chưa kiểm ma trận đầy đủ mọi source Case/AI bị đổi liên kết trong endpoint source-defect mới; các resolver quyền gốc được tái dùng. Export fixture kiểm immutable attempt và ảnh gốc, test MinIO này dùng fixture SQL. Chuỗi NORMAL qua HTTP riêng đã đi từ Crew nộp đến PM review, Sup xác nhận, tạo snapshot dossier, reopen và đọc hai manifest; snapshot lịch sử/guard correction có bộ kiểm riêng của repo. Chưa kiểm browser/player, dữ liệu FE hoặc storage triển khai thực. Priority nghiệp vụ và cách phân loại RESOLVED legacy vẫn cần owner chốt nếu muốn hiển thị khác trạng thái thiếu hiện tại.
+Giới hạn: chưa kiểm ma trận đầy đủ mọi source Case/AI bị đổi liên kết trong endpoint source-defect mới; các resolver quyền gốc được tái dùng. Export fixture kiểm immutable attempt và ảnh gốc, test MinIO này dùng fixture SQL. Chuỗi NORMAL qua HTTP riêng đã đi từ Crew nộp đến PM review, Sup xác nhận, tạo snapshot dossier, reopen và đọc hai manifest; snapshot lịch sử/guard correction có bộ kiểm riêng của repo. Chưa kiểm browser/player, dữ liệu FE hoặc storage triển khai thực. Priority đã dùng policy deadline. `RESOLVED` legacy vẫn thiếu căn cứ để phân loại.
 
 
 ### Kiểm bổ sung trước review
@@ -233,3 +233,29 @@ Giới hạn: chưa kiểm ma trận đầy đủ mọi source Case/AI bị đ�
 - Journey NORMAL, metric, scope notification, Swagger và route inventory: 5 đạt, 0 lỗi, 0 skip sau khi sửa payload correction của test sang `basis.evidenceReferenceIds`. Journey dùng ảnh có trạng thái VERIFIED từ fixture SQL. Đã kiểm snapshot dossier cũ giữ nguyên và manifest package mới giữ hai quyết định, trả `NO_EFFECTIVE_ACCEPTANCE`. Render/tải bytes PDF/ZIP được kiểm riêng bằng MinIO.
 - MinIO follow-up: 3 đạt, 0 lỗi, 0 skip, bao gồm smoke test bị skip trên CI. Có kiểm đọc dải 10 byte trực tiếp từ provider, token đã hủy làm copy dừng, dispose và mở dải lại thành công. Chưa đo RSS, chưa mô phỏng ngắt TCP giữa một response lớn hoặc kiểm phát/tua qua browser. TestServer không mở cổng để browser dùng cùng phiên và dữ liệu fixture.
 - FE kiểm lại sau migration và deploy backend: đăng nhập Web mới, reload danh sách và policy, đánh dấu batch tới `hasMore=false`, mở lại hồ sơ trước/sau reopen, và thử phát/tua video MP4 có quyền. Giữ nguyên giới hạn của fixture và kiểm lại dữ liệu thực ở môi trường đích.
+
+
+## Checklist 13 mục khi FE kiểm lại
+
+| Mục | Kịch bản kiểm bằng phiên Web mới | Bằng chứng BE và giới hạn |
+|---|---|---|
+| AI run | Chọn task rồi lọc run theo task/dataset, mở detail | API kiểm đúng dataset/version và phạm vi hiện hành |
+| Video | Mở MP4 bằng Web PM/Sup, tua và kiểm request Range. Kiểm lại sau thu hồi quyền | SQL/MinIO đã kiểm byte `200/206/416`, Operator Bearer và hủy copy ở tầng storage. Browser, ngắt TCP và RSS chưa đo |
+| Overview | Mở batch project và đọc lại địa bàn sau khi Sup cập nhật | HTTP kiểm quyền, ETag và replay |
+| Notification | So cùng một thông báo trên list, detail và scope. Đọc lại sau hạn hoặc khi deadline hoàn tất | HTTP kiểm thiếu nguồn và wire. SQL kiểm clock trước/sau hạn, đổi hạn và hoàn tất |
+| Liên hệ | Reload danh bạ và kiểm thành viên hết hiệu lực biến mất | HTTP kiểm phạm vi project và Supervisor sửa đơn vị |
+| Defect nguồn | Mở từ item/package, mở ảnh nếu còn quyền rồi thử lại sau đổi liên kết | Ca quyền Report/Case và AI chạy riêng. Chưa chứng minh toàn chuỗi ảnh nguồn đến dossier |
+| Defect mở | Kiểm số đang mở của project rỗng, project hỗn hợp và sau reopen | HTTP kiểm `0`, `INCOMPLETE` và đếm theo trạng thái hiện hành |
+| Kế hoạch repair | Đọc ETag đúng resource, lưu rồi reload. Thử stale version | HTTP kiểm ETag, audit, replay và quyền |
+| Người được giao | Tải lại tên sau reassign và xem lịch sử | Batch trả tên tài khoản hiện hành |
+| Policy | PM đọc lại revision sau revoke và kiểm bộ lọc còn áp dụng | Phiên mới được kiểm; Supervisor không được mở collection |
+| Bulk notification | Đánh dấu hơn 100 mục, tiếp tục cùng snapshot đến hết | HTTP kiểm 103 mục, replay và notification chèn muộn |
+| Dossier | Xuất item/package, reopen rồi xuất lại bằng key mới | Chuỗi NORMAL qua HTTP và MinIO kiểm hai manifest, tải PDF trước/sau reopen, PDF cũ giữ nguyên và quyền tải mất khi membership bị thu hồi. ZIP và ảnh repair đã pin kiểm riêng |
+| Survey summary | Đọc list rồi đối chiếu scope đầy đủ ở detail | HTTP kiểm dữ liệu summary và quyền theo project |
+
+CI base `d39c8f8`, run `44237220044` trên `huy-review`, có 11 lỗi API và 2 lỗi SQL lane 1. TRX cho thấy nhóm API gồm exact wire Survey/AI/Notification cũ, Swagger bỏ mất header chung hoặc mô tả quá dài, và fixture migration dùng EF model mới trên schema cũ. Hai lỗi SQL đều ở `Anh02MigrationTests`, cột `Locality` chưa tồn tại trên schema downgrade. Bản sửa dùng đúng schema ở mốc lịch sử và vẫn kiểm dữ liệu sau upgrade. Không thêm migration, giữ `20261117183505_WebPmCoordinationMetadata` và catalog hiện hành. [CI base](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/44237220044)
+
+
+Lượt chốt follow-up dùng SQL cô lập. Nhóm migration `Anh02MigrationTests` đạt 3/3. Nhóm deadline đạt 3/3 qua SQL, sau đó ca mở rộng kiểm task hủy đạt 1/1. Nhóm inbox, quyền và bulk đạt 50/50 sau khi sửa rollback/retry sidecar. Nhóm Range và PDF/ZIP trên MinIO đạt 2/2. Chuỗi NORMAL qua HTTP với PDF trên MinIO đạt 1/1. Các lượt có ca trùng nhau. Suite API tập trung đầu ghi 49 đạt và 1 lỗi fixture đọc bằng model mới ở schema cũ; ca migration này đạt ở lượt sau. Full suite chưa chạy local.
+
+Hồ sơ chỉ đóng gói ảnh gốc đủ quyền từ evidence đã gắn với attempt hoặc basis quyết định. Việc đọc ảnh ở `source-defect` không tự đưa ảnh Report/Case và AI vào PDF/ZIP. Chưa có ca xác minh một dossier chứa cả hai loại ảnh đó rồi đổi liên kết, thu hồi quyền và thử tải lại. Không đánh dấu kịch bản này đã nghiệm thu.

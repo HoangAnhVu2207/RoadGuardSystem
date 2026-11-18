@@ -247,7 +247,7 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         Assert.Equal(1, artifacts.Writes);
         var resultResponse = await client.GetAsync(path + $"/{run}/result"); Assert.Equal(HttpStatusCode.OK, resultResponse.StatusCode);
         var result = await Body(resultResponse); Assert.Equal("MOCK", result.GetProperty("mode").GetString());
-        var runRow = await CollectionAssertions.Contains(client, path, run, "id", "projectId", "stage", "mode", "status", "processingJobId", "resultId", "fixtureVersion", "errorCode", "version");
+        var runRow = await CollectionAssertions.Contains(client, path, run, "id", "projectId", "stage", "mode", "status", "processingJobId", "resultId", "fixtureVersion", "errorCode", "version", "createdAt", "datasetId", "datasetVersion", "datasetVersionNo", "surveyTaskId");
         var jobRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{project}/processing-jobs", result.GetProperty("jobId").GetGuid(), "id", "status", "resultId", "attemptNumber", "version", "jobType");
         Assert.Equal(runRow.GetProperty("processingJobId").GetGuid(), jobRow.GetProperty("id").GetGuid());
         var detection = result.GetProperty("detections")[0]; var detectionId = detection.GetProperty("detectionId").GetGuid();

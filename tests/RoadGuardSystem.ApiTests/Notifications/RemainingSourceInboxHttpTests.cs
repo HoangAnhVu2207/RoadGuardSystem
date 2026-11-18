@@ -250,13 +250,17 @@ public sealed class RemainingSourceInboxHttpTests(AuthenticationSqlServerFixture
         db.Add(older); await db.SaveChangesAsync();
         // Production JWT validation uses wall time. Advance only the producer clock, then return to real time before login.
         clock.Now = DateTimeOffset.UtcNow;
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: s => Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<TimeProvider>(s, clock));
+        using var logs = new InMemoryLogProvider();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs, configureTestServices: s => Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<TimeProvider>(s, clock));
         using var client = factory.CreateClient(); using var wrong = factory.CreateClient();
         await Login(client, (await db.Users.SingleAsync(u => u.Id == recipient)).Email!);
         var outsider = await sql.CreateUserAsync("wrong-family-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager); await Login(wrong, outsider.Email!);
         var path = $"/api/v1/notifications/{notification.Id}";
-        var get = await client.GetAsync(path); Assert.Equal(HttpStatusCode.OK, get.StatusCode);
-        var dto = await get.Content.ReadFromJsonAsync<JsonElement>(); Assert.Equal(6, dto.EnumerateObject().Count());
+        var get = await client.GetAsync(path);
+        Assert.True(get.StatusCode == HttpStatusCode.OK, logs.CombinedEntries);
+        var dto = await get.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(new[] { "id", "message", "occurredAt", "priority", "priorityEvaluatedAt", "priorityPolicy", "priorityReasonCode", "read", "resourceId", "version" },
+            dto.EnumerateObject().Select(property => property.Name).Order().ToArray());
         Assert.Equal(sourceId, dto.GetProperty("resourceId").GetGuid()); Assert.Equal(notification.Body, dto.GetProperty("message").GetString());
         var version0 = dto.GetProperty("version").GetString()!; Assert.Equal("\"" + version0 + "\"", get.Headers.ETag!.Tag);
         var page = await (await client.GetAsync("/api/v1/notifications?limit=1")).Content.ReadFromJsonAsync<JsonElement>();

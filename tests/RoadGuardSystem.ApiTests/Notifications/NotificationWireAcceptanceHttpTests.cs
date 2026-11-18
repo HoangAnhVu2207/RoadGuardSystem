@@ -44,7 +44,7 @@ public sealed class NotificationWireAcceptanceHttpTests(AuthenticationSqlServerF
         AssertNotification(detailJson, first, false);
         Assert.Equal("\"" + detailJson.GetProperty("version").GetString() + "\"", detail.Headers.ETag!.ToString());
         var scope = await Get(client, root + "/" + first.Id + "/scope");
-        Fields(scope, "notificationId", "projectId", "occurrenceId", "classification", "sourceKind", "sourceId", "eventType", "resolverVersion");
+        Fields(scope, "notificationId", "projectId", "occurrenceId", "classification", "sourceKind", "sourceId", "eventType", "resolverVersion", "title", "priority", "priorityPolicy", "priorityReasonCode", "priorityEvaluatedAt", "senderKind", "deadlines");
         Assert.Equal(first.Id, scope.GetProperty("notificationId").GetGuid());
         Assert.Equal(project, scope.GetProperty("projectId").GetGuid());
         Assert.Equal(project, scope.GetProperty("sourceId").GetGuid());
@@ -146,7 +146,8 @@ public sealed class NotificationWireAcceptanceHttpTests(AuthenticationSqlServerF
     private static void Fields(JsonElement json, params string[] names) => Assert.Equal(names.Order(), json.EnumerateObject().Select(p => p.Name).Order());
     private static void AssertNotification(JsonElement value, Notification row, bool read)
     {
-        Fields(value, "id", "message", "resourceId", "read", "occurredAt", "version");
+        Fields(value, "id", "message", "resourceId", "read", "occurredAt", "version", "priority", "priorityPolicy", "priorityReasonCode", "priorityEvaluatedAt");
+        Assert.Equal(read ? null : "UNKNOWN", value.GetProperty("priority").GetString());
         Assert.Equal(row.Id, value.GetProperty("id").GetGuid()); Assert.Equal(row.Body, value.GetProperty("message").GetString());
         Assert.Equal(row.SourceEntityId, value.GetProperty("resourceId").GetGuid()); Assert.Equal(read, value.GetProperty("read").GetBoolean());
         Assert.Equal(row.OccurredAtUtc, value.GetProperty("occurredAt").GetDateTimeOffset()); Assert.Equal(8, Convert.FromBase64String(value.GetProperty("version").GetString()!).Length);

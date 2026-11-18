@@ -92041,7 +92041,7 @@
         "file": "RoadGuardSystem.Services/Implementations/Messaging/H6NotificationReadService.cs",
         "line": 35,
         "symbol": "H6NotificationReadService",
-        "evidence": "            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,\n            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray());",
+        "evidence": "            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,\n            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray())\n        {\n            Priority = fact.Priority?.Value ?? \"UNKNOWN\",\n            PriorityReasonCode = fact.Priority?.ReasonCode,\n            PriorityEvaluatedAt = fact.Priority?.EvaluatedAt\n        };",
         "label": "CURRENT_VERIFIED"
       },
       {
@@ -92069,7 +92069,7 @@
         "file": "RoadGuardSystem.DTOs/Messaging/H6NotificationDtos.cs",
         "line": 1,
         "symbol": "WeeklyDigestView",
-        "evidence": "using System.Text.Json.Serialization;\nusing RoadGuardSystem.BusinessObjects.Messaging;\nusing RoadGuardSystem.aBusinessObjects.Commons;\n\nnamespace RoadGuardSystem.DTOs.Messaging;\n\npublic sealed record MarkNotificationsReadRequest(DateTimeOffset Through, int Limit = 100, string? SnapshotVersion = null);\npublic sealed record MarkNotificationsReadResponse(int Updated, bool HasMore, DateTimeOffset Through, string SnapshotVersion);\n\npublic sealed record WeeklyDigestDutyView(Guid ClockId, Guid TargetId, string Kind, Guid OriginEventId,\n    DateTimeOffset OriginAtUtc, DateTimeOffset DueAtRecoveryUtc);\npublic sealed record WeeklyDigestView(Guid Id, Guid ProjectId, Guid? RecipientId, DateTimeOffset ScheduledAtUtc,\n    DateTimeOffset RecoveredAtUtc, WeeklyDigestDutyView[] PendingAtRecovery, DateTimeOffset[] RecoveryPeriods);\n\n[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]\npublic sealed record H6NotificationEventDto(int SchemaVersion, Guid EventId, string Kind, Guid ProjectId,\n    string SourceKind, Guid SourceId, Guid OriginEventId, DateTimeOffset OccurredAtUtc,\n    Guid? SourceRevisionId = null, Guid? ResponsibleUserId = null, DateTimeOffset? ScheduledAtUtc = null,\n    FastTrackReviewSnapshot? FastTrackReview = null,\n    NotificationAssignmentSnapshot? NotificationAssignmentSnapshot = null, FastTrackFinalSource? FastTrackFinal = null);\npublic sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId, Guid? OccurrenceId,\n    string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion,\n    string? Title = null, string PriorityPolicy = \"NOT_CONFIGURED\", string SenderKind = \"UNKNOWN\",\n    NotificationDeadlineReference[]? Deadlines = null)\n{\n    public string Priority => PriorityPolicy;\n}\npublic sealed record NotificationDeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);\npublic sealed record H6DispatchResult(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,\n    int Delivered = 0, int Unresolved = 0, string? ReasonCode = null);\npublic sealed record H6NotificationPlan(H6NotificationEventDto Source, NotificationEventEnvelope? Envelope,\n    string MessageType, string Title, string Body, bool AuditOnly, H6RepairCorrectionAuditFacts? AuditFacts = null);\npublic sealed record H6NotificationSourceScope(string SourceKind, Guid SourceId, Guid ProjectId,\n    Guid? AssignedUserId = null)\n{\n    // Member-init projections let EF bind predicates to columns before SQL paging.\n    public H6NotificationSourceScope() : this(\"\", Guid.Empty, Guid.Empty) { }\n}\npublic sealed record H6NotificationSourceResolution(string Status, string? ReasonCode = null,\n    Guid? TaskId = null, Guid? AssignmentId = null, Guid? ResponsibleUserId = null, bool ResponsibleIsSupervisor = false,\n    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null);\npublic sealed record H6OutboxClaim(Guid Id, string MessageType, DateTimeOffset OccurredAtUtc,\n    string PayloadJson, Guid Fence, DateTimeOffset LeaseExpiresAtUtc, int Attempt);\npublic sealed record H6ClockView(Guid Id, Guid ProjectId, string Kind, Guid TargetId, Guid OriginEventId,\n    DateTimeOffset OriginAt, DateTimeOffset OriginalDueAt, DateTimeOffset CurrentDueAt, bool Overdue,\n    DateTimeOffset? CompletedAt, DateTimeOffset? AcknowledgedAt, string Version,\n    H6ClockExtensionView[] Extensions, H6ClockBreachView[] Breaches, string[] PendingCapabilities)\n{\n    public Guid? AppointedActorId { get; init; }\n    public string? AppointedRole { get; init; }\n    public object[] Appointments { get; init; } = [];\n}\npublic sealed record H6ClockExtensionView(Guid Id, Guid ActorId, DateTimeOffset At, DateTimeOffset PreviousDueAt,\n    DateTimeOffset NewDueAt, string Reason, bool PreviousDeadlineBreached);\npublic sealed record H6ClockBreachView(Guid Id, DateTimeOffset DueAt, DateTimeOffset ObservedAt);\n[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]\npublic sealed record H6ClockCursor(Guid ActorId, Guid ProjectId, string Role, DateTimeOffset AfterDueAtUtc, Guid AfterClockId);\npublic sealed record H6ClockPage(string Status, H6ClockView[] Items, H6ClockCursor? Continuation = null);",
+        "evidence": "using System.Text.Json.Serialization;\nusing RoadGuardSystem.BusinessObjects.Messaging;\nusing RoadGuardSystem.aBusinessObjects.Commons;\n\nnamespace RoadGuardSystem.DTOs.Messaging;\n\npublic sealed record MarkNotificationsReadRequest(DateTimeOffset Through, int Limit = 100, string? SnapshotVersion = null);\npublic sealed record MarkNotificationsReadResponse(int Updated, bool HasMore, DateTimeOffset Through, string SnapshotVersion);\n\npublic sealed record WeeklyDigestDutyView(Guid ClockId, Guid TargetId, string Kind, Guid OriginEventId,\n    DateTimeOffset OriginAtUtc, DateTimeOffset DueAtRecoveryUtc);\npublic sealed record WeeklyDigestView(Guid Id, Guid ProjectId, Guid? RecipientId, DateTimeOffset ScheduledAtUtc,\n    DateTimeOffset RecoveredAtUtc, WeeklyDigestDutyView[] PendingAtRecovery, DateTimeOffset[] RecoveryPeriods);\n\n[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]\npublic sealed record H6NotificationEventDto(int SchemaVersion, Guid EventId, string Kind, Guid ProjectId,\n    string SourceKind, Guid SourceId, Guid OriginEventId, DateTimeOffset OccurredAtUtc,\n    Guid? SourceRevisionId = null, Guid? ResponsibleUserId = null, DateTimeOffset? ScheduledAtUtc = null,\n    FastTrackReviewSnapshot? FastTrackReview = null,\n    NotificationAssignmentSnapshot? NotificationAssignmentSnapshot = null, FastTrackFinalSource? FastTrackFinal = null);\npublic sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId, Guid? OccurrenceId,\n    string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion,\n    string? Title = null, string PriorityPolicy = \"NOT_CONFIGURED\", string SenderKind = \"UNKNOWN\",\n    NotificationDeadlineReference[]? Deadlines = null)\n{\n    public string Priority { get; init; } = \"UNKNOWN\";\n    public string? PriorityReasonCode { get; init; }\n    public DateTimeOffset? PriorityEvaluatedAt { get; init; }\n}\npublic sealed record NotificationDeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);\npublic sealed record H6DispatchResult(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,\n    int Delivered = 0, int Unresolved = 0, string? ReasonCode = null);\npublic sealed record H6NotificationPlan(H6NotificationEventDto Source, NotificationEventEnvelope? Envelope,\n    string MessageType, string Title, string Body, bool AuditOnly, H6RepairCorrectionAuditFacts? AuditFacts = null);\npublic sealed record H6NotificationSourceScope(string SourceKind, Guid SourceId, Guid ProjectId,\n    Guid? AssignedUserId = null)\n{\n    // Member-init projections let EF bind predicates to columns before SQL paging.\n    public H6NotificationSourceScope() : this(\"\", Guid.Empty, Guid.Empty) { }\n}\npublic sealed record H6NotificationSourceResolution(string Status, string? ReasonCode = null,\n    Guid? TaskId = null, Guid? AssignmentId = null, Guid? ResponsibleUserId = null, bool ResponsibleIsSupervisor = false,\n    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null);\npublic sealed record H6OutboxClaim(Guid Id, string MessageType, DateTimeOffset OccurredAtUtc,\n    string PayloadJson, Guid Fence, DateTimeOffset LeaseExpiresAtUtc, int Attempt);\npublic sealed record H6ClockView(Guid Id, Guid ProjectId, string Kind, Guid TargetId, Guid OriginEventId,\n    DateTimeOffset OriginAt, DateTimeOffset OriginalDueAt, DateTimeOffset CurrentDueAt, bool Overdue,\n    DateTimeOffset? CompletedAt, DateTimeOffset? AcknowledgedAt, string Version,\n    H6ClockExtensionView[] Extensions, H6ClockBreachView[] Breaches, string[] PendingCapabilities)\n{\n    public Guid? AppointedActorId { get; init; }\n    public string? AppointedRole { get; init; }\n    public object[] Appointments { get; init; } = [];\n}\npublic sealed record H6ClockExtensionView(Guid Id, Guid ActorId, DateTimeOffset At, DateTimeOffset PreviousDueAt,\n    DateTimeOffset NewDueAt, string Reason, bool PreviousDeadlineBreached);\npublic sealed record H6ClockBreachView(Guid Id, DateTimeOffset DueAt, DateTimeOffset ObservedAt);\n[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]\npublic sealed record H6ClockCursor(Guid ActorId, Guid ProjectId, string Role, DateTimeOffset AfterDueAtUtc, Guid AfterClockId);\npublic sealed record H6ClockPage(string Status, H6ClockView[] Items, H6ClockCursor? Continuation = null);",
         "label": "CURRENT_VERIFIED"
       }
     ],
@@ -92222,7 +92222,7 @@
         "file": "RoadGuardSystem.Services/Implementations/Messaging/H6NotificationReadService.cs",
         "line": 35,
         "symbol": "H6NotificationReadService",
-        "evidence": "            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,\n            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray());",
+        "evidence": "            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,\n            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray())\n        {\n            Priority = fact.Priority?.Value ?? \"UNKNOWN\",\n            PriorityReasonCode = fact.Priority?.ReasonCode,\n            PriorityEvaluatedAt = fact.Priority?.EvaluatedAt\n        };",
         "label": "CURRENT_VERIFIED"
       },
       {
@@ -92250,7 +92250,7 @@
         "file": "RoadGuardSystem.DTOs/Messaging/H6NotificationDtos.cs",
         "line": 21,
         "symbol": "H6NotificationScopeDto",
-        "evidence": "public sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId, Guid? OccurrenceId,\n    string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion,\n    string? Title = null, string PriorityPolicy = \"NOT_CONFIGURED\", string SenderKind = \"UNKNOWN\",\n    NotificationDeadlineReference[]? Deadlines = null)\n{\n    public string Priority => PriorityPolicy;\n}\npublic sealed record NotificationDeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);\npublic sealed record H6DispatchResult(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,\n    int Delivered = 0, int Unresolved = 0, string? ReasonCode = null);\npublic sealed record H6NotificationPlan(H6NotificationEventDto Source, NotificationEventEnvelope? Envelope,\n    string MessageType, string Title, string Body, bool AuditOnly, H6RepairCorrectionAuditFacts? AuditFacts = null);\npublic sealed record H6NotificationSourceScope(string SourceKind, Guid SourceId, Guid ProjectId,\n    Guid? AssignedUserId = null)\n{\n    // Member-init projections let EF bind predicates to columns before SQL paging.\n    public H6NotificationSourceScope() : this(\"\", Guid.Empty, Guid.Empty) { }\n}\npublic sealed record H6NotificationSourceResolution(string Status, string? ReasonCode = null,\n    Guid? TaskId = null, Guid? AssignmentId = null, Guid? ResponsibleUserId = null, bool ResponsibleIsSupervisor = false,\n    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null);\npublic sealed record H6OutboxClaim(Guid Id, string MessageType, DateTimeOffset OccurredAtUtc,\n    string PayloadJson, Guid Fence, DateTimeOffset LeaseExpiresAtUtc, int Attempt);\npublic sealed record H6ClockView(Guid Id, Guid ProjectId, string Kind, Guid TargetId, Guid OriginEventId,\n    DateTimeOffset OriginAt, DateTimeOffset OriginalDueAt, DateTimeOffset CurrentDueAt, bool Overdue,\n    DateTimeOffset? CompletedAt, DateTimeOffset? AcknowledgedAt, string Version,",
+        "evidence": "public sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId, Guid? OccurrenceId,\n    string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion,\n    string? Title = null, string PriorityPolicy = \"NOT_CONFIGURED\", string SenderKind = \"UNKNOWN\",\n    NotificationDeadlineReference[]? Deadlines = null)\n{\n    public string Priority { get; init; } = \"UNKNOWN\";\n    public string? PriorityReasonCode { get; init; }\n    public DateTimeOffset? PriorityEvaluatedAt { get; init; }\n}\npublic sealed record NotificationDeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);\npublic sealed record H6DispatchResult(string Status, Guid? MessageId = null, Guid? OccurrenceId = null,\n    int Delivered = 0, int Unresolved = 0, string? ReasonCode = null);\npublic sealed record H6NotificationPlan(H6NotificationEventDto Source, NotificationEventEnvelope? Envelope,\n    string MessageType, string Title, string Body, bool AuditOnly, H6RepairCorrectionAuditFacts? AuditFacts = null);\npublic sealed record H6NotificationSourceScope(string SourceKind, Guid SourceId, Guid ProjectId,\n    Guid? AssignedUserId = null)\n{\n    // Member-init projections let EF bind predicates to columns before SQL paging.\n    public H6NotificationSourceScope() : this(\"\", Guid.Empty, Guid.Empty) { }\n}\npublic sealed record H6NotificationSourceResolution(string Status, string? ReasonCode = null,\n    Guid? TaskId = null, Guid? AssignmentId = null, Guid? ResponsibleUserId = null, bool ResponsibleIsSupervisor = false,\n    Guid? BindingId = null, UserRoleCode? ResponsibleRole = null);\npublic sealed record H6OutboxClaim(Guid Id, string MessageType, DateTimeOffset OccurredAtUtc,\n    string PayloadJson, Guid Fence, DateTimeOffset LeaseExpiresAtUtc, int Attempt);\npublic sealed record H6ClockView(Guid Id, Guid ProjectId, string Kind, Guid TargetId, Guid OriginEventId,\n    DateTimeOffset OriginAt, DateTimeOffset OriginalDueAt, DateTimeOffset CurrentDueAt, bool Overdue,\n    DateTimeOffset? CompletedAt, DateTimeOffset? AcknowledgedAt, string Version,",
         "label": "CURRENT_VERIFIED"
       }
     ],
@@ -92403,7 +92403,7 @@
         "file": "RoadGuardSystem.Services/Implementations/Messaging/H6NotificationReadService.cs",
         "line": 35,
         "symbol": "H6NotificationReadService",
-        "evidence": "            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,\n            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray());",
+        "evidence": "            fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,\n            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray())\n        {\n            Priority = fact.Priority?.Value ?? \"UNKNOWN\",\n            PriorityReasonCode = fact.Priority?.ReasonCode,\n            PriorityEvaluatedAt = fact.Priority?.EvaluatedAt\n        };",
         "label": "CURRENT_VERIFIED"
       },
       {
@@ -93445,14 +93445,14 @@
         "file": "RoadGuardSystem.Services/Implementations/Messaging/NotificationService.cs",
         "line": 131,
         "symbol": "NotificationService",
-        "evidence": "Convert.ToBase64String(value.RowVersion));",
+        "evidence": "            Convert.ToBase64String(value.RowVersion))\n        {\n            Priority = value.Priority?.Value,\n            PriorityPolicy = value.Priority is null ? null : NotificationPriorityFact.Policy,\n            PriorityReasonCode = value.Priority?.ReasonCode,\n            PriorityEvaluatedAt = value.Priority?.EvaluatedAt\n        };",
         "label": "CURRENT_VERIFIED"
       },
       {
         "file": "RoadGuardSystem.DTOs/Messaging/NotificationDto.cs",
         "line": 3,
         "symbol": "NotificationDto",
-        "evidence": "public sealed record NotificationDto(\n    Guid Id,\n    string Message,\n    Guid? ResourceId,\n    bool Read,\n    DateTimeOffset OccurredAt,\n    string Version);\n",
+        "evidence": "public sealed record NotificationDto(\n    Guid Id,\n    string Message,\n    Guid? ResourceId,\n    bool Read,\n    DateTimeOffset OccurredAt,\n    string Version)\n{\n    public string? Priority { get; init; }\n    public string? PriorityPolicy { get; init; }\n    public string? PriorityReasonCode { get; init; }\n    public DateTimeOffset? PriorityEvaluatedAt { get; init; }\n}",
         "label": "CURRENT_VERIFIED"
       }
     ],
@@ -93813,7 +93813,7 @@
         "file": "RoadGuardSystem.Services/Implementations/Messaging/NotificationService.cs",
         "line": 131,
         "symbol": "NotificationService",
-        "evidence": "Convert.ToBase64String(value.RowVersion));",
+        "evidence": "            Convert.ToBase64String(value.RowVersion))\n        {\n            Priority = value.Priority?.Value,\n            PriorityPolicy = value.Priority is null ? null : NotificationPriorityFact.Policy,\n            PriorityReasonCode = value.Priority?.ReasonCode,\n            PriorityEvaluatedAt = value.Priority?.EvaluatedAt\n        };",
         "label": "CURRENT_VERIFIED"
       },
       {
@@ -94153,14 +94153,14 @@
         "file": "RoadGuardSystem.Services/Implementations/Messaging/NotificationService.cs",
         "line": 131,
         "symbol": "NotificationService",
-        "evidence": "Convert.ToBase64String(value.RowVersion));",
+        "evidence": "            Convert.ToBase64String(value.RowVersion))\n        {\n            Priority = value.Priority?.Value,\n            PriorityPolicy = value.Priority is null ? null : NotificationPriorityFact.Policy,\n            PriorityReasonCode = value.Priority?.ReasonCode,\n            PriorityEvaluatedAt = value.Priority?.EvaluatedAt\n        };",
         "label": "CURRENT_VERIFIED"
       },
       {
         "file": "RoadGuardSystem.DTOs/Messaging/NotificationDto.cs",
         "line": 3,
         "symbol": "NotificationDto",
-        "evidence": "public sealed record NotificationDto(\n    Guid Id,\n    string Message,\n    Guid? ResourceId,\n    bool Read,\n    DateTimeOffset OccurredAt,\n    string Version);\n",
+        "evidence": "public sealed record NotificationDto(\n    Guid Id,\n    string Message,\n    Guid? ResourceId,\n    bool Read,\n    DateTimeOffset OccurredAt,\n    string Version)\n{\n    public string? Priority { get; init; }\n    public string? PriorityPolicy { get; init; }\n    public string? PriorityReasonCode { get; init; }\n    public DateTimeOffset? PriorityEvaluatedAt { get; init; }\n}",
         "label": "CURRENT_VERIFIED"
       }
     ],
@@ -302064,7 +302064,16 @@
         "label": "CURRENT_VERIFIED"
       }
     ],
-    "headers": [],
+    "headers": [
+      {
+        "name": "Range",
+        "required": false
+      },
+      {
+        "name": "If-Range",
+        "required": false
+      }
+    ],
     "bodyRequired": false,
     "bodyDescription": "No request body.",
     "requestMediaTypes": [],
@@ -302073,7 +302082,11 @@
         "status": 200,
         "type": "binary",
         "description": "Binary stream. application/octet-stream represents the binary download in documentation; runtime Content-Type equals stored FileMetadata.mediaType and can differ.",
-        "headers": [],
+        "headers": [
+          {
+            "name": "ETag"
+          }
+        ],
         "mediaTypes": [
           "application/octet-stream"
         ]

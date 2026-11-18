@@ -6,4 +6,10 @@ public sealed record NotificationDto(
     Guid? ResourceId,
     bool Read,
     DateTimeOffset OccurredAt,
-    string Version);
+    string Version)
+{
+    public string? Priority { get; init; }
+    public string? PriorityPolicy { get; init; }
+    public string? PriorityReasonCode { get; init; }
+    public DateTimeOffset? PriorityEvaluatedAt { get; init; }
+}

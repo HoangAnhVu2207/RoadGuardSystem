@@ -33,7 +33,12 @@ public sealed class H6NotificationReadService(IH6NotificationOperationsRepositor
         var fact = await repository.ScopeAsync(actorId, role, notificationId, cancellationToken);
         return fact is null ? null : new(fact.NotificationId, fact.ProjectId, fact.OccurrenceId,
             fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,
-            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray());
+            fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray())
+        {
+            Priority = fact.Priority?.Value ?? "UNKNOWN",
+            PriorityReasonCode = fact.Priority?.ReasonCode,
+            PriorityEvaluatedAt = fact.Priority?.EvaluatedAt
+        };
     }
 
     public async Task<H6ClockPage> ClocksPageAsync(Guid actorId, UserRoleCode role, Guid projectId,

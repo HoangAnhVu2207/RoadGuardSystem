@@ -19,10 +19,12 @@ public sealed class ReporterRepairProgressMigrationTests
         var fixture = new AuthenticationSqlServerFixture();
         try
         {
-            await fixture.InitializeAtMigrationAsync(previous);
+            await fixture.InitializeAsync();
             await using var db = fixture.CreateDbContext();
-            Assert.Equal(previous, (await db.Database.GetAppliedMigrationsAsync()).Last());
             var source = await GenuineProtectedSource.Seed(db, fixture);
+            db.ChangeTracker.Clear();
+            await db.GetService<IMigrator>().MigrateAsync(previous);
+            Assert.Equal(previous, (await db.Database.GetAppliedMigrationsAsync()).Last());
             var incident = await db.IncidentCases.SingleAsync(row => row.ProjectId == source.Project);
             var reportId = Assert.Single(incident.ActiveReportIds);
             var owner = await db.Reports.Where(row => row.Id == reportId).Select(row => row.ReporterUserId).SingleAsync();
@@ -40,6 +42,7 @@ public sealed class ReporterRepairProgressMigrationTests
             var recipient = await db.Set<HuyPublicationRecipient>().SingleAsync(row => row.PublicationId == publicationId);
             Assert.Null(recipient.RepairProgressStatus);
             Assert.Null(recipient.RepairAcceptanceFingerprint);
+            await db.GetService<IMigrator>().MigrateAsync();
             var report = await new ReporterLifecycleRepository(db, new ReporterReportRepository(db)).ReadAsync(owner, reportId, default);
             Assert.Null(report.RepairProgress);
             var update = Assert.Single(report.PublicUpdates);
@@ -50,7 +53,6 @@ public sealed class ReporterRepairProgressMigrationTests
             while (!File.Exists(Path.Combine(dir.FullName, "AGENTS.md")))
                 dir = dir.Parent ?? throw new InvalidOperationException("Repository root not found.");
             var expected = SandboxSeedCatalog.Load(Path.Combine(dir.FullName, "sandbox", "seeds", "v1")).Schema;
-            await db.GetService<IMigrator>().MigrateAsync();
             var actual = await SandboxSeedGuard.ReadSchemaAsync(db);
             Assert.Equal(expected.Signature, actual.Signature);
             Assert.Equal(expected.Migrations, actual.Migrations);

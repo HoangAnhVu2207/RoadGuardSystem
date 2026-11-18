@@ -28,7 +28,7 @@ public sealed class Anh02MigrationTests : IAsyncLifetime
         await migrator.MigrateAsync();
         var id = Guid.NewGuid(); db.Projects.Add(Project.Create(id, id.ToString(), "Preserved before downgrade", null, null, null, null, DateTimeOffset.UtcNow)); await db.SaveChangesAsync();
         await migrator.MigrateAsync(Baseline); Assert.DoesNotContain(Latest, await db.Database.GetAppliedMigrationsAsync());
-        Assert.Equal("Preserved before downgrade", (await db.Projects.AsNoTracking().SingleAsync(p => p.Id == id)).Name);
+        Assert.Equal("Preserved before downgrade", await db.Database.SqlQuery<string>($"SELECT Name AS [Value] FROM Projects WHERE Id={id}").SingleAsync());
         await migrator.MigrateAsync(); Assert.Contains(Latest, await db.Database.GetAppliedMigrationsAsync());
         Assert.Equal("Preserved before downgrade", (await db.Projects.AsNoTracking().SingleAsync(p => p.Id == id)).Name);
     }
@@ -45,7 +45,8 @@ public sealed class Anh02MigrationTests : IAsyncLifetime
     public async Task Upgrade_preserves_old_sources_and_snapshot_remains_immutable()
     {
         await using var db = Db(); var migrator = db.GetService<IMigrator>(); await migrator.MigrateAsync(Baseline);
-        var project = Guid.NewGuid(); db.Projects.Add(Project.Create(project, project.ToString(), "Upgrade survivor", null, null, null, null, DateTimeOffset.UtcNow)); await db.SaveChangesAsync();
+        var project = Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT Projects (Id, ProjectCode, Name, Status, CreatedAt) VALUES ({project}, {project.ToString()}, {"Upgrade survivor"}, 1, {DateTimeOffset.UtcNow})");
         await migrator.MigrateAsync(); Assert.Equal("Upgrade survivor", (await db.Projects.AsNoTracking().SingleAsync(p => p.Id == project)).Name);
         // Owned isolated raw fixture avoids inventing a live producer: snapshot immutability and Down only.
         var snapshot = Guid.NewGuid(); await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO Anh02ExportSnapshots (Id,ProjectId,PayloadJson,Hash,CapturedAt) VALUES ({snapshot},{project},N'{{}}',{new string('a', 64)},{DateTimeOffset.UtcNow})");

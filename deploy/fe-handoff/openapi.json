@@ -10291,7 +10291,7 @@
         "tags": [
           "Exports"
         ],
-        "description": "Create exports resources. Permissions: PM / Supervisor. DOSSIER supports repairItemIds (max 100) or repairPackageIds (max 20), with at most 100 resolved items. These scopes cannot combine with segmentIds/defectIds/time filters. Snapshot is immutable; missing sections are explicit. ZIP may include authorized original JPEG/PNG evidence; PDF does not embed original files. Source authority is checked at admission, processing and download.",
+        "description": "Create an export snapshot. DOSSIER accepts up to 100 item IDs or 20 package IDs, resolving up to 100 items. Do not mix repair scope with segment, defect or time filters. ZIP can include authorized originals.",
         "parameters": [
           {
             "name": "projectId",
@@ -26140,7 +26140,7 @@
         "tags": [
           "H6NotificationOperations"
         ],
-        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1–100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1â€“100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -62968,7 +62968,7 @@
         "tags": [
           "Uploads"
         ],
-        "description": "Authenticated private content. Web PM/Supervisor may play a VERIFIED SURVEY_VIDEO linked to a dataset on the stored task. Operator Bearer requires current task assignment and project membership. Each request rechecks authority. Single bytes Range supports start-end, start-, and -suffix. Multiple or invalid ranges return 416. If-Range accepts only the exact strong current ETag; other validators return the whole 200 representation. Storage ranges are streamed directly; codec/container support is the player's responsibility.",
+        "description": "Private AI frame, handover document or authorized source video. Video supports one byte range (206 or 416). If-Range requires the current strong ETag; a mismatch returns the full video (200).",
         "parameters": [
           {
             "name": "fileId",
@@ -62998,8 +62998,22 @@
         ],
         "responses": {
           "200": {
-            "description": "Full representation",
+            "description": "Success.",
             "headers": {
+              "Cache-Control": {
+                "description": "private, no-store",
+                "schema": {
+                  "type": "string",
+                  "format": "string"
+                }
+              },
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
               "Accept-Ranges": {
                 "schema": {
                   "type": "string"
@@ -63022,6 +63036,12 @@
               }
             },
             "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
               "video/mp4": {
                 "schema": {
                   "type": "string",
@@ -63128,6 +63148,12 @@
           "206": {
             "description": "Selected byte interval",
             "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
               "Accept-Ranges": {
                 "schema": {
                   "type": "string"
@@ -63161,6 +63187,12 @@
           "416": {
             "description": "Unsupported or unsatisfiable byte interval",
             "headers": {
+              "X-Correlation-ID": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
               "Accept-Ranges": {
                 "schema": {
                   "type": "string"
@@ -72710,8 +72742,16 @@
           },
           "priority": {
             "type": "string",
-            "nullable": true,
-            "readOnly": true
+            "nullable": true
+          },
+          "priorityReasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "priorityEvaluatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -73418,6 +73458,23 @@
           },
           "version": {
             "type": "string",
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "nullable": true
+          },
+          "priorityPolicy": {
+            "type": "string",
+            "nullable": true
+          },
+          "priorityReasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "priorityEvaluatedAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },

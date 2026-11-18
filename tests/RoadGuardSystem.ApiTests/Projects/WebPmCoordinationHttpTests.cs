@@ -326,7 +326,14 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
             .Select(status => Defect.Create(Guid.NewGuid(), seed.Project.Id, seed.Route.Id, null, seed.Defect.DefectTypeCode,
                 null, DefectSeverity.Medium, status, new Point(500020, 1100000) { SRID = 32648 }, now)).ToArray();
         await using var db = sql.CreateDbContext(); db.AddRange(rows); await db.SaveChangesAsync();
+        var empty = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString("N"), "Empty defect metric", null, null, null, null, now);
+        db.Projects.Add(empty);
+        await db.SaveChangesAsync();
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var sup = await WebCookieTestClient.Login(factory, seed.Supervisor.Email!);
+        var emptyMetric = (await Body(await sup.GetAsync($"/api/v1/projects/overviews?ids={empty.Id}")))[0].GetProperty("openDefects");
+        Assert.Equal(0, emptyMetric.GetProperty("value").GetInt64());
+        Assert.Equal("AVAILABLE", emptyMetric.GetProperty("availability").GetString());
         using var pm = await WebCookieTestClient.Login(factory, seed.Pm.Email!);
         var path = $"/api/v1/projects/overviews?ids={seed.Project.Id}";
         var metric = (await Body(await pm.GetAsync(path)))[0].GetProperty("openDefects");

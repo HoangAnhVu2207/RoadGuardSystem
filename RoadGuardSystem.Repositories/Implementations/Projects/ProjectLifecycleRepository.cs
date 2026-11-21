@@ -120,6 +120,8 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
                 row.Id,
                 row.DefectId,
                 row.Mandatory,
+                PackageId = EF.Property<Guid?>(row, "PackageId"),
+                row.CurrentRepairItemId,
                 row.EffectiveResolutionDecisionId,
                 Version = EF.Property<byte[]>(row, "RowVersion")
             }).ToArrayAsync(token);
@@ -189,7 +191,9 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
             projection.OutstandingMandatoryObligationIds.ToArray(), missing.ToArray(), output, version,
             actions.Select(row => new LD06ActionFact(row.Id, row.ProjectId, row.Kind.ToString(), row.ActorId, row.At, row.SourceActionId,
                 row.DefectId, row.LinkedDefectId, row.ObligationId, row.ReceivingProjectId, row.PriorRepairDecisionId, row.ScopeHash, row.FactsJson)).ToArray(),
-            responsibilities.Select(row => new ObligationResponsibilityFact(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, row.AcceptanceActionId)).ToArray(), transferable);
+            responsibilities.Select(row => new ObligationResponsibilityFact(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, row.AcceptanceActionId,
+                obligations.SingleOrDefault(obligation => obligation.Id == row.ObligationId)?.PackageId,
+                obligations.SingleOrDefault(obligation => obligation.Id == row.ObligationId)?.CurrentRepairItemId)).ToArray(), transferable);
     }
 
     private static string? HandlingScope(ProjectLifecycleHistoryRecord record)

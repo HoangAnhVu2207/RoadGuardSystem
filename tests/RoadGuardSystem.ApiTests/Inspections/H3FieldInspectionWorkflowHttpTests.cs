@@ -244,6 +244,12 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
             Assert.Equal(scope.Route, (await impactDb.FieldInspectionTasks.AsNoTracking().SingleAsync(row => row.Id == id)).RoadSectionVersionId);
         }
         Assert.Equal("MEASURE_ONLY", task.GetProperty("mode").GetString()); Assert.Equal(JsonValueKind.Null, task.GetProperty("surveyId").ValueKind); Assert.EndsWith(id.ToString(), response.Headers.Location!.ToString()); Assert.Equal("\"" + task.GetProperty("version").GetString() + "\"", response.Headers.ETag!.Tag);
+        foreach (var invalidType in new object[] { 0, 7, 255, "DepressionDepth" })
+        {
+            var invalid = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(body))!.AsObject();
+            invalid["requiredMeasurementType"] = JsonSerializer.SerializeToNode(invalidType);
+            Assert.Equal(HttpStatusCode.BadRequest, (await Post(client, root, invalid)).StatusCode);
+        }
         var replay = await Post(client, root, body, key); Assert.Equal(HttpStatusCode.OK, replay.StatusCode); Assert.Equal(task.GetRawText(), (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
         var malformed = new HttpRequestMessage(HttpMethod.Post, root) { Content = JsonContent.Create(body) }; malformed.Headers.Add("Idempotency-Key", new[] { "one", "two" }); Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(malformed)).StatusCode);
         await Login(client, other.UserName!); Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(path + "/geometry")).StatusCode);

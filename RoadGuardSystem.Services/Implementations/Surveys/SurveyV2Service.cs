@@ -301,7 +301,7 @@ public sealed class SurveyV2Service : ISurveyV2Service
         var scope = JsonSerializer.Deserialize<BandScopeDto[]>(dataset.ScopeJson, ResponseJsonOptions) ?? [];
         var pairs = JsonSerializer.Deserialize<DatasetPairDto[]>(dataset.PairsJson, ResponseJsonOptions) ?? [];
         return (SurveyV2ServiceStatus.Success, new DatasetDetailView(id, dataset.TaskId, dataset.ProjectId, id, dataset.SubmittedBy, dataset.SubmittedAt,
-            dataset.RecordedAt, dataset.DeviceId, scope, dataset.IntegrityStatus, files.Any(f => f.Purpose == "TELEMETRY") ? "PRESENT" : "MISSING", files, pairs, dataset.Version), dataset.Version);
+            dataset.RecordedAt, dataset.DeviceId, scope, dataset.IntegrityStatus, files.Any(f => f.Purpose == "TELEMETRY") ? "PRESENT" : "MISSING", files, pairs, dataset.Version, dataset.SurveyId), dataset.Version);
     }
 
     private async Task<bool> InScope(Guid actor, UserRoleCode role, Guid project, CancellationToken token) => await _scopeGuard.AuthorizeAsync(actor, role, project, token) is not null;

@@ -184,7 +184,9 @@ public sealed class DatasetAssessmentReadRevisionAcceptanceTests(AuthenticationS
         var datasetPath = $"/api/v1/datasets/{dataset}";
         var coveragePath = datasetPath + "/coverage";
         var projection = await Read(datasetPath, true);
-        Fields(projection, "id", "surveyTaskId", "projectId", "dataVersionId", "submittedBy", "submittedAt", "recordedAt", "deviceId", "scope", "integrityStatus", "telemetryStatus", "sourceFiles", "pairs", "version");
+        Fields(projection, "id", "surveyTaskId", "projectId", "dataVersionId", "submittedBy", "submittedAt", "recordedAt", "deviceId", "scope", "integrityStatus", "telemetryStatus", "sourceFiles", "pairs", "version", "surveyId");
+        await using (var surveyCheck = sql.CreateDbContext())
+            Assert.Equal(await surveyCheck.SurveyDataVersions.Where(row => row.Id == dataset).Select(row => row.SurveyId).SingleAsync(), projection.GetProperty("surveyId").GetGuid());
         projection.GetProperty("id").GetGuid().Should().Be(dataset);
         projection.GetProperty("dataVersionId").GetGuid().Should().Be(dataset);
         projection.GetProperty("surveyTaskId").GetGuid().Should().Be(task);

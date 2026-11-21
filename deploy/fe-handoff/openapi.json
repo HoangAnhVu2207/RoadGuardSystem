@@ -69475,6 +69475,12 @@
           "version": {
             "type": "string",
             "nullable": true
+          },
+          "surveyId": {
+            "type": "string",
+            "description": "Persisted Survey identity of this dataset. Use for FIELD sourceKind SURVEY, never substitute surveyTaskId or dataset id.",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -71277,7 +71283,18 @@
             "nullable": true
           },
           "requiredMeasurementType": {
+            "maximum": 6,
+            "minimum": 1,
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
             "type": "integer",
+            "description": "Numeric fixed type: 1 DepressionDepth, 2 SlabFaultingHeight, 3 ShoulderErosionExtent, 4 Area, 5 DepressionLength, 6 DepressionWidth. Unknown 0 is rejected for new tasks; submission may contain multiple measurements.",
             "format": "int32"
           },
           "measurementScope": {
@@ -73550,6 +73567,16 @@
           "acceptanceActionId": {
             "type": "string",
             "format": "uuid"
+          },
+          "packageId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "currentRepairItemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false

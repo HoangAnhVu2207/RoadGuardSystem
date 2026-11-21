@@ -5,6 +5,8 @@ namespace RoadGuardSystem.DTOs.Inspections;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record FieldTaskCreateInput(Guid DefectId, string DefectVersion, Guid? SurveyId, string SourceKind,
     Guid RouteVersionId, Guid? SegmentSetId, Guid? LayoutRevisionId, string? SlabId, string Purpose,
+    [System.ComponentModel.DataAnnotations.Range(1, 6)]
+    [property: System.ComponentModel.Description("Numeric code: 1 DepressionDepth, 2 SlabFaultingHeight, 3 ShoulderErosionExtent, 4 Area, 5 DepressionLength, 6 DepressionWidth. Unknown (0) is invalid for new FIELD tasks. Submissions may contain multiple measurements.")]
     byte RequiredMeasurementType, string MeasurementScope, string? Instructions, Guid AssignedToUserId,
     DateTimeOffset DueAt, Guid? MapPublicationId = null, Guid? CrsProfileRevisionId = null)
 {

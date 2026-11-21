@@ -83,7 +83,7 @@ public sealed class FieldInspectionTask
             throw new ArgumentException("Task, project, defect, survey, road version, and assigner ids must not be empty.");
         }
 
-        if (requiredMeasurementType == 0)
+        if (requiredMeasurementType is < 1 or > 6)
         {
             throw new ArgumentOutOfRangeException(nameof(requiredMeasurementType), "Measurement type must be specified.");
         }
@@ -146,7 +146,7 @@ public sealed class FieldInspectionTask
             sourceKind is not ("SURVEY" or "REPORTER") || (sourceKind == "SURVEY") != surveyId.HasValue ||
             purpose is not (FieldInspectionPurpose.PreMeasurement or FieldInspectionPurpose.PostRepair or FieldInspectionPurpose.Verification))
             throw new ArgumentException("Operational source and purpose must be explicit.");
-        if (id == Guid.Empty || projectId == Guid.Empty || defectId == Guid.Empty || routeVersionId == Guid.Empty || assigner == Guid.Empty || requiredType == 0)
+        if (id == Guid.Empty || projectId == Guid.Empty || defectId == Guid.Empty || routeVersionId == Guid.Empty || assigner == Guid.Empty || requiredType is < 1 or > 6)
             throw new ArgumentException("Task, project, Defect, route, assigner and measurement type are required.");
         var task = new FieldInspectionTask
         {

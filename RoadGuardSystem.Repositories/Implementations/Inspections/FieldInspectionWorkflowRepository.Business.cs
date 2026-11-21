@@ -102,7 +102,7 @@ public sealed partial class FieldInspectionWorkflowRepository
     private async Task<FieldWorkflowResultFact> CreateTaskAsync(FieldWorkflowCommand c, CancellationToken token)
     {
         var input = c.Input as FieldTaskCreateInputFact ?? throw new ArgumentException("Task input required.");
-        if (string.IsNullOrWhiteSpace(input.DefectVersion) || input.DueAt == default || input.AssignedToUserId == Guid.Empty) Deny(400, "validation_error");
+        if (input.RequiredMeasurementType is < 1 or > 6 || string.IsNullOrWhiteSpace(input.DefectVersion) || input.DueAt == default || input.AssignedToUserId == Guid.Empty) Deny(400, "validation_error");
         var defect = await db.Defects.FromSqlInterpolated($"SELECT * FROM [Defects] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={input.DefectId}").SingleOrDefaultAsync(token);
         if (defect is null || defect.ProjectId != c.ProjectId) Deny(404, "not_found");
         if (defect.Status != DefectStatus.Open || defect.RoadSectionVersionId != input.RouteVersionId) Deny(409, "source_not_ready");

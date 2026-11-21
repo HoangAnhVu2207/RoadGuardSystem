@@ -29,7 +29,8 @@ public sealed record LD06TransferableObligationFact(Guid Id, Guid DefectId, stri
     decimal OffsetTo, string ScopeHash, string Version);
 public sealed record LD06ActionFact(Guid Id, Guid ProjectId, string Kind, Guid ActorId, DateTimeOffset At, Guid? SourceActionId,
     Guid? DefectId, Guid? LinkedDefectId, Guid? ObligationId, Guid? ReceivingProjectId, Guid? PriorRepairDecisionId, string ScopeHash, string FactsJson);
-public sealed record ObligationResponsibilityFact(Guid ObligationId, Guid OriginProjectId, Guid CurrentProjectId, Guid AcceptanceActionId);
+public sealed record ObligationResponsibilityFact(Guid ObligationId, Guid OriginProjectId, Guid CurrentProjectId, Guid AcceptanceActionId,
+    Guid? PackageId = null, Guid? CurrentRepairItemId = null);
 public sealed record ProjectLifecycleWriteResult(int Status, string? Code = null, ProjectLifecycleFacts? Value = null);
 public sealed record LD06LifecycleInput(string Reason, Guid[] EvidenceFileIds, Guid? SourceActionId = null,
     Guid? DefectId = null, Guid? LinkedDefectId = null, Guid? ObligationId = null, Guid? ReceivingProjectId = null,

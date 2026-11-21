@@ -22,7 +22,7 @@ public sealed record BaselineView(Guid Id, IReadOnlyList<BaselineSelectedItemDto
 public sealed record DatasetSourceFileDto(Guid FileId, string ChecksumSha256, long SizeBytes, string MediaType, string Purpose);
 public sealed record DatasetDetailView(Guid Id, Guid SurveyTaskId, Guid ProjectId, Guid DataVersionId, Guid? SubmittedBy,
     DateTimeOffset? SubmittedAt, DateTimeOffset? RecordedAt, Guid? DeviceId, IReadOnlyList<BandScopeDto> Scope,
-    string IntegrityStatus, string TelemetryStatus, IReadOnlyList<DatasetSourceFileDto> SourceFiles, IReadOnlyList<DatasetPairDto> Pairs, string Version);
+    string IntegrityStatus, string TelemetryStatus, IReadOnlyList<DatasetSourceFileDto> SourceFiles, IReadOnlyList<DatasetPairDto> Pairs, string Version, Guid? SurveyId = null);
 public sealed record SurveyTaskWorkPackage(string SchemaVersion, SurveyTaskV2ResponseDto Task, DateTimeOffset? DueAt,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] PositionDto? AccessPoint, IReadOnlyList<SurveyGeometryRefDto> GeometryRefs, string ScopeVersion);
 public sealed record SurveyGeometryRefDto(Guid RouteVersionId, Guid SegmentSetId, IReadOnlyList<Guid> SegmentIds);

@@ -376,6 +376,11 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         (await Body(webAssessment)).GetProperty("id").GetGuid().Should().Be(assessment);
         using var outsideAssessment = await outsideWeb.GetAsync(assessed.Headers.Location);
         outsideAssessment.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var completionPath = $"/api/v1/survey-tasks/{task}/complete";
+        using var incompleteTask = await pmActions.GetAsync($"/api/v1/survey-tasks/{task}");
+        var incompleteCompletion = await Command(pmActions, completionPath, new { datasetId = dataset, assessmentId = assessment, reason = "Cannot complete UNKNOWN right edge" }, incompleteTask.Headers.ETag!.Tag);
+        incompleteCompletion.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Body(await pmActions.GetAsync($"/api/v1/survey-tasks/{task}"))).GetProperty("status").GetString().Should().Be("SUBMITTED");
         await CheckReads($"/api/v1/datasets/{dataset}");
         await CheckReads($"/api/v1/datasets/{dataset}/coverage");
         var coverage = await Body(await client.GetAsync($"/api/v1/datasets/{dataset}/coverage"));
@@ -564,6 +569,12 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var originalOperatorRead = await client.GetAsync($"/api/v1/survey-tasks/{task}");
         originalOperatorRead.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(originalOperatorRead)).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
+        await using (var navigationDb = sql.CreateDbContext())
+        {
+            var originalAssessmentNotice = await navigationDb.Notifications.Where(x => x.RecipientUserId == first.Id && x.SourceEntityType == "SurveyTask" && x.SourceEntityId == task).OrderBy(x => x.Id).Select(x => x.Id).FirstOrDefaultAsync();
+            originalAssessmentNotice.Should().NotBe(Guid.Empty);
+            (await client.GetAsync($"/api/v1/notifications/{originalAssessmentNotice}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
         // Fixture authority change isolates replay authorization from the already submitted task lifecycle.
         await using (var db = sql.CreateDbContext())
         {
@@ -575,6 +586,12 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             await db.SaveChangesAsync();
         }
         await Login(client, first.UserName!);
+        await using (var lostScope = sql.CreateDbContext())
+        {
+            var notices = await lostScope.Notifications.Where(x => x.RecipientUserId == first.Id && x.SourceEntityType == "SurveyTask" && x.SourceEntityId == task).Select(x => x.Id).ToArrayAsync();
+            notices.Should().NotBeEmpty();
+            foreach (var notice in notices) (await client.GetAsync($"/api/v1/notifications/{notice}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
         (await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await client.GetAsync(eligiblePath + "?cursor=" + Uri.EscapeDataString(foreignDroneCursor))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await client.GetAsync(submitPath)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -634,6 +651,94 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var childDataset = (await Body(concurrent.Single(r => r.StatusCode == HttpStatusCode.Created))).GetProperty("id").GetGuid();
         var childDetail = await Body(await client.GetAsync($"/api/v1/datasets/{childDataset}"));
         childDetail.GetProperty("sourceFiles").EnumerateArray().Sum(f => f.GetProperty("sizeBytes").GetInt64()).Should().Be(34_359_738_368L);
+        await Login(client, manager.UserName!);
+        var childAssessmentBody = new
+        {
+            methodVersion = "pm-evidence-review.v1",
+            items = new[] { new {
+            routeVersionId = route, segmentSetId = set, segmentId = segment, targetBand = "RIGHT_EDGE",
+            positionStatus = "PASS", qualityStatus = "PASS", coverageStatus = "PASS", reason = "Verified child band",
+            evidence = new[] { new { fileId = largeVideos.First(), fromMilliseconds = 0, toMilliseconds = 1000 } }
+        } }
+        };
+        var childAssessmentPath = $"/api/v1/datasets/{childDataset}/assessments";
+        var childAssessmentKey = Guid.NewGuid().ToString("N");
+        var childAssessmentResponse = await Command(pmActions, childAssessmentPath, childAssessmentBody, concurrent.Single(r => r.StatusCode == HttpStatusCode.Created).Headers.ETag!.Tag, childAssessmentKey);
+        childAssessmentResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var childAssessment = (await Body(childAssessmentResponse)).GetProperty("id").GetGuid();
+        (await Body(await Command(pmActions, childAssessmentPath, childAssessmentBody, concurrent.Single(r => r.StatusCode == HttpStatusCode.Created).Headers.ETag!.Tag, childAssessmentKey))).GetProperty("id").GetGuid().Should().Be(childAssessment);
+        var previousChildAssessment = childAssessment;
+        var renewedAssessmentResponse = await Command(pmActions, childAssessmentPath, childAssessmentBody, concurrent.Single(r => r.StatusCode == HttpStatusCode.Created).Headers.ETag!.Tag);
+        renewedAssessmentResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        childAssessment = (await Body(renewedAssessmentResponse)).GetProperty("id").GetGuid();
+        using var childTaskBeforeComplete = await pmActions.GetAsync($"/api/v1/survey-tasks/{child}");
+        (await Body(childTaskBeforeComplete)).GetProperty("status").GetString().Should().Be("SUBMITTED");
+        var childCompletionPath = $"/api/v1/survey-tasks/{child}/complete";
+        var childCompleteBody = new { datasetId = childDataset, assessmentId = childAssessment, reason = "PM confirms all task bands passed" };
+        var childCompleteKey = Guid.NewGuid().ToString("N");
+        (await Command(pmActions, childCompletionPath, new { datasetId = childDataset, assessmentId = previousChildAssessment, reason = "Earlier assessment is no longer current" }, childTaskBeforeComplete.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        if (!withAccessPoint)
+            await using (var legacyScopeDb = sql.CreateDbContext())
+                await legacyScopeDb.SurveyRequestScopes.Where(x => x.SurveyRequestId == child).ExecuteDeleteAsync();
+        var savedCsrf = pmWeb.DefaultRequestHeaders.GetValues("X-CSRF-TOKEN").Single();
+        pmWeb.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        try
+        {
+            (await Command(pmWeb, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag, childCompleteKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+        finally { pmWeb.DefaultRequestHeaders.Add("X-CSRF-TOKEN", savedCsrf); }
+        (await Command(outsideWeb, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Command(supWeb, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Command(pmActions, childCompletionPath, childCompleteBody, "\"AAAAAAAABAA=\"")).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        (await Command(pmActions, childCompletionPath, new { datasetId = dataset, assessmentId = assessment, reason = "Parent dataset cannot complete child" }, childTaskBeforeComplete.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var competingKey = withAccessPoint ? childCompleteKey : Guid.NewGuid().ToString("N");
+        var completeRaces = await Task.WhenAll(
+            Command(pmActions, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag, childCompleteKey),
+            Command(pmActions, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag, competingKey));
+        if (withAccessPoint) completeRaces.Should().OnlyContain(x => x.StatusCode == HttpStatusCode.OK);
+        else
+        {
+            completeRaces.Count(x => x.StatusCode == HttpStatusCode.OK).Should().Be(1);
+            completeRaces.Single(x => x.StatusCode != HttpStatusCode.OK).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        }
+        if (completeRaces[0].StatusCode != HttpStatusCode.OK) childCompleteKey = competingKey;
+        var completedChild = completeRaces.First(x => x.StatusCode == HttpStatusCode.OK);
+        completedChild.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(completedChild)).GetProperty("status").GetString().Should().Be("COMPLETED");
+        var completedReplay = await Command(pmActions, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag, childCompleteKey);
+        completedReplay.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Body(completedReplay)).GetRawText().Should().Be((await Body(completedChild)).GetRawText());
+        (await Command(pmActions, childCompletionPath, new { datasetId = childDataset, assessmentId = childAssessment, reason = "Changed request cannot replay" }, childTaskBeforeComplete.Headers.ETag!.Tag, childCompleteKey)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Command(pmActions, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        (await Body(await pmActions.GetAsync($"/api/v1/survey-tasks/{task}"))).GetProperty("status").GetString().Should().Be("SUPPLEMENT_REQUIRED");
+        await Login(client, second.UserName!);
+        (await Body(await client.GetAsync($"/api/v1/survey-tasks/{child}"))).GetProperty("status").GetString().Should().Be("COMPLETED");
+        var completedList = await Body(await client.GetAsync("/api/v1/me/survey-tasks?statusGroup=COMPLETED"));
+        completedList.GetProperty("items").EnumerateArray().Should().Contain(row => row.GetProperty("id").GetGuid() == child);
+        (await Command(client, childCompletionPath, childCompleteBody, completedChild.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await using (var dispatchScope = factory.Services.CreateAsyncScope())
+        {
+            var dispatch = new RoadGuardSystem.Services.Messaging.H6NotificationDispatchService(dispatchScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.IH6NotificationDispatchRepository>());
+            for (var i = 0; i < 50; i++) { var outcome = await dispatch.ProcessOneAsync(); if (outcome.Status == "IDLE") break; }
+        }
+        await using (var noticeDb = sql.CreateDbContext())
+        {
+            (await noticeDb.AuditLogs.CountAsync(x => x.EntityId == child && x.EventType == "survey_task_complete")).Should().Be(1);
+            var occurrence = await noticeDb.Set<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow>().SingleAsync(x => x.OriginEventId == childAssessment && x.EventType == "survey.dataset.assessed.v1");
+            var notice = await noticeDb.Notifications.SingleAsync(x => x.RecipientUserId == second.Id && x.SourceEntityId == child && x.EventType == occurrence.OccurrenceKey);
+            var navigation = await Body(await client.GetAsync($"/api/v1/notifications/{notice.Id}/scope"));
+            navigation.GetProperty("taskId").GetGuid().Should().Be(child);
+            navigation.GetProperty("datasetId").GetGuid().Should().Be(childDataset);
+            navigation.GetProperty("assessmentId").GetGuid().Should().Be(childAssessment);
+            navigation.GetProperty("eventCode").GetString().Should().Be("survey.dataset.assessed.v1");
+            (await noticeDb.OutboxMessages.CountAsync(x => x.MessageType == "survey.dataset.assessed.v1" && x.PayloadJson.Contains(childAssessment.ToString()))).Should().Be(1);
+        }
+        // Completion replay must still require the current PM membership.
+        await using (var membershipDb = sql.CreateDbContext())
+            await membershipDb.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        (await Command(pmActions, childCompletionPath, childCompleteBody, childTaskBeforeComplete.Headers.ETag!.Tag, childCompleteKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await using (var membershipDb = sql.CreateDbContext())
+            await membershipDb.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Active));
         await using (var db = sql.CreateDbContext())
         {
             (await db.Set<DatasetAssessment>().CountAsync(x => x.DatasetId == dataset)).Should().Be(2);

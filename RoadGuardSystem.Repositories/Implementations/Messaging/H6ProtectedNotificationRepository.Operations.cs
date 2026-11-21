@@ -62,12 +62,24 @@ public sealed partial class H6ProtectedNotificationRepository
                                     select new { task.Id, task.ProjectId }).SingleOrDefaultAsync(token);
                 navigationTask = target?.Id; navigationProject = target?.ProjectId;
             }
+            Guid? datasetId = null; Guid? assessmentId = null;
+            if (occurrence?.EventType == "survey.dataset.assessed.v1" && occurrence.SourceKind == "SurveyTask" && navigationTask == occurrence.SourceId && navigationProject == occurrence.ProjectId)
+            {
+                var source = await (from review in db.Set<RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessment>().AsNoTracking()
+                                    join dataset in db.SurveyDataVersions.AsNoTracking() on review.DatasetId equals dataset.Id
+                                    join survey in db.Surveys.AsNoTracking() on dataset.SurveyId equals survey.Id
+                                    where review.Id == occurrence.OriginEventId && review.ReviewedAt == occurrence.OccurredAtUtc && survey.SurveyRequestId == navigationTask && survey.ProjectId == navigationProject
+                                    select new { DatasetId = dataset.Id, AssessmentId = review.Id }).SingleOrDefaultAsync(token);
+                datasetId = source?.DatasetId; assessmentId = source?.AssessmentId;
+            }
             return new(notificationId, scope?.ProjectId, scope?.OccurrenceId, scope?.Classification ?? "UNRESOLVED",
                 scope?.SourceKind ?? notification.SourceEntityType, scope?.SourceId ?? notification.SourceEntityId,
                 notification.EventType, scope?.ResolverVersion ?? "legacy-visible.v1", notification.Title,
                 NotificationPriorityFact.Policy, occurrence is not null ? "SYSTEM" : "UNKNOWN", deadlines,
                 (await ReadPrioritiesAsync([notificationId], clock.GetUtcNow().ToUniversalTime(), token))[notificationId])
             {
+                DatasetId = datasetId,
+                AssessmentId = assessmentId,
                 TaskId = navigationTask,
                 TaskProjectId = navigationProject,
                 EventCode = occurrence is not null && scope is not null && occurrence.SourceId == scope.SourceId &&

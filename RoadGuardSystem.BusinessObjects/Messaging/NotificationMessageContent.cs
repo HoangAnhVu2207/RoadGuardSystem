@@ -5,6 +5,7 @@ public static class NotificationMessageContent
 {
     public static (string Title, string Body) For(NotificationEventKind kind) => kind switch
     {
+        NotificationEventKind.SurveyAssessed => ("Dataset assessment recorded", "An assessment is available for your survey dataset. Open the protected assessment; this does not complete the task."),
         NotificationEventKind.SurveyAssigned or NotificationEventKind.FieldAssigned or NotificationEventKind.RepairAssigned => ("Task assigned", "A task has been assigned. Open the protected task to review its current scope."),
         NotificationEventKind.SurveySubmitted or NotificationEventKind.FieldSubmitted or NotificationEventKind.RepairSubmitted => ("Submission awaiting review", "A task submission is awaiting project manager review."),
         NotificationEventKind.SurveySupplementRequested or NotificationEventKind.FieldSupplementRequested or NotificationEventKind.RepairReworkRequested => ("Supplement or rework requested", "A task requires additional evidence or rework. Open the protected task for details."),

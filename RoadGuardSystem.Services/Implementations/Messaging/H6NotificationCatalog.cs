@@ -16,6 +16,7 @@ public static class H6NotificationCatalog
     private static readonly Dictionary<string, (NotificationEventKind Kind, string Action)> Entries =
         new Dictionary<string, (NotificationEventKind, string)>(StringComparer.Ordinal)
         {
+            ["survey.dataset.assessed.v1"] = (NotificationEventKind.SurveyAssessed, "ASSESSED"),
             ["survey.task.assigned.v1"] = (NotificationEventKind.SurveyAssigned, "ASSIGNED"),
             ["survey.task.submitted.v1"] = (NotificationEventKind.SurveySubmitted, "SUBMITTED"),
             ["survey.task.supplement_requested.v1"] = (NotificationEventKind.SurveySupplementRequested, "SUPPLEMENT"),

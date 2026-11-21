@@ -44,7 +44,8 @@ public sealed class NotificationWireAcceptanceHttpTests(AuthenticationSqlServerF
         AssertNotification(detailJson, first, false);
         Assert.Equal("\"" + detailJson.GetProperty("version").GetString() + "\"", detail.Headers.ETag!.ToString());
         var scope = await Get(client, root + "/" + first.Id + "/scope");
-        Fields(scope, "notificationId", "projectId", "occurrenceId", "classification", "sourceKind", "sourceId", "eventType", "resolverVersion", "title", "priority", "priorityPolicy", "priorityReasonCode", "priorityEvaluatedAt", "senderKind", "deadlines");
+        Fields(scope, "notificationId", "projectId", "occurrenceId", "classification", "sourceKind", "sourceId", "eventType", "resolverVersion", "title", "priority", "priorityPolicy", "priorityReasonCode", "priorityEvaluatedAt", "senderKind", "deadlines",
+            "eventCode", "taskId", "taskProjectId", "datasetId", "assessmentId");
         Assert.Equal(first.Id, scope.GetProperty("notificationId").GetGuid());
         Assert.Equal(project, scope.GetProperty("projectId").GetGuid());
         Assert.Equal(project, scope.GetProperty("sourceId").GetGuid());
@@ -52,6 +53,10 @@ public sealed class NotificationWireAcceptanceHttpTests(AuthenticationSqlServerF
         Assert.Equal("Project", scope.GetProperty("sourceKind").GetString());
         Assert.Equal("TEST_ONLY", scope.GetProperty("eventType").GetString());
         Assert.Equal(JsonValueKind.Null, scope.GetProperty("occurrenceId").ValueKind);
+        // A legacy Project notification has no verified event occurrence or task/dataset lineage.
+        // Keep exact-wire checks and prove the additive navigation fields do not fabricate IDs.
+        foreach (var name in new[] { "eventCode", "taskId", "taskProjectId", "datasetId", "assessmentId" })
+            Assert.Equal(JsonValueKind.Null, scope.GetProperty(name).ValueKind);
         Assert.False(string.IsNullOrWhiteSpace(scope.GetProperty("resolverVersion").GetString()));
         foreach (var suffix in new[] { "?limit=0", "?limit=101", "?cursor=invalid", "?cursor=" + Uri.EscapeDataString(Convert.ToBase64String("{}"u8.ToArray())) })
             await Problem(await client.GetAsync(root + suffix), 400, "validation_error");

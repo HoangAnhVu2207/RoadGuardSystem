@@ -26,6 +26,8 @@ public sealed record H6NotificationScopeDto(Guid NotificationId, Guid? ProjectId
     public string? EventCode { get; init; }
     public Guid? TaskId { get; init; }
     public Guid? TaskProjectId { get; init; }
+    public Guid? DatasetId { get; init; }
+    public Guid? AssessmentId { get; init; }
     public string Priority { get; init; } = "UNKNOWN";
     public string? PriorityReasonCode { get; init; }
     public DateTimeOffset? PriorityEvaluatedAt { get; init; }

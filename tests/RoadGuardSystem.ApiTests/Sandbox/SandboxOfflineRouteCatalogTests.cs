@@ -70,6 +70,7 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("PATCH", "/api/v1/users/{userId}/phone-number"),
             ("GET", "/api/v1/me/phone-number"),
             ("PATCH", "/api/v1/me/phone-number"),
+            ("POST", "/api/v1/survey-tasks/{taskId}/complete"),
             ("GET", "/api/v1/survey-tasks/{taskId}/datasets"),
             ("POST", "/api/v1/auth/reporter/password-reset/request"),
             ("POST", "/api/v1/auth/reporter/password-reset/confirm"),

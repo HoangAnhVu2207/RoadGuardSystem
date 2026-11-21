@@ -38,6 +38,8 @@ public sealed class H6NotificationReadService(IH6NotificationOperationsRepositor
             EventCode = fact.EventCode,
             TaskId = fact.TaskId,
             TaskProjectId = fact.TaskProjectId,
+            DatasetId = fact.DatasetId,
+            AssessmentId = fact.AssessmentId,
             Priority = fact.Priority?.Value ?? "UNKNOWN",
             PriorityReasonCode = fact.Priority?.ReasonCode,
             PriorityEvaluatedAt = fact.Priority?.EvaluatedAt

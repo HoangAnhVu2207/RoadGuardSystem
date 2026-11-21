@@ -92,7 +92,7 @@ Ví dụ: `GET /me/survey-tasks?limit=20&statusGroup=SUBMITTED&search=<projectNa
 | `COMPLETED` — Hoàn tất | Chỉ `COMPLETED` |
 | `OTHER` — Trạng thái khác | `REJECTED`, `CANCELLED`, `POSTPONED`, `UNKNOWN`, không nhận diện |
 
-Source V2 được rà chưa có command tự chuyển task sang COMPLETED; bản sửa chỉ đọc trạng thái đã lưu, không thêm workflow hoàn thành hoặc tự dùng SUBMITTED thay thế. Cần chốt workflow riêng nếu app cần thao tác hoàn thành mới.
+Bổ sung sau base 368e556: PM xác nhận bằng `POST /survey-tasks/{taskId}/complete` với datasetId/assessmentId và task ETag. SUBMITTED không tự đổi thành COMPLETED; xem protocol ở mục 9.
 
 Mã không nhận diện chỉ có thể đi vào OTHER khi đọc; không chấp nhận một filter status không được công bố. Decline thường kết thúc assignment nên task không còn trong collection hiện hành; OTHER không khôi phục quyền lịch sử. ACCEPTED chưa phải SUBMITTED. SUBMITTED chưa phải COMPLETED.
 
@@ -157,7 +157,8 @@ Nguồn chính: `FieldInspectionWorkflowRepository.Business.cs`/`.Intake.cs`; `R
 | Survey giao/giao lại **mới** | `survey.task.assigned.v1`, task/assignment đã lưu trong cùng receipt transaction | Operator của chính assignment còn hiệu lực; giao lại không gửi cho người cũ |
 | Survey task bổ sung **mới** | `survey.task.supplement_requested.v1`, task con+ParentTaskId+SupplementRequestId+assignment | Operator được giao **task con**; deep link sourceId là task con, không phải SupplementarySurveyRequest ID |
 | Survey nộp **mới** | `survey.task.submitted.v1`, dataset đã lưu + Survey/task lineage | PM chính hiện hành của project để xử lý; không biến thành phê duyệt |
-| Survey assessment/COMPLETED | Chưa có producer inbox tương ứng được xác nhận trong đường ghi V2 đã rà | Không giả event từ audit/message; dùng readback assessment/task. Không triển khai workflow hoàn thành mới trong đợt read contract |
+| Survey assessment **mới** | `survey.dataset.assessed.v1`, assessment và outbox trong cùng receipt transaction | Operator liên quan còn assignment/membership hiện hành; scope cung cấp taskId/datasetId/assessmentId. Đây là kết quả đánh giá, không phải thông báo hoàn thành |
+| Survey COMPLETED | PM gọi lệnh complete sau kiểm full task scope; audit + receipt | Readback task COMPLETED qua API-226/list; không phát notification hoàn thành riêng trong đợt này |
 
 Inbox dùng lại `GET /notifications`, `GET /notifications/{id}`, `GET /notifications/{id}/scope`, `POST /notifications/{id}/read`. SourceKind FieldTask→API-080, RepairWork→đọc item/task theo quyền nguồn, SurveyTask→API-226 với sourceId. Scope bổ sung `eventCode` nullable từ occurrence+sidecar được xác minh (ví dụ survey.task.assigned.v1); legacy thiếu căn cứ trả null. Giữ `eventType` cũ có thể là khóa chống trùng dạng hash, không parse nó như event code. Scope trả sourceKind/sourceId/projectId và bổ sung `taskId/taskProjectId` nullable từ liên kết hiện hành đã được kiểm quyền; đặc biệt RepairWork.sourceId là item ID, không dùng nó như task ID. Crew mở API-080 bằng taskProjectId/taskId từ scope; nếu null thì refresh danh sách, không đoán task. không parse message để lấy ID hoặc quyết định hành động. Read command dùng Idempotency-Key và If-Match từ notification detail. GET và đánh dấu đã đọc không cấp quyền tới task/file.
 
@@ -171,7 +172,7 @@ Các producer Survey mới dùng outbox trong cùng transaction với assignment
 4. Sau accept/reject/reassign/submit/review/correction, bỏ cursor và reload nguồn đọc tương ứng. Deep link bị 401 thì đăng nhập lại; 403/404 thì refresh list, không dùng history để vượt guard.
 5. Source được push không tự cập nhật runtime. Đợt này không có migration mới; cập nhật backend theo quy trình deploy hiện hành rồi kiểm lại bằng phiên app mới. Không deploy trong nhiệm vụ này.
 
-## 8. Kiểm chứng và giới hạn
+## 8. Kiểm chứng đợt 368e556 (kết quả lịch sử, xem mục 9 cho đợt bổ sung)
 
 HTTP sử dụng production DI/Bearer và SQL Server container cô lập; không phải app/browser, không chạy AI thật hoặc cập nhật DB FE. Fixture trạng thái được tạo có kiểm soát để kiểm read projection, không được xem là workflow nghiệp vụ tự có quyền ghi trạng thái đó. Không chạy full API/4 SQL lane trong nhiệm vụ này. Upload/storage trong các journey dùng fixture/mock hiện có; không chứng minh MinIO hay phát video trên app thật.
 
@@ -211,3 +212,139 @@ git diff --check
 Build/analyzer đạt (0 error; có warning, không tắt analyzer). Format toàn repo, source/docs/agent checks và diff check được kiểm trước commit. Không có migration/model change; sandbox catalog và manifest SQL lane giữ nguyên. Test SQL chỉ sửa fixture trong identity hiện có, không thêm/đổi tên hoặc xóa test. [OpenAPI](openapi.json) sinh từ runtime Swagger provider của test host production DI, bỏ Probe test-only và giữ readiness contract; path set không đổi, hai GET `/me` thêm query, bốn schema read được mở rộng.
 
 Tự review lượt 1: quyền trước pagination, mode/binding, history không cấp quyền, status wire và các tầng hồ sơ độc lập; sửa LINQ và fixture/assertion cũ theo contract mới. Lượt 2: outbox/source proof/recipient/replay, đọc scope sau mất assignment/đổi role, eventType tương thích, navigation đúng task/project, legacy/null, source evidence/OpenAPI, file scope và bảo toàn main checkout. Không có peer/external review được thực hiện trong lượt này.
+
+
+## 9. Bổ sung sau 368e556 — PM hoàn tất Survey và inbox assessment
+
+Base `368e556e4c882570cbbeeed7002a6b9e1825c33d`, nhánh local `codex/survey-completion-assessment`. Không có migration mới. Không deploy/apply DB FE trong đợt này. Những ghi chú mục 3/6 về command complete và inbox assessment đã được cập nhật; FIELD lifecycle/correction audit-only vẫn giữ nguyên.
+
+### 9.1. Xác nhận hoàn thành từng task
+
+Mới: **`POST /api/v1/survey-tasks/{taskId}/complete`**. PM có membership hiện hành trong project của task. Supervisor/Operator không được xác nhận. Hai lựa chọn auth riêng: Bearer hoặc Web cookie; Web phải lấy CSRF bằng `GET /api/v1/auth/web/csrf` và gửi `X-CSRF-TOKEN`, `credentials: "include"`.
+
+```http
+POST /api/v1/survey-tasks/<taskId>/complete
+Content-Type: application/json
+Idempotency-Key: <new-command-key>
+If-Match: "<task-version-from-GET-API-226>"
+X-CSRF-TOKEN: <requestToken-if-cookie>
+```
+
+```json
+{"datasetId":"<explicit-dataset-of-this-task>","assessmentId":"<current-assessment-of-that-dataset>","reason":"PM xác nhận hồ sơ đáp ứng đủ phạm vi nhiệm vụ"}
+```
+
+Nguồn ID/version:
+
+1. `GET /survey-tasks/{taskId}` → status/version và ETag **task**, không dùng ETag dataset/assessment.
+2. `GET /survey-tasks/{taskId}/datasets` → chọn `items[].id` làm datasetId; mặc định UI mới nhất chỉ là lựa chọn hiển thị.
+3. `GET /datasets/{datasetId}/coverage` → `assessmentId` hiện hành; mở `GET /datasets/{datasetId}/assessments/{assessmentId}` để PM kiểm từng item. Dataset list assessmentId dùng cùng quy tắc này.
+4. PM xác nhận rồi gửi lệnh; sau 409/412 phải GET lại, kiểm scope/assessment và để PM xác nhận trước key mới.
+
+Guard completion:
+
+- Task V2/BAND_V1 hiện tại phải **SUBMITTED** và có assignment hiện hành. Chưa nộp, đã hủy, cần bổ sung hoặc đã hoàn thành với lệnh mới đều không tự đi tiếp. Không dùng upload VERIFIED, integrity PASSED hay processing SUCCEEDED để hoàn thành.
+- Dataset chỉ định phải ServerConfirmed và thuộc **đúng task/project** qua Survey. Không lấy dataset của cha hoàn thành con hoặc ngược lại; không tự chọn dataset mới nhất. Không thêm điều kiện integrity PASSED hoặc Supervisor duyệt ngoài yêu cầu đã chốt.
+- Assessment phải là revision hiện hành của dataset (ReviewedAt DESC, Id DESC, cùng `/coverage`), method `pm-evidence-review.v1`. Không cho dùng PASS cũ bỏ qua FAIL/UNKNOWN mới hơn.
+- Mọi segment/band bắt buộc của **toàn task** phải nằm trong dataset scope và có PositionStatus/QualityStatus/CoverageStatus đều **PASS** ở assessment chỉ định. Đủ một phần chưa đủ. Task scope lấy từ scope rows đã pin; task cũ thiếu rows dùng scope trong OutputRequirements đã lưu, thiếu/malformed thì fail-closed.
+- Kiểm PM hiện hành, scope và role trong transaction/receipt guard. Chuyển trạng thái task + audit chứa datasetId/assessmentId/reason + receipt cùng transaction serializable. Giữ rowversion; hai lệnh cùng key replay một kết quả, khác key dùng cùng version chỉ một chuyển trạng thái thành công. Không hoàn tất cha/con, không thay baseline hay trạng thái dataset/processing.
+
+Thành công mới và replay: **200**, response `SurveyTaskV2ResponseDto` hiện có, ETag task mới:
+
+```json
+{
+  "id":"<completed-taskId>","projectId":"<projectId>",
+  "scope":[{"routeVersionId":"<routeId>","segmentSetId":"<setId>","segmentIds":["<segmentId>"],"targetBand":"RIGHT_EDGE"}],
+  "operatorId":"<currentOperatorId>","status":"COMPLETED","version":"<new-task-rowversion>",
+  "supplementTaskId":null,"dueAt":"2026-12-01T08:00:00Z","projectName":null,"parentTaskId":"<parentTaskId>"
+}
+```
+
+GET detail/list của Operator vẫn theo assignment + membership hiện hành. Gọi lại API-226 và `GET /me/survey-tasks?statusGroup=COMPLETED` để mở lại sau reload. ParentTaskId giữ đúng task gốc. Task con COMPLETED **không** làm task gốc SUPPLEMENT_REQUIRED thành COMPLETED. Đợt này không thêm thao tác tổng kết cả chuỗi bổ sung hoặc dùng hồ sơ con đóng task gốc; nếu cần đóng nhiệm vụ gốc sau khi hợp nhất các lượt thì cần quy tắc/workflow riêng, không giả trạng thái.
+
+Replay sau timeout: cùng taskId/body/key/If-Match ban đầu; trả kết quả đã ghi dù version ban đầu nay cũ, nhưng vẫn kiểm quyền PM hiện hành trước receipt. Mất membership/role bị 403, không lấy receipt làm quyền. Key khác không phải replay; key cũ/body khác conflict.
+
+| HTTP/code thực tế | Xử lý |
+|---|---|
+| 200 | Task xác nhận hoặc replay; refresh task/list, giữ phân biệt assessment |
+| 400 validation_error/model validation | Sai JSON/type; field ngoài DTO bị chặn |
+| 401 auth_unauthorized | Phiên không hợp lệ |
+| 403 access_forbidden | Sai role hoặc PM không còn quyền project |
+| 403 csrf_failed | Cookie thiếu/sai CSRF; không có tác động nghiệp vụ |
+| 404 survey_request_not_found | Task không có hoặc không đọc được nguồn task |
+| 409 survey_invalid_state_transition | Task/source/assessment không đủ điều kiện, current assessment không khớp, còn thiếu PASS hoặc task không ở SUBMITTED |
+| 409 duplicate_request | Cùng key nhưng command khác |
+| 409 survey_scope_incompatible | Không phải BAND_V1 |
+| 412 auth_concurrency_conflict | Task version cũ; đây là mã route Survey hiện hành, không đổi tên trong đợt này |
+| 422 survey_validation_failed | ID rỗng, reason trắng hoặc >1000, key quá 128; thiếu field bắt buộc/type sai có thể bị model validation 400 trước service |
+| 428 validation_error | Thiếu Idempotency-Key hoặc If-Match |
+
+### 9.2. Thông báo kết quả assessment cho Operator
+
+Mới: **`survey.dataset.assessed.v1`**, kind **ASSESSED**, sourceKind **SurveyTask**. Producer `SurveyAssessmentRepository.CreateAsync`: ghi assessment/items/audit/outbox cùng receipt transaction. Receipt replay không tạo thêm event. Không gửi đại trà cho Crew/PM/Sup.
+
+Recipient là Operator của assignment hiện hành liên quan task tại lúc assessment được ghi. Dispatch chứng minh transport, assessment ID/revision, dataset→Survey→task/project, ReviewedAt và assignment/current actor. Membership và assignment được kiểm lại khi delivery/retry/inbox/đọc nguồn. Nếu đã giao người khác trước dispatch, không chuyển thông báo lịch sử sang người mới; source không còn hợp lệ thì bị từ chối theo H6 hiện hành. Nếu đã gửi rồi mà người nhận mất quyền, inbox/scope/detail đích vẫn chặn.
+
+Handoff đọc inbox giữ `eventType` cũ (có thể là dedup hash); dùng **eventCode** từ scope. `GET /notifications/{id}/scope` bổ sung **datasetId/assessmentId nullable**, chỉ điền từ occurrence assessment có lineage đã kiểm chứng. Không parse message, không tự dùng assessment mới nhất thay ID của thông báo.
+
+```json
+{
+  "notificationId":"<notificationId>","projectId":"<projectId>","occurrenceId":"<occurrenceId>",
+  "classification":"PROJECT","sourceKind":"SurveyTask","sourceId":"<taskId>",
+  "eventType":"<existing-dedup-key>","eventCode":"survey.dataset.assessed.v1",
+  "taskId":"<taskId>","taskProjectId":"<projectId>",
+  "datasetId":"<datasetId>","assessmentId":"<exact-assessmentId>",
+  "resolverVersion":"huy-final.notification-registry.v1","title":"Dataset assessment recorded",
+  "priorityPolicy":"MANDATORY_DEADLINE_V1","senderKind":"SYSTEM","deadlines":[],
+  "priority":"NORMAL","priorityReasonCode":"NO_CURRENT_OVERDUE_DEADLINE",
+  "priorityEvaluatedAt":"2026-11-21T17:00:00Z"
+}
+```
+
+Đây là mẫu shape với ID placeholder; priority/reason lấy server theo deadline hiện hành, không hardcode các giá trị ví dụ. Với thông báo khác/legacy thiếu căn cứ, datasetId/assessmentId null; không suy từ sourceId hoặc title. FE mở API-226 bằng taskId và `/datasets/{datasetId}/assessments/{assessmentId}` bằng ID scope. Assessment trả item status PASS/FAIL/UNKNOWN; notification không tự phát “đã hoàn thành”. Operator vẫn thấy SUBMITTED trước khi PM gọi complete, kể cả mọi assessment item PASS. Completion hiện chỉ có readback task/audit, không tạo thông báo hoàn thành riêng.
+
+Sau đọc, dùng POST `/notifications/{id}/read` theo Idempotency-Key và ETag notification hiện hành. Giao lại/mất scope trả 403/404 ở API đích: refresh danh sách, không thử ID đoán. Sự kiện audit-only FIELD lifecycle và repair correction ngoài yêu cầu inbox lần này giữ nguyên như ma trận mục 6.
+
+### 9.3. Kiểm chứng đợt bổ sung
+
+Kết quả và tình trạng CI được ghi tại bàn giao cuối. Không có migration: mã SurveyRequestStatus.Completed đã có trong DB constraint; các cột occurrence/audit có sẵn, không sửa bản migration cũ. Test SQL mới/đổi identity: không có, manifest lane giữ nguyên. HTTP test dùng production auth/DI và SQL container thật, upload verification/storage fixture/mock; chưa kiểm app Tùng, SMTP/AI/MinIO thật hay runtime FE trong đợt bổ sung.
+
+
+### 9.4. CI base và kiểm chứng cuối
+
+Run base [44927099895](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/44927099895), head huy-review **368e556e4c882570cbbeeed7002a6b9e1825c33d**, đã FAILURE. Artifact `api-results` ID **14716473906**, `api.trx` xác nhận **1682 PASS / 1 FAIL / 1 SKIP**. Job [API 136915475018](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/44927099895/job/136915475018) fail đúng `NotificationWireAcceptanceHttpTests.InboxListDetailScopeAndReadHaveExactWireAndDurableLegacyAudit`, dòng 47 (helper Fields dòng 146): tập exact field còn cũ, thiếu eventCode/taskId/taskProjectId. Bản bổ sung hiện tại có thêm datasetId/assessmentId nên assertion cập nhật đủ năm field, kiểm từng field **null** cho nguồn Project legacy. Các HTTP nguồn thật kiểm eventCode/taskId/taskProjectId và datasetId/assessmentId đúng assessment; thông báo giao task không giả dataset/assessment ID.
+
+Không xóa kiểm exact wire hoặc nới quyền. Source contracts, unit, cả bốn SQL lane và SQL tổng hợp của run base đều PASS. Bước `Verify-TestResults.ps1` API của run cũ bị SKIPPED do bước dotnet test đã fail, không được báo gate PASS. Không rerun run cũ để đổi dấu đỏ.
+
+Skip duy nhất trong TRX là `RoadGuardSystem.ApiTests.Files.UploadApiTests.UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio`, thông báo yêu cầu ROADGUARD_MINIO_SMOKE=1 và MinioStorage__*. Identity này đúng whitelist `tests/CI/Verify-TestResults.ps1` khi CI gọi `-AllowMinioSmokeSkip` và smoke không bật; giữ nguyên script, workflow và whitelist. Không có skip trong các nhóm local được chọn cho đợt này.
+
+| Lượt local đợt bổ sung (có trùng ca) | PASS / FAIL / SKIP | Phạm vi |
+|---|---|---|
+| `rg-survey-complete-second` | 2 / 0 / 0 | HTTP submit/assessment/supplement/complete/Operator readback sau sửa fixture CSRF |
+| `rg-survey-complete-third` | 4 / 0 / 0 | Workflow bổ sung, route catalog và W05 auth admission |
+| `rg-survey-complete-fourth` | 9 / 0 / 0 | Cạnh tranh same/different key complete, legacy scope fallback, wrong role/project/version/assessment, receipt quyền hiện hành; Mobile/P2/Swagger |
+| `rg-survey-complete-final` | 41 / 0 / 0 | Toàn ManualSwaggerContractTests, source excerpts, route catalog/admission, workflow và runtime Swagger |
+| `rg-survey-complete-scopes` | 2 / 0 / 0 | Scope rows và fallback legacy khi thiếu rows, đầy đủ PASS, cả Bearer và Web PM |
+| `rg-survey-complete-unit` | 66 / 0 / 0 | P2V2SurveyServiceTests và H6 notification unit |
+| `rg-survey-complete-sql` | 8 / 0 / 0 | H6 dispatch SQL regression và P202 model parity |
+| `rg-survey-complete-ci-fix` | 14 / 0 / 0 | Notification exact wire, H6 scope, ProtectedSourceInbox rights/replay, Mobile, Survey completion/assessment và runtime Swagger |
+| `rg-survey-ci-catalog` | 31 / 0 / 0 | H6 catalog, gồm ca mới bắt revision của assessment và từ chối kind COMPLETED |
+| `rg-survey-ci-delivery` | 7 / 0 / 0 | Chạy cuối sau review: notification exact wire, hai chuỗi Survey completion/assessment, production source evidence và Swagger |
+
+Không cộng các lượt thành full suite. Lượt đầu lỗi fixture test lấy Cookie từ default header trong khi cookie nằm ở handler; đã sửa bằng cùng phiên Web hợp lệ, bỏ CSRF rồi khôi phục, chạy lại thành công. Đã gặp copy-lock khi khởi động build lúc testhost cũ đang đóng; lượt sau hoàn tất trên bản cuối. Không sửa production auth để vượt fixture. Artifact/TRX/log lưu ngoài repo ở TEMP, không đưa vào commit.
+
+Đối chiếu identity giữa các TRX cuối: **51 identity API** và **67 identity unit** có kết quả mới nhất PASS; SQL hồi quy **8 PASS**. Đây không phải kết quả full suite. `Verify-TestResults.ps1` đạt với từng nhóm TRX local cuối (0 skip). Build solution với analyzer và format verify toàn repo đạt, `git diff --check` đạt. Docs/agent validators đạt. Runtime Swagger khớp snapshot: chỉ thêm path `/survey-tasks/{taskId}/complete`, schema CompleteSurveyTaskRequestDto và hai field nullable của H6NotificationScopeDto; route catalog/admission đã kiểm. Không có migration hoặc SQL lane identity thay đổi.
+
+Lệnh kiểm chính:
+
+```powershell
+dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --settings "$env:TEMP/rg-ft04-serial.runsettings" --filter 'FullyQualifiedName~NotificationWireAcceptanceHttpTests|FullyQualifiedName~H6NotificationOperationsHttpTests|FullyQualifiedName~ProtectedSourceInboxHttpTests|FullyQualifiedName~MobileTaskListsHttpTests|FullyQualifiedName~Anh01SurveyFlowTests|FullyQualifiedName~WebPmCoordinationHttpTests.RuntimeOpenApiDescribesWebRangesBatchAndScopedExport' --logger 'trx;LogFileName=wire.trx' --results-directory "$env:TEMP/rg-survey-complete-ci-fix"
+dotnet test tests/RoadGuardSystem.UnitTests/RoadGuardSystem.UnitTests.csproj --no-restore --filter 'FullyQualifiedName~H6NotificationCatalogTests' --logger 'trx;LogFileName=catalog.trx' --results-directory "$env:TEMP/rg-survey-ci-catalog"
+dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --settings "$env:TEMP/rg-ft04-serial.runsettings" --filter 'FullyQualifiedName~P202MigrationLifecycleTests|FullyQualifiedName~H6NotificationDispatch' --logger 'trx;LogFileName=sql.trx' --results-directory "$env:TEMP/rg-survey-complete-sql"
+dotnet build RoadGuardSystem.slnx --no-restore
+dotnet format RoadGuardSystem.slnx --verify-no-changes --no-restore
+pwsh -File tests/CI/Verify-TestResults.ps1 -ResultsPath "$env:TEMP/rg-survey-complete-ci-fix"
+git diff --check
+```
+
+Tự review lượt 1: xác nhận PM scope/CSRF, task ETag, exact dataset/assessment và full task scope; serializable/replay với quyền hiện hành; không tự complete cha/con hoặc nhầm assessment thành nghiệm thu. Lượt 2: H6 transport/lineage/recipient, scope ID nullable, exact wire legacy và nguồn thật, current assignment/reassign, OpenAPI/inventory/source snippets, no migration/SQL identity change, file scope/secrets. External review chưa thực hiện. Không chạy full suite local hay kiểm app/runtime FE. CI của SHA mới phải xem riêng, không suy PASS từ các lượt local hoặc run base.

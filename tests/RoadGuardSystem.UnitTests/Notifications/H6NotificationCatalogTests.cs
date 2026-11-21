@@ -11,6 +11,18 @@ public sealed class H6NotificationCatalogTests
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly DateTimeOffset At = new(2026, 10, 6, 1, 0, 0, TimeSpan.Zero);
+    [Fact]
+    public void SurveyAssessmentUsesExactReviewRevisionAndIsNotACompletionEvent()
+    {
+        var value = Event("ASSESSED") with { SourceKind = "SurveyTask", SourceRevisionId = Guid.NewGuid() };
+        var result = Parse("survey.dataset.assessed.v1", value);
+        Assert.False(result.AuditOnly);
+        Assert.Equal(NotificationEventKind.SurveyAssessed, result.Envelope!.Kind);
+        Assert.Equal(NotificationRecipientStrategy.ExplicitResponsibleActors, result.Envelope.RecipientStrategy);
+        Assert.Equal(value.SourceRevisionId, result.Envelope.SourceRevisionId);
+        Assert.Throws<H6NotificationProtocolException>(() => Parse("survey.dataset.assessed.v1", value with { SourceRevisionId = null }));
+        Assert.Throws<H6NotificationProtocolException>(() => Parse("survey.dataset.assessed.v1", value with { Kind = "COMPLETED" }));
+    }
     [Theory]
     [InlineData("field.task.assigned.v1", "ASSIGNED", NotificationEventKind.FieldAssigned)]
     [InlineData("field.task.assigned.v1", "REASSIGNED", NotificationEventKind.FieldAssigned)]

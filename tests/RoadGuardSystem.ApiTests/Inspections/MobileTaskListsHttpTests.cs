@@ -187,6 +187,8 @@ public sealed class MobileTaskListsHttpTests(AuthenticationSqlServerFixture sql)
         Assert.Equal(task, protectedScope.GetProperty("sourceId").GetGuid());
         Assert.Equal(task, protectedScope.GetProperty("taskId").GetGuid());
         Assert.Equal(source.Project, protectedScope.GetProperty("taskProjectId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, protectedScope.GetProperty("datasetId").ValueKind);
+        Assert.Equal(JsonValueKind.Null, protectedScope.GetProperty("assessmentId").ValueKind);
         Assert.NotNull(await db.Notifications.Where(x => x.Id == notification.Id).Select(x => x.ReadAt).SingleAsync());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/v1/survey-tasks/{task}")).StatusCode);
         await db.Users.Where(x => x.Id == op.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.RoleCode, UserRoleCode.RepairCrew));
@@ -217,6 +219,13 @@ public sealed class MobileTaskListsHttpTests(AuthenticationSqlServerFixture sql)
         foreach (var query in new[] { "status", "statusGroup", "search", "cursor", "limit" }) Assert.Contains(op.Parameters, p => p.Name == query);
         Assert.True(api.Components.Schemas["InspectionTaskResponseDto"].Properties["mode"].Nullable);
         Assert.Contains("processingCounts", api.Components.Schemas["DatasetListItemDto"].Properties.Keys);
+        var complete = api.Paths["/api/v1/survey-tasks/{taskId}/complete"].Operations[Microsoft.OpenApi.Models.OperationType.Post];
+        Assert.Contains(complete.Security, requirement => requirement.Keys.Any(key => key.Reference?.Id == "Bearer"));
+        Assert.Contains(complete.Security, requirement => requirement.Keys.Any(key => key.Reference?.Id == "WebSession"));
+        Assert.Contains(complete.Parameters, parameter => parameter.Name == "If-Match");
+        Assert.Contains(complete.Parameters, parameter => parameter.Name == "Idempotency-Key");
+        Assert.Contains("datasetId", api.Components.Schemas["CompleteSurveyTaskRequestDto"].Properties.Keys);
+        Assert.Contains("assessmentId", api.Components.Schemas["H6NotificationScopeDto"].Properties.Keys);
     }
 
     private async Task<HttpClient> Login(AuthenticationWebApplicationFactory factory, Guid actor)

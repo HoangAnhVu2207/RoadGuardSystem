@@ -148,6 +148,13 @@ public sealed class SurveyRequest
         Status = SurveyRequestStatus.Submitted;
     }
 
+    public void Complete()
+    {
+        EnsureMutable();
+        if (Status != SurveyRequestStatus.Submitted) throw new InvalidOperationException("Only a submitted task can be explicitly completed after assessment.");
+        Status = SurveyRequestStatus.Completed;
+    }
+
     public void Cancel(string reason, DateTimeOffset cancelledAt)
     {
         EnsureMutable();

@@ -48,6 +48,32 @@ public sealed class SurveyAssessmentRepository(RoadGuardDbContext context, Idemp
                 context.Set<DatasetAssessmentItem>().AddRange(items.Select(i => DatasetAssessmentItem.Create(assessment.Id, i.RouteVersionId,
                     i.SegmentSetId, i.SegmentId, i.TargetBand, i.PositionStatus, i.QualityStatus, i.CoverageStatus, i.Reason.Trim(), JsonSerializer.Serialize(i.Evidence))));
                 Audit(actor, assessment.Id, "dataset_assessment_created", correlation);
+                var surveyTask = await (from survey in context.Surveys
+                                        join task in context.SurveyRequests on survey.SurveyRequestId equals (Guid?)task.Id
+                                        where survey.Id == source.SurveyId && survey.ProjectId == project && task.ProjectId == project
+                                        select task).SingleOrDefaultAsync(ct);
+                if (surveyTask is not null && surveyTask.ScopeFormatVersion == "BAND_V1")
+                {
+                    var assignment = await context.SurveyAssignments.SingleOrDefaultAsync(x => x.SurveyRequestId == surveyTask.Id && x.EndedAt == null, ct);
+                    if (assignment is not null)
+                    {
+                        var eventId = Guid.NewGuid();
+                        context.OutboxMessages.Add(RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage.Create(eventId, "survey.dataset.assessed.v1", assessment.ReviewedAt, null,
+                            JsonSerializer.Serialize(new
+                            {
+                                schemaVersion = 1,
+                                eventId,
+                                kind = "ASSESSED",
+                                projectId = project,
+                                sourceKind = "SurveyTask",
+                                sourceId = surveyTask.Id,
+                                originEventId = assessment.Id,
+                                occurredAtUtc = assessment.ReviewedAt,
+                                sourceRevisionId = assessment.Id,
+                                responsibleUserId = assignment.OperatorUserId
+                            }, JsonOptions)));
+                    }
+                }
                 await context.SaveChangesAsync(ct);
                 var record = new AssessmentRecord(assessment.Id, dataset, assessment.MethodVersion, actor, assessment.ReviewedAt, items, Convert.ToBase64String(assessment.RowVersion));
                 return (assessment.Id, JsonSerializer.Serialize(new AssessmentOutcome("success", record)));

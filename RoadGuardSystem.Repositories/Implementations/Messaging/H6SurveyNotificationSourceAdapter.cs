@@ -18,6 +18,19 @@ public sealed class H6SurveyNotificationSourceAdapter(RoadGuardDbContext db) : I
         if (transport is null || !H6FieldNotificationSourceAdapter.MatchesTransport(transport, plan)) return new("REJECTED", "notification_transport_relation_invalid");
         var task = await db.SurveyRequests.AsNoTracking().SingleOrDefaultAsync(x => x.Id == source.SourceId && x.ProjectId == source.ProjectId, cancellationToken);
         if (task is null || task.ScopeFormatVersion != "BAND_V1") return new("REJECTED", "notification_source_not_found");
+        if (plan.MessageType == "survey.dataset.assessed.v1")
+        {
+            var assessment = await (from review in db.Set<RoadGuardSystem.BusinessObjects.Surveys.DatasetAssessment>()
+                                    join dataset in db.SurveyDataVersions on review.DatasetId equals dataset.Id
+                                    join survey in db.Surveys on dataset.SurveyId equals survey.Id
+                                    where review.Id == source.OriginEventId && review.Id == source.SourceRevisionId && review.ReviewedAt == source.OccurredAtUtc &&
+                                        review.MethodVersion == "pm-evidence-review.v1" && survey.SurveyRequestId == task.Id && survey.ProjectId == task.ProjectId
+                                    select review.Id).AnyAsync(cancellationToken);
+            var assigned = await db.SurveyAssignments.AsNoTracking().SingleOrDefaultAsync(x => x.SurveyRequestId == task.Id && x.OperatorUserId == source.ResponsibleUserId && x.EndedAt == null && x.AssignedAt <= source.OccurredAtUtc, cancellationToken);
+            return assessment && assigned is not null
+                ? new("VERIFIED", TaskId: task.Id, AssignmentId: assigned.Id, ResponsibleUserId: assigned.OperatorUserId, ResponsibleRole: UserRoleCode.DroneOperator)
+                : new("REJECTED", "notification_source_relation_invalid");
+        }
         if (plan.MessageType == "survey.task.submitted.v1")
         {
             var valid = await (from dataset in db.SurveyDataVersions

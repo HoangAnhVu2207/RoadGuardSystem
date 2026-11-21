@@ -33,6 +33,8 @@ public sealed record H6ScopeFact(Guid NotificationId, Guid? ProjectId, Guid? Occ
     public string? EventCode { get; init; }
     public Guid? TaskId { get; init; }
     public Guid? TaskProjectId { get; init; }
+    public Guid? DatasetId { get; init; }
+    public Guid? AssessmentId { get; init; }
 }
 public sealed record H6DeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);
 public sealed record H6ClockCursorFact(Guid ActorId, Guid ProjectId, string Role, DateTimeOffset AfterDueAtUtc, Guid AfterClockId);

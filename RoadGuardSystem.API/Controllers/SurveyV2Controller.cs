@@ -320,6 +320,25 @@ public sealed class SurveyV2Controller : ControllerBase
         return response;
     }
 
+    [Authorize, HttpPost("survey-tasks/{taskId:guid}/complete")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [ProducesResponseType<SurveyTaskV2ResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status412PreconditionFailed)]
+    public async Task<IActionResult> CompleteTask(Guid taskId, CompleteSurveyTaskRequestDto request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, [FromHeader(Name = "If-Match")] string? ifMatch, CancellationToken cancellationToken)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        return MapTaskMutation(await _service.CompleteTaskAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken));
+    }
+
     private ObjectResult MapTaskMutation(SurveyV2ServiceResult result)
     {
         if (result.Task is not null) Response.Headers.ETag = $"\"{result.Task.Version}\"";

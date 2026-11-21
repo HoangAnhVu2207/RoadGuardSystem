@@ -8,7 +8,7 @@ public enum NotificationEventKind : byte
     SupervisorApprovalRequired = 7, DeadlineBreached = 8, SafetyWarning = 9,
     SafetyInspectionDue = 10, WeeklyReviewPending = 11,
     ProjectObligationTransferred = 12, ProjectHandlingRenewed = 13, FastTrackConfirmedInformation = 14,
-    SafetyMeasureAssigned = 15, SurveyAssigned = 16, SurveySubmitted = 17, SurveySupplementRequested = 18
+    SafetyMeasureAssigned = 15, SurveyAssigned = 16, SurveySubmitted = 17, SurveySupplementRequested = 18, SurveyAssessed = 19
 }
 
 public enum NotificationSourceKind : byte
@@ -38,6 +38,7 @@ public sealed class NotificationEventEnvelope
     public Guid? ResponsibleUserId { get; private set; }
     public string MessageType => Kind switch
     {
+        NotificationEventKind.SurveyAssessed => "survey.dataset.assessed.v1",
         NotificationEventKind.SurveyAssigned => "survey.task.assigned.v1",
         NotificationEventKind.SurveySubmitted => "survey.task.submitted.v1",
         NotificationEventKind.SurveySupplementRequested => "survey.task.supplement_requested.v1",
@@ -60,7 +61,7 @@ public sealed class NotificationEventEnvelope
     };
     public NotificationRecipientStrategy RecipientStrategy => Kind switch
     {
-        NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySupplementRequested => NotificationRecipientStrategy.ExplicitResponsibleActors,
+        NotificationEventKind.SurveyAssessed or NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySupplementRequested => NotificationRecipientStrategy.ExplicitResponsibleActors,
         NotificationEventKind.SurveySubmitted => NotificationRecipientStrategy.ProjectManager,
         NotificationEventKind.FieldAssigned or NotificationEventKind.FieldSupplementRequested
             or NotificationEventKind.RepairAssigned or NotificationEventKind.RepairReworkRequested => NotificationRecipientStrategy.AssignedCrew,
@@ -85,7 +86,7 @@ public sealed class NotificationEventEnvelope
         if (!Enum.IsDefined(sourceKind)) throw new ArgumentOutOfRangeException(nameof(sourceKind));
         var allowed = kind switch
         {
-            NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySubmitted or NotificationEventKind.SurveySupplementRequested => sourceKind == NotificationSourceKind.SurveyTask,
+            NotificationEventKind.SurveyAssessed or NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySubmitted or NotificationEventKind.SurveySupplementRequested => sourceKind == NotificationSourceKind.SurveyTask,
             NotificationEventKind.FieldAssigned or NotificationEventKind.FieldSubmitted or NotificationEventKind.FieldSupplementRequested
                 => sourceKind == NotificationSourceKind.FieldTask,
             NotificationEventKind.RepairAssigned or NotificationEventKind.RepairSubmitted or NotificationEventKind.RepairReworkRequested or NotificationEventKind.FastTrackConfirmedInformation
@@ -99,7 +100,7 @@ public sealed class NotificationEventEnvelope
             _ => false
         };
         if (!allowed) throw new ArgumentException("The event has no resolver for this source kind.", nameof(sourceKind));
-        if (kind is NotificationEventKind.FieldSubmitted or NotificationEventKind.FieldSupplementRequested
+        if (kind is NotificationEventKind.SurveyAssessed or NotificationEventKind.FieldSubmitted or NotificationEventKind.FieldSupplementRequested
             or NotificationEventKind.RepairSubmitted or NotificationEventKind.RepairReworkRequested or NotificationEventKind.FastTrackConfirmedInformation
             && sourceRevisionId is null)
             throw new ArgumentException("Submission and review-request events require an immutable source revision.", nameof(sourceRevisionId));

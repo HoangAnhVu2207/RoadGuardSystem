@@ -289,7 +289,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
 
         try
         {
-            var outcome = await _idempotency.ExecuteAsync(request.ActorUserId, projectId.Value, $"SurveyTaskV2{request.Operation}", request.IdempotencyKey, request.RequestFingerprint, async token =>
+            var outcome = await ExecuteTaskMutationAsync(request, projectId.Value, async token =>
             {
                 var task = await _context.SurveyRequests.SingleOrDefaultAsync(candidate => candidate.Id == request.TaskId, token)
                     ?? throw new ScopeNotFoundException();
@@ -310,6 +310,10 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                 Guid? supplementTaskId = null;
                 switch (request.Operation)
                 {
+                    case "complete":
+                        if (assignment.EndedAt != null) throw new InvalidOperationException("Current assignment required for completion.");
+                        await CompleteTaskInTransactionAsync(request, task, token);
+                        break;
                     case "accept":
                         if (assignment.EndedAt is not null || assignment.OperatorUserId != request.ActorUserId) return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredTaskOutcome(SurveyV2PersistenceStatus.Conflict, null)));
                         assignment.Accept(now);
@@ -371,7 +375,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                         return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredTaskOutcome(SurveyV2PersistenceStatus.InvalidInput, null)));
                 }
 
-                _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, now, $"survey_task_{request.Operation}", "SurveyRequest", task.Id, null, JsonSerializer.Serialize(new { operation = request.Operation, taskId = task.Id }), "V2 survey task workflow transition", $"p2-{request.Operation}", request.CorrelationId, ["operation", "taskId"]));
+                _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, now, $"survey_task_{request.Operation}", "SurveyRequest", task.Id, null, request.Operation == "complete" ? JsonSerializer.Serialize(new { operation = request.Operation, taskId = task.Id, datasetId = request.DatasetId, assessmentId = request.AssessmentId }) : JsonSerializer.Serialize(new { operation = request.Operation, taskId = task.Id }), request.Operation == "complete" ? request.Reason : "V2 survey task workflow transition", $"p2-{request.Operation}", request.CorrelationId, ["operation", "taskId", "datasetId", "assessmentId"]));
                 await _context.SaveChangesAsync(token);
                 var view = ToTaskView(task, assignment.OperatorUserId) with { SupplementTaskId = supplementTaskId };
                 return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredTaskOutcome(SurveyV2PersistenceStatus.Success, view)));
@@ -380,6 +384,8 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             var stored = JsonSerializer.Deserialize<StoredTaskOutcome>(outcome.OutcomeJson) ?? throw new InvalidOperationException("Invalid survey task outcome.");
             return new(outcome.Status == IdempotencyOperationStatus.Replayed && stored.Status == SurveyV2PersistenceStatus.Success ? SurveyV2PersistenceStatus.Replayed : stored.Status, stored.Task);
         }
+        catch (JsonException) when (request.Operation == "complete") { return new(SurveyV2PersistenceStatus.Conflict); }
+        catch (UnauthorizedAccessException) { return new(SurveyV2PersistenceStatus.Forbidden); }
         catch (ScopeNotFoundException) { return new(SurveyV2PersistenceStatus.NotFound); }
         catch (DbUpdateConcurrencyException) { _context.ChangeTracker.Clear(); return new(SurveyV2PersistenceStatus.ConcurrencyConflict); }
         catch (ArgumentException) { return new(SurveyV2PersistenceStatus.InvalidInput); }

@@ -111,6 +111,30 @@ public sealed class SurveyV2Service : ISurveyV2Service
         }
     }
 
+    public async Task<SurveyV2ServiceResult> CompleteTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId,
+        CompleteSurveyTaskRequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
+    {
+        if (role != UserRoleCode.ProjectManager || actorUserId == Guid.Empty) return new(SurveyV2ServiceStatus.Forbidden);
+        var task = await _repository.GetTaskAsync(taskId, cancellationToken);
+        if (task is null) return new(SurveyV2ServiceStatus.NotFound);
+        if (!await InScope(actorUserId, role, task.ProjectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
+        if (request.DatasetId == Guid.Empty || request.AssessmentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length > 1000 ||
+            string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 128 || string.IsNullOrWhiteSpace(expectedVersion)) return new(SurveyV2ServiceStatus.InvalidInput);
+        var result = await _repository.MutateTaskAsync(new(actorUserId, taskId, "complete", request.Reason, null, null, null,
+            expectedVersion.Trim('"'), idempotencyKey, Fingerprint(new { taskId, request, expectedVersion }), correlationId, request.DatasetId, request.AssessmentId), cancellationToken);
+        return result.Status switch
+        {
+            SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, Task: ToTask(result.Task)),
+            SurveyV2PersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, Task: ToTask(result.Task)),
+            SurveyV2PersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound),
+            SurveyV2PersistenceStatus.Forbidden => new(SurveyV2ServiceStatus.Forbidden),
+            SurveyV2PersistenceStatus.ConcurrencyConflict => new(SurveyV2ServiceStatus.ConcurrencyConflict),
+            SurveyV2PersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict),
+            SurveyV2PersistenceStatus.InvalidInput => new(SurveyV2ServiceStatus.InvalidInput),
+            _ => new(SurveyV2ServiceStatus.Conflict)
+        };
+    }
+
     public Task<SurveyV2ServiceResult> AcceptTaskAsync(Guid actorUserId, UserRoleCode role, Guid taskId, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
         => MutateTaskAsync(actorUserId, role, taskId, "accept", null, null, null, null, idempotencyKey, expectedVersion, correlationId, cancellationToken);
 

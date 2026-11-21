@@ -11,4 +11,4 @@ public sealed record SurveyV2TaskMutationRequest(
     string ExpectedVersion,
     string IdempotencyKey,
     string RequestFingerprint,
-    Guid? CorrelationId);
+    Guid? CorrelationId, Guid? DatasetId = null, Guid? AssessmentId = null);

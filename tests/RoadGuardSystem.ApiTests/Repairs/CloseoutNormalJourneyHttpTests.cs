@@ -90,6 +90,22 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.Equal(item, listed.GetProperty("items")[0].GetProperty("id").GetGuid());
         // Continue the SAME genuine Normal item through production HTTP/DI to durable final.
         var taskPath = $"/api/v1/projects/{source.Project}/field-inspection-tasks/{binding.TaskId}";
+        await using (var dispatchScope = factory.Services.CreateAsyncScope())
+        {
+            var dispatch = new RoadGuardSystem.Services.Messaging.H6NotificationDispatchService(dispatchScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.IH6NotificationDispatchRepository>());
+            for (var i = 0; i < 20; i++) { var outcome = await dispatch.ProcessOneAsync(); if (outcome.Status == "IDLE") break; }
+        }
+        var crewNoticeId = await db.Notifications.AsNoTracking().Where(x => x.RecipientUserId == source.Crew && x.SourceEntityType == "RepairWork" && x.SourceEntityId == item).Select(x => x.Id).SingleAsync();
+        var navigation = await crew.GetFromJsonAsync<JsonElement>($"/api/v1/notifications/{crewNoticeId}/scope");
+        Assert.Equal(binding.TaskId, navigation.GetProperty("taskId").GetGuid());
+        Assert.Equal(source.Project, navigation.GetProperty("taskProjectId").GetGuid());
+        Assert.Equal("repair.work.assigned.v1", navigation.GetProperty("eventCode").GetString());
+        var crewList = await crew.GetFromJsonAsync<JsonElement>("/api/v1/me/inspection-tasks?mode=NORMAL");
+        var crewSummary = Assert.Single(crewList.GetProperty("items").EnumerateArray());
+        Assert.Equal(binding.TaskId, crewSummary.GetProperty("id").GetGuid());
+        Assert.Equal("NORMAL", crewSummary.GetProperty("mode").GetString());
+        var taskDetail = await crew.GetFromJsonAsync<JsonElement>(taskPath);
+        Assert.Equal(taskDetail.GetProperty("mode").GetString(), crewSummary.GetProperty("mode").GetString());
         var executionPath = itemPath + $"/tasks/{binding.TaskId}";
         Assert.Equal(HttpStatusCode.Created, (await Send(crew, taskPath + "/accept", new { reason = "accept genuine Normal task" },
             Guid.NewGuid().ToString(), await Version(crew, taskPath))).StatusCode);
@@ -164,6 +180,9 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             reason = "source-backed genuine Normal review"
         }, Guid.NewGuid().ToString(), await Version(pm, itemPath));
         Assert.True(reviewed.StatusCode == HttpStatusCode.Created, await reviewed.Content.ReadAsStringAsync());
+        var afterReview = (await crew.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext");
+        Assert.Equal("ACCEPT", afterReview.GetProperty("attempt").GetProperty("review").GetProperty("decision").GetString());
+        Assert.Equal(JsonValueKind.Null, afterReview.GetProperty("finalDecision").ValueKind);
         var finalKey = Guid.NewGuid().ToString(); var finalVersion = await Version(pm, itemPath);
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(pm, itemPath + "/final-confirmation", new { reason = "wrong role" },
             Guid.NewGuid().ToString(), finalVersion)).StatusCode);
@@ -178,6 +197,8 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             Assert.True((await persisted.RepairPackages.Include(x => x.Obligations).SingleAsync(x => x.Id == package)).IsComplete);
             Assert.NotNull((await persisted.Set<DeadlineClock>().SingleAsync(x => x.TargetId == item && x.Kind == DeadlineClockKind.SupervisorFinalConfirmation)).CompletedAt);
         }
+        var afterFinal = (await crew.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext");
+        Assert.Equal("CONFIRMED", afterFinal.GetProperty("finalDecision").GetProperty("result").GetString());
         Assert.Equal(HttpStatusCode.Forbidden, (await crew.GetAsync(root)).StatusCode);
         var exports = $"/api/v1/projects/{source.Project}/exports";
         var archived = await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { item } });
@@ -194,6 +215,9 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             basis = new { text = "Physical finish no longer meets acceptance criteria", evidenceReferenceIds = Array.Empty<Guid>() }
         }, Guid.NewGuid().ToString(), await Version(supervisor, itemPath));
         Assert.True(correction.StatusCode == HttpStatusCode.Created, await correction.Content.ReadAsStringAsync());
+        var afterCorrection = (await crew.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext");
+        Assert.Equal("UNREPAIRED", afterCorrection.GetProperty("finalDecision").GetProperty("result").GetString());
+        Assert.NotEqual(afterFinal.GetProperty("finalDecision").GetProperty("decisionId").GetGuid(), afterCorrection.GetProperty("finalDecision").GetProperty("decisionId").GetGuid());
         Assert.Equal(originalManifest.GetRawText(), (await ReadManifest(archived)).GetRawText());
         var refreshedId = await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } });
         var refreshed = await ReadManifest(refreshedId);

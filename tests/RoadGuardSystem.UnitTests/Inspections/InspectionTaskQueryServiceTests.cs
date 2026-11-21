@@ -17,7 +17,7 @@ public sealed class InspectionTaskQueryServiceTests
         var projectId = Guid.NewGuid();
         var item = new InspectionTaskPersistenceView(
             Guid.NewGuid(), projectId, Guid.NewGuid(), actorId,
-            FieldInspectionTaskStatus.NewAssigned, 1, "FIT-001", DateTimeOffset.UtcNow, [1, 2, 3]);
+            FieldInspectionTaskStatus.NewAssigned, 1, "FIT-001", DateTimeOffset.UtcNow, [1, 2, 3], Mode: "MEASURE_ONLY");
         var secondItem = item with { Id = Guid.NewGuid(), DefectId = Guid.NewGuid(), TaskCode = "FIT-002" };
         var repository = new RecordingRepository(item, secondItem);
         var scopeGuard = new FixedScopeGuard(projectId);
@@ -76,7 +76,7 @@ public sealed class InspectionTaskQueryServiceTests
             DateTimeOffset? afterDueAt,
             Guid? afterId,
             int limit,
-            CancellationToken cancellationToken = default)
+            RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter? filter = null, CancellationToken cancellationToken = default)
         {
             Calls++;
             var last = _items.Length == 0 ? null : _items[^1];

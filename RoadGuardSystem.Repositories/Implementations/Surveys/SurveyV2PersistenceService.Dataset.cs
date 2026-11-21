@@ -141,6 +141,7 @@ public sealed partial class SurveyV2PersistenceService
                         request.VideoFileIds.Contains(value.Id) ? SurveyFileType.Video : SurveyFileType.Srt,
                         request.RecordedAt, request.RecordedAt, SurveyFileSyncStatus.ServerConfirmed, value.Checksum)));
                     task.MarkSubmitted();
+                    EmitMobile(task, "SUBMITTED", "survey.task.submitted.v1", dataVersion.Id, dataVersion.ConfirmedAt!.Value);
                     var now = DateTimeOffset.UtcNow;
                     _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, now, "survey_dataset_submitted", "SurveyDataVersion", dataVersion.Id, null,
                         JsonSerializer.Serialize(new { surveyTaskId = task.Id, dataVersionId = dataVersion.Id, allFileIds }), "Survey dataset submitted", "p2-019", request.CorrelationId, ["surveyTaskId", "dataVersionId"]));
@@ -193,8 +194,14 @@ public sealed partial class SurveyV2PersistenceService
                 d.RowVersion,
                 AssessmentId = assessments.Where(a => a.DatasetId == d.Id).Select(a => (Guid?)a.Id).FirstOrDefault()
             }).ToArrayAsync(cancellationToken);
+        var datasetIds = rows.Select(row => row.Id).ToArray();
+        var processing = await (from block in _context.ProcessingBlocks.AsNoTracking()
+                                join job in _context.ProcessingJobs.AsNoTracking() on block.Id equals job.ProcessingBlockId
+                                where datasetIds.Contains(block.SurveyDataVersionId)
+                                group job by new { block.SurveyDataVersionId, job.Status } into jobs
+                                select new { jobs.Key.SurveyDataVersionId, jobs.Key.Status, Count = jobs.Count() }).ToArrayAsync(cancellationToken);
         return rows.Select(row => new SurveyDatasetListRecord(row.Id, row.VersionNo, row.ConfirmedAt,
-            row.IntegrityStatus.ToString().ToUpperInvariant(), Convert.ToBase64String(row.RowVersion), row.AssessmentId)).ToArray();
+            row.IntegrityStatus.ToString().ToUpperInvariant(), Convert.ToBase64String(row.RowVersion), row.AssessmentId, processing.Where(x => x.SurveyDataVersionId == row.Id).GroupBy(x => x.Status switch { ProcessingJobStatus.Completed => "SUCCEEDED", ProcessingJobStatus.RetryableFailure or ProcessingJobStatus.DataFailure => "FAILED", _ => x.Status.ToString().ToUpperInvariant() }).ToDictionary(x => x.Key, x => x.Sum(job => job.Count), StringComparer.Ordinal))).ToArray();
     }
 
     public async Task<SurveyDatasetAccessView?> GetDatasetAccessAsync(Guid datasetId, CancellationToken cancellationToken = default)

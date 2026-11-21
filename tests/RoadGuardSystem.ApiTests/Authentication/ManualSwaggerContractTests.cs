@@ -424,7 +424,7 @@ public sealed class ManualSwaggerContractTests
         Assert.True(page.GetProperty("nextCursor").GetProperty("nullable").GetBoolean());
         var item = schemas.GetProperty("DatasetListItemDto").GetProperty("properties");
         item.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(
-            new[] { "id", "surveyTaskId", "versionNo", "submittedAt", "integrityStatus", "version", "assessmentId" });
+            new[] { "id", "surveyTaskId", "versionNo", "submittedAt", "integrityStatus", "version", "assessmentId", "processingCounts" });
         Assert.True(item.GetProperty("assessmentId").GetProperty("nullable").GetBoolean());
         Assert.True(item.GetProperty("submittedAt").GetProperty("nullable").GetBoolean());
         var submit = Assert.Single(path.GetProperty("post").GetProperty("security").EnumerateArray());

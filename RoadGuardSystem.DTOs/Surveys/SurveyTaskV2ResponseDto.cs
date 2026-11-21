@@ -7,4 +7,4 @@ public sealed record SurveyTaskV2ResponseDto(
     Guid OperatorId,
     string Status,
     string Version,
-    Guid? SupplementTaskId = null);
+    Guid? SupplementTaskId = null, DateTimeOffset? DueAt = null, string? ProjectName = null, Guid? ParentTaskId = null);

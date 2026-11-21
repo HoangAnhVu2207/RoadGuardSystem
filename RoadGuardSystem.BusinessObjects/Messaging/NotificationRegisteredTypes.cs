@@ -5,6 +5,7 @@ public static class NotificationRegisteredTypes
     public const string RegistryVersion = "huy-final.notification-registry.v1";
     public static IReadOnlyList<string> All { get; } = Array.AsReadOnly(new[]
     {
+        "survey.task.assigned.v1", "survey.task.submitted.v1", "survey.task.supplement_requested.v1",
         "field.task.assigned.v1", "field.task.submitted.v1", "field.task.supplement_requested.v1", "field.task.lifecycle.v1",
         "repair.work.assigned.v1", "repair.work.submitted.v1", "repair.work.rework_requested.v1", "repair.work.fast_track_confirmed.v1",
         "repair.decision.corrected.v1", "review.supervisor_required.v1", "deadline.breached.v1", "safety.warning.v1",
@@ -13,7 +14,7 @@ public static class NotificationRegisteredTypes
     }.Order(StringComparer.Ordinal).ToArray());
     public static bool Owns(string messageType) => All.Contains(messageType, StringComparer.Ordinal);
     public static bool IsOwnedUnregistered(string messageType)
-        => !Owns(messageType) && (messageType.StartsWith("field.task.", StringComparison.Ordinal) ||
+        => !Owns(messageType) && (messageType.StartsWith("survey.task.", StringComparison.Ordinal) || messageType.StartsWith("field.task.", StringComparison.Ordinal) ||
             messageType.StartsWith("repair.work.", StringComparison.Ordinal) || messageType.StartsWith("repair.decision.", StringComparison.Ordinal) ||
             messageType.StartsWith("review.supervisor_required.", StringComparison.Ordinal) || messageType.StartsWith("review.weekly_pending.", StringComparison.Ordinal) ||
             messageType.StartsWith("deadline.", StringComparison.Ordinal) || messageType.StartsWith("safety.", StringComparison.Ordinal) ||

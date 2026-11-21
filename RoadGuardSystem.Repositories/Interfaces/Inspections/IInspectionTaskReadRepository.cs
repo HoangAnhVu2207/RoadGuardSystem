@@ -7,5 +7,5 @@ public interface IInspectionTaskReadRepository
         DateTimeOffset? afterDueAt,
         Guid? afterId,
         int limit,
-        CancellationToken cancellationToken = default);
+        RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter? filter = null, CancellationToken cancellationToken = default);
 }

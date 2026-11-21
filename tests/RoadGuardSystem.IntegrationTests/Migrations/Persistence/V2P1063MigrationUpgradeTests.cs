@@ -62,6 +62,18 @@ public sealed class V2P1063MigrationUpgradeTests
             originalTaskVersion.Should().NotBeNullOrEmpty();
 
             var repository = new InspectionTaskReadRepository(context);
+            // Current production reads require membership before pagination. Legacy rows alone grant nothing.
+            (await repository.ListAssignedAsync(ids.CrewUserId, null, null, 10)).Items.Should().BeEmpty();
+            context.ProjectMembers.Add(new RoadGuardSystem.BusinessObjects.Projects.ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = ids.ProjectId,
+                UserId = ids.CrewUserId,
+                RoleCode = RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode.RepairCrew,
+                Status = RoadGuardSystem.aBusinessObjects.Commons.ProjectMemberStatus.Active,
+                ValidFrom = new DateOnly(2000, 1, 1)
+            });
+            await context.SaveChangesAsync();
             var projection = await repository.ListAssignedAsync(ids.CrewUserId, null, null, 10);
             projection.Items.Should().ContainSingle(item =>
                 item.Id == ids.TaskId && item.RowVersion.SequenceEqual(originalTaskVersion!));

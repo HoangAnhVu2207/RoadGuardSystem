@@ -42,11 +42,38 @@ public sealed partial class H6ProtectedNotificationRepository
                 .Where(row => row.ProjectId == project && (row.TargetId == scope.SourceId || originEventId.HasValue && row.OriginEventId == originEventId.Value))
                 .OrderBy(row => row.CurrentDueAt).ThenBy(row => row.Id)
                 .Select(row => new H6DeadlineReference(row.Id, row.CurrentDueAt, row.CompletedAt)).ToArrayAsync(token) : [];
+            Guid? navigationTask = null; Guid? navigationProject = null;
+            if (notification.SourceEntityType is "FieldTask" or "FieldInspectionTask")
+            {
+                var target = await db.FieldInspectionTasks.AsNoTracking().Where(x => x.Id == notification.SourceEntityId).Select(x => new { x.Id, x.ProjectId }).SingleOrDefaultAsync(token);
+                navigationTask = target?.Id; navigationProject = target?.ProjectId;
+            }
+            else if (notification.SourceEntityType == "SurveyTask")
+            {
+                var target = await db.SurveyRequests.AsNoTracking().Where(x => x.Id == notification.SourceEntityId).Select(x => new { x.Id, x.ProjectId }).SingleOrDefaultAsync(token);
+                navigationTask = target?.Id; navigationProject = target?.ProjectId;
+            }
+            else if (notification.SourceEntityType == "RepairWork")
+            {
+                var target = await (from item in db.RepairItems.AsNoTracking()
+                                    join binding in db.Set<RoadGuardSystem.BusinessObjects.Repairs.RepairFieldTaskBinding>().AsNoTracking() on item.CurrentBindingId equals (Guid?)binding.Id
+                                    join task in db.FieldInspectionTasks.AsNoTracking() on binding.TaskId equals task.Id
+                                    where item.Id == notification.SourceEntityId && task.RepairItemId == item.Id && task.ProjectId == item.ProjectId && binding.ItemId == item.Id
+                                    select new { task.Id, task.ProjectId }).SingleOrDefaultAsync(token);
+                navigationTask = target?.Id; navigationProject = target?.ProjectId;
+            }
             return new(notificationId, scope?.ProjectId, scope?.OccurrenceId, scope?.Classification ?? "UNRESOLVED",
                 scope?.SourceKind ?? notification.SourceEntityType, scope?.SourceId ?? notification.SourceEntityId,
                 notification.EventType, scope?.ResolverVersion ?? "legacy-visible.v1", notification.Title,
                 NotificationPriorityFact.Policy, occurrence is not null ? "SYSTEM" : "UNKNOWN", deadlines,
-                (await ReadPrioritiesAsync([notificationId], clock.GetUtcNow().ToUniversalTime(), token))[notificationId]);
+                (await ReadPrioritiesAsync([notificationId], clock.GetUtcNow().ToUniversalTime(), token))[notificationId])
+            {
+                TaskId = navigationTask,
+                TaskProjectId = navigationProject,
+                EventCode = occurrence is not null && scope is not null && occurrence.SourceId == scope.SourceId &&
+                    occurrence.ProjectId == scope.ProjectId && occurrence.SourceKind == scope.SourceKind && occurrence.EventType == scope.EventType &&
+                    NotificationRegisteredTypes.Owns(occurrence.EventType) ? occurrence.EventType : null
+            };
         }, () => null, cancellationToken, authenticatedRole);
     public Task<H6ClockPageFact> ClocksPageAsync(Guid actorId, UserRoleCode authenticatedRole, Guid projectId,
         H6ClockCursorFact? cursor, int limit, CancellationToken cancellationToken)

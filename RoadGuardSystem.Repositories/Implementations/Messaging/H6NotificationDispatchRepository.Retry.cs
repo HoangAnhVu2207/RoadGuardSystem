@@ -91,6 +91,9 @@ public sealed partial class H6NotificationDispatchRepository
                 occurrence.EventType is not ("repair.work.submitted.v1" or "repair.work.fast_track_confirmed.v1"))) return null;
             var kind = occurrence.EventType switch
             {
+                "survey.task.assigned.v1" => NotificationEventKind.SurveyAssigned,
+                "survey.task.submitted.v1" => NotificationEventKind.SurveySubmitted,
+                "survey.task.supplement_requested.v1" => NotificationEventKind.SurveySupplementRequested,
                 "field.task.assigned.v1" => NotificationEventKind.FieldAssigned,
                 "field.task.submitted.v1" => NotificationEventKind.FieldSubmitted,
                 "field.task.supplement_requested.v1" => NotificationEventKind.FieldSupplementRequested,

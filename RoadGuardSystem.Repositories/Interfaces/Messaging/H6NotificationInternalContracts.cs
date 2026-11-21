@@ -28,7 +28,12 @@ public sealed record H6DispatchOutcome(string Status, Guid? MessageId = null, Gu
 public sealed record H6ScopeFact(Guid NotificationId, Guid? ProjectId, Guid? OccurrenceId,
     string Classification, string SourceKind, Guid SourceId, string EventType, string ResolverVersion,
     string? Title = null, string PriorityPolicy = "NOT_CONFIGURED", string SenderKind = "UNKNOWN",
-    H6DeadlineReference[]? Deadlines = null, NotificationPriorityFact? Priority = null);
+    H6DeadlineReference[]? Deadlines = null, NotificationPriorityFact? Priority = null)
+{
+    public string? EventCode { get; init; }
+    public Guid? TaskId { get; init; }
+    public Guid? TaskProjectId { get; init; }
+}
 public sealed record H6DeadlineReference(Guid ClockId, DateTimeOffset DueAt, DateTimeOffset? CompletedAt);
 public sealed record H6ClockCursorFact(Guid ActorId, Guid ProjectId, string Role, DateTimeOffset AfterDueAtUtc, Guid AfterClockId);
 public sealed record H6ClockExtensionFact(Guid Id, Guid ActorId, DateTimeOffset At, DateTimeOffset PreviousDueAt,

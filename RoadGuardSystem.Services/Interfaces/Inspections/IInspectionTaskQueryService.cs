@@ -10,7 +10,7 @@ public interface IInspectionTaskQueryService
         UserRoleCode actorRole,
         string? cursor,
         int limit,
-        CancellationToken cancellationToken = default);
+        RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter? filter = null, CancellationToken cancellationToken = default);
 }
 
 public sealed record InspectionTaskQueryResult(

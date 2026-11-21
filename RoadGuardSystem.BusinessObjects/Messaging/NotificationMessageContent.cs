@@ -5,9 +5,9 @@ public static class NotificationMessageContent
 {
     public static (string Title, string Body) For(NotificationEventKind kind) => kind switch
     {
-        NotificationEventKind.FieldAssigned or NotificationEventKind.RepairAssigned => ("Task assigned", "A task has been assigned. Open the protected task to review its current scope."),
-        NotificationEventKind.FieldSubmitted or NotificationEventKind.RepairSubmitted => ("Submission awaiting review", "A task submission is awaiting project manager review."),
-        NotificationEventKind.FieldSupplementRequested or NotificationEventKind.RepairReworkRequested => ("Supplement or rework requested", "A task requires additional evidence or rework. Open the protected task for details."),
+        NotificationEventKind.SurveyAssigned or NotificationEventKind.FieldAssigned or NotificationEventKind.RepairAssigned => ("Task assigned", "A task has been assigned. Open the protected task to review its current scope."),
+        NotificationEventKind.SurveySubmitted or NotificationEventKind.FieldSubmitted or NotificationEventKind.RepairSubmitted => ("Submission awaiting review", "A task submission is awaiting project manager review."),
+        NotificationEventKind.SurveySupplementRequested or NotificationEventKind.FieldSupplementRequested or NotificationEventKind.RepairReworkRequested => ("Supplement or rework requested", "A task requires additional evidence or rework. Open the protected task for details."),
         NotificationEventKind.SupervisorApprovalRequired => ("Supervisor review required", "A current project responsibility requires Supervisor review."),
         NotificationEventKind.FastTrackConfirmedInformation => ("Fast-track confirmation recorded", "The project manager has confirmed fast-track work. This information does not request normal-mode approval."),
         NotificationEventKind.DeadlineBreached => ("Deadline overdue", "A business deadline has passed. This notification does not approve or close any work."),

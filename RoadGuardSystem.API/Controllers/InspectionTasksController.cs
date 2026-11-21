@@ -32,7 +32,7 @@ public sealed class InspectionTasksController : ControllerBase
     public async Task<IActionResult> List(
         [FromQuery] string? cursor,
         [FromQuery] int limit = 50,
-        CancellationToken cancellationToken = default)
+        [FromQuery] string? status = null, [FromQuery] string? mode = null, [FromQuery] string? search = null, [FromQuery] string? acceptance = null, [FromQuery] string? statusGroup = null, CancellationToken cancellationToken = default)
     {
         if (!TryGetActor(out var actorUserId, out var actorRole))
         {
@@ -44,7 +44,7 @@ public sealed class InspectionTasksController : ControllerBase
             actorRole,
             cursor,
             limit,
-            cancellationToken);
+            new(status, statusGroup, mode, search, acceptance), cancellationToken);
 
         return result.Status switch
         {

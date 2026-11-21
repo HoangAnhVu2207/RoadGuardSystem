@@ -153,6 +153,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.H6ProtectedNotificationRepository>();
         services.AddScoped<INotificationRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.H6ProtectedNotificationRepository>());
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.IH6NotificationOperationsRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.H6ProtectedNotificationRepository>());
+        services.AddScoped<RoadGuardSystem.Repositories.Messaging.IH6NotificationSourceAdapter, RoadGuardSystem.Repositories.Messaging.H6SurveyNotificationSourceAdapter>();
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.IH6NotificationSourceAdapter, RoadGuardSystem.Repositories.Messaging.H6FieldNotificationSourceAdapter>();
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.IH6NotificationSourceAdapter, RoadGuardSystem.Repositories.Messaging.H6RepairNotificationSourceAdapter>();
         services.AddScoped<RoadGuardSystem.Repositories.Messaging.IH6NotificationSourceAdapter, RoadGuardSystem.Repositories.Messaging.H6DeadlineNotificationSourceAdapter>();

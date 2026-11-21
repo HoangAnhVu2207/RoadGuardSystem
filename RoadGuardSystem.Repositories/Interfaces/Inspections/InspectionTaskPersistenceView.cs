@@ -11,4 +11,4 @@ public sealed record InspectionTaskPersistenceView(
     byte RequiredMeasurementType,
     string TaskCode,
     DateTimeOffset DueAt,
-    byte[] RowVersion);
+    byte[] RowVersion, string? Mode = null, Guid? PolicyRevisionId = null, Guid? AssignmentId = null, string? AssignmentStatus = null, string? AcceptanceOutcome = null, DateTimeOffset? AcceptedAt = null, DateTimeOffset? RejectedAt = null, bool IsHistory = false);

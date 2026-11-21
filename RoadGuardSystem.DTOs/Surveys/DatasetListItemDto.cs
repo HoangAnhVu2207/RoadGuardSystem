@@ -7,4 +7,4 @@ public sealed record DatasetListItemDto(
     DateTimeOffset? SubmittedAt,
     string IntegrityStatus,
     string Version,
-    Guid? AssessmentId);
+    Guid? AssessmentId, IReadOnlyDictionary<string, int>? ProcessingCounts = null);

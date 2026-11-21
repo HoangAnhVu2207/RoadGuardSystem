@@ -193,6 +193,9 @@ public sealed partial class H6NotificationDispatchRepository
                 db.RepairObligations.Any(obligation => obligation.Id == item.ObligationId &&
                     obligation.CurrentRepairItemId == item.Id), token))
             return "notification_binding_lost";
+        if (expectedRole == UserRoleCode.DroneOperator && (proof.AssignmentId is not Guid surveyAssignment ||
+            !await db.SurveyAssignments.AnyAsync(x => x.Id == surveyAssignment && x.SurveyRequestId == proof.TaskId && x.OperatorUserId == actor && x.EndedAt == null, token)))
+            return "notification_assignment_lost";
         return null;
     }
 }

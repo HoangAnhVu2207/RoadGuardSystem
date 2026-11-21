@@ -529,6 +529,17 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         (await Body(supplemented)).GetProperty("id").GetGuid().Should().Be(task);
         var supplementReplay = await Command(pmActions, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
         (await Body(supplementReplay)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
+        await using (var dispatchScope = factory.Services.CreateAsyncScope())
+        {
+            var dispatch = new RoadGuardSystem.Services.Messaging.H6NotificationDispatchService(dispatchScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.IH6NotificationDispatchRepository>());
+            for (var i = 0; i < 40; i++) { var dispatched = await dispatch.ProcessOneAsync(); if (dispatched.Status == "IDLE") break; }
+        }
+        await using (var notificationDb = sql.CreateDbContext())
+        {
+            var supplementNotices = await notificationDb.Notifications.AsNoTracking().Where(x => x.SourceEntityType == "SurveyTask" && x.SourceEntityId == child).ToArrayAsync();
+            Assert.Equal(second.Id, Assert.Single(supplementNotices).RecipientUserId);
+            Assert.NotEmpty(await notificationDb.Notifications.Where(x => x.RecipientUserId == manager.Id && x.SourceEntityType == "SurveyTask" && x.SourceEntityId == task).ToArrayAsync());
+        }
         var parentAfterSupplement = await pmActions.GetAsync($"/api/v1/survey-tasks/{task}");
         parentAfterSupplement.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(parentAfterSupplement)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);

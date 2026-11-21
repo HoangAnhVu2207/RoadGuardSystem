@@ -183,6 +183,9 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         Assert.Equal(binding.AuthorizationId, afterBody.GetProperty("authorizationId").GetGuid());
         var fieldPath = $"/api/v1/projects/{source.Project}/field-inspection-tasks/{binding.TaskId}";
         var field = await Body(await crew.GetAsync(fieldPath)); Assert.Equal("CONDITIONAL_FT", field.GetProperty("mode").GetString());
+        var mobileList = await Body(await crew.GetAsync("/api/v1/me/inspection-tasks?mode=CONDITIONAL_FT"));
+        var mobileTask = mobileList.GetProperty("items").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == binding.TaskId);
+        Assert.Equal(field.GetProperty("mode").GetString(), mobileTask.GetProperty("mode").GetString());
         using var currentTask = await crew.GetAsync(fieldPath);
         await Body(await Post(crew, fieldPath + "/accept", new { reason = "Crew accepts retained-source task" }, currentTask.Headers.ETag!.Tag), 201);
         await db.ProjectMembers.Where(x => x.ProjectId == receiver.Id && x.UserId == receiverPm.Id).ExecuteUpdateAsync(set => set.SetProperty(x => x.Status, ProjectMemberStatus.Ended));

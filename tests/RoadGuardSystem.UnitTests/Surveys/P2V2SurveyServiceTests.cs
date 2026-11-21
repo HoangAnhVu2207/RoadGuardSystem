@@ -125,7 +125,7 @@ public sealed class P2V2SurveyServiceTests
         public Task<SurveyV2PlanPersistenceResult> PostponePlanAsync(SurveyV2PlanPostponementRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new SurveyV2PlanPersistenceResult(SurveyV2PersistenceStatus.InvalidInput));
         public Task<SurveyV2TaskPersistenceResult> CreateTaskAsync(SurveyV2TaskCreationRequest request, CancellationToken cancellationToken = default) { TaskRequest = request; return Task.FromResult(new SurveyV2TaskPersistenceResult(SurveyV2PersistenceStatus.InvalidInput)); }
         public Task<SurveyV2TaskPersistenceView?> GetTaskAsync(Guid taskId, CancellationToken cancellationToken = default) => Task.FromResult(ReadTask);
-        public Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, CancellationToken cancellationToken = default)
+        public Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter? filter = null, CancellationToken cancellationToken = default)
             => Task.FromResult(new SurveyV2TaskPagePersistenceResult([], null, DateTimeOffset.UtcNow));
         public Task<SurveyV2TaskPersistenceResult> MutateTaskAsync(SurveyV2TaskMutationRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(new SurveyV2TaskPersistenceResult(SurveyV2PersistenceStatus.InvalidInput));

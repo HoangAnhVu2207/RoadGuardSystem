@@ -35,6 +35,9 @@ public sealed class H6NotificationReadService(IH6NotificationOperationsRepositor
             fact.Classification, fact.SourceKind, fact.SourceId, fact.EventType, fact.ResolverVersion,
             fact.Title, fact.PriorityPolicy, fact.SenderKind, fact.Deadlines?.Select(row => new NotificationDeadlineReference(row.ClockId, row.DueAt, row.CompletedAt)).ToArray())
         {
+            EventCode = fact.EventCode,
+            TaskId = fact.TaskId,
+            TaskProjectId = fact.TaskProjectId,
             Priority = fact.Priority?.Value ?? "UNKNOWN",
             PriorityReasonCode = fact.Priority?.ReasonCode,
             PriorityEvaluatedAt = fact.Priority?.EvaluatedAt

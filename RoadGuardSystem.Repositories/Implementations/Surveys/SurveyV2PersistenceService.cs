@@ -135,6 +135,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                 var assignment = SurveyAssignment.Create(Guid.NewGuid(), task.Id, request.OperatorId, request.ActorUserId, now, null, null, null, null, null);
                 _context.SurveyRequests.Add(task);
                 _context.SurveyAssignments.Add(assignment);
+                EmitMobileAssignment(task, assignment);
                 _context.SurveyRequestScopes.AddRange(scope.Items.Select(item => SurveyRequestScope.Create(
                     Guid.NewGuid(),
                     task.Id,
@@ -220,20 +221,37 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         };
     }
 
-    public async Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, CancellationToken cancellationToken = default)
+    public async Task<SurveyV2TaskPagePersistenceResult> ListMyTasksAsync(Guid operatorUserId, string? cursor, int limit, RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter? filter = null, CancellationToken cancellationToken = default)
     {
         if (operatorUserId == Guid.Empty || limit is < 1 or > 100) throw new ArgumentException("Survey task list parameters are invalid.");
-        var decoded = DecodeCursor(cursor);
-        var cursorRequestedAt = decoded?.RequestedAt;
-        var cursorId = decoded?.Id ?? Guid.Empty;
+        filter = (filter ?? new()).Normalize(true);
+        var binding = filter.Binding(operatorUserId, "operator-survey", limit);
+        var decoded = RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter.Decode(cursor, binding);
+        var cursorRequestedAt = decoded.At;
+        var cursorId = decoded.Id ?? Guid.Empty;
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
         var query =
             from task in _context.SurveyRequests.AsNoTracking()
             join assignment in _context.SurveyAssignments.AsNoTracking() on task.Id equals assignment.SurveyRequestId
+            join project in _context.Projects.AsNoTracking() on task.ProjectId equals project.Id
             where assignment.OperatorUserId == operatorUserId && assignment.EndedAt == null && task.ScopeFormatVersion == "BAND_V1"
+            where _context.ProjectMembers.Any(m => m.ProjectId == task.ProjectId && m.UserId == operatorUserId && m.RoleCode == UserRoleCode.DroneOperator &&
+                m.Status == ProjectMemberStatus.Active && m.ValidFrom <= today && (m.ValidTo == null || m.ValidTo >= today))
             where !cursorRequestedAt.HasValue || task.RequestedAt > cursorRequestedAt.Value || task.RequestedAt == cursorRequestedAt.Value && task.Id.CompareTo(cursorId) > 0
-            orderby task.RequestedAt, task.Id
-            select new { task, assignment.OperatorUserId };
-        var rows = await query.Take(limit + 1).ToListAsync(cancellationToken);
+            select new { task, assignment.OperatorUserId, ProjectName = project.Name };
+        if (filter.Status is not null)
+        {
+            var taskStatus = Enum.Parse<SurveyRequestStatus>(filter.Status.Replace("_", ""), true);
+            query = query.Where(x => x.task.Status == taskStatus);
+        }
+        if (filter.StatusGroup == "WAITING") query = query.Where(x => x.task.Status == SurveyRequestStatus.NewAssigned || x.task.Status == SurveyRequestStatus.Reassigned);
+        if (filter.StatusGroup == "IN_PROGRESS") query = query.Where(x => x.task.Status == SurveyRequestStatus.Accepted || x.task.Status == SurveyRequestStatus.InProgress);
+        if (filter.StatusGroup == "SUBMITTED") query = query.Where(x => x.task.Status == SurveyRequestStatus.Submitted);
+        if (filter.StatusGroup == "SUPPLEMENT_REQUIRED") query = query.Where(x => x.task.Status == SurveyRequestStatus.SupplementRequired);
+        if (filter.StatusGroup == "COMPLETED") query = query.Where(x => x.task.Status == SurveyRequestStatus.Completed);
+        if (filter.StatusGroup == "OTHER") query = query.Where(x => x.task.Status != SurveyRequestStatus.NewAssigned && x.task.Status != SurveyRequestStatus.Reassigned && x.task.Status != SurveyRequestStatus.Accepted && x.task.Status != SurveyRequestStatus.InProgress && x.task.Status != SurveyRequestStatus.Submitted && x.task.Status != SurveyRequestStatus.SupplementRequired && x.task.Status != SurveyRequestStatus.Completed);
+        if (filter.Search is not null) query = query.Where(x => EF.Functions.Collate(x.task.Id.ToString(), "Latin1_General_100_CI_AS").Contains(filter.Search) || EF.Functions.Collate(x.ProjectName, "Latin1_General_100_CI_AS").Contains(filter.Search));
+        var rows = await query.OrderBy(x => x.task.RequestedAt).ThenBy(x => x.task.Id).Take(limit + 1).ToListAsync(cancellationToken);
         var hasMore = rows.Count > limit;
         if (hasMore) rows.RemoveAt(rows.Count - 1);
         var taskIds = rows.Select(row => row.task.Id).ToArray();
@@ -244,7 +262,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         var scopesByTask = scopeRows.GroupBy(scope => scope.SurveyRequestId).ToDictionary(group => group.Key, group => group.ToArray());
         var items = rows.Select(row =>
         {
-            if (!scopesByTask.TryGetValue(row.task.Id, out var scopes) || scopes.Length == 0) return ToTaskView(row.task, row.OperatorUserId);
+            if (!scopesByTask.TryGetValue(row.task.Id, out var scopes) || scopes.Length == 0) return ToTaskView(row.task, row.OperatorUserId) with { ProjectName = row.ProjectName, ParentTaskId = row.task.ParentTaskId };
             var payloadScopes = scopes.Select(scope => new
             {
                 routeVersionId = scope.RouteSectionVersionId,
@@ -252,9 +270,9 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                 segmentIds = JsonSerializer.Deserialize<JsonElement>(scope.SegmentIdsJson),
                 targetBand = scope.TargetBand
             });
-            return ToTaskView(row.task, row.OperatorUserId, JsonSerializer.Serialize(new { scope = payloadScopes }));
+            return ToTaskView(row.task, row.OperatorUserId, JsonSerializer.Serialize(new { scope = payloadScopes })) with { ProjectName = row.ProjectName, ParentTaskId = row.task.ParentTaskId };
         }).ToArray();
-        var nextCursor = hasMore && rows.Count > 0 ? EncodeCursor(rows[^1].task.RequestedAt, rows[^1].task.Id) : null;
+        var nextCursor = hasMore && rows.Count > 0 ? RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter.Encode(binding, rows[^1].task.RequestedAt, rows[^1].task.Id) : null;
         return new(items, nextCursor, DateTimeOffset.UtcNow);
     }
 
@@ -325,6 +343,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                         task.MarkReassigned();
                         if (request.DueAt is { } reassignedDueAt) task.ChangeDueAt(reassignedDueAt);
                         assignment = replacement;
+                        EmitMobileAssignment(task, replacement);
                         break;
                     case "supplement":
                         if (request.OperatorId is null || string.IsNullOrWhiteSpace(request.Reason) || string.IsNullOrWhiteSpace(request.ScopeJson)) return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredTaskOutcome(SurveyV2PersistenceStatus.InvalidInput, null)));
@@ -340,7 +359,9 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                             SurveyRequestStatus.NewAssigned, now, request.DueAt ?? task.DueAt, JsonSerializer.Serialize(new { scope = JsonSerializer.Deserialize<JsonElement>(request.ScopeJson), accessPoint = ReadAccessPoint(task.OutputRequirements) }), task.RoadSectionVersionId);
                         child.SetBandScope(task.Id, supplement.Id);
                         _context.SurveyRequests.Add(child);
-                        _context.SurveyAssignments.Add(SurveyAssignment.Create(Guid.NewGuid(), child.Id, request.OperatorId.Value, request.ActorUserId, now, null, null, null, null, null));
+                        var childAssignment = SurveyAssignment.Create(Guid.NewGuid(), child.Id, request.OperatorId.Value, request.ActorUserId, now, null, null, null, null, null);
+                        _context.SurveyAssignments.Add(childAssignment);
+                        EmitMobileAssignment(child, childAssignment);
                         var childScopes = JsonSerializer.Deserialize<DatasetScopeItem[]>(request.ScopeJson, DatasetScopeJsonOptions) ?? [];
                         _context.SurveyRequestScopes.AddRange(childScopes.Select(s => SurveyRequestScope.Create(Guid.NewGuid(), child.Id, s.RouteVersionId, s.SegmentSetId, JsonSerializer.Serialize(s.SegmentIds), s.TargetBand)));
                         supplementTaskId = child.Id;
@@ -456,7 +477,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         => ToTaskView(task, operatorId, task.OutputRequirements);
 
     private static SurveyV2TaskPersistenceView ToTaskView(SurveyRequest task, Guid operatorId, string outputRequirements)
-        => new(task.Id, task.ProjectId, outputRequirements, operatorId, task.Status.ToString(), Version(task), task.DueAt, ReadAccessPoint(task.OutputRequirements)?.GetRawText());
+        => new(task.Id, task.ProjectId, outputRequirements, operatorId, task.Status.ToString(), Version(task), task.DueAt, ReadAccessPoint(task.OutputRequirements)?.GetRawText()) { ParentTaskId = task.ParentTaskId };
     private static JsonElement? ReadAccessPoint(string json)
     {
         using var doc = JsonDocument.Parse(json);

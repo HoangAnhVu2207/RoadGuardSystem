@@ -26664,6 +26664,41 @@
               "format": "int32",
               "default": 50
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "acceptance",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "statusGroup",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -58204,6 +58239,27 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "statusGroup",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -69517,6 +69573,15 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "processingCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Independent counts of current persisted processing jobs for this dataset: QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED, UNKNOWN. Empty object means no jobs; null means unavailable adapter. Includes all jobs, not an arbitrarily selected latest run or assessment.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -72757,6 +72822,20 @@
             },
             "nullable": true
           },
+          "eventCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "taskProjectId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "priority": {
             "type": "string",
             "nullable": true
@@ -72838,7 +72917,14 @@
             "nullable": true
           },
           "mode": {
+            "enum": [
+              "MEASURE_ONLY",
+              "NORMAL",
+              "CONDITIONAL_FT",
+              null
+            ],
             "type": "string",
+            "description": "Persisted task mode with current binding proof; null for rejected history or missing/ambiguous binding. This summary is not execution eligibility.",
             "nullable": true
           },
           "crewId": {
@@ -72857,6 +72943,41 @@
           "version": {
             "type": "string",
             "nullable": true
+          },
+          "taskCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "assignmentStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "acceptanceOutcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "rejectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isHistory": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -80660,6 +80781,20 @@
             "nullable": true
           },
           "supplementTaskId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentTaskId": {
             "type": "string",
             "format": "uuid",
             "nullable": true

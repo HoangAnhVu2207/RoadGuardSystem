@@ -8,13 +8,13 @@ public enum NotificationEventKind : byte
     SupervisorApprovalRequired = 7, DeadlineBreached = 8, SafetyWarning = 9,
     SafetyInspectionDue = 10, WeeklyReviewPending = 11,
     ProjectObligationTransferred = 12, ProjectHandlingRenewed = 13, FastTrackConfirmedInformation = 14,
-    SafetyMeasureAssigned = 15
+    SafetyMeasureAssigned = 15, SurveyAssigned = 16, SurveySubmitted = 17, SurveySupplementRequested = 18
 }
 
 public enum NotificationSourceKind : byte
 {
     FieldTask = 1, RepairWork = 2, DeadlineClock = 3, TemporarySafetyMeasure = 4,
-    ReviewObligation = 5, ProjectLifecycle = 6, ReviewDigest = 7
+    ReviewObligation = 5, ProjectLifecycle = 6, ReviewDigest = 7, SurveyTask = 8
 }
 
 public enum NotificationRecipientStrategy : byte
@@ -38,6 +38,9 @@ public sealed class NotificationEventEnvelope
     public Guid? ResponsibleUserId { get; private set; }
     public string MessageType => Kind switch
     {
+        NotificationEventKind.SurveyAssigned => "survey.task.assigned.v1",
+        NotificationEventKind.SurveySubmitted => "survey.task.submitted.v1",
+        NotificationEventKind.SurveySupplementRequested => "survey.task.supplement_requested.v1",
         NotificationEventKind.FieldAssigned => "field.task.assigned.v1",
         NotificationEventKind.FieldSubmitted => "field.task.submitted.v1",
         NotificationEventKind.FieldSupplementRequested => "field.task.supplement_requested.v1",
@@ -57,6 +60,8 @@ public sealed class NotificationEventEnvelope
     };
     public NotificationRecipientStrategy RecipientStrategy => Kind switch
     {
+        NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySupplementRequested => NotificationRecipientStrategy.ExplicitResponsibleActors,
+        NotificationEventKind.SurveySubmitted => NotificationRecipientStrategy.ProjectManager,
         NotificationEventKind.FieldAssigned or NotificationEventKind.FieldSupplementRequested
             or NotificationEventKind.RepairAssigned or NotificationEventKind.RepairReworkRequested => NotificationRecipientStrategy.AssignedCrew,
         NotificationEventKind.FieldSubmitted or NotificationEventKind.RepairSubmitted => NotificationRecipientStrategy.ProjectManager,
@@ -80,6 +85,7 @@ public sealed class NotificationEventEnvelope
         if (!Enum.IsDefined(sourceKind)) throw new ArgumentOutOfRangeException(nameof(sourceKind));
         var allowed = kind switch
         {
+            NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySubmitted or NotificationEventKind.SurveySupplementRequested => sourceKind == NotificationSourceKind.SurveyTask,
             NotificationEventKind.FieldAssigned or NotificationEventKind.FieldSubmitted or NotificationEventKind.FieldSupplementRequested
                 => sourceKind == NotificationSourceKind.FieldTask,
             NotificationEventKind.RepairAssigned or NotificationEventKind.RepairSubmitted or NotificationEventKind.RepairReworkRequested or NotificationEventKind.FastTrackConfirmedInformation

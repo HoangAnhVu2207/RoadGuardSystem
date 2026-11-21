@@ -14,7 +14,7 @@ public sealed partial class H6NotificationDispatchRepository : IH6NotificationDi
     public H6NotificationDispatchRepository(RoadGuardDbContext db, TimeProvider clock, IEnumerable<IH6NotificationSourceAdapter>? sourceAdapters = null)
     {
         this.db = db; this.clock = clock;
-        sources = sourceAdapters?.ToArray() ?? [new H6FieldNotificationSourceAdapter(db), new H6RepairNotificationSourceAdapter(db),
+        sources = sourceAdapters?.ToArray() ?? [new H6SurveyNotificationSourceAdapter(db), new H6FieldNotificationSourceAdapter(db), new H6RepairNotificationSourceAdapter(db),
             new H6DeadlineNotificationSourceAdapter(db, clock), new H6WeeklyReviewSourceAdapter(db, clock),
             new H6SafetyNotificationSourceAdapter(db)];
     }

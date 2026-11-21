@@ -269,11 +269,6 @@ public sealed class V2P1063InspectionTaskListTests
         var first = await client.GetAsync("/api/v1/me/inspection-tasks?limit=1");
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         var page = await first.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Empty(page.GetProperty("items").EnumerateArray());
-        var cursor = page.GetProperty("nextCursor").GetString();
-        Assert.NotNull(cursor);
-        var second = await client.GetAsync($"/api/v1/me/inspection-tasks?limit=1&cursor={Uri.EscapeDataString(cursor)}");
-        page = await second.Content.ReadFromJsonAsync<JsonElement>();
         var item = Assert.Single(page.GetProperty("items").EnumerateArray());
         Assert.Equal(visible.TaskId, item.GetProperty("id").GetGuid());
         Assert.Equal("NEWASSIGNED", item.GetProperty("status").GetString());

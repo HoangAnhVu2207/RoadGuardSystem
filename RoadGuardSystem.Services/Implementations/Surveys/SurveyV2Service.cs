@@ -89,17 +89,20 @@ public sealed class SurveyV2Service : ISurveyV2Service
         return new(SurveyV2ServiceStatus.Success, Task: ToTask(task));
     }
 
-    public async Task<SurveyTaskPageV2ResponseDto?> ListMyTasksAsync(Guid actorUserId, UserRoleCode role, string? cursor, int? limit, CancellationToken cancellationToken = default)
+    public async Task<SurveyTaskPageV2ResponseDto?> ListMyTasksAsync(Guid actorUserId, UserRoleCode role, string? cursor, int? limit, RoadGuardSystem.Repositories.Mobile.MobileTaskListFilter? filter = null, CancellationToken cancellationToken = default)
     {
         if (actorUserId == Guid.Empty || role != UserRoleCode.DroneOperator) return null;
         var pageSize = limit ?? 50;
         if (pageSize is < 1 or > 100) return null;
         try
         {
-            var page = await _repository.ListMyTasksAsync(actorUserId, cursor, pageSize, cancellationToken);
+            var page = await _repository.ListMyTasksAsync(actorUserId, cursor, pageSize, filter, cancellationToken);
             var visible = new List<SurveyTaskV2ResponseDto>();
+            var readableProjects = new HashSet<Guid>();
+            foreach (var project in page.Items.Select(item => item.ProjectId).Distinct())
+                if (await InScope(actorUserId, role, project, cancellationToken)) readableProjects.Add(project);
             foreach (var item in page.Items)
-                if (await InScope(actorUserId, role, item.ProjectId, cancellationToken) && ToTask(item) is { } view) visible.Add(view);
+                if (readableProjects.Contains(item.ProjectId) && ToTask(item) is { } view) visible.Add(view);
             return new(visible, page.NextCursor, page.AsOf);
         }
         catch (ArgumentException)
@@ -181,7 +184,7 @@ public sealed class SurveyV2Service : ISurveyV2Service
 
         var datasets = await _repository.ListTaskDatasetsAsync(taskId, projectId.Value, afterSubmittedAt, afterId, take, cancellationToken);
         return (SurveyV2ServiceStatus.Success, datasets.Select(d => new DatasetListItemDto(
-            d.Id, taskId, d.VersionNo, d.SubmittedAt, d.IntegrityStatus, d.Version, d.AssessmentId)).ToArray());
+            d.Id, taskId, d.VersionNo, d.SubmittedAt, d.IntegrityStatus, d.Version, d.AssessmentId, d.ProcessingCounts)).ToArray());
     }
 
     public async Task<DatasetCoverageServiceResult> GetDatasetCoverageAsync(Guid actorUserId, UserRoleCode role, Guid datasetId, CancellationToken cancellationToken = default)
@@ -328,7 +331,7 @@ public sealed class SurveyV2Service : ISurveyV2Service
                 ? wrapped
                 : doc.RootElement;
             var scope = scopeElement.Deserialize<IReadOnlyList<BandScopeDto>>(ResponseJsonOptions) ?? [];
-            return new(value.Id, value.ProjectId, scope, value.OperatorId, ToApiStatus(value.Status), value.Version, value.SupplementTaskId);
+            return new(value.Id, value.ProjectId, scope, value.OperatorId, ToApiStatus(value.Status), value.Version, value.SupplementTaskId, value.DueAt, value.ProjectName, value.ParentTaskId);
         }
         catch (JsonException) { return null; }
     }

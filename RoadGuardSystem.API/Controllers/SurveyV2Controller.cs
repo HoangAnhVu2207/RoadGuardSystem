@@ -164,12 +164,12 @@ public sealed class SurveyV2Controller : ControllerBase
 
     [Authorize]
     [HttpGet("me/survey-tasks")]
-    public async Task<IActionResult> ListMyTasks([FromQuery] string? cursor, [FromQuery] int? limit, CancellationToken cancellationToken)
+    public async Task<IActionResult> ListMyTasks([FromQuery] string? cursor, [FromQuery] int? limit, [FromQuery] string? status = null, [FromQuery] string? statusGroup = null, [FromQuery] string? search = null, CancellationToken cancellationToken = default)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (role != UserRoleCode.DroneOperator) return ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden");
         if (limit is < 1 or > 100) return ProblemResponse(400, ApiErrorCodes.ValidationError, "Limit must be between 1 and 100");
-        var page = await _service.ListMyTasksAsync(actor, role, cursor, limit, cancellationToken);
+        var page = await _service.ListMyTasksAsync(actor, role, cursor, limit, new(status, statusGroup, Search: search), cancellationToken);
         return page is null ? ProblemResponse(400, ApiErrorCodes.ValidationError, "Invalid survey task list parameters") : Ok(page);
     }
 

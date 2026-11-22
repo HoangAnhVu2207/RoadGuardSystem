@@ -112,9 +112,12 @@ public sealed class P2SurveyV2ApiTests
         taskBody.GetProperty("status").GetString().Should().Be("NEW_ASSIGNED");
         taskBody.GetProperty("dueAt").GetDateTimeOffset().Should().Be(new DateTimeOffset(2026, 10, 4, 17, 0, 0, TimeSpan.Zero));
         var taskId = taskBody.GetProperty("id").GetGuid();
-        var planRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{projectId}/survey-plans", planId, "id", "projectId", "plannedAt", "status", "version", "plannedEndAt", "scopeSummary", "scopeAvailability");
+        var planRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{projectId}/survey-plans", planId, "id", "projectId", "plannedAt", "status", "version", "plannedEndAt", "scopeSummary", "scopeAvailability", "surveyType");
         Assert.Equal(postponedVersion, planRow.GetProperty("version").GetString());
-        var taskRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{projectId}/survey-tasks", taskId, "id", "projectId", "operatorId", "status", "version", "supplementTaskId", "planId", "operatorDisplayName", "operatorNameSource", "dueAt", "datasetCount", "scopeSummary", "scopeAvailability");
+        var taskRow = await CollectionAssertions.Contains(client, $"/api/v1/projects/{projectId}/survey-tasks", taskId, "id", "projectId", "operatorId", "status", "version", "supplementTaskId", "planId", "operatorDisplayName", "operatorNameSource", "dueAt", "datasetCount", "scopeSummary", "scopeAvailability", "surveyType", "parentTaskId");
+        Assert.Equal("BASELINE", planRow.GetProperty("surveyType").GetString());
+        Assert.Equal("BASELINE", taskRow.GetProperty("surveyType").GetString());
+        Assert.Equal(JsonValueKind.Null, taskRow.GetProperty("parentTaskId").ValueKind);
         Assert.Equal(operatorUser.Id, taskRow.GetProperty("operatorId").GetGuid());
 
         var planPath = $"/api/v1/survey-plans/{planId}";
@@ -245,10 +248,13 @@ public sealed class P2SurveyV2ApiTests
         var taskId = task.GetProperty("id").GetGuid();
 
         web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        var planRow = await CollectionAssertions.Contains(web, planPath, planId, "id", "projectId", "plannedAt", "status", "version", "plannedEndAt", "scopeSummary", "scopeAvailability");
+        var planRow = await CollectionAssertions.Contains(web, planPath, planId, "id", "projectId", "plannedAt", "status", "version", "plannedEndAt", "scopeSummary", "scopeAvailability", "surveyType");
         Assert.NotEqual(plan.GetProperty("version").GetString(), planRow.GetProperty("version").GetString());
         Assert.Equal("IN_PROGRESS", planRow.GetProperty("status").GetString());
-        var taskRow = await CollectionAssertions.Contains(web, taskPath, taskId, "id", "projectId", "operatorId", "status", "version", "supplementTaskId", "planId", "operatorDisplayName", "operatorNameSource", "dueAt", "datasetCount", "scopeSummary", "scopeAvailability");
+        var taskRow = await CollectionAssertions.Contains(web, taskPath, taskId, "id", "projectId", "operatorId", "status", "version", "supplementTaskId", "planId", "operatorDisplayName", "operatorNameSource", "dueAt", "datasetCount", "scopeSummary", "scopeAvailability", "surveyType", "parentTaskId");
+        Assert.Equal("BASELINE", planRow.GetProperty("surveyType").GetString());
+        Assert.Equal("BASELINE", taskRow.GetProperty("surveyType").GetString());
+        Assert.Equal(JsonValueKind.Null, taskRow.GetProperty("parentTaskId").ValueKind);
         Assert.Equal(droneOperator.Id, taskRow.GetProperty("operatorId").GetGuid());
         var planRead = await web.GetFromJsonAsync<JsonElement>($"/api/v1/survey-plans/{planId}");
         Assert.Equal(planId, planRead.GetProperty("id").GetGuid());

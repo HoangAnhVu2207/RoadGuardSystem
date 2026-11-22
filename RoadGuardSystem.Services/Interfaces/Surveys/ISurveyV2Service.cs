@@ -5,6 +5,7 @@ namespace RoadGuardSystem.Services.Surveys;
 
 public interface ISurveyV2Service
 {
+    Task<SurveyV2ServiceResult> CompletePlanAsync(Guid actor, UserRoleCode role, Guid planId, CompleteSurveyPlanRequestDto request, string key, string expectedVersion, CancellationToken token = default);
     Task<(SurveyV2ServiceStatus Status, IReadOnlyList<EligibleDroneDto> Items)> ListEligibleDronesAsync(
         Guid actor, UserRoleCode role, Guid taskId, Guid? afterId, int take, CancellationToken cancellationToken = default);
     Task<SurveyV2ServiceResult> CreatePlanAsync(Guid actorUserId, UserRoleCode role, Guid projectId, CreateSurveyPlanV2RequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default);

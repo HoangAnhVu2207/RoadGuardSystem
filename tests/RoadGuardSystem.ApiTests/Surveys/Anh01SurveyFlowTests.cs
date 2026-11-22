@@ -140,7 +140,31 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var plan = await Command(client, $"/api/v1/projects/{project}/survey-plans", new { scope = scopes, plannedAt = "2026-10-02T08:00:00Z", surveyType = "BASELINE" });
         plan.StatusCode.Should().Be(HttpStatusCode.Created);
         var planId = (await Body(plan)).GetProperty("id").GetGuid();
+        (await Body(plan)).GetProperty("surveyType").GetString().Should().Be("BASELINE");
         (await client.GetAsync(plan.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
+        var duplicatePlan = await Command(pmWeb, $"/api/v1/projects/{project}/survey-plans", new { scope = scopes, plannedAt = "2026-10-03T08:00:00Z", surveyType = "BASELINE" });
+        duplicatePlan.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var duplicateProblem = await Body(duplicatePlan);
+        duplicateProblem.GetProperty("code").GetString().Should().Be("survey_active_plan_conflict");
+        duplicateProblem.GetProperty("existingPlanId").GetGuid().Should().Be(planId);
+        duplicateProblem.GetProperty("existingPlanStatus").GetString().Should().Be("PLANNED");
+        var racePlanBody = new { scope = scopes, plannedAt = "2026-10-03T08:00:00Z", surveyType = "AD_HOC" };
+        var planRaces = await Task.WhenAll(Command(pmWeb, $"/api/v1/projects/{project}/survey-plans", racePlanBody), Command(pmWeb, $"/api/v1/projects/{project}/survey-plans", racePlanBody));
+        var raceWinner = planRaces.Single(x => x.StatusCode == HttpStatusCode.Created);
+        var raceLoser = planRaces.Single(x => x.StatusCode == HttpStatusCode.Conflict);
+        (await Body(raceLoser)).GetProperty("existingPlanId").GetGuid().Should().Be((await Body(raceWinner)).GetProperty("id").GetGuid());
+        (await Body(raceWinner)).GetProperty("surveyType").GetString().Should().Be("AD_HOC");
+        // A business conflict is not recorded as an idempotency success.
+        (await Command(outsideWeb, $"/api/v1/projects/{project}/survey-plans", racePlanBody)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var mismatch = await Command(pmWeb, $"/api/v1/projects/{project}/survey-tasks", new { scope = scopes, surveyType = "PERIODIC", operatorId = first.Id, dueAt = "2026-10-03T08:00:00Z", planId });
+        (await Body(mismatch)).GetProperty("code").GetString().Should().Be("survey_task_plan_mismatch");
+        var scopeMismatch = await Command(pmWeb, $"/api/v1/projects/{project}/survey-tasks", new { scope = new[] { Scope("LEFT_EDGE") }, surveyType = "BASELINE", operatorId = first.Id, dueAt = "2026-10-03T08:00:00Z", planId });
+        (await Body(scopeMismatch)).GetProperty("code").GetString().Should().Be("survey_task_plan_mismatch");
+        var invalidSource = await Command(pmWeb, $"/api/v1/projects/{project}/survey-plans", new { scope = new[] { new { routeVersionId = route, segmentSetId = Guid.NewGuid(), segmentIds = new[] { segment }, targetBand = "SURFACE" } }, surveyType = "BASELINE", plannedAt = "2026-10-03T08:00:00Z" });
+        (await Body(invalidSource)).GetProperty("code").GetString().Should().Be("survey_source_scope_invalid");
+        (await Command(pmWeb, $"/api/v1/projects/{project}/survey-tasks", new { scope = scopes, surveyType = "BASELINE", operatorId = first.Id, dueAt = "2026-10-03T08:00:00Z", planId = Guid.NewGuid() })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        using var premature = await Command(pmWeb, $"/api/v1/survey-plans/{planId}/complete", new { sources = new[] { new { taskId = Guid.NewGuid(), datasetId = Guid.NewGuid(), assessmentId = Guid.NewGuid() } }, reason = "Plan has no work yet" }, plan.Headers.ETag!.Tag);
+        (await Body(premature)).GetProperty("reasonCode").GetString().Should().Be("plan_not_in_progress");
         var taskResponse = await Command(client, $"/api/v1/projects/{project}/survey-tasks", new
         {
             scope = scopes,
@@ -152,11 +176,15 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         });
         taskResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var task = (await Body(taskResponse)).GetProperty("id").GetGuid();
+        (await Body(taskResponse)).GetProperty("surveyType").GetString().Should().Be("BASELINE");
+        var stateConflict = await Command(pmWeb, $"/api/v1/projects/{project}/survey-tasks", new { scope = scopes, surveyType = "BASELINE", operatorId = first.Id, dueAt = "2026-10-03T08:00:00Z", planId });
+        (await Body(stateConflict)).GetProperty("code").GetString().Should().Be("survey_plan_state_conflict");
         await CheckReads($"/api/v1/survey-tasks/{task}/work-package");
         var sparePlan = await Command(client, $"/api/v1/projects/{project}/survey-plans",
             new { scope = scopes, plannedAt = "2026-10-04T08:00:00Z", surveyType = "PERIODIC" });
         sparePlan.StatusCode.Should().Be(HttpStatusCode.Created);
         var sparePlanId = (await Body(sparePlan)).GetProperty("id").GetGuid();
+        (await Body(sparePlan)).GetProperty("surveyType").GetString().Should().Be("PERIODIC");
         var spare = await Command(client, $"/api/v1/projects/{project}/survey-tasks",
             new { scope = scopes, surveyType = "PERIODIC", operatorId = second.Id, dueAt = "2026-10-03T08:00:00Z", planId = sparePlanId });
         spare.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -531,6 +559,15 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var supplemented = await WebMutation($"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
         supplemented.StatusCode.Should().Be(HttpStatusCode.Created);
         var child = (await Body(supplemented)).GetProperty("supplementTaskId").GetGuid();
+        var childTypeRead = await Body(await pmWeb.GetAsync($"/api/v1/survey-tasks/{child}"));
+        childTypeRead.GetProperty("surveyType").GetString().Should().Be("AD_HOC");
+        childTypeRead.GetProperty("parentTaskId").GetGuid().Should().Be(task);
+        var summaryPage = await Body(await pmWeb.GetAsync($"/api/v1/projects/{project}/survey-tasks?limit=100"));
+        var childSummary = summaryPage.GetProperty("items").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == child);
+        childSummary.GetProperty("surveyType").GetString().Should().Be("AD_HOC");
+        childSummary.GetProperty("parentTaskId").GetGuid().Should().Be(task);
+        var planSummaryPage = await Body(await pmWeb.GetAsync($"/api/v1/projects/{project}/survey-plans?limit=100"));
+        planSummaryPage.GetProperty("items").EnumerateArray().Select(x => x.GetProperty("surveyType").GetString()).Should().BeEquivalentTo("BASELINE", "PERIODIC", "AD_HOC");
         (await Body(supplemented)).GetProperty("id").GetGuid().Should().Be(task);
         var supplementReplay = await Command(pmActions, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
         (await Body(supplementReplay)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
@@ -756,6 +793,121 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         another.StatusCode.Should().Be(HttpStatusCode.Created);
         (await Body(another)).GetProperty("supplementTaskId").GetGuid().Should().NotBe(child);
         (await Body(await client.GetAsync($"/api/v1/survey-tasks/{task}"))).GetProperty("supplementTaskId").ValueKind.Should().Be(JsonValueKind.Null);
+
+        // Plan closure is an independent audited confirmation, never a parent task completion.
+        var planCompletePath = $"/api/v1/survey-plans/{planId}/complete";
+        using var planBeforeComplete = await pmWeb.GetAsync($"/api/v1/survey-plans/{planId}");
+        var planEtag = planBeforeComplete.Headers.ETag!.Tag;
+        object PlanBody(Guid rootAssessment, Guid childReview) => new
+        {
+            reason = "PM verifies the complete pinned plan scope",
+            sources = new[] {
+            new { taskId = task, datasetId = dataset, assessmentId = rootAssessment },
+            new { taskId = child, datasetId = childDataset, assessmentId = childReview } }
+        };
+        async Task Blocked(object payload, string reason)
+        {
+            using var denied = await Command(pmActions, planCompletePath, payload, planEtag);
+            denied.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            (await Body(denied)).GetProperty("code").GetString().Should().Be("survey_plan_completion_blocked");
+            (await Body(denied)).GetProperty("reasonCode").GetString().Should().Be(reason);
+        }
+        await Blocked(new { reason = "Unrelated task", sources = new[] { new { taskId = spareId, datasetId = dataset, assessmentId = assessment } } }, "plan_source_task_invalid");
+        await Blocked(new { reason = "Wrong dataset lineage", sources = new[] { new { taskId = task, datasetId = childDataset, assessmentId = childAssessment } } }, "plan_dataset_lineage_invalid");
+        await Blocked(PlanBody(assessment, childAssessment), "plan_assessment_not_current");
+        var failedRootAssessment = (await Body(failReview)).GetProperty("id").GetGuid();
+        await Blocked(PlanBody(failedRootAssessment, childAssessment), "plan_scope_not_satisfied");
+        var renewedRoot = await Command(pmActions, assessmentPath, assessmentBody, datasetETag);
+        renewedRoot.StatusCode.Should().Be(HttpStatusCode.Created);
+        var currentRootAssessment = (await Body(renewedRoot)).GetProperty("id").GetGuid();
+        var planCompleteBody = PlanBody(currentRootAssessment, childAssessment);
+        // Negative legacy fixtures change only source metadata, never workflow status to obtain success.
+        await using (var brokenSourceDb = sql.CreateDbContext())
+        {
+            var originalManifest = (await brokenSourceDb.SurveyDataVersions.AsNoTracking().SingleAsync(x => x.Id == dataset)).ScopeManifest;
+            foreach (var badScope in new[] {
+                new { routeVersionId = Guid.NewGuid(), segmentSetId = set, segmentIds = new[] { segment }, targetBand = "SURFACE" },
+                new { routeVersionId = route, segmentSetId = Guid.NewGuid(), segmentIds = new[] { segment }, targetBand = "SURFACE" },
+                new { routeVersionId = route, segmentSetId = set, segmentIds = new[] { segment }, targetBand = "LEFT_EDGE" } })
+            {
+                try
+                {
+                    var manifest = JsonSerializer.Serialize(new[] { badScope });
+                    await brokenSourceDb.SurveyDataVersions.Where(x => x.Id == dataset).ExecuteUpdateAsync(x => x.SetProperty(d => d.ScopeManifest, manifest));
+                    await Blocked(planCompleteBody, "plan_source_scope_mismatch");
+                }
+                finally { await brokenSourceDb.SurveyDataVersions.Where(x => x.Id == dataset).ExecuteUpdateAsync(x => x.SetProperty(d => d.ScopeManifest, originalManifest)); }
+            }
+            try
+            {
+                await brokenSourceDb.SurveyRequests.Where(x => x.Id == task).ExecuteUpdateAsync(x => x.SetProperty(d => d.ScopeFormatVersion, (string?)null));
+                await Blocked(planCompleteBody, "plan_lineage_unavailable");
+            }
+            finally { await brokenSourceDb.SurveyRequests.Where(x => x.Id == task).ExecuteUpdateAsync(x => x.SetProperty(d => d.ScopeFormatVersion, "BAND_V1")); }
+        }
+        await Blocked(planCompleteBody, "plan_unhandled_task_branch");
+        var extraChild = (await Body(another)).GetProperty("supplementTaskId").GetGuid();
+        using var extraChildBeforeDecline = await pmWeb.GetAsync($"/api/v1/survey-tasks/{extraChild}");
+        await Login(client, first.UserName!);
+        using var declinedExtra = await Command(client, $"/api/v1/survey-tasks/{extraChild}/decline", new { reason = "Operator cannot perform this extra round" }, extraChildBeforeDecline.Headers.ETag!.Tag);
+        declinedExtra.StatusCode.Should().Be(HttpStatusCode.OK);
+        await Login(client, manager.UserName!);
+        await Blocked(planCompleteBody, "plan_unhandled_task_branch");
+        using var extraChildRead = await pmWeb.GetAsync($"/api/v1/survey-tasks/{extraChild}");
+        (await Command(pmActions, $"/api/v1/survey-tasks/{extraChild}/cancel", new { reason = "Unused additional round resolved explicitly" }, extraChildRead.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Command(pmActions, planCompletePath, new { reason = "Only a partial plan", sources = new[] { new { taskId = child, datasetId = childDataset, assessmentId = childAssessment } } }, planEtag)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Command(pmActions, planCompletePath, PlanBody(currentRootAssessment, previousChildAssessment), planEtag)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Command(outsideWeb, planCompletePath, planCompleteBody, planEtag)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Command(supWeb, planCompletePath, planCompleteBody, planEtag)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Command(pmActions, planCompletePath, planCompleteBody, "\"AAAAAAAABAA=\"")).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        var planCompleteKey = Guid.NewGuid().ToString("N");
+        using var completedPlan = withAccessPoint
+            ? await WebMutation(planCompletePath, planCompleteBody, planEtag, planCompleteKey)
+            : await RaceClose();
+        async Task<HttpResponseMessage> RaceClose()
+        {
+            var secondKey = Guid.NewGuid().ToString("N");
+            var race = await Task.WhenAll(Command(pmActions, planCompletePath, planCompleteBody, planEtag, planCompleteKey), Command(pmActions, planCompletePath, planCompleteBody, planEtag, secondKey));
+            race.Count(x => x.StatusCode == HttpStatusCode.OK).Should().Be(1);
+            race.Single(x => x.StatusCode != HttpStatusCode.OK).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+            // Keep the successful request key for replay below.
+            if (race[0].StatusCode != HttpStatusCode.OK) planCompleteKey = secondKey;
+            return race.Single(x => x.StatusCode == HttpStatusCode.OK);
+        }
+        completedPlan.StatusCode.Should().Be(HttpStatusCode.OK);
+        var completedPlanBody = await Body(completedPlan);
+        completedPlanBody.GetProperty("status").GetString().Should().Be("COMPLETED");
+        completedPlanBody.GetProperty("completion").GetProperty("sources").GetArrayLength().Should().Be(2);
+        var replayedPlan = await Task.WhenAll(Command(pmActions, planCompletePath, planCompleteBody, planEtag, planCompleteKey), Command(pmActions, planCompletePath, planCompleteBody, planEtag, planCompleteKey));
+        replayedPlan.Should().OnlyContain(x => x.StatusCode == HttpStatusCode.OK);
+        foreach (var response in replayedPlan) (await Body(response)).GetRawText().Should().Be(completedPlanBody.GetRawText());
+        (await Command(pmActions, planCompletePath, new { reason = "Changed request", sources = new[] { new { taskId = child, datasetId = childDataset, assessmentId = childAssessment } } }, planEtag, planCompleteKey)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Command(pmActions, planCompletePath, planCompleteBody, planEtag)).StatusCode.Should().Be(HttpStatusCode.PreconditionFailed);
+        using var reloadedPlanWeb = await WebCookieTestClient.Login(factory, manager.Email!);
+        var reloadedPlan = await Body(await reloadedPlanWeb.GetAsync($"/api/v1/survey-plans/{planId}"));
+        reloadedPlan.GetProperty("completion").GetRawText().Should().Be(completedPlanBody.GetProperty("completion").GetRawText());
+        (await Body(await pmWeb.GetAsync($"/api/v1/survey-tasks/{task}"))).GetProperty("status").GetString().Should().Be("SUPPLEMENT_REQUIRED");
+        var completedPlanPage = await Body(await pmWeb.GetAsync($"/api/v1/projects/{project}/survey-plans?limit=100"));
+        completedPlanPage.GetProperty("items").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == planId).GetProperty("status").GetString().Should().Be("COMPLETED");
+        await using (var checkDb = sql.CreateDbContext())
+        {
+            (await checkDb.AuditLogs.CountAsync(x => x.EntityId == planId && x.EventType == "survey_plan_completed")).Should().Be(1);
+            (await checkDb.Set<BaselineSelection>().CountAsync(x => x.ProjectId == project)).Should().Be(4);
+        }
+        await using (var membershipDb = sql.CreateDbContext())
+            await membershipDb.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        (await Command(pmActions, planCompletePath, planCompleteBody, planEtag, planCompleteKey)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await using (var membershipDb = sql.CreateDbContext())
+            await membershipDb.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Active));
+        var nextPlanKey = Guid.NewGuid().ToString("N");
+        var nextPlanBody = new { scope = scopes, plannedAt = "2026-11-02T08:00:00Z", surveyType = "BASELINE" };
+        // The old route is no longer current; pin the next period to the currently published route/set.
+        var nextPlanInput = new { scope = new[] { new { routeVersionId = replacementRouteId, segmentSetId = replacementSetId, segmentIds = new[] { (await Body(replacementSet)).GetProperty("segments")[0].GetProperty("id").GetGuid() }, targetBand = "SURFACE" } }, plannedAt = "2026-11-02T08:00:00Z", surveyType = "BASELINE" };
+        using var nextPlan = await Command(pmActions, $"/api/v1/projects/{project}/survey-plans", nextPlanInput, key: nextPlanKey);
+        nextPlan.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await Body(nextPlan)).GetProperty("id").GetGuid().Should().NotBe(planId);
+        (await Body(await Command(pmActions, $"/api/v1/projects/{project}/survey-plans", nextPlanInput, key: nextPlanKey))).GetProperty("id").GetGuid().Should().Be((await Body(nextPlan)).GetProperty("id").GetGuid());
+        (await Body(await Command(pmActions, $"/api/v1/projects/{project}/survey-plans", nextPlanBody, key: nextPlanKey))).GetProperty("code").GetString().Should().Be("duplicate_request");
 
         // V2 submits once per task. Seed two additional versions to verify historical readback.
         var earlierTieId = Guid.NewGuid();

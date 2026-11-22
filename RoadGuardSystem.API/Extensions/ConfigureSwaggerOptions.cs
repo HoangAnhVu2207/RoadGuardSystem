@@ -36,6 +36,7 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         options.OperationFilter<CaseReportDetailsOperationFilter>();
         options.OperationFilter<ProjectCreationWebOperationFilter>();
         options.OperationFilter<EligibleSurveyDroneOperationFilter>();
+        options.OperationFilter<SurveyPlanCompletionOperationFilter>();
         options.OperationFilter<UploadCancelOperationFilter>();
         options.OperationFilter<GeometrySubmissionOperationFilter>();
         options.OperationFilter<WebPmCompletionOperationFilter>();

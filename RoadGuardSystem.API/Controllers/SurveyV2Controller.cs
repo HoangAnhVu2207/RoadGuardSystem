@@ -40,7 +40,10 @@ public sealed class SurveyV2Controller : ControllerBase
             SurveyV2ServiceStatus.Success or SurveyV2ServiceStatus.Replayed when result.Plan is not null => Created($"/api/v1/survey-plans/{result.Plan.Id}", result.Plan),
             SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             SurveyV2ServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.ProjectNotFound, "Not found"),
-            SurveyV2ServiceStatus.Conflict or SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Conflict"),
+            SurveyV2ServiceStatus.ActivePlanConflict => ActivePlanProblem(result),
+            SurveyV2ServiceStatus.SourceScopeConflict => ProblemResponse(409, "survey_source_scope_invalid", "Source scope is invalid"),
+            SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
+            SurveyV2ServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.SurveyInvalidStateTransition, "Plan creation conflict"),
             _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Survey plan validation failed")
         };
     }
@@ -82,7 +85,11 @@ public sealed class SurveyV2Controller : ControllerBase
             SurveyV2ServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.ProjectNotFound, "Not found"),
             SurveyV2ServiceStatus.OperatorNotFound => ProblemResponse(404, ApiErrorCodes.IdentityUserNotFound, "Operator not found"),
             SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
-            SurveyV2ServiceStatus.Conflict or SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Conflict"),
+            SurveyV2ServiceStatus.TaskPlanMismatch => ProblemResponse(409, "survey_task_plan_mismatch", "Task scope or type does not match plan"),
+            SurveyV2ServiceStatus.PlanStateConflict => ProblemResponse(409, "survey_plan_state_conflict", "Plan state does not allow task creation"),
+            SurveyV2ServiceStatus.SourceScopeConflict => ProblemResponse(409, "survey_source_scope_invalid", "Source scope is invalid"),
+            SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Idempotency key was reused with a different request"),
+            SurveyV2ServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.SurveyInvalidStateTransition, "Task creation conflict"),
             _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Survey task validation failed")
         };
     }
@@ -90,6 +97,7 @@ public sealed class SurveyV2Controller : ControllerBase
     [Authorize]
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("survey-tasks/{taskId:guid}")]
+    [ProducesResponseType<SurveyTaskV2ResponseDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTask(Guid taskId, CancellationToken cancellationToken)
     {
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
@@ -146,6 +154,7 @@ public sealed class SurveyV2Controller : ControllerBase
 
     [Authorize, HttpGet("survey-plans/{id:guid}")]
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [ProducesResponseType<SurveyPlanV2ResponseDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> ReadPlan(Guid id, CancellationToken token) => ReadResource(id, "plan", token);
     [Authorize, HttpGet("datasets/{id:guid}")]
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
@@ -337,6 +346,42 @@ public sealed class SurveyV2Controller : ControllerBase
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
         return MapTaskMutation(await _service.CompleteTaskAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken));
+    }
+
+    [Authorize, HttpPost("survey-plans/{planId:guid}/complete")]
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [ProducesResponseType<SurveyPlanV2ResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status412PreconditionFailed)]
+    public async Task<IActionResult> CompletePlan(Guid planId, CompleteSurveyPlanRequestDto request,
+        [FromHeader(Name = "Idempotency-Key")] string? key, [FromHeader(Name = "If-Match")] string? expectedVersion, CancellationToken token)
+    {
+        if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
+        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(expectedVersion)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
+        var result = await _service.CompletePlanAsync(actor, role, planId, request, key, expectedVersion, token);
+        if (result.Plan is not null) { Response.Headers.ETag = $"\"{result.Plan.Version}\""; return Ok(result.Plan); }
+        if (result.Status == SurveyV2ServiceStatus.PlanCompletionBlocked)
+        {
+            var problem = ProblemResponse(409, "survey_plan_completion_blocked", "Plan completion is blocked");
+            ((ProblemDetails)problem.Value!).Extensions["reasonCode"] = result.ReasonCode;
+            return problem;
+        }
+        return result.Status switch
+        {
+            SurveyV2ServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
+            SurveyV2ServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.SurveyPlanNotFound, "Not found"),
+            SurveyV2ServiceStatus.ConcurrencyConflict => ProblemResponse(412, ApiErrorCodes.ConcurrencyConflict, "Plan version stale"),
+            SurveyV2ServiceStatus.IdempotentConflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Key reused with different command"),
+            _ => ProblemResponse(422, ApiErrorCodes.SurveyValidationFailed, "Invalid completion command")
+        };
+    }
+    private ObjectResult ActivePlanProblem(SurveyV2ServiceResult result)
+    {
+        var problem = ProblemResponse(409, "survey_active_plan_conflict", "An active plan already exists for this project, road and survey type");
+        var details = (ProblemDetails)problem.Value!;
+        details.Extensions["existingPlanId"] = result.ExistingPlanId;
+        details.Extensions["existingPlanStatus"] = result.ExistingPlanStatus;
+        return problem;
     }
 
     private ObjectResult MapTaskMutation(SurveyV2ServiceResult result)

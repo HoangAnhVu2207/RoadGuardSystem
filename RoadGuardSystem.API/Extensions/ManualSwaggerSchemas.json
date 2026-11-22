@@ -1,15 +1,157 @@
 {
   "properties": [
-    {"dto": "RoadGuardSystem.DTOs.Surveys.CompleteSurveyTaskRequestDto", "property": "datasetId", "description": "Explicit submitted dataset belonging to this exact task; never implicitly select the newest dataset or a child dataset."},
-    {"dto": "RoadGuardSystem.DTOs.Surveys.CompleteSurveyTaskRequestDto", "property": "assessmentId", "description": "Current pm-evidence-review.v1 assessment of the chosen dataset. Every required task segment/band needs position, quality and coverage PASS."},
-    {"dto": "RoadGuardSystem.DTOs.Messaging.H6NotificationScopeDto", "property": "datasetId", "nullable": true, "description": "Verified dataset navigation for a survey assessment occurrence; null for unrelated or unverifiable legacy notifications."},
-    {"dto": "RoadGuardSystem.DTOs.Messaging.H6NotificationScopeDto", "property": "assessmentId", "nullable": true, "description": "Exact immutable assessment behind this notification; not an implicit latest assessment or task completion."},
-    {"dto": "RoadGuardSystem.DTOs.Inspections.InspectionTaskResponseDto", "property": "mode", "nullable": true, "enum": ["MEASURE_ONLY", "NORMAL", "CONDITIONAL_FT", null], "description": "Persisted task mode with current binding proof; null for rejected history or missing/ambiguous binding. This summary is not execution eligibility."},
-    {"dto": "RoadGuardSystem.DTOs.Surveys.DatasetListItemDto", "property": "processingCounts", "nullable": true, "description": "Independent counts of current persisted processing jobs for this dataset: QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED, UNKNOWN. Empty object means no jobs; null means unavailable adapter. Includes all jobs, not an arbitrarily selected latest run or assessment."},
-    {"dto": "RoadGuardSystem.DTOs.Inspections.FieldTaskCreateInput", "property": "requiredMeasurementType", "description": "Numeric fixed type: 1 DepressionDepth, 2 SlabFaultingHeight, 3 ShoulderErosionExtent, 4 Area, 5 DepressionLength, 6 DepressionWidth. Unknown 0 is rejected for new tasks; submission may contain multiple measurements.", "minimum": 1, "maximum": 6, "enum": [1, 2, 3, 4, 5, 6]},
-    {"dto": "RoadGuardSystem.DTOs.Surveys.DatasetDetailView", "property": "surveyId", "description": "Persisted Survey identity of this dataset. Use for FIELD sourceKind SURVEY, never substitute surveyTaskId or dataset id.", "nullable": true},
-    {"dto": "RoadGuardSystem.DTOs.Cases.CasePublicationDto", "property": "repairProgressStatus", "nullable": true, "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED", null], "description": "Optional milestone request. The server validates current repair facts for every recipient."},
-    {"dto": "RoadGuardSystem.DTOs.Reports.OwnReportRepairProgressDto", "property": "status", "enum": ["NOT_STARTED", "IN_PROGRESS", "ACCEPTED"], "description": "Milestone published by the PM for this report."},
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.SurveyPlanV2ResponseDto",
+      "property": "surveyType",
+      "enum": [
+        "BASELINE",
+        "PERIODIC",
+        "AD_HOC",
+        "UNKNOWN"
+      ],
+      "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.SurveyTaskV2ResponseDto",
+      "property": "surveyType",
+      "enum": [
+        "BASELINE",
+        "PERIODIC",
+        "AD_HOC",
+        "UNKNOWN"
+      ],
+      "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Collections.SurveyPlanSummary",
+      "property": "surveyType",
+      "enum": [
+        "BASELINE",
+        "PERIODIC",
+        "AD_HOC",
+        "UNKNOWN"
+      ],
+      "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Collections.SurveyTaskSummary",
+      "property": "surveyType",
+      "enum": [
+        "BASELINE",
+        "PERIODIC",
+        "AD_HOC",
+        "UNKNOWN"
+      ],
+      "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.CompleteSurveyPlanRequestDto",
+      "property": "sources",
+      "minItems": 1,
+      "maxItems": 100,
+      "description": "Explicit task/dataset/current assessment lineage; dataset IDs must be distinct. Combine exact pinned scope PASS; unresolved branches block."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.CompleteSurveyPlanRequestDto",
+      "property": "reason",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.SurveyPlanV2ResponseDto",
+      "property": "completion",
+      "nullable": true,
+      "description": "Persisted immutable confirmation basis. Null before completion or when no historic basis was recorded. GET current plan after reload."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Collections.SurveyTaskSummary",
+      "property": "parentTaskId",
+      "nullable": true,
+      "description": "Persisted direct parent; relationship ID grants no additional access. supplementTaskId remains the separate singular child link."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.CompleteSurveyTaskRequestDto",
+      "property": "datasetId",
+      "description": "Explicit submitted dataset belonging to this exact task; never implicitly select the newest dataset or a child dataset."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.CompleteSurveyTaskRequestDto",
+      "property": "assessmentId",
+      "description": "Current pm-evidence-review.v1 assessment of the chosen dataset. Every required task segment/band needs position, quality and coverage PASS."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Messaging.H6NotificationScopeDto",
+      "property": "datasetId",
+      "nullable": true,
+      "description": "Verified dataset navigation for a survey assessment occurrence; null for unrelated or unverifiable legacy notifications."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Messaging.H6NotificationScopeDto",
+      "property": "assessmentId",
+      "nullable": true,
+      "description": "Exact immutable assessment behind this notification; not an implicit latest assessment or task completion."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.InspectionTaskResponseDto",
+      "property": "mode",
+      "nullable": true,
+      "enum": [
+        "MEASURE_ONLY",
+        "NORMAL",
+        "CONDITIONAL_FT",
+        null
+      ],
+      "description": "Persisted task mode with current binding proof; null for rejected history or missing/ambiguous binding. This summary is not execution eligibility."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.DatasetListItemDto",
+      "property": "processingCounts",
+      "nullable": true,
+      "description": "Independent counts of current persisted processing jobs for this dataset: QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED, UNKNOWN. Empty object means no jobs; null means unavailable adapter. Includes all jobs, not an arbitrarily selected latest run or assessment."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldTaskCreateInput",
+      "property": "requiredMeasurementType",
+      "description": "Numeric fixed type: 1 DepressionDepth, 2 SlabFaultingHeight, 3 ShoulderErosionExtent, 4 Area, 5 DepressionLength, 6 DepressionWidth. Unknown 0 is rejected for new tasks; submission may contain multiple measurements.",
+      "minimum": 1,
+      "maximum": 6,
+      "enum": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Surveys.DatasetDetailView",
+      "property": "surveyId",
+      "description": "Persisted Survey identity of this dataset. Use for FIELD sourceKind SURVEY, never substitute surveyTaskId or dataset id.",
+      "nullable": true
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Cases.CasePublicationDto",
+      "property": "repairProgressStatus",
+      "nullable": true,
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "ACCEPTED",
+        null
+      ],
+      "description": "Optional milestone request. The server validates current repair facts for every recipient."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Reports.OwnReportRepairProgressDto",
+      "property": "status",
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "ACCEPTED"
+      ],
+      "description": "Milestone published by the PM for this report."
+    },
     {
       "dto": "RoadGuardSystem.DTOs.Authentication.ChangePasswordRequestDto",
       "property": "currentPassword",
@@ -6604,19 +6746,30 @@
     "RoadGuardSystem.DTOs.Projects.PavementLayoutInput": {
       "properties": {
         "slabThicknessCentimeters": {
-          "type": "number", "nullable": true, "minimum": 0, "exclusiveMinimum": true,
+          "type": "number",
+          "nullable": true,
+          "minimum": 0,
+          "exclusiveMinimum": true,
           "description": "Optional slab thickness in centimeters. Decimal value preserved without rounding. Null or absent means unspecified."
         },
         "contractionJointSpacingMeters": {
-          "type": "number", "nullable": true, "minimum": 0, "exclusiveMinimum": true,
+          "type": "number",
+          "nullable": true,
+          "minimum": 0,
+          "exclusiveMinimum": true,
           "description": "Optional contraction joint spacing in meters. Decimal value preserved without rounding. Null or absent means unspecified."
         },
         "expansionJointSpacingMeters": {
-          "type": "number", "nullable": true, "minimum": 0, "exclusiveMinimum": true,
+          "type": "number",
+          "nullable": true,
+          "minimum": 0,
+          "exclusiveMinimum": true,
           "description": "Optional expansion joint spacing in meters. Decimal value preserved without rounding. Null or absent means unspecified."
         },
         "expansionJointGapMillimeters": {
-          "type": "number", "nullable": true, "minimum": 0,
+          "type": "number",
+          "nullable": true,
+          "minimum": 0,
           "description": "Optional expansion joint gap in millimeters. Decimal value preserved without rounding. Null or absent means unspecified."
         }
       }
@@ -6627,7 +6780,11 @@
           "type": "object",
           "nullable": true,
           "description": "Original planned configuration. Null for as-built and when no original input is available. Optional values absent if unspecified. Some historical create receipts omit this property.",
-          "allOf": [{ "clrType": "RoadGuardSystem.DTOs.Projects.PavementLayoutInput" }]
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.DTOs.Projects.PavementLayoutInput"
+            }
+          ]
         }
       }
     },
@@ -6636,19 +6793,36 @@
         "repairContext": {
           "type": "object",
           "nullable": true,
-          "allOf": [{ "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact" }]
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact"
+            }
+          ]
         }
       }
     },
     "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact": {
       "properties": {
-        "mode": { "type": "string", "enum": ["NORMAL", "FAST_TRACK"] },
-        "itemVersion": { "type": "string", "description": "Current repair item rowversion in Base64. Use for repair commands." },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "NORMAL",
+            "FAST_TRACK"
+          ]
+        },
+        "itemVersion": {
+          "type": "string",
+          "description": "Current repair item rowversion in Base64. Use for repair commands."
+        },
         "attempt": {
           "type": "object",
           "nullable": true,
           "description": "Current attempt and effective intake on the current task binding, when present.",
-          "allOf": [{ "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairAttemptFact" }]
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairAttemptFact"
+            }
+          ]
         }
       }
     },
@@ -6658,13 +6832,23 @@
           "type": "object",
           "nullable": true,
           "description": "PM decision for the effective submission. Null while awaiting review.",
-          "allOf": [{ "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairReviewFact" }]
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairReviewFact"
+            }
+          ]
         }
       }
     },
     "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairReviewFact": {
       "properties": {
-        "decision": { "type": "string", "enum": ["SUPPLEMENT", "ACCEPT"] }
+        "decision": {
+          "type": "string",
+          "enum": [
+            "SUPPLEMENT",
+            "ACCEPT"
+          ]
+        }
       }
     },
     "RoadGuardSystem.Repositories.Messaging.BusinessDutyView": {

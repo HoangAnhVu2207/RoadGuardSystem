@@ -11,6 +11,26 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task SurveyPlanClosureAndReadbacksDocumentTypedSourcesAndWebSecurity()
+    {
+        using var document = await Document();
+        var root = document.RootElement;
+        var operation = root.GetProperty("paths").GetProperty("/api/v1/survey-plans/{planId}/complete").GetProperty("post");
+        Assert.Contains(operation.GetProperty("security").EnumerateArray(), row => row.TryGetProperty("Bearer", out _));
+        Assert.Contains(operation.GetProperty("security").EnumerateArray(), row => row.TryGetProperty("WebSession", out _) && row.TryGetProperty("CsrfToken", out _));
+        foreach (var header in new[] { "If-Match", "Idempotency-Key" })
+            Assert.Contains(operation.GetProperty("parameters").EnumerateArray(), row => row.GetProperty("name").GetString() == header && row.GetProperty("required").GetBoolean());
+        Assert.Contains("plan_scope_not_satisfied", operation.GetProperty("responses").GetProperty("409").GetProperty("description").GetString());
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        foreach (var name in new[] { "SurveyPlanV2ResponseDto", "SurveyTaskV2ResponseDto", "SurveyPlanSummary", "SurveyTaskSummary" })
+            Assert.True(schemas.GetProperty(name).GetProperty("properties").TryGetProperty("surveyType", out _), name);
+        Assert.True(schemas.GetProperty("SurveyTaskSummary").GetProperty("properties").TryGetProperty("parentTaskId", out _));
+        Assert.True(schemas.GetProperty("SurveyPlanV2ResponseDto").GetProperty("properties").TryGetProperty("completion", out _));
+        var source = schemas.GetProperty("SurveyPlanCompletionSource").GetProperty("properties");
+        Assert.Equal(new[] { "assessmentId", "datasetId", "taskId" }, source.EnumerateObject().Select(x => x.Name).OrderBy(x => x).ToArray());
+    }
+
+    [Fact]
     public async Task ReporterRepairProgressUsesExistingRoutesAndDocumentsPublicMilestones()
     {
         using var document = await Document();

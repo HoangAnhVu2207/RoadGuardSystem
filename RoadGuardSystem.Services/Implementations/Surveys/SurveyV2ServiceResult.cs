@@ -6,4 +6,4 @@ public sealed record SurveyV2ServiceResult(
     SurveyV2ServiceStatus Status,
     SurveyPlanV2ResponseDto? Plan = null,
     SurveyTaskV2ResponseDto? Task = null,
-    DatasetResponseDto? Dataset = null);
+    DatasetResponseDto? Dataset = null, Guid? ExistingPlanId = null, string? ExistingPlanStatus = null, string? ReasonCode = null);

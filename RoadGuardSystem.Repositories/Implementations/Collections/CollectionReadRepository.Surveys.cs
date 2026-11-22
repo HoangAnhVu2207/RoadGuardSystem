@@ -20,7 +20,7 @@ public sealed partial class CollectionReadRepository
                 if (scope.Length == 0) scope = LegacyScopes(plan.OutputRequirements);
                 return new SurveyCollectionSummary(plan.Id, project, Status(plan.Status.ToString()), Convert.ToBase64String(plan.RowVersion),
                     plan.PlannedStartAt, plan.PlannedEndAt, Guid.Empty, null, "NOT_APPLICABLE", null, null, 0, null, scope,
-                    scope.Length == 0 ? "MISSING" : "STORED");
+                    scope.Length == 0 ? "MISSING" : "STORED", RoadGuardSystem.BusinessObjects.Surveys.SurveyTypeWire.Code(plan.SurveyType));
             }).ToArray();
         }
         var tasks = await db.SurveyRequests.AsNoTracking().Where(row => row.ProjectId == project && ids.Contains(row.Id)).ToArrayAsync(token);
@@ -50,7 +50,7 @@ public sealed partial class CollectionReadRepository
             result.Add(new(task.Id, project, Status(task.Status.ToString()), Convert.ToBase64String(task.RowVersion),
                 null, null, assignment.OperatorUserId, names.GetValueOrDefault(assignment.OperatorUserId)?.DisplayName,
                 names.ContainsKey(assignment.OperatorUserId) ? "CURRENT_ACCOUNT" : "MISSING_ACCOUNT", task.SurveyPlanId, task.DueAt,
-                counts.GetValueOrDefault(task.Id)?.Count ?? 0, direct.Length == 1 ? direct[0].Id : null, scope, scope.Length == 0 ? "MISSING" : "STORED"));
+                counts.GetValueOrDefault(task.Id)?.Count ?? 0, direct.Length == 1 ? direct[0].Id : null, scope, scope.Length == 0 ? "MISSING" : "STORED", RoadGuardSystem.BusinessObjects.Surveys.SurveyTypeWire.Code(task.SurveyType), task.ParentTaskId));
         }
         return result.ToArray();
     }

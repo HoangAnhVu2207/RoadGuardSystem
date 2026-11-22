@@ -49,9 +49,13 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             return MapPlanOutcome(outcome);
         }
         catch (ScopeNotFoundException) { return new(SurveyV2PersistenceStatus.NotFound); }
-        catch (ScopeConflictException) { return new(SurveyV2PersistenceStatus.Conflict); }
+        catch (ScopeConflictException) { return new(SurveyV2PersistenceStatus.SourceScopeConflict); }
         catch (ArgumentException) { return new(SurveyV2PersistenceStatus.InvalidInput); }
-        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception)) { return new(SurveyV2PersistenceStatus.Conflict); }
+        catch (DbUpdateException exception) when (IsActivePlanUniqueViolation(exception))
+        {
+            _context.ChangeTracker.Clear();
+            return await ReadActivePlanConflictAsync(request, cancellationToken);
+        }
     }
 
     public async Task<SurveyV2PlanPersistenceResult> PostponePlanAsync(SurveyV2PlanPostponementRequest request, CancellationToken cancellationToken = default)
@@ -126,8 +130,9 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                 if (request.PlanId is { } planId)
                 {
                     var plan = await _context.SurveyPlans.SingleOrDefaultAsync(p => p.Id == planId && p.ProjectId == request.ProjectId, token) ?? throw new ScopeNotFoundException();
-                    if (plan.ScopeFormatVersion != "BAND_V1" || plan.SurveyType != request.SurveyType || plan.Status != SurveyPlanStatus.Planned ||
-                        !await ScopeContainsAsync(plan.OutputRequirements, request.ScopeJson)) throw new ScopeConflictException();
+                    if (plan.ScopeFormatVersion != "BAND_V1" || plan.SurveyType != request.SurveyType ||
+                        !await ScopeContainsAsync(plan.OutputRequirements, request.ScopeJson)) throw new PlanMismatchException();
+                    if (plan.Status != SurveyPlanStatus.Planned) throw new PlanStateException();
                     plan.MarkTaskCreated();
                 }
                 var task = SurveyRequest.Create(Guid.NewGuid(), request.ProjectId, scope.RoadSectionId, request.PlanId, request.ActorUserId, request.SurveyType, SurveyRequestStatus.NewAssigned, now, request.DueAt, payload, scope.Items[0].RouteVersionId);
@@ -153,7 +158,9 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             return new(outcome.Status == IdempotencyOperationStatus.Replayed ? SurveyV2PersistenceStatus.Replayed : SurveyV2PersistenceStatus.Success, view);
         }
         catch (ScopeNotFoundException) { return new(SurveyV2PersistenceStatus.NotFound); }
-        catch (ScopeConflictException) { return new(SurveyV2PersistenceStatus.Conflict); }
+        catch (ScopeConflictException) { return new(SurveyV2PersistenceStatus.SourceScopeConflict); }
+        catch (PlanMismatchException) { return new(SurveyV2PersistenceStatus.TaskPlanMismatch); }
+        catch (PlanStateException) { return new(SurveyV2PersistenceStatus.PlanStateConflict); }
         catch (OperatorNotFoundException) { return new(SurveyV2PersistenceStatus.OperatorNotFound); }
         catch (ArgumentException) { return new(SurveyV2PersistenceStatus.InvalidInput); }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception)) { return new(SurveyV2PersistenceStatus.Conflict); }
@@ -399,7 +406,9 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
     public async Task<SurveyV2PlanPersistenceView?> ReadPlanAsync(Guid id, CancellationToken token = default)
     {
         var plan = await _context.SurveyPlans.AsNoTracking().SingleOrDefaultAsync(p => p.Id == id && p.ScopeFormatVersion == "BAND_V1", token);
-        return plan is null ? null : ToPlanView(plan);
+        if (plan is null) return null;
+        var basis = await _context.AuditLogs.AsNoTracking().Where(x => x.EntityId == id && x.EntityType == "SurveyPlan" && x.EventType == "survey_plan_completed").Select(x => x.AfterSnapshot).SingleOrDefaultAsync(token);
+        return ToPlanView(plan) with { Completion = basis is null ? null : JsonSerializer.Deserialize<SurveyPlanCompletionRecord>(basis, DatasetScopeJsonOptions) };
     }
 
     private async Task<ScopeResolution> ResolveScopeAsync(Guid projectId, Guid routeVersionId, IReadOnlyList<SurveyV2ScopeRequest>? requestedScope, CancellationToken cancellationToken)
@@ -477,13 +486,13 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
     }
 
     private static SurveyV2PlanPersistenceView ToPlanView(SurveyPlan plan)
-        => new(plan.Id, plan.ProjectId, plan.OutputRequirements, plan.PlannedStartAt, plan.Status.ToString(), Version(plan));
+        => new(plan.Id, plan.ProjectId, plan.OutputRequirements, plan.PlannedStartAt, plan.Status.ToString(), Version(plan), SurveyTypeWire.Code(plan.SurveyType));
 
     private static SurveyV2TaskPersistenceView ToTaskView(SurveyRequest task, Guid operatorId)
         => ToTaskView(task, operatorId, task.OutputRequirements);
 
     private static SurveyV2TaskPersistenceView ToTaskView(SurveyRequest task, Guid operatorId, string outputRequirements)
-        => new(task.Id, task.ProjectId, outputRequirements, operatorId, task.Status.ToString(), Version(task), task.DueAt, ReadAccessPoint(task.OutputRequirements)?.GetRawText()) { ParentTaskId = task.ParentTaskId };
+        => new(task.Id, task.ProjectId, outputRequirements, operatorId, task.Status.ToString(), Version(task), task.DueAt, ReadAccessPoint(task.OutputRequirements)?.GetRawText()) { ParentTaskId = task.ParentTaskId, SurveyType = SurveyTypeWire.Code(task.SurveyType) };
     private static JsonElement? ReadAccessPoint(string json)
     {
         using var doc = JsonDocument.Parse(json);
@@ -559,5 +568,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
     private sealed record ScopeResolution(Guid RoadSectionId, IReadOnlyList<ResolvedScopeItem> Items);
     private sealed class ScopeNotFoundException : Exception;
     private sealed class ScopeConflictException : Exception;
+    private sealed class PlanMismatchException : Exception;
+    private sealed class PlanStateException : Exception;
     private sealed class OperatorNotFoundException : Exception;
 }

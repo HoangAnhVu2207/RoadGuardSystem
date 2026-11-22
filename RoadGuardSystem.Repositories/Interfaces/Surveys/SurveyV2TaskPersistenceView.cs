@@ -2,6 +2,7 @@ namespace RoadGuardSystem.Repositories.Surveys;
 
 public sealed record SurveyV2TaskPersistenceView(Guid Id, Guid ProjectId, string ScopeJson, Guid OperatorId, string Status, string Version, DateTimeOffset? DueAt, string? AccessPointJson, Guid? SupplementTaskId = null)
 {
+    public string SurveyType { get; init; } = "UNKNOWN";
     public string? ProjectName { get; init; }
     public Guid? ParentTaskId { get; init; }
     // Internal authorization evidence; management reads retain ended assignment history.

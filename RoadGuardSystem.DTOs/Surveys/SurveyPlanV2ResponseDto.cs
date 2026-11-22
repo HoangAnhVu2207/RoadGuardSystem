@@ -6,4 +6,4 @@ public sealed record SurveyPlanV2ResponseDto(
     IReadOnlyList<BandScopeDto> Scope,
     DateTimeOffset PlannedAt,
     string Status,
-    string Version);
+    string Version, string SurveyType = "UNKNOWN", SurveyPlanCompletionView? Completion = null);

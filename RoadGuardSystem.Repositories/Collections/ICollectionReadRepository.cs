@@ -16,4 +16,4 @@ public sealed record SurveyScopeSummary(Guid RouteVersionId, Guid SegmentSetId, 
 public sealed record SurveyCollectionSummary(Guid Id, Guid ProjectId, string Status, string Version,
     DateTimeOffset? PlannedAt, DateTimeOffset? PlannedEndAt, Guid OperatorId, string? OperatorDisplayName,
     string OperatorNameSource, Guid? PlanId, DateTimeOffset? DueAt, int DatasetCount, Guid? SupplementTaskId,
-    SurveyScopeSummary[] ScopeSummary, string ScopeAvailability);
+    SurveyScopeSummary[] ScopeSummary, string ScopeAvailability, string SurveyType = "UNKNOWN", Guid? ParentTaskId = null);

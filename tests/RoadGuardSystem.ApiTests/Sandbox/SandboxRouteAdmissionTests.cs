@@ -330,6 +330,7 @@ public sealed class SandboxRouteAdmissionTests(AuthenticationSqlServerFixture sq
         new("API-229", "W05", "POST", "/api/v1/survey-tasks/{taskId}/datasets", "SurveyV2Controller", "SubmitDataset"),
         new("API-230", "W05", "POST", "/api/v1/survey-tasks/{taskId}/decline", "SurveyV2Controller", "DeclineTask"),
         new("API-231", "W05", "POST", "/api/v1/survey-tasks/{taskId}/reassign", "SurveyV2Controller", "ReassignTask"),
+        new("SURVEY-PLAN-COMPLETE", "W05", "POST", "/api/v1/survey-plans/{planId}/complete", "SurveyV2Controller", "CompletePlan"),
         new("SURVEY-COMPLETE", "W05", "POST", "/api/v1/survey-tasks/{taskId}/complete", "SurveyV2Controller", "CompleteTask"),
         new("API-232", "W05", "POST", "/api/v1/survey-tasks/{taskId}/supplements", "SurveyV2Controller", "RequestSupplement"),
         new("API-233", "W05", "POST", "/api/v1/uploads", "UploadsController", "Create"),

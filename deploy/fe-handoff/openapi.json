@@ -10873,7 +10873,7 @@
             }
           },
           "409": {
-            "description": "Error codes: duplicate_request.",
+            "description": "survey_active_plan_conflict includes authorized existingPlanId/existingPlanStatus for the exact project + roadSection + surveyType active key. duplicate_request means a reused idempotency key with a different fingerprint. survey_source_scope_invalid means invalid source scope.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -11299,7 +11299,7 @@
             }
           },
           "409": {
-            "description": "Error codes: duplicate_request.",
+            "description": "survey_task_plan_mismatch: type/scope incompatible with plan; survey_plan_state_conflict: plan cannot create a task; survey_source_scope_invalid: invalid source; duplicate_request: key/fingerprint conflict. A plan in another project remains 404.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -60612,6 +60612,273 @@
         ]
       }
     },
+    "/api/v1/survey-plans/{planId}/complete": {
+      "post": {
+        "tags": [
+          "SurveyV"
+        ],
+        "description": "Current project PM explicitly completes an IN_PROGRESS BAND_V1 plan using persisted root/supplement lineage, submitted datasets and their current pm-evidence-review.v1 assessments. Exact pinned route/set/segment/band PASS coverage is required. Unhandled branches block completion. Does not complete tasks or change baseline. Completion basis, audit, plan version and receipt commit atomically. Replay rechecks current PM authority; retain the original body, If-Match and Idempotency-Key. GET plan returns completion basis after reload. No legacy backfill.",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "New operation key; retain unchanged request on retry.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted ETag from GET /api/v1/survey-plans/{id}. Keep original header on retry.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSurveyPlanRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSurveyPlanRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSurveyPlanRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "New plan rowversion; task and dataset versions are independent.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurveyPlanV2ResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurveyPlanV2ResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SurveyPlanV2ResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "survey_plan_completion_blocked with reasonCode: plan_not_in_progress, plan_lineage_unavailable, plan_scope_unavailable, plan_source_task_invalid, plan_dataset_lineage_invalid, plan_assessment_not_current, plan_source_scope_mismatch, plan_scope_not_satisfied, plan_unhandled_task_branch. duplicate_request: same scoped key with different request.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "auth_concurrency_conflict: stale plan ETag; reload before a new decision.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthorized: missing/invalid session or Bearer",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed for cookie writes",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "survey_plan_not_found",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "survey_validation_failed: invalid reason/source list",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "validation_error: missing If-Match or Idempotency-Key",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Server request correlation ID.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/labels": {
       "post": {
         "tags": [
@@ -68256,6 +68523,28 @@
             "format": "date-time"
           },
           "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CompleteSurveyPlanRequestDto": {
+        "type": "object",
+        "properties": {
+          "sources": {
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SurveyPlanCompletionSource"
+            },
+            "description": "Explicit task/dataset/current assessment lineage; dataset IDs must be distinct. Combine exact pinned scope PASS; unresolved branches block.",
+            "nullable": true
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
             "type": "string",
             "nullable": true
           }
@@ -80765,6 +81054,53 @@
         },
         "additionalProperties": false
       },
+      "SurveyPlanCompletionSource": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "datasetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assessmentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SurveyPlanCompletionView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SurveyPlanCompletionSource"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SurveyPlanStatus": {
         "enum": [
           0,
@@ -80814,6 +81150,17 @@
           },
           "scopeAvailability": {
             "type": "string",
+            "nullable": true
+          },
+          "surveyType": {
+            "enum": [
+              "BASELINE",
+              "PERIODIC",
+              "AD_HOC",
+              "UNKNOWN"
+            ],
+            "type": "string",
+            "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay.",
             "nullable": true
           }
         },
@@ -80865,6 +81212,20 @@
           "version": {
             "type": "string",
             "nullable": true
+          },
+          "surveyType": {
+            "enum": [
+              "BASELINE",
+              "PERIODIC",
+              "AD_HOC",
+              "UNKNOWN"
+            ],
+            "type": "string",
+            "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay.",
+            "nullable": true
+          },
+          "completion": {
+            "$ref": "#/components/schemas/SurveyPlanCompletionView"
           }
         },
         "additionalProperties": false
@@ -81004,6 +81365,23 @@
           "scopeAvailability": {
             "type": "string",
             "nullable": true
+          },
+          "surveyType": {
+            "enum": [
+              "BASELINE",
+              "PERIODIC",
+              "AD_HOC",
+              "UNKNOWN"
+            ],
+            "type": "string",
+            "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay.",
+            "nullable": true
+          },
+          "parentTaskId": {
+            "type": "string",
+            "description": "Persisted direct parent; relationship ID grants no additional access. supplementTaskId remains the separate singular child link.",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -81072,6 +81450,17 @@
           "parentTaskId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "surveyType": {
+            "enum": [
+              "BASELINE",
+              "PERIODIC",
+              "AD_HOC",
+              "UNKNOWN"
+            ],
+            "type": "string",
+            "description": "Persisted SurveyType of this resource, including the supplement task own type. UNKNOWN for unrecognized data or old receipt without this field; GET current resource after replay.",
             "nullable": true
           }
         },

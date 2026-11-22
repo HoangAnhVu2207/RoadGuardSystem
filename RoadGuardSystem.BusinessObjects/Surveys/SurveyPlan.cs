@@ -83,6 +83,12 @@ public sealed class SurveyPlan
         };
     }
 
+    public void Complete()
+    {
+        if (Status != SurveyPlanStatus.InProgress) throw new InvalidOperationException("Only an in-progress plan can be explicitly completed.");
+        Status = SurveyPlanStatus.Completed;
+    }
+
     public void Postpone(DateTimeOffset? newPlannedStartAt)
     {
         if (Status is SurveyPlanStatus.Completed or SurveyPlanStatus.Cancelled)

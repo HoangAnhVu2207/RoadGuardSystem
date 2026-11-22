@@ -116,7 +116,7 @@ public sealed class P2V2SurveyScopeConcurrencyTests : IClassFixture<IdentitySqlS
             Guid.NewGuid(),
             [new SurveyV2ScopeRequest(scopedRouteVersionId, Guid.NewGuid(), $"[\"{Guid.NewGuid()}\"]", "SURFACE")]));
 
-        result.Status.Should().Be(SurveyV2PersistenceStatus.Conflict);
+        result.Status.Should().Be(SurveyV2PersistenceStatus.SourceScopeConflict);
     }
 
     [Fact(DisplayName = "P2 V2: dataset cannot claim a segment outside its assigned scope")]

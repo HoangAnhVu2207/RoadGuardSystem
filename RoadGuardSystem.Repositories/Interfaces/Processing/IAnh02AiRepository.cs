@@ -16,10 +16,13 @@ public sealed record AiCandidateReadFacts(AiMockRun Run, AiResultProvenance Resu
     ActiveCandidateDisposition? Disposition, string? DispositionVersion);
 public sealed record AiCompletion(AiResultProvenance Result, IReadOnlyList<AIDetection> Detections,
     IReadOnlyList<AiDetectionProvenance> Proofs, IReadOnlyList<RoadGuardSystem.BusinessObjects.Files.StoredFile> Frames);
-public sealed class AiRequestException(int status, string code) : Exception(code)
+public sealed class AiRequestException(int status, string code, string? reasonCode = null, string? step = null, string? field = null, Exception? innerException = null) : Exception(code, innerException)
 {
     public int Status { get; } = status;
     public string Code { get; } = code;
+    public string? ReasonCode { get; } = reasonCode;
+    public string? Step { get; } = step;
+    public string? Field { get; } = field;
 }
 public interface IAnh02AiRepository
 {
@@ -34,6 +37,8 @@ public interface IAnh02AiRepository
     Task<bool> CompleteAsync(Guid runId, Guid owner, AiCompletion completion,
         Func<CancellationToken, Task<bool>> recheckGeometry, CancellationToken ct);
     Task FailAsync(Guid runId, Guid owner, string code, CancellationToken ct);
+    Task FailAsync(Guid runId, Guid owner, string code, RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiFailureDiagnosticFact diagnostic, CancellationToken ct)
+        => FailAsync(runId, owner, code, ct);
     Task<AiCandidateReadFacts?> ReadCandidateAsync(Guid projectId, Guid detectionId, CancellationToken ct);
     Task<Guid?> DetectionProjectAsync(Guid detectionId, CancellationToken ct);
 }

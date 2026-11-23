@@ -27,18 +27,20 @@ public sealed class SyntheticAiFixture(IOptions<Anh02AiOptions> options)
     };
     public byte[] Frame()
     {
-        var bytes = File.ReadAllBytes(Path.Combine(options.Value.FixtureDirectory, "synthetic-road-v1-frame-1.png"));
+        byte[] bytes;
+        try { bytes = File.ReadAllBytes(Path.Combine(options.Value.FixtureDirectory, "synthetic-road-v1-frame-1.png")); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { throw new AiRequestException(422, "ai_contract_invalid", "fixture_missing", "mock_materialization", "fixtureVersion", innerException: ex); }
         if (bytes.LongLength != FrameBytes || AiManifestCanonicalizer.Hash(bytes) != FrameHash
             || !bytes.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
-            throw new AiRequestException(422, "ai_contract_invalid");
+            throw new AiRequestException(422, "ai_contract_invalid", "fixture_hash_mismatch", "mock_materialization", "fixtureVersion");
         return bytes;
     }
     public static void CheckSources(AiDatasetSourceFacts facts, string version)
     {
-        if (!Supported(version)) throw new AiRequestException(422, "ai_contract_invalid");
+        if (!Supported(version)) throw new AiRequestException(422, "ai_contract_invalid", "fixture_version_unsupported", "admission", "fixtureVersion");
         var videos = facts.Files.Where(f => f.Purpose == "SURVEY_VIDEO").ToArray();
         if (videos.Length == 0 || videos.Any(v => v.Sha256 != VideoHash || v.SizeBytes != VideoBytes || v.MediaType != "video/mp4"))
-            throw new AiRequestException(422, "mock_fixture_source_mismatch");
+            throw new AiRequestException(422, "mock_fixture_source_mismatch", "fixture_source_mismatch", "source_validation", "datasetId");
     }
     public static Guid Identity(Guid run, string component)
         => new(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"anh02.ai.v1:{run:D}:{component}"))[..16]);

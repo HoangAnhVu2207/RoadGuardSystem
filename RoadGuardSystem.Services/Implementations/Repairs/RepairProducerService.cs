@@ -7,6 +7,18 @@ namespace RoadGuardSystem.Services.Implementations.Repairs;
 
 public sealed class RepairProducerService(IRepairProducerRepository repository) : IRepairProducerService
 {
+    public Task<RepairWorkflowResult> ListTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token)
+        => RepairContractMapping.ToWireAsync(repository.ListTemporarySafetyAsync(actor, role, project, package, item, token));
+    public Task<RepairWorkflowResult> AddTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item,
+        TemporarySafetyObligationInput input, string? key, string? version, CancellationToken token)
+    {
+        var denial = Admission(actor, role, UserRoleCode.ProjectManager, project, key, version);
+        if (denial is not null) return Task.FromResult(denial);
+        if (package == Guid.Empty || item == Guid.Empty || input is null || !Text(input.Reason) || !Scope(input.Scope))
+            return Error(400, "validation_error");
+        return RepairContractMapping.ToWireAsync(repository.AddTemporarySafetyAsync(new(actor, role, project, package, item,
+            RepairContractMapping.ToData(input.Scope), input.Mandatory, input.Reason, key!, version![1..^1]), token));
+    }
     public Task<RepairWorkflowResult> CreatePackageAsync(Guid actor, UserRoleCode role, Guid project,
         RepairPackageCreateInput input, string? key, string? version, CancellationToken token)
     {

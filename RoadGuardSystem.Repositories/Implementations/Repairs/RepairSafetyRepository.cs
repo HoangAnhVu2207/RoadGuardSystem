@@ -217,6 +217,8 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                     row.IdempotencyKey == key, ct);
                 if (stored is not null)
                 {
+                    if (operation == "h4.repair.safety.create.v1")
+                        await Guard(actor, role, project, package, item, stored.OperationId, true, ct);
                     var owned = operation switch
                     {
                         "h4.repair.safety.create.v1" => await db.Set<RepairSafetyActionSource>().AsNoTracking()
@@ -446,7 +448,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
     private string Version<T>(T entity) where T : class
         => Convert.ToBase64String(db.Entry(entity).Property<byte[]>("RowVersion").CurrentValue!);
 
-    private static bool Within(RepairActualScope safety, RepairActualScope formal)
+    internal static bool Within(RepairActualScope safety, RepairActualScope formal)
         => safety.PhysicalRoadId == formal.PhysicalRoadId && safety.LocationVersion == formal.LocationVersion &&
             safety.From >= formal.From && safety.To <= formal.To && safety.OffsetFrom >= formal.OffsetFrom &&
             safety.OffsetTo <= formal.OffsetTo;

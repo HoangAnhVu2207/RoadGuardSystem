@@ -11,6 +11,8 @@ public sealed class Anh02AiOptions
 public interface IAnh02AiService
 {
     Task<AiMockRunView> CreateAsync(Guid actor, UserRoleCode role, Guid project, CreateAiMockRunRequest request, string key, CancellationToken ct);
+    Task<AiMockRunView> CreateAsync(Guid actor, UserRoleCode role, Guid project, CreateAiMockRunRequest request, string key, Guid? originCorrelationId, CancellationToken ct)
+        => CreateAsync(actor, role, project, request, key, ct);
     Task<AiMockRunView> GetAsync(Guid actor, UserRoleCode role, Guid project, Guid run, CancellationToken ct);
     Task<AiResultV1> GetResultAsync(Guid actor, UserRoleCode role, Guid project, Guid run, CancellationToken ct);
     Task<bool> ProcessOneAsync(CancellationToken ct);

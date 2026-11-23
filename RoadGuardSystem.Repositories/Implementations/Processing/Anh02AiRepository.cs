@@ -46,7 +46,7 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
         if (row.Data.Status != SurveyDataVersionStatus.ServerConfirmed || row.Data.IntegrityStatus != SurveyDataIntegrityStatus.Passed
             || row.Data.ScopeManifest is null || row.Data.PairsManifest is null) throw new AiRequestException(409, "source_not_ready");
         if (!await db.AIModelVersions.AsNoTracking().AnyAsync(m => m.Id == request.ModelVersionId && m.Status == AIModelVersionStatus.Released, ct))
-            throw new AiRequestException(422, "ai_contract_invalid");
+            throw new AiRequestException(422, "ai_contract_invalid", "model_not_released", "source_validation", "modelVersionId");
         var requiredTypes = request.FixtureVersion switch
         {
             "synthetic-road-v1" => new[] { "CRACK" },
@@ -68,7 +68,7 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
                 || t.Set == Guid.Empty || t.Segment == Guid.Empty || t.Band is not ("SURFACE" or "LEFT_EDGE" or "RIGHT_EDGE")))
                 throw new AiRequestException(409, "source_not_ready");
             if (request.Scope.SegmentIds.Any(id => !tuples.Contains((request.Scope.RouteVersionId,
-                request.Scope.SegmentSetId, id, request.Scope.TargetBand)))) throw new AiRequestException(422, "ai_contract_invalid");
+                request.Scope.SegmentSetId, id, request.Scope.TargetBand)))) throw new AiRequestException(422, "ai_contract_invalid", "source_lineage_invalid", "source_validation", "scope");
             using var source = JsonDocument.Parse(row.Data.SourceManifest);
             if (source.RootElement.ValueKind != JsonValueKind.Array || source.RootElement.EnumerateArray().Any(s => !Unique(s)))
                 throw new AiRequestException(409, "source_not_ready");
@@ -125,7 +125,7 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             }
             else { jobId = Guid.NewGuid(); attemptId = Guid.NewGuid(); }
             var manifest = await createManifest(runId, jobId, attemptId, facts, token);
-            if (manifest.Hash != Hash(manifest.CanonicalJson)) throw new AiRequestException(422, "ai_contract_invalid");
+            if (manifest.Hash != Hash(manifest.CanonicalJson)) throw new AiRequestException(422, "ai_contract_invalid", "manifest_hash_mismatch", "admission");
             if (request.Stage == "VIDEO_ANALYSIS")
             {
                 var range = JsonSerializer.Serialize(new { anh02 = request.Scope }, Json);
@@ -202,7 +202,9 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             if (!await recheckGeometry(ct)) throw new AiRequestException(409, "source_not_ready");
             if (completion.Result.RunId != run.Id || completion.Result.ProcessingJobId != run.ProcessingJobId || completion.Result.AttemptId != run.AttemptId
                 || completion.Result.ManifestHash != run.ManifestHash || completion.Result.ResultHash != Hash(completion.Result.CanonicalResult))
-                throw new AiRequestException(422, "ai_contract_invalid");
+                throw new AiRequestException(422, "ai_contract_invalid", "result_schema_invalid", "commit_result");
+            if (!ValidResultHeader(run, completion.Result.CanonicalResult))
+                throw new AiRequestException(422, "ai_contract_invalid", "result_schema_invalid", "commit_result");
             db.Files.AddRange(completion.Frames); db.AIDetections.AddRange(completion.Detections);
             db.Set<AiResultProvenance>().Add(completion.Result); db.Set<AiDetectionProvenance>().AddRange(completion.Proofs);
             if (run.Stage == "VIDEO_ANALYSIS") (await db.ProcessingJobs.SingleAsync(j => j.Id == run.ProcessingJobId, ct)).Complete(completion.Result.CompletedAt);
@@ -214,7 +216,10 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
         });
     }
 
-    public async Task FailAsync(Guid runId, Guid owner, string code, CancellationToken ct)
+    public Task FailAsync(Guid runId, Guid owner, string code, CancellationToken ct) => FailCoreAsync(runId, owner, code, null, ct);
+    public Task FailAsync(Guid runId, Guid owner, string code, RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiFailureDiagnosticFact diagnostic, CancellationToken ct)
+        => FailCoreAsync(runId, owner, code, diagnostic, ct);
+    private async Task FailCoreAsync(Guid runId, Guid owner, string code, RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiFailureDiagnosticFact? diagnostic, CancellationToken ct)
     {
         await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -227,12 +232,29 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
             if (run.Stage == "VIDEO_ANALYSIS")
                 (await db.ProcessingJobs.SingleAsync(j => j.Id == run.ProcessingJobId, ct)).FailData(now, code);
             Audit(run.CreatedBy, run.Id, now, "anh02_ai_mock_failed");
+            if (diagnostic is not null) db.AuditLogs.Add(RoadGuardSystem.BusinessObjects.Auditing.AuditLog.Create(Guid.NewGuid(), run.CreatedBy, now,
+                "anh02_ai_mock_failure_detail", "AiMockRun", run.Id, null, JsonSerializer.Serialize(diagnostic, Json),
+                diagnostic.ReasonCode, "anh02.ai.mock", diagnostic.OriginCorrelationId,
+                ["reasonCode", "step", "field", "recovery", "originCorrelationId"]));
             await db.SaveChangesAsync(ct);
             if (run.Stage == "VIDEO_ANALYSIS") await CloseAnalysisAttemptAsync(run, ProcessingAttemptErrorType.Data, ct);
             await transaction.CommitAsync(ct);
         });
     }
 
+    private static bool ValidResultHeader(AiMockRun run, string canonical)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(canonical); var root = doc.RootElement;
+            return root.ValueKind == JsonValueKind.Object && root.GetProperty("schemaVersion").GetString() == "anh02.ai.v1" &&
+                root.GetProperty("mode").GetString() == "MOCK" && root.GetProperty("runId").GetGuid() == run.Id &&
+                root.GetProperty("jobId").GetGuid() == run.ProcessingJobId && root.GetProperty("attemptId").GetGuid() == run.AttemptId &&
+                root.GetProperty("manifestHash").GetString() == run.ManifestHash && root.GetProperty("stage").GetString() == run.Stage &&
+                root.GetProperty("detections").ValueKind == JsonValueKind.Array && root.GetProperty("matches").ValueKind == JsonValueKind.Array;
+        }
+        catch (Exception e) when (e is JsonException or InvalidOperationException or KeyNotFoundException or FormatException) { return false; }
+    }
     private async Task CloseAnalysisAttemptAsync(AiMockRun run, ProcessingAttemptErrorType error, CancellationToken ct)
     {
         // EF still forbids generic attempt mutation. The additive SQL fence permits only this
@@ -292,8 +314,11 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
                             join survey in db.Surveys.AsNoTracking() on dataset.SurveyId equals survey.Id
                             where job.Id == run.ProcessingJobId && job.ProjectId == projectId && survey.ProjectId == projectId && dataset.Id == run.DatasetVersionId
                             select new { dataset.Id, dataset.VersionNo, dataset.RowVersion, survey.SurveyRequestId }).SingleOrDefaultAsync(ct);
+        var failureJson = await db.AuditLogs.AsNoTracking().Where(x => x.EntityId == run.Id && x.EventType == "anh02_ai_mock_failure_detail" && x.EntityType == "AiMockRun")
+            .Select(x => x.AfterSnapshot).SingleOrDefaultAsync(ct);
         return View(run) with
         {
+            Failure = failureJson is null ? null : JsonSerializer.Deserialize<AiFailureDiagnosticFact>(failureJson, Json),
             DatasetId = source?.Id,
             DatasetVersionNo = source?.VersionNo,
             DatasetVersion = source is null ? null : Convert.ToBase64String(source.RowVersion),
@@ -302,5 +327,11 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
         };
     }
     public static AiMockRunViewFact View(AiMockRun run) => new(run.Id, run.ProjectId, run.Stage, "MOCK", run.Status, run.ProcessingJobId,
-        run.AttemptId, run.ManifestHash, run.ResultId, run.FixtureVersion, run.ErrorCode, Convert.ToBase64String(run.RowVersion));
+        run.AttemptId, run.ManifestHash, run.ResultId, run.FixtureVersion, run.ErrorCode, Convert.ToBase64String(run.RowVersion))
+    { OriginCorrelationId = Origin(run.CanonicalManifest) };
+    private static Guid? Origin(string manifest)
+    {
+        try { using var document = JsonDocument.Parse(manifest); return document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("originCorrelationId", out var origin) && origin.ValueKind == JsonValueKind.String && origin.TryGetGuid(out var id) ? id : null; }
+        catch (JsonException) { return null; }
+    }
 }

@@ -785,6 +785,13 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
 
     private async Task GuardStoredProduction(Guid actor, Guid project, string operation, Guid operationId, CancellationToken token)
     {
+        if (operation == SafetyObligationAddOperation)
+        {
+            var safety = await db.Set<RepairObligation>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == operationId && x.Kind == RepairObligationKind.TemporarySafety, token);
+            if (safety is null || await ObligationResponsibilityScope.ResolveAsync(db, safety.Id, safety.ProjectId, token) != project)
+                Deny(403, "stored_receipt_access_forbidden");
+            return;
+        }
         if (operation == PackageCreateOperation) { await GuardPackageResource(project, operationId, token); return; }
         Guid? item = operation switch
         {

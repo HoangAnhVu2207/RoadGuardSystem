@@ -6,6 +6,9 @@ namespace RoadGuardSystem.Services.Repairs;
 
 public interface IRepairProducerService
 {
+    Task<RepairWorkflowResult> ListTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token);
+    Task<RepairWorkflowResult> AddTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item,
+        TemporarySafetyObligationInput input, string? key, string? version, CancellationToken token);
     Task<RepairWorkflowResult> CreatePackageAsync(Guid actor, UserRoleCode role, Guid project,
         RepairPackageCreateInput input, string? key, string? version, CancellationToken token);
     Task<RepairWorkflowResult> ProposeItemAsync(Guid actor, UserRoleCode role, Guid project, Guid package,

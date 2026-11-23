@@ -28,6 +28,14 @@ public sealed class RepairPackage
         var package = new RepairPackage { Id = id, ProjectId = project, DefectId = defect };
         package._obligations.AddRange(obligations); return package;
     }
+    public void AddTemporarySafety(RepairObligation obligation)
+    {
+        ArgumentNullException.ThrowIfNull(obligation);
+        if (IsComplete || obligation.Kind != RepairObligationKind.TemporarySafety || obligation.ProjectId != ProjectId ||
+            obligation.DefectId != DefectId || _obligations.Any(x => x.Id == obligation.Id))
+            throw new InvalidOperationException("Only new temporary safety obligations can extend an open package.");
+        _obligations.Add(obligation);
+    }
     public void AddItem(RepairItem item)
     {
         ArgumentNullException.ThrowIfNull(item);

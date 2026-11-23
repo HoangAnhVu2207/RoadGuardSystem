@@ -29,12 +29,14 @@ public sealed record AiMockRunView(Guid Id, Guid ProjectId, string Stage, string
     string? ErrorCode, string Version, Guid? DatasetId = null, int? DatasetVersionNo = null,
     string? DatasetVersion = null, Guid? SurveyTaskId = null, DateTimeOffset? CreatedAt = null)
 {
+    public Guid? OriginCorrelationId { get; init; }
+    public global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiFailureDiagnosticFact? Failure { get; init; }
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockRunViewFact?(AiMockRunView? value)
-        => value is null ? null! : new(value.Id, value.ProjectId, value.Stage, value.Mode, value.Status, value.ProcessingJobId, value.AttemptId, value.ManifestHash, value.ResultId, value.FixtureVersion, value.ErrorCode, value.Version, value.DatasetId, value.DatasetVersionNo, value.DatasetVersion, value.SurveyTaskId, value.CreatedAt);
+        => value is null ? null! : new(value.Id, value.ProjectId, value.Stage, value.Mode, value.Status, value.ProcessingJobId, value.AttemptId, value.ManifestHash, value.ResultId, value.FixtureVersion, value.ErrorCode, value.Version, value.DatasetId, value.DatasetVersionNo, value.DatasetVersion, value.SurveyTaskId, value.CreatedAt) { OriginCorrelationId = value.OriginCorrelationId, Failure = value.Failure };
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator AiMockRunView?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockRunViewFact? value)
-        => value is null ? null! : new(value.Id, value.ProjectId, value.Stage, value.Mode, value.Status, value.ProcessingJobId, value.AttemptId, value.ManifestHash, value.ResultId, value.FixtureVersion, value.ErrorCode, value.Version, value.DatasetId, value.DatasetVersionNo, value.DatasetVersion, value.SurveyTaskId, value.CreatedAt);
+        => value is null ? null! : new(value.Id, value.ProjectId, value.Stage, value.Mode, value.Status, value.ProcessingJobId, value.AttemptId, value.ManifestHash, value.ResultId, value.FixtureVersion, value.ErrorCode, value.Version, value.DatasetId, value.DatasetVersionNo, value.DatasetVersion, value.SurveyTaskId, value.CreatedAt) { OriginCorrelationId = value.OriginCorrelationId, Failure = value.Failure };
 }
 public sealed record AiDetectionResultV1(Guid DetectionId, Guid SourceVideoFileId, Guid FrameFileId,
     string FrameFileVersion, long TimestampMs, string TypeCode, decimal Confidence, decimal[] Bbox,

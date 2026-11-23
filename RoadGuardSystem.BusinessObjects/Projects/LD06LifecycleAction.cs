@@ -8,7 +8,7 @@ namespace RoadGuardSystem.BusinessObjects.Projects;
 public enum LD06ActionKind : byte
 {
     DeclareConstruction = 1, ConfirmConstruction = 2, CloseDefect = 3, OperationalClose = 4,
-    LinkRecurrence = 5, IssueTransfer = 6, AcceptTransfer = 7
+    LinkRecurrence = 5, IssueTransfer = 6, AcceptTransfer = 7, InitializeTemporarySafetyResponsibility = 8
 }
 
 // Production facts are distinct from historical import candidates.
@@ -85,6 +85,10 @@ public sealed class ObligationResponsibility
     public byte[] RowVersion { get; private set; } = [];
     public static ObligationResponsibility Accept(Guid obligation, Guid origin, Guid receiver, Guid acceptance)
         => new() { ObligationId = obligation, OriginProjectId = origin, CurrentProjectId = receiver, AcceptanceActionId = acceptance };
+    // Legacy storage column AcceptanceActionId holds the current authority action. Kind 8 is
+    // an explicit initial assignment, never an acceptance or a copied formal transfer.
+    public static ObligationResponsibility InitializeSafety(Guid obligation, Guid origin, Guid receiver, Guid creationAction)
+        => new() { ObligationId = obligation, OriginProjectId = origin, CurrentProjectId = receiver, AcceptanceActionId = creationAction };
     public void Transfer(Guid receiver, Guid acceptance) { CurrentProjectId = receiver; AcceptanceActionId = acceptance; }
 }
 

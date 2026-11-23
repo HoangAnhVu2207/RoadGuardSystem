@@ -13,7 +13,7 @@ using RoadGuardSystem.Services.Integration;
 namespace RoadGuardSystem.API.Controllers;
 
 [ApiController, ApiVersion("1.0"), Authorize, Route("api/v{version:apiVersion}/projects/{projectId:guid}")]
-public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFactsReader candidates) : ControllerBase
+public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFactsReader candidates, ILogger<AiMockRunsController> logger) : ControllerBase
 {
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpPost("ai-mock-runs")]
@@ -24,11 +24,11 @@ public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFa
         if (string.IsNullOrWhiteSpace(key)) return Error(428, "validation_error");
         try
         {
-            var view = await service.CreateAsync(actor, role, projectId, request, key, ct);
+            var view = await service.CreateAsync(actor, role, projectId, request, key, Origin(), ct);
             Response.Headers.ETag = $"\"{view.Version}\"";
             return Accepted($"/api/v1/projects/{projectId:D}/ai-mock-runs/{view.Id:D}", view);
         }
-        catch (AiRequestException ex) { return Error(ex.Status, ex.Code); }
+        catch (AiRequestException ex) { return Error(ex); }
     }
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("ai-mock-runs/{runId:guid}")]
@@ -36,7 +36,7 @@ public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFa
     {
         if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
         try { var view = await service.GetAsync(actor, role, projectId, runId, ct); Response.Headers.ETag = $"\"{view.Version}\""; return Ok(view); }
-        catch (AiRequestException ex) { return Error(ex.Status, ex.Code); }
+        catch (AiRequestException ex) { return Error(ex); }
     }
     [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("ai-mock-runs/{runId:guid}/result")]
@@ -44,8 +44,9 @@ public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFa
     {
         if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
         try { var view = await service.GetResultAsync(actor, role, projectId, runId, ct); Response.Headers.ETag = $"\"{view.ResultHash}\""; return Ok(view); }
-        catch (AiRequestException ex) { return Error(ex.Status, ex.Code); }
+        catch (AiRequestException ex) { return Error(ex); }
     }
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("ai-candidates/{detectionId:guid}")]
     public async Task<IActionResult> Candidate(Guid projectId, Guid detectionId, CancellationToken ct)
     {
@@ -59,6 +60,23 @@ public sealed class AiMockRunsController(IAnh02AiService service, IAiCandidateFa
             AnhHuyProducerStatus.StaleGeometry => Error(409, "stale_geometry"),
             _ => Error(409, "source_not_ready")
         };
+    }
+    private static readonly Action<ILogger, int, string, string, string, Exception?> DiagnosticLog =
+        LoggerMessage.Define<int, string, string, string>(LogLevel.Warning, new EventId(802, "AiMockRequestRejected"),
+            "AI MOCK rejected status {Status} correlation {CorrelationId} step {Step} reason {ReasonCode}");
+    private Guid? Origin() => Guid.TryParse(HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString(), out var id) ? id : null;
+    private ObjectResult Error(AiRequestException error)
+    {
+        var detail = AiFailureDiagnostics.Describe(error, Origin());
+        if (error.Step is null && HttpMethods.IsGet(Request.Method)) detail = detail with { Step = "readback" };
+        DiagnosticLog(logger, error.Status, detail.OriginCorrelationId?.ToString() ?? "UNKNOWN", detail.Step, detail.ReasonCode, error);
+        var result = Error(error.Status, error.Code);
+        var problem = (ProblemDetails)result.Value!;
+        problem.Extensions["reasonCode"] = detail.ReasonCode;
+        problem.Extensions["step"] = detail.Step;
+        problem.Extensions["field"] = detail.Field;
+        problem.Extensions["recovery"] = detail.Recovery;
+        return result;
     }
     private bool Actor(out Guid actor, out UserRoleCode role)
     {

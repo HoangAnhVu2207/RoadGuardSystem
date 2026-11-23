@@ -16,6 +16,17 @@ namespace RoadGuardSystem.API.Controllers;
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/repair-packages")]
 public sealed class RepairPackagesController(IRepairProducerService service, IRepairExecutionService execution) : ControllerBase
 {
+    [HttpGet("{packageId:guid}/items/{itemId:guid}/temporary-safety-obligations")]
+    [ProducesResponseType<TemporarySafetyObligationSourcesView>(200)]
+    public Task<IActionResult> TemporarySafetySources(Guid projectId, Guid packageId, Guid itemId, CancellationToken ct)
+        => Run((actor, role, _, _) => service.ListTemporarySafetyAsync(actor, role, projectId, packageId, itemId, ct));
+
+    [HttpPost("{packageId:guid}/items/{itemId:guid}/temporary-safety-obligations")]
+    [ProducesResponseType<TemporarySafetyObligationSourcesView>(201)]
+    [ProducesResponseType<TemporarySafetyObligationSourcesView>(200)]
+    public Task<IActionResult> AddTemporarySafety(Guid projectId, Guid packageId, Guid itemId, TemporarySafetyObligationInput input, CancellationToken ct)
+        => Run((actor, role, key, version) => service.AddTemporarySafetyAsync(actor, role, projectId, packageId, itemId, input, key, version, ct));
+
     [HttpPost]
     public Task<IActionResult> Create(Guid projectId, RepairPackageCreateInput input, CancellationToken ct)
         => Run((actor, role, key, version) => service.CreatePackageAsync(actor, role, projectId, input, key, version, ct));

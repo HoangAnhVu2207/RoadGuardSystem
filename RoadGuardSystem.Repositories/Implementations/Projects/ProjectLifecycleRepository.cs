@@ -191,9 +191,10 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
             projection.OutstandingMandatoryObligationIds.ToArray(), missing.ToArray(), output, version,
             actions.Select(row => new LD06ActionFact(row.Id, row.ProjectId, row.Kind.ToString(), row.ActorId, row.At, row.SourceActionId,
                 row.DefectId, row.LinkedDefectId, row.ObligationId, row.ReceivingProjectId, row.PriorRepairDecisionId, row.ScopeHash, row.FactsJson)).ToArray(),
-            responsibilities.Select(row => new ObligationResponsibilityFact(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, row.AcceptanceActionId,
+            responsibilities.Select(row => new ObligationResponsibilityFact(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, actions.Any(x => x.Id == row.AcceptanceActionId && x.Kind == LD06ActionKind.InitializeTemporarySafetyResponsibility) ? null : row.AcceptanceActionId,
                 obligations.SingleOrDefault(obligation => obligation.Id == row.ObligationId)?.PackageId,
-                obligations.SingleOrDefault(obligation => obligation.Id == row.ObligationId)?.CurrentRepairItemId)).ToArray(), transferable);
+                obligations.SingleOrDefault(obligation => obligation.Id == row.ObligationId)?.CurrentRepairItemId,
+                actions.Any(x => x.Id == row.AcceptanceActionId && x.Kind == LD06ActionKind.InitializeTemporarySafetyResponsibility) ? row.AcceptanceActionId : null)).ToArray(), transferable);
     }
 
     private static string? HandlingScope(ProjectLifecycleHistoryRecord record)

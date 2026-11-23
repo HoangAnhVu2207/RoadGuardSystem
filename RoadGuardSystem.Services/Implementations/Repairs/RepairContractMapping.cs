@@ -274,6 +274,13 @@ internal static class RepairContractMapping
         value.CrsProfileRevisionId,
         value.SlabId,
         value.FirstStartId);
+    private static SafetyObligationScopeView ToWire(SafetyObligationScopeFact x)
+        => new(x.PhysicalRoadId, x.LocationVersion, x.RouteLabel, x.FromMeters, x.ToMeters, x.OffsetFromMeters, x.OffsetToMeters);
+    private static TemporarySafetyObligationSourcesView ToWire(TemporarySafetyObligationSourcesFact x)
+        => new(x.PackageId, x.ItemId, x.DefectId, x.FormalObligationId, x.ResponsibilityProjectId, x.PackageVersion, x.ItemVersion,
+            ToWire(x.FormalScope), x.Binding is null ? null : ToWire(x.Binding), x.Items.Select(i => new TemporarySafetyObligationView(
+                i.SafetyObligationId, i.FormalObligationId, i.PackageId, i.ItemId, i.DefectId, i.Kind, i.Mandatory, ToWire(i.Scope),
+                i.Resolved, i.OriginProjectId, i.ResponsibilityProjectId, i.Version)).ToArray());
     public static async Task<RepairWorkflowResult> ToWireAsync(Task<RepairWorkflowResult> pending)
     {
         var result = await pending;
@@ -282,6 +289,7 @@ internal static class RepairContractMapping
         {
             Value = result.Value switch
             {
+                TemporarySafetyObligationSourcesFact value => ToWire(value),
                 RepairAssessmentFact value => ToWire(value),
                 RepairAttemptHistoryFact value => ToWire(value),
                 RepairAttemptIntakeFact value => ToWire(value),

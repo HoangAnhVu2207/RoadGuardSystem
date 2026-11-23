@@ -13,8 +13,8 @@ public sealed record LD06TransferableObligationDto(Guid Id, Guid DefectId, strin
     decimal OffsetTo, string ScopeHash, string Version);
 public sealed record LD06ActionDto(Guid Id, Guid ProjectId, string Kind, Guid ActorId, DateTimeOffset At, Guid? SourceActionId,
     Guid? DefectId, Guid? LinkedDefectId, Guid? ObligationId, Guid? ReceivingProjectId, Guid? PriorRepairDecisionId, string ScopeHash, string FactsJson);
-public sealed record ObligationResponsibilityDto(Guid ObligationId, Guid OriginProjectId, Guid CurrentProjectId, Guid AcceptanceActionId,
-    Guid? PackageId = null, Guid? CurrentRepairItemId = null);
+public sealed record ObligationResponsibilityDto(Guid ObligationId, Guid OriginProjectId, Guid CurrentProjectId, Guid? AcceptanceActionId,
+    Guid? PackageId = null, Guid? CurrentRepairItemId = null, Guid? InitialResponsibilityActionId = null);
 [System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed record RenewedHandlingScopeInput(Guid OperationalClosureId, string Reason, string HandlingScope, string Basis);
 public sealed record ProjectLifecycleMutationResult(int Status, string? Code = null, ProjectLifecycleViewDto? Value = null);

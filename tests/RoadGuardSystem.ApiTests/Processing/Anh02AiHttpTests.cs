@@ -73,7 +73,8 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         }
         var artifacts = new ArtifactFixture(realStore) { LoseFirstAcknowledgement = true };
         var sourceStorage = new SurveyVideoStorage(media, checksum) { Frames = artifacts };
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        using var diagnosticLogs = new InMemoryLogProvider();
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: diagnosticLogs, configureTestServices: services =>
         {
             services.RemoveAll<IHostedService>(); services.Configure<Anh02AiOptions>(o => o.MockEnabled = true);
             services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(artifacts);
@@ -226,8 +227,23 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         var input = new RoadGuardSystem.DTOs.Processing.CreateAiMockRunRequest(dataset, new(route, set, [segment], "SURFACE"), model, "fixture-preprocess.v1", "fixture-config.v1", "synthetic-road-v1", "VIDEO_ANALYSIS", geometryVersion);
         var path = $"/api/v1/projects/{project}/ai-mock-runs"; var key = Guid.NewGuid().ToString();
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Command(client, path, input, key: new string('k', 201))).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Command(client, path, input with { ModelVersionId = Guid.NewGuid() })).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Command(client, path, input with { Scope = input.Scope with { SegmentIds = [Guid.NewGuid()] } })).StatusCode);
+        using var wrongModel = await Command(client, path, input with { ModelVersionId = Guid.NewGuid() });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, wrongModel.StatusCode);
+        Assert.Equal("model_not_released", (await Body(wrongModel)).GetProperty("reasonCode").GetString());
+        Assert.Equal("modelVersionId", (await Body(wrongModel)).GetProperty("field").GetString());
+        using var wrongScope = await Command(client, path, input with { Scope = input.Scope with { SegmentIds = [Guid.NewGuid()] } });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, wrongScope.StatusCode);
+        Assert.Equal("source_lineage_invalid", (await Body(wrongScope)).GetProperty("reasonCode").GetString());
+        Assert.Equal("scope", (await Body(wrongScope)).GetProperty("field").GetString());
+        using var unsupportedFixture = await Command(client, path, input with { FixtureVersion = "not-a-supported-fixture" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, unsupportedFixture.StatusCode);
+        var rejectedFixture = await Body(unsupportedFixture);
+        Assert.Equal("ai_contract_invalid", rejectedFixture.GetProperty("code").GetString());
+        Assert.Equal("fixture_version_unsupported", rejectedFixture.GetProperty("reasonCode").GetString());
+        Assert.Equal("fixtureVersion", rejectedFixture.GetProperty("field").GetString());
+        Assert.Equal("admission", rejectedFixture.GetProperty("step").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(rejectedFixture.GetProperty("recovery").GetString()));
+        Assert.Contains(rejectedFixture.GetProperty("correlationId").GetString()!, diagnosticLogs.CombinedEntries, StringComparison.Ordinal);
         var admitted = await Command(client, path, input, key: key); admitted.StatusCode.Should().Be(HttpStatusCode.Accepted, await admitted.Content.ReadAsStringAsync());
         var run = (await Body(admitted)).GetProperty("id").GetGuid();
         Assert.Equal(run, (await Body(await Command(client, path, input, key: key))).GetProperty("id").GetGuid());
@@ -315,6 +331,19 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
             await restore.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET Status=1 WHERE Id={manager.Id}");
         var candidate = await client.GetAsync($"/api/v1/projects/{project}/ai-candidates/{detectionId}"); Assert.Equal(HttpStatusCode.OK, candidate.StatusCode);
         var proof = await Body(candidate); Assert.Equal("MOCK/SYNTHETIC", proof.GetProperty("mode").GetString());
+        var candidatePath = $"/api/v1/projects/{project}/ai-candidates/{detectionId}";
+        using var pmWeb = await WebCookieTestClient.Login(factory, manager.Email!);
+        using var supWeb = await WebCookieTestClient.Login(factory, supervisor.Email!);
+        using var opWeb = await WebCookieTestClient.Login(factory, first.Email!);
+        var outside = await sql.CreateUserAsync("ai-web-outside-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
+        using var outsideWeb = await WebCookieTestClient.Login(factory, outside.Email!);
+        using var anonymousWeb = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await pmWeb.GetAsync(candidatePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await supWeb.GetAsync(candidatePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await opWeb.GetAsync(candidatePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await outsideWeb.GetAsync(candidatePath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymousWeb.GetAsync(candidatePath)).StatusCode);
+
         // Actual persisted job provenance must agree with the run/result, not
         // merely with the detection's FK. Only this disposable fixture is mutated.
         await using (var drift = sql.CreateDbContext())
@@ -422,6 +451,49 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         });
         Assert.Equal(HttpStatusCode.Created, aiDecision.StatusCode);
         var aiDefectId = (await Body(aiDecision)).GetProperty("defectId").GetGuid();
+        var decisionId = (await Body(aiDecision)).GetProperty("id").GetGuid();
+        using var refreshedWeb = await WebCookieTestClient.Login(factory, manager.Email!);
+        using var currentCandidate = await refreshedWeb.GetAsync(candidatePath);
+        Assert.Equal(HttpStatusCode.OK, currentCandidate.StatusCode);
+        var disposition = (await Body(currentCandidate)).GetProperty("disposition");
+        Assert.Equal(decisionId, disposition.GetProperty("decisionId").GetGuid());
+        using var currentDecision = await refreshedWeb.GetAsync($"/api/v1/projects/{project}/candidate-decisions/{decisionId}");
+        Assert.Equal(HttpStatusCode.OK, currentDecision.StatusCode);
+        Assert.Equal(aiDefectId, (await Body(currentDecision)).GetProperty("defectId").GetGuid());
+        Assert.Equal(HttpStatusCode.OK, (await refreshedWeb.GetAsync($"/api/v1/projects/{project}/defects/{aiDefectId}")).StatusCode);
+        await using (var revokeScope = sql.CreateDbContext())
+            await revokeScope.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        Assert.Equal(HttpStatusCode.Forbidden, (await refreshedWeb.GetAsync(candidatePath)).StatusCode);
+        await using (var restoreScope = sql.CreateDbContext())
+            await restoreScope.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Active));
+        // A missing versioned frame fixture is a diagnosable durable MOCK data failure, not a real-AI verdict.
+        using var missingRun = await Command(client, path, input);
+        Assert.Equal(HttpStatusCode.Accepted, missingRun.StatusCode);
+        var missingRunId = (await Body(missingRun)).GetProperty("id").GetGuid();
+        var originId = Guid.Parse(missingRun.Headers.GetValues("X-Correlation-ID").Single());
+        await using (var missingFactory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: diagnosticLogs, configureTestServices: collection =>
+        {
+            collection.RemoveAll<IHostedService>();
+            collection.Configure<Anh02AiOptions>(o => { o.MockEnabled = true; o.FixtureDirectory = Path.Combine(Path.GetTempPath(), "missing-mock-" + Guid.NewGuid().ToString("N")); });
+            collection.RemoveAll<IUploadObjectStorage>(); collection.AddSingleton<IUploadObjectStorage>(sourceStorage);
+            collection.RemoveAll<IAnh02ArtifactStore>(); collection.AddSingleton<IAnh02ArtifactStore>(artifacts);
+        }))
+        {
+            using var scope = missingFactory.Services.CreateScope();
+            Assert.True(await scope.ServiceProvider.GetRequiredService<IAnh02AiService>().ProcessOneAsync(default));
+        }
+        using var missingRead = await client.GetAsync(path + $"/{missingRunId}");
+        var missingView = await Body(missingRead);
+        Assert.Equal("FAILED", missingView.GetProperty("status").GetString());
+        Assert.Equal("ai_contract_invalid", missingView.GetProperty("errorCode").GetString());
+        Assert.Equal(originId, missingView.GetProperty("originCorrelationId").GetGuid());
+        var failure = missingView.GetProperty("failure");
+        Assert.Equal("fixture_missing", failure.GetProperty("reasonCode").GetString());
+        Assert.Equal(originId, failure.GetProperty("originCorrelationId").GetGuid());
+        Assert.Contains(originId.ToString(), diagnosticLogs.CombinedEntries, StringComparison.Ordinal);
+        Assert.Contains("mock_materialization", diagnosticLogs.CombinedEntries, StringComparison.Ordinal);
+        Assert.DoesNotContain(Path.GetTempPath(), missingView.GetRawText(), StringComparison.OrdinalIgnoreCase);
+
         await using (var persisted = sql.CreateDbContext())
         {
             Assert.Equal(1, await persisted.Defects.CountAsync(defect => defect.Id == aiDefectId && defect.SourceAIDetectionId == detectionId));

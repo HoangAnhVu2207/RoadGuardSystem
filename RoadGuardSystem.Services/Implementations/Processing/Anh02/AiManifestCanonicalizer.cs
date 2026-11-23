@@ -14,7 +14,7 @@ public sealed record AiManifestDraft(Guid RunId, string Stage, Guid ProjectId, G
     string PreprocessingVersion, string ConfigVersion, string FixtureVersion, Guid CreatedBy,
     DateTimeOffset CreatedAt, IReadOnlyList<AiManifestFileDraft> SourceFiles, IReadOnlyList<AiManifestPairDraft> Pairs,
     string TelemetryStatus, Guid? AnalysisResultId = null, Guid? CandidateSnapshotId = null,
-    string? CandidateSnapshotHash = null, IReadOnlyList<AiMatchingItemDraft>? Items = null);
+    string? CandidateSnapshotHash = null, IReadOnlyList<AiMatchingItemDraft>? Items = null, Guid? OriginCorrelationId = null);
 
 public static class AiManifestCanonicalizer
 {
@@ -45,6 +45,7 @@ public static class AiManifestCanonicalizer
             writer.WriteString("preprocessingVersion", manifest.PreprocessingVersion);
             writer.WriteString("configVersion", manifest.ConfigVersion);
             writer.WriteString("fixtureVersion", manifest.FixtureVersion);
+            if (manifest.OriginCorrelationId is Guid origin) writer.WriteString("originCorrelationId", origin);
             writer.WriteString("createdBy", manifest.CreatedBy);
             writer.WriteString("createdAt", manifest.CreatedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture));
             writer.WriteStartArray("sourceFiles");

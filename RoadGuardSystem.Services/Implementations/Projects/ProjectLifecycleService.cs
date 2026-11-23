@@ -45,7 +45,7 @@ public sealed partial class ProjectLifecycleService(IProjectLifecycleRepository 
                 row.DefectId, row.LinkedDefectId, row.HandlingScope)).ToArray(), value.Version,
             value.Actions?.Select(row => new LD06ActionDto(row.Id, row.ProjectId, row.Kind, row.ActorId, row.At, row.SourceActionId,
                 row.DefectId, row.LinkedDefectId, row.ObligationId, row.ReceivingProjectId, row.PriorRepairDecisionId, row.ScopeHash, row.FactsJson)).ToArray(),
-            value.Responsibilities?.Select(row => new ObligationResponsibilityDto(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, row.AcceptanceActionId, row.PackageId, row.CurrentRepairItemId)).ToArray(),
+            value.Responsibilities?.Select(row => new ObligationResponsibilityDto(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, row.AcceptanceActionId, row.PackageId, row.CurrentRepairItemId, row.InitialResponsibilityActionId)).ToArray(),
             value.TransferableObligations?.Select(row => new LD06TransferableObligationDto(row.Id, row.DefectId, row.Kind, row.Mandatory, row.ScopeId,
                 row.PhysicalRoadId, row.LocationVersion, row.RouteLabel, row.From, row.To, row.OffsetFrom, row.OffsetTo, row.ScopeHash, row.Version)).ToArray());
     private static bool Text(string? value, int maximum) => !string.IsNullOrWhiteSpace(value) && value.Length <= maximum;

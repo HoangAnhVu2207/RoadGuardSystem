@@ -15,7 +15,7 @@ internal static class LD06LifecycleConfiguration
         action.ToTable("LD06LifecycleActions", t =>
         {
             t.HasTrigger("TR_LD06LifecycleActions_Immutable"); t.HasTrigger("TR_LD06LifecycleActions_Scope");
-            t.HasCheckConstraint("CK_LD06LifecycleActions_Kind", "[Kind] BETWEEN 1 AND 7 AND ISJSON([FactsJson])=1");
+            t.HasCheckConstraint("CK_LD06LifecycleActions_Kind", "[Kind] BETWEEN 1 AND 8 AND ISJSON([FactsJson])=1");
         });
         action.HasKey(x => x.Id); action.Property(x => x.Id).ValueGeneratedNever();
         action.Property(x => x.Kind).HasConversion<byte>();

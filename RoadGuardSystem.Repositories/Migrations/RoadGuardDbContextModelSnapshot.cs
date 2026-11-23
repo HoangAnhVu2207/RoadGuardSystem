@@ -6161,7 +6161,7 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                             t.HasTrigger("TR_LD06LifecycleActions_Scope");
 
-                            t.HasCheckConstraint("CK_LD06LifecycleActions_Kind", "[Kind] BETWEEN 1 AND 7 AND ISJSON([FactsJson])=1");
+                            t.HasCheckConstraint("CK_LD06LifecycleActions_Kind", "[Kind] BETWEEN 1 AND 8 AND ISJSON([FactsJson])=1");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);

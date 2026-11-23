@@ -212,7 +212,7 @@
         "tags": [
           "AiMockRuns"
         ],
-        "description": "Create ai mock runs resources. Permissions: PM.",
+        "description": "MOCK only. PM creates; PM/Supervisor read within current project scope. Bearer or Web session; Web POST requires CSRF. Errors add reasonCode/step/field/recovery. Run originCorrelationId links enqueue/worker/result; nullable failure preserves safe diagnostics.",
         "parameters": [
           {
             "name": "projectId",
@@ -657,7 +657,7 @@
         "tags": [
           "AiMockRuns"
         ],
-        "description": "Get ai mock runs resources. Permissions: PM / Supervisor; current source authorization (candidate reader uses synthetic fixture provenance).",
+        "description": "MOCK only. PM creates; PM/Supervisor read within current project scope. Bearer or Web session; Web POST requires CSRF. Errors add reasonCode/step/field/recovery. Run originCorrelationId links enqueue/worker/result; nullable failure preserves safe diagnostics.",
         "parameters": [
           {
             "name": "projectId",
@@ -800,7 +800,7 @@
         "tags": [
           "AiMockRuns"
         ],
-        "description": "Result ai mock runs resources. Permissions: PM / Supervisor; current source authorization (candidate reader uses synthetic fixture provenance).",
+        "description": "MOCK only. PM creates; PM/Supervisor read within current project scope. Bearer or Web session; Web POST requires CSRF. Errors add reasonCode/step/field/recovery. Run originCorrelationId links enqueue/worker/result; nullable failure preserves safe diagnostics.",
         "parameters": [
           {
             "name": "projectId",
@@ -962,7 +962,7 @@
         "tags": [
           "AiMockRuns"
         ],
-        "description": "Candidate ai mock runs resources. Permissions: PM / Supervisor; current source authorization (candidate reader uses synthetic fixture provenance).",
+        "description": "PM/Supervisor with current source authority; Bearer or Web session, no CSRF for GET. Read disposition.decisionId, then candidate-decisions/{decisionId} for defectId. Refresh creates nothing. MOCK/SYNTHETIC only.",
         "parameters": [
           {
             "name": "projectId",
@@ -1108,6 +1108,9 @@
         "security": [
           {
             "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-005",
@@ -44503,6 +44506,233 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/temporary-safety-obligations": {
+      "get": {
+        "tags": [
+          "RepairPackages"
+        ],
+        "description": "Eligible unused, unresolved TemporarySafety obligations within the current NORMAL formal item scope. Current responsibility determines the project in the URL; source package, Defect and geometry keep their original project. GET requires current PM or Supervisor authority; POST requires current PM authority. Bearer or Web session. ETag/packageVersion identify the package, itemVersion is for safety-measure creation, each obligation has its own version. An empty collection is valid. Appending does not change approval, assignment or item state. After formal transfer, a new creation action establishes safety responsibility without copying transfer acceptance.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict, idempotency_key_reused, active_scope_conflict, safety_obligation_source_conflict or temporary_safety_not_allowed"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "RepairPackages"
+        ],
+        "description": "Eligible unused, unresolved TemporarySafety obligations within the current NORMAL formal item scope. Current responsibility determines the project in the URL; source package, Defect and geometry keep their original project. GET requires current PM or Supervisor authority; POST requires current PM authority. Bearer or Web session. ETag/packageVersion identify the package, itemVersion is for safety-measure creation, each obligation has its own version. An empty collection is valid. Appending does not change approval, assignment or item state. After formal transfer, a new creation action establishes safety responsibility without copying transfer acceptance. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and credentials. 201 creates one obligation; 200 replays the stored result after rechecking current authority. Scope must use the original pinned geometry and be contained in the formal scope.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted package ETag from the source collection GET. Stale package returns 409 concurrency_conflict.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Persist the exact key/body/If-Match before sending; retry that same request after timeout.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemporarySafetyObligationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemporarySafetyObligationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemporarySafetyObligationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporarySafetyObligationSourcesView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized"
+          },
+          "403": {
+            "description": "access_forbidden or csrf_failed"
+          },
+          "404": {
+            "description": "not_found"
+          },
+          "409": {
+            "description": "concurrency_conflict, idempotency_key_reused, active_scope_conflict, safety_obligation_source_conflict or temporary_safety_not_allowed"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/approve": {
       "post": {
         "tags": [
@@ -67069,6 +67299,33 @@
         },
         "additionalProperties": false
       },
+      "AiFailureDiagnosticFact": {
+        "type": "object",
+        "properties": {
+          "reasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "step": {
+            "type": "string",
+            "nullable": true
+          },
+          "field": {
+            "type": "string",
+            "nullable": true
+          },
+          "recovery": {
+            "type": "string",
+            "nullable": true
+          },
+          "originCorrelationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AiMatchResultV1": {
         "type": "object",
         "properties": {
@@ -67177,6 +67434,19 @@
           "createdAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "originCorrelationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "failure": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiFailureDiagnosticFact"
+              }
+            ],
             "nullable": true
           }
         },
@@ -74251,7 +74521,8 @@
           },
           "acceptanceActionId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "packageId": {
             "type": "string",
@@ -74259,6 +74530,11 @@
             "nullable": true
           },
           "currentRepairItemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "initialResponsibilityActionId": {
             "type": "string",
             "format": "uuid",
             "nullable": true
@@ -80313,6 +80589,40 @@
         },
         "additionalProperties": false
       },
+      "SafetyObligationScopeView": {
+        "type": "object",
+        "properties": {
+          "physicalRoadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "routeLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "fromMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "toMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "offsetFromMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "offsetToMeters": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
       "SegmentDefinition": {
         "type": "object",
         "properties": {
@@ -81546,6 +81856,124 @@
           },
           "current": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TemporarySafetyObligationInput": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/RepairActualScopeInput"
+          },
+          "mandatory": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TemporarySafetyObligationSourcesView": {
+        "type": "object",
+        "properties": {
+          "packageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "defectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "formalObligationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "responsibilityProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "packageVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "formalScope": {
+            "$ref": "#/components/schemas/SafetyObligationScopeView"
+          },
+          "binding": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepairTaskBindingView"
+              }
+            ],
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemporarySafetyObligationView"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "TemporarySafetyObligationView": {
+        "type": "object",
+        "properties": {
+          "safetyObligationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "formalObligationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "packageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "defectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "mandatory": {
+            "type": "boolean"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/SafetyObligationScopeView"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "originProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "responsibilityProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

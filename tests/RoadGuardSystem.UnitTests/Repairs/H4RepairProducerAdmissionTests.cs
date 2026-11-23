@@ -67,6 +67,8 @@ public sealed class H4RepairProducerAdmissionTests
         public object? Command { get; private set; }
         public RepairWorkflowResult Result { get; } = new(201);
         private Task<RepairWorkflowResult> Capture(object command) { Called = true; Command = command; return Task.FromResult(Result); }
+        public Task<RepairWorkflowResult> ListTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid packageId, Guid itemId, CancellationToken token) => throw new NotSupportedException();
+        public Task<RepairWorkflowResult> AddTemporarySafetyAsync(TemporarySafetyObligationCommand command, CancellationToken token) => Capture(command);
         public Task<RepairWorkflowResult> CreatePackageAsync(RepairPackageCreateCommand command, CancellationToken cancellationToken) => Capture(command);
         public Task<RepairWorkflowResult> ProposeItemAsync(RepairItemProposeCommand command, CancellationToken cancellationToken) => Capture(command);
         public Task<RepairWorkflowResult> ApproveItemAsync(RepairItemApprovalCommand command, CancellationToken cancellationToken) => Capture(command);

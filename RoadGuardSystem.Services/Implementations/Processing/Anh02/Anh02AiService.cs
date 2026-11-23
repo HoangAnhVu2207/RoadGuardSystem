@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 using System.Security.Cryptography;
@@ -17,7 +18,7 @@ namespace RoadGuardSystem.Services.Processing.Anh02;
 public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProducerService geometry,
     IUploadObjectStorage sourceStorage, IAnh02ArtifactStore artifacts, SyntheticAiFixture fixture,
     IServiceProvider services, IOptions<Anh02AiOptions> options,
-    IHostEnvironment environment, TimeProvider clock) : IAnh02AiService, IAiCandidateFactsReader
+    IHostEnvironment environment, TimeProvider clock, ILogger<Anh02AiService>? logger = null) : IAnh02AiService, IAiCandidateFactsReader
 {
     private IEnumerable<IMatchingCandidateSnapshotReader> matchingReaders => services.GetServices<IMatchingCandidateSnapshotReader>();
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -26,14 +27,16 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
         if (!options.Value.MockEnabled || (environment.EnvironmentName is not ("Development" or "Testing" or "Test")))
             throw new AiRequestException(404, "not_found");
     }
-    public async Task<AiMockRunView> CreateAsync(Guid actor, UserRoleCode role, Guid project, CreateAiMockRunRequest request, string key, CancellationToken ct)
+    public Task<AiMockRunView> CreateAsync(Guid actor, UserRoleCode role, Guid project, CreateAiMockRunRequest request, string key, CancellationToken ct)
+        => CreateAsync(actor, role, project, request, key, null, ct);
+    public async Task<AiMockRunView> CreateAsync(Guid actor, UserRoleCode role, Guid project, CreateAiMockRunRequest request, string key, Guid? originCorrelationId, CancellationToken ct)
     {
         Enabled(); Validate(request);
         if (string.IsNullOrWhiteSpace(key) || key.Length > 200) throw new AiRequestException(422, "ai_contract_invalid");
         await repository.AuthorizeAsync(actor, role, project, true, ct);
         var normalized = request with { Scope = request.Scope with { SegmentIds = request.Scope.SegmentIds.OrderBy(x => x.ToString("D"), StringComparer.Ordinal).ToArray() } };
         var fingerprint = AiManifestCanonicalizer.Hash(JsonSerializer.SerializeToUtf8Bytes(new { project, request = normalized }, Json));
-        return await repository.AdmitAsync(actor, role, project, normalized, key, fingerprint, async (run, job, attempt, sources, token) =>
+        var admitted = await repository.AdmitAsync(actor, role, project, normalized, key, fingerprint, async (run, job, attempt, sources, token) =>
         {
             SyntheticAiFixture.CheckSources(sources, normalized.FixtureVersion);
             var context = await geometry.ResolveGeometryAsync(actor, role, project, normalized.Scope.RouteVersionId,
@@ -61,12 +64,24 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
                     f.FileVersion, f.Sha256, f.SizeBytes, f.MediaType, f.Purpose)).ToArray(),
                 sources.Pairs.Where(p => p.TelemetryFileId.HasValue).Select(p => new AiManifestPairDraft(p.VideoFileId, p.TelemetryFileId!.Value)).ToArray(),
                 sources.Files.Any(f => f.Purpose == "TELEMETRY") ? "PRESENT" : "MISSING", analysisResult?.Id,
-                snapshot?.SnapshotId, snapshot?.Hash, snapshot?.Items.Select(i => new AiMatchingItemDraft(i.DefectId, i.Version, i.SegmentId, i.RouteVersionId)).ToArray());
+                snapshot?.SnapshotId, snapshot?.Hash, snapshot?.Items.Select(i => new AiMatchingItemDraft(i.DefectId, i.Version, i.SegmentId, i.RouteVersionId)).ToArray(), OriginCorrelationId: originCorrelationId);
             var bytes = AiManifestCanonicalizer.Encode(manifest);
             return new(Encoding.UTF8.GetString(bytes), AiManifestCanonicalizer.Hash(bytes), context.Facts.Version);
         }, ct);
+        LogTrace(project, admitted.Id, admitted.ProcessingJobId, admitted.OriginCorrelationId ?? originCorrelationId, "enqueue", "admitted");
+        return admitted;
     }
 
+    private static readonly Action<ILogger, Guid, Guid, Guid, string, string, string, Exception?> Trace =
+        LoggerMessage.Define<Guid, Guid, Guid, string, string, string>(LogLevel.Information, new EventId(803, "AiMockTrace"),
+            "AI MOCK project {ProjectId} run {RunId} job {JobId} origin {OriginCorrelationId} step {Step} reason {ReasonCode}");
+    private void LogTrace(Guid project, Guid run, Guid job, Guid? origin, string step, string reason, Exception? error = null)
+    { if (logger is not null) Trace(logger, project, run, job, origin?.ToString() ?? "UNKNOWN", step, reason, error); }
+    private static Guid? ReadOrigin(string canonical)
+    {
+        try { using var doc = JsonDocument.Parse(canonical); return doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("originCorrelationId", out var value) && value.ValueKind == JsonValueKind.String && value.TryGetGuid(out var id) ? id : null; }
+        catch (JsonException) { return null; }
+    }
     public async Task<AiMockRunView> GetAsync(Guid actor, UserRoleCode role, Guid project, Guid run, CancellationToken ct)
     {
         Enabled(); await repository.AuthorizeAsync(actor, role, project, false, ct);
@@ -80,27 +95,47 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
     private static AiResultV1 ParseResult(AiResultProvenance result)
     {
         if (AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes(result.CanonicalResult)) != result.ResultHash)
-            throw new AiRequestException(409, "source_not_ready");
-        return (JsonSerializer.Deserialize<AiResultV1>(result.CanonicalResult, Json) ?? throw new AiRequestException(409, "source_not_ready"))
-            with
-        { ResultHash = result.ResultHash };
+            throw new AiRequestException(409, "source_not_ready", "result_hash_mismatch", "result_validation");
+        try
+        {
+            var view = JsonSerializer.Deserialize<AiResultV1>(result.CanonicalResult, Json);
+            if (view is null || view.SchemaVersion != "anh02.ai.v1" || view.Mode != "MOCK" || view.RunId != result.RunId ||
+                view.JobId != result.ProcessingJobId || view.AttemptId != result.AttemptId || view.ManifestHash != result.ManifestHash ||
+                view.Detections is null || view.Matches is null)
+                throw new AiRequestException(422, "ai_contract_invalid", "result_schema_invalid", "result_validation");
+            _ = AiResultCanonicalizer.Encode(view); // Apply the same nested schema checks as the producer.
+            return view with { ResultHash = result.ResultHash };
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException) { throw new AiRequestException(422, "ai_contract_invalid", "result_schema_invalid", "result_validation", innerException: ex); }
     }
 
     public async Task<bool> ProcessOneAsync(CancellationToken ct)
     {
         Enabled(); var owner = Guid.NewGuid(); var run = await repository.ClaimAsync(owner, clock.GetUtcNow(), ct);
         if (run is null) return false;
+        var origin = ReadOrigin(run.CanonicalManifest);
+        var step = "manifest_validation";
+        LogTrace(run.ProjectId, run.Id, run.ProcessingJobId, origin, step, "claimed");
         try
         {
             await repository.AuthorizeAsync(run.CreatedBy, UserRoleCode.ProjectManager, run.ProjectId, true, ct);
             if (AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes(run.CanonicalManifest)) != run.ManifestHash)
-                throw new AiRequestException(422, "ai_contract_invalid");
+                throw new AiRequestException(422, "ai_contract_invalid", "manifest_hash_mismatch", step);
             using var manifest = JsonDocument.Parse(run.CanonicalManifest);
-            var scope = manifest.RootElement; var segments = scope.GetProperty("segmentIds").EnumerateArray().Select(s => s.GetGuid()).ToArray();
-            var input = new CreateAiMockRunRequest(run.DatasetVersionId, new(run.RouteVersionId, run.SegmentSetId, segments,
-                scope.GetProperty("targetBand").GetString()!), run.ModelVersionId, scope.GetProperty("preprocessingVersion").GetString()!,
-                scope.GetProperty("configVersion").GetString()!, run.FixtureVersion, run.Stage, run.GeometryVersion, run.AnalysisRunId,
-                scope.TryGetProperty("candidateSnapshotId", out var snap) ? snap.GetGuid() : null);
+            var scope = manifest.RootElement;
+            Guid[] segments;
+            CreateAiMockRunRequest input;
+            try
+            {
+                segments = scope.GetProperty("segmentIds").EnumerateArray().Select(s => s.GetGuid()).ToArray();
+                input = new(run.DatasetVersionId, new(run.RouteVersionId, run.SegmentSetId, segments,
+                    scope.GetProperty("targetBand").GetString()!), run.ModelVersionId, scope.GetProperty("preprocessingVersion").GetString()!,
+                    scope.GetProperty("configVersion").GetString()!, run.FixtureVersion, run.Stage, run.GeometryVersion, run.AnalysisRunId,
+                    scope.TryGetProperty("candidateSnapshotId", out var snap) ? snap.GetGuid() : null);
+            }
+            catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException)
+            { throw new AiRequestException(422, "ai_contract_invalid", "manifest_schema_invalid", step, innerException: ex); }
+            step = "source_validation";
             var sources = await repository.ReadSourcesAsync(run.ProjectId, input, ct);
             SyntheticAiFixture.CheckSources(sources, run.FixtureVersion);
             var admittedFiles = scope.GetProperty("sourceFiles").EnumerateArray().ToArray();
@@ -110,6 +145,7 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
                     && a.GetProperty("fileVersion").GetString() == f.FileVersion && a.GetProperty("sha256").GetString() == f.Sha256
                     && a.GetProperty("sizeBytes").GetInt64() == f.SizeBytes)))
                 throw new AiRequestException(409, "source_not_ready");
+            step = "source_stream";
             foreach (var source in sources.Files.Where(f => f.Purpose == "SURVEY_VIDEO"))
             {
                 await using var content = await sourceStorage.OpenReadAsync(source.ObjectKey, ct);
@@ -117,17 +153,18 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
                 var buffer = new byte[81920]; long bytes = 0; int read;
                 while ((read = await content.ReadAsync(buffer, ct)) != 0)
                 {
-                    bytes = checked(bytes + read); if (bytes > SyntheticAiFixture.VideoBytes) throw new AiRequestException(422, "mock_fixture_source_mismatch");
+                    bytes = checked(bytes + read); if (bytes > SyntheticAiFixture.VideoBytes) throw new AiRequestException(422, "mock_fixture_source_mismatch", "source_hash_mismatch", step, "datasetId");
                     digest.AppendData(buffer, 0, read);
                 }
                 if (bytes != source.SizeBytes || !Convert.ToHexString(digest.GetHashAndReset()).Equals(source.Sha256, StringComparison.OrdinalIgnoreCase))
-                    throw new AiRequestException(422, "mock_fixture_source_mismatch");
+                    throw new AiRequestException(422, "mock_fixture_source_mismatch", "source_hash_mismatch", step, "datasetId");
             }
             var resultId = SyntheticAiFixture.Identity(run.Id, "result");
             var detections = new List<AIDetection>(); var proofs = new List<AiDetectionProvenance>(); var frames = new List<StoredFile>();
             var resultDetections = new List<AiDetectionResultV1>(); var matches = new List<AiMatchResultV1>();
             if (run.Stage == "VIDEO_ANALYSIS" && run.FixtureVersion != "synthetic-empty-v1")
             {
+                step = "mock_materialization";
                 var image = fixture.Frame();
                 foreach (var source in sources.Files.Where(f => f.Purpose == "SURVEY_VIDEO").OrderBy(f => f.FileId.ToString("D"), StringComparer.Ordinal))
                     foreach (var sample in SyntheticAiFixture.Samples(run.FixtureVersion))
@@ -142,7 +179,7 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
                         await using var imageStream = new MemoryStream(image, false);
                         var durable = await artifacts.WriteAsync(key, imageStream, image.LongLength, "image/png", ct);
                         if (durable.Sha256 != SyntheticAiFixture.FrameHash || durable.SizeBytes != SyntheticAiFixture.FrameBytes)
-                            throw new AiRequestException(422, "ai_contract_invalid");
+                            throw new AiRequestException(422, "ai_contract_invalid", "artifact_integrity_mismatch", step);
                         frames.Add(StoredFile.Create(frameId, key, $"{frameId:D}.png", "image/png", durable.SizeBytes, durable.Sha256,
                             run.CreatedBy, run.ResultTimestamp!.Value, null));
                         var box = sample.Box;
@@ -186,6 +223,7 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
             }
             var result = new AiResultV1("anh02.ai.v1", run.Id, run.Stage, "MOCK", run.ProcessingJobId, run.AttemptId,
                 run.ManifestHash, run.ModelVersionId, run.FixtureVersion, "", run.ResultTimestamp!.Value, resultDetections, matches);
+            step = "result_validation";
             var raw = AiResultCanonicalizer.Encode(result); var resultHash = AiManifestCanonicalizer.Hash(raw);
             var provenance = new AiResultProvenance
             {
@@ -198,7 +236,8 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
                 CanonicalResult = Encoding.UTF8.GetString(raw),
                 CompletedAt = result.CompletedAt
             };
-            await repository.CompleteAsync(run.Id, owner, new(provenance, detections, proofs, frames), async token =>
+            step = "commit_result";
+            var committed = await repository.CompleteAsync(run.Id, owner, new(provenance, detections, proofs, frames), async token =>
             {
                 var context = await geometry.ResolveGeometryAsync(run.CreatedBy, UserRoleCode.ProjectManager, run.ProjectId, run.RouteVersionId,
                     run.SegmentSetId, run.GeometryVersion, false, token);
@@ -215,9 +254,23 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
                     throw new AiRequestException(409, "candidate_stale");
                 return true;
             }, ct);
+            LogTrace(run.ProjectId, run.Id, run.ProcessingJobId, origin, step, committed ? "succeeded" : "lease_or_source_changed");
         }
-        catch (AiRequestException ex) { await repository.FailAsync(run.Id, owner, ex.Code, ct); }
-        catch (IOException) { /* Durable lease is recoverable; retry the same run after expiry. */ }
+        catch (AiRequestException ex)
+        {
+            var diagnostic = AiFailureDiagnostics.Describe(ex, origin);
+            if (ex.Step is null) diagnostic = diagnostic with { Step = step };
+            LogTrace(run.ProjectId, run.Id, run.ProcessingJobId, origin, diagnostic.Step, diagnostic.ReasonCode, ex);
+            await repository.FailAsync(run.Id, owner, ex.Code, diagnostic, ct);
+        }
+        catch (JsonException ex)
+        {
+            var error = new AiRequestException(422, "ai_contract_invalid", step == "manifest_validation" ? "manifest_schema_invalid" : "result_schema_invalid", step, innerException: ex);
+            var diagnostic = AiFailureDiagnostics.Describe(error, origin);
+            LogTrace(run.ProjectId, run.Id, run.ProcessingJobId, origin, step, diagnostic.ReasonCode, ex);
+            await repository.FailAsync(run.Id, owner, error.Code, diagnostic, ct);
+        }
+        catch (IOException ex) { LogTrace(run.ProjectId, run.Id, run.ProcessingJobId, origin, step, "storage_retryable", ex); }
         return true;
     }
 
@@ -269,6 +322,8 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
     }
     private static void Validate(CreateAiMockRunRequest request)
     {
+        if (request is not null && !SyntheticAiFixture.Supported(request.FixtureVersion))
+            throw new AiRequestException(422, "ai_contract_invalid", "fixture_version_unsupported", "admission", "fixtureVersion");
         if (request is null || request.DatasetId == Guid.Empty || request.ModelVersionId == Guid.Empty || request.Scope is null
             || request.Scope.RouteVersionId == Guid.Empty || request.Scope.SegmentSetId == Guid.Empty
             || request.Scope.SegmentIds is not { Length: > 0 and <= 1000 } || request.Scope.SegmentIds.Contains(Guid.Empty)

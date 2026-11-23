@@ -571,11 +571,7 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         (await Body(supplemented)).GetProperty("id").GetGuid().Should().Be(task);
         var supplementReplay = await Command(pmActions, $"/api/v1/survey-tasks/{task}/supplements", supplementBody, parent.Headers.ETag!.Tag, supplementKey);
         (await Body(supplementReplay)).GetProperty("supplementTaskId").GetGuid().Should().Be(child);
-        await using (var dispatchScope = factory.Services.CreateAsyncScope())
-        {
-            var dispatch = new RoadGuardSystem.Services.Messaging.H6NotificationDispatchService(dispatchScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.IH6NotificationDispatchRepository>());
-            for (var i = 0; i < 40; i++) { var dispatched = await dispatch.ProcessOneAsync(); if (dispatched.Status == "IDLE") break; }
-        }
+        await WaitForSurveyNotification(factory, child, "survey.task.supplement_requested.v1", parentTaskId: task);
         await using (var notificationDb = sql.CreateDbContext())
         {
             var supplementNotices = await notificationDb.Notifications.AsNoTracking().Where(x => x.SourceEntityType == "SurveyTask" && x.SourceEntityId == child).ToArrayAsync();
@@ -753,11 +749,7 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var completedList = await Body(await client.GetAsync("/api/v1/me/survey-tasks?statusGroup=COMPLETED"));
         completedList.GetProperty("items").EnumerateArray().Should().Contain(row => row.GetProperty("id").GetGuid() == child);
         (await Command(client, childCompletionPath, childCompleteBody, completedChild.Headers.ETag!.Tag)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        await using (var dispatchScope = factory.Services.CreateAsyncScope())
-        {
-            var dispatch = new RoadGuardSystem.Services.Messaging.H6NotificationDispatchService(dispatchScope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Messaging.IH6NotificationDispatchRepository>());
-            for (var i = 0; i < 50; i++) { var outcome = await dispatch.ProcessOneAsync(); if (outcome.Status == "IDLE") break; }
-        }
+        await WaitForSurveyNotification(factory, child, "survey.dataset.assessed.v1", childAssessment);
         await using (var noticeDb = sql.CreateDbContext())
         {
             (await noticeDb.AuditLogs.CountAsync(x => x.EntityId == child && x.EventType == "survey_task_complete")).Should().Be(1);
@@ -950,6 +942,44 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
                 mismatchedTask.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             }
         }
+    }
+    private async Task WaitForSurveyNotification(AuthenticationWebApplicationFactory factory, Guid taskId,
+        string messageType, Guid? originId = null, Guid? parentTaskId = null)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dispatch = scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Messaging.H6NotificationDispatchService>();
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var attempts = 0;
+        while (timer.Elapsed < TimeSpan.FromSeconds(20))
+        {
+            await using var db = sql.CreateDbContext();
+            var occurrences = db.Set<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow>()
+                .Where(x => x.SourceKind == "SurveyTask" && x.SourceId == taskId && x.EventType == messageType);
+            if (originId is Guid origin) occurrences = occurrences.Where(x => x.OriginEventId == origin);
+            var delivered = await db.Notifications.AnyAsync(x => x.SourceEntityType == "SurveyTask" && x.SourceEntityId == taskId &&
+                occurrences.Any(o => o.OccurrenceKey == x.EventType));
+            if (delivered && (!parentTaskId.HasValue || await db.Notifications.AnyAsync(x =>
+                    x.SourceEntityType == "SurveyTask" && x.SourceEntityId == parentTaskId.Value))) return;
+
+            // A live hosted dispatcher can lease this event: IDLE is not proof of target completion.
+            // Bound manual assistance independently of the deadline instead of draining a shared queue.
+            if (attempts < 40) { attempts++; await dispatch.ProcessOneAsync(); }
+            await Task.Delay(100);
+        }
+        await using var diagnostics = sql.CreateDbContext();
+        var targetOccurrences = await diagnostics.Set<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationOccurrenceRow>()
+            .Where(x => x.SourceKind == "SurveyTask" && x.SourceId == taskId && x.EventType == messageType)
+            .Select(x => new { x.Id, x.SourceEventId, x.OriginEventId }).ToArrayAsync();
+        var occurrenceIds = targetOccurrences.Select(x => x.Id).ToArray();
+        var targetDeliveries = await diagnostics.Set<RoadGuardSystem.BusinessObjects.Messaging.H6NotificationDeliveryRow>()
+            .Where(x => occurrenceIds.Contains(x.OccurrenceId))
+            .Select(x => new { x.OccurrenceId, x.Status, x.ReasonCode, x.NotificationId }).ToArrayAsync();
+        var taskIdentity = taskId.ToString();
+        var targetOutbox = await diagnostics.OutboxMessages.Where(x => x.MessageType == messageType && x.PayloadJson.Contains(taskIdentity))
+            .Select(x => new { x.Id, x.DeliveryStatus, x.DeliveryAttemptCount, x.LeaseExpiresAtUtc, x.LastErrorCode }).ToArrayAsync();
+        var noticeCount = await diagnostics.Notifications.CountAsync(x => x.SourceEntityType == "SurveyTask" && x.SourceEntityId == taskId);
+        Assert.Fail("Timed out waiting for survey notification: " + JsonSerializer.Serialize(new
+        { messageType, attempts, targetOccurrences, targetDeliveries, targetOutbox, noticeCount }));
     }
     private async Task<Guid> VerifiedSource(Guid project, Guid task, Guid actor, string purpose, long size)
     {

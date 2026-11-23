@@ -96,6 +96,39 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
     public async Task LockAiSourceAsync(Guid detectionId, CancellationToken ct)
     {
         await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [AIDetections] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={detectionId}").SingleAsync(ct);
+        var real = await (from detection in db.AIDetections.AsNoTracking()
+            join job in db.ProcessingJobs.AsNoTracking() on detection.ProcessingJobId equals job.Id
+            join work in db.AiVideoWorkItems.AsNoTracking() on job.Id equals work.ProcessingJobId
+            where detection.Id == detectionId && job.Mode == "REAL"
+            select new { work.Id, work.ProcessingJobId, work.DatasetId, work.SourceVideoFileId }).SingleOrDefaultAsync(ct);
+        if (real is not null)
+        {
+            // The telemetry writer takes this same work lock before reading/appending its head.
+            // Hold it through the service's current-source recheck and decision commit.
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [AiVideoWorkItems] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={real.Id}").SingleAsync(ct);
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [ProcessingJobs] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={real.ProcessingJobId}").SingleAsync(ct);
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [ProcessingAttempts] WITH (UPDLOCK,HOLDLOCK) WHERE [ProcessingJobId]={real.ProcessingJobId}").SingleAsync(ct);
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [AiWorkerArtifacts] WITH (UPDLOCK,HOLDLOCK) WHERE [WorkItemId]={real.Id}").SingleAsync(ct);
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [AiVideoTelemetryRevisions] WITH (UPDLOCK,HOLDLOCK) WHERE [WorkId]={real.Id}").SingleAsync(ct);
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [SurveyDataVersions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={real.DatasetId}").SingleAsync(ct);
+            var work = await db.AiVideoWorkItems.AsNoTracking().SingleAsync(x => x.Id == real.Id, ct);
+            RoadGuardSystem.Repositories.Processing.AiPairedTelemetryFile? paired;
+            try
+            {
+                var source = await new Processing.AiVideoWorkRepository(db).ReadSourceAsync(work, ct);
+                paired = await new Processing.AiVideoTelemetryRepository(db, TimeProvider.System).ReadPairedAsync(work, source.OwnerId, ct);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or RoadGuardSystem.Repositories.Processing.AiRequestException)
+            { throw new CaseWorkflowException(409, "source_not_ready"); }
+            var files = await db.AiWorkerArtifacts.AsNoTracking().Where(x => x.WorkItemId == real.Id && x.AttemptId == work.CurrentAttemptId && x.FileId != null)
+                .Select(x => x.FileId!.Value).ToListAsync(ct);
+            files.Add(real.SourceVideoFileId);
+            if (paired is not null) files.Add(paired.File.FileId);
+            foreach (var file in files.Distinct().Order())
+                await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [Files] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={file}").SingleAsync(ct);
+            await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [CandidateSourceHeads] WITH (UPDLOCK,HOLDLOCK) WHERE [SourceKind]={(int)CandidateSourceKind.AiDetection} AND [SourceId]={detectionId}").SingleAsync(ct);
+            return;
+        }
         var proof = await db.Set<RoadGuardSystem.BusinessObjects.Processing.AiDetectionProvenance>().AsNoTracking()
             .Where(item => item.DetectionId == detectionId)
             .Select(item => new { item.RunId, item.ResultId, item.SourceVideoFileId, item.FrameFileId })

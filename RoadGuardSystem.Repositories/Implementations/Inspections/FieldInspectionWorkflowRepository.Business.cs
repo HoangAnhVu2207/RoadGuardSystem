@@ -7,6 +7,7 @@ using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
+using RoadGuardSystem.BusinessObjects.Processing.Worker;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Integration;
@@ -141,7 +142,13 @@ public sealed partial class FieldInspectionWorkflowRepository
                                                     join job in db.ProcessingJobs on a.ProcessingJobId equals job.Id
                                                     join block in db.ProcessingBlocks on job.ProcessingBlockId equals block.Id
                                                     join version in db.SurveyDataVersions on block.SurveyDataVersionId equals version.Id
-                                                    where a.Id == detection && version.SurveyId == input.SurveyId
+                                                    where a.Id == detection && version.SurveyId == input.SurveyId &&
+                                                        (job.Mode != "REAL" ||
+                                                            job.ProjectId == project && job.Status == ProcessingJobStatus.Completed && a.ModelVersionId == job.ModelVersionId &&
+                                                            db.AiVideoWorkItems.Any(work => work.ProcessingJobId == job.Id && work.ProjectId == project &&
+                                                                work.DatasetId == version.Id && work.State == AiVideoWorkState.Ingested &&
+                                                                db.ProcessingAttempts.Any(attempt => attempt.Id == work.CurrentAttemptId && attempt.ProcessingJobId == job.Id &&
+                                                                    !db.ProcessingAttempts.Any(later => later.ProcessingJobId == job.Id && later.AttemptNo > attempt.AttemptNo))))
                                                     select a.Id).AnyAsync(token)) Deny(409, "source_not_ready");
         }
         else Deny(400, "validation_error");

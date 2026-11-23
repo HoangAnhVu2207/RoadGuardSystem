@@ -3,6 +3,10 @@
     "dbo.AIDetections",
     "dbo.AIModelVersions",
     "dbo.AccountStatusChangeLogs",
+    "dbo.AiVideoAttemptOutcomes",
+    "dbo.AiVideoTelemetryRevisions",
+    "dbo.AiVideoWorkItems",
+    "dbo.AiWorkerArtifacts",
     "dbo.Anh02AiDetectionProvenance",
     "dbo.Anh02AiManifestFiles",
     "dbo.Anh02AiMockRuns",
@@ -210,10 +214,13 @@
     "20261117063514_ReporterPasswordReset",
     "20261117101500_ProjectHandoverStaging",
     "20261117183505_WebPmCoordinationMetadata",
+    "20261119161424_AddAiWorkerTransportLedger",
+    "20261119164737_AddAiVideoTelemetryRevisions",
+    "20261119170649_AddAiVideoAttemptOutcomes",
     "20261123093000_FieldTaskMeasurementDimensions",
     "20261123093100_InitialTemporarySafetyResponsibility"
   ],
-  "Signature": "E532AAEA4A4DE011C7716C6E28ED677ED63C72949F2DC4BB6160322E9B6E62E6",
+  "Signature": "CAFD27F7BD462140987C2FFC8C62F6B1C683040C84C2B411B9B98FE7D9BE5BE5",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",
@@ -229,6 +236,30 @@
     },
     {
       "Table": "dbo.AccountStatusChangeLogs",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.AiVideoAttemptOutcomes",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.AiVideoTelemetryRevisions",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.AiVideoWorkItems",
+      "Category": "NOT_COVERED",
+      "Reason": "No fabricated business state; requires producer-backed scenario",
+      "Evidence": "SandboxSyntheticSeedTests"
+    },
+    {
+      "Table": "dbo.AiWorkerArtifacts",
       "Category": "NOT_COVERED",
       "Reason": "No fabricated business state; requires producer-backed scenario",
       "Evidence": "SandboxSyntheticSeedTests"

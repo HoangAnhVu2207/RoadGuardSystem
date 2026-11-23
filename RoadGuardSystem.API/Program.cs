@@ -32,13 +32,14 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 builder.Services.AddControllers(options => options.Filters.AddService<WebCookieActivityFilter>());
 builder.Services.AddApiPlatformServices(builder.Configuration, builder.Environment.IsProduction());
+builder.Services.AddRoadGuardServerDeployment(builder.Configuration, builder.Environment.EnvironmentName);
+builder.Services.AddAiRealWorker(builder.Configuration);
 builder.Services.AddRoadGuardSandbox(builder.Configuration, builder.Environment.EnvironmentName);
 builder.Services.AddRoadGuardSeeding(
     includeDevelopmentUsers: builder.Environment.IsDevelopment() &&
         builder.Configuration.GetValue("RoadGuardDatabase:SeedDevelopmentUsers", false));
 
-if (builder.Environment.IsDevelopment() &&
-    !string.IsNullOrWhiteSpace(builder.Configuration[$"{MinioStorageOptions.SectionName}:Endpoint"]))
+if (!string.IsNullOrWhiteSpace(builder.Configuration[$"{MinioStorageOptions.SectionName}:Endpoint"]))
 {
     builder.Services.AddHostedService<UploadVerificationWorker>();
 }
@@ -58,6 +59,12 @@ if (builder.Configuration.GetValue("Anh02:WorkersEnabled", false))
 }
 
 var app = builder.Build();
+if (await ServerDeployment.TryExecuteMaintenanceAsync(app) is int serverExitCode)
+{
+    Environment.ExitCode = serverExitCode;
+    await app.DisposeAsync();
+    return;
+}
 await HandoffBootstrap.InitializeAsync(app);
 
 if (await SandboxSeedCommand.TryExecuteAsync(app, args) is int seedExitCode)
@@ -107,6 +114,7 @@ if (app.Environment.IsDevelopment())
 // The isolated handoff intentionally exposes HTTP for internal health and bearer clients.
 if (Environment.GetEnvironmentVariable("ROADGUARD_HANDOFF") != "1") app.UseHttpsRedirection();
 if (Environment.GetEnvironmentVariable("ROADGUARD_HANDOFF") == "1") app.UseCors("HandoffLocal");
+if (app.Configuration.GetValue("ServerDeployment:Enabled", false)) app.UseCors(ServerDeployment.CorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<WebCookieRequestMiddleware>();

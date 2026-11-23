@@ -41,6 +41,9 @@ public sealed class AiCandidateReadBoundaryAcceptanceTests(AuthenticationSqlServ
     [Fact]
     public async Task GenuineCandidateReadPreservesWireProvenanceAndAuthority()
     {
+        var unicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT");
+        if (string.IsNullOrWhiteSpace(unicodeFontPath) || !File.Exists(unicodeFontPath))
+            throw new InvalidOperationException("Set RG_TEST_UNICODE_FONT to an existing embedding-licensed Unicode TTF font before running this dossier regression.");
         var supervisor = await sql.CreateUserAsync($"anh-super-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         var manager = await sql.CreateUserAsync($"anh-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var first = await sql.CreateUserAsync($"anh-op-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
@@ -51,7 +54,7 @@ public sealed class AiCandidateReadBoundaryAcceptanceTests(AuthenticationSqlServ
         var sourceStorage = new SurveyVideoStorage(media, checksum) { Frames = artifacts };
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
         {
-            services.Configure<ExportOptions>(o => o.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? throw new InvalidOperationException("Licensed Unicode test font required."));
+            services.Configure<ExportOptions>(o => o.UnicodeFontPath = unicodeFontPath);
             services.RemoveAll<IHostedService>(); services.Configure<Anh02AiOptions>(o => o.MockEnabled = true);
             services.RemoveAll<IAnh02ArtifactStore>(); services.AddSingleton<IAnh02ArtifactStore>(artifacts);
             services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(sourceStorage);

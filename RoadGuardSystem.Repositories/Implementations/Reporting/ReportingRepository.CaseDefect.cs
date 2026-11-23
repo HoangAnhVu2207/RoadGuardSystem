@@ -6,6 +6,7 @@ using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting;
 using RoadGuardSystem.Repositories.Models.Huy01;
 using RoadGuardSystem.Repositories.Implementations.Cases;
+using RoadGuardSystem.BusinessObjects.Candidates;
 
 namespace RoadGuardSystem.Repositories.Implementations.Reporting;
 
@@ -117,30 +118,51 @@ public sealed partial class ReportingRepository
         {
             var sourceLink = sourceLinks.Where(link => link.DefectId == defect.Id)
                 .OrderBy(link => link.CreatedAt).ThenBy(link => link.Id).FirstOrDefault();
-            if (sourceLink is null || sourceLink.SourceKind != RoadGuardSystem.BusinessObjects.Candidates.CandidateSourceKind.Report ||
-                sourceLink.ReportSourceId is not Guid sourceReport)
+            if (sourceLink is null || sourceLink.SourceKind is not (CandidateSourceKind.Report or CandidateSourceKind.AiDetection))
             {
                 missing.Add("defect_source_version_and_geometry_unavailable");
-                continue;
-            }
-            var sourceCase = links.FirstOrDefault(link => link.ReportId == sourceReport);
-            if (sourceCase is null || !caseIds.Contains(sourceCase.CaseId))
-            {
-                missing.Add("defect_source_scope_unavailable");
                 continue;
             }
             var decision = await db.SourceDecisions.AsNoTracking().SingleOrDefaultAsync(
                 row => row.Id == sourceLink.DecisionId, cancellationToken);
-            if (decision is null || decision.ProjectId != projectId || decision.Source.Id != sourceReport ||
-                decision.Source.Kind != sourceLink.SourceKind || defect.RoadSectionVersionId is not Guid defectRoute)
+            if (decision is null || decision.ProjectId != projectId || decision.Source.Id != sourceLink.SourceId ||
+                decision.Source.Kind != sourceLink.SourceKind || defect.RoadSectionVersionId is not Guid defectRoute ||
+                decision.Decision is not (CandidateDecisionKind.KeepNew or CandidateDecisionKind.LinkExisting) ||
+                decision.Decision == CandidateDecisionKind.LinkExisting && decision.TargetDefectId != defect.Id ||
+                decision.Decision == CandidateDecisionKind.KeepNew &&
+                    (decision.Classification?.RoadSectionVersionId != defectRoute ||
+                     sourceLink.SourceKind == CandidateSourceKind.AiDetection && defect.SourceAIDetectionId != sourceLink.SourceId))
             {
                 missing.Add("defect_source_version_and_geometry_unavailable");
                 continue;
             }
-            var sourceSet = await db.IncidentCases.AsNoTracking().Where(row => row.Id == sourceCase.CaseId)
-                .Select(row => EF.Property<Guid?>(row, "GeometrySegmentSetId"))
-                .SingleAsync(cancellationToken);
             var segmentId = decision.Classification?.SegmentId;
+            Guid? sourceSet = null;
+            if (sourceLink.SourceKind == CandidateSourceKind.Report)
+            {
+                var sourceCase = links.FirstOrDefault(link => link.ReportId == sourceLink.ReportSourceId);
+                if (sourceCase is null || !caseIds.Contains(sourceCase.CaseId))
+                {
+                    missing.Add("defect_source_scope_unavailable");
+                    continue;
+                }
+                sourceSet = await db.IncidentCases.AsNoTracking().Where(row => row.Id == sourceCase.CaseId)
+                    .Select(row => EF.Property<Guid?>(row, "GeometrySegmentSetId"))
+                    .SingleAsync(cancellationToken);
+            }
+            else if (segmentId is Guid classifiedSegment)
+            {
+                // The accepted classification pins this segment; no Reporter case or
+                // inferred ground position is required for a Survey/AI Defect.
+                sourceSet = await db.RoadSegments.AsNoTracking()
+                    .Where(row => row.Id == classifiedSegment && row.RoadSectionVersionId == defectRoute)
+                    .Select(row => (Guid?)row.SegmentSetId).SingleOrDefaultAsync(cancellationToken);
+                if (sourceSet is null)
+                {
+                    missing.Add("defect_source_version_and_geometry_unavailable");
+                    continue;
+                }
+            }
             if (filters.RouteVersionId is Guid requiredRoute && requiredRoute != defectRoute ||
                 filters.SegmentSetId is Guid requiredSet && requiredSet != sourceSet ||
                 filters.SegmentIds is { Length: > 0 } && !filters.SegmentIds.Contains(segmentId ?? Guid.Empty))
@@ -148,7 +170,8 @@ public sealed partial class ReportingRepository
             var version = await db.Defects.AsNoTracking().Where(row => row.Id == defect.Id)
                 .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync(cancellationToken);
             defectFacts.Add(new(defect.Id, projectId, ToVersion(version), defect.Status.ToString().ToUpperInvariant(),
-                "REPORT", sourceReport, decision.Source.SourceVersion, defectRoute, sourceSet, segmentId,
+                sourceLink.SourceKind == CandidateSourceKind.Report ? "REPORT" : "AI_DETECTION",
+                sourceLink.SourceId, decision.Source.SourceVersion, defectRoute, sourceSet, segmentId,
                 decision.GeometryVersion, defect.Geometry is null ? "UNKNOWN" : "GEOMETRY_PRESENT"));
         }
 

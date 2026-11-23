@@ -1,0 +1,20 @@
+[
+  {
+    "name": "unknown-url",
+    "field": "inputUrl",
+    "value": "https://invalid.example/input",
+    "error": "admission fields"
+  },
+  {
+    "name": "boolean-size",
+    "field": "inputBytes",
+    "value": true,
+    "error": "inputBytes"
+  },
+  {
+    "name": "zero-dimension",
+    "field": "inputWidth",
+    "value": 0,
+    "error": "inputWidth"
+  }
+]

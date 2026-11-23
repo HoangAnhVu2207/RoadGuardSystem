@@ -1,0 +1,20 @@
+{
+  "contractVersion": "rg-ai-worker-v1",
+  "projectId": "00000000-0000-0000-0000-000000000001",
+  "jobId": "00000000-0000-0000-0000-000000000002",
+  "attemptId": "00000000-0000-0000-0000-000000000003",
+  "datasetId": "00000000-0000-0000-0000-000000000004",
+  "sourceVideoFileId": "00000000-0000-0000-0000-000000000005",
+  "modelVersionId": "00000000-0000-0000-0000-000000000006",
+  "manifestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "checkpointSha256": "bc14e1f0378310640d0e04583982ebb377475211d6d42837f2db494e32ed95a0",
+  "preprocessingVersion": "ft95-video-v1",
+  "configVersion": "local-v1",
+  "inputSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "inputBytes": 123456,
+  "inputWidth": 1920,
+  "inputHeight": 1080,
+  "inputDurationMs": 60000,
+  "sampleFps": 1.0,
+  "maxFrames": 60
+}

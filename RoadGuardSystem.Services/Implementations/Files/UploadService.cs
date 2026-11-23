@@ -252,7 +252,7 @@ public sealed class UploadService : IUploadService
         try
         {
             var stream = await _repository.OpenFileAsync(file.ObjectKey, cancellationToken);
-            if (webSession || IsFieldPurpose(file.Purpose) || file.Purpose == "AI_FRAME")
+            if (webSession || IsFieldPurpose(file.Purpose) || file.Purpose is "AI_FRAME" or "AI_REAL_FRAME")
             {
                 try
                 {
@@ -284,7 +284,7 @@ public sealed class UploadService : IUploadService
 
     private async Task<bool> CanReadWebFileAsync(UserRoleCode role, FileMetadataPersistenceView file, CancellationToken token)
         => role is UserRoleCode.ProjectManager or UserRoleCode.Supervisor &&
-            (file.Purpose == "AI_FRAME" ||
+            (file.Purpose is "AI_FRAME" or "AI_REAL_FRAME" ||
              (file.Purpose == "SURVEY_VIDEO" && file.Status == "VERIFIED" && file.ProjectId is Guid videoProject &&
               file.TargetId is Guid task && await _repository.IsSubmittedSurveyVideoAsync(videoProject, task, file.Id, token)) ||
              (file.Purpose == "DOCUMENT" && file.Status == "VERIFIED" && file.ProjectId is Guid project &&
@@ -292,12 +292,13 @@ public sealed class UploadService : IUploadService
 
     private async Task<bool> CanReadFileAsync(Guid actor, UserRoleCode role, FileMetadataPersistenceView file, CancellationToken token)
     {
-        if (file.Purpose == "AI_FRAME")
+        if (file.Purpose is "AI_FRAME" or "AI_REAL_FRAME")
         {
             if (_aiRepository is null || file.ProjectId is not Guid projectId || file.TargetId is not Guid runId) return false;
             try
             {
                 await _aiRepository.AuthorizeAsync(actor, role, projectId, false, token);
+                if (file.Purpose == "AI_REAL_FRAME") return true; // SQL metadata already requires current completed REAL provenance.
                 return await _aiRepository.GetAsync(projectId, runId, token) is { Status: "SUCCEEDED", ResultId: not null };
             }
             catch (AiRequestException error) when (error.Status is 403 or 404) { return false; }

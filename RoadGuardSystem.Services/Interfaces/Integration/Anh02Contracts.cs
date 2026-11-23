@@ -63,7 +63,15 @@ public sealed record AiCandidateFactsV1(string SchemaVersion, Guid DetectionId, 
     string TypeCode, decimal Confidence, NormalizedBoundingBoxV1 BoundingBox,
     Guid RouteVersionId, Guid SegmentSetId, Guid? SegmentId, string GeometryVersion,
     string PositionStatus, string SourceVersion, ActiveCandidateDisposition? Disposition,
-    string? DispositionVersion);
+    string? DispositionVersion)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public AiTelemetryReviewSnapshotV1? TelemetryReview { get; init; }
+}
+// Immutable evidence references; GPS is a drone reference and never a ground defect location.
+public sealed record AiTelemetryReviewSnapshotV1(Guid HeadRevisionId, Guid MeasuredRevisionId,
+    Guid PairedSrtFileId, Guid EmbeddedSrtFileId, string PairsManifestHash, string EvidenceHash,
+    string PositionMeaning = "DRONE_REFERENCE_NOT_GROUND_LOCATION");
 public interface IAiCandidateFactsReader
 {
     Task<AnhHuyProducerResult<AiCandidateFactsV1>> ResolveAsync(Guid actorId, UserRoleCode role,

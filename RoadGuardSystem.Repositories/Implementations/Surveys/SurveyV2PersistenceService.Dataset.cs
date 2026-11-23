@@ -143,6 +143,11 @@ public sealed partial class SurveyV2PersistenceService
                     task.MarkSubmitted();
                     EmitMobile(task, "SUBMITTED", "survey.task.submitted.v1", dataVersion.Id, dataVersion.ConfirmedAt!.Value);
                     var now = DateTimeOffset.UtcNow;
+                    // A durable intent commits with the dataset; an opt-in REAL worker prepares
+                    // every video later. No file/model/network operation runs in this transaction.
+                    _context.OutboxMessages.Add(RoadGuardSystem.BusinessObjects.Messaging.OutboxMessage.Create(
+                        Guid.NewGuid(), "ai.real.dataset_submitted.v1", now, dataVersion.Id,
+                        JsonSerializer.Serialize(new { datasetId = dataVersion.Id, projectId = task.ProjectId })));
                     _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, now, "survey_dataset_submitted", "SurveyDataVersion", dataVersion.Id, null,
                         JsonSerializer.Serialize(new { surveyTaskId = task.Id, dataVersionId = dataVersion.Id, allFileIds }), "Survey dataset submitted", "p2-019", request.CorrelationId, ["surveyTaskId", "dataVersionId"]));
                     await _context.SaveChangesAsync(token);

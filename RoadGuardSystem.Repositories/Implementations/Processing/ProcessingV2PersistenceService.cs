@@ -114,6 +114,17 @@ public sealed class ProcessingV2PersistenceService : IProcessingV2Repository
                 var nextAttempt = (await _context.ProcessingAttempts.AsNoTracking().Where(value => value.ProcessingJobId == tracked.Id).MaxAsync(value => (int?)value.AttemptNo, token) ?? 0) + 1;
                 var attempt = ProcessingAttempt.Create(Guid.NewGuid(), tracked.Id, nextAttempt, DateTimeOffset.UtcNow, null, null, null);
                 _context.ProcessingAttempts.Add(attempt);
+                if (tracked.Mode == "REAL")
+                {
+                    var work = await _context.Set<RoadGuardSystem.BusinessObjects.Processing.Worker.AiVideoWorkItem>()
+                        .SingleOrDefaultAsync(x => x.ProcessingJobId == tracked.Id, token);
+                    if (work is not null)
+                    {
+                        var admission = System.Text.Json.Nodes.JsonNode.Parse(work.AdmissionJson)!.AsObject();
+                        admission["attemptId"] = attempt.Id;
+                        work.AdvanceAttempt(attempt.Id, admission.ToJsonString(), DateTimeOffset.UtcNow);
+                    }
+                }
                 _context.OutboxMessages.Add(OutboxMessage.Create(Guid.NewGuid(), "processing_job.dispatch", DateTimeOffset.UtcNow, tracked.Id, JsonSerializer.Serialize(new { jobId = tracked.Id, attemptId = attempt.Id, attemptNumber = nextAttempt, tracked.ManifestHash })));
                 _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, DateTimeOffset.UtcNow, "processing_job_retried", "ProcessingJob", tracked.Id, null, JsonSerializer.Serialize(new { request.Reason }), "Processing job retried", "p2-032", request.CorrelationId, ["reason"]));
                 await _context.SaveChangesAsync(token);

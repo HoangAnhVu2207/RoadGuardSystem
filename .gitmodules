@@ -1,0 +1,3 @@
+[submodule "AI/roadguard-ai-engine"]
+	path = AI/roadguard-ai-engine
+	url = https://github.com/khoa025ne/roadguard-ai-engine.git

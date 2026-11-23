@@ -114,6 +114,24 @@ public sealed class ProcessingJob
         ErrorMessage = null;
     }
 
+    public void ApplyRealWorkerState(ProcessingJobStatus state, DateTimeOffset now, string? errorCode = null)
+    {
+        if (Mode != "REAL" || Status is not (ProcessingJobStatus.Queued or ProcessingJobStatus.Running))
+            throw new InvalidOperationException("Only an active REAL job can accept worker state.");
+        var terminal = state is ProcessingJobStatus.RetryableFailure or ProcessingJobStatus.DataFailure or ProcessingJobStatus.Cancelled;
+        if (state != ProcessingJobStatus.Running && !terminal) throw new ArgumentException("Unsupported REAL state.", nameof(state));
+        if (StartedAt is { } started && now < started) throw new ArgumentException("Worker clock precedes start.", nameof(now));
+        if (state is ProcessingJobStatus.RetryableFailure or ProcessingJobStatus.DataFailure)
+        {
+            if (string.IsNullOrEmpty(errorCode) || errorCode.Length > 80 || errorCode.Any(c => c is not (>= 'A' and <= 'Z' or >= '0' and <= '9' or '_')))
+                throw new ArgumentException("A safe failure code is required.", nameof(errorCode));
+        }
+        else if (errorCode is not null) throw new ArgumentException("This state has no error code.", nameof(errorCode));
+        StartedAt ??= now.ToUniversalTime(); Status = state;
+        CompletedAt = terminal ? now.ToUniversalTime() : null;
+        ErrorCode = errorCode; ErrorMessage = null;
+    }
+
     // Terminal invalid-data/contract failure for the opt-in ANH-02 mock analysis.
     // Existing retry and legacy processing transitions remain unchanged.
     public void FailData(DateTimeOffset completedAt, string errorCode)

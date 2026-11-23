@@ -527,7 +527,28 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                                    && proof.FrameFileVersion == file.Checksum
                                select new { File = file, run.ProjectId, run.CreatedBy, RunId = run.Id })
                 .SingleOrDefaultAsync(cancellationToken);
-            return frame is null ? null : new FileMetadataPersistenceView(
+            if (frame is null)
+            {
+                var real = await (from file in _context.Files.AsNoTracking()
+                    join artifact in _context.Set<RoadGuardSystem.BusinessObjects.Processing.Worker.AiWorkerArtifact>().AsNoTracking() on file.Id equals artifact.FileId
+                    join work in _context.Set<RoadGuardSystem.BusinessObjects.Processing.Worker.AiVideoWorkItem>().AsNoTracking() on artifact.WorkItemId equals work.Id
+                    join job in _context.ProcessingJobs.AsNoTracking() on work.ProcessingJobId equals job.Id
+                    where file.Id == fileId && artifact.Kind == "FRAME" && artifact.AttemptId == work.CurrentAttemptId &&
+                        work.State == RoadGuardSystem.BusinessObjects.Processing.Worker.AiVideoWorkState.Ingested &&
+                        job.Mode == "REAL" && job.Status == ProcessingJobStatus.Completed && job.ProjectId == work.ProjectId &&
+                        file.Checksum == artifact.Sha256 && file.SizeBytes == artifact.Bytes && file.MimeType == "image/jpeg" &&
+                        !_context.ProcessingAttempts.Any(a => a.ProcessingJobId == job.Id && a.Id != work.CurrentAttemptId &&
+                            a.AttemptNo > _context.ProcessingAttempts.Where(current => current.Id == work.CurrentAttemptId).Select(current => current.AttemptNo).First())
+                    select new { File = file, work.ProjectId, WorkId = work.Id, Work = work }).SingleOrDefaultAsync(cancellationToken);
+                if (real is not null)
+                {
+                    try { await new RoadGuardSystem.Repositories.Implementations.Processing.AiVideoWorkRepository(_context).ReadSourceAsync(real.Work, cancellationToken); }
+                    catch (InvalidOperationException) { return null; }
+                }
+                return real is null ? null : new(real.File.Id, Guid.Empty, real.ProjectId, real.File.StorageUri,
+                    "VERIFIED", real.File.Checksum, real.File.MimeType, real.File.SizeBytes, real.File.Checksum, "AI_REAL_FRAME", real.WorkId);
+            }
+            return new FileMetadataPersistenceView(
                 frame.File.Id, frame.CreatedBy, frame.ProjectId, frame.File.StorageUri,
                 "VERIFIED", frame.File.Checksum, frame.File.MimeType, frame.File.SizeBytes,
                 frame.File.Checksum, "AI_FRAME", frame.RunId);

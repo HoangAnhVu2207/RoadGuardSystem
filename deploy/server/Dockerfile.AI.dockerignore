@@ -1,0 +1,14 @@
+**
+!AI/
+!AI/roadguard-ai-engine/
+!AI/roadguard-ai-engine/src/
+!AI/roadguard-ai-engine/src/**
+!deploy/
+!deploy/server/
+!deploy/server/requirements-ai.lock
+!deploy/server/ai-healthcheck.py
+**/__pycache__/**
+**/*.pyc
+**/*.pt
+**/*.env
+**/secrets/**

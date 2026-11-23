@@ -1,0 +1,130 @@
+{
+  "contractVersion": "rg-ai-worker-v1",
+  "projectId": "00000000-0000-0000-0000-000000000001",
+  "jobId": "00000000-0000-0000-0000-000000000002",
+  "attemptId": "00000000-0000-0000-0000-000000000003",
+  "datasetId": "00000000-0000-0000-0000-000000000004",
+  "sourceVideoFileId": "00000000-0000-0000-0000-000000000005",
+  "modelVersionId": "00000000-0000-0000-0000-000000000006",
+  "manifestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "checkpointSha256": "bc14e1f0378310640d0e04583982ebb377475211d6d42837f2db494e32ed95a0",
+  "preprocessingVersion": "ft95-video-v1",
+  "configVersion": "local-v1",
+  "inputSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "inputBytes": 123456,
+  "inputWidth": 1920,
+  "inputHeight": 1080,
+  "inputDurationMs": 60000,
+  "sampleFps": 1.0,
+  "maxFrames": 60,
+  "resultId": "00000000-0000-0000-0000-000000000009",
+  "rawArtifact": {
+    "artifactId": "00000000-0000-0000-0000-00000000000a",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "bytes": 1024,
+    "mediaType": "application/json"
+  },
+  "frameArtifacts": [
+    {
+      "artifactId": "00000000-0000-0000-0000-00000000000b",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "bytes": 2048,
+      "mediaType": "image/jpeg",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "detections": [
+    {
+      "detectionId": "00000000-0000-0000-0000-000000000014",
+      "frameArtifactId": "00000000-0000-0000-0000-00000000000b",
+      "timestampMs": 1235,
+      "sourceClass": "alligator crack",
+      "confidence": 0.95,
+      "bbox": [
+        0.1,
+        0.1,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "detectionId": "00000000-0000-0000-0000-000000000015",
+      "frameArtifactId": "00000000-0000-0000-0000-00000000000b",
+      "timestampMs": 1235,
+      "sourceClass": "longitudinal crack",
+      "confidence": 0.95,
+      "bbox": [
+        0.1,
+        0.1,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "detectionId": "00000000-0000-0000-0000-000000000016",
+      "frameArtifactId": "00000000-0000-0000-0000-00000000000b",
+      "timestampMs": 1235,
+      "sourceClass": "oblique crack",
+      "confidence": 0.95,
+      "bbox": [
+        0.1,
+        0.1,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "detectionId": "00000000-0000-0000-0000-000000000017",
+      "frameArtifactId": "00000000-0000-0000-0000-00000000000b",
+      "timestampMs": 1235,
+      "sourceClass": "pothole",
+      "confidence": 0.95,
+      "bbox": [
+        0.1,
+        0.1,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "detectionId": "00000000-0000-0000-0000-000000000018",
+      "frameArtifactId": "00000000-0000-0000-0000-00000000000b",
+      "timestampMs": 1235,
+      "sourceClass": "repair",
+      "confidence": 0.95,
+      "bbox": [
+        0.1,
+        0.1,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "detectionId": "00000000-0000-0000-0000-000000000019",
+      "frameArtifactId": "00000000-0000-0000-0000-00000000000b",
+      "timestampMs": 1235,
+      "sourceClass": "transverse crack",
+      "confidence": 0.95,
+      "bbox": [
+        0.1,
+        0.1,
+        0.2,
+        0.2
+      ]
+    }
+  ],
+  "telemetry": {
+    "source": "NONE",
+    "outcome": "NO_SUBTITLE_STREAM",
+    "sourceVideoSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "streamIndex": null,
+    "extractorVersion": "ffmpeg-dji-v1",
+    "srtArtifact": null
+  },
+  "roadMaskStatus": "NOT_AVAILABLE",
+  "limitations": [
+    "NO_MEASURED_TELEMETRY",
+    "NO_PHYSICAL_MEASUREMENTS"
+  ]
+}

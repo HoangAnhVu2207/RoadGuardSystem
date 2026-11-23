@@ -14,6 +14,7 @@ using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Processing;
+using RoadGuardSystem.BusinessObjects.Processing.Worker;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.BusinessObjects.Surveys;
@@ -166,6 +167,14 @@ public class RoadGuardDbContext : DbContext
 
     public DbSet<ProcessingAttempt> ProcessingAttempts => Set<ProcessingAttempt>();
 
+    public DbSet<AiVideoWorkItem> AiVideoWorkItems => Set<AiVideoWorkItem>();
+
+    public DbSet<AiWorkerArtifact> AiWorkerArtifacts => Set<AiWorkerArtifact>();
+
+    public DbSet<AiVideoTelemetryRevision> AiVideoTelemetryRevisions => Set<AiVideoTelemetryRevision>();
+
+    public DbSet<AiVideoAttemptOutcome> AiVideoAttemptOutcomes => Set<AiVideoAttemptOutcome>();
+
     public DbSet<AIModelVersion> AIModelVersions => Set<AIModelVersion>();
 
     public DbSet<ValidationRun> ValidationRuns => Set<ValidationRun>();
@@ -271,6 +280,10 @@ public class RoadGuardDbContext : DbContext
 
     private void ValidatePersistenceInvariants()
     {
+        if (ChangeTracker.Entries<AiVideoAttemptOutcome>().Any(x => x.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("AI attempt outcomes are append-only.");
+        if (ChangeTracker.Entries<AiVideoTelemetryRevision>().Any(x => x.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("Telemetry revisions are append-only.");
         foreach (var entry in ChangeTracker.Entries<Project>())
         {
             if (entry.State is EntityState.Added or EntityState.Modified &&

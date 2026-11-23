@@ -1,0 +1,2 @@
+# Opt-in local UI acceptance tooling; not a production AI dependency.
+playwright==1.65.2

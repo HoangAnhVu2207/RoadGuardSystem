@@ -39,6 +39,9 @@ public sealed class H0RetentionMigrationTests : IAsyncLifetime
             "20261117063514_ReporterPasswordReset",
             "20261117101500_ProjectHandoverStaging",
             "20261117183505_WebPmCoordinationMetadata",
+            "20261119161424_AddAiWorkerTransportLedger",
+            "20261119164737_AddAiVideoTelemetryRevisions",
+            "20261119170649_AddAiVideoAttemptOutcomes",
             "20261123093000_FieldTaskMeasurementDimensions",
             "20261123093100_InitialTemporarySafetyResponsibility"
         }, discovered);
@@ -74,7 +77,9 @@ public sealed class H0RetentionMigrationTests : IAsyncLifetime
         Assert.Equal(snapshot.Hash, (await db.Set<ExportSnapshot>().AsNoTracking().SingleAsync(row => row.Id == snapshot.Id)).Hash);
         var preservedTables = await db.Database.SqlQueryRaw<string>("SELECT name AS [Value] FROM sys.tables WHERE name IN ('DefectSourceLinks','TrainingLabels','TrainingLabelRevisions','Anh02AiMockRuns','Anh02AiResultProvenance')").ToArrayAsync();
         Assert.Equal(5, preservedTables.Length);
-        Assert.Equal(before.Append("20261117063514_ReporterPasswordReset").Append("20261117101500_ProjectHandoverStaging").Append("20261117183505_WebPmCoordinationMetadata").Append("20261123093000_FieldTaskMeasurementDimensions").Append("20261123093100_InitialTemporarySafetyResponsibility"), await db.Database.GetAppliedMigrationsAsync());
+        Assert.Equal(before.Append("20261117063514_ReporterPasswordReset").Append("20261117101500_ProjectHandoverStaging").Append("20261117183505_WebPmCoordinationMetadata")
+            .Append("20261119161424_AddAiWorkerTransportLedger").Append("20261119164737_AddAiVideoTelemetryRevisions").Append("20261119170649_AddAiVideoAttemptOutcomes")
+            .Append("20261123093000_FieldTaskMeasurementDimensions").Append("20261123093100_InitialTemporarySafetyResponsibility"), await db.Database.GetAppliedMigrationsAsync());
         Assert.False(await db.Set<ReporterPasswordResetChallenge>().AnyAsync());
         foreach (var trigger in new[] { "TR_RetentionBasisRevisions_Immutable", "TR_RetentionHoldHistories_Immutable", "TR_RetentionEvaluationItems_Immutable" })
             Assert.Contains("THROW 51220", await db.Database.SqlQuery<string>($"SELECT OBJECT_DEFINITION(OBJECT_ID({trigger})) AS [Value]").SingleAsync());

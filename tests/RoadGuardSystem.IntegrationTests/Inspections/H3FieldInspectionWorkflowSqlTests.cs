@@ -17,6 +17,7 @@ using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Inspections;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Processing;
+using RoadGuardSystem.BusinessObjects.Processing.Worker;
 using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.BusinessObjects.Idempotency;
 using RoadGuardSystem.BusinessObjects.Reports;
@@ -47,6 +48,74 @@ namespace RoadGuardSystem.IntegrationTests.Inspections;
 public sealed class H3FieldInspectionWorkflowSqlTests(IdentitySqlServerFixture sql) : IClassFixture<IdentitySqlServerFixture>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    [Theory]
+    [InlineData("accepted", 201)]
+    [InlineData("other-survey", 409)]
+    [InlineData("other-project", 403)]
+    [InlineData("unaccepted", 409)]
+    [InlineData("ended-link", 409)]
+    [InlineData("pending-work", 409)]
+    [InlineData("missing-work", 409)]
+    [InlineData("newer-attempt", 409)]
+    [InlineData("unfinished-job", 409)]
+    [InlineData("wrong-ledger-project", 409)]
+    [InlineData("wrong-ledger-dataset", 409)]
+    public async Task REAL_SURVEY_task_requires_accepted_current_ingested_source(string scenario, int expected)
+    {
+        // A REAL job must not inherit the permissive legacy block-only lineage check.
+        var s = await Seed(); await using var db = sql.CreateDbContext(); var now = DateTimeOffset.UtcNow;
+        var survey = Survey.Create(Guid.NewGuid(), null, s.Project, s.Route, SurveyType.Periodic, SurveyStatus.InProgress, false, null, null);
+        var otherSurvey = Survey.Create(Guid.NewGuid(), null, s.Project, s.Route, SurveyType.Periodic, SurveyStatus.InProgress, false, null, null);
+        var data = SurveyDataVersion.Create(Guid.NewGuid(), survey.Id, 1, SurveyDataVersionStatus.ServerConfirmed, SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend, "[]");
+        var otherData = SurveyDataVersion.Create(Guid.NewGuid(), otherSurvey.Id, 1, SurveyDataVersionStatus.ServerConfirmed, SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend, "[]");
+        var block = ProcessingBlock.Create(Guid.NewGuid(), data.Id, 1, "{}");
+        var model = AIModelVersion.Create(Guid.NewGuid(), "real", "FIELD-" + Guid.NewGuid().ToString("N"), "file:///models/fixture", null, null, AIModelVersionStatus.Draft, null, null);
+        var job = ProcessingJob.CreateQueued(Guid.NewGuid(), block.Id, model.Id, s.Project, new string('a', 64), "{}", "REAL");
+        if (scenario != "unfinished-job") job.Complete(now);
+        var attempt = ProcessingAttempt.Create(Guid.NewGuid(), job.Id, 1, now, now, null, null);
+        var otherProject = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString(), "Other fixture", null, null, null, null, now);
+        db.AddRange(survey, otherSurvey, data, otherData, block, model, job, attempt, otherProject); await db.SaveChangesAsync();
+        var work = AiVideoWorkItem.Create(Guid.NewGuid(), scenario == "wrong-ledger-dataset" ? otherData.Id : data.Id, s.SourceFile,
+            scenario == "wrong-ledger-project" ? otherProject.Id : s.Project, job.Id, attempt.Id, Guid.NewGuid().ToString(), "{}", now);
+        if (scenario != "pending-work")
+        {
+            work.AcquireLease("fixture", now, now.AddMinutes(5));
+            work.Transition("fixture", attempt.Id, AiVideoWorkState.Admitted, now);
+            work.Transition("fixture", attempt.Id, AiVideoWorkState.ArtifactsReady, now);
+            work.Transition("fixture", attempt.Id, AiVideoWorkState.Ingested, now);
+        }
+        if (scenario != "missing-work") db.Add(work);
+        if (scenario == "newer-attempt") db.Add(ProcessingAttempt.Create(Guid.NewGuid(), job.Id, 2, now, now, null, null));
+        var type = DefectType.Create("R" + Guid.NewGuid().ToString("N"), "Real field");
+        var point = new GeometryFactory(new PrecisionModel(), 32648).CreatePoint(new Coordinate(5, 0));
+        var detection = AIDetection.Create(Guid.NewGuid(), job.Id, model.Id, s.Route, point, type.Code, .8m, null, null, "{}");
+        db.AddRange(type, detection); await db.SaveChangesAsync();
+        Guid defectId;
+        if (scenario == "unaccepted")
+        {
+            var defect = Defect.Create(Guid.NewGuid(), s.Project, s.Route, detection.Id, type.Code, null, DefectSeverity.Low, DefectStatus.Open, point, now);
+            db.Add(defect); await db.SaveChangesAsync(); defectId = defect.Id;
+        }
+        else
+        {
+            var source = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(CandidateSourceKind.AiDetection, detection.Id, "real-source-fixture"), s.Project, "geometry-fixture");
+            var accepted = await new CandidateDecisionRepository(db).SaveAcceptedAsync(s.Pm, source, CandidateDecisionKind.KeepNew,
+                CandidateClassification.Create(s.Route, type.Code, null, DefectSeverity.Low, null), null, null, null, "actual persisted PM KeepNew", null, default);
+            defectId = accepted.DefectId!.Value;
+        }
+        if (scenario == "ended-link")
+        {
+            (await db.Set<HuyDefectSourceLink>().SingleAsync(x => x.DefectId == defectId)).EndedAt = now;
+            await db.SaveChangesAsync();
+        }
+        var version = Convert.ToBase64String(await db.Defects.Where(x => x.Id == defectId).Select(x => EF.Property<byte[]>(x, "RowVersion")).SingleAsync());
+        var input = new FieldTaskCreateInput(defectId, version, scenario == "other-survey" ? otherSurvey.Id : survey.Id, "SURVEY", s.Route, s.Set,
+            null, null, "PRE_MEASUREMENT", 1, "{}", "Crew measures actual ground damage", s.Crew, now.AddDays(1));
+        var result = await Cmd(db, scenario == "other-project" ? s with { Project = otherProject.Id } : s, s.Pm, UserRoleCode.ProjectManager, null, "create", input);
+        Assert.Equal(expected, result.Status);
+        await using var check = sql.CreateDbContext();
+        Assert.Equal(expected == 201 ? 1 : 0, await check.FieldInspectionTasks.CountAsync(x => x.DefectId == defectId));
+    }
     [Fact]
     public async Task Populated_receiving_upgrade_preserves_real_intake_and_backfills_only_unacknowledged_request()
     {

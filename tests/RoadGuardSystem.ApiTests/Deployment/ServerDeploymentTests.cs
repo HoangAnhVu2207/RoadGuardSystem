@@ -34,12 +34,12 @@ public sealed class ServerDeploymentTests
     }
 
     [Fact]
-    public void Production_registers_live_upload_worker_and_dependency_health_check()
+    public void Production_registers_dependency_health_check_without_duplicate_upload_worker()
     {
         var services = new ServiceCollection();
         services.AddRoadGuardServerDeployment(Config(true), "Production");
-        Assert.Single(services.Where(x => x.ServiceType == typeof(IHostedService) &&
-            x.ImplementationType == typeof(UploadVerificationWorker)));
+        Assert.DoesNotContain(services, x => x.ServiceType == typeof(IHostedService) &&
+            x.ImplementationType == typeof(UploadVerificationWorker));
         Assert.Contains(services, x => x.ServiceType == typeof(ServerDependencyHealthCheck));
     }
 

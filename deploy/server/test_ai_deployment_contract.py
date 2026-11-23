@@ -16,6 +16,12 @@ class AiReleaseContractTests(unittest.TestCase):
         self.assertIn('prepare_ai_assets', source)
         self.assertIn('compose build api minio ai', source)
 
+    def test_bootstrap_handoff_runs_target_updater_after_legacy_extraction(self):
+        source = (ROOT / 'update-reviewed.sh').read_text()
+        self.assertIn('RG_BOOTSTRAP_REENTRY', source)
+        self.assertIn('RG_BOOTSTRAP_CANDIDATE', source)
+        self.assertIn('exec env RG_BOOTSTRAP_REENTRY=1', source)
+
     def test_runtime_composition_enables_private_ai_only_when_assets_are_ready(self):
         compose = (ROOT / 'compose.yaml').read_text()
         common = (ROOT / 'common.sh').read_text()
@@ -25,6 +31,7 @@ class AiReleaseContractTests(unittest.TestCase):
         self.assertIn('compose up -d --wait --wait-timeout 300 ai', manage)
         self.assertIn('ft95.pt', common)
         self.assertIn('bc14e1f0378310640d0e04583982ebb377475211d6d42837f2db494e32ed95a0', common)
+        self.assertIn('$RG_AI_SUBMODULE/.git', common)
 
 if __name__ == '__main__':
     unittest.main()

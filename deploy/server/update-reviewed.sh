@@ -5,8 +5,13 @@ expected="${1:-}" target="${2:-}"
 [[ "$expected" =~ ^[0-9a-f]{40}$ && "$target" =~ ^[0-9a-f]{40}$ && $# == 2 ]] || {
     echo 'Usage: update-reviewed.sh EXPECTED_ACTIVE_SHA TARGET_SHA' >&2; exit 2;
 }
-RG_CODE="$(readlink -f /opt/roadguard/current)"
-test "$RG_CODE" = "/opt/roadguard/releases/$expected"
+if [ "${RG_BOOTSTRAP_REENTRY:-0}" = 1 ]; then
+    RG_CODE="${RG_BOOTSTRAP_CANDIDATE:?Missing bootstrap candidate.}"
+else
+    RG_CODE="$(readlink -f /opt/roadguard/current)"
+fi
+current_code="$(readlink -f /opt/roadguard/current)"
+test "$current_code" = "/opt/roadguard/releases/$expected"
 source "$RG_CODE/deploy/server/common.sh"
 require_root
 test "$(hostname)" = roadguardsystem
@@ -38,6 +43,17 @@ test "$free_bytes" -ge "$((data_bytes * 12 / 10 + 8589934592))" || {
 echo "Reviewed deployment: $expected -> $target"
 extract_release "$target"
 candidate="$RG_RELEASES/$target"
+
+# The active release may contain a legacy updater that cannot verify loopback
+# health after its backup because it probes the retired LAN address. Once that
+# updater has extracted this exact target, hand off to the target's reviewed
+# updater in a fresh shell so its common.sh and manager are used consistently.
+if [ "${RG_BOOTSTRAP_REENTRY:-0}" != 1 ] && [ "$RG_CODE" != "$candidate" ]; then
+    test -f "$candidate/deploy/server/update-reviewed.sh"
+    exec env RG_BOOTSTRAP_REENTRY=1 RG_BOOTSTRAP_CANDIDATE="$candidate" \
+        bash "$candidate/deploy/server/update-reviewed.sh" "$expected" "$target"
+fi
+
 RG_CODE="$candidate"
 prepare_ai_assets
 RG_CODE="$candidate" RG_RELEASE="$target" compose config --quiet

@@ -24,11 +24,11 @@ backup() {
     directory="$RG_DATA/backups/$stamp"
     mkdir -m 700 "$directory"
     # Also stop storage: outstanding signed uploads must not mutate its snapshot.
-    compose stop api minio
+    if ai_configured; then compose stop api ai minio; else compose stop api minio; fi
     query="BACKUP DATABASE [RoadGuard_Server] TO DISK=N'/var/opt/mssql/roadguard-$stamp.bak' WITH COPY_ONLY, INIT, CHECKSUM; RESTORE VERIFYONLY FROM DISK=N'/var/opt/mssql/roadguard-$stamp.bak' WITH CHECKSUM;"
     compose exec -T sql /bin/bash -c 'export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"; exec /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -N -C -b -Q "$1"' -- "$query"
     mv "$RG_DATA/sql/roadguard-$stamp.bak" "$directory/database.bak"
-    tar -C / -czf "$directory/storage-keys-config.tar.gz" srv/roadguard/objects srv/roadguard/files srv/roadguard/keys etc/roadguard
+    tar -C / -czf "$directory/storage-keys-config.tar.gz" srv/roadguard/objects srv/roadguard/files srv/roadguard/keys srv/roadguard/ai etc/roadguard
     printf '%s\n' "$RG_RELEASE" > "$directory/RELEASE"
     (cd "$directory" && sha256sum database.bak storage-keys-config.tar.gz RELEASE > SHA256SUMS)
     echo "Backup verified and saved: $directory"
@@ -47,6 +47,9 @@ if config['ServerDeployment'].pop('InitialSupervisor',None) is not None:
     tmp.write_text(json.dumps(config,indent=2,ensure_ascii=False))
     os.chown(tmp,1654,10001); tmp.chmod(0o640); tmp.replace(p)
 PY
+    if ai_configured; then
+        compose up -d --wait --wait-timeout 300 ai
+    fi
     compose up -d --wait --wait-timeout 300 api
     check
     ln -sfn "$RG_CODE" /opt/roadguard/current
@@ -58,14 +61,15 @@ case "${1:-status}" in
     initialize)
         test ! -e "$RG_CONFIG/active-release"
         compose config --quiet
-        compose build api minio
+        prepare_ai_assets
+        compose build api minio ai
         activate
         ;;
     status) check ;;
-    logs) compose logs --tail 100 api sql minio ;;
-    backup) backup; compose up -d --wait --wait-timeout 300 minio api; check ;;
-    start) compose up -d --wait --wait-timeout 300 sql minio api; check ;;
-    stop) compose stop api minio sql ;;
+    logs) if ai_configured; then compose logs --tail 100 api ai sql minio; else compose logs --tail 100 api sql minio; fi ;;
+    backup) backup; if ai_configured; then compose up -d --wait --wait-timeout 300 minio ai api; else compose up -d --wait --wait-timeout 300 minio api; fi; check ;;
+    start) if ai_configured; then compose up -d --wait --wait-timeout 300 sql minio ai api; else compose up -d --wait --wait-timeout 300 sql minio api; fi; check ;;
+    stop) if ai_configured; then compose stop api ai minio sql; else compose stop api minio sql; fi ;;
     update) echo 'Use update-reviewed.sh EXPECTED_ACTIVE_SHA TARGET_SHA; branch-tip updates are disabled.' >&2; exit 2 ;;
     activate) activate ;;
     *) echo 'Usage: manage.sh initialize|status|logs|backup|start|stop|update' >&2; exit 1 ;;

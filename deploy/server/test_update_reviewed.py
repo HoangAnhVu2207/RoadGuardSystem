@@ -32,6 +32,8 @@ RG_CONFIG={config}
 RG_DATA={root}
 require_root() {{ :; }}
 extract_release() {{ echo "extract $1" >> "$TRACE"; }}
+prepare_ai_assets() {{ echo "prepare_ai_assets" >> "$TRACE"; }}
+ai_configured() {{ return 1; }}
 compose() {{ echo "compose $*" >> "$TRACE"; }}
 git() {{ echo "git $*" >> "$TRACE"; return 0; }}
 hostname() {{ echo roadguardsystem; }}

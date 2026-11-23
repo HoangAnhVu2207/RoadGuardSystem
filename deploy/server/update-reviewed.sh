@@ -38,8 +38,10 @@ test "$free_bytes" -ge "$((data_bytes * 12 / 10 + 8589934592))" || {
 echo "Reviewed deployment: $expected -> $target"
 extract_release "$target"
 candidate="$RG_RELEASES/$target"
+RG_CODE="$candidate"
+prepare_ai_assets
 RG_CODE="$candidate" RG_RELEASE="$target" compose config --quiet
-RG_CODE="$candidate" RG_RELEASE="$target" compose build api minio
+RG_CODE="$candidate" RG_RELEASE="$target" compose build api minio ai
 
 # The old release owns its backup. Failure cannot fall through to activation.
 if ! bash "$RG_CODE/deploy/server/manage.sh" backup; then

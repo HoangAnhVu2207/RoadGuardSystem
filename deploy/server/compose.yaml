@@ -103,6 +103,7 @@ services:
     ports: ['${RG_BIND_IP:?Set RG_BIND_IP}:8443:8443']
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      AiRealWorker__Enabled: ${RG_AI_ENABLED:-false}
       # The worker remains opt-in through appsettings/maintenance policy. These
       # paths and the private service endpoint are stable container interfaces.
       AiRealWorker__WorkerEndpoint: http://ai:8999/

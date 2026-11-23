@@ -205,6 +205,7 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Command(client, path, input with { Scope = input.Scope with { SegmentIds = [Guid.NewGuid()] } })).StatusCode);
         var admitted = await Command(client, path, input, key: key); admitted.StatusCode.Should().Be(HttpStatusCode.Accepted, await admitted.Content.ReadAsStringAsync());
         var run = (await Body(admitted)).GetProperty("id").GetGuid();
+        var origin = Guid.Parse(admitted.Headers.GetValues("X-Correlation-ID").Single());
         var detailPath = path + $"/{run}"; var resultPath = detailPath + "/result";
         async Task Denied(string url, HttpStatusCode status, string code)
         {
@@ -227,15 +228,25 @@ public sealed class AiMockReadBoundaryAcceptanceTests(AuthenticationSqlServerFix
             foreach (var forbidden in new[] { "storageUri", "storageKey", "objectKey", "password", "accessToken", "email", "phoneNumber", "fixture://", "https://storage.test" }) value.GetRawText().Should().NotContain(forbidden);
             return value;
         }
-        var runFields = new[] { "id", "projectId", "stage", "mode", "status", "processingJobId", "attemptId", "manifestHash", "resultId", "fixtureVersion", "errorCode", "version", "datasetId", "datasetVersionNo", "datasetVersion", "surveyTaskId", "createdAt" };
+        var runFields = new[] { "id", "projectId", "stage", "mode", "status", "processingJobId", "attemptId", "manifestHash", "resultId", "fixtureVersion", "errorCode", "version", "datasetId", "datasetVersionNo", "datasetVersion", "surveyTaskId", "createdAt", "originCorrelationId", "failure" };
         var resultFields = new[] { "schemaVersion", "runId", "stage", "mode", "jobId", "attemptId", "manifestHash", "modelVersionId", "fixtureVersion", "resultHash", "completedAt", "detections", "matches" };
         var view = await Read(detailPath, runFields); var result = await Read(resultPath, resultFields);
+        Assert.Equal(origin, view.GetProperty("originCorrelationId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, view.GetProperty("failure").ValueKind);
+        await using (var provenance = sql.CreateDbContext())
+        {
+            var stored = await provenance.Set<AiMockRun>().AsNoTracking().SingleAsync(row => row.Id == run);
+            using var manifest = JsonDocument.Parse(stored.CanonicalManifest);
+            Assert.Equal(origin, manifest.RootElement.GetProperty("originCorrelationId").GetGuid());
+        }
         using var web = await WebCookieTestClient.Login(factory, manager.Email!);
         web.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
         using var webRun = await web.GetAsync(detailPath);
         webRun.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Body(webRun)).GetProperty("id").GetGuid().Should().Be(run);
         var sourceRead = await Body(webRun);
+        Assert.Equal(origin, sourceRead.GetProperty("originCorrelationId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, sourceRead.GetProperty("failure").ValueKind);
         Assert.Equal(dataset, sourceRead.GetProperty("datasetId").GetGuid());
         Assert.Equal(task, sourceRead.GetProperty("surveyTaskId").GetGuid());
         Assert.True(sourceRead.GetProperty("datasetVersionNo").GetInt32() > 0);

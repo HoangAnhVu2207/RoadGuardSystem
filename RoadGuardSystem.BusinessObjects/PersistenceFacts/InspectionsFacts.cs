@@ -58,7 +58,7 @@ public sealed record CrewReviewRequestFact(Guid RequestId, Guid DecisionId, stri
 
 public sealed record CrewRepairAttemptFact(Guid AttemptId, Guid EffectiveSubmissionId, CrewRepairReviewFact? Review);
 
-public sealed record CrewRepairReviewFact(Guid ReviewId, string Decision);
+public sealed record CrewRepairReviewFact(Guid ReviewId, string Decision, string? Reason = null);
 
 public sealed record FieldVerificationSourceFactsFact(Guid TaskId, Guid DefectId, Guid SubmissionId, string ContentHash,
     string Decision, Guid[] EvidenceIds, Guid RouteVersionId, Guid? SegmentSetId, Guid? LayoutRevisionId);

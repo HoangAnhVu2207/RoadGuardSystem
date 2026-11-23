@@ -146,7 +146,7 @@ public sealed record CrewRepairContext(Guid PackageId, Guid ItemId, Guid Binding
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact?(CrewRepairContext? value)
         => value is null ? null : new(value.PackageId, value.ItemId, value.BindingId, value.Mode, value.Status, value.ItemVersion, value.RepairPlan, value.ChecklistVersion,
             value.Attempt is { } attempt ? new(attempt.AttemptId, attempt.EffectiveSubmissionId,
-                attempt.Review is { } review ? new(review.ReviewId, review.Decision) : null) : null,
+                attempt.Review is { } review ? new(review.ReviewId, review.Decision, review.Reason) : null) : null,
             value.FinalDecision is { } final ? new(final.DecisionId, final.Result, final.At) : null,
             value.ReviewRequests?.Select(row => new global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewReviewRequestFact(
                 row.RequestId, row.DecisionId, row.Reason, row.At)).ToArray());
@@ -154,14 +154,14 @@ public sealed record CrewRepairContext(Guid PackageId, Guid ItemId, Guid Binding
     public static implicit operator CrewRepairContext?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact? value)
         => value is null ? null : new(value.PackageId, value.ItemId, value.BindingId, value.Mode, value.Status, value.ItemVersion, value.RepairPlan, value.ChecklistVersion,
             value.Attempt is { } attempt ? new(attempt.AttemptId, attempt.EffectiveSubmissionId,
-                attempt.Review is { } review ? new(review.ReviewId, review.Decision) : null) : null,
+                attempt.Review is { } review ? new(review.ReviewId, review.Decision, review.Reason) : null) : null,
             value.FinalDecision is { } final ? new(final.DecisionId, final.Result, final.At) : null,
             value.ReviewRequests?.Select(row => new CrewReviewRequest(row.RequestId, row.DecisionId, row.Reason, row.At)).ToArray());
 }
 public sealed record CrewFinalDecision(Guid DecisionId, string Result, DateTimeOffset At);
 public sealed record CrewReviewRequest(Guid RequestId, Guid DecisionId, string Reason, DateTimeOffset At);
 public sealed record CrewRepairAttempt(Guid AttemptId, Guid EffectiveSubmissionId, CrewRepairReview? Review);
-public sealed record CrewRepairReview(Guid ReviewId, string Decision);
+public sealed record CrewRepairReview(Guid ReviewId, string Decision, string? Reason = null);
 public sealed record FieldSubmissionView(Guid Id, Guid TaskId, Guid RootId, Guid? ParentId, int Revision,
     DateTimeOffset ServerReceivedAt, DateTimeOffset OriginalReviewDueAt, string Readiness,
     string[] MissingReasons, string ContentHash, FieldMeasurementInput[] Measurements,

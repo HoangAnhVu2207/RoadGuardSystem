@@ -411,6 +411,7 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
         Assert.Equal(link.AttemptId, needsSupplement.Attempt!.AttemptId);
         Assert.Equal(intake.Id, needsSupplement.Attempt.EffectiveSubmissionId);
         Assert.Equal("SUPPLEMENT", needsSupplement.Attempt.Review!.Decision);
+        Assert.Equal("missing verified AFTER evidence", needsSupplement.Attempt.Review.Reason);
         Assert.Equal(Assert.IsType<RepairAttemptReviewFact>(requested.Value).ReviewId, needsSupplement.Attempt.Review.ReviewId);
         var supplementEvent = await db.Set<RepairItemLifecycleEvent>().AsNoTracking().SingleAsync(row =>
             row.ItemId == state.Item.Id && row.Kind == "REWORK");
@@ -511,6 +512,9 @@ public sealed partial class H4RepairExecutionSqlTests(IdentitySqlServerFixture s
         };
         Assert.Equal(201, (await Repo(db).ReviewAttemptAsync(secondReview, default)).Status);
         db.ChangeTracker.Clear();
+        var secondRead = Assert.IsType<FieldTaskViewFact>((await Bootstrap(db, state)).Value).RepairContext!.Attempt!;
+        Assert.Equal(revision.Id, secondRead.EffectiveSubmissionId);
+        Assert.Equal("verified AFTER still required", secondRead.Review!.Reason);
         var now = DateTimeOffset.UtcNow;
         var file = StoredFile.Create(Guid.NewGuid(), "field/repair-after-" + Guid.NewGuid().ToString("N"),
             "after.jpg", "image/jpeg", 4, new string('c', 64), state.Source.Crew, now, null);

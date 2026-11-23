@@ -205,6 +205,7 @@ public sealed class AiMockReadLifecycleAcceptanceTests(AuthenticationSqlServerFi
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Command(client, path, input with { Scope = input.Scope with { SegmentIds = [Guid.NewGuid()] } })).StatusCode);
         var admitted = await Command(client, path, input, key: key); admitted.StatusCode.Should().Be(HttpStatusCode.Accepted, await admitted.Content.ReadAsStringAsync());
         var run = (await Body(admitted)).GetProperty("id").GetGuid();
+        var origin = Guid.Parse(admitted.Headers.GetValues("X-Correlation-ID").Single());
         var detailPath = path + $"/{run}"; var resultPath = detailPath + "/result";
         async Task Denied(string url, HttpStatusCode status, string code)
         {
@@ -256,9 +257,18 @@ public sealed class AiMockReadLifecycleAcceptanceTests(AuthenticationSqlServerFi
             using var failed = await client.GetAsync(detailPath);
             Assert.Equal(HttpStatusCode.OK, failed.StatusCode);
             var body = await Body(failed);
-            Assert.Equal(new[] { "attemptId", "createdAt", "datasetId", "datasetVersion", "datasetVersionNo", "errorCode", "fixtureVersion", "id", "manifestHash", "mode", "processingJobId", "projectId", "resultId", "stage", "status", "surveyTaskId", "version" }, body.EnumerateObject().Select(p => p.Name).Order().ToArray());
+            Assert.Equal(new[] { "attemptId", "createdAt", "datasetId", "datasetVersion", "datasetVersionNo", "errorCode", "failure", "fixtureVersion", "id", "manifestHash", "mode", "originCorrelationId", "processingJobId", "projectId", "resultId", "stage", "status", "surveyTaskId", "version" }, body.EnumerateObject().Select(p => p.Name).Order().ToArray());
             Assert.Equal("FAILED", body.GetProperty("status").GetString());
             Assert.Equal("mock_fixture_source_mismatch", body.GetProperty("errorCode").GetString());
+            Assert.Equal(origin, body.GetProperty("originCorrelationId").GetGuid());
+            var diagnostic = body.GetProperty("failure");
+            Assert.Equal(new[] { "field", "originCorrelationId", "reasonCode", "recovery", "step" },
+                diagnostic.EnumerateObject().Select(x => x.Name).Order().ToArray());
+            Assert.Equal("source_hash_mismatch", diagnostic.GetProperty("reasonCode").GetString());
+            Assert.Equal("source_stream", diagnostic.GetProperty("step").GetString());
+            Assert.Equal("datasetId", diagnostic.GetProperty("field").GetString());
+            Assert.Equal(origin, diagnostic.GetProperty("originCorrelationId").GetGuid());
+            Assert.Equal("Use the approved synthetic video bytes for MOCK; verify the uploaded source and checksum.", diagnostic.GetProperty("recovery").GetString());
             Assert.Equal(JsonValueKind.Null, body.GetProperty("resultId").ValueKind);
             Assert.Equal('"' + body.GetProperty("version").GetString() + '"', failed.Headers.ETag!.Tag);
             Assert.Null(failed.Headers.Location);

@@ -69970,6 +69970,11 @@
               "ACCEPT"
             ],
             "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Stored reason of the current SUPPLEMENT review matching this attempt and effective submission; null for other decisions or absent legacy reason. Never taken from notifications or final decisions.",
+            "nullable": true
           }
         },
         "additionalProperties": false

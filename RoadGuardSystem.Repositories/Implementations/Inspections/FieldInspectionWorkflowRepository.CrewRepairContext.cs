@@ -109,7 +109,8 @@ public sealed partial class FieldInspectionWorkflowRepository
                         row.BindingId == source.BindingId && row.AttemptId == attemptId && row.IntakeLinkId == linkId &&
                         row.SubmissionId == submissionId && row.SubmissionContentHash == intake.SubmissionContentHash &&
                         row.Role == UserRoleCode.ProjectManager && (row.Decision == "SUPPLEMENT" || row.Decision == "ACCEPT"))
-                        .Select(row => new CrewRepairReviewFact(row.Id, row.Decision)).SingleOrDefaultAsync(token);
+                        .Select(row => new CrewRepairReviewFact(row.Id, row.Decision,
+                            row.Decision == "SUPPLEMENT" && row.Reason != null && row.Reason.Trim() != "" ? row.Reason : null)).SingleOrDefaultAsync(token);
                 attempt = new(attemptId, submissionId, review);
             }
         }

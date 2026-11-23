@@ -87,7 +87,17 @@ public sealed class AiReadRouteValidationAcceptanceTests(AuthenticationSqlServer
             Assert.Equal(status, (int)response.StatusCode);
             Assert.Equal("application/problem+json", response.Content.Headers.ContentType!.MediaType);
             var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-            Assert.Equal(new[] { "code", "correlationId", "instance", "status", "title" }, body.EnumerateObject().Select(x => x.Name).Order().ToArray());
+            var fields = resource == "ai-mock-runs"
+                ? new[] { "code", "correlationId", "field", "instance", "reasonCode", "recovery", "status", "step", "title" }
+                : new[] { "code", "correlationId", "instance", "status", "title" };
+            Assert.Equal(fields, body.EnumerateObject().Select(x => x.Name).Order().ToArray());
+            if (resource == "ai-mock-runs")
+            {
+                Assert.Equal(code == "not_found" ? "resource_not_found" : "access_not_current", body.GetProperty("reasonCode").GetString());
+                Assert.Equal("readback", body.GetProperty("step").GetString());
+                Assert.Equal(JsonValueKind.Null, body.GetProperty("field").ValueKind);
+                Assert.Equal("Check the current session, project and resource permission without changing resource IDs to bypass scope.", body.GetProperty("recovery").GetString());
+            }
             Assert.Equal(status, body.GetProperty("status").GetInt32());
             Assert.Equal(code, body.GetProperty("code").GetString());
             Assert.Equal(path, body.GetProperty("instance").GetString());

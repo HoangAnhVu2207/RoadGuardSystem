@@ -173,6 +173,86 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         },
             Guid.NewGuid().ToString(), await Version(pm, itemPath));
         Assert.True(intake.StatusCode == HttpStatusCode.Created, await intake.Content.ReadAsStringAsync());
+        var initialContext = (await crew.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext");
+        Assert.Equal(JsonValueKind.Null, initialContext.GetProperty("attempt").GetProperty("review").ValueKind);
+        var attemptId = initialContext.GetProperty("attempt").GetProperty("attemptId").GetGuid();
+        async Task RequestSupplement(string reason)
+        {
+            var key = Guid.NewGuid().ToString(); var version = await Version(pm, itemPath);
+            var body = new { fieldSubmissionId = submissionId, decision = "SUPPLEMENT", reason };
+            using var review = await Send(pm, executionPath + "/attempts/reviews", body, key, version);
+            Assert.True(review.StatusCode == HttpStatusCode.Created, await review.Content.ReadAsStringAsync());
+            var reviewId = (await review.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("reviewId").GetGuid();
+            using var newCrewSession = await Client(source.Crew);
+            foreach (var session in new[] { crew, newCrewSession })
+            {
+                var current = (await session.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext").GetProperty("attempt");
+                Assert.Equal(attemptId, current.GetProperty("attemptId").GetGuid());
+                Assert.Equal(submissionId, current.GetProperty("effectiveSubmissionId").GetGuid());
+                var actual = current.GetProperty("review");
+                Assert.Equal(reviewId, actual.GetProperty("reviewId").GetGuid());
+                Assert.Equal("SUPPLEMENT", actual.GetProperty("decision").GetString());
+                Assert.Equal(reason, actual.GetProperty("reason").GetString());
+            }
+            await using var persisted = sql.CreateDbContext();
+            var stored = await persisted.Set<RepairAttemptReview>().SingleAsync(x => x.Id == reviewId);
+            Assert.Equal(submissionId, stored.SubmissionId); Assert.Equal(attemptId, stored.AttemptId); Assert.Equal(reason, stored.Reason);
+        }
+        await RequestSupplement("Bổ sung ảnh xác nhận phạm vi sửa");
+        var otherCrew = await sql.CreateUserAsync("reason-other-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.RepairCrew);
+        using var unauthorizedCrew = await Client(otherCrew.Id);
+        Assert.Equal(HttpStatusCode.Forbidden, (await unauthorizedCrew.GetAsync(taskPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await crew.GetAsync(taskPath.Replace(source.Project.ToString(), Guid.NewGuid().ToString(), StringComparison.Ordinal))).StatusCode);
+        using var revised = await Send(crew, taskPath + "/submissions", new
+        {
+            originId = Guid.NewGuid(),
+            startOriginId = firstStart,
+            parentSubmissionId = submissionId,
+            captureType = "REPAIR_CLAIM",
+            repaired = true,
+            measurements = Array.Empty<object>(),
+            evidence = Array.Empty<object>()
+        }, Guid.NewGuid().ToString(), await Version(crew, taskPath));
+        Assert.True(revised.StatusCode == HttpStatusCode.Created, await revised.Content.ReadAsStringAsync());
+        var revisedBody = await revised.Content.ReadFromJsonAsync<JsonElement>();
+        var revisedId = revisedBody.GetProperty("id").GetGuid();
+        using var linkedSupplement = await Send(crew, executionPath + "/attempts/supplements", new
+        { fieldSubmissionId = revisedId, expectedContentHash = revisedBody.GetProperty("contentHash").GetString() },
+            Guid.NewGuid().ToString(), await Version(pm, itemPath));
+        Assert.True(linkedSupplement.StatusCode == HttpStatusCode.Created, await linkedSupplement.Content.ReadAsStringAsync());
+        var updatedAttempt = (await crew.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext").GetProperty("attempt");
+        Assert.Equal(attemptId, updatedAttempt.GetProperty("attemptId").GetGuid());
+        Assert.Equal(revisedId, updatedAttempt.GetProperty("effectiveSubmissionId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, updatedAttempt.GetProperty("review").ValueKind);
+        submissionId = revisedId;
+        await RequestSupplement("Kiểm tra lại ảnh bổ sung của bản mới");
+        // A second supplement must clear the review again before ACCEPT can target the new intake.
+        using var finalRevision = await Send(crew, taskPath + "/submissions", new
+        {
+            originId = Guid.NewGuid(),
+            startOriginId = firstStart,
+            parentSubmissionId = submissionId,
+            captureType = "REPAIR_CLAIM",
+            repaired = true,
+            measurements = new[] { new { sampleId = "depth", type = "DepressionDepth", value = 0, state = "KNOWN", dimension = "LENGTH",
+                unit = "mm", locationReason = "on road", instrument = "depth gauge", method = "depth measurement" } },
+            evidence = new[] { new { captureOriginId = Guid.NewGuid(), fileId = after.Id, purpose = "AFTER", checksumSha256 = after.Checksum,
+                mediaType = after.MimeType, capturedAt = DateTimeOffset.UtcNow, attemptChecklist = "POST_REPAIR_CAPTURE" } },
+            locationProof = new
+            {
+                kind = "POSITION_CHECKLIST",
+                checklist = "ROUTE_CHAINAGE_MARKINGS_CONFIRMED",
+                observedRouteVersionId = source.Route,
+                observedChainageMeters = 1
+            }
+        }, Guid.NewGuid().ToString(), await Version(crew, taskPath));
+        Assert.True(finalRevision.StatusCode == HttpStatusCode.Created, await finalRevision.Content.ReadAsStringAsync());
+        var finalRevisionBody = await finalRevision.Content.ReadFromJsonAsync<JsonElement>();
+        submissionId = finalRevisionBody.GetProperty("id").GetGuid();
+        using var finalLink = await Send(crew, executionPath + "/attempts/supplements", new
+        { fieldSubmissionId = submissionId, expectedContentHash = finalRevisionBody.GetProperty("contentHash").GetString() },
+            Guid.NewGuid().ToString(), await Version(pm, itemPath));
+        Assert.True(finalLink.StatusCode == HttpStatusCode.Created, await finalLink.Content.ReadAsStringAsync());
         var reviewed = await Send(pm, executionPath + "/attempts/reviews", new
         {
             fieldSubmissionId = submissionId,
@@ -182,6 +262,7 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.True(reviewed.StatusCode == HttpStatusCode.Created, await reviewed.Content.ReadAsStringAsync());
         var afterReview = (await crew.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext");
         Assert.Equal("ACCEPT", afterReview.GetProperty("attempt").GetProperty("review").GetProperty("decision").GetString());
+        Assert.Equal(JsonValueKind.Null, afterReview.GetProperty("attempt").GetProperty("review").GetProperty("reason").ValueKind);
         Assert.Equal(JsonValueKind.Null, afterReview.GetProperty("finalDecision").ValueKind);
         var finalKey = Guid.NewGuid().ToString(); var finalVersion = await Version(pm, itemPath);
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(pm, itemPath + "/final-confirmation", new { reason = "wrong role" },
@@ -238,6 +319,10 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync($"{exports}/{archived}/manifest")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync($"{exports}/{archived}/content")).StatusCode);
         Assert.Single(await db.Set<RepairFieldTaskBinding>().Where(x => x.ItemId == item).ToArrayAsync());
+        var currentAssignment = await db.FieldInspectionAssignments.SingleAsync(x => x.Id == binding.AssignmentId);
+        currentAssignment.End(DateTimeOffset.UtcNow, "reason readback permission regression");
+        await db.SaveChangesAsync();
+        Assert.Equal(HttpStatusCode.Forbidden, (await crew.GetAsync(taskPath)).StatusCode);
 
         async Task<Guid> CaptureDossier(object filters)
         {
@@ -276,6 +361,25 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
                 (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
             return client;
         }
+    }
+
+    [Fact]
+    public async Task CrewReviewReasonSwaggerIsNullableAndExistingDtoDefaultsRemainCompatible()
+    {
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        var swagger = factory.Services.GetRequiredService<Swashbuckle.AspNetCore.Swagger.ISwaggerProvider>().GetSwagger("v1");
+        var review = swagger.Components.Schemas["CrewRepairReviewFact"];
+        Assert.True(review.Properties["reason"].Nullable);
+        Assert.Contains("SUPPLEMENT", review.Properties["reason"].Description);
+        Assert.True(review.Properties.ContainsKey("reviewId")); Assert.True(review.Properties.ContainsKey("decision"));
+        var legacy = new RoadGuardSystem.DTOs.Inspections.CrewRepairContext(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            "NORMAL", "Rework", "version", "plan", "checklist",
+            new(Guid.NewGuid(), Guid.NewGuid(), new(Guid.NewGuid(), "SUPPLEMENT")));
+        RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.CrewRepairContextFact persisted = legacy;
+        Assert.Null(persisted.Attempt!.Review!.Reason);
+        RoadGuardSystem.DTOs.Inspections.CrewRepairContext restored = persisted;
+        Assert.Null(restored.Attempt!.Review!.Reason);
+        Assert.Equal(legacy.Attempt!.Review!.ReviewId, restored.Attempt.Review.ReviewId);
     }
 
     private static Task<HttpResponseMessage> Send(HttpClient client, string path, object input, string key, string etag)

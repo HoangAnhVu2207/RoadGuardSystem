@@ -583,7 +583,11 @@ public sealed class ManualSwaggerContractTests
         attempt.GetProperty("review").GetRawText().Should().Contain("CrewRepairReviewFact");
         Assert.True(attempt.GetProperty("review").GetProperty("nullable").GetBoolean());
         schemas.GetProperty("CrewRepairReviewFact").GetProperty("properties").EnumerateObject()
-            .Select(x => x.Name).Should().BeEquivalentTo("reviewId", "decision");
+            .Select(x => x.Name).Should().BeEquivalentTo("reviewId", "decision", "reason");
+        var reason = schemas.GetProperty("CrewRepairReviewFact").GetProperty("properties").GetProperty("reason");
+        Assert.True(reason.GetProperty("nullable").GetBoolean());
+        Assert.Equal("string", reason.GetProperty("type").GetString());
+        Assert.Contains("SUPPLEMENT", reason.GetProperty("description").GetString());
     }
 
     [Fact]

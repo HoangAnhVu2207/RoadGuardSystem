@@ -64,3 +64,65 @@ Với task theo tuyến, lấy `routeVersionId` từ API-080 và nhập lý trì
 `GPS_CAPTURE` có tọa độ hợp lệ vẫn có thể trả `INCOMPLETE` với `GPS_SOURCE_BINDING_UNAVAILABLE`. Để xác minh GPS tự động cần geometry được pin theo task, CRS và phép chuyển đổi được duyệt, dung sai không gian, cùng quy tắc dùng độ chính xác GPS và xử lý dữ liệu thiếu.
 
 [OpenAPI bàn giao](openapi.json)
+
+
+## API-080 — lý do yêu cầu bổ sung hiện hành
+
+`GET /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}` bằng Bearer Crew đang có membership/assignment và binding hợp lệ. Không mở quyền API-141/148 hoặc lịch sử PM/Supervisor. Response mở rộng tương thích:
+
+```json
+{
+  "repairContext": {
+    "attempt": {
+      "attemptId": "11111111-1111-4111-8111-111111111111",
+      "effectiveSubmissionId": "22222222-2222-4222-8222-222222222222",
+      "review": {
+        "reviewId": "33333333-3333-4333-8333-333333333333",
+        "decision": "SUPPLEMENT",
+        "reason": "Bổ sung ảnh xác nhận phạm vi sửa"
+      }
+    }
+  }
+}
+```
+
+ID trong ví dụ minh họa, lấy ID thật từ response. `reason` lấy nguyên văn review đã lưu khớp currentReviewId, attempt, binding, intake link và effectiveSubmissionId/content hash; không lấy notification hay final decision. Chỉ hiển thị lý do khi review hiện hành có `decision: "SUPPLEMENT"`. `reason: null` (legacy thiếu/rỗng hoặc quyết định khác) thì dùng nhãn chung “Cần bổ sung hồ sơ”, không suy nội dung khác. Không có attempt/review thì giữ null theo contract cũ.
+
+Sau API-159 thành công, GET lại API-080: cùng attempt nhưng effectiveSubmissionId mới; nếu review đã clear, `review: null` và không giữ lý do cũ trên UI. Khi PM review bản mới, hiển thị reviewId/reason mới. Sau reload/đăng nhập lại cũng GET API-080. Task ETag vẫn là task version; repair commands dùng repairContext.itemVersion. Không đổi request hoặc lifecycle, không có migration.
+
+Kiểm chứng đợt bổ sung (base `973e318`): 38 API/Swagger test PASS, 0 FAIL, 0 SKIP; 6 SQL test PASS, 0 FAIL, 0 SKIP. Ba ca Swagger kiểm lại riêng đã PASS (có trùng test với nhóm 38, không cộng thành số độc lập). Lệnh tập trung:
+
+```powershell
+dotnet build RoadGuardSystem.slnx --no-restore
+dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --filter "FullyQualifiedName~CloseoutNormalJourneyHttpTests|FullyQualifiedName~ManualSwaggerContractTests"
+dotnet test tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-build --filter "FullyQualifiedName~CrewBootstrap|FullyQualifiedName~IncompleteFormalFieldIntakePinsOneAttemptAndOriginalPmReviewClock"
+dotnet format --verify-no-changes --no-restore
+git diff --check
+```
+
+HTTP dùng Bearer/auth thật trên TestServer và SQL cô lập; kiểm SUPPLEMENT → phiên Crew mới → API-159 clear review → review lý do mới → ACCEPT/null, sai Crew/project và assignment ended. SQL kiểm source/binding, assignment mất hiệu lực và cùng attempt/submission sau bổ sung. Legacy thiếu reason kiểm default DTO/fact hai chiều; không tạo dữ liệu null trái constraint hiện hành để giả lập legacy. Ảnh trong fixture là storage lineage giả lập, chưa kiểm trên app Crew hay DB FE. Full API đã được chạy sau khi gộp sửa CI; xem kết quả ở cuối tài liệu.
+
+Hai lượt self-review: (1) xác nhận reason nằm trong chính truy vấn review có currentReviewId/attempt/intake/submission/hash và giữ guard; (2) kiểm mapper hai chiều, nullable/exact Swagger schema, không đổi endpoint/request/schema DB, fixture và quyền đọc. Đã sửa fixture ACCEPT phải có đủ bằng chứng và cập nhật exact-schema assertion thêm reason; không nới guard/assertion. External review chưa thực hiện. Không đổi identity SQL test nên không đổi lane manifest.
+
+
+### Sửa CI base cùng đợt API-080 reason
+
+Đã đọc api.trx artifact `api-results` (14792702600) của run [45116026588](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45116026588), đúng SHA `973e318`: 1689 PASS / 5 FAIL / 1 SKIP. Bước Verify-TestResults trong job bị skip do bước dotnet test fail; không gọi gate đó là PASS.
+
+| Test/line base | Nguyên nhân từ TRX | Sửa |
+|---|---|---|
+|WebPmCoordination…UpgradeFromPreviousMigration…:276|Expected suffix WebPmCoordinationMetadata, actual InitialTemporarySafetyResponsibility|Giữ upgrade từ staging cũ, dữ liệu project, schema evidence và model parity; kiểm hai migration mới và toàn bộ chain applied khớp discovery|
+|AiMockReadBoundary…:225|Exact run wire thiếu originCorrelationId/failure|Thêm đúng hai field, kiểm origin khớp header/manifest và Web read, failure null khi success|
+|AiMockReadLifecycle…:259|Exact failed run wire thiếu hai field|Kiểm exact top-level/nested failure, source_hash_mismatch/source_stream/datasetId, recovery và origin; giữ snapshot GET không ghi dữ liệu|
+|AiReadRouteValidation…:90, hai case run/result|Exact ProblemDetails cũ thiếu field/reasonCode/recovery/step|Giữ exact fields riêng candidate/run, kiểm mã lý do, readback, field null, recovery; giữ GUID/feature gate/quyền nguồn/correlation và snapshot|
+
+Ca skip duy nhất: `UploadApiTests.UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio`, chưa bật ROADGUARD_MINIO_SMOKE=1/MinioStorage; đúng whitelist hiện hành. Không thêm skip, sửa gate hoặc production để chiều assertion cũ. Các test AI vẫn MOCK; sửa CI không đổi contract production của bản `973e318`. Phần bổ sung contract của đợt này chỉ là reason API-080.
+
+
+Kiểm tập trung CI + reason: cả 15 test của toàn bộ class WebPmCoordinationHttpTests, AiMockReadBoundaryAcceptanceTests, AiMockReadLifecycleAcceptanceTests, AiReadRouteValidationAcceptanceTests và CloseoutNormalJourneyHttpTests đều PASS, 0 FAIL, 0 SKIP. Đây là lượt riêng, có ca trùng với 38 ca API/Swagger ở trên. Source-contract gates (docs/agent/readiness và ba Python self-test/Docker/workflow/test-results self-test/dependency), format toàn repo, build API `--no-restore --no-incremental` với analyzer đều đạt. Giữ kết quả SQL 6 ca của phần reason vì production/fixture SQL không thay đổi sau lượt đó.
+
+Lượt đầu toàn class gặp 500 ở ca export do local chưa cấp RG_TEST_UNICODE_FONT; fixture yêu cầu biến này như CI. Một lượt diagnostic riêng thiếu RG_MINIO_IMAGE và bị từ chối ngay tại OwnedWebMinio.StartAsync. Chạy lại với `RG_MINIO_IMAGE=roadguard-ci/minio:source-pinned` và font Unicode có trên Windows thì cả 15 ca đạt. Chỉ cải thiện thông báo assertion 403 để có server log khi fail; không đổi quyền production.
+
+Full API được chạy bằng lệnh workflow `dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --logger "trx;LogFileName=api.trx"`, dùng SQL/MinIO Testcontainers cô lập, SDK 10.0.401. Windows local dùng `DOTNET_PROCESSOR_COUNT=2` để giới hạn concurrency phù hợp Docker 7.6 GiB; `RG_TEST_UNICODE_FONT=C:\Windows\Fonts\arial.ttf` thay DejaVuSans trên Ubuntu runner. Đây là khác biệt môi trường được báo rõ, không sửa workflow, không bỏ test hoặc đổi assertion. Kết quả full API: **1695 PASS / 0 FAIL / 1 SKIP**, tổng 1696 test, thời gian 16 phút 44 giây. `Verify-TestResults.ps1 -AllowMinioSmokeSkip` PASS, xác nhận 1696 identity duy nhất; skip đúng test MinIO smoke cấu hình ngoài đã nêu. Không có ca fail còn lại của run base trong bản cuối. Kết quả này là local Windows với khác biệt môi trường ở trên, không gọi là CI PASS hoặc nghiệm thu FE. Không chạy lại full Unit/bốn SQL lane vì không đổi logic các nhóm đó; giữ bằng chứng CI base PASS và 6 SQL regression reason đã chạy.
+
+Self-review bổ sung CI: đối chiếu toàn bộ ErrorInfo/stack của 5 ca với source, giữ exact-wire và thêm giá trị cụ thể; giữ schema/model/data preservation. Lượt hai rà staged diff, không có migration, gate/whitelist/workflow, endpoint hoặc quyền mới ngoài reason. Không thay production AI để chiều test cũ. Full API đã kiểm toàn bộ bản code/test cuối; OpenAPI chỉ thêm nullable reason. External review chưa thực hiện.

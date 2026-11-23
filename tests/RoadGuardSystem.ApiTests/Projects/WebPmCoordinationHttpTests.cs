@@ -273,7 +273,10 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         var schema = await SandboxSeedGuard.ReadSchemaAsync(db);
         var output = Environment.GetEnvironmentVariable("RG_WEB13_SCHEMA_EVIDENCE");
         if (output is not null) await File.WriteAllTextAsync(output, JsonSerializer.Serialize(schema));
-        Assert.EndsWith("_WebPmCoordinationMetadata", schema.Migrations[^1]);
+        Assert.Contains("20261117183505_WebPmCoordinationMetadata", schema.Migrations);
+        Assert.Contains("20261123093000_FieldTaskMeasurementDimensions", schema.Migrations);
+        Assert.Equal("20261123093100_InitialTemporarySafetyResponsibility", schema.Migrations[^1]);
+        Assert.Equal(db.Database.GetMigrations(), schema.Migrations);
         Assert.False(db.Database.HasPendingModelChanges());
     }
     private sealed class OwnedMigrationFixture : IAsyncDisposable
@@ -476,7 +479,8 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
                 var request = new HttpRequestMessage(HttpMethod.Post, root) { Content = JsonContent.Create(input) };
                 request.Headers.Add("Idempotency-Key", key); return await client.SendAsync(request);
             }
-            Assert.Equal(HttpStatusCode.Forbidden, (await Create(wrong)).StatusCode);
+            using var denied = await Create(wrong);
+            Assert.True(denied.StatusCode == HttpStatusCode.Forbidden, $"Expected Forbidden, actual {denied.StatusCode}: {exportLogs.CombinedEntries}");
             var createResponse = await Create(pm);
             Assert.True(createResponse.StatusCode == HttpStatusCode.Accepted, exportLogs.CombinedEntries);
             var admitted = await Body(createResponse, HttpStatusCode.Accepted); var id = admitted.GetProperty("id").GetGuid();

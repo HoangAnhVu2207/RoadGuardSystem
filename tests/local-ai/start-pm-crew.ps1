@@ -20,6 +20,3 @@ if(-not(Test-Path -LiteralPath $dll)){throw 'Build tests/local-ai/PmCrewHost/PmC
 $process=Start-Process -FilePath 'dotnet' -ArgumentList @('"'+$dll+'"','"'+$repo+'"') -WorkingDirectory $repo -WindowStyle Hidden -PassThru -RedirectStandardOutput "$DataRoot/host.out.log" -RedirectStandardError "$DataRoot/host.err.log"
 $process.Id | Set-Content -LiteralPath "$DataRoot/host.pid"
 Write-Output "PM_CREW_STARTING PID=$($process.Id); wait for PM_CREW_READY in protected host.out.log"
-
-
-\n

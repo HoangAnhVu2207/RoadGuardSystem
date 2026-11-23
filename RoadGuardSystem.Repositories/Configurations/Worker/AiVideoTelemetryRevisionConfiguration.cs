@@ -33,5 +33,3 @@ public sealed class AiVideoTelemetryRevisionConfiguration : IEntityTypeConfigura
         foreach (var property in builder.Metadata.GetProperties()) property.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
     }
 }
-
-\n

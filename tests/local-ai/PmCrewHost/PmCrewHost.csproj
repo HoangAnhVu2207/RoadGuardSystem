@@ -4,6 +4,3 @@
  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.17"/><PackageReference Include="Testcontainers.MsSql" Version="4.15.0"/><PackageReference Include="xunit" Version="2.9.0"/></ItemGroup>
  <ItemGroup><Compile Include="../../RoadGuardSystem.ApiTests/Infrastructure/AuthenticationSqlServerFixture.cs" Link="Infrastructure/AuthenticationSqlServerFixture.cs"/><Compile Include="../../RoadGuardSystem.ApiTests/Infrastructure/TestAiServiceIdentity.cs" Link="Infrastructure/TestAiServiceIdentity.cs"/></ItemGroup>
 </Project>
-
-
-\n

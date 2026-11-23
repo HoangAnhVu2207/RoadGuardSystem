@@ -143,5 +143,3 @@ A01–A10 assessment completed. All checked boxes mean the inspection/test/evide
 | A10 | Knowledge note/README reconciled, two self-reviews recorded; no FTS rebuild or external GitHub review claimed |
 
 No application fixes were made by this assessment. The spec assigns audit/knowledge work; follow-up T01–T06 are concrete reproductions/design/verification tasks, not hidden deploy authorization. Production integration is blocked by the findings in the matrix.
-
-\n

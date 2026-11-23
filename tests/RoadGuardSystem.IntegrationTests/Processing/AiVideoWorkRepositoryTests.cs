@@ -507,22 +507,3 @@ public sealed class AiVideoWorkRepositoryTests : IAsyncLifetime
         return new(files.Select(f => new AiVideoSource(dataset.Id, project.Id, f.Id, owner, f.StorageUri, f.Checksum, f.SizeBytes)).ToArray(), model.Id, map);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-\n

@@ -1,5 +1,9 @@
 # RoadGuard development entrypoint
 
+> **Current server package:** [SERVER-DEVELOP-E2E](planning/development/SERVER-DEVELOP-E2E.md), owner-assigned 2026-11-08: integrate pinned develop into deploy, verify BE and audit unused-code candidates as one scoped task. This is the server writer's assignment; business development ownership below remains unchanged.
+
+> **Server operations:** Before any SSH, deployment, maintenance or server-related change, read [server operations rules](deploy/server/SERVER-RULES.md). Owner instruction dated 2026-11-08 requires approval for important decisions, one heavy maintenance operation at a time, and controlled file placement. Approve a complete scoped operation once; do not re-ask for covered steps, bounded read-only checks or cleanup of that operation's own eligible temporary files. This policy supersedes broad unattended authorization; follow existing scoped approvals and ask again only for material changes.
+
 > Active assignment: [HUY-FINAL-INTEGRATION](planning/development/HUY-FINAL-INTEGRATION.md), owner-authorized 06/10/2026. R01–R30, clocks, persistent login and shared ownership in that spec supersede conflicting earlier package guidance. Huy is the assigned shared writer; preserve one writer/file. Prior HUY-02 accepted evidence remains historical.
 
 The manifest records active owner-accepted guidance. Start from one assigned spec in [development](planning/development/README.md) and the [module route](.agents/modules/README.md). Development tasks need no RF-* identifier. RF tasks/reports and docs/history remain historical checkpoints and evidence, including embedded AGENTS.md copies; they do not assign development work. Read only the relevant product, backend, contract, decision, code and test sources.

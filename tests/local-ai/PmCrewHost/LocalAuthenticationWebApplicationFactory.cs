@@ -112,6 +112,3 @@ public sealed class AuthenticationWebApplicationFactory : WebApplicationFactory<
         });
     }
 }
-
-
-\n

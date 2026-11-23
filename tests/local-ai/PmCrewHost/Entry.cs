@@ -132,14 +132,3 @@ public static class Entry
   return new(project.Id,survey.Id,dataset.Id,route.Id,set.Id,segment.Id,file,model.Id,map);
  }
 }
-
-
-
-
-
-
-
-
-
-
-\n

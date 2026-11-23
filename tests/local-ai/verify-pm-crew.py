@@ -29,5 +29,3 @@ result['origin_guard']=requests.get(base+'/health',headers={'Origin':'http://evi
 if result['health']!=200 or result['origin_guard']!=403: raise RuntimeError('Loopback health/origin guard failed')
 (root/'http-smoke-evidence.json').write_text(json.dumps(result,indent=2))
 print(json.dumps(result))
-
-\n

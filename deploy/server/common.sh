@@ -23,6 +23,7 @@ extract_release() {
             RoadGuardSystem.API RoadGuardSystem.BusinessObjects RoadGuardSystem.DTOs \
             RoadGuardSystem.Repositories RoadGuardSystem.Services contracts/ai/fixtures/anh02 deploy/server \
             | tar --no-same-owner -xf - -C "$destination"
+        # git archive preserves the gitlink only; materialize the pinned AI tree explicitly.
         ai_sha="$(git --git-dir="$RG_REPOSITORY" ls-tree "$revision" "$RG_AI_SUBMODULE" | awk '$2 == "commit" {print $3}')"
         [[ "$ai_sha" =~ ^[0-9a-f]{40}$ ]]
         ai_url="$(git --git-dir="$RG_REPOSITORY" show "$revision:.gitmodules" | awk '/path = AI\/roadguard-ai-engine/{getline; sub(/^.*url = /, ""); print}')"

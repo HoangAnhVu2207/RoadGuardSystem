@@ -19,7 +19,6 @@ class AiReleaseContractTests(unittest.TestCase):
     def test_bootstrap_handoff_runs_target_updater_after_legacy_extraction(self):
         source = (ROOT / 'update-reviewed.sh').read_text()
         self.assertIn('RG_BOOTSTRAP_REENTRY', source)
-        self.assertIn('RG_BOOTSTRAP_CANDIDATE', source)
         self.assertIn('exec env RG_BOOTSTRAP_REENTRY=1', source)
 
     def test_runtime_composition_enables_private_ai_only_when_assets_are_ready(self):

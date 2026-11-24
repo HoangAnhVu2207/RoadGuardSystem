@@ -19,7 +19,7 @@ check() {
 }
 
 backup() {
-    local stamp directory query
+    local backed_up_release="$1" stamp directory query
     stamp="$(date -u +%Y%m%dT%H%M%SZ)"
     directory="$RG_DATA/backups/$stamp"
     mkdir -m 700 "$directory"
@@ -29,7 +29,7 @@ backup() {
     compose exec -T sql /bin/bash -c 'export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"; exec /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -N -C -b -Q "$1"' -- "$query"
     mv "$RG_DATA/sql/roadguard-$stamp.bak" "$directory/database.bak"
     tar -C / -czf "$directory/storage-keys-config.tar.gz" srv/roadguard/objects srv/roadguard/files srv/roadguard/keys srv/roadguard/ai etc/roadguard
-    printf '%s\n' "$RG_RELEASE" > "$directory/RELEASE"
+    printf '%s\n' "$backed_up_release" > "$directory/RELEASE"
     (cd "$directory" && sha256sum database.bak storage-keys-config.tar.gz RELEASE > SHA256SUMS)
     echo "Backup verified and saved: $directory"
 }
@@ -67,7 +67,14 @@ case "${1:-status}" in
         ;;
     status) check ;;
     logs) if ai_configured; then compose logs --tail 100 api ai sql minio; else compose logs --tail 100 api sql minio; fi ;;
-    backup) backup; if ai_configured; then compose up -d --wait --wait-timeout 300 minio ai api; else compose up -d --wait --wait-timeout 300 minio api; fi; check ;;
+    backup) backup "$RG_RELEASE"; if ai_configured; then compose up -d --wait --wait-timeout 300 minio ai api; else compose up -d --wait --wait-timeout 300 minio api; fi; check ;;
+    backup-for-update)
+        expected="${2:?Missing active release for deployment backup.}"
+        [[ "$expected" =~ ^[0-9a-f]{40}$ ]]
+        test "$(cat "$RG_CONFIG/active-release")" = "$expected"
+        test "$(readlink -f /opt/roadguard/current)" = "$RG_RELEASES/$expected"
+        backup "$expected"
+        ;;
     start) if ai_configured; then compose up -d --wait --wait-timeout 300 sql minio ai api; else compose up -d --wait --wait-timeout 300 sql minio api; fi; check ;;
     stop) if ai_configured; then compose stop api ai minio sql; else compose stop api minio sql; fi ;;
     update) echo 'Use update-reviewed.sh EXPECTED_ACTIVE_SHA TARGET_SHA; branch-tip updates are disabled.' >&2; exit 2 ;;

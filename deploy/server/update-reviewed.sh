@@ -5,21 +5,26 @@ expected="${1:-}" target="${2:-}"
 [[ "$expected" =~ ^[0-9a-f]{40}$ && "$target" =~ ^[0-9a-f]{40}$ && $# == 2 ]] || {
     echo 'Usage: update-reviewed.sh EXPECTED_ACTIVE_SHA TARGET_SHA' >&2; exit 2;
 }
-if [ "${RG_BOOTSTRAP_REENTRY:-0}" = 1 ]; then
-    RG_CODE="${RG_BOOTSTRAP_CANDIDATE:?Missing bootstrap candidate.}"
-else
-    RG_CODE="$(readlink -f /opt/roadguard/current)"
-fi
 current_code="$(readlink -f /opt/roadguard/current)"
 test "$current_code" = "/opt/roadguard/releases/$expected"
+test "$(cat "$current_code/REVISION")" = "$expected"
+lock=/run/lock/roadguard-server.lock
+if [ "${RG_BOOTSTRAP_REENTRY:-0}" = 1 ]; then
+    RG_CODE="/opt/roadguard/releases/$target"
+    test "$(cat "$RG_CODE/REVISION")" = "$target"
+    [[ /proc/self/fd/9 -ef "$lock" ]] || { echo 'Missing inherited RoadGuard maintenance lock.' >&2; exit 1; }
+else
+    RG_CODE="$current_code"
+fi
 source "$RG_CODE/deploy/server/common.sh"
 require_root
 test "$(hostname)" = roadguardsystem
-exec 9>/run/lock/roadguard-server.lock
+if [ "${RG_BOOTSTRAP_REENTRY:-0}" != 1 ]; then
+    exec 9>"$lock"
+fi
 flock -n 9 || { echo 'Another RoadGuard operation is in progress.' >&2; exit 1; }
 export RG_LOCK_INHERITED=1
 test "$(cat "$RG_CONFIG/active-release")" = "$expected"
-test "$(cat "$RG_CODE/REVISION")" = "$expected"
 export RG_RELEASE="$expected"
 if [ "$expected" = "$target" ]; then
     bash "$RG_CODE/deploy/server/manage.sh" status
@@ -44,13 +49,11 @@ echo "Reviewed deployment: $expected -> $target"
 extract_release "$target"
 candidate="$RG_RELEASES/$target"
 
-# The active release may contain a legacy updater that cannot verify loopback
-# health after its backup because it probes the retired LAN address. Once that
-# updater has extracted this exact target, hand off to the target's reviewed
-# updater in a fresh shell so its common.sh and manager are used consistently.
+# The staged entrypoint first uses the active release's extractor. Re-enter
+# from the target to load its composition and materialize its pinned AI assets.
 if [ "${RG_BOOTSTRAP_REENTRY:-0}" != 1 ] && [ "$RG_CODE" != "$candidate" ]; then
     test -f "$candidate/deploy/server/update-reviewed.sh"
-    exec env RG_BOOTSTRAP_REENTRY=1 RG_BOOTSTRAP_CANDIDATE="$candidate" \
+    exec env RG_BOOTSTRAP_REENTRY=1 \
         bash "$candidate/deploy/server/update-reviewed.sh" "$expected" "$target"
 fi
 
@@ -59,8 +62,9 @@ prepare_ai_assets
 RG_CODE="$candidate" RG_RELEASE="$target" compose config --quiet
 RG_CODE="$candidate" RG_RELEASE="$target" compose build api minio ai
 
-# The old release owns its backup. Failure cannot fall through to activation.
-if ! bash "$RG_CODE/deploy/server/manage.sh" backup; then
+# Snapshot the active release without starting candidate containers. Only
+# activation may start them, after the backup and maintenance succeed.
+if ! bash "$RG_CODE/deploy/server/manage.sh" backup-for-update "$expected"; then
     echo 'Backup failed. Candidate NOT activated. Preserve partial backup and inspect service state.' >&2
     exit 1
 fi

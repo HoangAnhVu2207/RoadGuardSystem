@@ -1,0 +1,16 @@
+{
+  "name": "roadguard-server-e2e-playwright",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:smoke": "playwright test specs/00-preflight.spec.ts specs/08-security-regression.spec.ts --project=public-api",
+    "test:public": "playwright test --project=public-api",
+    "test:contract": "playwright test --project=contract"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3"
+  }
+}

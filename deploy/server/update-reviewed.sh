@@ -5,6 +5,8 @@ expected="${1:-}" target="${2:-}"
 [[ "$expected" =~ ^[0-9a-f]{40}$ && "$target" =~ ^[0-9a-f]{40}$ && $# == 2 ]] || {
     echo 'Usage: update-reviewed.sh EXPECTED_ACTIVE_SHA TARGET_SHA' >&2; exit 2;
 }
+source_branch="${RG_SOURCE_BRANCH:-deploy}"
+[[ "$source_branch" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo 'Invalid source branch.' >&2; exit 2; }
 current_code="$(readlink -f /opt/roadguard/current)"
 test "$current_code" = "/opt/roadguard/releases/$expected"
 test "$(cat "$current_code/REVISION")" = "$expected"
@@ -32,7 +34,7 @@ if [ "$expected" = "$target" ]; then
 fi
 
 # No branch-tip deployment: fetch establishes provenance, target remains immutable.
-git --git-dir="$RG_REPOSITORY" fetch origin deploy
+git --git-dir="$RG_REPOSITORY" fetch origin "$source_branch"
 git --git-dir="$RG_REPOSITORY" cat-file -e "$target^{commit}"
 git --git-dir="$RG_REPOSITORY" merge-base --is-ancestor "$expected" "$target"
 git --git-dir="$RG_REPOSITORY" merge-base --is-ancestor "$target" FETCH_HEAD

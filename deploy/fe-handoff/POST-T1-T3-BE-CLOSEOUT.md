@@ -161,3 +161,49 @@ Chi tiết upload/CSRF/errors: [PROJECT-HANDOVER-ROAD-COVERAGE.md](PROJECT-HANDO
   `/ready` vẫn 404 có chủ đích. Kiểm SQL/private bucket riêng. Bằng chứng runtime cuối được ghi ngoài repo.
 - Hoàng retest: FIELD 5/6 và âm tính; PM cookie đọc candidate→decision sau mất state; MOCK reject/readback;
   chọn TemporarySafety đúng collection/version; discover hồ sơ thiếu file/nhiều hồ sơ→attach đúng ID.
+
+## Follow-up CI Survey trên `4284daf` — 24/11/2026
+
+Run develop [45363439324](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45363439324)
+có API 1695 pass / 1 fail / 1 skip, tổng 1697. Cùng SHA, run huy-review
+[45363393207](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45363393207)
+có API 1696 pass / 0 fail / 1 skip. Unit, source contracts và toàn bộ SQL của hai run đều đạt.
+
+TRX thật xác nhận lỗi `Anh01SurveyFlowTests.ManualAssessmentPartialBaselineSupplementAndRevocationPersistThroughHttp(withAccessPoint: True)`:
+`InvalidOperationException: Sequence contains no elements`, tại dòng 764 của source `4284daf`,
+truy vấn `SingleAsync` tìm H6 occurrence của assessment. Đây không phải lỗi HTTP/validation accessPoint.
+Không có expected/actual của assertion: truy vấn đòi một occurrence nhưng sequence rỗng.
+
+Nguyên nhân fixture: test dùng DB/hàng đợi toàn cục của collection Authentication, tự gọi dispatcher
+tối đa 40/50 lần rồi đọc kết quả ngay, đồng thời factory vẫn bật `H6NotificationWorker`.
+Message của class khác có thể chiếm lượt; consumer nền có thể giữ lease khi manual consumer báo IDLE
+nhưng transaction occurrence chưa commit. Không được dùng một lượt chạy riêng xanh để phủ nhận race này.
+
+Đã kiểm hai biến thể trên base: 2 pass. Reproducer riêng với 64 message đăng ký cũ hơn trước lượt
+dispatch cuối tái hiện đúng exception; khi tắt consumer nền để kiểm soát lịch chạy, cả hai biến thể
+đều fail ở cùng truy vấn occurrence. Reproducer/patch âm tính chỉ lưu ngoài repo và đã gỡ khỏi bản sửa.
+Số backlog/lease chính xác của máy CI lúc fail không được TRX ghi lại; không suy ra con số đó từ reproducer.
+
+Bản sửa chỉ trong test: collection SQL riêng cho flow Survey, vẫn `DisableParallelization = true`;
+gỡ đúng registration `H6NotificationWorker` khỏi factory của scenario đang chủ động chạy dispatcher.
+Assert worker được đăng ký trước khi gỡ; giữ dispatcher/repository thật, mọi assertion, hai biến thể,
+các giới hạn dispatch và kiểm quyền/ETag/replay. Không đổi worker production hoặc factory chung.
+Nhóm Survey + notification wire/scope/quyền sau sửa: **47 pass / 0 fail / 0 skip**.
+
+Ca skip của run cũ là `UploadApiTests.UploadEndpoints_CompleteMultipartUploadAgainstConfiguredMinio`,
+lý do chưa bật `ROADGUARD_MINIO_SMOKE=1` và cấu hình provider ngoài. Đúng whitelist hiện hành của
+`Verify-TestResults.ps1 -AllowMinioSmokeSkip`; không coi skip là PASS và không đổi whitelist/gate.
+11 ca T1–T3 đã báo là 11 identity duy nhất; AI rerun 1/1 trùng một identity, hợp vẫn là 11.
+
+Full API local trên Docker 8 GiB với parallelism mặc định của máy Windows đã gặp thiếu tài nguyên
+và được ngắt; log giữ riêng, không gọi là PASS. Các container test đúng session đã được dọn,
+không xóa volume. SQL local bị OOM-kill 137 trong lượt đó và đã được phục hồi bằng container cũ,
+không seed/reset. Lượt full tiếp theo dùng `DOTNET_PROCESSOR_COUNT=2` để giới hạn số fixture đồng thời,
+không filter/skip/thay assertion. Kết quả full: **1696 pass / 0 fail / 1 skip / tổng 1697**,
+17 phút 34 giây; gate TRX đạt với đúng một MinIO smoke tùy chọn nêu trên. 47 ca tập trung nằm trong
+full suite, không cộng thành 1744 ca duy nhất. Đây là cấu hình tài nguyên local, không sửa workflow CI Ubuntu.
+
+Không có thay đổi production, migration hoặc wire/OpenAPI trong follow-up này. Không rebuild/restart API
+để đưa test/doc lên runtime; API local vẫn là `4284daf` với đủ 13 migration. Các kết quả HTTP/SQL T1–T3
+vẫn giữ phạm vi test-host/SQL cô lập; smoke Docker chỉ chứng minh các lần đọc đã ghi nhận, không phải
+UI F5, AI thật hay toàn bộ happy path nghiệp vụ. Kết quả full API và CI SHA sửa cuối được bàn giao riêng.

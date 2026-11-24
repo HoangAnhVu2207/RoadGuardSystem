@@ -16,6 +16,40 @@ Supervisor dùng Bearer hoặc phiên Web HTTPS với `credentials: "include"`. 
 
 ## Bổ sung hồ sơ
 
+Trước khi chọn nhánh tạo hay attach, Supervisor gọi `GET /api/v1/projects/{projectId}/handover-documents`
+bằng Bearer hoặc Web cookie. GET không cần CSRF và trả `Cache-Control: no-store`.
+Đây là inventory toàn bộ hồ sơ, kể cả `fileId: null`; không dùng `road-coverage.sources`
+để kết luận project chưa có hồ sơ. PM/Operator/Crew/Reporter không có quyền GET inventory này.
+
+```json
+{
+  "projectId": "<projectId>",
+  "items": [
+    {
+      "id": "<handoverDocumentId>",
+      "documentNo": "BG-2026-01",
+      "handoverDate": "2026-11-16",
+      "fileId": null,
+      "version": "<base64 document rowversion>",
+      "isMapped": false,
+      "canAttachFile": true
+    }
+  ]
+}
+```
+
+GET trả đủ mọi hồ sơ của project, không phân trang, thứ tự ID theo SQL uniqueidentifier.
+`items: []` chỉ nghĩa là chưa có hồ sơ; thiếu quyền là `403`, project không tồn tại
+với Supervisor hợp lệ là `404`. Nếu có nhiều hồ sơ, FE hiển thị số/ngày hồ sơ để
+Supervisor chọn `items[].id`, luôn gửi rõ `handoverDocumentId` khi attach. Không tự chọn
+ID đầu tiên, không dùng lỗi `409` làm discovery. `canAttachFile` chỉ cho biết hồ sơ
+chưa có file/chưa có mapping tại thời điểm đọc, không chứng minh file mới đủ điều kiện.
+`isMapped` xét mọi lịch sử mapping, kể cả mapping đã thay thế. File đã gắn không được ghi đè.
+
+`items[].version` là rowversion của hồ sơ, **không phải If-Match cho POST attach**.
+Sau upload VERIFIED, luôn đọc lại road-coverage lấy aggregate ETag như bên dưới.
+Attach không nâng TEST_ONLY thành REAL_SOURCE; nguồn còn phải qua provenance/eligibility.
+
 Sau khi file đã VERIFIED, gọi `GET /api/v1/projects/{projectId}/road-coverage` để lấy ETag mới. `POST /api/v1/projects/{projectId}/handover-documents` với `Content-Type: application/json`, `Idempotency-Key` mới và `If-Match` bằng nguyên ETag đó. Nếu browser không đọc được header ETag của API, bọc trường `version` của response GET trong dấu ngoặc kép để gửi `If-Match`. Áp dụng tương tự cho GET phiên upload.
 
 - Hồ sơ đã tồn tại và còn trống: `{"fileId":"<fileId>"}`. Nếu dự án có nhiều hồ sơ, thêm `"handoverDocumentId":"<id>"` để chọn đúng hồ sơ.

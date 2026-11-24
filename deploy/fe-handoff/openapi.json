@@ -26143,7 +26143,7 @@
         "tags": [
           "H6NotificationOperations"
         ],
-        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1â€“100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1–100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -55442,12 +55442,139 @@
         },
         "security": [
           {
-            "Bearer": [ ]
+            "Bearer": []
           },
           {
-            "WebSession": [ ],
-            "CsrfToken": [ ],
-            "AntiforgeryCookie": [ ]
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "RoadCoverage"
+        ],
+        "description": "Supervisor only; Bearer or Web session, no CSRF for GET. Returns all project documents ordered by SQL uniqueidentifier ID, including missing fileId. An empty items array means no documents, not missing authority. canAttachFile is false for a file already attached or any coverage mapping. This inventory does not prove VERIFIED or REAL_SOURCE eligibility. Use document id to select handoverDocumentId. The item version is document rowversion; after upload VERIFIED, GET road-coverage for its aggregate ETag to POST attach. Cache-Control: no-store.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoverDocumentsReadFact"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoverDocumentsReadFact"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoverDocumentsReadFact"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
           }
         ]
       }
@@ -82638,6 +82765,56 @@
           "widthMeters": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HandoverDocumentReadFact": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "handoverDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMapped": {
+            "type": "boolean"
+          },
+          "canAttachFile": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HandoverDocumentsReadFact": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HandoverDocumentReadFact"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false

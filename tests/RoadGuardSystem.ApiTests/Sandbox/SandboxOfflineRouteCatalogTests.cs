@@ -78,6 +78,7 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("POST", "/api/v1/auth/reporter/password-reset/request"),
             ("POST", "/api/v1/auth/reporter/password-reset/confirm"),
             ("POST", "/api/v1/projects/{projectId}/handover-documents"),
+            ("GET", "/api/v1/projects/{projectId}/handover-documents"),
             ("POST", "/api/v1/projects/handover-upload-intents"),
             ("GET", "/api/v1/survey-tasks/{taskId}/eligible-drones"),
             ("GET", "/api/v1/cases/{caseId}/reports"),

@@ -433,7 +433,7 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         }
         var aiMatches = await client.GetAsync($"/api/v1/projects/{project}/candidates?sourceKind=AI_DETECTION&sourceId={detectionId}&expand=true");
         Assert.Equal(HttpStatusCode.OK, aiMatches.StatusCode);
-        var aiDecision = await Command(client, $"/api/v1/projects/{project}/candidate-decisions", new
+        var decisionInput = new
         {
             sourceKind = "AI_DETECTION",
             sourceId = detectionId,
@@ -448,7 +448,9 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
                 defectTypeCode = "CRACK",
                 severity = "LOW"
             }
-        });
+        };
+        var decisionKey = Guid.NewGuid().ToString();
+        var aiDecision = await Command(pmWeb, $"/api/v1/projects/{project}/candidate-decisions", decisionInput, key: decisionKey);
         Assert.Equal(HttpStatusCode.Created, aiDecision.StatusCode);
         var aiDefectId = (await Body(aiDecision)).GetProperty("defectId").GetGuid();
         var decisionId = (await Body(aiDecision)).GetProperty("id").GetGuid();
@@ -460,6 +462,24 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         using var currentDecision = await refreshedWeb.GetAsync($"/api/v1/projects/{project}/candidate-decisions/{decisionId}");
         Assert.Equal(HttpStatusCode.OK, currentDecision.StatusCode);
         Assert.Equal(aiDefectId, (await Body(currentDecision)).GetProperty("defectId").GetGuid());
+        Assert.Equal("KEEP_NEW", (await Body(currentDecision)).GetProperty("decision").GetString());
+        Assert.Equal('"' + (await Body(currentDecision)).GetProperty("version").GetString() + '"', currentDecision.Headers.ETag!.Tag);
+        using var replayDecision = await Command(pmWeb, $"/api/v1/projects/{project}/candidate-decisions", decisionInput, key: decisionKey);
+        // Candidate commands replay the persisted 201 contract (unlike safety append's 200 replay).
+        Assert.Equal(HttpStatusCode.Created, replayDecision.StatusCode);
+        Assert.Equal(decisionId, (await Body(replayDecision)).GetProperty("id").GetGuid());
+        await using (var readbackDb = sql.CreateDbContext())
+            Assert.Equal(1, await readbackDb.SourceDecisions.CountAsync(row => EF.Property<Guid>(row, "SourceId") == detectionId));
+        var readbackEvidence = Environment.GetEnvironmentVariable("RG_AI_RELOAD_HTTP_EVIDENCE");
+        if (readbackEvidence is not null)
+            await File.WriteAllTextAsync(readbackEvidence, JsonSerializer.Serialize(new
+            {
+                projectId = project,
+                runId = run,
+                detectionId,
+                candidate = await Body(currentCandidate),
+                decision = await Body(currentDecision)
+            }));
         Assert.Equal(HttpStatusCode.OK, (await refreshedWeb.GetAsync($"/api/v1/projects/{project}/defects/{aiDefectId}")).StatusCode);
         await using (var revokeScope = sql.CreateDbContext())
             await revokeScope.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));

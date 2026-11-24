@@ -28,6 +28,25 @@ public sealed class RoadCoverageController(IRoadCoverageService service) : Contr
         return Map(await service.ConfirmAsync(actor, role, projectId, input, Request.Headers["Idempotency-Key"].ToString(),
             Request.Headers.IfMatch.ToString(), token));
     }
+    /// <summary>Supervisor document inventory, including documents without a file.</summary>
+    /// <remarks>Ordered by document ID; all documents are returned. This is not road-coverage.sources.
+    /// Version is the document rowversion, not the If-Match token for attach. After upload VERIFIED,
+    /// get a fresh road-coverage ETag for POST attach. No file download authority is granted here.</remarks>
+    [HttpGet("/api/v{version:apiVersion}/projects/{projectId:guid}/handover-documents")]
+    [ProducesResponseType<RoadGuardSystem.BusinessObjects.Projects.HandoverDocumentsReadFact>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> HandoverDocuments(Guid projectId, CancellationToken token)
+    {
+        if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
+        var result = await service.ReadHandoverDocumentsAsync(actor, role, projectId, token);
+        if (result.Code is not null) return Error(result.Status, result.Code);
+        Response.Headers.CacheControl = "no-store";
+        return StatusCode(result.Status, result.Value);
+    }
+
     [HttpPost("/api/v{version:apiVersion}/projects/{projectId:guid}/handover-documents")]
     [ProducesResponseType<RoadGuardSystem.BusinessObjects.Repairs.RoadCoverageReadFact>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]

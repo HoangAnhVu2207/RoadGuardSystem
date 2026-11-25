@@ -388,7 +388,8 @@ public sealed class OfflineAdmissionValidator : IOfflineFieldAdmissionValidator,
             capture is null && (scope.OwnerUserId != originalActorId || file.UploadedByUserId != originalActorId)))
             throw new OfflineAdmissionRejectedException(403, "evidence_access_forbidden");
         if (file.Checksum != declaration.ChecksumSha256 || file.MimeType != declaration.MediaType ||
-            upload.ExpectedChecksumSha256 != declaration.ChecksumSha256)
+            upload.ExpectedChecksumSha256 != declaration.ChecksumSha256 ||
+            declaration.SizeBytes is long declaredSize && (declaredSize < 1 || declaredSize != file.SizeBytes))
             throw new OfflineAdmissionRejectedException(409, "evidence_version_mismatch");
         if (upload.Status != UploadSessionStatus.Verified) return null;
         if (file.UploadedByUserId is not Guid uploadedBy) throw new OfflineAdmissionRejectedException(409, "source_not_ready");
@@ -491,6 +492,8 @@ public sealed class OfflineAdmissionValidator : IOfflineFieldAdmissionValidator,
         var (binding, declaration) = await GuardCaptureAdmissionAsync(admission, request.TaskId,
             request.CaptureOriginId, request.CurrentActorId, request.CurrentRole, upload.ChecksumSha256,
             upload.Purpose, upload.MediaType, cancellationToken);
+        if (declaration.SizeBytes is long declaredSize && (declaredSize < 1 || declaredSize != upload.SizeBytes))
+            throw new OfflineAdmissionRejectedException(409, "evidence_version_mismatch");
         if (declaration.FileId.HasValue ||
             await _context.Set<OfflineEvidenceCaptureReference>().FromSqlInterpolated(
                 $"SELECT * FROM [OfflineEvidenceCaptureReferences] WITH (UPDLOCK,HOLDLOCK) WHERE [ProjectId]={request.ProjectId} AND [TaskId]={request.TaskId} AND [CaptureOriginId]={request.CaptureOriginId}")
@@ -583,6 +586,8 @@ public sealed class OfflineAdmissionValidator : IOfflineFieldAdmissionValidator,
             request.CaptureOriginId, request.CurrentActorId, request.CurrentRole,
             request.Upload.ChecksumSha256, request.Upload.Purpose, request.Upload.MediaType,
             cancellationToken, committedCaptureContinuation: true);
+        if (declaration.SizeBytes is long declaredSize && (declaredSize < 1 || declaredSize != file.SizeBytes))
+            throw new OfflineAdmissionRejectedException(409, "evidence_version_mismatch");
         if (capture.BindingId != binding.Id || capture.OriginalActorId != binding.OriginalActorId ||
             capture.Checksum != declaration.ChecksumSha256 || capture.Purpose != declaration.Purpose ||
             capture.MediaType != declaration.MediaType || capture.DeclaredCapturedAt != declaration.CapturedAt)

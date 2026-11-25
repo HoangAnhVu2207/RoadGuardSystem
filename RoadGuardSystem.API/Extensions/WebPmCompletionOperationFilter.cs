@@ -58,12 +58,12 @@ public sealed class WebPmCompletionOperationFilter : IOperationFilter
         if (controller == typeof(ExportsController))
         {
             operation.Description = action == "Create"
-                ? "PM/Supervisor require current matching-role project membership and source authority. Create immutable DOSSIER/TRAINING snapshot; 202 Location/job. Idempotency-Key required; Web POST needs CSRF. Repair scope: up to 100 items or 20 packages, no time/segment filters. ZIP originals retain source guards."
-                : "PM/Supervisor require current matching-role project membership and snapshot source authority. Detail is not creator-only. Repair manifest and content retain file guards; content rechecks after storage opens and requires SUCCEEDED, unexpired job. Global reporting authority does not grant export access.";
+                ? "General exports require matching-role membership. Repair dossiers allow exact current Supervisor proof or PM obligation responsibility. Entire item scope and originals are checked. POST: Idempotency-Key, cookie CSRF; 202 immutable job. No blanket Supervisor access."
+                : "Current authority over the entire immutable scope is required: membership for general exports; exact item responsibility/Supervisor proof for repair dossiers. Detail is not creator-only. Content needs SUCCEEDED, unexpired job and file authority rechecked after storage opens.";
             operation.Responses.TryAdd("403", new OpenApiResponse { Description = "forbidden: current export membership or source authority missing" });
         }
         if (controller == typeof(DiscoveryCollectionsController) && action == "Exports")
-            operation.Description = "Creator-only export jobs, filtered before pagination. Current matching-role project membership required for PM/Supervisor, including empty results; global reporting authority is insufficient. 403 access_forbidden is not an empty collection or proof that POST was sent.";
+            operation.Description = "Creator-only jobs, filtered before pagination. Matching-role membership or exact current repair resource proof is required, including empty results; each job is reauthorized. Global reporting alone is insufficient. 403 access_forbidden is not an empty collection or proof of POST.";
 
         void Header(string name, string description, bool required = true)
         {

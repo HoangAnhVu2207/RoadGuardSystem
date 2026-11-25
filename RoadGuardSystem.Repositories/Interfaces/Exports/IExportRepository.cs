@@ -16,6 +16,13 @@ public sealed class ExportRepositoryOptions
 }
 public interface IExportRepository
 {
+    Task<bool> HasRepairResourceScopeAsync(Guid actor, Guid project, CancellationToken token)
+        => Task.FromResult(false);
+    Task<bool> CanReadRepairItemsAsync(Guid actor, Guid project, Guid[] items, CancellationToken token)
+        => Task.FromResult(false);
+    Task<RoadGuardSystem.Repositories.Integration.ReporterFileFacts?> ReadRepairFileAsync(Guid actor, Guid project,
+        Guid[] items, Guid fileId, CancellationToken token)
+        => Task.FromResult<RoadGuardSystem.Repositories.Integration.ReporterFileFacts?>(null);
     Task<RepairExportSelection[]> ResolveRepairItemsAsync(Guid project, Guid[] packages, Guid[] items, CancellationToken token)
         => Task.FromResult(Array.Empty<RepairExportSelection>());
     Task<RepairExportSupplement?> ReadRepairSupplementAsync(Guid project, Guid item, CancellationToken token)

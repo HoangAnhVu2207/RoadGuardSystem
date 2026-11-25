@@ -1,4 +1,8 @@
-# Export — quyền hiện hành và xử lý 403 trên Web
+# Export — bằng chứng đợt membership và xử lý 403 trên Web
+
+> Phần chính sách dưới đây là **HISTORICAL** của đợt base1a2520f/fbde7c4.
+> Owner đã bổ sung ngoại lệ repair dossier theo tài nguyên trong [RESOURCE-SCOPED-REPAIR-EXPORT.md](RESOURCE-SCOPED-REPAIR-EXPORT.md).
+> General DOSSIER/TRAINING vẫn theo membership; giới hạn correlation gốc dưới đây không đổi.
 
 Ngày25/11/2026; base1a2520f. Phạm vi server export, không phải encrypted device handover.
 Owner giao giữ membership trong đợt này khi không có quyết định ngoại lệ rõ ràng.

@@ -47,10 +47,6 @@ public sealed partial class ExportRepository : IExportRepository
                 if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)
                     || !await _db.Roles.AsNoTracking().AnyAsync(r => r.Code == user.RoleCode && r.IsActive, token))
                     throw new CaptureException("forbidden");
-                var member = await new RoadGuardSystem.Repositories.Projects.ProjectMembershipReadModel(_db).FindByUserAndProjectAsync(actorId, projectId, token);
-                var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
-                if (member is null || member.RoleCode != user.RoleCode || member.Status != ProjectMemberStatus.Active
-                    || member.ValidFrom > today || member.ValidTo < today) throw new CaptureException("forbidden");
                 // The canonical stored export, including conflict/recovery paths, owns source authority.
                 var originalId = await _db.Set<RoadGuardSystem.BusinessObjects.Idempotency.IdempotencyRecord>().AsNoTracking()
                     .Where(record => record.ActorUserId == actorId && record.ProjectId == projectId &&
@@ -68,9 +64,16 @@ public sealed partial class ExportRepository : IExportRepository
                             .Select(source => new ExportSourceAuthorityReference(source.Kind, source.Id)).ToArray(),
                         payload.Dossier?.Summary.Metrics.Any(metric => metric.Code == "repairItemsByStatus" && metric.Availability == "AVAILABLE") == true,
                         caseFacts is null ? null : new(caseFacts.ProjectId, caseFacts.Cases.Select(value => value.CaseId).ToArray(),
-                            caseFacts.Defects.Select(value => value.DefectId).ToArray()));
+                            caseFacts.Defects.Select(value => value.DefectId).ToArray()), payload.RepairDossier is not null);
                     if (!await CanReadSnapshotSourcesAsync(actorId, projectId, sourceQuery, token)) throw new CaptureException("forbidden");
                 }
+                else if (request.RepairItemIds is { Length: > 0 } || request.RepairPackageIds is { Length: > 0 })
+                {
+                    var selection = await ResolveRepairItemsAsync(projectId, request.RepairPackageIds ?? [], request.RepairItemIds ?? [], token);
+                    if (!await CanReadRepairItemsAsync(actorId, projectId, selection.Select(i => i.ItemId).ToArray(), token))
+                        throw new CaptureException("forbidden");
+                }
+                else if (!await HasCurrentProjectMembershipAsync(actorId, projectId, token)) throw new CaptureException("forbidden");
             });
             if (outcome.Status == IdempotencyOperationStatus.Conflict) return new("idempotency_conflict", null);
             return new(null, await GetAsync(projectId, outcome.OperationId, ct));

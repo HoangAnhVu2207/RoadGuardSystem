@@ -108,15 +108,16 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         db.AddRange(receiver, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), receiver.Id, receiverPm.Id, new(2000, 1, 1)),
             new ProjectMember { Id = Guid.NewGuid(), ProjectId = receiver.Id, UserId = receiverCrew.Id, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) });
         await db.SaveChangesAsync();
-        await using var minio = surveySource ? null : await OwnedWebMinio.StartAsync(createBucket: true);
+        await using var minio = await OwnedWebMinio.StartAsync(createBucket: true);
         using var logs = new InMemoryLogProvider();
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs, allowExternalStorage: !surveySource,
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs, allowExternalStorage: true,
             configureTestServices: services =>
             {
-                if (minio is not null) minio.Configure(services);
-                else { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new ScopedReadStorage()); }
+                minio.Configure(services);
+                services.Configure<RoadGuardSystem.Services.Exports.ExportOptions>(o => o.UnicodeFontPath =
+                    Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? throw new InvalidOperationException("Test font required."));
             });
-        if (minio is not null)
+        if (!surveySource)
         {
             var reportId = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyDefectSourceLink>().Where(l => l.DefectId == source.Defect && l.EndedAt == null).Select(l => l.ReportSourceId).SingleAsync();
             var originalFile = await db.Reports.Where(r => r.Id == reportId).SelectMany(r => r.OriginalEvidence).Select(e => e.FileId).SingleAsync();
@@ -228,11 +229,21 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         // A still owns the sibling item, but a package export must not silently omit B's item.
         Assert.Equal("export_source_unavailable", (await Body(await Post(pm, exportA,
             new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } }), 422)).GetProperty("code").GetString());
-        Assert.Equal("export_source_unavailable", (await Body(await Post(receivingPm,
-            $"/api/v1/projects/{receiver.Id}/exports", new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { second.Id } }), 422)).GetProperty("code").GetString());
+        var exportB = $"/api/v1/projects/{receiver.Id}/exports";
+        var receivedExport = await Body(await Post(receivingPm, exportB,
+            new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { second.Id } }), 202);
+        var receivedExportId = receivedExport.GetProperty("id").GetGuid();
+        Assert.Equal("export_source_unavailable", (await Body(await Post(receivingPm, exportB,
+            new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } }), 422)).GetProperty("code").GetString());
         Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(exportA + $"/{exportId}")).StatusCode);
-        using (var exportWorker = factory.Services.CreateScope())
-            Assert.True(await exportWorker.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>().ProcessNextAsync(default));
+        for (var n = 0; n < 10; n++)
+        {
+            using var exportWorker = factory.Services.CreateScope();
+            await exportWorker.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>().ProcessNextAsync(default);
+            var state = await exportWorker.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.RoadGuardDbContext>()
+                .Set<RoadGuardSystem.BusinessObjects.Exports.ExportJob>().AsNoTracking().Where(j => j.Id == exportId).Select(j => j.Status).SingleAsync();
+            if (state == "FAILED") break;
+        }
         using (var exportVerification = factory.Services.CreateScope())
         {
             var exportDb = exportVerification.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.RoadGuardDbContext>();
@@ -241,6 +252,23 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
             var frozen = await exportDb.Set<RoadGuardSystem.BusinessObjects.Exports.ExportSnapshot>().SingleAsync(s => s.Id == failed.SnapshotId);
             Assert.Equal(beforeTransferExport.GetProperty("snapshotHash").GetString(), frozen.Hash);
             Assert.Single(await exportDb.Set<RoadGuardSystem.BusinessObjects.Exports.ExportJob>().Where(j => j.ProjectId == source.Project).ToArrayAsync());
+        }
+        for (var n = 0; n < 10; n++)
+        {
+            using var worker = factory.Services.CreateScope();
+            await worker.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>().ProcessNextAsync(default);
+            var job = await Body(await receivingPm.GetAsync(exportB + $"/{receivedExportId}"));
+            Assert.NotEqual("FAILED", job.GetProperty("status").GetString());
+            if (job.GetProperty("status").GetString() == "SUCCEEDED") break;
+        }
+        var exportedManifest = await Body(await receivingPm.GetAsync(exportB + $"/{receivedExportId}/manifest"));
+        Assert.Equal(receiver.Id, exportedManifest.GetProperty("projectId").GetGuid());
+        var selectedSource = Assert.Single(exportedManifest.GetProperty("sourceRevisions").EnumerateArray().Where(r => r.GetProperty("kind").GetString() == "RepairItem"));
+        Assert.Equal(second.Id, selectedSource.GetProperty("id").GetGuid());
+        using (var content = await receivingPm.GetAsync(exportB + $"/{receivedExportId}/content"))
+        {
+            Assert.Equal(HttpStatusCode.OK, content.StatusCode);
+            Assert.True((await content.Content.ReadAsByteArrayAsync()).AsSpan(0, 5).SequenceEqual("%PDF-"u8));
         }
         foreach (var path in new[] { lifeA, lifeB }) Assert.Contains((await Body(await sup.GetAsync(path))).GetProperty("responsibilities").EnumerateArray(), x => x.GetProperty("obligationId").GetGuid() == obligations[1] && x.GetProperty("currentProjectId").GetGuid() == receiver.Id);
         var received = await Body(await receivingPm.GetAsync(lifeB));
@@ -313,7 +341,35 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         Assert.Equal(field.GetProperty("mode").GetString(), mobileTask.GetProperty("mode").GetString());
         using var currentTask = await crew.GetAsync(fieldPath);
         await Body(await Post(crew, fieldPath + "/accept", new { reason = "Crew accepts retained-source task" }, currentTask.Headers.ETag!.Tag), 201);
+        // Transfer onward through the actual workflow: creator status must not preserve B's export rights.
+        var onward = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString("N"), "Onward responsibility", null, 32648, null, null, DateTimeOffset.UtcNow);
+        db.Add(onward); await db.SaveChangesAsync();
+        using var currentB = await sup.GetAsync(lifeB);
+        var currentBScope = (await Body(currentB)).GetProperty("transferableObligations").EnumerateArray()
+            .Single(x => x.GetProperty("id").GetGuid() == obligations[1]);
+        var onwardOffer = await Body(await Post(sup, lifeB + "/obligation-transfers", new
+        {
+            reason = "Transfer same formal obligation onward",
+            evidenceFileIds = Array.Empty<Guid>(),
+            obligationId = obligations[1],
+            receivingProjectId = onward.Id,
+            scopeHash = currentBScope.GetProperty("scopeHash").GetString()
+        }, currentB.Headers.ETag!.Tag), 201);
+        var onwardAction = onwardOffer.GetProperty("actions").EnumerateArray().Single(x =>
+            x.GetProperty("kind").GetString() == "IssueTransfer" && x.GetProperty("receivingProjectId").GetGuid() == onward.Id);
+        var lifeC = $"/api/v1/projects/{onward.Id}/lifecycle";
+        using var currentC = await sup.GetAsync(lifeC);
+        await Body(await Post(sup, lifeC + "/obligation-transfer-acceptances", new
+        {
+            reason = "Accept onward scope",
+            evidenceFileIds = Array.Empty<Guid>(),
+            sourceActionId = onwardAction.GetProperty("id").GetGuid(),
+            obligationId = obligations[1],
+            scopeHash = onwardAction.GetProperty("scopeHash").GetString()
+        }, currentC.Headers.ETag!.Tag), 201);
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(exportB + $"/{receivedExportId}/content")).StatusCode);
         await db.ProjectMembers.Where(x => x.ProjectId == receiver.Id && x.UserId == receiverPm.Id).ExecuteUpdateAsync(set => set.SetProperty(x => x.Status, ProjectMemberStatus.Ended));
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(exportB + $"/{receivedExportId}/content")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(secondPath)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(sourceReads + "/history")).StatusCode);
         if (retainedPhotoPath is not null) Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(retainedPhotoPath)).StatusCode);

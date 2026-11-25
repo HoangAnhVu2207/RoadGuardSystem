@@ -1,6 +1,7 @@
 using Microsoft.OpenApi.Models;
 using RoadGuardSystem.API.Controllers;
 using RoadGuardSystem.DTOs.Repairs;
+using RoadGuardSystem.DTOs.Offline;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace RoadGuardSystem.API.Extensions;
@@ -9,6 +10,22 @@ public sealed class WebBReadOperationFilter : IOperationFilter, ISchemaFilter
 {
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
+        if (context.Type == typeof(OfflineItemResult))
+        {
+            var property = schema.Properties["admission"];
+            schema.Properties["admission"] = new OpenApiSchema
+            {
+                Nullable = true,
+                AllOf = [property],
+                Description = "Optional current-authority per-operation discovery. Omitted for denied/stale admissions. Never insert server admission/file IDs into the signed payload."
+            };
+        }
+        if (context.Type == typeof(OfflineAdmissionReadback))
+            schema.Properties["status"].Description = "COMMITTED only with durable acknowledgment; WAITING_UPLOAD, WAITING_VERIFICATION, WAITING_DEPENDENCY, READY, UPLOAD_FAILED, CONFLICT, REJECTED or STALE_SNAPSHOT otherwise. READY does not mean business commit.";
+        if (context.Type == typeof(OfflineCaptureReadback))
+            schema.Properties["uploadStatus"].Description = "NOT_CREATED until an authorized capture mapping exists; otherwise actual upload status. File/upload IDs and size remain nullable.";
+        if (context.Type == typeof(RoadGuardSystem.DTOs.Inspections.FieldEvidenceDeclaration))
+            schema.Properties["sizeBytes"].Description = "Optional signed original byte length. Positive and exact when present; omitted when null to preserve legacy canonical signatures.";
         if (context.Type == typeof(RepairSafetyResolveInput))
         {
             schema.Properties["outcome"].Enum = [new Microsoft.OpenApi.Any.OpenApiString("REMOVED"), new Microsoft.OpenApi.Any.OpenApiString("REPLACED")];
@@ -38,6 +55,10 @@ public sealed class WebBReadOperationFilter : IOperationFilter, ISchemaFilter
     {
         var controller = context.MethodInfo.DeclaringType;
         var action = context.MethodInfo.Name;
+        if (controller == typeof(OfflineWorkflowController) && action is "Synchronize" or "ImportPackage" or "GetBatch" or "GetOrigin")
+        {
+            operation.Description = "Admission is per operation. Pending upload/verification is retryable without durable acknowledgment. Use admission.id/captureOriginId for offline upload; after VERIFIED replay the identical signed batch. Server IDs never enter signed core. Current actor/device/assignment/importer authority is rechecked.";
+        }
         if (controller == typeof(ReportMatchingLocationController))
         {
             operation.Description = "Current project PM confirms evidence location and/or pinned segments for advisory matching. Original evidence is unchanged. GET returns versions and confirmation state. POST requires Idempotency-Key and cookie CSRF; stale versions return 409. Replay rechecks authority.";

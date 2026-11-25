@@ -3,7 +3,8 @@ namespace RoadGuardSystem.Repositories.Repairs;
 // Internal typed command and persisted fact contracts. Property order preserves existing receipts and hashes.
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairFieldEvidenceData(Guid CaptureOriginId, Guid? FileId, string Purpose,
-    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist);
+    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairFieldMeasurementData(string SampleId, string Type, decimal? Value, string State,
     string? UnknownReason, string Dimension, string Unit, double? Longitude, double? Latitude,

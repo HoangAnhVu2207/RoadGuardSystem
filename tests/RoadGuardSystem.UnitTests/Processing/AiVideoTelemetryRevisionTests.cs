@@ -22,13 +22,14 @@ public sealed class AiVideoTelemetryRevisionTests
     }
 
     [Theory]
-    [InlineData("[]")]
-    [InlineData("[{\"startMs\":-1,\"endMs\":1000,\"latitude\":10,\"longitude\":106}]")]
-    [InlineData("[{\"startMs\":0,\"endMs\":2001,\"latitude\":10,\"longitude\":106}]")]
-    [InlineData("[{\"startMs\":0,\"endMs\":1000,\"latitude\":91,\"longitude\":106}]")]
-    [InlineData("[{\"startMs\":0,\"endMs\":1000,\"latitude\":10,\"longitude\":181}]")]
-    [InlineData("[{\"startMs\":0,\"endMs\":1000,\"latitude\":10,\"longitude\":106},{\"startMs\":999,\"endMs\":1500,\"latitude\":10,\"longitude\":106}]")]
-    public void RejectsInvalidGeometryAndTiming(string json) => FluentActions.Invoking(() => Create(json)).Should().Throw<ArgumentException>();
+    [InlineData("empty", "[]")]
+    [InlineData("negative-start", "[{\"startMs\":-1,\"endMs\":1000,\"latitude\":10,\"longitude\":106}]")]
+    [InlineData("past-end", "[{\"startMs\":0,\"endMs\":2001,\"latitude\":10,\"longitude\":106}]")]
+    [InlineData("latitude", "[{\"startMs\":0,\"endMs\":1000,\"latitude\":91,\"longitude\":106}]")]
+    [InlineData("longitude", "[{\"startMs\":0,\"endMs\":1000,\"latitude\":10,\"longitude\":181}]")]
+    [InlineData("overlap", "[{\"startMs\":0,\"endMs\":1000,\"latitude\":10,\"longitude\":106},{\"startMs\":999,\"endMs\":1500,\"latitude\":10,\"longitude\":106}]")]
+    public void RejectsInvalidGeometryAndTiming(string scenario, string json)
+        => FluentActions.Invoking(() => Create(json)).Should().Throw<ArgumentException>(scenario);
 
     [Theory]
     [InlineData("../evidence.srt")]

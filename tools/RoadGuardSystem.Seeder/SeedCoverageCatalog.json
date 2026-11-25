@@ -53,6 +53,70 @@
     ]
   },
   {
+    "Table": "dbo.AiVideoAttemptOutcomes",
+    "Group": "processing",
+    "DependencyOrder": 80,
+    "Prerequisites": [
+      "dbo.AiVideoWorkItems",
+      "dbo.ProcessingAttempts"
+    ],
+    "Producer": "AiVideoWorkRepository writes a durable outcome when a REAL attempt ends",
+    "EmptyReason": "The development seed does not dispatch REAL inference or create synthetic real-worker evidence.",
+    "Scenario": "Exercise terminal attempt transitions in the real processing workflow to persist the outcome.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Configurations/Worker/AiVideoAttemptOutcomeConfiguration.cs"
+    ]
+  },
+  {
+    "Table": "dbo.AiVideoTelemetryRevisions",
+    "Group": "processing",
+    "DependencyOrder": 80,
+    "Prerequisites": [
+      "dbo.AiVideoWorkItems",
+      "dbo.Users"
+    ],
+    "Producer": "AiVideoTelemetryService.AppendAsync via the assigned Drone Operator",
+    "EmptyReason": "The development seed does not dispatch REAL inference or create synthetic real-worker evidence.",
+    "Scenario": "Append an accepted SRT correction or a labeled operator estimate using the supported telemetry endpoint.",
+    "Source": [
+      "RoadGuardSystem.Services/Implementations/Processing/Worker/AiVideoTelemetryService.cs"
+    ]
+  },
+  {
+    "Table": "dbo.AiVideoWorkItems",
+    "Group": "processing",
+    "DependencyOrder": 80,
+    "Prerequisites": [
+      "dbo.Files",
+      "dbo.ProcessingAttempts",
+      "dbo.ProcessingJobs",
+      "dbo.Projects",
+      "dbo.SurveyDataVersions"
+    ],
+    "Producer": "AiVideoCoordinator prepares work from a submitted dataset",
+    "EmptyReason": "The development seed does not dispatch REAL inference or create synthetic real-worker evidence.",
+    "Scenario": "Enable a released REAL worker and submit a dataset with verified scoped video uploads.",
+    "Source": [
+      "RoadGuardSystem.Services/Implementations/Processing/Worker/AiVideoCoordinator.cs"
+    ]
+  },
+  {
+    "Table": "dbo.AiWorkerArtifacts",
+    "Group": "processing",
+    "DependencyOrder": 80,
+    "Prerequisites": [
+      "dbo.AiVideoWorkItems",
+      "dbo.Files",
+      "dbo.ProcessingAttempts"
+    ],
+    "Producer": "AiVideoCoordinator verifies and registers worker artifacts",
+    "EmptyReason": "The development seed does not dispatch REAL inference or create synthetic real-worker evidence.",
+    "Scenario": "Ingest artifacts from a completed REAL worker attempt, then verify their persisted checksums.",
+    "Source": [
+      "RoadGuardSystem.Services/Implementations/Processing/Worker/AiVideoCoordinator.cs"
+    ]
+  },
+  {
     "Table": "dbo.Anh02AiDetectionProvenance",
     "Group": "processing",
     "DependencyOrder": 80,

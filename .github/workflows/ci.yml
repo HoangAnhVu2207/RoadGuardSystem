@@ -100,39 +100,63 @@ jobs:
       matrix:
         include:
           - lane: 1
-            flow: "Startup and contracts"
+            flow: "Startup and contracts (1/2)"
             minio: false
           - lane: 2
-            flow: "Login and sessions"
+            flow: "Startup and contracts (2/2)"
             minio: false
           - lane: 3
-            flow: "Identity and authorization"
+            flow: "Login and sessions (1/2)"
             minio: false
           - lane: 4
-            flow: "Projects, GIS and warranty"
-            minio: true
+            flow: "Login and sessions (2/2)"
+            minio: false
           - lane: 5
-            flow: "Surveys and uploads"
-            minio: true
+            flow: "Identity and authorization (1/2)"
+            minio: false
           - lane: 6
-            flow: "Processing, AI and defects"
-            minio: true
+            flow: "Identity and authorization (2/2)"
+            minio: false
           - lane: 7
-            flow: "Cases and publication"
+            flow: "Projects, GIS and warranty (1/2)"
             minio: false
           - lane: 8
-            flow: "Inspections and offline"
+            flow: "Projects, GIS and warranty (2/2)"
             minio: true
           - lane: 9
-            flow: "Repairs and FastTrack"
+            flow: "Surveys and uploads (1/2)"
             minio: true
           - lane: 10
+            flow: "Surveys and uploads (2/2)"
+            minio: true
+          - lane: 11
+            flow: "Processing, AI and defects (1/2)"
+            minio: false
+          - lane: 12
+            flow: "Processing, AI and defects (2/2)"
+            minio: true
+          - lane: 13
+            flow: "Cases and publication (1/2)"
+            minio: false
+          - lane: 14
+            flow: "Cases and publication (2/2)"
+            minio: false
+          - lane: 15
+            flow: "Inspections and offline"
+            minio: true
+          - lane: 16
+            flow: "Repairs and FastTrack (1/2)"
+            minio: true
+          - lane: 17
+            flow: "Repairs and FastTrack (2/2)"
+            minio: true
+          - lane: 18
             flow: "Notifications and retention"
             minio: false
-          - lane: 11
+          - lane: 19
             flow: "Reports and exports"
             minio: true
-          - lane: 12
+          - lane: 20
             flow: "Sandbox"
             minio: false
     steps:
@@ -195,7 +219,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        lane: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

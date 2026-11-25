@@ -82,3 +82,14 @@ Làm việc trong worktree riêng. Tự review hai lượt và đẩy ứng viê
 - [ ] Tự review hai lượt. Lượt một đối chiếu discovery, ca bắt buộc, fixture, lỗi và artifact. Lượt hai đối chiếu diff, job name, trigger, cache, cô lập SQL/MinIO và đường lùi khi workflow có vấn đề. Bàn giao link run, SHA, thời gian từng job, số pass/fail/skip, diff và trạng thái review ngoài.
 
 Gate ứng viên và deploy yêu cầu CI xanh trên đúng SHA, đủ danh tính ca và các duyệt triển khai theo kế hoạch E2E. Nếu benchmark vượt 5 phút, ghi `PENDING` cùng thời gian đo và giữ gate fast-forward theo kết quả CI.
+
+## 5. Rà soát trùng lặp và mở rộng lên 20 lane mỗi suite
+
+`TARGET_CONFIRMED` · Owner yêu cầu rà soát và loại ca dư trước khi mở rộng lên 20 lane API và 20 lane SQL.
+
+`CURRENT_VERIFIED` · TRX của SHA `7019602` có 1.778 định danh API từ 669 method và 897 định danh SQL từ 663 method. Mỗi định danh xuất hiện đúng một lần. Các dòng theory kiểm tra nhiều route, vai trò, trạng thái và dữ liệu đầu vào. [TRX trước khi mở rộng](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45657296576).
+
+- Gộp 12 ca GET `ADD-01` đến `ADD-12` vào `CollectionGeometryCredentialAcceptanceTests`. Giữ kiểm tra JWT hết hạn và session bị thu hồi với `Idempotency-Key`, phản hồi không có `Set-Cookie`, session vẫn hoạt động sau yêu cầu có JWT hết hạn, cùng các kiểm tra audit và idempotency.
+- Gộp 8 ca API kiểm tra cấu hình deploy đã có ở `Startup.ServerDeploymentTests`. Chuyển thêm dữ liệu origin `*` sang bộ test giữ lại. Các ca duy trì kiểm tra CORS, đường dẫn key và môi trường chạy.
+- Chưa có ca SQL trùng đủ căn cứ để loại. Bộ đối soát mới yêu cầu 1.758 định danh API, gồm 1 skip MinIO tùy chọn, và 897 định danh SQL. Ca AI thật tiếp tục opt-in riêng.
+- Dùng duration TRX và chi phí fixture ước tính để chia tám nhóm API nặng thành hai lane mỗi nhóm, đồng thời cân lại các lớp và nhóm method SQL. Các lane chuẩn bị MinIO theo nhu cầu của fixture. SQL lane 1 giữ export worker và lane 4 chạy kiểm tra Seeder CLI.

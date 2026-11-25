@@ -53,11 +53,12 @@ public sealed class CollectionGeometryCredentialAcceptanceTests(AuthenticationSq
         using var anonymous = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = false });
         using var malformedCookie = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = false });
         malformedCookie.DefaultRequestHeaders.Add("Cookie", "__Host-RoadGuardSession=malformed");
-        var login = await bearer.PostAsJsonAsync("/api/v1/auth/login", new { email = actor.Email, password = "Current1!" });
+        using var login = await bearer.PostAsJsonAsync("/api/v1/auth/login", new { email = actor.Email, password = "Current1!" });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var token = (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString()!;
         await using var db = sql.CreateDbContext();
         var session = await db.Sessions.AsNoTracking().Where(s => s.UserId == actor.Id).OrderByDescending(s => s.IssuedAt).FirstAsync();
+        Assert.True(session.IsActiveAt(initial));
         var expired = new AccessTokenFactory(factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value)
             .Create(actor.Id, session.Id, actor.RoleCode, initial.AddMinutes(-20), 15);
         var path = System.Text.RegularExpressions.Regex.Replace(route, @"\{[^}]+\}", _ => Guid.NewGuid().ToString());
@@ -66,11 +67,12 @@ public sealed class CollectionGeometryCredentialAcceptanceTests(AuthenticationSq
         using (var response = await Send(bearer)) Assert.Equal(admittedStatus, (int)response.StatusCode);
         using (var response = await Send(web)) Assert.Equal(admittedStatus, (int)response.StatusCode);
         foreach (var client in new[] { anonymous, malformedCookie }) await Denied(client);
-        foreach (var value in new[] { "malformed", expired })
-        {
-            bearer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", value);
-            await Denied(bearer);
-        }
+        bearer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "malformed");
+        await Denied(bearer);
+        bearer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", expired);
+        await Denied(bearer, includeIdempotencyKey: true);
+        var sessionAfterExpiredRequest = await db.Sessions.AsNoTracking().SingleAsync(s => s.Id == session.Id);
+        Assert.True(sessionAfterExpiredRequest.IsActiveAt(initial));
         web.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "malformed");
         await Denied(web);
         web.DefaultRequestHeaders.Authorization = null;
@@ -81,19 +83,34 @@ public sealed class CollectionGeometryCredentialAcceptanceTests(AuthenticationSq
         clock.Now = initial;
         await db.Sessions.Where(s => s.UserId == actor.Id).ExecuteUpdateAsync(s => s.SetProperty(v => v.RevokedAt, initial));
         bearer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        await Denied(bearer); await Denied(web);
+        await Denied(bearer, includeIdempotencyKey: true);
+        await Denied(web);
         Assert.Equal(audits, await db.AuditLogs.CountAsync(a => a.ActorUserId == actor.Id));
         Assert.Empty(await db.IdempotencyRecords.Where(r => r.ActorUserId == actor.Id).ToArrayAsync());
 
-        Task<HttpResponseMessage> Send(HttpClient client) => client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path));
-        async Task Denied(HttpClient client)
+        async Task<HttpResponseMessage> Send(HttpClient client)
         {
-            using var response = await Send(client);
+            using var request = new HttpRequestMessage(new HttpMethod(method), path);
+            return await client.SendAsync(request);
+        }
+
+        async Task Denied(HttpClient client, bool includeIdempotencyKey = false)
+        {
+            using var request = new HttpRequestMessage(new HttpMethod(method), path);
+            if (includeIdempotencyKey)
+            {
+                request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            }
+
+            using var response = await client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
             Assert.Null(response.Headers.ETag);
+            if (includeIdempotencyKey)
+            {
+                Assert.False(response.Headers.Contains("Set-Cookie"));
+            }
         }
-
     }
 
     private sealed class MutableClock(DateTimeOffset initial) : TimeProvider

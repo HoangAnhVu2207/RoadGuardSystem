@@ -100,3 +100,8 @@ Gate ứng viên và deploy yêu cầu CI xanh trên đúng SHA, đủ danh tín
 
 - Cấu hình mới dùng 9 lane API và 9 lane SQL, cộng job unit và source verify. Phân bổ theo thời gian quan sát trong TRX, có tính thêm chi phí thiết lập database mỗi ca ở các lớp nặng.
 - Giữ 12 ca Web Cookie bằng dữ liệu theory riêng cho các route GET và tiếp tục đối soát 1.758 ca API. Tách các method AI worker, telemetry, retention và refresh. Tách 18 ca export recovery thành ba nhóm method, giữ đủ tình huống lỗi và database riêng từng ca. Đối soát 897 ca SQL.
+
+Lượt 9/9 đầu tiên trên SHA `e319021` hoàn tất trong 7 phút. Cả 20 job ban đầu bắt đầu sau 3–4 giây. SQL lane 6 mất 257 giây ở bước test. Hai lane API field operations mất 222 và 230 giây ở bước test. [Run 9/9 đầu tiên](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45672208599).
+
+- Chuyển các lớp API sandbox và reporter có thời lượng cao sang các lane ngắn hơn. Chuyển kiểm tra migration repair producer từ SQL lane 6 sang lane 7.
+- Khởi động SQL song song với restore và build trên runner. Các lớp SQL thường xuyên khởi tạo Testcontainers giữ một lease trong suốt vòng đời lớp. Mỗi ca vẫn tự tạo và dọn database riêng, giữ nguyên migration và kiểm tra quyền sở hữu.

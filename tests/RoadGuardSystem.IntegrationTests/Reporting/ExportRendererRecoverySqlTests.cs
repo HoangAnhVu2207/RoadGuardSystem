@@ -38,7 +38,7 @@ namespace RoadGuardSystem.IntegrationTests.Reporting;
 // Controlled frozen DOSSIER ZIP/PDF and TRAINING ZIP snapshots exercise processing.
 // The two format recovery cases do not establish reporting capture/admission or AI authority.
 // Reporting capture/admission, internal PDF pagination and every source format remain outside this fixture.
-public sealed class ExportRendererRecoverySqlTests : IAsyncLifetime
+public sealed class ExportRendererRecoverySqlTests : IAsyncLifetime, IClassFixture<SqlServerTestFixture.OwnedContainerLifetime>
 {
     // Each abrupt-exit case leaves a durable queue item intentionally. Keep that
     // recovery proof in its own database so the next case cannot claim it.

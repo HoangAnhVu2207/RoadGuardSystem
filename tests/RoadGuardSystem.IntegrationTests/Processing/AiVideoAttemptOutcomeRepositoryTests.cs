@@ -21,7 +21,7 @@ using Xunit;
 namespace RoadGuardSystem.IntegrationTests.Processing;
 
 // Always fixture-owned SQL; no configured shared server connection is eligible.
-public sealed class AiVideoAttemptOutcomeRepositoryTests : IAsyncLifetime
+public sealed class AiVideoAttemptOutcomeRepositoryTests : IAsyncLifetime, IClassFixture<SqlServerTestFixture.OwnedContainerLifetime>
 {
     private readonly IdentitySqlServerFixture _fixture = new(new SqlServerTestFixture(_ => null, createSpatialProbeSchema: false));
     private static readonly CancellationToken Ct = CancellationToken.None;

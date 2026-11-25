@@ -1,5 +1,5 @@
 {
-  "source": "GitHub Actions runs 45657296576 and 45668352680, with reviewed test consolidation and SQL fixture timings",
+  "source": "GitHub Actions runs 45657296576, 45668352680 and 45672208599, with reviewed test consolidation and measured lane timings",
   "lanes": [
     {
       "lane": 1,
@@ -622,7 +622,6 @@
         "RoadGuardSystem.IntegrationTests.Projects.H2NativeAuthorityTests",
         "RoadGuardSystem.IntegrationTests.Projects.LD06LifecycleMigrationTests",
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairLifecycleSqlTests",
-        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests",
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducingAdmissionSqlTests"
       ],
       "methods": [
@@ -710,12 +709,6 @@
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairLifecycleSqlTests.OfflineRepairSnapshotUsesActualCurrentBindingPlanAndItemVersionWithoutExecuteGrant",
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairLifecycleSqlTests.RejectedUnstartedAssignmentCanContinueNormallyWithoutRewritingRejection",
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairLifecycleSqlTests.StartedMeasurementRequiresActualHandoverBeforeRetiringRepairBinding",
-        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.ActualProducerGuardsAndEmptyDowngradePreservePopulatedCore",
-        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.CurrentItemPinCannotBorrowAnotherActualObligation",
-        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.ExplicitCurrentItemPinExcludesHistoricalSiblingFromCurrentStock",
-        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.LegacyDefectWithoutObligationInventoryCannotEstablishCompleteRepairStock",
-        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.PopulatedProducerPinDowngradeRefusesBeforeErasingCoreHistory",
-        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.UnpinnedLegacyItemsDoNotInventOneCurrentItemOrCountAllHistoricalItems",
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducingAdmissionSqlTests.ActualCurrentPmAssignsApprovedNormalItemToCurrentCrewAndCompleteNativeBinding",
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducingAdmissionSqlTests.ActualCurrentPmAssignsApprovedNormalItemWhenGenuineReporterDefectIsVerified",
         "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducingAdmissionSqlTests.ActualCurrentPmCreatesAnchoredPackageAndMandatoryPhysicalScopeFromGenuineReporterDefect",
@@ -747,6 +740,7 @@
         "RoadGuardSystem.IntegrationTests.Persistence.V2P1063MigrationUpgradeTests",
         "RoadGuardSystem.IntegrationTests.Processing.A0802ValidationReplayTests",
         "RoadGuardSystem.IntegrationTests.Processing.P230ProcessingJobSqlServerTests",
+        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests",
         "RoadGuardSystem.IntegrationTests.Repairs.LD06ResponsibilitySqlTests",
         "RoadGuardSystem.IntegrationTests.Repairs.LD07RoadCoverageSqlTests",
         "RoadGuardSystem.IntegrationTests.Reporting.ExportLeaseRecoverySqlTests",
@@ -867,6 +861,12 @@
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoWorkRepositoryTests.Preparation_RejectsIdentityAndCatalogMismatchesAtomically(mutation: \"manifest\")",
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoWorkRepositoryTests.Preparation_RejectsIdentityAndCatalogMismatchesAtomically(mutation: \"missing-class\")",
         "RoadGuardSystem.IntegrationTests.Processing.P230ProcessingJobSqlServerTests.ProcessingJobs_BlockIndex_AllowsModelVariants",
+        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.ActualProducerGuardsAndEmptyDowngradePreservePopulatedCore",
+        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.CurrentItemPinCannotBorrowAnotherActualObligation",
+        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.ExplicitCurrentItemPinExcludesHistoricalSiblingFromCurrentStock",
+        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.LegacyDefectWithoutObligationInventoryCannotEstablishCompleteRepairStock",
+        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.PopulatedProducerPinDowngradeRefusesBeforeErasingCoreHistory",
+        "RoadGuardSystem.IntegrationTests.Repairs.H4RepairProducerMigrationTests.UnpinnedLegacyItemsDoNotInventOneCurrentItemOrCountAllHistoricalItems",
         "RoadGuardSystem.IntegrationTests.Repairs.LD06ResponsibilitySqlTests.AcceptanceReceiptFailureRollsBackOwnerActionAndReceivingAdmission",
         "RoadGuardSystem.IntegrationTests.Repairs.LD06ResponsibilitySqlTests.AcceptedFormalAndSafetyTransfersPreserveInstalledMonitoringCrewAndClockRouteSupervisorToReceiver",
         "RoadGuardSystem.IntegrationTests.Repairs.LD06ResponsibilitySqlTests.PendingIssueKeepsSourceThenAtomicAcceptanceMovesExactApprovalReadAndReplayAuthority",

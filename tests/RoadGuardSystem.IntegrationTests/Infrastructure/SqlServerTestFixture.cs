@@ -56,6 +56,17 @@ public sealed class SqlServerTestFixture : IAsyncLifetime
         _masterConnectionString = masterConnectionString;
     }
 
+    // xUnit holds this lease across a class's cases. Each test fixture still
+    // creates, migrates and drops its own database on the owned SQL instance.
+    public sealed class OwnedContainerLifetime : IAsyncLifetime
+    {
+        private readonly SqlServerTestFixture lease = new(_ => null, createSpatialProbeSchema: false);
+
+        public async Task InitializeAsync() => await lease.ResolveMasterConnectionStringAsync();
+
+        public Task DisposeAsync() => lease.DisposeAsync();
+    }
+
     private readonly Guid _seedOwnerId = Guid.NewGuid();
 
     // Seed ownership proof must come from a live Testcontainers instance, even
@@ -245,7 +256,7 @@ END";
     internal void RecordTiming(string phase, TimeSpan duration)
     {
         var path = Environment.GetEnvironmentVariable("ROADGUARD_TEST_TIMINGS_FILE");
-        if (string.IsNullOrWhiteSpace(path)) return;
+        if (_databaseName is null || string.IsNullOrWhiteSpace(path)) return;
         lock (TimingLock)
         {
             File.AppendAllText(path, $"{_databaseName},{phase},{duration.TotalMilliseconds.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)}{Environment.NewLine}");

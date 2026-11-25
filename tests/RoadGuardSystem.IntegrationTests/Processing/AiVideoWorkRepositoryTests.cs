@@ -25,7 +25,7 @@ using Xunit;
 namespace RoadGuardSystem.IntegrationTests.Processing;
 
 // No configured/shared server is eligible: every database belongs to this fixture's container.
-public sealed class AiVideoWorkRepositoryTests : IAsyncLifetime
+public sealed class AiVideoWorkRepositoryTests : IAsyncLifetime, IClassFixture<SqlServerTestFixture.OwnedContainerLifetime>
 {
     private readonly IdentitySqlServerFixture _fixture = new(new SqlServerTestFixture(_ => null, createSpatialProbeSchema: false));
     private static readonly CancellationToken Ct = CancellationToken.None;

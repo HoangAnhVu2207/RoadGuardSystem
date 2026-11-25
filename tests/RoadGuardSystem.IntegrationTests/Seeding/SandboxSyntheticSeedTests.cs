@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Seeding.Sandbox;
 using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Seeding;
 
-public sealed class SandboxSyntheticSeedTests
+public sealed class SandboxSyntheticSeedTests : IClassFixture<SqlServerTestFixture.OwnedContainerLifetime>
 {
     [Fact]
     public async Task CanonicalBootstrapIsAcceptedWithoutChangingRolesOrConcurrencyStamps()

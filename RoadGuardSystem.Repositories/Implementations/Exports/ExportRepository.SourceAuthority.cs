@@ -11,6 +11,7 @@ public sealed partial class ExportRepository
         var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
         return await _db.ProjectMembers.AsNoTracking().AnyAsync(member => member.UserId == actorId &&
             member.ProjectId == projectId && member.Status == ProjectMemberStatus.Active &&
+            _db.Users.Any(user => user.Id == actorId && user.RoleCode == member.RoleCode) &&
             member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), ct);
     }
 

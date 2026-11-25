@@ -563,6 +563,36 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
             await Task.Delay(100);
         }
         Assert.Equal("SUCCEEDED", (await Body(await pm.GetAsync(root + $"/{packageId}"))).GetProperty("status").GetString());
+        using var supervisor = await WebCookieTestClient.Login(factory, seed.Supervisor.Email!);
+        using (var deniedList = await supervisor.GetAsync(root)) Assert.Equal(HttpStatusCode.Forbidden, deniedList.StatusCode);
+        await using (var memberDb = sql.CreateDbContext())
+        {
+            memberDb.ProjectMembers.Add(new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = seed.Project.Id,
+                UserId = seed.Supervisor.Id,
+                RoleCode = UserRoleCode.Supervisor,
+                Status = ProjectMemberStatus.Active,
+                ValidFrom = new DateOnly(2000, 1, 1)
+            });
+            await memberDb.SaveChangesAsync();
+        }
+        // Export membership is independent of Supervisor-global approval authority.
+        var supervisorRequest = new HttpRequestMessage(HttpMethod.Post, root)
+        { Content = JsonContent.Create(new { kind = "DOSSIER", format = "ZIP", includeOriginalFiles = true, repairItemIds = new[] { seed.Item.Id } }) };
+        supervisorRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var supervisorJob = await Body(await supervisor.SendAsync(supervisorRequest), HttpStatusCode.Accepted);
+        var supervisorId = supervisorJob.GetProperty("id").GetGuid();
+        using (var scope = factory.Services.CreateScope()) Assert.True(await scope.ServiceProvider.GetRequiredService<IExportService>().ProcessNextAsync(default));
+        Assert.Equal("SUCCEEDED", (await Body(await supervisor.GetAsync(root + $"/{supervisorId}"))).GetProperty("status").GetString());
+        using (var supervisorContent = await supervisor.GetAsync(root + $"/{supervisorId}/content"))
+        {
+            Assert.Equal(HttpStatusCode.OK, supervisorContent.StatusCode);
+            using var archive = new ZipArchive(new MemoryStream(await supervisorContent.Content.ReadAsByteArrayAsync()));
+            using var proof = new MemoryStream(); await archive.GetEntry($"repair-evidence/{fileId:D}.png")!.Open().CopyToAsync(proof);
+            Assert.Equal(image, proof.ToArray());
+        }
         await using (var revoked = sql.CreateDbContext())
             await revoked.ProjectMembers.Where(row => row.ProjectId == seed.Project.Id && row.UserId == seed.Pm.Id)
                 .ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ProjectMemberStatus.Ended));

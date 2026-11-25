@@ -55,8 +55,15 @@ public sealed class WebPmCompletionOperationFilter : IOperationFilter
                 if (!operation.Parameters.Any(parameter => parameter.Name == name)) operation.Parameters.Add(new OpenApiParameter
                 { Name = name, In = ParameterLocation.Query, Schema = new OpenApiSchema { Type = "string", Format = "uuid" }, Description = "Filter by the persisted processing/dataset/task relation in this project. Bound to cursor." });
         }
-        if (controller == typeof(ExportsController) && action == "Create")
-            operation.Description = "Create an export snapshot. DOSSIER accepts up to 100 item IDs or 20 package IDs, resolving up to 100 items. Do not mix repair scope with segment, defect or time filters. ZIP can include authorized originals.";
+        if (controller == typeof(ExportsController))
+        {
+            operation.Description = action == "Create"
+                ? "PM/Supervisor require current matching-role project membership and source authority. Create immutable DOSSIER/TRAINING snapshot; 202 Location/job. Idempotency-Key required; Web POST needs CSRF. Repair scope: up to 100 items or 20 packages, no time/segment filters. ZIP originals retain source guards."
+                : "PM/Supervisor require current matching-role project membership and snapshot source authority. Detail is not creator-only. Repair manifest and content retain file guards; content rechecks after storage opens and requires SUCCEEDED, unexpired job. Global reporting authority does not grant export access.";
+            operation.Responses.TryAdd("403", new OpenApiResponse { Description = "forbidden: current export membership or source authority missing" });
+        }
+        if (controller == typeof(DiscoveryCollectionsController) && action == "Exports")
+            operation.Description = "Creator-only export jobs, filtered before pagination. Current matching-role project membership required for PM/Supervisor, including empty results; global reporting authority is insufficient. 403 access_forbidden is not an empty collection or proof that POST was sent.";
 
         void Header(string name, string description, bool required = true)
         {

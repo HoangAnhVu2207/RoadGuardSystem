@@ -4,4 +4,4 @@ param(
     [string]$MatrixResult = 'success'
 )
 
-& (Join-Path $PSScriptRoot 'Verify-TestLanes.ps1') -ResultsPath $ResultsPath -ManifestPath $ManifestPath -Prefix integration -LaneCount 20 -MatrixResult $MatrixResult
+& (Join-Path $PSScriptRoot 'Verify-TestLanes.ps1') -ResultsPath $ResultsPath -ManifestPath $ManifestPath -Prefix integration -LaneCount 9 -MatrixResult $MatrixResult

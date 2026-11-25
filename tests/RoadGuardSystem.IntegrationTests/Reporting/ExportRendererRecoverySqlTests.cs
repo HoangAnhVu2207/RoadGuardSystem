@@ -52,19 +52,30 @@ public sealed class ExportRendererRecoverySqlTests : IAsyncLifetime
     [InlineData("after-put")]
     [InlineData("before-complete")]
     [InlineData("after-complete")]
+    public Task RealRendererAndServiceRecoverDurableBoundaryWithoutDuplicatePublication(string boundary) =>
+        VerifyRecoveryWithoutDuplicatePublication(boundary);
+
+    [Theory]
     [InlineData("process-before-render")]
     [InlineData("process-after-render")]
     [InlineData("process-during-spool")]
     [InlineData("process-before-sql-commit")]
     [InlineData("process-after-sql-commit")]
     [InlineData("process-after-put")]
+    public Task ProcessRecoversRenderAndCommitBoundariesWithoutDuplicatePublication(string boundary) =>
+        VerifyRecoveryWithoutDuplicatePublication(boundary);
+
+    [Theory]
     [InlineData("process-after-complete")]
     [InlineData("process-original-open")]
     [InlineData("process-original-read")]
     [InlineData("process-recovery-original-read")]
     [InlineData("process-pdf-after-put")]
     [InlineData("process-training-after-put")]
-    public async Task RealRendererAndServiceRecoverDurableBoundaryWithoutDuplicatePublication(string boundary)
+    public Task ProcessRecoversStoredContentWithoutDuplicatePublication(string boundary) =>
+        VerifyRecoveryWithoutDuplicatePublication(boundary);
+
+    private async Task VerifyRecoveryWithoutDuplicatePublication(string boundary)
     {
         var image = Environment.GetEnvironmentVariable("RG_MINIO_IMAGE")
             ?? throw new InvalidOperationException("Approved disposable MinIO image required.");

@@ -13,7 +13,25 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class HandoffWebCredentialHttpTests(AuthenticationSqlServerFixture sql)
     : IClassFixture<AuthenticationSqlServerFixture>
 {
-    public static IEnumerable<object[]> Operations() => HandoffExpiredCredentialHttpTests.Operations();
+    public static IEnumerable<object[]> Operations()
+    {
+        yield return ["ADD-01", "GET", "/api/v1/projects/{projectId}/ai-mock-runs"];
+        yield return ["ADD-02", "GET", "/api/v1/projects/{projectId}/repair-packages"];
+        yield return ["ADD-03", "GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items"];
+        yield return ["ADD-04", "GET", "/api/v1/projects/{projectId}/exports"];
+        yield return ["ADD-05", "GET", "/api/v1/projects/{projectId}/survey-plans"];
+        yield return ["ADD-06", "GET", "/api/v1/projects/{projectId}/survey-tasks"];
+        yield return ["ADD-07", "GET", "/api/v1/projects/{projectId}/processing-jobs"];
+        yield return ["ADD-08", "GET", "/api/v1/projects/{projectId}/offline/devices"];
+        yield return ["ADD-09", "GET", "/api/v1/projects/{projectId}/offline/packages"];
+        yield return ["ADD-10", "GET", "/api/v1/projects/{projectId}/offline/grants"];
+        yield return ["ADD-11", "GET", "/api/v1/projects/{projectId}/retention/evaluations"];
+        yield return ["ADD-12", "GET", "/api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions/{routeVersionId}/segment-sets"];
+        foreach (var operation in HandoffExpiredCredentialHttpTests.Operations())
+        {
+            yield return operation;
+        }
+    }
 
     [Theory]
     [MemberData(nameof(Operations))]

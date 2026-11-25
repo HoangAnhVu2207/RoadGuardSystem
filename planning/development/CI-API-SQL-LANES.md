@@ -93,3 +93,10 @@ Gate ứng viên và deploy yêu cầu CI xanh trên đúng SHA, đủ danh tín
 - Gộp 8 ca API kiểm tra cấu hình deploy đã có ở `Startup.ServerDeploymentTests`. Chuyển thêm dữ liệu origin `*` sang bộ test giữ lại. Các ca duy trì kiểm tra CORS, đường dẫn key và môi trường chạy.
 - Chưa có ca SQL trùng đủ căn cứ để loại. Bộ đối soát mới yêu cầu 1.758 định danh API, gồm 1 skip MinIO tùy chọn, và 897 định danh SQL. Ca AI thật tiếp tục opt-in riêng.
 - Dùng duration TRX và chi phí fixture ước tính để chia tám nhóm API nặng thành hai lane mỗi nhóm, đồng thời cân lại các lớp và nhóm method SQL. Các lane chuẩn bị MinIO theo nhu cầu của fixture. SQL lane 1 giữ export worker và lane 4 chạy kiểm tra Seeder CLI.
+
+## 6. Cân lane theo số runner quan sát được
+
+`CURRENT_VERIFIED` · Cấu hình 20/20 mất 11 phút 41 giây. Mỗi thời điểm có tối đa 20 job chạy, trong khi 40 lane và 2 job kiểm tra cần runner trước khi tổng hợp. Lane API báo cáo/xuất bắt đầu sau 6 phút 44 giây và chạy 4 phút 39 giây. SQL lane 17 dùng 7 phút 04 giây riêng bước test, phần lớn thời gian của lớp AI worker dành cho database riêng từng ca. Gate API bắt đúng 12 ca Web Cookie bị ảnh hưởng do dùng chung dữ liệu theory với ca JWT đã gộp. [Run 20/20](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45668352680).
+
+- Cấu hình mới dùng 9 lane API và 9 lane SQL, cộng job unit và source verify. Phân bổ theo thời gian quan sát trong TRX, có tính thêm chi phí thiết lập database mỗi ca ở các lớp nặng.
+- Giữ 12 ca Web Cookie bằng dữ liệu theory riêng cho các route GET và tiếp tục đối soát 1.758 ca API. Tách các method AI worker, telemetry, retention và refresh. Tách 18 ca export recovery thành ba nhóm method, giữ đủ tình huống lỗi và database riêng từng ca. Đối soát 897 ca SQL.

@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory)][ValidateRange(1, 20)][int]$Lane,
+    [Parameter(Mandatory)][ValidateRange(1, 9)][int]$Lane,
     [Parameter(Mandatory)][string]$ResultsPath,
     [switch]$CollectCoverage
 )

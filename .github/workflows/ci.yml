@@ -100,65 +100,32 @@ jobs:
       matrix:
         include:
           - lane: 1
-            flow: "Startup and contracts (1/2)"
+            flow: "Startup, identity and notifications (1/3)"
             minio: false
           - lane: 2
-            flow: "Startup and contracts (2/2)"
+            flow: "Startup, identity and notifications (2/3)"
             minio: false
           - lane: 3
-            flow: "Login and sessions (1/2)"
+            flow: "Startup, identity and notifications (3/3)"
             minio: false
           - lane: 4
-            flow: "Login and sessions (2/2)"
-            minio: false
+            flow: "Projects, surveys and files (1/2)"
+            minio: true
           - lane: 5
-            flow: "Identity and authorization (1/2)"
+            flow: "Projects, surveys and files (2/2)"
             minio: false
           - lane: 6
-            flow: "Identity and authorization (2/2)"
+            flow: "Processing, defects and cases (1/2)"
             minio: false
           - lane: 7
-            flow: "Projects, GIS and warranty (1/2)"
-            minio: false
+            flow: "Processing, defects and cases (2/2)"
+            minio: true
           - lane: 8
-            flow: "Projects, GIS and warranty (2/2)"
+            flow: "Field operations, exports and sandbox (1/2)"
             minio: true
           - lane: 9
-            flow: "Surveys and uploads (1/2)"
+            flow: "Field operations, exports and sandbox (2/2)"
             minio: true
-          - lane: 10
-            flow: "Surveys and uploads (2/2)"
-            minio: true
-          - lane: 11
-            flow: "Processing, AI and defects (1/2)"
-            minio: false
-          - lane: 12
-            flow: "Processing, AI and defects (2/2)"
-            minio: true
-          - lane: 13
-            flow: "Cases and publication (1/2)"
-            minio: false
-          - lane: 14
-            flow: "Cases and publication (2/2)"
-            minio: false
-          - lane: 15
-            flow: "Inspections and offline"
-            minio: true
-          - lane: 16
-            flow: "Repairs and FastTrack (1/2)"
-            minio: true
-          - lane: 17
-            flow: "Repairs and FastTrack (2/2)"
-            minio: true
-          - lane: 18
-            flow: "Notifications and retention"
-            minio: false
-          - lane: 19
-            flow: "Reports and exports"
-            minio: true
-          - lane: 20
-            flow: "Sandbox"
-            minio: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -219,7 +186,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        lane: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -267,7 +234,7 @@ jobs:
           }
       - run: dotnet restore tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj
       - run: dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --no-incremental
-      - if: matrix.lane == 1 || matrix.lane == 7
+      - if: matrix.lane <= 3 || matrix.lane == 7
         uses: ./.github/actions/pinned-minio
       - name: Wait for SQL Server readiness
         shell: pwsh
@@ -289,7 +256,7 @@ jobs:
           docker logs roadguard-ci-sqlserver
           throw 'SQL Server readiness timeout after 3 minutes.'
       - name: Prepare export crash-recovery worker
-        if: matrix.lane == 1
+        if: matrix.lane <= 3
         shell: pwsh
         run: |
           dotnet build tools/RoadGuardSystem.ExportTestWorker/RoadGuardSystem.ExportTestWorker.csproj --nologo

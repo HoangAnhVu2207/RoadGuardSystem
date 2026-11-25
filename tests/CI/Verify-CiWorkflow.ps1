@@ -726,8 +726,8 @@ if (-not $integrationMatch.Success) {
 }
 
 foreach ($spec in @(
-    @{ Job = 'api'; Matrix = 'api_lane'; Check = 'API tests'; Count = 20; Verifier = 'Verify-ApiLanes.ps1'; Prefix = 'api' },
-    @{ Job = 'integration'; Matrix = 'integration_lane'; Check = 'SQL integration tests'; Count = 20; Verifier = 'Verify-SqlLanes.ps1'; Prefix = 'integration' }
+    @{ Job = 'api'; Matrix = 'api_lane'; Check = 'API tests'; Count = 9; Verifier = 'Verify-ApiLanes.ps1'; Prefix = 'api' },
+    @{ Job = 'integration'; Matrix = 'integration_lane'; Check = 'SQL integration tests'; Count = 9; Verifier = 'Verify-SqlLanes.ps1'; Prefix = 'integration' }
 )) {
     $matrix = [regex]::Match($ciContent, "(?ms)^ {2}$($spec.Matrix):\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)").Groups['body'].Value
     $job = [regex]::Match($ciContent, "(?ms)^ {2}$($spec.Job):\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)").Groups['body'].Value

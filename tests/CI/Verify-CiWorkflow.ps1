@@ -705,9 +705,9 @@ if (-not $integrationMatch.Success) {
     $integrationTokens = @(
         "Generate ephemeral SQL credential",
         "Start SQL Server container",
-        "Wait for SQL Server readiness",
         "dotnet restore",
         "dotnet build",
+        "Wait for SQL Server readiness",
         "Run integration tests",
         "Validate Seeder",
         "Cleanup SQL Server container and credential"
@@ -725,16 +725,29 @@ if (-not $integrationMatch.Success) {
     }
 }
 
-$aggregateMatch = [regex]::Match(
-    $ciContent,
-    '(?ms)^ {2}integration:\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)')
-if (-not $aggregateMatch.Success -or
-    $aggregateMatch.Groups['body'].Value -notmatch 'needs:\s*\[integration_lane\]' -or
-    $aggregateMatch.Groups['body'].Value -notmatch 'Verify-SqlLanes\.ps1' -or
-    $aggregateMatch.Groups['body'].Value -notmatch 'needs\.integration_lane\.result.*success') {
-    $errors += 'The required SQL integration tests check must fail on unsuccessful lanes and reconcile executed identities.'
+foreach ($spec in @(
+    @{ Job = 'api'; Matrix = 'api_lane'; Check = 'API tests'; Count = 12; Verifier = 'Verify-ApiLanes.ps1'; Prefix = 'api' },
+    @{ Job = 'integration'; Matrix = 'integration_lane'; Check = 'SQL integration tests'; Count = 10; Verifier = 'Verify-SqlLanes.ps1'; Prefix = 'integration' }
+)) {
+    $matrix = [regex]::Match($ciContent, "(?ms)^ {2}$($spec.Matrix):\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)").Groups['body'].Value
+    $job = [regex]::Match($ciContent, "(?ms)^ {2}$($spec.Job):\s*\r?\n(?<body>.*?)(?=^ {2}\S|\z)").Groups['body'].Value
+    $laneIds = if ($spec.Job -eq 'api') {
+        [regex]::Matches($matrix, '(?m)^\s*- lane: (?<id>\d+)\s*$') | ForEach-Object { [int]$_.Groups['id'].Value }
+    } elseif ($matrix -match '(?m)^\s*lane: \[([0-9, ]+)\]') {
+        $Matches[1] -split ',' | ForEach-Object { [int]$_ }
+    }
+    if (@($laneIds).Count -ne $spec.Count -or @(Compare-Object (1..$spec.Count) @($laneIds)).Count -ne 0 -or
+        $matrix -notmatch '(?m)^\s+fail-fast: false\s*$' -or
+        $matrix -notmatch "(?ms)if:\s*always\(\).*?name:\s*$($spec.Prefix)-results-lane-.*?if-no-files-found:\s*error") {
+        $errors += "The $($spec.Matrix) job needs all $($spec.Count) lanes, fail-fast disabled and required TRX uploads."
+    }
+    if ($job -notmatch "(?m)^ {4}name: $($spec.Check)\s*$" -or
+        $job -notmatch "needs:\s*\[$($spec.Matrix)\]" -or $job -notmatch '(?m)^ {4}if: always\(\)' -or
+        $job -notmatch [regex]::Escape($spec.Verifier) -or
+        $job -notmatch "needs\.$($spec.Matrix)\.result.*success") {
+        $errors += "The $($spec.Check) check must always require successful lanes and reconcile executed identities."
+    }
 }
-
 if ($ciContent -notmatch 'group:\s*\$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}' -or
     $ciContent -notmatch 'cancel-in-progress:\s*true') {
     $errors += 'Cancel obsolete runs only within the same workflow and branch/PR context.'

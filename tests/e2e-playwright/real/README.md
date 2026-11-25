@@ -50,12 +50,17 @@ $env:E2E_REAL_MODE = 'preflight'
 npm exec -- playwright test --config=real/playwright.config.ts server.spec.ts
 ```
 
+`preflight` chỉ đọc BE. Nếu thiếu target, clip hoặc endpoint thì báo `NOT_RUN` trong receipt và không tự chọn project khác.
+
 ## 4. Upload và theo dõi xử lý AI
 
 Sau khi preflight thành công, nhập origin HTTPS đã được xác nhận cho signed upload từ mạng thử nghiệm. Origin gồm scheme, hostname và port nếu có. Lấy giá trị từ cấu hình triển khai được duyệt. Nếu server chỉ ký URL MinIO nội bộ, test ngoài LAN dừng ở điều kiện truy cập storage và cần báo lại trước khi chạy video.
 
 ```powershell
 $env:E2E_STORAGE_ORIGIN = Read-Host 'Origin HTTPS cua signed upload (khong nhap signed URL)'
+$env:E2E_KENH_DONG_VIDEO = Read-Host 'Duong dan tuyet doi MP4 Kenh Dong'
+$env:E2E_DUONG_SO_2_VIDEO = Read-Host 'Duong dan tuyet doi MP4 Duong so 2'
+$env:E2E_PROTECTED_PROJECT_IDS_FILE = Read-Host 'File ngoai repo chua ID cac project cu, moi dong mot GUID'
 $env:E2E_REAL_MODE = 'real'
 $env:E2E_ALLOW_MUTATION = 'true'
 try {
@@ -65,7 +70,7 @@ try {
 }
 ```
 
-Lệnh mặc định dùng `D:\Project BE\Videotest\1123.mp4` cho Kênh Đông và `D:\Project BE\Videotest\11234.mp4` cho Đường số 2. Mỗi dataset thành công chuyển task sang `SUBMITTED`. Nếu lỗi giữa chừng, dùng kết quả để kiểm tra trạng thái trước khi chạy lại.
+Không có đường dẫn clip mặc định. Mỗi dataset thành công chuyển task sang `SUBMITTED`. Nếu lỗi giữa chừng, dùng kết quả để kiểm tra trạng thái trước khi chạy lại. File bảo vệ phải liệt kê ID của mọi project cũ, không được đặt trong repository.
 
 Đọc báo cáo mới nhất và xóa biến chứa thông tin đăng nhập khỏi PowerShell sau khi chạy xong.
 

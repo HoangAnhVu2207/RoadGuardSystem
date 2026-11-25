@@ -3,12 +3,20 @@ import { createServer } from 'node:http';
 import { expect, test } from '@playwright/test';
 import { Api, type Event, Session } from './api.js';
 import { assertMutation, byteRange, configuredOrigin, requireStorageUrl, telemetryEvidence, workProgress } from './contract.js';
+import { assertWritableProject } from './video.js';
 
 test('only the explicit mutation flag permits the real run', () => {
   for (const value of [undefined, '1', 'TRUE', 'false']) {
     expect(() => assertMutation(value)).toThrow('mutation_not_enabled');
   }
   expect(() => assertMutation('true')).not.toThrow();
+});
+
+test('real writes reject projects listed by the external protection manifest', () => {
+  const protectedIds = new Set(['11111111-1111-1111-1111-111111111111']);
+  expect(() => assertWritableProject('11111111-1111-1111-1111-111111111111', protectedIds))
+    .toThrow('protected_project_write_blocked');
+  expect(() => assertWritableProject('22222222-2222-2222-2222-222222222222', protectedIds)).not.toThrow();
 });
 
 test('only the configured TLS storage origin receives video bytes', () => {

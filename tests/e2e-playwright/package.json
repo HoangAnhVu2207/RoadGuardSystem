@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:smoke": "playwright test specs/00-preflight.spec.ts specs/08-security-regression.spec.ts --project=public-api",
-    "test:public": "playwright test --project=public-api",
-    "test:contract": "playwright test --project=contract"
+    "test:smoke": "playwright test --config=real/playwright.config.ts real/contract.spec.ts",
+    "test:public": "playwright test --config=real/playwright.config.ts real/server.spec.ts",
+    "test:contract": "playwright test --config=real/playwright.config.ts real/contract.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

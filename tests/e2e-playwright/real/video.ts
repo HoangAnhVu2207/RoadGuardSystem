@@ -1,15 +1,15 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import { isAbsolute } from 'node:path';
+import { readFile, stat } from 'node:fs/promises';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { etag, idempotency, safeCode, type RecordEvent, type Session } from './api.js';
 import { byteRange, check, CheckError, guid, requireStorageUrl, telemetryEvidence, workProgress } from './contract.js';
 
 export const clips = [
-  { key: 'KENH_DONG', path: 'D:/Project BE/Videotest/1123.mp4' },
-  { key: 'DUONG_SO_2', path: 'D:/Project BE/Videotest/11234.mp4' },
+  { key: 'KENH_DONG' },
+  { key: 'DUONG_SO_2' },
 ] as const;
 
 type Clip = (typeof clips)[number];
@@ -19,6 +19,39 @@ type Task = { id: string; projectId: string; operatorId: string; status: string;
 type Target = { taskId: string; projectId: string; deviceId: string; recordedAt: string };
 type Upload = { id: string; fileId: string; status: string; partSizeBytes: number };
 type Work = { sourceVideoFileId: string; workId: string; jobId: string; currentAttemptId: string; state: string; errorCode?: string };
+
+const repositoryRoot = resolve(import.meta.dirname, '../../..');
+
+function externalPath(value: string | undefined, code: string): string {
+  const source = value;
+  if (typeof source !== 'string' || !isAbsolute(source)) throw new CheckError(code);
+  const candidate = resolve(source);
+  const fromRepository = relative(repositoryRoot, candidate);
+  check(fromRepository === '' || (fromRepository !== '..' && !fromRepository.startsWith(`..${'/'}`) && !fromRepository.startsWith(`..${'\\'}`)), code);
+  return candidate;
+}
+
+export function videoPathFromEnv(clip: Clip): string {
+  return externalPath(process.env[`E2E_${clip.key}_VIDEO`], 'missing_video_path');
+}
+
+export async function protectedProjectIdsFromEnv(): Promise<Set<string>> {
+  const path = externalPath(process.env.E2E_PROTECTED_PROJECT_IDS_FILE, 'missing_protected_project_file');
+  const content = await readFile(path, 'utf8').catch(() => { throw new CheckError('protected_project_file_unreadable'); });
+  const ids = new Set<string>();
+  for (const [index, raw] of content.split(/\r?\n/).entries()) {
+    const value = raw.replace(/#.*/, '').trim();
+    if (!value) continue;
+    check(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value), `invalid_protected_project_id_${index + 1}`);
+    ids.add(value.toLowerCase());
+  }
+  check(ids.size > 0, 'protected_project_file_empty');
+  return ids;
+}
+
+export function assertWritableProject(projectId: string, protectedProjectIds: Set<string>): void {
+  check(!protectedProjectIds.has(projectId.toLowerCase()), 'protected_project_write_blocked');
+}
 
 export function targetFromEnv(clip: Clip): Target {
   const prefix = `E2E_${clip.key}`;
@@ -34,8 +67,8 @@ export function targetFromEnv(clip: Clip): Target {
 }
 
 export async function inspectVideo(clip: Clip, record: RecordEvent): Promise<Video> {
-  const path = process.env[`E2E_${clip.key}_VIDEO`] ?? clip.path;
-  check(isAbsolute(path) && /\.mp4$/i.test(path), 'expected_absolute_mp4_path');
+  const path = videoPathFromEnv(clip);
+  check(/\.mp4$/i.test(path), 'expected_mp4_path');
   try {
     const before = await stat(path);
     check(before.isFile() && before.size > 0, 'empty_or_invalid_video');

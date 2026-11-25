@@ -4,7 +4,15 @@ import { resolve } from 'node:path';
 import { test } from '@playwright/test';
 import { Api, type Event, profileRoles, Session } from './api.js';
 import { assertMutation, check, CheckError, configuredOrigin } from './contract.js';
-import { clips, inspectVideo, preflightTarget, runVideo, targetFromEnv } from './video.js';
+import {
+  assertWritableProject,
+  clips,
+  inspectVideo,
+  preflightTarget,
+  protectedProjectIdsFromEnv,
+  runVideo,
+  targetFromEnv,
+} from './video.js';
 
 // Run role smoke before the Operator retains their session for video work.
 const roles = ['SUPERVISOR', 'PM', 'REPORTER', 'CREW', 'OPERATOR'] as const satisfies readonly (keyof typeof profileRoles)[];
@@ -19,6 +27,7 @@ test('RoadGuard FE-shaped API session and video workflow', async () => {
   let release: string | undefined;
   let host: string | undefined;
   let failure: string | undefined;
+  let notRunReason: string | undefined;
   const record = (event: Event) => events.push({ scope, ...event });
 
   try {
@@ -34,12 +43,6 @@ test('RoadGuard FE-shaped API session and video workflow', async () => {
     if (mode === 'real') assertMutation(process.env.E2E_ALLOW_MUTATION);
 
     const videos = [];
-    if (mode === 'dry-run' || mode === 'real') {
-      for (const clip of clips) {
-        scope = clip.key;
-        videos.push(await inspectVideo(clip, record));
-      }
-    }
     scope = 'run';
     if (mode === 'dry-run' && !process.env.E2E_BASE_URL) {
       record({ step: 'api_origin', status: 'NOT_CONFIGURED' });
@@ -48,12 +51,18 @@ test('RoadGuard FE-shaped API session and video workflow', async () => {
       host = new URL(origin).host;
     }
     const storageEnv = process.env.E2E_STORAGE_ORIGIN;
-    const storage = mode === 'real' || storageEnv ? configuredOrigin(storageEnv, 'storage') : undefined;
+    const storage = storageEnv ? configuredOrigin(storageEnv, 'storage') : undefined;
     if (mode === 'dry-run') {
-      if (process.env.E2E_KENH_DONG_TASK_ID || process.env.E2E_DUONG_SO_2_TASK_ID) {
-        const [first, second] = clips.map(targetFromEnv);
-        check(first.taskId !== second.taskId && first.projectId !== second.projectId, 'targets_must_be_distinct');
+      for (const clip of clips) {
+        scope = clip.key;
+        videos.push(await inspectVideo(clip, record));
       }
+      const hasTargetInput = clips.every(clip => process.env[`E2E_${clip.key}_PROJECT_ID`] ||
+        process.env[`E2E_${clip.key}_TASK_ID`] || process.env[`E2E_${clip.key}_DEVICE_ID`] ||
+        process.env[`E2E_${clip.key}_RECORDED_AT`]);
+      check(hasTargetInput, 'target_not_configured');
+      const [first, second] = clips.map(targetFromEnv);
+      check(first.taskId !== second.taskId && first.projectId !== second.projectId, 'targets_must_be_distinct');
       record({ step: 'local_validation', status: 'PASS' });
       return;
     }
@@ -76,6 +85,16 @@ test('RoadGuard FE-shaped API session and video workflow', async () => {
     check(supplied.length > 0, 'missing_credentials');
     if (withVideo) check(credentials.at(-1)?.email, 'operator_credentials_required');
     check(new Set(supplied.map(entry => entry.email?.toLowerCase())).size === supplied.length, 'duplicate_role_credentials');
+
+    if (mode === 'real') {
+      const protectedProjectIds = await protectedProjectIdsFromEnv();
+      for (const target of targets) assertWritableProject(target.projectId, protectedProjectIds);
+      for (const clip of clips) {
+        scope = clip.key;
+        videos.push(await inspectVideo(clip, record));
+      }
+      check(storage, 'missing_storage_origin');
+    }
 
     const origin = `https://${host}`;
     const anonymous = await Api.connect(origin, record);
@@ -134,12 +153,24 @@ test('RoadGuard FE-shaped API session and video workflow', async () => {
       }
     }
   } catch (error) {
-    failure = error instanceof CheckError ? error.message : 'unexpected_runner_error';
-    record({ step: 'failure', status: 'FAIL', code: failure });
+    const code = error instanceof CheckError ? error.message : 'unexpected_runner_error';
+    if (['missing_video_path', 'local_video_read_failed', 'empty_or_invalid_video',
+      'unexpected_mp4_header', 'video_changed_during_hash', 'protected_project_file_unreadable',
+      'missing_protected_project_file', 'protected_project_file_empty', 'missing_storage_origin',
+      'invalid_api_origin', 'target_not_configured'].includes(code) ||
+      code.startsWith('invalid_protected_project_id_') ||
+      ['expected_id', 'invalid_recorded_at'].includes(code)) {
+      notRunReason = code;
+      record({ step: 'not_run', status: 'NOT_RUN', code });
+    } else {
+      failure = code;
+      record({ step: 'failure', status: 'FAIL', code: failure });
+    }
   } finally {
     const report = {
       runId, mode: ['dry-run', 'auth', 'preflight', 'real'].includes(mode) ? mode : 'INVALID',
-      host, expectedRelease: release, status: failure ? 'FAIL' : 'PASS', events,
+      host, expectedRelease: release, status: failure ? 'FAIL' : notRunReason ? 'NOT_RUN' : 'PASS',
+      notRunReason, events,
     };
     try {
       await writeFile(resolve(results, `real-${runId}.json`), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
@@ -147,7 +178,7 @@ test('RoadGuard FE-shaped API session and video workflow', async () => {
       process.stdout.write(`RoadGuard E2E ${runId} FAIL report_write_failed\n`);
       throw new Error('report_write_failed');
     }
-    process.stdout.write(`RoadGuard E2E ${runId} ${failure ? `FAIL ${failure}` : 'PASS'}\n`);
+    process.stdout.write(`RoadGuard E2E ${runId} ${failure ? `FAIL ${failure}` : notRunReason ? `NOT_RUN ${notRunReason}` : 'PASS'}\n`);
   }
   if (failure) throw new Error(failure);
 });

@@ -1,5 +1,6 @@
 using System.Data;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Processing.Worker;
@@ -11,6 +12,13 @@ namespace RoadGuardSystem.Repositories.Implementations.Processing;
 /// <summary>Current authority, source proof and revision CAS are checked inside one serializable work lock.</summary>
 public sealed class AiVideoTelemetryRepository(RoadGuardDbContext db, TimeProvider clock) : IAiVideoTelemetryRepository
 {
+    private static readonly JsonSerializerOptions PairJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        NumberHandling = JsonNumberHandling.Strict
+    };
+
+    private readonly record struct StoredPair([property: JsonRequired] Guid VideoFileId, Guid? TelemetryFileId, long? TimeOffsetMilliseconds);
+
     public Task<AiVideoWorkPage> DiscoverAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid datasetId, int offset, int limit, CancellationToken ct)
         => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
     {
@@ -188,13 +196,15 @@ public sealed class AiVideoTelemetryRepository(RoadGuardDbContext db, TimeProvid
         Guid telemetryId; long offset;
         try
         {
-            using var pairs = JsonDocument.Parse(dataset.PairsManifest);
-            var matches = pairs.RootElement.EnumerateArray().Where(p => p.GetProperty("videoFileId").GetGuid() == work.SourceVideoFileId).ToArray();
+            var pairs = JsonSerializer.Deserialize<StoredPair[]>(dataset.PairsManifest, PairJsonOptions)
+                ?? throw new JsonException();
+            var matches = pairs.Where(p => p.VideoFileId == work.SourceVideoFileId).ToArray();
             if (matches.Length == 0) return null;
             if (matches.Length != 1) throw new InvalidOperationException();
             var pair = matches[0];
-            if (!pair.TryGetProperty("telemetryFileId", out var id) || id.ValueKind == JsonValueKind.Null) return null;
-            telemetryId = id.GetGuid(); offset = pair.GetProperty("timeOffsetMilliseconds").GetInt64();
+            if (pair.TelemetryFileId is not { } id) return null;
+            telemetryId = id;
+            offset = pair.TimeOffsetMilliseconds ?? throw new InvalidOperationException();
             if (telemetryId == Guid.Empty || offset is < -86400000 or > 86400000) throw new InvalidOperationException();
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or FormatException)

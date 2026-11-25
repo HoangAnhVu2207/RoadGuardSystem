@@ -228,9 +228,11 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
     [InlineData("scope")]
     [InlineData("unverified")]
     [InlineData("checksum")]
+    [InlineData("submission-format")]
     public async Task PairedTelemetryReadsVerifiedOffsetAndRejectsBrokenUploadScope(string mutation)
     {
-        var seed = await SeedAsync(paired: true, invalidPairedScope: mutation == "scope"); var source = seed.Sources[0];
+        var seed = await SeedAsync(paired: true, invalidPairedScope: mutation == "scope",
+            serializeSubmissionPairs: mutation == "submission-format"); var source = seed.Sources[0];
         await using var db = _fixture.CreateDbContext(); var transport = new AiVideoWorkRepository(db);
         var id = await transport.PrepareAsync(source, Prepared(source, seed.ModelId), seed.Map, Ct);
         var work = (await transport.ClaimAsync("worker", DateTimeOffset.UtcNow.AddSeconds(1), TimeSpan.FromMinutes(1), Ct))!;
@@ -249,6 +251,7 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         scope.PairedSrt.Should().NotBeNull(); scope.PairedSrt!.OffsetMs.Should().Be(-250);
         var fileId = scope.PairedSrt.File.FileId;
         scope.PairedSrt.File.Sha256.Should().Be(new string('f', 64)); scope.PairedSrt.File.Bytes.Should().Be(30);
+        if (mutation == "submission-format") return;
         if (mutation == "unverified") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET Status={(byte)UploadSessionStatus.Uploading} WHERE FileId={fileId}");
         if (mutation == "checksum") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET ExpectedChecksumSha256={new string('e', 64)} WHERE FileId={fileId}");
         await Expect(409, () => repo.ReadScopeAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, id, Ct));
@@ -275,7 +278,8 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
     }
 
     private sealed record Seed(AiVideoSource[] Sources, Guid ModelId, Dictionary<string, string> Map);
-    private async Task<Seed> SeedAsync(int count = 1, bool intent = true, bool malformed = false, bool paired = false, bool invalidPairedScope = false)
+    private async Task<Seed> SeedAsync(int count = 1, bool intent = true, bool malformed = false, bool paired = false,
+        bool invalidPairedScope = false, bool serializeSubmissionPairs = false)
     {
         await using var db = _fixture.CreateDbContext();
         var now = DateTimeOffset.UtcNow;
@@ -294,7 +298,14 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         if (telemetry is not null) manifest = JsonSerializer.Serialize(files.Append(telemetry).Select(f => new { fileId = f.Id, checksumSha256 = f.Checksum, sizeBytes = f.SizeBytes, purpose = f.Id == telemetry.Id ? "TELEMETRY" : "SURVEY_VIDEO" }));
         if (malformed) manifest = JsonSerializer.Serialize(new object[] { new { purpose = "SURVEY_VIDEO", fileId = "invalid" }, new { purpose = "SURVEY_VIDEO", fileId = files[1].Id.ToString("D"), checksumSha256 = files[1].Checksum, sizeBytes = "invalid" }, new { purpose = "SURVEY_VIDEO", fileId = files[1].Id.ToString("D"), checksumSha256 = files[1].Checksum, sizeBytes = files[1].SizeBytes } });
         var dataset = SurveyDataVersion.Create(Guid.NewGuid(), survey.Id, 1, SurveyDataVersionStatus.ServerConfirmed, SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend, manifest);
-        if (telemetry is not null) dataset.SetSubmissionProvenance(owner, JsonSerializer.Serialize(new[] { new { videoFileId = files[0].Id, telemetryFileId = telemetry.Id, timeOffsetMilliseconds = -250 } }));
+        if (telemetry is not null)
+        {
+            // SurveyV2Service uses default JSON serialization for the persisted pairs.
+            var pairs = serializeSubmissionPairs
+                ? JsonSerializer.Serialize(new[] { new { VideoFileId = files[0].Id, TelemetryFileId = telemetry.Id, TimeOffsetMilliseconds = -250 } })
+                : JsonSerializer.Serialize(new[] { new { videoFileId = files[0].Id, telemetryFileId = telemetry.Id, timeOffsetMilliseconds = -250 } });
+            dataset.SetSubmissionProvenance(owner, pairs);
+        }
         var model = AIModelVersion.Create(Guid.NewGuid(), "FT95", Guid.NewGuid().ToString("N"), "fixture/model", null, null, AIModelVersionStatus.Released, null, null);
         var map = Labels.Select((label, i) => (label, code: $"FT95_{i}")).ToDictionary(x => x.label, x => x.code);
         db.AddRange(project, road, version, request, survey, dataset, model); db.Add(SurveyAssignment.Create(Guid.NewGuid(), request.Id, owner, owner, now, now, null, null, null, null)); db.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = owner, RoleCode = UserRoleCode.DroneOperator, ValidFrom = DateOnly.FromDateTime(now.UtcDateTime), Status = ProjectMemberStatus.Active });

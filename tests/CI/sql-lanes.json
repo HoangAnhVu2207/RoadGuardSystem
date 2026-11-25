@@ -180,6 +180,7 @@
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoTelemetryRepositoryTests.DiscoveryPagesPendingAndFailedVideosWithoutDetectionsAndChecksCurrentAssignment",
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoTelemetryRepositoryTests.PairedTelemetryReadsVerifiedOffsetAndRejectsBrokenUploadScope(mutation: \"checksum\")",
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoTelemetryRepositoryTests.PairedTelemetryReadsVerifiedOffsetAndRejectsBrokenUploadScope(mutation: \"scope\")",
+        "RoadGuardSystem.IntegrationTests.Processing.AiVideoTelemetryRepositoryTests.PairedTelemetryReadsVerifiedOffsetAndRejectsBrokenUploadScope(mutation: \"submission-format\")",
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoTelemetryRepositoryTests.PairedTelemetryReadsVerifiedOffsetAndRejectsBrokenUploadScope(mutation: \"unverified\")",
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoTelemetryRepositoryTests.ReadAllowsCurrentManagerAndSupervisorWhileWriteStaysOperatorOnly",
         "RoadGuardSystem.IntegrationTests.Processing.AiVideoTelemetryRepositoryTests.Telemetry_boundaries_support_the_configured_retry_strategy(operation: \"append\")",

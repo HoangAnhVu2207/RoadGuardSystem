@@ -88,7 +88,7 @@ public sealed partial class RepairWorkflowRepository
                     physical.FromMeters, physical.ToMeters, physical.OffsetFromMeters, physical.OffsetToMeters);
                 if (!RepairSafetyRepository.Within(scope, formal.Scope)) Deny(409, "safety_obligation_source_conflict");
                 var active = await db.Set<RepairObligation>().Include(x => x.Scope).Where(x => x.DefectId == item.DefectId &&
-                    x.Kind == RepairObligationKind.TemporarySafety && x.EffectiveResolutionDecisionId == null).ToArrayAsync(ct);
+                    x.Kind == RepairObligationKind.TemporarySafety && x.EffectiveResolutionDecisionId == null && x.SafetyResolutionId == null).ToArrayAsync(ct);
                 if (active.Any(x => scope.Compare(x.Scope) != RepairScopeComparison.Disjoint)) Deny(409, "active_scope_conflict");
                 var safety = RepairObligation.Create(Guid.NewGuid(), package.ProjectId, package.DefectId,
                     RepairObligationKind.TemporarySafety, command.Mandatory, scope);

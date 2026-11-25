@@ -213,9 +213,10 @@
     "20261117183505_WebPmCoordinationMetadata",
     "20261123093000_FieldTaskMeasurementDimensions",
     "20261123093100_InitialTemporarySafetyResponsibility",
-    "20261125053521_ReportMatchingLocationConfirmation"
+    "20261125053521_ReportMatchingLocationConfirmation",
+    "20261125072411_TemporarySafetyResolution"
   ],
-  "Signature": "DBF0A5123ACBF107AA515E3C217CF7012C362DDB5CFCE758FD88864C4F3FBA6E",
+  "Signature": "F8C5EDC1ABCAE0D596A4B2097C949C55005FD9998C3B67A0CA83EF97AAFBB699",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",

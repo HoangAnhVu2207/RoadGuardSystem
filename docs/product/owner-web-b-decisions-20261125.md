@@ -3,6 +3,21 @@
 Status: TARGET_CONFIRMED. Source: owner's explicit reply in the assigned BE task
 on 2026-11-25; this is a new decision, not an assertion about historical specs.
 
+Completion assignment, also 2026-11-25 (owner's subsequent attached BE request):
+when no suitable safety resolve command exists, authorize a minimal explicit PM
+confirmation under the safety obligation's current responsibility, with recorded
+conditions/checklist/evidence, actor/time/reason/version, concurrency and receipt.
+Formal completion/transfer must not resolve safety; no automatic/bulk resolve,
+reopen or extra Supervisor decision authority. Preserve selection/history and
+existing production guards. Implement supported CRS/geometry distances using
+real source metadata, keep uncertainty unknown without compatible facts, and
+investigate crash139 with actual logs rather than infer a cause. Local runtime
+update and normal push huy-review / fast-forward develop are authorized; preserve
+WIP, volumes, backup and old image, with no shared seed/reset or external deploy.
+These are TARGET_CONFIRMED scope decisions. The nullable audit FK, grid-distance
+method and exact DTOs are implementation choices documented in the completion
+spec/handoff; passing tests do not themselves create business authority.
+
 * B1: preserve every evidence's original location/source/time/accuracy. Never
   select the latest image, average positions, rank Capture/Exif/Manual by assumed
   trust, snap off-route points, or invent a radius/weight/confidence. PM with

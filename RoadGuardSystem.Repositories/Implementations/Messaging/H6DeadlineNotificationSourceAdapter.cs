@@ -190,7 +190,7 @@ public sealed class H6DeadlineNotificationSourceAdapter(RoadGuardDbContext db, T
         if (measure is null || monitoring is null ||
             !await db.Set<RepairObligation>().AsNoTracking().AnyAsync(row => row.Id == monitoring.SafetyObligationId &&
                 row.ProjectId == sourceClock.ProjectId && row.DefectId == measure.DefectId &&
-                row.Kind == RepairObligationKind.TemporarySafety && row.EffectiveResolutionDecisionId == null, token))
+                row.Kind == RepairObligationKind.TemporarySafety && row.EffectiveResolutionDecisionId == null && row.SafetyResolutionId == null, token))
             return new("REJECTED", "notification_source_relation_invalid");
         var actionKind = sourceClock.Kind == DeadlineClockKind.FirstSafetyCheck ? "INSTALLED" : "WARNING";
         var action = await db.Set<RepairSafetyActionSource>().AsNoTracking().SingleOrDefaultAsync(row =>

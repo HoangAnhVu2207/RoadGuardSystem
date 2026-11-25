@@ -66,7 +66,7 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                     .Select(id => id!.Value).ToArray();
                 var targets = await repository.MatchTargetsAsync(project, ct);
                 var distances = locations is not null && location?.Latitude is decimal latitude && location.Longitude is decimal longitude
-                    ? await locations.DistancesAsync(project, latitude, longitude, ct) : new Dictionary<Guid, double>();
+                    ? await locations.DistancesAsync(project, latitude, longitude, ct) : new Dictionary<Guid, CandidateSpatialDistance>();
                 var targetHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(
                     targets.OrderBy(target => target.DefectId).Select(target => new
                     {
@@ -75,7 +75,7 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                         target.RouteVersionId,
                         target.SegmentId,
                         target.LinkedReportIds,
-                        distanceMeters = distances.TryGetValue(target.DefectId, out var meters) ? meters : (double?)null
+                        spatial = distances.TryGetValue(target.DefectId, out var measured) ? measured : null
                     })))).ToLowerInvariant();
                 var offset = 0;
                 if (cursor is not null)
@@ -92,7 +92,7 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                 }
                 var matched = CandidateMatcher.Match(project, assigned, neighbors, targets.Select(target => new CandidateMatchFact(
                     target.DefectId, target.ProjectId, target.Version, target.SegmentId,
-                    distances.TryGetValue(target.DefectId, out var meters) ? meters : null,
+                    distances.TryGetValue(target.DefectId, out var measured) ? measured.Meters : null,
                     currentReport is not null && target.LinkedReportIds.Contains(sourceId))).ToArray(), expand,
                     metricGpsAvailable: location?.Latitude is not null,
                     unavailableLocationReason: currentReport?.Facts?.MatchingLocationStatus);
@@ -103,7 +103,10 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                     return new CandidateMatchItemDto(item.DefectId, item.Version, item.SegmentId,
                         item.PriorityGroup, item.DistanceMeters, (double?)location?.AccuracyMeters, item.ReasonCodes,
                         target.LinkedReportIds.Contains(sourceId) && currentReport is not null ? currentReport.Facts!.EvidenceIds : [],
-                        new(target.LinkedReportIds.Count));
+                        new(target.LinkedReportIds.Count),
+                        currentReport is null ? null : distances.GetValueOrDefault(item.DefectId)?.Status ?? currentReport.Facts!.MatchingLocationStatus,
+                        currentReport is null ? null : distances.GetValueOrDefault(item.DefectId)?.Method,
+                        currentReport is null ? null : location?.AccuracyMeters is null ? "SOURCE_UNCERTAINTY_UNAVAILABLE" : "TARGET_UNCERTAINTY_UNAVAILABLE");
                 }).ToArray();
                 var next = offset + page.Length < matched.Count
                     ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new Cursor(project, sourceKind, sourceId,
@@ -111,7 +114,7 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                         expand, targetHash, offset + page.Length))) : null;
                 return new CandidateMatchResult(200, Page: new(new(sourceKind, sourceId,
                     sourceVersion), geometryVersion,
-                    currentReport is null ? "huy01-1" : "report-confirmed-1", page, next,
+                    currentReport is null ? "huy01-1" : "report-confirmed-2", page, next,
                     currentReport?.Facts?.MatchingLocationStatus, currentReport?.Facts?.EvidenceIds));
             }, token);
         }

@@ -33,7 +33,7 @@ public sealed class ReportMatchingLocationMigrationTests
         Assert.Empty(await db.Set<ReportMatchingLocation>().ToArrayAsync());
         Assert.False(db.Database.HasPendingModelChanges());
         var schema = await SandboxSeedGuard.ReadSchemaAsync(db);
-        Assert.Equal("20261125053521_ReportMatchingLocationConfirmation", schema.Migrations[^1]);
+        Assert.Equal("20261125072411_TemporarySafetyResolution", schema.Migrations[^1]);
         Assert.Contains("dbo.ReportMatchingLocations", schema.Tables);
         // Empty downgrade is supported without touching legacy data.
         await migrator.MigrateAsync(previous); await migrator.MigrateAsync();
@@ -50,6 +50,9 @@ public sealed class ReportMatchingLocationMigrationTests
         var downgrade = await Assert.ThrowsAsync<SqlException>(() => migrator.MigrateAsync(previous));
         Assert.Equal(51142, downgrade.Number);
         Assert.Equal(1, await db.Set<ReportMatchingLocation>().CountAsync());
+        // EF commits each newer Down separately before reaching this historical fence.
+        // Reapply the empty additive safety migration and verify the final head.
+        await migrator.MigrateAsync();
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
         Assert.Equal(before, await db.Reports.CountAsync());
     }

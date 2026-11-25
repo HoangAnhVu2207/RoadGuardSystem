@@ -19,18 +19,21 @@ namespace RoadGuardSystem.ApiTests.Repairs;
 
 public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerFixture sql) : IClassFixture<AuthenticationSqlServerFixture>
 {
+    private static readonly byte[] SourcePng = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=");
     [Fact]
     public async Task FieldReuseHistoryDiscoversImmutableProvenanceWithoutChangingFileOwnership()
     {
         await using var db = sql.CreateDbContext();
-        var source = await GenuineProtectedSource.Seed(db, sql);
+        var source = await GenuineProtectedSource.Seed(db, sql, SourcePng);
         var link = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyDefectSourceLink>().SingleAsync(row => row.DefectId == source.Defect && row.EndedAt == null);
         var report = await db.Reports.AsNoTracking().SingleAsync(row => row.Id == link.ReportSourceId);
         var evidence = Assert.Single(report.OriginalEvidence);
         var file = await db.Files.AsNoTracking().SingleAsync(row => row.Id == evidence.FileId);
         var version = Convert.ToBase64String(await db.Defects.Where(row => row.Id == source.Defect).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync());
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
-        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new ScopedReadStorage()); });
+        await using var minio = await OwnedWebMinio.StartAsync(createBucket: true);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString,
+            allowExternalStorage: true, configureTestServices: minio.Configure);
+        await OwnedWebMinio.WriteVerifiedObject(factory.Services, file.StorageUri, file.MimeType, SourcePng);
         async Task<HttpClient> Web(Guid id) => await WebCookieTestClient.Login(factory, await db.Users.Where(row => row.Id == id).Select(row => row.Email!).SingleAsync());
         using var pm = await Web(source.Pm); using var crew = await Web(source.Crew);
         using var task = await Post(pm, $"/api/v1/projects/{source.Project}/field-inspection-tasks", new
@@ -64,7 +67,7 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         Assert.Equal(evidence.FileVersion, fact.GetProperty("provenance").GetProperty("fileVersion").GetString());
         Assert.Equal(input.reason, fact.GetProperty("reason").GetString());
         using var bytes = await reloaded.GetAsync(path + $"/evidence/{file.Id}/content");
-        Assert.Equal(HttpStatusCode.OK, bytes.StatusCode); Assert.Equal(new byte[] { 1, 2, 3, 4 }, await bytes.Content.ReadAsByteArrayAsync());
+        Assert.Equal(HttpStatusCode.OK, bytes.StatusCode); Assert.Equal(SourcePng, await bytes.Content.ReadAsByteArrayAsync());
         var crewHistory = await Body(await crew.GetAsync(path + "/history"));
         Assert.False(crewHistory.TryGetProperty("details", out _));
         using var wrongSource = await Post(pm, path + "/evidence-reuse", input with { sourceEvidenceId = Guid.NewGuid() }, task.Headers.ETag!.Tag);
@@ -77,7 +80,7 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
     public async Task ReporterAndSurveyAssignmentsPreserveOriginAfterAcceptedTransfer(bool surveySource)
     {
         await using var db = sql.CreateDbContext();
-        var source = await GenuineProtectedSource.Seed(db, sql);
+        var source = await GenuineProtectedSource.Seed(db, sql, surveySource ? null : SourcePng);
         var now = DateTimeOffset.UtcNow;
         var defectId = source.Defect; Guid? surveyId = null; Guid? datasetId = null; Guid? surveyTaskId = null;
         if (surveySource)
@@ -105,12 +108,21 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         db.AddRange(receiver, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), receiver.Id, receiverPm.Id, new(2000, 1, 1)),
             new ProjectMember { Id = Guid.NewGuid(), ProjectId = receiver.Id, UserId = receiverCrew.Id, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) });
         await db.SaveChangesAsync();
+        await using var minio = surveySource ? null : await OwnedWebMinio.StartAsync(createBucket: true);
         using var logs = new InMemoryLogProvider();
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs,
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs, allowExternalStorage: !surveySource,
             configureTestServices: services =>
             {
-                services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new ScopedReadStorage());
+                if (minio is not null) minio.Configure(services);
+                else { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new ScopedReadStorage()); }
             });
+        if (minio is not null)
+        {
+            var reportId = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyDefectSourceLink>().Where(l => l.DefectId == source.Defect && l.EndedAt == null).Select(l => l.ReportSourceId).SingleAsync();
+            var originalFile = await db.Reports.Where(r => r.Id == reportId).SelectMany(r => r.OriginalEvidence).Select(e => e.FileId).SingleAsync();
+            var stored = await db.Files.SingleAsync(f => f.Id == originalFile);
+            await OwnedWebMinio.WriteVerifiedObject(factory.Services, stored.StorageUri, stored.MimeType, SourcePng);
+        }
         async Task<HttpClient> Web(Guid actor) => await WebCookieTestClient.Login(factory, await db.Users.Where(x => x.Id == actor).Select(x => x.Email!).SingleAsync());
         using var pm = await Web(source.Pm); using var sup = await Web(source.Supervisor); using var receivingPm = await Web(receiverPm.Id);
         using var crew = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = false });
@@ -229,7 +241,7 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
             retainedPhotoPath = Assert.Single(sourceDefect.GetProperty("evidence").EnumerateArray()).GetProperty("contentPath").GetString();
             using var sourcePhoto = await receivingPm.GetAsync(retainedPhotoPath);
             Assert.Equal(HttpStatusCode.OK, sourcePhoto.StatusCode);
-            Assert.Equal(new byte[] { 1, 2, 3, 4 }, await sourcePhoto.Content.ReadAsByteArrayAsync());
+            Assert.Equal(SourcePng, await sourcePhoto.Content.ReadAsByteArrayAsync());
             Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(retainedPhotoPath)).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await receivingPm.GetAsync(retainedPhotoPath!.Replace(second.Id.ToString(), first.Id.ToString(), StringComparison.Ordinal))).StatusCode);
         }

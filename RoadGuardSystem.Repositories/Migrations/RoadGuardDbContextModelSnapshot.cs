@@ -8329,6 +8329,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<Guid?>("SafetyResolutionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CurrentRepairItemId");
@@ -8344,6 +8347,8 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasIndex("PackageId");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("SafetyResolutionId");
 
                     b.ToTable("RepairObligations", null, t =>
                         {
@@ -14613,6 +14618,11 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Auditing.AuditLog", null)
+                        .WithMany()
+                        .HasForeignKey("SafetyResolutionId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.OwnsOne("RoadGuardSystem.BusinessObjects.Repairs.RepairActualScope", "Scope", b1 =>
                         {

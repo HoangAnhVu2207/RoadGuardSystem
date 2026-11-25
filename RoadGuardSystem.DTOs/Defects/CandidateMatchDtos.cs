@@ -5,7 +5,11 @@ public sealed record CandidateMatchHistoryDto(int SourceLinkCount);
 public sealed record CandidateMatchItemDto(Guid DefectId, string Version, Guid? SegmentId,
     int PriorityGroup, double? DistanceMeters, double? AccuracyMeters,
     IReadOnlyList<string> ReasonCodes, IReadOnlyList<Guid> EvidenceRefs,
-    CandidateMatchHistoryDto HistorySummary);
+    CandidateMatchHistoryDto HistorySummary,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? DistanceStatus = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? DistanceMethod = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? OverlapStatus = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] bool? AccuracyOverlap = null);
 public sealed record CandidateMatchPageDto(CandidateMatchSourceDto Source, string GeometryVersion,
     string AlgorithmVersion, IReadOnlyList<CandidateMatchItemDto> Items, string? NextCursor,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? MatchingLocationStatus = null,

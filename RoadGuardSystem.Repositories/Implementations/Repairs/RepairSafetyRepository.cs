@@ -17,7 +17,7 @@ using RoadGuardSystem.Repositories.Repairs;
 
 namespace RoadGuardSystem.Repositories.Implementations.Repairs;
 
-public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOperationService receipts,
+public sealed partial class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOperationService receipts,
     TimeProvider clock) : IRepairSafetyRepository
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -66,7 +66,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                                      monitoring.Measure.ResponsibleActorId == actor && monitoring.Measure.ProjectId == project &&
                                      monitoring.Measure.DefectId == work.DefectId && monitoring.FormalObligationId == work.ObligationId &&
                                      obligation.ProjectId == project && obligation.DefectId == work.DefectId &&
-                                     obligation.Kind == RepairObligationKind.TemporarySafety && obligation.EffectiveResolutionDecisionId == null
+                                     obligation.Kind == RepairObligationKind.TemporarySafety && obligation.EffectiveResolutionDecisionId == null && obligation.SafetyResolutionId == null
                                  select monitoring.MeasureId).Distinct().OrderBy(id => id).ToArrayAsync(token);
                 await tx.CommitAsync(token);
                 return new SafetyMeasureListResult(200, MeasureIds: ids);
@@ -85,7 +85,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
                 await Guard(actorId, role, projectId, packageId, itemId, measureId, false, cancellationToken);
                 var monitoring = await Monitoring(measureId, cancellationToken);
-                var fact = View(monitoring);
+                var fact = View(monitoring) with { Resolution = await Resolution(monitoring, cancellationToken) };
                 var links = role == UserRoleCode.RepairCrew
                     ? await EligibleEvidenceAsync(projectId, packageId, itemId, measureId, actorId, cancellationToken) : null;
                 var obligation = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope)
@@ -244,7 +244,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 new { schemaVersion = 1, command }, Json))).ToLowerInvariant();
             async Task GuardReceipt(CancellationToken ct)
             {
-                await Guard(actor, role, project, package, item, measure, true, ct);
+                await Guard(actor, role, project, package, item, measure, operation != ResolveOperation, ct);
                 var stored = await db.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(row =>
                     row.ActorUserId == actor && row.ProjectId == project && row.Operation == operation &&
                     row.IdempotencyKey == key, ct);
@@ -263,6 +263,9 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                             .AnyAsync(row => row.Id == stored.OperationId && row.MeasureId == measure, ct),
                         "h4.repair.safety.ack.v1" => await db.Set<RepairDangerAcknowledgement>().AsNoTracking()
                             .AnyAsync(row => row.Id == stored.OperationId && row.MonitoringId == measure, ct),
+                        ResolveOperation => await db.AuditLogs.AsNoTracking().AnyAsync(row =>
+                            row.Id == stored.OperationId && row.EventType == "repair_safety_resolved" &&
+                            row.Source == ResolveOperation && row.CorrelationId == measure, ct),
                         _ => false
                     };
                     if (!owned) Deny(403, "stored_receipt_access_forbidden");
@@ -340,7 +343,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 !await db.Set<RepairObligation>().AsNoTracking().AnyAsync(row => row.Id == monitoring.SafetyObligationId &&
                     row.ProjectId == scope.ProjectId && row.DefectId == scope.DefectId &&
                     row.Kind == RepairObligationKind.TemporarySafety &&
-                    (row.EffectiveResolutionDecisionId == null || !requireActive && role != UserRoleCode.RepairCrew), ct)) Deny(404, "not_found");
+                    (row.EffectiveResolutionDecisionId == null && row.SafetyResolutionId == null || !requireActive && role != UserRoleCode.RepairCrew), ct)) Deny(404, "not_found");
             var safetyOwner = await ObligationResponsibilityScope.ResolveAsync(db, monitoring.SafetyObligationId, scope.ProjectId, ct);
             effective = safetyOwner;
             if (project != (role == UserRoleCode.RepairCrew ? scope.ProjectId : safetyOwner)) Deny(404, "not_found");
@@ -390,7 +393,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
             !await db.Set<RepairObligation>().AnyAsync(row => row.Id == monitoring.SafetyObligationId &&
                 row.ProjectId == item.ProjectId && row.DefectId == item.DefectId &&
                 row.Kind == RepairObligationKind.TemporarySafety &&
-                row.EffectiveResolutionDecisionId == null, ct))
+                row.EffectiveResolutionDecisionId == null && row.SafetyResolutionId == null, ct))
             Deny(409, "safety_responsibility_source_conflict");
         return (monitoring, item, binding);
     }

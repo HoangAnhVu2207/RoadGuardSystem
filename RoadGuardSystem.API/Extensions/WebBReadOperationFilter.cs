@@ -9,10 +9,26 @@ public sealed class WebBReadOperationFilter : IOperationFilter, ISchemaFilter
 {
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
+        if (context.Type == typeof(RepairSafetyResolveInput))
+        {
+            schema.Properties["outcome"].Enum = [new Microsoft.OpenApi.Any.OpenApiString("REMOVED"), new Microsoft.OpenApi.Any.OpenApiString("REPLACED")];
+            schema.Properties["conditionSatisfied"].Description = "Explicit PM attestation of the recorded removal/replacement condition; not inferred from formal completion.";
+            schema.Properties["evidenceIds"].Description = "FIELD evidence-link IDs from the current Safe check, not file IDs.";
+            schema.Properties["obligationVersion"].Description = "Unquoted obligation.version from GET this measure; distinct from measure If-Match.";
+        }
+        if (context.Type == typeof(RoadGuardSystem.DTOs.Defects.CandidateMatchItemDto))
+        {
+            schema.Properties["distanceMeters"].Description = "Nullable distance in metres. distanceMethod distinguishes ellipsoid point distance from minimum projected grid distance to the actual shape.";
+            schema.Properties["accuracyMeters"].Description = "Stored accuracy of the confirmed source evidence; not target uncertainty or projection accuracy. Missing stays null.";
+            schema.Properties["distanceStatus"].Description = "MEASURED or the actual source/geometry/CRS unavailability reason; no invented distance or snapping.";
+            schema.Properties["overlapStatus"].Description = "SOURCE_UNCERTAINTY_UNAVAILABLE or TARGET_UNCERTAINTY_UNAVAILABLE until compatible sourced uncertainty exists on both sides.";
+            schema.Properties["accuracyOverlap"].Description = "Omitted while unknown. No default radius, confidence or false value substitutes for missing uncertainty.";
+        }
         var names = context.Type == typeof(RoadGuardSystem.DTOs.Defects.ReportMatchingLocationView) ? new[] { "confirmation" }
             : context.Type == typeof(RepairItemView) ? ["sourceContext"]
             : context.Type == typeof(RepairItemSourceView) ? ["task"]
-            : context.Type == typeof(RepairSafetyView) ? ["obligation"]
+            : context.Type == typeof(RepairSafetyView) ? ["obligation", "resolution"]
+            : context.Type == typeof(RoadGuardSystem.DTOs.Projects.ObligationResponsibilityDto) ? ["safetyContext"]
             : context.Type == typeof(RoadGuardSystem.DTOs.Inspections.FieldHistoryView) ? ["details"] : [];
         foreach (var name in names)
             if (schema.Properties.TryGetValue(name, out var property))
@@ -24,12 +40,7 @@ public sealed class WebBReadOperationFilter : IOperationFilter, ISchemaFilter
         var action = context.MethodInfo.Name;
         if (controller == typeof(ReportMatchingLocationController))
         {
-            operation.Description = "Current project PM only. Explicit matching-only confirmation; original evidence remains immutable. " +
-                "GET discovers sourceVersion, geometryVersion, original evidence locations and current/stale confirmation. " +
-                "POST selects evidenceId (with stored coordinates), segmentIds, or both, with reason. All segments must belong to the Case's pinned geometry. " +
-                "No automatic representative GPS, snapping, FIELD verification or execution grant. Source/geometry change returns 409 candidate_stale. " +
-                "200 includes GPS_MISSING, GPS_UNCONFIRMED, GPS_CONFIRMED, SCOPE_CONFIRMED or MATCHING_LOCATION_STALE. " +
-                "Bearer or Web cookie; GET needs no CSRF. POST requires X-CSRF-TOKEN for cookie and Idempotency-Key for both transports; replay rechecks current authority.";
+            operation.Description = "Current project PM confirms evidence location and/or pinned segments for advisory matching. Original evidence is unchanged. GET returns versions and confirmation state. POST requires Idempotency-Key and cookie CSRF; stale versions return 409. Replay rechecks authority.";
             if (action == "Confirm")
             {
                 operation.Parameters.Add(new OpenApiParameter
@@ -53,39 +64,44 @@ public sealed class WebBReadOperationFilter : IOperationFilter, ISchemaFilter
         }
         if (controller == typeof(RepairSourceReadsController) || controller == typeof(RepairSourceEvidenceController))
         {
-            operation.Description = "PM/Supervisor with current exact item obligation responsibility; projectId is the responsible project. " +
-                "Retains original source project and validates exact item/task/source links. No origin-project membership or mutation rights are granted. " +
-                "Bearer or Web cookie, GET without CSRF. Each request rechecks current authority; private content rechecks again after opening storage. " +
-                "History/submission metadata is distinct from private file access. No signed URL; an open stream cannot be recalled after later rights changes.";
+            operation.Description = "Current item responsibility permits only this bound source. Bearer or Web cookie; GET needs no CSRF. Private content rechecks lineage and authority after storage opens. No source-project membership or write permission is granted.";
             Errors(operation, false);
             if (action == "Content") Binary(operation);
         }
         if (controller == typeof(FieldInspectionWorkflowController) && action == "History")
-            operation.Description = "Existing task authority and assignment guards apply. assignments/events retain their wire. " +
-                "PM/Supervisor additionally receive details.submissions (revision/root/parent/hash), details.reviews (exact submission) and details.evidenceReuse (original provenance). " +
-                "Crew response has no details field. Metadata never grants source download access.";
+            operation.Description = "Current task authority applies. PM/Supervisor receive submission revisions, exact reviews and reuse provenance in details; Crew retain assignments/events only. Metadata does not grant file access.";
         if (controller == typeof(RepairsController) && action == "History")
         {
             operation.Responses["200"] = JsonResponse(operation, context, typeof(RepairHistoryView));
-            operation.Description = "Exact current obligation responsibility read. Immutable attempts/decisions/reviewRequests plus intakeSubmissions, attemptReviews and taskBindings. " +
-                "Review.current requires the exact current attempt/link/effective submission; supplements do not inherit old reviews. History ETag is not a command item rowversion.";
+            operation.Description = "Current item responsibility permits attempt, intake, review and binding history. Review.current matches the effective submission. Supplements do not inherit reviews. History ETag is not an item command version.";
         }
         if (controller == typeof(RepairsController) && action == "Item")
         {
             operation.Responses["200"] = JsonResponse(operation, context, typeof(RepairItemView));
-            operation.Description = "Exact current obligation responsibility read. sourceContext retains originProjectId, responsibilityProjectId, source defect/version, physical scope and valid current task pins. " +
-                "currentBinding remains tied to the immutable origin project after transfer. Item ETag is for item commands; source/history tokens are not interchangeable.";
+            operation.Description = "Current item responsibility permits this item and its sourceContext: origin, current responsibility, defect scope and task pins. currentBinding retains origin links after transfer. Commands use item ETag.";
         }
         if (controller == typeof(RepairSafetyController) && action == "ListCrew")
-            operation.Description = "Crew: current assigned unresolved measures only, unchanged. PM/Supervisor: measureIds for this item and currently responsible safety obligations, including historical resolved measures. " +
-                "Use GET safety-measures/{measureId} to read checks/warnings/ACK and obligation scope/origin/current responsibility. Formal and safety responsibility are independent. " +
-                "This is history discovery, separate from the unresolved/unused temporary-safety-obligations selection. No new write grant. Bearer or Web cookie; GET needs no CSRF.";
+            operation.Description = "Crew see assigned unresolved measures. PM/Supervisor discover this item’s measures under current safety responsibility. Read each measure for checks, warnings, ACK and history. This does not grant writes or change the separate unresolved selection.";
+        if (controller == typeof(RepairSafetyController) && action == "Resolve")
+        {
+            operation.Description = "Current safety PM only: confirm recorded removal/replacement condition against the current Safe check and verified evidence. Requires measure If-Match, obligationVersion and Idempotency-Key; cookie also needs CSRF. Resolution is immutable and independent of formal completion.";
+            Errors(operation, true);
+            foreach (var name in new[] { "If-Match", "Idempotency-Key" })
+                if (!operation.Parameters.Any(p => p.In == ParameterLocation.Header && p.Name == name))
+                    operation.Parameters.Add(new OpenApiParameter
+                    {
+                        Name = name,
+                        In = ParameterLocation.Header,
+                        Required = true,
+                        Schema = new OpenApiSchema { Type = "string" },
+                        Description = name == "If-Match" ? "Current ETag from GET this safety measure." : "Persist original key and body for uncertain outcome retry."
+                    });
+        }
         if (controller == typeof(CasesController) && action == "Conclude")
         {
             operation.Responses.Remove("201");
             operation.Responses["200"] = JsonResponse(operation, context, typeof(RoadGuardSystem.DTOs.Cases.InternalCaseDto));
-            operation.Description = "PM conclusion returns 200 InternalCaseDto with Case ETag, including replay. This is distinct from publication (201). " +
-                "Existing authority, If-Match, Idempotency-Key, evidence and CSRF requirements remain unchanged.";
+            operation.Description = "PM conclusion returns 200 InternalCaseDto with Case ETag; publication remains 201. Current authority, evidence, If-Match, Idempotency-Key and cookie CSRF apply.";
         }
     }
     private static OpenApiResponse JsonResponse(OpenApiOperation operation, OperationFilterContext context, Type type)

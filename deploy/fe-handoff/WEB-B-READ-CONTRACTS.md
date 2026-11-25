@@ -1,6 +1,9 @@
 # Web PM/Supervisor — matching, chuyển nghĩa vụ và lịch sử
 
-Ngày 25/11/2026. Base `b891e88ea20073bab7b110f301b7b37ebfa1c40c`.
+Ngày 25/11/2026. Bản đầu base `b891e88ea20073bab7b110f301b7b37ebfa1c40c`;
+phần hoàn thiện tiếp theo base `71d8ae85612fcc11b2b96227cc87981da383e2d5`.
+Đọc [bổ sung cuối B1/B12 và CI/crash](WEB-B-COMPLETION.md) trước khi tích hợp:
+phần đó thay thế giới hạn khoảng cách và thiếu workflow resolve ghi ở bản đầu dưới đây.
 Quyết định mới: [owner 25/11](../../docs/product/owner-web-b-decisions-20261125.md).
 Phạm vi triển khai: [spec](../../planning/development/WEB-B-READ-CONTRACTS.md).
 `CURRENT_VERIFIED` trong bảng là source/kiểm BE, không phải nghiệm thu UI.
@@ -190,7 +193,7 @@ OpenAPI runtime `/swagger/v1/swagger.json`; snapshot [openapi.json](openapi.json
 Bằng chứng SQL/HTTP giả lập storage phải đọc riêng với runtime thật. Kết quả rerun
 có thể trùng test giữa các nhóm; không cộng số lần thực thi thành số test duy nhất.
 
-## Kết quả local trên bản chốt
+## HISTORICAL — kết quả local của lượt bàn giao 71d8ae8
 
 - API lượt rộng: **65 PASS / 2 FAIL / 0 SKIP** (67 ca). Hai lỗi là assertion
   algorithm REPORT cũ và thiếu mô tả header CSRF trong Swagger; đã sửa và kiểm lại.

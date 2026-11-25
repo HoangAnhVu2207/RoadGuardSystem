@@ -7,6 +7,21 @@ namespace RoadGuardSystem.Services.Implementations.Repairs;
 
 public sealed class RepairSafetyService(IRepairSafetyRepository repository) : IRepairSafetyService
 {
+    public Task<RepairSafetyServiceResult> ResolveAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
+        Guid item, Guid measure, RepairSafetyResolveInput input, string? key, string? version, CancellationToken token)
+    {
+        var error = Admission(actor, role, UserRoleCode.ProjectManager, project, package, item, key, version);
+        if (error is not null) return Task.FromResult(error);
+        if (measure == Guid.Empty || input is null || input.CheckId == Guid.Empty ||
+            input.Outcome is not ("REMOVED" or "REPLACED") || !input.ConditionSatisfied ||
+            !Text(input.ChecklistConfirmation) || !Text(input.Reason) || !Version('"' + input.ObligationVersion + '"') ||
+            input.EvidenceIds is null || input.EvidenceIds.Length is < 1 or > 20 ||
+            input.EvidenceIds.Any(id => id == Guid.Empty) || input.EvidenceIds.Distinct().Count() != input.EvidenceIds.Length)
+            return Error(400, "validation_error");
+        return Map(repository.ResolveAsync(new(actor, role, project, package, item, measure, input.CheckId,
+            input.Outcome, input.ConditionSatisfied, input.ChecklistConfirmation, input.Reason, input.EvidenceIds,
+            input.ObligationVersion, key!, version![1..^1]), token));
+    }
     public async Task<CrewSafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
         Guid item, CancellationToken token)
     {
@@ -113,7 +128,12 @@ public sealed class RepairSafetyService(IRepairSafetyRepository repository) : IR
                 obligation.ResponsibilityProjectId, obligation.Version,
                 new(obligation.Scope.PhysicalRoadId, obligation.Scope.LocationVersion, obligation.Scope.RouteLabel,
                     obligation.Scope.FromMeters, obligation.Scope.ToMeters, obligation.Scope.OffsetFromMeters,
-                    obligation.Scope.OffsetToMeters)) : null);
+                    obligation.Scope.OffsetToMeters)) : null,
+            fact.Resolution is { } resolution ? new(resolution.Id, resolution.ActorId, resolution.At,
+                resolution.Outcome, resolution.CheckId, resolution.Reason, resolution.Condition,
+                resolution.ChecklistConfirmation, resolution.MeasureVersion, resolution.ObligationVersion,
+                resolution.Evidence.Select(e => new SafetyResolutionEvidenceView(e.FileId, e.FileVersion, e.Hash,
+                    e.SourceId, e.CapturedAt, e.ActualUploaderId)).ToArray()) : null);
         return new(result.Status, result.Code, view);
     }
 }

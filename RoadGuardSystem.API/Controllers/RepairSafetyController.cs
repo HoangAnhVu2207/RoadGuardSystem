@@ -46,6 +46,14 @@ public sealed class RepairSafetyController(IRepairSafetyService service) : Contr
         => Run((actor, role, key, version) => service.InstallAsync(actor, role, projectId, packageId,
             itemId, measureId, input, key, version, token), true);
 
+    [HttpPost("{measureId:guid}/resolution")]
+    [ProducesResponseType<RepairSafetyView>(201)]
+    [ProducesResponseType<RepairSafetyView>(200)]
+    public Task<IActionResult> Resolve(Guid projectId, Guid packageId, Guid itemId, Guid measureId,
+        RepairSafetyResolveInput input, CancellationToken token)
+        => Run((actor, role, key, version) => service.ResolveAsync(actor, role, projectId, packageId,
+            itemId, measureId, input, key, version, token), true);
+
     [HttpPost("{measureId:guid}/checks")]
     public Task<IActionResult> Check(Guid projectId, Guid packageId, Guid itemId, Guid measureId,
         RepairSafetyCheckInput input, CancellationToken token)

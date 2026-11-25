@@ -23,16 +23,18 @@ namespace RoadGuardSystem.ApiTests.Reports;
 public sealed partial class Huy01ReporterReportsApiTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task MatchingConfirmationPreservesEvidenceScopeVersionsReplayAndCurrentAuthority(bool includeGps)
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(true, 32648)]
+    [InlineData(true, 32649)]
+    public async Task MatchingConfirmationPreservesEvidenceScopeVersionsReplayAndCurrentAuthority(bool includeGps, int metricSrid)
     {
         var pm = await sql.CreateUserAsync("match-pm-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
         var sup = await sql.CreateUserAsync("match-sup-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.Supervisor);
         var reporter = await sql.CreateUserAsync("match-reporter-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.Reporter);
         var project = Guid.NewGuid();
         await using var db = sql.CreateDbContext();
-        db.AddRange(Project.Create(project, project.ToString(), "Matching fixture", null, 32648, null, null, DateTimeOffset.UtcNow),
+        db.AddRange(Project.Create(project, project.ToString(), "Matching fixture", null, metricSrid == 0 ? 32648 : metricSrid, null, null, DateTimeOffset.UtcNow),
             ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project, pm.Id, new(2000, 1, 1)));
         var type = DefectType.Create("MATCH-" + Guid.NewGuid().ToString("N"), "Matching fixture"); db.Add(type);
         await db.SaveChangesAsync();
@@ -48,14 +50,14 @@ public sealed partial class Huy01ReporterReportsApiTests
             description = "Multiple original positions; PM must select explicitly",
             evidence = new[]
             {
-                new { fileId = file.FileId, fileVersion = file.Version, locationSource = includeGps ? "CAPTURE" : "UNKNOWN", location = includeGps ? new { latitude = 0m, longitude = 0m, accuracyMeters = (decimal?)null } : null },
+                new { fileId = file.FileId, fileVersion = file.Version, locationSource = includeGps ? "CAPTURE" : "UNKNOWN", location = includeGps ? new { latitude = metricSrid == 0 ? 0m : 10m, longitude = metricSrid == 0 ? 0m : metricSrid == 32648 ? 105m : 111m, accuracyMeters = (decimal?)null } : null },
                 new { fileId = secondFile.FileId, fileVersion = secondFile.Version, locationSource = includeGps ? "MANUAL" : "UNKNOWN", location = includeGps ? new { latitude = 20m, longitude = 20m, accuracyMeters = (decimal?)4m } : null }
             }
         }, Guid.NewGuid().ToString());
         Assert.True(created.StatusCode == HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
         var report = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         var incident = (await db.Set<HuyCaseReportLink>().SingleAsync(row => row.ReportId == report)).CaseId;
-        var geometry = await CreatePublishedGeometryAsync(client, pm.UserName!, sup.UserName!, project);
+        var geometry = await CreatePublishedGeometryAsync(client, pm.UserName!, sup.UserName!, project, metricSrid == 0 ? 32648 : metricSrid);
         await LoginAsync(client, sup.UserName!);
         using var caseRead = await client.GetAsync($"/api/v1/cases/{incident}");
         using var triaged = await SendAsync(client, HttpMethod.Post, $"/api/v1/cases/{incident}/triage", new
@@ -80,13 +82,31 @@ public sealed partial class Huy01ReporterReportsApiTests
         }
         var geographic = Defect.Create(Guid.NewGuid(), project, geometry.Route, null, type.Code, null, DefectSeverity.Low,
             DefectStatus.Open, new Point(1, 0) { SRID = 4326 }, DateTimeOffset.UtcNow); db.Add(geographic); await db.SaveChangesAsync();
+        var metricIds = new List<Guid>();
+        if (metricSrid != 0)
+        {
+            const double northing = 1105412.4913010783; // PROJ WGS84 105/111E,10N.
+            Geometry[] shapes = [new Point(500010, northing) { SRID = metricSrid },
+                new LineString([new(500020, northing - 5), new(500020, northing + 5)]) { SRID = metricSrid },
+                new Polygon(new LinearRing([new(499995,northing-5),new(500005,northing-5),new(500005,northing+5),new(499995,northing+5),new(499995,northing-5)])) { SRID = metricSrid },
+                new Point(1, 1) { SRID = 0 },
+                new Polygon(new LinearRing([new(500000,northing),new(500010,northing+10),new(500000,northing+10),new(500010,northing),new(500000,northing)])) { SRID = metricSrid },
+                new Point(0, northing) { SRID = metricSrid }];
+            foreach (var shape in shapes)
+            {
+                var defect = Defect.Create(Guid.NewGuid(), project, geometry.Route, null, type.Code, null,
+                    DefectSeverity.Low, DefectStatus.Open, shape, DateTimeOffset.UtcNow);
+                db.Add(defect); metricIds.Add(defect.Id);
+            }
+            await db.SaveChangesAsync();
+        }
         using var web = await WebCookieTestClient.Login(factory, pm.Email!);
         var root = $"/api/v1/projects/{project}"; var path = root + $"/reports/{report}/matching-location";
         var initial = await web.GetFromJsonAsync<JsonElement>(path);
         Assert.Equal(includeGps ? "GPS_UNCONFIRMED" : "GPS_MISSING", initial.GetProperty("status").GetString());
         Assert.Equal(JsonValueKind.Null, initial.GetProperty("confirmation").ValueKind);
         // Select the zero coordinate explicitly, independently of evidence ordering.
-        Guid? evidenceId = includeGps ? initial.GetProperty("evidence").EnumerateArray().Single(e => e.GetProperty("latitude").GetDecimal() == 0).GetProperty("evidenceId").GetGuid() : null;
+        Guid? evidenceId = includeGps ? initial.GetProperty("evidence").EnumerateArray().Single(e => e.GetProperty("latitude").GetDecimal() == (metricSrid == 0 ? 0 : 10)).GetProperty("evidenceId").GetGuid() : null;
         var input = new
         {
             sourceVersion = initial.GetProperty("sourceVersion").GetString(),
@@ -108,6 +128,29 @@ public sealed partial class Huy01ReporterReportsApiTests
         var confirmedText = await confirmed.Content.ReadAsStringAsync();
         Assert.True(concurrentReplay.StatusCode == HttpStatusCode.OK, await concurrentReplay.Content.ReadAsStringAsync());
         Assert.Equal(confirmedText, await concurrentReplay.Content.ReadAsStringAsync());
+        if (metricSrid != 0)
+        {
+            var measuredPage = await web.GetFromJsonAsync<JsonElement>(root + $"/candidates?sourceKind=REPORT&sourceId={report}&expand=true&pageSize=200");
+            var measuredItems = measuredPage.GetProperty("items").EnumerateArray().ToArray();
+            for (var n = 0; n < 3; n++)
+            {
+                var item = measuredItems.Single(i => i.GetProperty("defectId").GetGuid() == metricIds[n]);
+                Assert.Equal("MEASURED", item.GetProperty("distanceStatus").GetString());
+                Assert.Equal("WGS84_UTM_GRID_MINIMUM", item.GetProperty("distanceMethod").GetString());
+                Assert.InRange(item.GetProperty("distanceMeters").GetDouble(), new[] { 10d, 20d, 0d }[n] - .01, new[] { 10d, 20d, 0d }[n] + .01);
+                Assert.Equal("SOURCE_UNCERTAINTY_UNAVAILABLE", item.GetProperty("overlapStatus").GetString());
+                Assert.False(item.TryGetProperty("accuracyOverlap", out _));
+            }
+            var unsupported = measuredItems.Single(i => i.GetProperty("defectId").GetGuid() == metricIds[3]);
+            Assert.Equal("TARGET_CRS_UNSUPPORTED", unsupported.GetProperty("distanceStatus").GetString());
+            Assert.Equal(JsonValueKind.Null, unsupported.GetProperty("distanceMeters").ValueKind);
+            foreach (var (index, status) in new[] { (4, "TARGET_GEOMETRY_INVALID"), (5, "TARGET_COORDINATES_OUTSIDE_CRS_AREA") })
+            {
+                var unavailable = measuredItems.Single(i => i.GetProperty("defectId").GetGuid() == metricIds[index]);
+                Assert.Equal(status, unavailable.GetProperty("distanceStatus").GetString());
+                Assert.Equal(JsonValueKind.Null, unavailable.GetProperty("distanceMeters").ValueKind);
+            }
+        }
         using var replay = await SendAsync(web, HttpMethod.Post, path, input, key);
         Assert.True(replay.StatusCode == HttpStatusCode.OK, await replay.Content.ReadAsStringAsync());
         Assert.Equal(confirmedText, await replay.Content.ReadAsStringAsync());
@@ -123,8 +166,8 @@ public sealed partial class Huy01ReporterReportsApiTests
         Assert.All(scoped.GetProperty("items").EnumerateArray(), x => Assert.DoesNotContain("GPS_MISSING", x.GetProperty("reasonCodes").EnumerateArray().Select(v => v.GetString())));
         var expanded = await web.GetFromJsonAsync<JsonElement>(matching + "&expand=true");
         var measured = expanded.GetProperty("items").EnumerateArray().Single(x => x.GetProperty("defectId").GetGuid() == geographic.Id);
-        if (includeGps) Assert.InRange(measured.GetProperty("distanceMeters").GetDouble(), 111300, 111340); // WGS84 equator, one degree longitude.
-        else Assert.Equal(JsonValueKind.Null, measured.GetProperty("distanceMeters").ValueKind);
+        if (includeGps && metricSrid == 0) Assert.InRange(measured.GetProperty("distanceMeters").GetDouble(), 111300, 111340); // WGS84 equator, one degree longitude.
+        else if (!includeGps) Assert.Equal(JsonValueKind.Null, measured.GetProperty("distanceMeters").ValueKind);
         Assert.Equal(JsonValueKind.Null, measured.GetProperty("accuracyMeters").ValueKind);
         using var linked = await SendAsync(web, HttpMethod.Post, root + "/candidate-decisions", new
         {
@@ -153,11 +196,25 @@ public sealed partial class Huy01ReporterReportsApiTests
         Assert.Equal(HttpStatusCode.Forbidden, (await supWeb.GetAsync(path)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await supWeb.GetAsync(matching)).StatusCode);
         var original = await db.Reports.AsNoTracking().Include(row => row.Supplements).SingleAsync(row => row.Id == report);
-        if (includeGps) Assert.Equal(new[] { 0m, 20m }, original.OriginalEvidence.Select(e => e.CaptureMetadata!.Latitude!.Value).Order());
+        if (includeGps) Assert.Equal(new[] { metricSrid == 0 ? 0m : 10m, 20m }, original.OriginalEvidence.Select(e => e.CaptureMetadata!.Latitude!.Value).Order());
         else Assert.All(original.OriginalEvidence, e => Assert.Null(e.CaptureMetadata?.Latitude));
         Assert.Equal(2, await db.Set<ReportMatchingLocation>().CountAsync(row => row.ReportId == report));
         var inventory = await new RoadGuardSystem.Repositories.Implementations.Retention.Huy01RetentionInventoryContributor(db).ReadAsync(file.FileId, default);
         Assert.Equal(2, inventory.References.Count(row => row.Kind == "REPORT_MATCHING_LOCATION" && row.ProjectId == project));
+        var multiHead = await web.GetFromJsonAsync<JsonElement>(path);
+        using var multiScope = await SendAsync(web, HttpMethod.Post, path, new
+        {
+            sourceVersion = multiHead.GetProperty("sourceVersion").GetString(),
+            geometryVersion = geometry.Version,
+            evidenceId = (Guid?)null,
+            segmentIds = new[] { segments[0], segments[1] },
+            reason = "PM confirms two explicit segments without synthesizing a point"
+        }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.OK, multiScope.StatusCode);
+        var multiCandidates = await web.GetFromJsonAsync<JsonElement>(matching);
+        foreach (var id in targetIds.Take(2))
+            Assert.Contains("ASSIGNED_SEGMENT", multiCandidates.GetProperty("items").EnumerateArray()
+                .Single(i => i.GetProperty("defectId").GetGuid() == id).GetProperty("reasonCodes").EnumerateArray().Select(x => x.GetString()));
         var currentLocation = await web.GetFromJsonAsync<JsonElement>(path);
         var invalid = new
         {

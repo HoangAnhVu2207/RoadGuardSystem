@@ -55,3 +55,11 @@ handoff. SQL export, final format/source gates and TRX outcomes recorded separat
 SQL export28PASS/0FAIL/0SKIP; Swagger/exact-source final37PASS/0FAIL/0SKIP overlapping
 HTTP90; format whole solution/source10/TRX gates passed. Full API/four full SQL
 lanes not rerun in this narrowly scoped task; no hosted result inferred from local.
+
+Follow-up review after first publication: add exact combined export/transfer
+assertions to existing REPORT/SURVEY theory. First run1PASS/1FAIL because total-job
+assertion incorrectly counted both theory projects on their shared fixture DB;
+scope the assertion to its project (retaining exactly-one requirement). Final2PASS:
+old source/replay403, mixed package and receiving-project export422, worker denied,
+snapshotHash unchanged. No production change after b24e998; follow-up test/docs
+commit preserves published history, no changed SQL identity or migration.

@@ -64,7 +64,7 @@ TRAINING chỉZIP và approved label scope; originals cần training source auth
 
 202 trả `Location: E/{id}`, ETag và DTO gồm:
 `id,projectId,kind,format,status,snapshotId,snapshotHash,artifactId,createdAt,completedAt,
-expiresAt,errorCode,completeness,missingSections,version` (artifact/completed/error
+expiresAt,errorCode,completeness,missingSections,version` (artifact/completed/expiry/error
 có thể null khi chưa hoàn tất). Poll GET Location; SUCCEEDED mới tải content.
 Snapshot sections giữ AVAILABLE/UNAVAILABLE/PARTIAL theo contract hiện có, không
 coi thiếu nguồn thành COMPLETE. Partial không đồng nghĩa quyền tải mọi ảnh.
@@ -77,7 +77,7 @@ từ server, không dùng ví dụ để gọi môi trường khác):
   "id": "<jobId>", "projectId": "<projectId>", "kind": "DOSSIER", "format": "ZIP",
   "status": "QUEUED", "snapshotId": "<snapshotId>", "snapshotHash": "<sha256>",
   "artifactId": null, "createdAt": "<UTC ISO8601>", "completedAt": null,
-  "expiresAt": "<UTC ISO8601>", "errorCode": null,
+  "expiresAt": null, "errorCode": null,
   "completeness": "PARTIAL", "missingSections": ["<tên section chưa đủ>"],
   "version": "<base64 rowversion>"
 }
@@ -85,6 +85,7 @@ từ server, không dùng ví dụ để gọi môi trường khác):
 
 `completeness` là COMPLETE/PARTIAL của snapshot; không thay`status` của job.
 Các section của manifest có`availability`; không đặt`availability` ở job DTO.
+`expiresAt` chưa có khi QUEUED; khi SUCCEEDED được đặt bằng completedAt+30ngày.
 
 | HTTP/code wire | FE xử lý |
 | --- | --- |
@@ -169,3 +170,13 @@ SQL export/admission/lease/renderer recovery:28PASS/0FAIL/0SKIP, gate TRX đạt
 Swagger/exact-source kiểm lại sau chỉnh mô tả:37PASS/0FAIL/0SKIP, có trùng nhóm90.
 Build analyzer0error, format toàn solution,10source-contract gates và diff check
 đạt. Không đổi tên/thêm SQL integration test nên lane manifest giữ nguyên.
+
+Kiểm bổ sung HTTP25/11 cho cả nguồn REPORT và SURVEY sau chuyển nghĩa vụ (2PASS,
+trùng identity đã có trong nhóm90, nhưng thêm assertion): A tạo job theo item trước
+chuyển202 → B tiếp nhận đúng nghĩa vụ → A GET job/manifest/content403 và replay403;
+A export package gồm cả itemA/itemB trả422export_source_unavailable, không âm thầm
+bỏ itemB; B POST URLB với item có provenanceA cũng422export_source_unavailable;
+B đoán jobA403. Worker job đã capture trước chuyển ghiFAILED/
+export_source_access_revoked, không render; snapshotHash vẫn giữ nguyên. Chỉ có
+một job trong project nguồn của fixture, không thêm job từ các request bị từ chối.
+Kết quả này xác nhận giới hạn export hiện hành, không phải quyền export mới sau chuyển.

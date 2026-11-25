@@ -209,6 +209,11 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         var eligibility = await Body(await pm.GetAsync(firstPath + "/eligibility"));
         Assert.False(eligibility.GetProperty("eligible").GetBoolean());
 
+        var exportA = $"/api/v1/projects/{source.Project}/exports";
+        var exportKey = Guid.NewGuid().ToString("N");
+        var beforeTransferExport = await Body(await Post(pm, exportA,
+            new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { second.Id } }, key: exportKey), 202);
+        var exportId = beforeTransferExport.GetProperty("id").GetGuid();
         var lifeA = $"/api/v1/projects/{source.Project}/lifecycle"; var lifeB = $"/api/v1/projects/{receiver.Id}/lifecycle";
         using var sourceLife = await sup.GetAsync(lifeA); var transferable = (await Body(sourceLife)).GetProperty("transferableObligations").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == obligations[1]);
         var offered = await Post(sup, lifeA + "/obligation-transfers", new { reason = "Exact scope transfer", evidenceFileIds = Array.Empty<Guid>(), obligationId = obligations[1], receivingProjectId = receiver.Id, scopeHash = transferable.GetProperty("scopeHash").GetString() }, sourceLife.Headers.ETag!.Tag);
@@ -217,6 +222,26 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         Assert.Equal(HttpStatusCode.NotFound, (await receivingPm.GetAsync($"/api/v1/projects/{receiver.Id}/repair-packages/{package}/items/{second.Id}/source-defect")).StatusCode);
         var acceptedTransfer = await Post(sup, lifeB + "/obligation-transfer-acceptances", new { reason = "Accept exact scope", evidenceFileIds = Array.Empty<Guid>(), sourceActionId = offer.GetProperty("id").GetGuid(), obligationId = obligations[1], scopeHash = offer.GetProperty("scopeHash").GetString() }, targetLife.Headers.ETag!.Tag);
         await Body(acceptedTransfer, 201);
+        foreach (var suffix in new[] { "", "/manifest", "/content" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(exportA + $"/{exportId}" + suffix)).StatusCode);
+        await Body(await Post(pm, exportA, new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { second.Id } }, key: exportKey), 403);
+        // A still owns the sibling item, but a package export must not silently omit B's item.
+        Assert.Equal("export_source_unavailable", (await Body(await Post(pm, exportA,
+            new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } }), 422)).GetProperty("code").GetString());
+        Assert.Equal("export_source_unavailable", (await Body(await Post(receivingPm,
+            $"/api/v1/projects/{receiver.Id}/exports", new { kind = "DOSSIER", format = "PDF", repairItemIds = new[] { second.Id } }), 422)).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(exportA + $"/{exportId}")).StatusCode);
+        using (var exportWorker = factory.Services.CreateScope())
+            Assert.True(await exportWorker.ServiceProvider.GetRequiredService<RoadGuardSystem.Services.Exports.IExportService>().ProcessNextAsync(default));
+        using (var exportVerification = factory.Services.CreateScope())
+        {
+            var exportDb = exportVerification.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.RoadGuardDbContext>();
+            var failed = await exportDb.Set<RoadGuardSystem.BusinessObjects.Exports.ExportJob>().SingleAsync(j => j.Id == exportId);
+            Assert.Equal("FAILED", failed.Status); Assert.Equal("export_source_access_revoked", failed.ErrorCode);
+            var frozen = await exportDb.Set<RoadGuardSystem.BusinessObjects.Exports.ExportSnapshot>().SingleAsync(s => s.Id == failed.SnapshotId);
+            Assert.Equal(beforeTransferExport.GetProperty("snapshotHash").GetString(), frozen.Hash);
+            Assert.Single(await exportDb.Set<RoadGuardSystem.BusinessObjects.Exports.ExportJob>().Where(j => j.ProjectId == source.Project).ToArrayAsync());
+        }
         foreach (var path in new[] { lifeA, lifeB }) Assert.Contains((await Body(await sup.GetAsync(path))).GetProperty("responsibilities").EnumerateArray(), x => x.GetProperty("obligationId").GetGuid() == obligations[1] && x.GetProperty("currentProjectId").GetGuid() == receiver.Id);
         var received = await Body(await receivingPm.GetAsync(lifeB));
         var responsibility = received.GetProperty("responsibilities").EnumerateArray().Single(x => x.GetProperty("obligationId").GetGuid() == obligations[1]);

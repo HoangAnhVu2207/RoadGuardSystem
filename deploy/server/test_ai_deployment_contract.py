@@ -1,4 +1,7 @@
 from pathlib import Path
+import os
+import shutil
+import subprocess
 import unittest
 
 ROOT = Path(__file__).parent
@@ -31,6 +34,35 @@ class AiReleaseContractTests(unittest.TestCase):
         self.assertIn('ft95.pt', common)
         self.assertIn('bc14e1f0378310640d0e04583982ebb377475211d6d42837f2db494e32ed95a0', common)
         self.assertIn('$RG_AI_SUBMODULE/.git', common)
+
+    def test_private_ai_profile_does_not_implicitly_enable_dispatch(self):
+        bash = shutil.which('bash')
+        if os.name == 'nt':
+            git = shutil.which('git')
+            bash = str(Path(git).parents[1] / 'bin' / 'bash.exe') if git else None
+        if not bash or not Path(bash).is_file():
+            self.skipTest('Requires Bash')
+
+        script = '''
+source "$1"
+RG_CODE=/candidate
+RG_RELEASE=candidate
+unset RG_AI_ENABLED
+ai_configured() { return 0; }
+docker() { printf '%s|%s\n' "${RG_AI_ENABLED-unset}" "$*"; }
+compose config
+RG_AI_ENABLED=true compose config
+ai_configured() { return 1; }
+RG_AI_ENABLED=true compose config
+'''
+        result = subprocess.run(
+            [bash, '-c', script, 'probe', (ROOT / 'common.sh').resolve().as_posix()],
+            capture_output=True, text=True, check=True, timeout=15)
+        commands = result.stdout.splitlines()
+        self.assertEqual(3, len(commands))
+        self.assertTrue(commands[0].startswith('unset|compose --profile ai '))
+        self.assertTrue(commands[1].startswith('true|compose --profile ai '))
+        self.assertTrue(commands[2].startswith('false|compose --project-directory '))
 
 if __name__ == '__main__':
     unittest.main()

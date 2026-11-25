@@ -72,7 +72,8 @@ compose() {
     local profile=()
     if ai_configured; then
         profile=(--profile ai)
-        export RG_AI_ENABLED=true RG_AI_RELEASE="${RG_AI_RELEASE:-$RG_RELEASE}"
+        # Compose reads the explicit dispatch setting from the shell or server.env.
+        export RG_AI_RELEASE="${RG_AI_RELEASE:-$RG_RELEASE}"
     else
         export RG_AI_ENABLED=false
     fi

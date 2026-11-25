@@ -34,7 +34,7 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Projects;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sql)
+public sealed partial class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sql)
 {
     private sealed record Fixture(ApplicationUser Supervisor, ApplicationUser Pm, ApplicationUser Operator,
         ApplicationUser Other, Project Project, RoadSection Road, RoadSectionVersion Route, Defect Defect,
@@ -275,7 +275,7 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         if (output is not null) await File.WriteAllTextAsync(output, JsonSerializer.Serialize(schema));
         Assert.Contains("20261117183505_WebPmCoordinationMetadata", schema.Migrations);
         Assert.Contains("20261123093000_FieldTaskMeasurementDimensions", schema.Migrations);
-        Assert.Equal("20261123093100_InitialTemporarySafetyResponsibility", schema.Migrations[^1]);
+        Assert.Equal("20261125072411_TemporarySafetyResolution", schema.Migrations[^1]);
         Assert.Equal(db.Database.GetMigrations(), schema.Migrations);
         Assert.False(db.Database.HasPendingModelChanges());
     }
@@ -393,6 +393,38 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         Assert.Contains("206", download.Responses.Keys); Assert.Contains("416", download.Responses.Keys);
         Assert.Contains(download.Parameters, row => row.Name == "Range");
         Assert.Contains(swagger.Components.Schemas.Values, row => row.Properties.ContainsKey("repairItemIds"));
+        var matching = swagger.Paths["/api/v1/projects/{projectId}/reports/{reportId}/matching-location"];
+        Assert.Equal(2, matching.Operations.Count);
+        foreach (var read in matching.Operations.Values)
+        {
+            Assert.Contains(read.Security, row => row.Keys.Any(key => key.Reference?.Id == "Bearer"));
+            Assert.Contains(read.Security, row => row.Keys.Any(key => key.Reference?.Id == "WebSession"));
+            Assert.Contains("200", read.Responses.Keys);
+        }
+        Assert.Contains(matching.Operations[Microsoft.OpenApi.Models.OperationType.Post].Parameters, row => row.Name == "X-CSRF-TOKEN");
+        Assert.Contains(matching.Operations[Microsoft.OpenApi.Models.OperationType.Post].Parameters, row => row.Name == "Idempotency-Key");
+        Assert.Contains("sourceContext", swagger.Components.Schemas["RepairItemView"].Properties.Keys);
+        Assert.Contains("intakeSubmissions", swagger.Components.Schemas["RepairHistoryView"].Properties.Keys);
+        Assert.Contains("attemptReviews", swagger.Components.Schemas["RepairHistoryView"].Properties.Keys);
+        Assert.Contains("details", swagger.Components.Schemas["FieldHistoryView"].Properties.Keys);
+        var resolution = swagger.Paths["/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/safety-measures/{measureId}/resolution"]
+            .Operations[Microsoft.OpenApi.Models.OperationType.Post];
+        Assert.Contains(resolution.Security, row => row.Keys.Any(key => key.Reference?.Id == "Bearer"));
+        Assert.Contains(resolution.Security, row => row.Keys.Any(key => key.Reference?.Id == "WebSession") && row.Keys.Any(key => key.Reference?.Id == "CsrfToken"));
+        Assert.Contains(resolution.Parameters, p => p.Name == "If-Match" && p.Required);
+        Assert.Contains(resolution.Parameters, p => p.Name == "Idempotency-Key" && p.Required);
+        Assert.Contains("resolution", swagger.Components.Schemas["RepairSafetyView"].Properties.Keys);
+        Assert.Equal(new[] { "REMOVED", "REPLACED" }, swagger.Components.Schemas["RepairSafetyResolveInput"].Properties["outcome"].Enum
+            .Cast<Microsoft.OpenApi.Any.OpenApiString>().Select(x => x.Value));
+        Assert.Contains("distanceStatus", swagger.Components.Schemas["CandidateMatchItemDto"].Properties.Keys);
+        Assert.Contains("overlapStatus", swagger.Components.Schemas["CandidateMatchItemDto"].Properties.Keys);
+        var conclusion = swagger.Paths["/api/v1/cases/{caseId}/conclusions"].Operations[Microsoft.OpenApi.Models.OperationType.Post];
+        Assert.Contains("200", conclusion.Responses.Keys); Assert.DoesNotContain("201", conclusion.Responses.Keys);
+        Assert.True(swagger.Components.Schemas["OfflineItemResult"].Properties["admission"].Nullable);
+        Assert.Contains("captures", swagger.Components.Schemas["OfflineAdmissionReadback"].Properties.Keys);
+        Assert.Contains("sizeBytes", swagger.Components.Schemas["FieldEvidenceDeclaration"].Properties.Keys);
+        Assert.Contains("per operation", swagger.Paths["/api/v1/projects/{projectId}/offline/sync"]
+            .Operations[Microsoft.OpenApi.Models.OperationType.Post].Description);
         var output = Environment.GetEnvironmentVariable("RG_WEB13_OPENAPI_EVIDENCE");
         if (output is not null)
         {
@@ -443,6 +475,8 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
             await db.SaveChangesAsync(); upload.StartVerification(Convert.ToBase64String(upload.RowVersion), now);
             await db.SaveChangesAsync(); upload.MarkVerified(); await db.SaveChangesAsync();
             var assignedItem = await db.Set<RepairItem>().SingleAsync(row => row.Id == seed.Item.Id);
+            var currentObligation = await db.RepairObligations.SingleAsync(o => o.Id == assignedItem.ObligationId);
+            db.Entry(currentObligation).Property(o => o.CurrentRepairItemId).CurrentValue = assignedItem.Id;
             assignedItem.Approve(seed.Supervisor.Id, UserRoleCode.Supervisor, now);
             assignedItem.Assign(crew.Id, seed.Pm.Id, UserRoleCode.ProjectManager, now);
             await db.SaveChangesAsync();
@@ -536,6 +570,45 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
             await Task.Delay(100);
         }
         Assert.Equal("SUCCEEDED", (await Body(await pm.GetAsync(root + $"/{packageId}"))).GetProperty("status").GetString());
+        using var supervisor = await WebCookieTestClient.Login(factory, seed.Supervisor.Email!);
+        // Resource export is newly authorized by the effective NORMAL plan approval, without membership.
+        using (var scopedList = await supervisor.GetAsync(root))
+        {
+            Assert.True(scopedList.StatusCode == HttpStatusCode.OK, exportLogs.CombinedEntries);
+            Assert.Empty((await Body(scopedList)).GetProperty("items").EnumerateArray());
+        }
+        // Creator-only collection is independent of direct-ID access to a wholly authorized snapshot.
+        await Body(await supervisor.GetAsync(root + $"/{lastExportId}/manifest"));
+        Assert.Equal(HttpStatusCode.Forbidden, (await supervisor.GetAsync(root + $"/{packageId}/manifest")).StatusCode);
+        async Task<HttpResponseMessage> SupCreate(object body)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, root) { Content = JsonContent.Create(body) };
+            request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N")); return await supervisor.SendAsync(request);
+        }
+        Assert.Equal(HttpStatusCode.Forbidden, (await SupCreate(new { kind = "DOSSIER", format = "PDF" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await SupCreate(new { kind = "TRAINING", format = "ZIP" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await SupCreate(new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { seed.Package.Id } })).StatusCode);
+        var supervisorRequest = new HttpRequestMessage(HttpMethod.Post, root)
+        { Content = JsonContent.Create(new { kind = "DOSSIER", format = "ZIP", includeOriginalFiles = true, repairItemIds = new[] { seed.Item.Id } }) };
+        supervisorRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("N"));
+        var supervisorJob = await Body(await supervisor.SendAsync(supervisorRequest), HttpStatusCode.Accepted);
+        var supervisorId = supervisorJob.GetProperty("id").GetGuid();
+        var ownJobs = (await Body(await supervisor.GetAsync(root + "?limit=1"))).GetProperty("items");
+        Assert.Equal(supervisorId, Assert.Single(ownJobs.EnumerateArray()).GetProperty("id").GetGuid());
+        using (var scope = factory.Services.CreateScope()) Assert.True(await scope.ServiceProvider.GetRequiredService<IExportService>().ProcessNextAsync(default));
+        Assert.Equal("SUCCEEDED", (await Body(await supervisor.GetAsync(root + $"/{supervisorId}"))).GetProperty("status").GetString());
+        using (var supervisorContent = await supervisor.GetAsync(root + $"/{supervisorId}/content"))
+        {
+            Assert.Equal(HttpStatusCode.OK, supervisorContent.StatusCode);
+            using var archive = new ZipArchive(new MemoryStream(await supervisorContent.Content.ReadAsByteArrayAsync()));
+            using var proof = new MemoryStream(); await archive.GetEntry($"repair-evidence/{fileId:D}.png")!.Open().CopyToAsync(proof);
+            Assert.Equal(image, proof.ToArray());
+        }
+        await using (var changed = sql.CreateDbContext())
+            await changed.RepairItems.Where(i => i.Id == seed.Item.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(i => i.ApprovedBy, (Guid?)null));
+        foreach (var suffix in new[] { "", "/manifest", "/content" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await supervisor.GetAsync(root + $"/{supervisorId}" + suffix)).StatusCode);
         await using (var revoked = sql.CreateDbContext())
             await revoked.ProjectMembers.Where(row => row.ProjectId == seed.Project.Id && row.UserId == seed.Pm.Id)
                 .ExecuteUpdateAsync(set => set.SetProperty(row => row.Status, ProjectMemberStatus.Ended));

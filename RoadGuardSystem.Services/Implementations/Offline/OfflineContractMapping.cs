@@ -110,12 +110,18 @@ public static class OfflineContractMapping
             ? new OfflineBatchResult(batch.BatchId, batch.Items.Select(item => new OfflineItemResult(
                 item.OriginId, item.Kind, item.State, item.Code, item.EffectId, item.CanonicalOriginId,
                 item.DurableAcknowledgment, item.ServerReceivedAt, item.TimeProvenance, item.SyncLateness,
-                item.ClaimedFinishedAt, item.VerifiedFinishedAt, item.VerifiedSyncDueAt, item.Outcome)).ToArray(),
+                item.ClaimedFinishedAt, item.VerifiedFinishedAt, item.VerifiedSyncDueAt, item.Outcome, Admission(item.Admission))).ToArray(),
                 batch.LocalQueueInstruction)
             : value.Value is OfflineItemFact item
                 ? new OfflineItemResult(item.OriginId, item.Kind, item.State, item.Code, item.EffectId,
                     item.CanonicalOriginId, item.DurableAcknowledgment, item.ServerReceivedAt,
                     item.TimeProvenance, item.SyncLateness, item.ClaimedFinishedAt, item.VerifiedFinishedAt,
-                    item.VerifiedSyncDueAt, item.Outcome)
+                    item.VerifiedSyncDueAt, item.Outcome, Admission(item.Admission))
                 : value.Value, value.Version, value.Replayed);
+    private static OfflineAdmissionReadback? Admission(OfflineAdmissionReadbackFact? value)
+        => value is null ? null : new(value.Id, value.ProjectId, value.BatchId, value.SourceBatchId,
+            value.SourceDeviceRegistrationId, value.OriginId, value.TaskId, value.AssignmentId, value.SnapshotId,
+            value.OriginalActorId, value.CurrentImporterId, value.GrantId, value.Status,
+            value.Captures.Select(c => new OfflineCaptureReadback(c.CaptureOriginId, c.FileId, c.UploadId,
+                c.UploadStatus, c.Purpose, c.MediaType, c.ChecksumSha256, c.DeclaredSizeBytes, c.SizeBytes)).ToArray());
 }

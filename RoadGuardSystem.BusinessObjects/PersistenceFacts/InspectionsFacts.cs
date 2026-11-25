@@ -3,7 +3,8 @@ namespace RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 
 // Materialized persistence commands and snapshots, independent of public transport contracts.
 public sealed record FieldEvidenceDeclarationFact(Guid CaptureOriginId, Guid? FileId, string Purpose,
-    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist);
+    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null);
 
 public sealed record FieldEvidenceReuseInputFact(Guid FileId, Guid SourceEvidenceId, string SourceKind, string ExpectedChecksum, string Reason);
 

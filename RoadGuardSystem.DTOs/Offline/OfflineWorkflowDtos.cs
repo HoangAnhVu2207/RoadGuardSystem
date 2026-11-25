@@ -54,6 +54,12 @@ public sealed record OfflineWorkflowResult(int Status, string? Code = null, obje
 public sealed record OfflineItemResult(Guid OriginId, string Kind, string State, string? Code,
     Guid? EffectId, Guid? CanonicalOriginId, bool DurableAcknowledgment, DateTimeOffset ServerReceivedAt,
     string TimeProvenance, string SyncLateness, DateTimeOffset? ClaimedFinishedAt,
-    DateTimeOffset? VerifiedFinishedAt, DateTimeOffset? VerifiedSyncDueAt, object? Outcome);
+    DateTimeOffset? VerifiedFinishedAt, DateTimeOffset? VerifiedSyncDueAt, object? Outcome,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] OfflineAdmissionReadback? Admission = null);
+public sealed record OfflineAdmissionReadback(Guid Id, Guid ProjectId, Guid BatchId, Guid SourceBatchId,
+    Guid SourceDeviceRegistrationId, Guid OriginId, Guid TaskId, Guid AssignmentId, Guid SnapshotId,
+    Guid OriginalActorId, Guid CurrentImporterId, Guid? GrantId, string Status, OfflineCaptureReadback[] Captures);
+public sealed record OfflineCaptureReadback(Guid CaptureOriginId, Guid? FileId, Guid? UploadId,
+    string UploadStatus, string Purpose, string MediaType, string ChecksumSha256, long? DeclaredSizeBytes, long? SizeBytes);
 public sealed record OfflineBatchResult(Guid BatchId, OfflineItemResult[] Items,
     string LocalQueueInstruction = "KEEP_UNACKNOWLEDGED_OR_CONFLICTED_ITEMS");

@@ -236,7 +236,18 @@ public sealed class H4RepairProducingAdmissionSqlTests(IdentitySqlServerFixture 
         var exports = new RoadGuardSystem.Repositories.Exports.ExportRepository(db, new IdempotencyOperationService(db), TimeProvider.System);
         var exportQuery = new RoadGuardSystem.Repositories.Exports.ExportSourceAuthorityQuery(source.Project,
             [new("RepairItem", item.Id)], true, null);
-        Assert.True(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project, exportQuery, default));
+        // Global reporting remains readable, but does not grant general project export authority.
+        Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project, exportQuery, default));
+        var scoped = exportQuery with { HasAvailableRepairMetric = false, ScopedRepairDossier = true };
+        Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project, scoped, default));
+        var version = Convert.ToBase64String(await db.RepairItems.Where(i => i.Id == item.Id)
+            .Select(i => EF.Property<byte[]>(i, "RowVersion")).SingleAsync());
+        Assert.Equal(201, (await Repo(db).ApproveItemAsync(new(source.Supervisor, UserRoleCode.Supervisor,
+            source.Project, package.Id, item.Id, new("Exact effective plan approval"), Guid.NewGuid().ToString(), version), default)).Status);
+        Assert.True(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project, scoped, default));
+        Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project, exportQuery, default));
+        Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project,
+            scoped with { RepairSources = [new("RepairItem", Guid.NewGuid())] }, default));
         Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, Guid.NewGuid(), exportQuery, default));
         Assert.False(await exports.CanReadSnapshotSourcesAsync(source.Supervisor, source.Project,
             exportQuery with { RepairSources = [new("RepairItem", Guid.NewGuid())] }, default));

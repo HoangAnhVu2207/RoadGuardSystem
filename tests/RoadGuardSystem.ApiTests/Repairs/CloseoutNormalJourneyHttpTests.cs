@@ -25,7 +25,9 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         await using var db = sql.CreateDbContext();
         var source = await GenuineProtectedSource.Seed(db, sql);
         var useMinio = MinioSmokeFactAttribute.IsConfigured();
+        using var logs = new InMemoryLogProvider();
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, allowExternalStorage: useMinio,
+            loggerProvider: logs,
             configureTestServices: services => services.PostConfigure<ExportOptions>(options =>
                 options.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? options.UnicodeFontPath));
         using var pm = await Client(source.Pm);
@@ -197,6 +199,14 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             await using var persisted = sql.CreateDbContext();
             var stored = await persisted.Set<RepairAttemptReview>().SingleAsync(x => x.Id == reviewId);
             Assert.Equal(submissionId, stored.SubmissionId); Assert.Equal(attemptId, stored.AttemptId); Assert.Equal(reason, stored.Reason);
+            using var historyResponse = await pm.GetAsync(itemPath + "/history");
+            Assert.True(historyResponse.StatusCode == HttpStatusCode.OK, await historyResponse.Content.ReadAsStringAsync() + logs.CombinedEntries);
+            var history = await historyResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var historicReview = history.GetProperty("attemptReviews").EnumerateArray().Single(row => row.GetProperty("id").GetGuid() == reviewId);
+            Assert.Equal(submissionId, historicReview.GetProperty("submissionId").GetGuid());
+            Assert.Equal(attemptId, historicReview.GetProperty("attemptId").GetGuid());
+            Assert.Equal(reason, historicReview.GetProperty("reason").GetString());
+            Assert.True(historicReview.GetProperty("current").GetBoolean());
         }
         await RequestSupplement("Bổ sung ảnh xác nhận phạm vi sửa");
         var otherCrew = await sql.CreateUserAsync("reason-other-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.RepairCrew);
@@ -224,6 +234,11 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.Equal(attemptId, updatedAttempt.GetProperty("attemptId").GetGuid());
         Assert.Equal(revisedId, updatedAttempt.GetProperty("effectiveSubmissionId").GetGuid());
         Assert.Equal(JsonValueKind.Null, updatedAttempt.GetProperty("review").ValueKind);
+        var afterSupplementHistory = await pm.GetFromJsonAsync<JsonElement>(itemPath + "/history");
+        Assert.All(afterSupplementHistory.GetProperty("attemptReviews").EnumerateArray(), row => Assert.False(row.GetProperty("current").GetBoolean()));
+        var effectiveIntake = Assert.Single(afterSupplementHistory.GetProperty("intakeSubmissions").EnumerateArray().Where(row => row.GetProperty("effective").GetBoolean()));
+        Assert.Equal(revisedId, effectiveIntake.GetProperty("submissionId").GetGuid());
+        Assert.Equal(attemptId, effectiveIntake.GetProperty("attemptId").GetGuid());
         submissionId = revisedId;
         await RequestSupplement("Kiểm tra lại ảnh bổ sung của bản mới");
         // A second supplement must clear the review again before ACCEPT can target the new intake.

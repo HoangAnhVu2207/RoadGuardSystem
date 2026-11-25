@@ -28,7 +28,7 @@ public sealed partial class FieldInspectionWorkflowRepository
         CancellationToken token) => CaptureEvidenceFactsAsync(task, LegacyRepairEvidence(declaration), token);
     private static FieldEvidenceDeclarationFact LegacyRepairEvidence(RepairFieldEvidenceData value)
         => new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256,
-            value.MediaType, value.CapturedAt, value.AttemptChecklist);
+            value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes);
     private static FieldSubmissionInputFact LegacyRepairSubmission(RepairFieldSubmissionData value)
         => new(value.OriginId, value.StartOriginId, value.ParentSubmissionId,
             value.Measurements?.Select(row => row is null ? null! : new FieldMeasurementInputFact(row.SampleId,
@@ -61,7 +61,7 @@ public sealed partial class FieldInspectionWorkflowRepository
                 var facts = await evidenceAdmission.ResolveDeclaredEvidenceAsync(c.ProjectId, task.Id, admitted.AdmissionId,
                     c.Admission.OriginalActorId, new RepairFieldEvidenceData(declaration.CaptureOriginId, declaration.FileId,
                         declaration.Purpose, declaration.ChecksumSha256, declaration.MediaType, declaration.CapturedAt,
-                        declaration.AttemptChecklist), token);
+                        declaration.AttemptChecklist, declaration.SizeBytes), token);
                 if (facts is not null)
                 {
                     if (facts.AdmissionId != admitted.AdmissionId || facts.OriginalActorId != c.Admission.OriginalActorId ||
@@ -213,6 +213,7 @@ public sealed partial class FieldInspectionWorkflowRepository
         }
         if (!reuse && (scope.ProjectId != task.ProjectId || scope.TargetId != task.Id || scope.Purpose != declaration.Purpose || expectedOwner is Guid owner && file.OwnerId != owner)) Deny(403, "evidence_access_forbidden");
         if (file.Checksum != normalizedChecksum || file.MediaType != declaration.MediaType) Deny(409, "evidence_version_mismatch");
+        if (declaration.SizeBytes is long size && (size < 1 || size != file.SizeBytes)) Deny(409, "evidence_version_mismatch");
         return file;
     }
     private async Task<string> CaptureEvidenceFactsAsync(FieldInspectionTask task, FieldEvidenceDeclarationFact declaration, CancellationToken token)

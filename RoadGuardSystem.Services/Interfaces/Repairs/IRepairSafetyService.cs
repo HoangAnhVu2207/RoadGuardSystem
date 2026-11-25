@@ -7,6 +7,8 @@ public sealed record CrewSafetyMeasureListResult(int Status, string? Code = null
 public sealed record RepairSafetyServiceResult(int Status, string? Code = null, RepairSafetyView? Value = null);
 public interface IRepairSafetyService
 {
+    Task<RepairSafetyServiceResult> ResolveAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
+        Guid item, Guid measure, RepairSafetyResolveInput input, string? key, string? version, CancellationToken token);
     Task<CrewSafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token);
     Task<RepairSafetyServiceResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
         Guid item, Guid measure, CancellationToken token);

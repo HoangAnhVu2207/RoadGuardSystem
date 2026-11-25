@@ -26,7 +26,7 @@ using Xunit;
 namespace RoadGuardSystem.ApiTests.Offline;
 
 [Collection(AuthenticationApiFixture.Name)]
-public sealed class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fixture)
+public sealed partial class H5OfflinePositiveHttpTests(AuthenticationSqlServerFixture fixture)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 

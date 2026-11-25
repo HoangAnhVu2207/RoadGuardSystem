@@ -5,4 +5,4 @@ namespace RoadGuardSystem.Repositories.Exports;
 public sealed record ExportSourceAuthorityReference(string Kind, Guid Id);
 public sealed record ExportCaseDefectAuthorityFacts(Guid ProjectId, Guid[] CaseIds, Guid[] DefectIds);
 public sealed record ExportSourceAuthorityQuery(Guid ManifestProjectId, ExportSourceAuthorityReference[] RepairSources,
-    bool HasAvailableRepairMetric, ExportCaseDefectAuthorityFacts? CaseFacts);
+    bool HasAvailableRepairMetric, ExportCaseDefectAuthorityFacts? CaseFacts, bool ScopedRepairDossier = false);

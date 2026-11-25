@@ -86,6 +86,9 @@ public sealed class FieldMeasurementTriggerHttpTests
                 Assert.True(response.StatusCode == HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
                 var id = (await Json(response)).GetProperty("id").GetGuid(); ids.Add(id);
                 Assert.Equal(type, await setup.FieldInspectionTasks.Where(x => x.Id == id).Select(x => x.RequiredMeasurementType).SingleAsync());
+                using var read = await client.GetAsync(path + $"/{id}");
+                Assert.Equal(HttpStatusCode.OK, read.StatusCode);
+                Assert.Equal(type, (await Json(read)).GetProperty("requiredMeasurementType").GetByte());
             }
         foreach (byte invalid in new byte[] { 0, 7 })
         {

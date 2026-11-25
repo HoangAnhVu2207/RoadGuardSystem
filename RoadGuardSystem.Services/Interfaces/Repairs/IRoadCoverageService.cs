@@ -6,6 +6,7 @@ namespace RoadGuardSystem.Services.Repairs;
 public interface IRoadCoverageService
 {
     Task<RoadCoverageServiceResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, CancellationToken token);
+    Task<HandoverDocumentsServiceResult> ReadHandoverDocumentsAsync(Guid actor, UserRoleCode role, Guid project, CancellationToken token);
     Task<RoadCoverageServiceResult> AttachHandoverAsync(Guid actor, UserRoleCode role, Guid project,
         HandoverAttachmentDto input, string? key, string? version, CancellationToken token);
     Task<RoadCoverageServiceResult> ConfirmAsync(Guid actor, UserRoleCode role, Guid project, RoadCoverageInputDto input,

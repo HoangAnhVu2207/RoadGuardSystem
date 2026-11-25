@@ -69,6 +69,7 @@ public sealed class CasesController : ControllerBase
         => Execute(caseId, version => new(caseId, version, "split", request.Reason ?? "", ReportIds: request.ReportIds), cancellationToken);
 
     [HttpPost("{caseId:guid}/conclusions")]
+    [ProducesResponseType<InternalCaseDto>(StatusCodes.Status200OK)]
     public Task<IActionResult> Conclude(Guid caseId, CaseConclusionDto request, CancellationToken cancellationToken)
         => Execute(caseId, version => new(caseId, version, "conclude", request.Reason ?? "", Outcome: request.Outcome switch
         { "CONFIRMED" => CaseConclusionOutcome.Confirmed, "NO_DEFECT" => CaseConclusionOutcome.NoDefect, "NEEDS_EVIDENCE" => CaseConclusionOutcome.NeedsEvidence, _ => null },

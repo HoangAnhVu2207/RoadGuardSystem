@@ -55,8 +55,15 @@ public sealed class WebPmCompletionOperationFilter : IOperationFilter
                 if (!operation.Parameters.Any(parameter => parameter.Name == name)) operation.Parameters.Add(new OpenApiParameter
                 { Name = name, In = ParameterLocation.Query, Schema = new OpenApiSchema { Type = "string", Format = "uuid" }, Description = "Filter by the persisted processing/dataset/task relation in this project. Bound to cursor." });
         }
-        if (controller == typeof(ExportsController) && action == "Create")
-            operation.Description = "Create an export snapshot. DOSSIER accepts up to 100 item IDs or 20 package IDs, resolving up to 100 items. Do not mix repair scope with segment, defect or time filters. ZIP can include authorized originals.";
+        if (controller == typeof(ExportsController))
+        {
+            operation.Description = action == "Create"
+                ? "General exports require matching-role membership. Repair dossiers allow exact current Supervisor proof or PM obligation responsibility. Entire item scope and originals are checked. POST: Idempotency-Key, cookie CSRF; 202 immutable job. No blanket Supervisor access."
+                : "Current authority over the entire immutable scope is required: membership for general exports; exact item responsibility/Supervisor proof for repair dossiers. Detail is not creator-only. Content needs SUCCEEDED, unexpired job and file authority rechecked after storage opens.";
+            operation.Responses.TryAdd("403", new OpenApiResponse { Description = "forbidden: current export membership or source authority missing" });
+        }
+        if (controller == typeof(DiscoveryCollectionsController) && action == "Exports")
+            operation.Description = "Creator-only jobs, filtered before pagination. Matching-role membership or exact current repair resource proof is required, including empty results; each job is reauthorized. Global reporting alone is insufficient. 403 access_forbidden is not an empty collection or proof of POST.";
 
         void Header(string name, string description, bool required = true)
         {

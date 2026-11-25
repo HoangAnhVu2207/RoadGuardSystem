@@ -296,6 +296,13 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
         }
         await Login(client, pm.UserName!); Assert.Equal(HttpStatusCode.Conflict, (await Post(client, path + "/reviews", new { submissionId = first.GetProperty("id").GetGuid(), decision = "CONFIRM", reason = "insufficient" }, version: await Version(client, path))).StatusCode);
         var supplement = await Post(client, path + "/reviews", new { submissionId = first.GetProperty("id").GetGuid(), decision = "SUPPLEMENT", reason = "need actual capture" }, version: await Version(client, path)); Assert.Equal(HttpStatusCode.Created, supplement.StatusCode); Assert.Equal("BUSINESS_ACK_REQUIRED", (await supplement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("receiptActivation").GetString());
+        var history = await client.GetFromJsonAsync<JsonElement>(path + "/history");
+        var details = history.GetProperty("details");
+        Assert.Contains(details.GetProperty("submissions").EnumerateArray(), x => x.GetProperty("id").GetGuid() == first.GetProperty("id").GetGuid());
+        var reviewHistory = Assert.Single(details.GetProperty("reviews").EnumerateArray());
+        Assert.Equal(first.GetProperty("id").GetGuid(), reviewHistory.GetProperty("submissionId").GetGuid());
+        Assert.Equal("SUPPLEMENT", reviewHistory.GetProperty("decision").GetString());
+        Assert.Equal("need actual capture", reviewHistory.GetProperty("reason").GetString());
         Guid receivingId;
         Guid weeklyDigestId;
         Guid weeklyClockId;

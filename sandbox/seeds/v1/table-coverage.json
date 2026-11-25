@@ -153,6 +153,7 @@
     "dbo.RepairSafetyResponsibilityTransfers",
     "dbo.RepairTemporarySafetyMeasures",
     "dbo.RepairWorkHandovers",
+    "dbo.ReportMatchingLocations",
     "dbo.ReportOriginalEvidence",
     "dbo.ReportSupplementEvidence",
     "dbo.ReportSupplements",
@@ -218,7 +219,9 @@
     "20261119164737_AddAiVideoTelemetryRevisions",
     "20261119170649_AddAiVideoAttemptOutcomes",
     "20261123093000_FieldTaskMeasurementDimensions",
-    "20261123093100_InitialTemporarySafetyResponsibility"
+    "20261123093100_InitialTemporarySafetyResponsibility",
+    "20261125053521_ReportMatchingLocationConfirmation",
+    "20261125072411_TemporarySafetyResolution"
   ],
   "Signature": "CAFD27F7BD462140987C2FFC8C62F6B1C683040C84C2B411B9B98FE7D9BE5BE5",
   "Classifications": [
@@ -1427,6 +1430,12 @@
       "Category": "TEST_ONLY",
       "Reason": "Approved notification-only assignment; populated by demo PUT and genuine producer acceptance, never synthetic Supervisor approval.",
       "Evidence": "NotificationSupervisorConcurrencySqlTests; NotificationSupervisorHttpTests; OWNER_B2_EXACT_CONTRACT_APPROVED"
+    },
+    {
+      "Table": "dbo.ReportMatchingLocations",
+      "Category": "NOT_COVERED",
+      "Reason": "No automatic representative position or backfill. Requires an explicit authorized PM matching confirmation.",
+      "Evidence": "ReportMatchingLocationService.ConfirmAsync; owner-web-b-decisions-20261125.md"
     }
   ]
 }

@@ -43,6 +43,34 @@ public sealed class RoadCoverageRepository(RoadGuardDbContext db, TimeProvider c
         }
         catch (Rejected rejected) { return rejected.Result; }
     }
+    public async Task<HandoverDocumentsResult> ReadHandoverDocumentsAsync(Guid actor, UserRoleCode role, Guid project, CancellationToken token)
+    {
+        try
+        {
+            return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            {
+                await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+                // Inventory is for the Supervisor who may attach documents, not a new project-wide file grant.
+                await Authority(actor, role, project, true, token);
+                var rows = await db.HandoverDocuments.AsNoTracking().Where(row => row.ProjectId == project)
+                    .OrderBy(row => row.Id).Select(row => new
+                    {
+                        row.Id,
+                        row.DocumentNo,
+                        row.HandoverDate,
+                        row.FileId,
+                        row.RowVersion,
+                        IsMapped = db.Set<RoadCoverageMapping>().Any(mapping => mapping.HandoverDocumentId == row.Id)
+                    }).ToArrayAsync(token);
+                var items = rows.Select(row => new HandoverDocumentReadFact(row.Id, row.DocumentNo,
+                    row.HandoverDate, row.FileId, Convert.ToBase64String(row.RowVersion), row.IsMapped,
+                    row.FileId is null && !row.IsMapped)).ToArray();
+                await tx.CommitAsync(token);
+                return new HandoverDocumentsResult(200, Value: new(project, items));
+            });
+        }
+        catch (Rejected rejected) { return new(rejected.Result.Status, rejected.Result.Code); }
+    }
     private async Task<RoadCoverageReadFact> ReadCore(Guid project, CancellationToken token)
     {
         var obligations = await db.RepairObligations.AsNoTracking().Include(row => row.Scope).Where(row =>

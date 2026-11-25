@@ -7,6 +7,16 @@ namespace RoadGuardSystem.Services.Implementations.Repairs;
 
 public sealed class RepairWorkflowService(IRepairWorkflowRepository repository) : IRepairWorkflowService
 {
+    public async Task<RepairWorkflowResult> ReadSourceTaskAsync(Guid actor, UserRoleCode role, Guid project,
+        Guid package, Guid item, Guid task, string kind, Guid? resource, CancellationToken token)
+    {
+        if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor)) return new(403, "access_forbidden");
+        if (new[] { actor, project, package, item, task }.Any(id => id == Guid.Empty) ||
+            kind is not ("geometry" or "history" or "submission" or "evidence") ||
+            kind is "submission" or "evidence" && (resource is null || resource == Guid.Empty)) return new(400, "validation_error");
+        var result = await repository.ReadSourceTaskAsync(actor, role, project, package, item, task, kind, resource, token);
+        return result with { Value = RoadGuardSystem.DTOs.BoundaryFactMappings.ToWire(result.Value) };
+    }
     public Task<RepairWorkflowResult> RequestReviewAsync(Guid actorId, UserRoleCode role, Guid projectId,
         Guid packageId, Guid itemId, RepairReviewRequestInput input, string? key, string? expectedVersion,
         CancellationToken cancellationToken)

@@ -41,7 +41,9 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         options.OperationFilter<GeometrySubmissionOperationFilter>();
         options.OperationFilter<WebPmCompletionOperationFilter>();
         options.OperationFilter<FieldSafetyAiOperationFilter>();
+        options.OperationFilter<WebBReadOperationFilter>();
         options.SchemaFilter<FieldSafetyAiOperationFilter>();
+        options.SchemaFilter<WebBReadOperationFilter>();
         options.SchemaFilter<ManualContractSchemaFilter>();
         options.AddSecurityDefinition("AiServiceBearer", new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", Description = "Dedicated RS256 AI callback JWT: issuer roadguard-backend, audience roadguard-ai-callback, separate kid/keyring, TTL 300 seconds, jobId/attemptId binding. Human JWTs are rejected." });
         AddCookie(options, "WebSession", "__Host-RoadGuardSession", "Browser-managed Secure HttpOnly session cookie, obtained by web login. Swagger Authorize cannot set HttpOnly cookies.");

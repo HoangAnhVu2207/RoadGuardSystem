@@ -66,16 +66,26 @@ public sealed class AnhHuyFactsRepository(RoadGuardDbContext db) : IAnhHuyFactsR
         // Materialize each owned navigation before combining; EF cannot UNION a
         // client-constructed record projection across two different owned tables.
         var original = await db.Set<Report>().Where(r => r.Id == reportId).SelectMany(r => r.OriginalEvidence)
-            .Select(e => new ReportSourceEvidence(e.Id, e.FileId, e.FileVersion)).ToArrayAsync(ct);
+            .Select(e => new ReportSourceEvidence(e.Id, e.FileId, e.FileVersion,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.Latitude,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.Longitude,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.AccuracyMeters,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.LocationSource.ToString().ToUpperInvariant())).ToArrayAsync(ct);
         var supplements = await db.Set<ReportSupplement>().Where(s => s.ReportId == reportId).SelectMany(s => s.Evidence)
-            .Select(e => new ReportSourceEvidence(e.Id, e.FileId, e.FileVersion)).ToArrayAsync(ct);
+            .Select(e => new ReportSourceEvidence(e.Id, e.FileId, e.FileVersion,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.Latitude,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.Longitude,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.AccuracyMeters,
+                e.CaptureMetadata == null ? null : e.CaptureMetadata.LocationSource.ToString().ToUpperInvariant())).ToArrayAsync(ct);
         var evidence = original.Concat(supplements).ToArray();
         var disposition = await (from head in db.Set<HuyCandidateSourceHead>().AsNoTracking()
                                  join decision in db.Set<CandidateDecision>().AsNoTracking() on head.DecisionId equals decision.Id
                                  where head.SourceKind == CandidateSourceKind.Report && head.SourceId == reportId
                                  select new { head.DecisionId, HeadVersion = head.RowVersion, Version = EF.Property<byte[]>(decision, "RowVersion") }).SingleOrDefaultAsync(ct);
+        var location = await db.Set<ReportMatchingLocation>().AsNoTracking().Where(x => x.ReportId == reportId)
+            .OrderByDescending(x => x.Sequence).FirstOrDefaultAsync(ct);
         return new(row.Id, row.ReporterUserId, row.CaseId, row.ProjectId, row.Route, row.Set, Convert.ToBase64String(row.ReportVersion),
             Convert.ToBase64String(row.CaseVersion), disposition is null ? null : new ActiveCandidateDisposition(disposition.DecisionId, Convert.ToBase64String(disposition.Version)),
-            disposition is null ? null : Convert.ToBase64String(disposition.HeadVersion), evidence);
+            disposition is null ? null : Convert.ToBase64String(disposition.HeadVersion), evidence, location);
     }
 }

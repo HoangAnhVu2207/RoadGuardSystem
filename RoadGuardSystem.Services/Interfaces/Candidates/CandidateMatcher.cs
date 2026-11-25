@@ -9,7 +9,8 @@ public sealed record CandidateMatchItem(Guid DefectId, string Version, Guid? Seg
 public static class CandidateMatcher
 {
     public static IReadOnlyList<CandidateMatchItem> Match(Guid project, IReadOnlyCollection<Guid> assignedSegments,
-        IReadOnlyCollection<Guid> neighborSegments, IReadOnlyCollection<CandidateMatchFact> facts, bool expand, bool metricGpsAvailable)
+        IReadOnlyCollection<Guid> neighborSegments, IReadOnlyCollection<CandidateMatchFact> facts, bool expand, bool metricGpsAvailable,
+        string? unavailableLocationReason = null)
     {
         if (project == Guid.Empty) throw new ArgumentException("Project is required.", nameof(project));
         if (facts.Any(f => f.DefectId == Guid.Empty || string.IsNullOrWhiteSpace(f.Version) ||
@@ -18,7 +19,8 @@ public static class CandidateMatcher
         {
             var group = f.SegmentId is Guid s && assignedSegments.Contains(s) ? 0 : f.SegmentId is Guid n && neighborSegments.Contains(n) ? 1 : 2;
             var reasons = new List<string> { group == 0 ? "ASSIGNED_SEGMENT" : group == 1 ? "NEIGHBOR_SEGMENT" : "PROJECT_EXPANSION" };
-            if (!metricGpsAvailable) reasons.Add("GPS_MISSING");
+            if (!metricGpsAvailable) reasons.Add(unavailableLocationReason ?? "GPS_MISSING");
+            if (metricGpsAvailable && f.MetricDistanceMeters is null) reasons.Add("DISTANCE_SOURCE_UNAVAILABLE");
             if (metricGpsAvailable && f.AccuracyOverlap) reasons.Add("ACCURACY_OVERLAP");
             if (f.HistoricalLink) reasons.Add("HISTORICAL_LINK");
             return new

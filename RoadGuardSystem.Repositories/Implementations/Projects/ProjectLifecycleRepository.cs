@@ -123,6 +123,7 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
                 PackageId = EF.Property<Guid?>(row, "PackageId"),
                 row.CurrentRepairItemId,
                 row.EffectiveResolutionDecisionId,
+                row.SafetyResolutionId,
                 Version = EF.Property<byte[]>(row, "RowVersion")
             }).ToArrayAsync(token);
         var defects = await db.Defects.AsNoTracking().Where(row => row.ProjectId == project).Select(row => row.Id).ToArrayAsync(token);
@@ -136,10 +137,35 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
             MatchesInventory(row.FactsJson, defects, obligations.Select(value => value.Id).ToArray())) &&
             defects.All(id => obligations.Any(row => row.DefectId == id));
         var facts = obligations.Select(row => new ProjectLifecycleObligationFact(row.Id, row.Mandatory,
-            row.EffectiveResolutionDecisionId.HasValue, Transfer(row.Id))).ToArray();
+            row.EffectiveResolutionDecisionId.HasValue || row.SafetyResolutionId.HasValue, Transfer(row.Id))).ToArray();
         var ownedIds = obligations.Where(row => (responsibilities.SingleOrDefault(r => r.ObligationId == row.Id)?.CurrentProjectId ?? project) == project)
             .Select(row => row.Id).ToArray();
         var ownedObligations = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope).Where(row => ownedIds.Contains(row.Id)).ToArrayAsync(token);
+        var safetyContexts = await (from monitoring in db.Set<RepairSafetyMonitoring>().AsNoTracking()
+                                    join assignment in db.Set<RepairSafetyActionSource>().AsNoTracking() on monitoring.MeasureId equals assignment.MeasureId
+                                    join item in db.RepairItems.AsNoTracking() on assignment.ItemId equals item.Id
+                                    join safety in db.RepairObligations.AsNoTracking() on monitoring.SafetyObligationId equals safety.Id
+                                    where ownedIds.Contains(safety.Id) && safety.Kind == RepairObligationKind.TemporarySafety &&
+                                        assignment.Kind == "ASSIGNED" && assignment.ProjectId == safety.ProjectId &&
+                                        item.ProjectId == safety.ProjectId && item.DefectId == safety.DefectId &&
+                                        item.ObligationId == monitoring.FormalObligationId &&
+                                        EF.Property<Guid?>(item, "PackageId") != null &&
+                                        EF.Property<Guid?>(item, "PackageId") == EF.Property<Guid?>(safety, "PackageId")
+                                    select new
+                                    {
+                                        ObligationId = safety.Id,
+                                        PackageId = EF.Property<Guid?>(item, "PackageId"),
+                                        ItemId = item.Id,
+                                        monitoring.MeasureId,
+                                        monitoring.FormalObligationId
+                                    })
+            .Distinct().ToArrayAsync(token);
+        SafetyMeasureContextFact? SafetyContext(Guid obligation)
+        {
+            var matches = safetyContexts.Where(c => c.ObligationId == obligation).ToArray();
+            return matches.Length == 1 && matches[0].PackageId is Guid package
+                ? new(package, matches[0].ItemId, matches[0].MeasureId, matches[0].FormalObligationId) : null;
+        }
         var transferable = ownedObligations.OrderBy(row => row.Id).Select(row => new LD06TransferableObligationFact(row.Id, row.DefectId,
             row.Kind.ToString(), row.Mandatory, row.Scope.Id, row.Scope.PhysicalRoadId, row.Scope.LocationVersion, row.Scope.RouteLabel,
             row.Scope.From, row.Scope.To, row.Scope.OffsetFrom, row.Scope.OffsetTo, LD06LifecycleAction.HashScope(row),
@@ -181,7 +207,8 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
             inventory,
             actions,
             responsibilities = responsibilities.OrderBy(row => row.ObligationId),
-            transferable
+            transferable,
+            safetyContexts = safetyContexts.OrderBy(row => row.ObligationId).ThenBy(row => row.ItemId).ThenBy(row => row.MeasureId)
         });
         var version = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(revision))).ToLowerInvariant();
         return new(project, completion ? "CONFIRMED" : "UNKNOWN", closed && inventory ?
@@ -194,7 +221,8 @@ public sealed partial class ProjectLifecycleRepository(RoadGuardDbContext db, Ti
             responsibilities.Select(row => new ObligationResponsibilityFact(row.ObligationId, row.OriginProjectId, row.CurrentProjectId, actions.Any(x => x.Id == row.AcceptanceActionId && x.Kind == LD06ActionKind.InitializeTemporarySafetyResponsibility) ? null : row.AcceptanceActionId,
                 obligations.SingleOrDefault(obligation => obligation.Id == row.ObligationId)?.PackageId,
                 obligations.SingleOrDefault(obligation => obligation.Id == row.ObligationId)?.CurrentRepairItemId,
-                actions.Any(x => x.Id == row.AcceptanceActionId && x.Kind == LD06ActionKind.InitializeTemporarySafetyResponsibility) ? row.AcceptanceActionId : null)).ToArray(), transferable);
+                actions.Any(x => x.Id == row.AcceptanceActionId && x.Kind == LD06ActionKind.InitializeTemporarySafetyResponsibility) ? row.AcceptanceActionId : null,
+                SafetyContext(row.ObligationId))).ToArray(), transferable);
     }
 
     private static string? HandlingScope(ProjectLifecycleHistoryRecord record)

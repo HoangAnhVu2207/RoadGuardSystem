@@ -427,6 +427,13 @@ public sealed partial class OfflineWorkflowRepository
                     operation.ClaimedFinishedAt, null, null, null)).ToArray();
             if (admissions.Length != signed.Operations.Length)
                 throw new OfflineAdmissionRejectedException(409, "offline_admission_proof_unavailable");
+            for (var index = 0; index < signed.Operations.Length; index++)
+            {
+                var operation = signed.Operations[index];
+                var bound = await db.Set<OfflineOperationBinding>().AsNoTracking().SingleAsync(b => b.ProjectId == command.ProjectId && b.OriginId == operation.OriginId, token);
+                var admission = admissions.Single(a => a.BindingId == bound.Id && a.CurrentImporterId == command.ActorId && a.ImporterRole == command.Role);
+                items[index] = items[index] with { Admission = await AdmissionViewAsync(batch, admission, operation, current.GetValueOrDefault(operation.OriginId), token) };
+            }
             return new(200, Value: new OfflineBatchFact(batch.Id, items));
         }
         if (command.Action == "origin-get")
@@ -451,10 +458,13 @@ public sealed partial class OfflineWorkflowRepository
                     .AsNoTracking().Where(row => row.ProjectId == command.ProjectId && row.OriginId == id)
                     .Select(row => row.Id).SingleOrDefaultAsync(token)
                 : Guid.Empty;
-            return new(200, Value: result is null
+            var view = result is null
                 ? new OfflineItemFact(id, binding.Kind, "PENDING_DEPENDENCY", "not_processed", null,
                     null, false, batch.ReceivedAt, "UNCERTAIN", "UNKNOWN", null, null, null, null)
-                : ItemView(result, binding.Kind, canonical));
+                : ItemView(result, binding.Kind, canonical);
+            var operation = JsonSerializer.Deserialize<OfflineOperationData>(binding.EnvelopeJson, Json)
+                ?? throw new OfflineAdmissionRejectedException(409, "offline_admission_proof_unavailable");
+            return new(200, Value: view with { Admission = await AdmissionViewAsync(batch, admission, operation, result, token) });
         }
         return new(409, "offline_admission_not_ready");
     }

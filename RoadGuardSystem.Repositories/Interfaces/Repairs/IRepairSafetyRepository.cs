@@ -1,4 +1,5 @@
 using RoadGuardSystem.aBusinessObjects.Commons;
+using RoadGuardSystem.BusinessObjects.Repairs;
 
 namespace RoadGuardSystem.Repositories.Repairs;
 
@@ -11,16 +12,26 @@ public sealed record SafetyCheckCommand(Guid ActorId, UserRoleCode Role, Guid Pr
     Guid MeasureId, string Result, string Findings, Guid[] EvidenceLinkIds, string Key, string ExpectedVersion);
 public sealed record SafetyAckCommand(Guid ActorId, UserRoleCode Role, Guid ProjectId, Guid PackageId, Guid ItemId,
     Guid MeasureId, Guid WarningId, string Reason, string Key, string ExpectedVersion);
+public sealed record SafetyResolveCommand(Guid ActorId, UserRoleCode Role, Guid ProjectId, Guid PackageId, Guid ItemId,
+    Guid MeasureId, Guid CheckId, string Outcome, bool ConditionSatisfied, string ChecklistConfirmation,
+    string Reason, Guid[] EvidenceIds, string ObligationVersion, string Key, string ExpectedVersion);
+public sealed record SafetyResolutionFact(Guid Id, Guid ActorId, DateTimeOffset At, string Outcome, Guid CheckId,
+    string Reason, string Condition, string ChecklistConfirmation, string MeasureVersion, string ObligationVersion,
+    RepairSafetyEvidenceReference[] Evidence);
 public sealed record SafetyFact(Guid Id, Guid ProjectId, Guid DefectId, Guid FormalObligationId, Guid SafetyObligationId,
     Guid ResponsibleActorId, DateTimeOffset? InstalledAt, DateTimeOffset? FirstCheckDueAt, Guid? CurrentCheckId,
-    SafetyCheckFact[] Checks, SafetyWarningFact[] Warnings, SafetyAckFact[] Acknowledgements, string Version);
+    SafetyCheckFact[] Checks, SafetyWarningFact[] Warnings, SafetyAckFact[] Acknowledgements, string Version,
+    SafetyResolutionFact? Resolution = null);
 public sealed record SafetyCheckFact(Guid Id, Guid ActorId, DateTimeOffset At, string Result, string Findings, Guid[] EvidenceLinkIds);
 public sealed record SafetyWarningFact(Guid Id, Guid SourceCheckId, Guid IntendedActorId, DateTimeOffset ServerReceivedAt,
     DateTimeOffset OriginalDueAt, string Reason);
 public sealed record SafetyAckFact(Guid Id, Guid WarningId, Guid ActorId, DateTimeOffset At, bool AfterOriginalDue);
 public sealed record SafetyEvidenceLinkFact(Guid EvidenceLinkId, Guid FileId);
 public sealed record SafetyMeasureListResult(int Status, string? Code = null, Guid[]? MeasureIds = null);
-public sealed record SafetyResult(int Status, string? Code = null, SafetyFact? Value = null, bool Replayed = false, SafetyEvidenceLinkFact[]? EvidenceLinks = null);
+public sealed record SafetyObligationReadFact(bool Resolved, Guid OriginProjectId, Guid ResponsibilityProjectId,
+    string Version, SafetyObligationScopeFact Scope);
+public sealed record SafetyResult(int Status, string? Code = null, SafetyFact? Value = null, bool Replayed = false,
+    SafetyEvidenceLinkFact[]? EvidenceLinks = null, SafetyObligationReadFact? Obligation = null);
 public interface IRepairSafetyRepository
 {
     Task<SafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token);
@@ -30,4 +41,5 @@ public interface IRepairSafetyRepository
     Task<SafetyResult> InstallAsync(SafetyInstallCommand command, CancellationToken cancellationToken);
     Task<SafetyResult> CheckAsync(SafetyCheckCommand command, CancellationToken cancellationToken);
     Task<SafetyResult> AcknowledgeAsync(SafetyAckCommand command, CancellationToken cancellationToken);
+    Task<SafetyResult> ResolveAsync(SafetyResolveCommand command, CancellationToken token);
 }

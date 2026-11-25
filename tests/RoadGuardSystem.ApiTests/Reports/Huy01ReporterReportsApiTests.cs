@@ -547,7 +547,9 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
         matches.StatusCode.Should().Be(HttpStatusCode.OK);
         var matchBody = await matches.Content.ReadFromJsonAsync<JsonElement>();
         matchBody.GetProperty("source").GetProperty("id").GetGuid().Should().Be(secondReport);
-        matchBody.GetProperty("algorithmVersion").GetString().Should().Be("huy01-1");
+        matchBody.GetProperty("algorithmVersion").GetString().Should().Be("report-confirmed-2");
+        matchBody.GetProperty("matchingLocationStatus").GetString().Should().Be("GPS_MISSING");
+        matchBody.GetProperty("sourceEvidenceRefs").GetArrayLength().Should().BeGreaterThan(0);
         var item = matchBody.GetProperty("items").EnumerateArray().Single(row => row.GetProperty("defectId").GetGuid() == createdDefectId);
         item.GetProperty("distanceMeters").ValueKind.Should().Be(JsonValueKind.Null);
         item.GetProperty("reasonCodes").EnumerateArray().Select(code => code.GetString()).Should().Contain("GPS_MISSING");
@@ -1203,14 +1205,14 @@ public sealed partial class Huy01ReporterReportsApiTests(AuthenticationSqlServer
         }
     }
 
-    private static async Task<(Guid Route, Guid Set, string Version)> CreatePublishedGeometryAsync(HttpClient client, string pm, string supervisor, Guid project)
+    private static async Task<(Guid Route, Guid Set, string Version)> CreatePublishedGeometryAsync(HttpClient client, string pm, string supervisor, Guid project, int sourceCrs = 32648)
     {
         var prefix = $"/api/v1/projects/{project}";
         await LoginAsync(client, pm);
         var draft = await SendAsync(client, HttpMethod.Post, prefix + "/road-geometry-drafts", new
         {
             sourceKind = "COORDINATES",
-            sourceCrs = 32648,
+            sourceCrs,
             stationOriginMeters = 0,
             changeReason = "Candidate fixture",
             coordinates = new[] { new { x = 500000d, y = 1200000d }, new { x = 500250d, y = 1200000d } },

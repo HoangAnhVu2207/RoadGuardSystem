@@ -46,6 +46,14 @@ public sealed class SandboxOfflineRouteCatalogTests
         // These newer routes are source-verified; the 260-operation FE handoff is a historical snapshot.
         var additions = new HashSet<(string, string)>
         {
+            ("GET", "/api/v1/projects/{projectId}/reports/{reportId}/matching-location"),
+            ("POST", "/api/v1/projects/{projectId}/reports/{reportId}/matching-location"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-evidence/{evidenceId}/content"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/geometry"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/history"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/submissions/{submissionId}"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/evidence/{fileId}"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/evidence/{fileId}/content"),
             ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/temporary-safety-obligations"),
             ("POST", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/temporary-safety-obligations"),
             ("GET", "/api/v1/projects/overviews"),

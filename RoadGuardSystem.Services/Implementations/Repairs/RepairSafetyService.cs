@@ -108,7 +108,12 @@ public sealed class RepairSafetyService(IRepairSafetyRepository repository) : IR
                 row.IntendedActorId, row.ServerReceivedAt, row.OriginalDueAt, row.Reason)).ToArray(),
             fact.Acknowledgements.Select(row => new RepairSafetyAcknowledgementView(row.Id, row.WarningId,
                 row.ActorId, row.At, row.AfterOriginalDue)).ToArray(), fact.Version,
-            result.EvidenceLinks?.Select(row => new RepairSafetyEvidenceLink(row.EvidenceLinkId, row.FileId)).ToArray());
+            result.EvidenceLinks?.Select(row => new RepairSafetyEvidenceLink(row.EvidenceLinkId, row.FileId)).ToArray(),
+            result.Obligation is { } obligation ? new(obligation.Resolved, obligation.OriginProjectId,
+                obligation.ResponsibilityProjectId, obligation.Version,
+                new(obligation.Scope.PhysicalRoadId, obligation.Scope.LocationVersion, obligation.Scope.RouteLabel,
+                    obligation.Scope.FromMeters, obligation.Scope.ToMeters, obligation.Scope.OffsetFromMeters,
+                    obligation.Scope.OffsetToMeters)) : null);
         return new(result.Status, result.Code, view);
     }
 }

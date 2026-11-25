@@ -275,7 +275,7 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         if (output is not null) await File.WriteAllTextAsync(output, JsonSerializer.Serialize(schema));
         Assert.Contains("20261117183505_WebPmCoordinationMetadata", schema.Migrations);
         Assert.Contains("20261123093000_FieldTaskMeasurementDimensions", schema.Migrations);
-        Assert.Equal("20261123093100_InitialTemporarySafetyResponsibility", schema.Migrations[^1]);
+        Assert.Equal("20261125053521_ReportMatchingLocationConfirmation", schema.Migrations[^1]);
         Assert.Equal(db.Database.GetMigrations(), schema.Migrations);
         Assert.False(db.Database.HasPendingModelChanges());
     }
@@ -393,6 +393,22 @@ public sealed class WebPmCoordinationHttpTests(AuthenticationSqlServerFixture sq
         Assert.Contains("206", download.Responses.Keys); Assert.Contains("416", download.Responses.Keys);
         Assert.Contains(download.Parameters, row => row.Name == "Range");
         Assert.Contains(swagger.Components.Schemas.Values, row => row.Properties.ContainsKey("repairItemIds"));
+        var matching = swagger.Paths["/api/v1/projects/{projectId}/reports/{reportId}/matching-location"];
+        Assert.Equal(2, matching.Operations.Count);
+        foreach (var read in matching.Operations.Values)
+        {
+            Assert.Contains(read.Security, row => row.Keys.Any(key => key.Reference?.Id == "Bearer"));
+            Assert.Contains(read.Security, row => row.Keys.Any(key => key.Reference?.Id == "WebSession"));
+            Assert.Contains("200", read.Responses.Keys);
+        }
+        Assert.Contains(matching.Operations[Microsoft.OpenApi.Models.OperationType.Post].Parameters, row => row.Name == "X-CSRF-TOKEN");
+        Assert.Contains(matching.Operations[Microsoft.OpenApi.Models.OperationType.Post].Parameters, row => row.Name == "Idempotency-Key");
+        Assert.Contains("sourceContext", swagger.Components.Schemas["RepairItemView"].Properties.Keys);
+        Assert.Contains("intakeSubmissions", swagger.Components.Schemas["RepairHistoryView"].Properties.Keys);
+        Assert.Contains("attemptReviews", swagger.Components.Schemas["RepairHistoryView"].Properties.Keys);
+        Assert.Contains("details", swagger.Components.Schemas["FieldHistoryView"].Properties.Keys);
+        var conclusion = swagger.Paths["/api/v1/cases/{caseId}/conclusions"].Operations[Microsoft.OpenApi.Models.OperationType.Post];
+        Assert.Contains("200", conclusion.Responses.Keys); Assert.DoesNotContain("201", conclusion.Responses.Keys);
         var output = Environment.GetEnvironmentVariable("RG_WEB13_OPENAPI_EVIDENCE");
         if (output is not null)
         {

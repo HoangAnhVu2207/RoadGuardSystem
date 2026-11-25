@@ -1,7 +1,13 @@
 namespace RoadGuardSystem.DTOs.Repairs;
 
 public sealed record RepairHistoryView(RepairItemView Item, RepairDecisionHistoryView[] Decisions,
-    RepairAttemptHistoryView[] Attempts, RepairReviewRequestHistoryView[] ReviewRequests);
+    RepairAttemptHistoryView[] Attempts, RepairReviewRequestHistoryView[] ReviewRequests,
+    RepairIntakeHistoryView[]? IntakeSubmissions = null, RepairReviewHistoryView[]? AttemptReviews = null,
+    RepairTaskBindingView[]? TaskBindings = null);
+public sealed record RepairIntakeHistoryView(Guid Id, Guid AttemptId, Guid SubmissionId, Guid RootSubmissionId,
+    Guid? PreviousLinkId, Guid TaskId, string ContentHash, bool Effective);
+public sealed record RepairReviewHistoryView(Guid Id, Guid AttemptId, Guid IntakeLinkId, Guid SubmissionId,
+    string ContentHash, Guid ActorId, string Role, string Decision, string Reason, DateTimeOffset At, bool Current);
 
 public sealed record RepairDecisionHistoryView(Guid Id, Guid ItemId, Guid ObligationId, Guid DefectId,
     string Mode, Guid ActorId, string Role, string Reason, DateTimeOffset At, Guid? SupersedesDecisionId,

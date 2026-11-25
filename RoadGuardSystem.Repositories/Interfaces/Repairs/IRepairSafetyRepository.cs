@@ -20,7 +20,10 @@ public sealed record SafetyWarningFact(Guid Id, Guid SourceCheckId, Guid Intende
 public sealed record SafetyAckFact(Guid Id, Guid WarningId, Guid ActorId, DateTimeOffset At, bool AfterOriginalDue);
 public sealed record SafetyEvidenceLinkFact(Guid EvidenceLinkId, Guid FileId);
 public sealed record SafetyMeasureListResult(int Status, string? Code = null, Guid[]? MeasureIds = null);
-public sealed record SafetyResult(int Status, string? Code = null, SafetyFact? Value = null, bool Replayed = false, SafetyEvidenceLinkFact[]? EvidenceLinks = null);
+public sealed record SafetyObligationReadFact(bool Resolved, Guid OriginProjectId, Guid ResponsibilityProjectId,
+    string Version, SafetyObligationScopeFact Scope);
+public sealed record SafetyResult(int Status, string? Code = null, SafetyFact? Value = null, bool Replayed = false,
+    SafetyEvidenceLinkFact[]? EvidenceLinks = null, SafetyObligationReadFact? Obligation = null);
 public interface IRepairSafetyRepository
 {
     Task<SafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token);

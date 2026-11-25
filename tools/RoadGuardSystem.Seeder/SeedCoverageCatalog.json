@@ -2039,7 +2039,7 @@
     "DependencyOrder": 122,
     "Prerequisites": [
       "dbo.Defects",
-      "dbo.Cases",
+      "dbo.IncidentCases",
       "dbo.CaseConclusions"
     ],
     "Producer": "PublicPublicationRepository.CreateAsync/WithdrawAsync through approved PM C1 commands",
@@ -3703,6 +3703,25 @@
       "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Calendar.cs",
       "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.Operations.cs",
       "RoadGuardSystem.Repositories/Implementations/Messaging/H6WeeklyReviewSourceAdapter.cs"
+    ]
+  },
+  {
+    "Table": "dbo.ReportMatchingLocations",
+    "Group": "reporter-matching",
+    "DependencyOrder": 90,
+    "Prerequisites": [
+      "dbo.Reports",
+      "dbo.Cases",
+      "dbo.Projects",
+      "dbo.Users",
+      "dbo.RoadSectionVersions",
+      "dbo.RoadSegmentSets"
+    ],
+    "Producer": "ReportMatchingLocationService.ConfirmAsync",
+    "EmptyReason": "Development Seeder does not invent a PM-confirmed location/segment for a Report. Explicit source selection, versioned geometry and reason are required.",
+    "Scenario": "PM explicitly confirms matching evidence/segments after triage through the authenticated command. No implicit GPS selection or production provenance assertion.",
+    "Source": [
+      "RoadGuardSystem.Services/Implementations/Defects/ReportMatchingLocationService.cs"
     ]
   }
 ]

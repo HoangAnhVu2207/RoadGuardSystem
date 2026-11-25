@@ -5,10 +5,12 @@ namespace RoadGuardSystem.Repositories.Integration;
 public sealed record ReporterFileFacts(Guid FileId, Guid OwnerId, Guid? ProjectId, string Purpose, string State,
     string FileVersion, string Checksum, long SizeBytes, string MediaType, DateTimeOffset UploadedAt);
 public sealed record PublicationFileFacts(Guid FileId, string FileVersion, Guid OwnerUserId);
-public sealed record ReportSourceEvidence(Guid EvidenceId, Guid FileId, string FileVersion);
+public sealed record ReportSourceEvidence(Guid EvidenceId, Guid FileId, string FileVersion,
+    decimal? Latitude = null, decimal? Longitude = null, decimal? AccuracyMeters = null, string? LocationSource = null);
 public sealed record ReportCandidateFacts(Guid ReportId, Guid OwnerId, Guid CaseId, Guid? ProjectId,
     Guid? RouteVersionId, Guid? SegmentSetId, string ReportVersion, string CaseVersion,
-    ActiveCandidateDisposition? Disposition, string? DispositionHeadVersion, ReportSourceEvidence[] Evidence);
+    ActiveCandidateDisposition? Disposition, string? DispositionHeadVersion, ReportSourceEvidence[] Evidence,
+    ReportMatchingLocation? MatchingLocation = null);
 public interface IAnhHuyFactsRepository
 {
     Task<bool> IsCurrentActorAsync(Guid actorId, RoadGuardSystem.aBusinessObjects.Commons.UserRoleCode role, CancellationToken ct);

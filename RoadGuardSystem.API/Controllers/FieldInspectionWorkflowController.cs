@@ -24,6 +24,7 @@ public sealed class FieldInspectionWorkflowController(IFieldInspectionWorkflowSe
     [HttpGet("{taskId:guid}")]
     public Task<IActionResult> Get(Guid projectId, Guid taskId, CancellationToken cancellationToken) => Run(projectId, taskId, "get", null, cancellationToken);
     [HttpGet("{taskId:guid}/history")]
+    [ProducesResponseType<FieldHistoryView>(StatusCodes.Status200OK)]
     public Task<IActionResult> History(Guid projectId, Guid taskId, CancellationToken cancellationToken) => Run(projectId, taskId, "history", null, cancellationToken);
     [HttpGet("{taskId:guid}/start-origin")]
     public Task<IActionResult> Origin(Guid projectId, Guid taskId, CancellationToken cancellationToken) => Run(projectId, taskId, "start-origin", null, cancellationToken);

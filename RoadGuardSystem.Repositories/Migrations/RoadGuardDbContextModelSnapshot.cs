@@ -173,6 +173,97 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Candidates.ReportMatchingLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AccuracyMeters")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CaseVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("ConfirmedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("EvidenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("GeometryVersion")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasPrecision(18, 10)
+                        .HasColumnType("decimal(18,10)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasPrecision(18, 10)
+                        .HasColumnType("decimal(18,10)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReportVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid>("RouteVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SegmentIdsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SegmentSetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RouteVersionId");
+
+                    b.HasIndex("SegmentSetId");
+
+                    b.HasIndex("ReportId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("ReportMatchingLocations", null, t =>
+                        {
+                            t.HasTrigger("TR_ReportMatchingLocations_Immutable");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Cases.CaseConclusion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10922,6 +11013,45 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Navigation("Classification");
 
                     b.Navigation("Source")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Candidates.ReportMatchingLocation", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Cases.IncidentCase", null)
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Reports.Report", null)
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
+                        .WithMany()
+                        .HasForeignKey("RouteVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSegmentSet", null)
+                        .WithMany()
+                        .HasForeignKey("SegmentSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

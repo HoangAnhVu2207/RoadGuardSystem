@@ -5547,7 +5547,7 @@
         "tags": [
           "Cases"
         ],
-        "description": "Conclude cases resources. Permissions: PM.",
+        "description": "PM conclusion returns 200 InternalCaseDto with Case ETag, including replay. This is distinct from publication (201). Existing authority, If-Match, Idempotency-Key, evidence and CSRF requirements remain unchanged.",
         "parameters": [
           {
             "name": "caseId",
@@ -5605,12 +5605,11 @@
         },
         "responses": {
           "200": {
-            "description": "Success.",
+            "description": "Current scoped representation",
             "headers": {
               "ETag": {
-                "description": "Current strong quoted ETag containing an 8-byte Base64 rowversion.",
+                "description": "Quoted version of this representation. Item/Case rowversion and history hash are distinct; use only the command's own resource version.",
                 "schema": {
-                  "pattern": "^\"[A-Za-z0-9+/]{11}=\"$",
                   "type": "string"
                 }
               },
@@ -14450,7 +14449,7 @@
         "tags": [
           "FieldInspectionWorkflow"
         ],
-        "description": "History field inspection workflow resources. Permissions: PM / Supervisor / assigned Crew.",
+        "description": "Existing task authority and assignment guards apply. assignments/events retain their wire. PM/Supervisor additionally receive details.submissions (revision/root/parent/hash), details.reviews (exact submission) and details.evidenceReuse (original provenance). Crew response has no details field. Metadata never grants source download access.",
         "parameters": [
           {
             "name": "projectId",
@@ -47134,7 +47133,7 @@
         "tags": [
           "Repairs"
         ],
-        "description": "Item repairs resources. Permissions: PM / Supervisor.",
+        "description": "Exact current obligation responsibility read. sourceContext retains originProjectId, responsibilityProjectId, source defect/version, physical scope and valid current task pins. currentBinding remains tied to the immutable origin project after transfer. Item ETag is for item commands; source/history tokens are not interchangeable.",
         "parameters": [
           {
             "name": "projectId",
@@ -47166,12 +47165,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Success.",
+            "description": "Current scoped representation",
             "headers": {
               "ETag": {
-                "description": "Current strong quoted ETag containing an 8-byte Base64 rowversion.",
+                "description": "Quoted version of this representation. Item/Case rowversion and history hash are distinct; use only the command's own resource version.",
                 "schema": {
-                  "pattern": "^\"[A-Za-z0-9+/]{11}=\"$",
                   "type": "string"
                 }
               },
@@ -47285,7 +47283,7 @@
         "tags": [
           "Repairs"
         ],
-        "description": "History repairs resources. Permissions: PM / Supervisor.",
+        "description": "Exact current obligation responsibility read. Immutable attempts/decisions/reviewRequests plus intakeSubmissions, attemptReviews and taskBindings. Review.current requires the exact current attempt/link/effective submission; supplements do not inherit old reviews. History ETag is not a command item rowversion.",
         "parameters": [
           {
             "name": "projectId",
@@ -47317,12 +47315,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Success.",
+            "description": "Current scoped representation",
             "headers": {
               "ETag": {
-                "description": "Strong quoted h4-history-v1- hash; not an item mutation version.",
+                "description": "Quoted version of this representation. Item/Case rowversion and history hash are distinct; use only the command's own resource version.",
                 "schema": {
-                  "pattern": "^\"h4-history-v1-[0-9a-f]{64}\"$",
                   "type": "string"
                 }
               },
@@ -48047,6 +48044,7 @@
         "tags": [
           "RepairSafety"
         ],
+        "description": "Crew: current assigned unresolved measures only, unchanged. PM/Supervisor: measureIds for this item and currently responsible safety obligations, including historical resolved measures. Use GET safety-measures/{measureId} to read checks/warnings/ACK and obligation scope/origin/current responsibility. Formal and safety responsibility are independent. This is history discovery, separate from the unresolved/unused temporary-safety-obligations selection. No new write grant. Bearer or Web cookie; GET needs no CSRF.",
         "parameters": [
           {
             "name": "projectId",
@@ -67029,6 +67027,771 @@
           }
         }
       }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-evidence/{evidenceId}/content": {
+      "get": {
+        "tags": [
+          "RepairSourceEvidence"
+        ],
+        "description": "PM/Supervisor with current exact item obligation responsibility; projectId is the responsible project. Retains original source project and validates exact item/task/source links. No origin-project membership or mutation rights are granted. Bearer or Web cookie, GET without CSRF. Each request rechecks current authority; private content rechecks again after opening storage. History/submission metadata is distinct from private file access. No signed URL; an open stream cannot be recalled after later rights changes.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated private bytes; current scoped authority required",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          },
+          "503": {
+            "description": "storage_unavailable"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/geometry": {
+      "get": {
+        "tags": [
+          "RepairSourceReads"
+        ],
+        "description": "PM/Supervisor with current exact item obligation responsibility; projectId is the responsible project. Retains original source project and validates exact item/task/source links. No origin-project membership or mutation rights are granted. Bearer or Web cookie, GET without CSRF. Each request rechecks current authority; private content rechecks again after opening storage. History/submission metadata is distinct from private file access. No signed URL; an open stream cannot be recalled after later rights changes.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/history": {
+      "get": {
+        "tags": [
+          "RepairSourceReads"
+        ],
+        "description": "PM/Supervisor with current exact item obligation responsibility; projectId is the responsible project. Retains original source project and validates exact item/task/source links. No origin-project membership or mutation rights are granted. Bearer or Web cookie, GET without CSRF. Each request rechecks current authority; private content rechecks again after opening storage. History/submission metadata is distinct from private file access. No signed URL; an open stream cannot be recalled after later rights changes.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldHistoryView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldHistoryView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldHistoryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/submissions/{submissionId}": {
+      "get": {
+        "tags": [
+          "RepairSourceReads"
+        ],
+        "description": "PM/Supervisor with current exact item obligation responsibility; projectId is the responsible project. Retains original source project and validates exact item/task/source links. No origin-project membership or mutation rights are granted. Bearer or Web cookie, GET without CSRF. Each request rechecks current authority; private content rechecks again after opening storage. History/submission metadata is distinct from private file access. No signed URL; an open stream cannot be recalled after later rights changes.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "submissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldSubmissionView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldSubmissionView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldSubmissionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/evidence/{fileId}": {
+      "get": {
+        "tags": [
+          "RepairSourceReads"
+        ],
+        "description": "PM/Supervisor with current exact item obligation responsibility; projectId is the responsible project. Retains original source project and validates exact item/task/source links. No origin-project membership or mutation rights are granted. Bearer or Web cookie, GET without CSRF. Each request rechecks current authority; private content rechecks again after opening storage. History/submission metadata is distinct from private file access. No signed URL; an open stream cannot be recalled after later rights changes.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldTaskEvidenceFile"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldTaskEvidenceFile"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldTaskEvidenceFile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/evidence/{fileId}/content": {
+      "get": {
+        "tags": [
+          "RepairSourceReads"
+        ],
+        "description": "PM/Supervisor with current exact item obligation responsibility; projectId is the responsible project. Retains original source project and validates exact item/task/source links. No origin-project membership or mutation rights are granted. Bearer or Web cookie, GET without CSRF. Each request rechecks current authority; private content rechecks again after opening storage. History/submission metadata is distinct from private file access. No signed URL; an open stream cannot be recalled after later rights changes.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated private bytes; current scoped authority required",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          },
+          "503": {
+            "description": "storage_unavailable"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/reports/{reportId}/matching-location": {
+      "get": {
+        "tags": [
+          "ReportMatchingLocation"
+        ],
+        "description": "Current project PM only. Explicit matching-only confirmation; original evidence remains immutable. GET discovers sourceVersion, geometryVersion, original evidence locations and current/stale confirmation. POST selects evidenceId (with stored coordinates), segmentIds, or both, with reason. All segments must belong to the Case's pinned geometry. No automatic representative GPS, snapping, FIELD verification or execution grant. Source/geometry change returns 409 candidate_stale. 200 includes GPS_MISSING, GPS_UNCONFIRMED, GPS_CONFIRMED, SCOPE_CONFIRMED or MATCHING_LOCATION_STALE. Bearer or Web cookie; GET needs no CSRF. POST requires X-CSRF-TOKEN for cookie and Idempotency-Key for both transports; replay rechecks current authority.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportMatchingLocationView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportMatchingLocationView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportMatchingLocationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "ReportMatchingLocation"
+        ],
+        "description": "Current project PM only. Explicit matching-only confirmation; original evidence remains immutable. GET discovers sourceVersion, geometryVersion, original evidence locations and current/stale confirmation. POST selects evidenceId (with stored coordinates), segmentIds, or both, with reason. All segments must belong to the Case's pinned geometry. No automatic representative GPS, snapping, FIELD verification or execution grant. Source/geometry change returns 409 candidate_stale. 200 includes GPS_MISSING, GPS_UNCONFIRMED, GPS_CONFIRMED, SCOPE_CONFIRMED or MATCHING_LOCATION_STALE. Bearer or Web cookie; GET needs no CSRF. POST requires X-CSRF-TOKEN for cookie and Idempotency-Key for both transports; replay rechecks current authority.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Persist and retry the same key/body. Different body with the same actor/project/operation key returns 409 idempotency_key_reused. Versions are in the body, no If-Match.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "Required only with Web session, from GET /api/v1/auth/web/csrf in the same session. Bearer does not require CSRF; security lists these as alternatives.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportMatchingLocationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportMatchingLocationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportMatchingLocationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportMatchingLocationView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportMatchingLocationView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportMatchingLocationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation_error"
+          },
+          "401": {
+            "description": "unauthorized/session invalid"
+          },
+          "403": {
+            "description": "access_forbidden/CSRF failed"
+          },
+          "404": {
+            "description": "not_found in current scope"
+          },
+          "409": {
+            "description": "source_not_ready/candidate_stale/matching_scope_conflict/matching_evidence_location_unavailable/idempotency_key_reused"
+          },
+          "428": {
+            "description": "precondition_required"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -68429,6 +69192,18 @@
           },
           "nextCursor": {
             "type": "string",
+            "nullable": true
+          },
+          "matchingLocationStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceEvidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
             "nullable": true
           }
         },
@@ -78202,6 +78977,27 @@
               "$ref": "#/components/schemas/RepairReviewRequestHistoryView"
             },
             "nullable": true
+          },
+          "intakeSubmissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepairIntakeHistoryView"
+            },
+            "nullable": true
+          },
+          "attemptReviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepairReviewHistoryView"
+            },
+            "nullable": true
+          },
+          "taskBindings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepairTaskBindingView"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -78384,6 +79180,14 @@
           },
           "currentBinding": {
             "$ref": "#/components/schemas/RepairCurrentBindingView"
+          },
+          "sourceContext": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepairItemSourceView"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -79135,6 +79939,14 @@
             "items": {
               "$ref": "#/components/schemas/RepairSafetyEvidenceLink"
             },
+            "nullable": true
+          },
+          "obligation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SafetyObligationReadView"
+              }
+            ],
             "nullable": true
           }
         },
@@ -82814,6 +83626,549 @@
             "items": {
               "$ref": "#/components/schemas/HandoverDocumentReadFact"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldSubmissionView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rootId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "serverReceivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "originalReviewDueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readiness": {
+            "type": "string",
+            "nullable": true
+          },
+          "missingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "contentHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "measurements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldMeasurementInput"
+            },
+            "nullable": true
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldEvidenceDeclaration"
+            },
+            "nullable": true
+          },
+          "captureType": {
+            "type": "string",
+            "nullable": true
+          },
+          "repaired": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "unrepairedReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RepairIntakeHistoryView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rootSubmissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "previousLinkId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "effective": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportMatchingLocationView": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "geometryVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReportMatchingConfirmationView"
+              }
+            ],
+            "nullable": true
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportMatchingEvidenceView"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldReuseHistoryView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceEvidenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileChecksum": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "provenance": {}
+        },
+        "additionalProperties": false
+      },
+      "RepairItemSourceView": {
+        "type": "object",
+        "properties": {
+          "originProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "responsibilityProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "defectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "defectTypeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "defectStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "defectVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "scope": {
+            "$ref": "#/components/schemas/SafetyObligationScopeView"
+          },
+          "task": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepairTaskBindingView"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RepairReviewHistoryView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "intakeLinkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportMatchingEvidenceView": {
+        "type": "object",
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "accuracyMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "locationSource": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportMatchingLocationInput": {
+        "type": "object",
+        "properties": {
+          "sourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "geometryVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "segmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldSubmissionHistoryView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rootId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentSubmissionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "readiness": {
+            "type": "string",
+            "nullable": true
+          },
+          "serverReceivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportMatchingConfirmationView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "segmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "accuracyMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldHistoryDetailsView": {
+        "type": "object",
+        "properties": {
+          "submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldSubmissionHistoryView"
+            },
+            "nullable": true
+          },
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldReviewHistoryView"
+            },
+            "nullable": true
+          },
+          "evidenceReuse": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldReuseHistoryView"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldHistoryView": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "events": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "details": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldHistoryDetailsView"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SafetyObligationReadView": {
+        "type": "object",
+        "properties": {
+          "resolved": {
+            "type": "boolean"
+          },
+          "originProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "responsibilityProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "scope": {
+            "$ref": "#/components/schemas/SafetyObligationScopeView"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldReviewHistoryView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receiptActivation": {
+            "type": "string",
             "nullable": true
           }
         },

@@ -16,6 +16,7 @@ namespace RoadGuardSystem.API.Controllers;
 public sealed class RepairSafetyController(IRepairSafetyService service) : ControllerBase
 {
     [HttpGet]
+    [System.ComponentModel.Description("Crew: current assigned unresolved measures. PM/Supervisor: measure history for this item and current safety responsibility, including resolved obligations. Metadata grants no file download rights.")]
     [ProducesResponseType<CrewSafetyMeasureList>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -24,6 +25,7 @@ public sealed class RepairSafetyController(IRepairSafetyService service) : Contr
         if (!Guid.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Sub), out var actor) ||
             !ProjectRoleClaimParser.TryParse(User.FindFirstValue("role"), out var role)) return Error(401, "unauthorized");
         var result = await service.ListCrewAsync(actor, role, projectId, packageId, itemId, token);
+        Response.Headers.CacheControl = "no-store";
         return result.Code is null ? Ok(result.Value) : Error(result.Status, result.Code);
     }
 
@@ -66,6 +68,7 @@ public sealed class RepairSafetyController(IRepairSafetyService service) : Contr
         var result = await action(actor, role, write ? Request.Headers["Idempotency-Key"].FirstOrDefault() : null,
             write ? Request.Headers.IfMatch.FirstOrDefault() : null);
         if (result.Code is not null) return Error(result.Status, result.Code);
+        Response.Headers.CacheControl = "no-store";
         if (result.Value is not null) Response.Headers.ETag = $"\"{result.Value.Version}\"";
         return StatusCode(result.Status, result.Value);
     }

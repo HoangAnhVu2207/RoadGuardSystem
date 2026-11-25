@@ -29,6 +29,7 @@ public static class Huy01ReporterServiceExtensions
         services.TryAddScoped<RoadGuardSystem.Services.Web.WebCoordinationService>();
         services.TryAddScoped<RoadGuardSystem.Services.Defects.ICandidateDecisionService, RoadGuardSystem.Services.Implementations.Defects.CandidateDecisionService>();
         services.TryAddScoped<RoadGuardSystem.Services.Candidates.ICandidateMatchingService, RoadGuardSystem.Services.Implementations.Defects.CandidateMatchingService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Candidates.IReportMatchingLocationService, RoadGuardSystem.Services.Implementations.Defects.ReportMatchingLocationService>();
         services.TryAddScoped<RoadGuardSystem.Services.Implementations.Defects.DefectTypeAdminService>();
         services.TryAddScoped<RoadGuardSystem.Services.Defects.IDefectWorkflowService, RoadGuardSystem.Services.Implementations.Defects.DefectWorkflowService>();
         services.TryAddScoped<RoadGuardSystem.Services.Labels.ITrainingLabelService, RoadGuardSystem.Services.Implementations.Labels.TrainingLabelService>();

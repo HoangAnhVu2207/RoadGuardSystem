@@ -16,8 +16,9 @@ using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Repairs;
 
-[Collection(AuthenticationApiFixture.Name)]
-public sealed class TemporarySafetyObligationHttpTests(AuthenticationSqlServerFixture sql)
+// This class exercises migration downgrade fences; it must not share a schema
+// with other modules that may have populated a newer immutable history table.
+public sealed class TemporarySafetyObligationHttpTests(AuthenticationSqlServerFixture sql) : IClassFixture<AuthenticationSqlServerFixture>
 {
     [Theory]
     [InlineData(false, false)]
@@ -224,6 +225,12 @@ public sealed class TemporarySafetyObligationHttpTests(AuthenticationSqlServerFi
         }, '"' + itemVersion + '"');
         Assert.True(measure.StatusCode == HttpStatusCode.Created, await measure.Content.ReadAsStringAsync());
         var measureId = (await Json(measure)).GetProperty("id").GetGuid();
+        using var managerMeasures = await manager.GetAsync(measurePath);
+        Assert.Contains(measureId, (await Json(managerMeasures)).GetProperty("measureIds").EnumerateArray().Select(x => x.GetGuid()));
+        using var supervisorMeasures = await sup.GetAsync(measurePath);
+        Assert.Contains(measureId, (await Json(supervisorMeasures)).GetProperty("measureIds").EnumerateArray().Select(x => x.GetGuid()));
+        using var managerMeasure = await manager.GetAsync(measurePath + "/" + measureId);
+        Assert.Equal(safety, (await Json(managerMeasure)).GetProperty("safetyObligationId").GetGuid());
         var crewPath = $"/api/v1/projects/{source.Project}/repair-packages/{package}/items/{item}/safety-measures";
         using var crewList = await crew.GetAsync(crewPath);
         Assert.Contains(measureId, (await Json(crewList)).GetProperty("measureIds").EnumerateArray().Select(x => x.GetGuid()));
@@ -305,8 +312,17 @@ public sealed class TemporarySafetyObligationHttpTests(AuthenticationSqlServerFi
             var blockedDown = await Assert.ThrowsAsync<SqlException>(() => db.GetService<IMigrator>().MigrateAsync("20261123093000_FieldTaskMeasurementDimensions"));
             Assert.Equal(51991, blockedDown.Number);
             Assert.Contains("20261123093100_InitialTemporarySafetyResponsibility", await db.Database.GetAppliedMigrationsAsync());
+            await db.Database.MigrateAsync();
+            Assert.Empty(await db.Database.GetPendingMigrationsAsync());
             using var noLongerOwner = await manager.GetAsync(path);
             Assert.Equal(HttpStatusCode.NotFound, noLongerOwner.StatusCode);
+            // Safety remains in B independently after formal responsibility moves to C.
+            using var retainedSafetyHistory = await manager.GetAsync(measurePath);
+            Assert.Contains(measureId, (await Json(retainedSafetyHistory)).GetProperty("measureIds").EnumerateArray().Select(x => x.GetGuid()));
+            using var retainedSafetyRead = await manager.GetAsync(measurePath + "/" + measureId);
+            var historyObligation = (await Json(retainedSafetyRead)).GetProperty("obligation");
+            Assert.Equal(receiver.Project, historyObligation.GetProperty("responsibilityProjectId").GetGuid());
+            Assert.Equal(source.Project, historyObligation.GetProperty("originProjectId").GetGuid());
 
         }
         var afterItem = await db.RepairItems.AsNoTracking().SingleAsync(x => x.Id == item);

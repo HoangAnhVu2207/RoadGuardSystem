@@ -3,12 +3,29 @@ import hashlib,pathlib,time,uuid
 MODEL='72f84201-d033-4000-8000-000000000001'
 DEVICE='5f1e9338-3f89-48f0-9d90-097b4ced4e62'
 
+def confirm_geometry(j,tokens,request,command,version,root,draft,suffix):
+ draft_path=root+'/road-geometry-drafts/'+draft[1]['id']
+ if 'ai-confirm-'+suffix not in j.data['steps']:
+  submitted=command('submit-'+suffix,draft_path+'/submit',None,'pm-'+suffix,version(draft))
+  current=request(root+'/road-geometry-submission',token=tokens['supervisor'],metadata=True)
+  replaying_confirm='input-ai-confirm-'+suffix in j.data['steps']
+  allowed_state=current[1]['status']=='SUBMITTED' or (replaying_confirm and current[1]['status']=='CONFIRMED')
+  if (current[1]['draftId']!=draft[1]['id'] or not allowed_state or
+      current[1]['submittedContentVersion']!=submitted[1]['submittedContentVersion']):
+   raise RuntimeError('Geometry submission changed; inspect readback before issuing another decision')
+  confirm_etag=version(current)
+ else:confirm_etag=None
+ return command('confirm-'+suffix,draft_path+'/confirm',{'expectedCurrentVersionId':None,'effectiveFrom':'2026-10-02T00:00:00Z','reason':'Synthetic Development geometry'},'supervisor',confirm_etag)[1]
+
 def initialize(j,tokens,request,upload,geometry_input,video_hash):
  media=pathlib.Path('/fixtures/synthetic-road-v1.mp4').read_bytes()
  if hashlib.sha256(media).hexdigest()!=video_hash:raise ValueError('Synthetic asset hash mismatch')
  def command(key,path,body,actor,etag=None):
   h={'Idempotency-Key':'handoff-ai-v1-'+key}
   if etag:h['If-Match']=etag
+  if 'input-ai-'+key in j.data['steps'] and 'ai-'+key not in j.data['steps'] and path.endswith(('/submit','/confirm')):
+   # Reconcile an uncertain previous command before replaying its exact saved key/body/ETag.
+   request(path.rsplit('/',1)[0],token=tokens[actor],metadata=True)
   saved=j.once('input-ai-'+key,lambda:{'body':body,'headers':h})
   return j.once('ai-'+key,lambda:list(request(path,'POST',saved['body'],tokens[actor],saved['headers'],metadata=True)))
  def version(reply):
@@ -23,7 +40,7 @@ def initialize(j,tokens,request,upload,geometry_input,video_hash):
  for suffix,pid in [('a','72f84201-c001-4000-8000-000000000001'),('b','72f84201-c001-4000-8000-000000000002')]:
   pm='pm-'+suffix;op='operator-'+suffix;root='/api/v1/projects/'+pid
   draft=command('draft-'+suffix,root+'/road-geometry-drafts',geometry_input(suffix),pm)
-  road=command('confirm-'+suffix,root+'/road-geometry-drafts/'+draft[1]['id']+'/confirm',{'expectedCurrentVersionId':None,'effectiveFrom':'2026-10-02T00:00:00Z','reason':'Synthetic Development geometry'},'supervisor',version(draft))[1]
+  road=confirm_geometry(j,tokens,request,command,version,root,draft,suffix)
   route=road['routeVersionId'];section=road['roadSectionId'];sets=root+'/road-sections/'+section+'/versions/'+route+'/segment-sets'
   segment_set=command('set-'+suffix,sets,{'targetLengthMeters':100,'remainderMode':'KEEP'},pm);sid=segment_set[1]['id'];segments=[s['id'] for s in segment_set[1]['segments']]
   command('publish-'+suffix,sets+'/'+sid+'/publish',{'expectedPublishedSetId':None,'reason':'Synthetic Development geometry'},pm,version(segment_set))

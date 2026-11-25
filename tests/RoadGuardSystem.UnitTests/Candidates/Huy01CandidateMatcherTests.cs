@@ -30,4 +30,20 @@ public sealed class Huy01CandidateMatcherTests
         Assert.Equal(new[] { lowId, highId }, CandidateMatcher.Match(p, [s], [], facts, false, true).Select(x => x.DefectId));
         Assert.All(CandidateMatcher.Match(p, [s], [], facts, false, false), x => Assert.Null(x.DistanceMeters));
     }
+
+    [Theory]
+    [InlineData("GPS_UNCONFIRMED")]
+    [InlineData("SCOPE_CONFIRMED")]
+    [InlineData("MATCHING_LOCATION_STALE")]
+    public void ExplicitMissingLocationReasonNeverClaimsAbsentGps(string reason)
+    {
+        var project = Guid.NewGuid(); var segment = Guid.NewGuid();
+        var fact = new CandidateMatchFact(Guid.NewGuid(), project, "v", segment, null, false);
+        var item = Assert.Single(CandidateMatcher.Match(project, [segment], [], [fact], false, false, reason));
+        Assert.Contains(reason, item.ReasonCodes); Assert.DoesNotContain("GPS_MISSING", item.ReasonCodes);
+        Assert.Null(item.DistanceMeters);
+        var confirmed = Assert.Single(CandidateMatcher.Match(project, [segment], [], [fact], false, true));
+        Assert.Contains("DISTANCE_SOURCE_UNAVAILABLE", confirmed.ReasonCodes);
+        Assert.DoesNotContain("ACCURACY_OVERLAP", confirmed.ReasonCodes);
+    }
 }

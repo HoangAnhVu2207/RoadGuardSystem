@@ -135,6 +135,7 @@ public static class RoadGuardPersistenceExtensions
         services.AddScoped<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>();
         services.AddScoped<RoadGuardSystem.Repositories.Repairs.INotificationSupervisorRepository, RoadGuardSystem.Repositories.Implementations.Repairs.NotificationSupervisorRepository>();
         services.AddScoped<RoadGuardSystem.Repositories.Repairs.IRepairWorkflowRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());
+        services.AddScoped<RoadGuardSystem.Repositories.Repairs.IRepairSourceEvidenceRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());
         services.AddScoped<RoadGuardSystem.Repositories.Repairs.IRepairProducerRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());
         services.AddScoped<RoadGuardSystem.Repositories.Repairs.IRepairExecutionRepository>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());
         services.AddScoped<RoadGuardSystem.Repositories.Offline.IOfflineRepairCommandAdapter>(provider => provider.GetRequiredService<RoadGuardSystem.Repositories.Implementations.Repairs.RepairWorkflowRepository>());

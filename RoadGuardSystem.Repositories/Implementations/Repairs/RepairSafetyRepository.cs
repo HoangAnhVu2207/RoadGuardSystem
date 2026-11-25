@@ -27,13 +27,37 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
     public async Task<SafetyMeasureListResult> ListCrewAsync(Guid actor, UserRoleCode role, Guid project, Guid package,
         Guid item, CancellationToken token)
     {
-        if (role != UserRoleCode.RepairCrew) return new(403, "access_forbidden");
+        if (role is not (UserRoleCode.RepairCrew or UserRoleCode.ProjectManager or UserRoleCode.Supervisor))
+            return new(403, "access_forbidden");
         try
         {
             return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
             {
                 await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
-                await Guard(actor, role, project, package, item, null, false, token);
+                await Guard(actor, role, project, package, item, null, false, token,
+                    allowSafetyDiscovery: role != UserRoleCode.RepairCrew);
+                if (role != UserRoleCode.RepairCrew)
+                {
+                    // Discovery is scoped to this exact formal item. Safety responsibility is
+                    // independent of formal responsibility and is rechecked for every measure.
+                    var candidates = await (from source in db.Set<RepairSafetyActionSource>().AsNoTracking()
+                                            join monitoring in db.Set<RepairSafetyMonitoring>().AsNoTracking() on source.MeasureId equals monitoring.MeasureId
+                                            join work in db.Set<RepairItem>().AsNoTracking() on source.ItemId equals work.Id
+                                            join obligation in db.Set<RepairObligation>().AsNoTracking() on monitoring.SafetyObligationId equals obligation.Id
+                                            where source.ItemId == item && source.Kind == "ASSIGNED" &&
+                                                source.ProjectId == work.ProjectId && monitoring.FormalObligationId == work.ObligationId &&
+                                                monitoring.Measure.ProjectId == work.ProjectId && monitoring.Measure.DefectId == work.DefectId &&
+                                                obligation.ProjectId == work.ProjectId && obligation.DefectId == work.DefectId &&
+                                                obligation.Kind == RepairObligationKind.TemporarySafety
+                                            select new { monitoring.MeasureId, obligation.Id, obligation.ProjectId })
+                        .Distinct().OrderBy(row => row.MeasureId).ToArrayAsync(token);
+                    var visible = new List<Guid>();
+                    foreach (var candidate in candidates)
+                        if (await ObligationResponsibilityScope.ResolveAsync(db, candidate.Id, candidate.ProjectId, token) == project)
+                            visible.Add(candidate.MeasureId);
+                    await tx.CommitAsync(token);
+                    return new SafetyMeasureListResult(200, MeasureIds: visible.ToArray());
+                }
                 var ids = await (from assignment in db.Set<RepairSafetyActionSource>()
                                  join monitoring in db.Set<RepairSafetyMonitoring>() on assignment.MeasureId equals monitoring.MeasureId
                                  join work in db.Set<RepairItem>() on assignment.ItemId equals work.Id
@@ -64,8 +88,17 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 var fact = View(monitoring);
                 var links = role == UserRoleCode.RepairCrew
                     ? await EligibleEvidenceAsync(projectId, packageId, itemId, measureId, actorId, cancellationToken) : null;
+                var obligation = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope)
+                    .SingleAsync(row => row.Id == monitoring.SafetyObligationId, cancellationToken);
+                var owner = await ObligationResponsibilityScope.ResolveAsync(db, obligation.Id, obligation.ProjectId, cancellationToken);
+                var obligationVersion = await db.Set<RepairObligation>().Where(row => row.Id == obligation.Id)
+                    .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync(cancellationToken);
+                var scope = obligation.Scope;
                 await tx.CommitAsync(cancellationToken);
-                return new SafetyResult(200, Value: fact, EvidenceLinks: links);
+                return new SafetyResult(200, Value: fact, EvidenceLinks: links,
+                    Obligation: new(obligation.IsResolved, obligation.ProjectId, owner,
+                        Convert.ToBase64String(obligationVersion), new(scope.PhysicalRoadId, scope.LocationVersion,
+                            scope.RouteLabel, scope.From, scope.To, scope.OffsetFrom, scope.OffsetTo)));
             });
         }
         catch (Denied denied) { db.ChangeTracker.Clear(); return denied.Result; }
@@ -264,7 +297,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
     }
 
     private async Task Guard(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item,
-        Guid? measure, bool requireActive, CancellationToken ct)
+        Guid? measure, bool requireActive, CancellationToken ct, bool allowSafetyDiscovery = false)
     {
         if (role is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor or UserRoleCode.RepairCrew))
             Deny(403, "access_forbidden");
@@ -281,7 +314,19 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
         if (scope is null || work is null || work.ProjectId != scope.ProjectId || work.DefectId != scope.DefectId ||
             !await db.Set<RepairItem>().AnyAsync(row => row.Id == item && EF.Property<Guid?>(row, "PackageId") == package, ct)) Deny(404, "not_found");
         var effective = await ObligationResponsibilityScope.ResolveAsync(db, work.ObligationId, work.ProjectId, ct);
-        if (measure is null && project != (role == UserRoleCode.RepairCrew ? work.ProjectId : effective)) Deny(404, "not_found");
+        if (measure is null && project != (role == UserRoleCode.RepairCrew ? work.ProjectId : effective))
+        {
+            if (!allowSafetyDiscovery || role == UserRoleCode.RepairCrew) Deny(404, "not_found");
+            var safetyIds = await (from source in db.Set<RepairSafetyActionSource>().AsNoTracking()
+                                   join monitoring in db.Set<RepairSafetyMonitoring>().AsNoTracking() on source.MeasureId equals monitoring.MeasureId
+                                   where source.ItemId == item && source.ProjectId == work.ProjectId && source.Kind == "ASSIGNED" &&
+                                       monitoring.FormalObligationId == work.ObligationId
+                                   select monitoring.SafetyObligationId).Distinct().ToArrayAsync(ct);
+            var ownsSafety = false;
+            foreach (var safety in safetyIds)
+                ownsSafety |= await ObligationResponsibilityScope.ResolveAsync(db, safety, work.ProjectId, ct) == project;
+            if (!ownsSafety) Deny(404, "not_found");
+        }
         if (measure is Guid id)
         {
             var monitoring = await db.Set<RepairSafetyMonitoring>().Include(row => row.Measure)
@@ -295,7 +340,7 @@ public sealed class RepairSafetyRepository(RoadGuardDbContext db, IdempotencyOpe
                 !await db.Set<RepairObligation>().AsNoTracking().AnyAsync(row => row.Id == monitoring.SafetyObligationId &&
                     row.ProjectId == scope.ProjectId && row.DefectId == scope.DefectId &&
                     row.Kind == RepairObligationKind.TemporarySafety &&
-                    row.EffectiveResolutionDecisionId == null, ct)) Deny(404, "not_found");
+                    (row.EffectiveResolutionDecisionId == null || !requireActive && role != UserRoleCode.RepairCrew), ct)) Deny(404, "not_found");
             var safetyOwner = await ObligationResponsibilityScope.ResolveAsync(db, monitoring.SafetyObligationId, scope.ProjectId, ct);
             effective = safetyOwner;
             if (project != (role == UserRoleCode.RepairCrew ? scope.ProjectId : safetyOwner)) Deny(404, "not_found");

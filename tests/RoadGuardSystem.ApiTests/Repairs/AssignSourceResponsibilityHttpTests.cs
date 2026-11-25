@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using RoadGuardSystem.Repositories.Storage;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Candidates;
@@ -17,6 +19,58 @@ namespace RoadGuardSystem.ApiTests.Repairs;
 
 public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerFixture sql) : IClassFixture<AuthenticationSqlServerFixture>
 {
+    [Fact]
+    public async Task FieldReuseHistoryDiscoversImmutableProvenanceWithoutChangingFileOwnership()
+    {
+        await using var db = sql.CreateDbContext();
+        var source = await GenuineProtectedSource.Seed(db, sql);
+        var link = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyDefectSourceLink>().SingleAsync(row => row.DefectId == source.Defect && row.EndedAt == null);
+        var report = await db.Reports.AsNoTracking().SingleAsync(row => row.Id == link.ReportSourceId);
+        var evidence = Assert.Single(report.OriginalEvidence);
+        var file = await db.Files.AsNoTracking().SingleAsync(row => row.Id == evidence.FileId);
+        var version = Convert.ToBase64String(await db.Defects.Where(row => row.Id == source.Defect).Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync());
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
+        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new ScopedReadStorage()); });
+        async Task<HttpClient> Web(Guid id) => await WebCookieTestClient.Login(factory, await db.Users.Where(row => row.Id == id).Select(row => row.Email!).SingleAsync());
+        using var pm = await Web(source.Pm); using var crew = await Web(source.Crew);
+        using var task = await Post(pm, $"/api/v1/projects/{source.Project}/field-inspection-tasks", new
+        {
+            defectId = source.Defect,
+            defectVersion = version,
+            sourceKind = "REPORTER",
+            routeVersionId = source.Route,
+            segmentSetId = source.Set,
+            purpose = "PRE_MEASUREMENT",
+            requiredMeasurementType = 4,
+            measurementScope = "{}",
+            assignedToUserId = source.Crew,
+            dueAt = DateTimeOffset.UtcNow.AddDays(1)
+        });
+        var taskId = (await Body(task, 201)).GetProperty("id").GetGuid();
+        var path = $"/api/v1/projects/{source.Project}/field-inspection-tasks/{taskId}";
+        var input = new { fileId = file.Id, sourceKind = "REPORTER", sourceEvidenceId = evidence.Id, expectedChecksum = file.Checksum, reason = "PM authorizes retained BEFORE source" };
+        var key = Guid.NewGuid().ToString();
+        using var reused = await Post(pm, path + "/evidence-reuse", input, task.Headers.ETag!.Tag, key);
+        var decision = await Body(reused, 201);
+        using var replay = await Post(pm, path + "/evidence-reuse", input, task.Headers.ETag!.Tag, key);
+        Assert.Equal(decision.GetProperty("id").GetGuid(), (await Body(replay, 200)).GetProperty("id").GetGuid());
+        using var reloaded = await Web(source.Pm);
+        var history = await Body(await reloaded.GetAsync(path + "/history"));
+        var fact = Assert.Single(history.GetProperty("details").GetProperty("evidenceReuse").EnumerateArray());
+        Assert.Equal(decision.GetProperty("id").GetGuid(), fact.GetProperty("id").GetGuid());
+        Assert.Equal(evidence.Id, fact.GetProperty("sourceEvidenceId").GetGuid());
+        Assert.Equal(source.Pm, fact.GetProperty("actorId").GetGuid());
+        Assert.Equal(file.Checksum, fact.GetProperty("fileChecksum").GetString());
+        Assert.Equal(evidence.FileVersion, fact.GetProperty("provenance").GetProperty("fileVersion").GetString());
+        Assert.Equal(input.reason, fact.GetProperty("reason").GetString());
+        using var bytes = await reloaded.GetAsync(path + $"/evidence/{file.Id}/content");
+        Assert.Equal(HttpStatusCode.OK, bytes.StatusCode); Assert.Equal(new byte[] { 1, 2, 3, 4 }, await bytes.Content.ReadAsByteArrayAsync());
+        var crewHistory = await Body(await crew.GetAsync(path + "/history"));
+        Assert.False(crewHistory.TryGetProperty("details", out _));
+        using var wrongSource = await Post(pm, path + "/evidence-reuse", input with { sourceEvidenceId = Guid.NewGuid() }, task.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.Forbidden, wrongSource.StatusCode);
+        Assert.Equal(report.ReporterUserId, (await db.FileScopes.AsNoTracking().SingleAsync(row => row.FileId == file.Id)).OwnerUserId);
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -52,7 +106,11 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
             new ProjectMember { Id = Guid.NewGuid(), ProjectId = receiver.Id, UserId = receiverCrew.Id, RoleCode = UserRoleCode.RepairCrew, Status = ProjectMemberStatus.Active, ValidFrom = new(2000, 1, 1) });
         await db.SaveChangesAsync();
         using var logs = new InMemoryLogProvider();
-        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, loggerProvider: logs,
+            configureTestServices: services =>
+            {
+                services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new ScopedReadStorage());
+            });
         async Task<HttpClient> Web(Guid actor) => await WebCookieTestClient.Login(factory, await db.Users.Where(x => x.Id == actor).Select(x => x.Email!).SingleAsync());
         using var pm = await Web(source.Pm); using var sup = await Web(source.Supervisor); using var receivingPm = await Web(receiverPm.Id);
         using var crew = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost"), HandleCookies = false });
@@ -144,6 +202,7 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         var offered = await Post(sup, lifeA + "/obligation-transfers", new { reason = "Exact scope transfer", evidenceFileIds = Array.Empty<Guid>(), obligationId = obligations[1], receivingProjectId = receiver.Id, scopeHash = transferable.GetProperty("scopeHash").GetString() }, sourceLife.Headers.ETag!.Tag);
         var offer = (await Body(offered, 201)).GetProperty("actions").EnumerateArray().Single(x => x.GetProperty("kind").GetString() == "IssueTransfer");
         using var targetLife = await sup.GetAsync(lifeB);
+        Assert.Equal(HttpStatusCode.NotFound, (await receivingPm.GetAsync($"/api/v1/projects/{receiver.Id}/repair-packages/{package}/items/{second.Id}/source-defect")).StatusCode);
         var acceptedTransfer = await Post(sup, lifeB + "/obligation-transfer-acceptances", new { reason = "Accept exact scope", evidenceFileIds = Array.Empty<Guid>(), sourceActionId = offer.GetProperty("id").GetGuid(), obligationId = obligations[1], scopeHash = offer.GetProperty("scopeHash").GetString() }, targetLife.Headers.ETag!.Tag);
         await Body(acceptedTransfer, 201);
         foreach (var path in new[] { lifeA, lifeB }) Assert.Contains((await Body(await sup.GetAsync(path))).GetProperty("responsibilities").EnumerateArray(), x => x.GetProperty("obligationId").GetGuid() == obligations[1] && x.GetProperty("currentProjectId").GetGuid() == receiver.Id);
@@ -158,6 +217,27 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         var receivedItem = await Body(receivedItemResponse);
         var receivedItemVersion = receivedItemResponse.Headers.ETag!.Tag;
         Assert.Equal(second.Id, receivedItem.GetProperty("id").GetGuid());
+        var sourceContext = receivedItem.GetProperty("sourceContext");
+        Assert.Equal(source.Project, sourceContext.GetProperty("originProjectId").GetGuid());
+        Assert.Equal(receiver.Id, sourceContext.GetProperty("responsibilityProjectId").GetGuid());
+        Assert.Equal(defectId, sourceContext.GetProperty("defectId").GetGuid());
+        var sourceDefect = await Body(await receivingPm.GetAsync(secondPath + "/source-defect"));
+        Assert.Equal(defectId, sourceDefect.GetProperty("defectId").GetGuid());
+        string? retainedPhotoPath = null;
+        if (!surveySource)
+        {
+            retainedPhotoPath = Assert.Single(sourceDefect.GetProperty("evidence").EnumerateArray()).GetProperty("contentPath").GetString();
+            using var sourcePhoto = await receivingPm.GetAsync(retainedPhotoPath);
+            Assert.Equal(HttpStatusCode.OK, sourcePhoto.StatusCode);
+            Assert.Equal(new byte[] { 1, 2, 3, 4 }, await sourcePhoto.Content.ReadAsByteArrayAsync());
+            Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(retainedPhotoPath)).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await receivingPm.GetAsync(retainedPhotoPath!.Replace(second.Id.ToString(), first.Id.ToString(), StringComparison.Ordinal))).StatusCode);
+        }
+        Assert.Equal(HttpStatusCode.OK, (await receivingPm.GetAsync(secondPath + "/planning")).StatusCode);
+        var commonPlanning = await Body(await receivingPm.GetAsync($"/api/v1/projects/{receiver.Id}/repair-packages/{package}/planning"));
+        Assert.Equal(JsonValueKind.Null, commonPlanning.GetProperty("description").ValueKind);
+        Assert.Equal(source.Route, sourceContext.GetProperty("routeVersionId").GetGuid());
+        Assert.Equal(HttpStatusCode.NotFound, (await receivingPm.GetAsync(secondPath.Replace(second.Id.ToString(), first.Id.ToString(), StringComparison.Ordinal))).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await Post(pm, root + $"/{package}/items/{second.Id}/assign", Input(source.Crew, surveyId, source.Route, version, policyId), second.Version)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await pm.GetAsync(root + $"/{package}/items/{second.Id}")).StatusCode);
         // Current policy preserves original task scope. A receiver-only Crew is not silently granted source project access.
@@ -181,6 +261,14 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         Assert.Equal(binding.TaskId, afterBody.GetProperty("taskId").GetGuid());
         Assert.Equal(binding.AssignmentId, afterBody.GetProperty("assignmentId").GetGuid());
         Assert.Equal(binding.AuthorizationId, afterBody.GetProperty("authorizationId").GetGuid());
+        var readBound = await Body(await receivingPm.GetAsync(secondPath));
+        Assert.Equal(binding.Id, readBound.GetProperty("currentBinding").GetProperty("id").GetGuid());
+        Assert.Equal(binding.TaskId, readBound.GetProperty("sourceContext").GetProperty("task").GetProperty("taskId").GetGuid());
+        Assert.Equal(policyId, readBound.GetProperty("currentBinding").GetProperty("policyRevisionId").GetGuid());
+        var sourceReads = secondPath + $"/source-tasks/{binding.TaskId}";
+        Assert.Equal(HttpStatusCode.OK, (await receivingPm.GetAsync(sourceReads + "/geometry")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await receivingPm.GetAsync(sourceReads + "/history")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await receivingPm.GetAsync(sourceReads.Replace(binding.TaskId.ToString(), Guid.NewGuid().ToString(), StringComparison.Ordinal) + "/history")).StatusCode);
         var fieldPath = $"/api/v1/projects/{source.Project}/field-inspection-tasks/{binding.TaskId}";
         var field = await Body(await crew.GetAsync(fieldPath)); Assert.Equal("CONDITIONAL_FT", field.GetProperty("mode").GetString());
         var mobileList = await Body(await crew.GetAsync("/api/v1/me/inspection-tasks?mode=CONDITIONAL_FT"));
@@ -190,6 +278,8 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         await Body(await Post(crew, fieldPath + "/accept", new { reason = "Crew accepts retained-source task" }, currentTask.Headers.ETag!.Tag), 201);
         await db.ProjectMembers.Where(x => x.ProjectId == receiver.Id && x.UserId == receiverPm.Id).ExecuteUpdateAsync(set => set.SetProperty(x => x.Status, ProjectMemberStatus.Ended));
         Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(secondPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(sourceReads + "/history")).StatusCode);
+        if (retainedPhotoPath is not null) Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(retainedPhotoPath)).StatusCode);
         await db.ProjectMembers.Where(x => x.ProjectId == source.Project && x.UserId == source.Crew).ExecuteUpdateAsync(set => set.SetProperty(x => x.Status, ProjectMemberStatus.Ended));
         Assert.Equal(HttpStatusCode.Forbidden, (await crew.GetAsync(fieldPath)).StatusCode);
     }
@@ -214,6 +304,13 @@ public sealed class AssignSourceResponsibilityHttpTests(AuthenticationSqlServerF
         request.Headers.Add("Idempotency-Key", key ?? Guid.NewGuid().ToString("N"));
         if (etag is not null) request.Headers.TryAddWithoutValidation("If-Match", etag);
         return await client.SendAsync(request);
+    }
+    private sealed class ScopedReadStorage : IUploadObjectStorage
+    {
+        public Task<string> InitiateAsync(string objectKey, string mediaType, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string objectKey, string uploadId, IReadOnlyList<int> partNumbers, DateTimeOffset expiresAt, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<UploadObjectVerification> CompleteAndVerifyAsync(string objectKey, string uploadId, IReadOnlyList<CompletedStoragePart> parts, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream([1, 2, 3, 4]));
     }
     private static async Task<JsonElement> Body(HttpResponseMessage response, int expected = 200)
     {

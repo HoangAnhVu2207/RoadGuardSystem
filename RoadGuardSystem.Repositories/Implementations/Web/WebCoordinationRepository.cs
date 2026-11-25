@@ -173,10 +173,15 @@ public sealed class WebCoordinationRepository(RoadGuardDbContext db, Idempotency
         => ReadTransactionAsync(() => DefectCoreAsync(project, package, item, token), token);
     private async Task<PackagePlanning?> PackageCoreAsync(Guid project, Guid package, CancellationToken token)
     {
-        var row = await db.RepairPackages.AsNoTracking().Include(row => row.Obligations).SingleOrDefaultAsync(row => row.Id == package && row.ProjectId == project, token);
+        var row = await db.RepairPackages.AsNoTracking().Include(row => row.Obligations).SingleOrDefaultAsync(row => row.Id == package, token);
         if (row is null) return null;
+        var owned = 0;
         foreach (var obligation in row.Obligations)
-            if (await ObligationResponsibilityScope.ResolveAsync(db, obligation.Id, obligation.ProjectId, token) != project) return null;
+            if (await ObligationResponsibilityScope.ResolveAsync(db, obligation.Id, obligation.ProjectId, token) == project) owned++;
+        if (owned == 0 && !(row.Obligations.Count == 0 && row.ProjectId == project)) return null;
+        // Mixed-responsibility packages disclose only their common identity/version;
+        // planning text and sibling details are not inferred to be shared.
+        if (owned != row.Obligations.Count) return new(row.Id, null, null, null, null, null, await VersionAsync(row, token));
         var audit = await db.AuditLogs.AsNoTracking().SingleOrDefaultAsync(a => a.EntityId == package &&
             a.EntityType == "RepairPackage" && a.EventType == "repair_package_created", token);
         return new(row.Id, row.Name, row.Description, row.PlannedDueAt, audit?.ActorUserId, audit?.OccurredAtUtc,
@@ -185,7 +190,7 @@ public sealed class WebCoordinationRepository(RoadGuardDbContext db, Idempotency
     private async Task<ItemPlanning?> ItemCoreAsync(Guid project, Guid package, Guid item, CancellationToken token)
     {
         var row = await db.RepairItems.AsNoTracking().SingleOrDefaultAsync(row => row.Id == item &&
-            EF.Property<Guid?>(row, "PackageId") == package && row.ProjectId == project, token);
+            EF.Property<Guid?>(row, "PackageId") == package, token);
         if (row is null || await ObligationResponsibilityScope.ResolveAsync(db, row.ObligationId, row.ProjectId, token) != project) return null;
         return new(row.Id, row.PlannedQuantity, row.PlannedUnit, row.PlannedMaterials, await VersionAsync(row, token));
     }
@@ -193,15 +198,15 @@ public sealed class WebCoordinationRepository(RoadGuardDbContext db, Idempotency
     {
         var source = await db.RepairItems.AsNoTracking().Where(row => row.Id == item && EF.Property<Guid?>(row, "PackageId") == package)
             .Select(row => new { row.DefectId, row.ProjectId, row.ObligationId }).SingleOrDefaultAsync(token);
-        if (source is null || source.ProjectId != project || await ObligationResponsibilityScope.ResolveAsync(db, source.ObligationId, source.ProjectId, token) != project) return null;
-        var defect = await db.Defects.AsNoTracking().SingleOrDefaultAsync(row => row.Id == source.DefectId && row.ProjectId == project, token);
+        if (source is null || await ObligationResponsibilityScope.ResolveAsync(db, source.ObligationId, source.ProjectId, token) != project) return null;
+        var defect = await db.Defects.AsNoTracking().SingleOrDefaultAsync(row => row.Id == source.DefectId && row.ProjectId == source.ProjectId, token);
         if (defect is null) return null;
-        var links = await db.Set<HuyDefectSourceLink>().AsNoTracking().Where(row => row.DefectId == defect.Id && row.ProjectId == project && row.EndedAt == null)
+        var links = await db.Set<HuyDefectSourceLink>().AsNoTracking().Where(row => row.DefectId == defect.Id && row.ProjectId == source.ProjectId && row.EndedAt == null)
             .OrderBy(row => row.Id).Select(row => new DefectOriginReference(row.SourceKind.ToString(), row.SourceId, null)).ToArrayAsync(token);
         var reportIds = links.Where(row => row.Kind == "Report").Select(row => row.Id).ToArray();
         var cases = await (from link in db.Set<HuyCaseReportLink>().AsNoTracking()
                            join incident in db.IncidentCases.AsNoTracking() on link.CaseId equals incident.Id
-                           where reportIds.Contains(link.ReportId) && link.EndedAt == null && incident.ProjectId == project
+                           where reportIds.Contains(link.ReportId) && link.EndedAt == null && incident.ProjectId == source.ProjectId
                            select new { link.ReportId, link.CaseId }).ToArrayAsync(token);
         links = links.Select(row => row with { CaseId = row.Kind == "Report" ? cases.SingleOrDefault(link => link.ReportId == row.Id)?.CaseId : null }).ToArray();
         return new(defect.Id, defect.DefectTypeCode, defect.Severity.ToString().ToUpperInvariant(), defect.Status.ToString().ToUpperInvariant(),

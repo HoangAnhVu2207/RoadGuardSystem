@@ -107,7 +107,7 @@ jobs:
             minio: false
           - lane: 3
             flow: "Startup, identity and sandbox project scope"
-            minio: false
+            minio: true
           - lane: 4
             flow: "Projects, surveys and files (1/2)"
             minio: true

@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir --only-binary=:all: --no-deps \
     && pip check \
     && python -c "import torch; assert torch.version.cuda is None"
 RUN groupadd --gid 10001 worker && useradd --uid 10001 --gid worker --no-create-home worker
-COPY AI/roadguard-ai-engine/src /app/src
+COPY --chown=10001:10001 AI/roadguard-ai-engine/src /app/src
 COPY deploy/server/ai-healthcheck.py /app/ai-healthcheck.py
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
     YOLO_CONFIG_DIR=/tmp/ultralytics YOLO_OFFLINE=true YOLO_AUTOINSTALL=false \

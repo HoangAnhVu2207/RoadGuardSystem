@@ -1,6 +1,6 @@
 # Chia lane API và SQL integration trên GitHub Actions
 
-**Trạng thái** · Gói 2 được giao triển khai. Benchmark dưới 5 phút đang chờ kết quả.
+**Trạng thái** · Gói 2 được giao triển khai. Benchmark dưới 5 phút đang chờ kết quả. Ứng viên hiện tại giữ 9 lane API và mở 10 lane SQL để tận dụng tối đa khoảng 20 runner quan sát được.
 **Base sau Gói 1** · `b29d7fade213cb0647ad323454f087854358321e` trên `anh` và `develop`. [Gói 1, run 45644468742](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45644468742).
 
 ## 1. Báo cáo hiện trạng
@@ -98,7 +98,7 @@ Gate ứng viên và deploy yêu cầu CI xanh trên đúng SHA, đủ danh tín
 
 `CURRENT_VERIFIED` · Cấu hình 20/20 mất 11 phút 41 giây. Mỗi thời điểm có tối đa 20 job chạy, trong khi 40 lane và 2 job kiểm tra cần runner trước khi tổng hợp. Lane API báo cáo/xuất bắt đầu sau 6 phút 44 giây và chạy 4 phút 39 giây. SQL lane 17 dùng 7 phút 04 giây riêng bước test, phần lớn thời gian của lớp AI worker dành cho database riêng từng ca. Gate API bắt đúng 12 ca Web Cookie bị ảnh hưởng do dùng chung dữ liệu theory với ca JWT đã gộp. [Run 20/20](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45668352680).
 
-- Cấu hình mới dùng 9 lane API và 9 lane SQL, cộng job unit và source verify. Phân bổ theo thời gian quan sát trong TRX, có tính thêm chi phí thiết lập database mỗi ca ở các lớp nặng.
+- Cấu hình trước dùng 9 lane API và 9 lane SQL, cộng job unit và source verify. Ứng viên hiện tại giữ 9 lane API và mở SQL lane 10. Lane SQL 4 giữ Seeder CLI, còn lane 10 nhận sáu lớp cùng bốn method đã tách từ lane 4 theo duration TRX.
 - Giữ 12 ca Web Cookie bằng dữ liệu theory riêng cho các route GET và tiếp tục đối soát 1.758 ca API. Tách các method AI worker, telemetry, retention và refresh. Tách 18 ca export recovery thành ba nhóm method, giữ đủ tình huống lỗi và database riêng từng ca. Đối soát 897 ca SQL.
 
 Lượt 9/9 đầu tiên trên SHA `e319021` hoàn tất trong 7 phút. Cả 20 job ban đầu bắt đầu sau 3–4 giây. SQL lane 6 mất 257 giây ở bước test. Hai lane API field operations mất 222 và 230 giây ở bước test. [Run 9/9 đầu tiên](https://github.com/HoangAnhVu2207/RoadGuardSystem/actions/runs/45672208599).

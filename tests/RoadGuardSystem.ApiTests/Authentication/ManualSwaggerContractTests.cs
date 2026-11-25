@@ -746,6 +746,19 @@ public sealed class ManualSwaggerContractTests
             row.GetProperty("sources").GetArrayLength().Should().BeGreaterThan(0, id + " independent source evidence");
         }
     }
+    [Fact]
+    public async Task MergedSwaggerIncludesVideoTelemetryAndScopedRepairRoutes()
+    {
+        using var document = await Document();
+        var paths = document.RootElement.GetProperty("paths");
+        const string project = "/api/v1/projects/{projectId}";
+        Assert.True(paths.GetProperty(project + "/ai-videos").TryGetProperty("get", out _));
+        Assert.True(paths.GetProperty(project + "/ai-videos/{workId}/telemetry").TryGetProperty("get", out _));
+        Assert.True(paths.GetProperty(project + "/ai-videos/{workId}/telemetry-revisions").TryGetProperty("post", out _));
+        Assert.True(paths.GetProperty(project + "/reports/{reportId}/matching-location").TryGetProperty("post", out _));
+        Assert.True(paths.GetProperty(project + "/repair-packages/{packageId}/items/{itemId}/safety-measures/{measureId}/resolution").TryGetProperty("post", out _));
+    }
+
     private static async Task<JsonDocument> Document()
     {
         await using var factory = new CustomWebApplicationFactory("Development");

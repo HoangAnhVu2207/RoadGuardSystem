@@ -260,6 +260,7 @@
         "RoadGuardSystem.IntegrationTests.Retention.H4H5RetentionInventorySqlTests.InventoryReadsAllMappedRepairOfflineTablesWithoutInventingReferences",
         "RoadGuardSystem.IntegrationTests.Seeding.AnhHuyDependencySchemaTests.DefectVersion_FreshAndBaseline_PreservesNullableLegacyAndDetectsStaleWrites(baseline: False)",
         "RoadGuardSystem.IntegrationTests.Seeding.AnhHuyDependencySchemaTests.DefectVersion_FreshAndBaseline_PreservesNullableLegacyAndDetectsStaleWrites(baseline: True)",
+        "RoadGuardSystem.IntegrationTests.Seeding.AnhHuyDependencySchemaTests.UpgradeFrom6769253_PreservesProjectAndDefect",
         "RoadGuardSystem.IntegrationTests.Seeding.AnhHuyDependencySchemaTests.UpgradeFromNovemberServerSchema_PreservesProjectAndDefect",
         "RoadGuardSystem.IntegrationTests.Seeding.PostmanDisposableGuardTests.InvalidFlags_RejectBeforeReadingConnection",
         "RoadGuardSystem.IntegrationTests.Seeding.PostmanDisposableGuardTests.Recreate_RejectsMissingOrWrongConfiguredTarget_BeforeAnySqlConnection(connection: \"Server=.\\\\HANHNAV;Database=RoadGuardShared;Integra\"\u00b7\u00b7\u00b7)",

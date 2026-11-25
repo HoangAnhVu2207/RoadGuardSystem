@@ -34,11 +34,20 @@ public sealed record OfflineRepairPayload(Guid ResourceId, string Action,
     RepairExecutionStartInput? Start = null, RepairExecutionFinishInput? Finish = null,
     RepairMeasurementAssessmentInput? Assessment = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[method: JsonConstructor]
 public sealed record OfflineOperationInput(int SchemaVersion, Guid OriginId, Guid EffectId, string Kind,
     Guid OriginalActorId, Guid SourceDeviceId, Guid SnapshotId, Guid TaskId, Guid AssignmentId,
     string TaskVersion, string CorePayloadHash, Guid[] Dependencies, DateTimeOffset? ClaimedFinishedAt,
     FieldStartInput? FieldStart = null, FieldSubmissionInput? FieldSubmission = null,
-    OfflineRepairPayload? Repair = null, FieldTaskActionInput? FieldAction = null);
+    OfflineRepairPayload? Repair = null, FieldTaskActionInput? FieldAction = null)
+{
+    // MVC validates the record properties without caching a positional constructor mapping.
+    // JSON continues to use the positional constructor for the signed transport.
+    public OfflineOperationInput() : this(0, default, default, null!, default, default, default,
+        default, default, null!, null!, null!, null)
+    {
+    }
+}
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record OfflineSignedBatchInput(Guid BatchId, Guid SourceDeviceRegistrationId,
     OfflineOperationInput[] Operations, string Signature);

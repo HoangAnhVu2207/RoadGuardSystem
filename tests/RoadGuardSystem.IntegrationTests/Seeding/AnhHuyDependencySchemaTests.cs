@@ -22,7 +22,38 @@ public sealed class AnhHuyDependencySchemaTests
             "20261022074647_C1ControlledPublicPublication",
             "20261022181921_B2NotificationSupervisorAssignment"
         ];
-        var fixture = new SqlServerTestFixture(_ => null, createSpatialProbeSchema: false);
+        await VerifyUpgradePreservesLegacyRows(serverMigrations);
+    }
+
+    [Fact]
+    public async Task UpgradeFrom6769253_PreservesProjectAndDefect()
+    {
+        // Git tree at 6769253448c3ac915e2dce9bd7982e74071de29a.
+        string[] serverMigrations =
+        [
+            "20261008171739_BaselineCurrentSchema",
+            "20261009043010_AllowVerifiedDefectPostRepairTasks",
+            "20261022074647_C1ControlledPublicPublication",
+            "20261022181921_B2NotificationSupervisorAssignment",
+            "20261110043224_RoadGeometrySubmission",
+            "20261110122600_GeometrySubmissionReviewRounds",
+            "20261113051802_CrewFieldMeasurementDimensions",
+            "20261113113000_ReporterRepairProgress",
+            "20261117063514_ReporterPasswordReset",
+            "20261117101500_ProjectHandoverStaging",
+            "20261117183505_WebPmCoordinationMetadata",
+            "20261119161424_AddAiWorkerTransportLedger",
+            "20261119164737_AddAiVideoTelemetryRevisions",
+            "20261119170649_AddAiVideoAttemptOutcomes",
+            "20261123093000_FieldTaskMeasurementDimensions",
+            "20261123093100_InitialTemporarySafetyResponsibility"
+        ];
+        await VerifyUpgradePreservesLegacyRows(serverMigrations);
+    }
+
+    private static async Task VerifyUpgradePreservesLegacyRows(string[] serverMigrations)
+    {
+        var fixture = new SqlServerTestFixture(createSpatialProbeSchema: false);
         await fixture.InitializeAsync();
         try
         {
@@ -47,6 +78,7 @@ public sealed class AnhHuyDependencySchemaTests
             await migrator.MigrateAsync();
 
             (await db.Database.GetAppliedMigrationsAsync()).Should().Equal(db.Database.GetMigrations());
+            db.Database.HasPendingModelChanges().Should().BeFalse();
             var project = await db.Projects.AsNoTracking().SingleAsync(row => row.Id == projectId);
             project.ProjectCode.Should().Be("RG_UPGRADE");
             project.Name.Should().Be("Synthetic road project");
@@ -70,7 +102,13 @@ public sealed class AnhHuyDependencySchemaTests
                 s => s.UseNetTopologySuite()).Options;
             await using var db = new RoadGuardDbContext(options);
             var migrator = db.GetService<IMigrator>();
+            (await db.Database.GetAppliedMigrationsAsync()).Should().BeEmpty();
             await migrator.MigrateAsync(baseline ? "20261008171739_BaselineCurrentSchema" : null);
+            if (!baseline)
+            {
+                (await db.Database.GetAppliedMigrationsAsync()).Should().Equal(db.Database.GetMigrations());
+                db.Database.HasPendingModelChanges().Should().BeFalse();
+            }
             var id = Guid.NewGuid();
             await db.Database.ExecuteSqlRawAsync("INSERT INTO DefectTypes (Code,Name,IsActive) VALUES ('RG_SCHEMA','Synthetic schema probe',1)");
             await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO Defects (Id,DefectTypeCode,Status,Severity) VALUES ({id},'RG_SCHEMA',1,1)");

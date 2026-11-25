@@ -56342,6 +56342,168 @@
         "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     },
+    "/api/v1/projects/{projectId}/ai-videos": {
+      "get": {
+        "tags": [
+          "AiVideoTelemetry"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "datasetId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai-videos/{workId}/telemetry": {
+      "get": {
+        "tags": [
+          "AiVideoTelemetry"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "workId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/ai-videos/{workId}/telemetry-revisions": {
+      "post": {
+        "tags": [
+          "AiVideoTelemetry"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "workId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiTelemetryAppendRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiTelemetryAppendRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiTelemetryAppendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{projectId}/baseline-selections": {
       "post": {
         "tags": [
@@ -68231,6 +68393,9 @@
           "dispositionVersion": {
             "type": "string",
             "nullable": true
+          },
+          "telemetryReview": {
+            "$ref": "#/components/schemas/AiTelemetryReviewSnapshotV1"
           }
         },
         "additionalProperties": false
@@ -68338,6 +68503,28 @@
           "geometry": {
             "nullable": true,
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AiDroneInterval": {
+        "type": "object",
+        "properties": {
+          "startMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "endMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -68580,6 +68767,69 @@
             "items": {
               "$ref": "#/components/schemas/AiMatchResultV1"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AiTelemetryAppendRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "srtText": {
+            "type": "string",
+            "nullable": true
+          },
+          "offsetMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "estimate": {
+            "$ref": "#/components/schemas/AiDroneInterval"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "correctionReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AiTelemetryReviewSnapshotV1": {
+        "type": "object",
+        "properties": {
+          "headRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "measuredRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pairedSrtFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "embeddedSrtFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pairsManifestHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "evidenceHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "positionMeaning": {
+            "type": "string",
             "nullable": true
           }
         },

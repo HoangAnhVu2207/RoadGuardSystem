@@ -15,8 +15,10 @@ public sealed record AiVideoGeometrySnapshot(Guid RouteVersionId, Guid SegmentSe
         try
         {
             using var doc = JsonDocument.Parse(source.ScopeManifest);
-            var scopes = doc.RootElement.EnumerateArray().Select(s => new {
-                Route = Field(s, "routeVersionId").GetGuid(), Set = Field(s, "segmentSetId").GetGuid(),
+            var scopes = doc.RootElement.EnumerateArray().Select(s => new
+            {
+                Route = Field(s, "routeVersionId").GetGuid(),
+                Set = Field(s, "segmentSetId").GetGuid(),
                 Segments = Field(s, "segmentIds").EnumerateArray().Select(x => x.GetGuid()).ToArray()
             }).ToArray();
             if (scopes.Length == 0 || scopes.Any(s => s.Route == Guid.Empty || s.Set == Guid.Empty || s.Segments.Length == 0 || s.Segments.Contains(Guid.Empty)) ||

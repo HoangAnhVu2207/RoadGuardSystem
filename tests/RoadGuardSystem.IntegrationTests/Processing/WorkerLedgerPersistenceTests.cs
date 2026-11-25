@@ -190,8 +190,15 @@ public sealed class WorkerLedgerPersistenceTests : IAsyncLifetime
     {
         await using var context = _fixture.CreateDbContext();
         var now = DateTimeOffset.UtcNow;
-        var project = new Project { Id = Guid.NewGuid(), ProjectCode = $"WORKER-{Guid.NewGuid():N}",
-            Name = "Isolated worker ledger", EngineeringUtmSrid = 32648, Status = ProjectStatus.Active, CreatedAt = now };
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            ProjectCode = $"WORKER-{Guid.NewGuid():N}",
+            Name = "Isolated worker ledger",
+            EngineeringUtmSrid = 32648,
+            Status = ProjectStatus.Active,
+            CreatedAt = now
+        };
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"ROAD-{Guid.NewGuid():N}");
         var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([
             new Coordinate(500000, 1200000), new Coordinate(500100, 1200000)]);

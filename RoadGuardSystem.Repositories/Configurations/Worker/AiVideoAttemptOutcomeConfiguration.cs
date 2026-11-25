@@ -10,7 +10,8 @@ public sealed class AiVideoAttemptOutcomeConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<AiVideoAttemptOutcome> builder)
     {
-        builder.ToTable("AiVideoAttemptOutcomes", table => {
+        builder.ToTable("AiVideoAttemptOutcomes", table =>
+        {
             table.HasTrigger("TR_AiVideoAttemptOutcomes_AppendOnly");
             table.HasCheckConstraint("CK_AiVideoAttemptOutcomes_StateError", "([State] IN (5,8) AND [ErrorCode] IS NULL) OR ([State] IN (6,7) AND [ErrorCode] IS NOT NULL AND LEN([ErrorCode]) BETWEEN 1 AND 80 AND [ErrorCode] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^A-Z0-9_]%')");
             table.HasCheckConstraint("CK_AiVideoAttemptOutcomes_AdmissionHash", "LEN([AdmissionHash])=64 AND [AdmissionHash] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9a-f]%'");

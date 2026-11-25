@@ -63,8 +63,16 @@ public sealed class AiVideoTelemetryService(IAiVideoTelemetryRepository reposito
         var paired = scope.PairedSrt is { } pair ? await ReadPairedAsync(pair, scope.DurationMs, ct) : null;
         if (expectedHeadId == Guid.Empty && (paired is not null || embedded is not null)) throw new AiRequestException(409, "measured_telemetry_already_available");
         var intervalsJson = JsonSerializer.Serialize(intervals, Json);
-        var fingerprint = Hash(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { scope.SourceVideoHash, request.Kind, intervalsJson,
-            request.OffsetMs, request.Reason, request.CorrectionReason, srtSha256 = bytes is null ? null : Hash(bytes) }, Json)));
+        var fingerprint = Hash(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
+        {
+            scope.SourceVideoHash,
+            request.Kind,
+            intervalsJson,
+            request.OffsetMs,
+            request.Reason,
+            request.CorrectionReason,
+            srtSha256 = bytes is null ? null : Hash(bytes)
+        }, Json)));
         string? objectKey = null; string? srtHash = null;
         if (bytes is not null)
         {

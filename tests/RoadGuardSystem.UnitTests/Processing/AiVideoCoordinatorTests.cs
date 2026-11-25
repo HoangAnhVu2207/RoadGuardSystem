@@ -157,11 +157,26 @@ public sealed class AiVideoCoordinatorTests
         {
             Repo = new(Clock); var a = Admission();
             Uploads = new(Input);
-            Options = new() { Enabled = true, ReleasedModelVersionId = a.ModelVersionId, CheckpointSha256 = a.CheckpointSha256,
-                PreprocessingVersion = a.PreprocessingVersion, ConfigVersion = a.ConfigVersion, SampleFps = a.SampleFps, MaxFrames = a.MaxFrames,
-                TempRoot = Path.Combine("D:/RoadGuard-AI-LocalTest", "coordinator-test-" + Guid.NewGuid().ToString("N")),
-                ClassMap = new(StringComparer.Ordinal) { ["alligator crack"] = "ALLIGATOR_CRACK", ["longitudinal crack"] = "LONGITUDINAL_CRACK",
-                    ["oblique crack"] = "OBLIQUE_CRACK", ["pothole"] = "POTHOLE", ["repair"] = "REPAIR_PATCH", ["transverse crack"] = "TRANSVERSE_CRACK" } };
+            Options = new()
+            {
+                Enabled = true,
+                ReleasedModelVersionId = a.ModelVersionId,
+                CheckpointSha256 = a.CheckpointSha256,
+                PreprocessingVersion = a.PreprocessingVersion,
+                ConfigVersion = a.ConfigVersion,
+                SampleFps = a.SampleFps,
+                MaxFrames = a.MaxFrames,
+                TempRoot = Path.Combine(Path.GetTempPath(), "roadguard-coordinator-test-" + Guid.NewGuid().ToString("N")),
+                ClassMap = new(StringComparer.Ordinal)
+                {
+                    ["alligator crack"] = "ALLIGATOR_CRACK",
+                    ["longitudinal crack"] = "LONGITUDINAL_CRACK",
+                    ["oblique crack"] = "OBLIQUE_CRACK",
+                    ["pothole"] = "POTHOLE",
+                    ["repair"] = "REPAIR_PATCH",
+                    ["transverse crack"] = "TRANSVERSE_CRACK"
+                }
+            };
             Repo.Source = new(a.DatasetId, a.ProjectId, a.SourceVideoFileId, Guid.NewGuid(), "test-video", Hash(Input), Input.Length,
                 JsonSerializer.Serialize(new[] { new { routeVersionId = Geometry.Route, segmentSetId = Geometry.Set, segmentIds = new[] { Geometry.Segment } } }));
         }
@@ -310,8 +325,13 @@ public sealed class AiVideoCoordinatorTests
     public async Task OperationalWorkerFailureCanRetryButInvalidMediaCannot(string code, bool retryable)
     {
         using var h = new Harness();
-        using var coordinator = h.Coordinator((request, ct) => Task.FromResult(Json(JsonSerializer.Serialize(new {
-            attemptId = Admission().AttemptId, state = "FAILED", cancellationRequested = false, errorCode = code }))));
+        using var coordinator = h.Coordinator((request, ct) => Task.FromResult(Json(JsonSerializer.Serialize(new
+        {
+            attemptId = Admission().AttemptId,
+            state = "FAILED",
+            cancellationRequested = false,
+            errorCode = code
+        }))));
         h.Existing(coordinator, AiVideoWorkState.Admitted);
         await coordinator.TickAsync("owner");
         h.Repo.Work!.State.Should().Be(retryable ? AiVideoWorkState.RetryableFailed : AiVideoWorkState.TerminalFailed);

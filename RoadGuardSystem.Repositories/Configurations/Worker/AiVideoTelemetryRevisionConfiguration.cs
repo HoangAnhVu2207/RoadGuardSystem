@@ -10,7 +10,8 @@ public sealed class AiVideoTelemetryRevisionConfiguration : IEntityTypeConfigura
 {
     public void Configure(EntityTypeBuilder<AiVideoTelemetryRevision> builder)
     {
-        builder.ToTable("AiVideoTelemetryRevisions", t => {
+        builder.ToTable("AiVideoTelemetryRevisions", t =>
+        {
             t.HasTrigger("TR_AiVideoTelemetryRevisions_AppendOnly");
             t.HasCheckConstraint("CK_AiVideoTelemetryRevisions_Number", "([Number]=1 AND [PreviousId] IS NULL) OR ([Number]>1 AND [PreviousId] IS NOT NULL)");
             t.HasCheckConstraint("CK_AiVideoTelemetryRevisions_Json", "ISJSON([IntervalsJson])=1");

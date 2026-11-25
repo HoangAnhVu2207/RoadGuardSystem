@@ -95,7 +95,8 @@ public sealed class RealAiCandidateFactsReader(IRealAiCandidateRepository reposi
             resultId, a.ManifestHash, raw.Proof.Sha256, a.ContractVersion, "REAL", a.SourceVideoFileId, f.Source.SourceVideoVersion!,
             frameId, frame.File.Checksum, frame.File.Checksum, frame.File.SizeBytes, frame.File.MimeType, timestamp,
             f.Detection.DefectTypeCode!, f.Detection.Confidence, new(box[0], box[1], box[2], box[3]),
-            g!.RouteVersionId, g.SegmentSetId, null, g.GeometryVersion, "UNKNOWN", sourceVersion, f.Disposition, f.DispositionVersion) { TelemetryReview = telemetry };
+            g!.RouteVersionId, g.SegmentSetId, null, g.GeometryVersion, "UNKNOWN", sourceVersion, f.Disposition, f.DispositionVersion)
+        { TelemetryReview = telemetry };
     }
     private static AiTelemetryReviewSnapshotV1 CaptureTelemetry(RealAiCandidateReadFacts f)
     {
@@ -112,11 +113,26 @@ public sealed class RealAiCandidateFactsReader(IRealAiCandidateRepository reposi
         var paired = f.PairedSrt;
         Require(paired is null || paired.File.FileId != Guid.Empty && paired.File.Sha256.Length == 64 && paired.File.Bytes > 0 && !string.IsNullOrWhiteSpace(f.PairsManifestHash));
         var pairsHash = f.PairsManifestHash ?? Hash("");
-        var evidenceHash = Hash(JsonSerializer.Serialize(new {
-            revisions = revisions.Select(x => new { x.Id, x.Number, x.PreviousId, x.SourceVideoHash, x.Kind,
-                x.IntervalsJson, x.OriginalSrtSha256, x.OriginalSrtBytes, x.OffsetMs, x.Note, x.ActorId, x.CreatedAt }),
+        var evidenceHash = Hash(JsonSerializer.Serialize(new
+        {
+            revisions = revisions.Select(x => new
+            {
+                x.Id,
+                x.Number,
+                x.PreviousId,
+                x.SourceVideoHash,
+                x.Kind,
+                x.IntervalsJson,
+                x.OriginalSrtSha256,
+                x.OriginalSrtBytes,
+                x.OffsetMs,
+                x.Note,
+                x.ActorId,
+                x.CreatedAt
+            }),
             paired = paired is null ? null : new { paired.File.FileId, paired.File.Sha256, paired.File.Bytes, paired.OffsetMs },
-            embedded = embedded is null ? null : new { embedded.File.Id, embedded.Proof.Sha256, embedded.Proof.Bytes }, pairsHash
+            embedded = embedded is null ? null : new { embedded.File.Id, embedded.Proof.Sha256, embedded.Proof.Bytes },
+            pairsHash
         }));
         return new(previous ?? Guid.Empty, revisions.LastOrDefault(x => x.Kind == "EXTERNAL_SRT")?.Id ?? Guid.Empty,
             paired?.File.FileId ?? Guid.Empty, embedded?.File.Id ?? Guid.Empty, pairsHash, evidenceHash);

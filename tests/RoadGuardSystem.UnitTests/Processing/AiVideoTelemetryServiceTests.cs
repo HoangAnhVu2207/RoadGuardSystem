@@ -37,8 +37,11 @@ public sealed class AiVideoTelemetryServiceTests
     {
         var bytes = Encoding.UTF8.GetBytes(Cue); var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
         var repo = new Repo(); var store = new Store { Bytes = bytes };
-        repo.Scope = repo.Scope with { PairedSrt = new(new(Guid.Empty, Guid.NewGuid(), "paired.srt", hash, bytes.Length, "application/x-subrip"), 500),
-            EmbeddedSrt = new(Guid.NewGuid(), Guid.NewGuid(), "embedded.srt", hash, bytes.Length, "application/x-subrip") };
+        repo.Scope = repo.Scope with
+        {
+            PairedSrt = new(new(Guid.Empty, Guid.NewGuid(), "paired.srt", hash, bytes.Length, "application/x-subrip"), 500),
+            EmbeddedSrt = new(Guid.NewGuid(), Guid.NewGuid(), "embedded.srt", hash, bytes.Length, "application/x-subrip")
+        };
         var uploads = new Uploaded(bytes);
         var view = await new AiVideoTelemetryService(repo, store, uploads).GetAsync(Guid.NewGuid(), UserRoleCode.ProjectManager, repo.Scope.ProjectId, repo.Scope.WorkId, default);
         view.Status.Should().Be("PAIRED_SRT"); view.MeasuredTelemetryStatus.Should().Be("PAIRED_SRT");
@@ -68,7 +71,7 @@ public sealed class AiVideoTelemetryServiceTests
     }
     private sealed class Repo : IAiVideoTelemetryRepository
     {
-        public AiVideoTelemetryScope Scope { get; set; } = new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), new string('a',64), 2000, "{}", Guid.Empty, null);
+        public AiVideoTelemetryScope Scope { get; set; } = new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), new string('a', 64), 2000, "{}", Guid.Empty, null);
         public int Reads { get; private set; }
         public int Appends { get; private set; }
         public IReadOnlyList<AiVideoTelemetryRevision> Revisions { get; set; } = [];

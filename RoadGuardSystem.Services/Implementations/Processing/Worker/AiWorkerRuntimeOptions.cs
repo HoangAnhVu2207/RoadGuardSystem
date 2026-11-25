@@ -46,9 +46,17 @@ public sealed class AiWorkerRuntimeOptions
                 DiskBudgetBytes <= 0 || DiskBudgetBytes > 40L * 1024 * 1024 * 1024 || MinimumFreeBytes < 30L * 1024 * 1024 * 1024)
                 throw new ArgumentException("Invalid bounded worker runtime configuration.");
         }
-        var identityJson = JsonSerializer.Serialize(new { contractVersion = "rg-ai-worker-v1", modelVersionId = ReleasedModelVersionId, checkpointSha256 = CheckpointSha256,
-            preprocessingVersion = PreprocessingVersion, configVersion = ConfigVersion, sampleFps = SampleFps, maxFrames = MaxFrames,
-            classes = map.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => new { sourceClass = x.Key, typeCode = x.Value }).ToArray() });
+        var identityJson = JsonSerializer.Serialize(new
+        {
+            contractVersion = "rg-ai-worker-v1",
+            modelVersionId = ReleasedModelVersionId,
+            checkpointSha256 = CheckpointSha256,
+            preprocessingVersion = PreprocessingVersion,
+            configVersion = ConfigVersion,
+            sampleFps = SampleFps,
+            maxFrames = MaxFrames,
+            classes = map.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => new { sourceClass = x.Key, typeCode = x.Value }).ToArray()
+        });
         var identity = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identityJson))).ToLowerInvariant();
         return new(Enabled, ReleasedModelVersionId, CheckpointSha256, PreprocessingVersion, ConfigVersion, SampleFps, MaxFrames, map,
             TempRoot, FfprobePath, OperationTimeout, LeaseDuration, PollInterval, RetryDelay, DiskBudgetBytes, MinimumFreeBytes, identity);

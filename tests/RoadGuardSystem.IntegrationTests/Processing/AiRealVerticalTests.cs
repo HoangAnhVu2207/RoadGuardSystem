@@ -94,8 +94,17 @@ public sealed class AiRealVerticalTests
             }
             ready.Should().BeTrue();
             var client = new AiWorkerClient(http, origin, token);
-            var options = new AiWorkerRuntimeOptions { Enabled = true, ReleasedModelVersionId = seed.ModelId, CheckpointSha256 = ModelHash, ClassMap = seed.Map,
-                TempRoot = Path.Combine(root, "be-spool"), FfprobePath = Path.Combine(tools, "ffprobe.exe"), MaxFrames = 60, PollInterval = TimeSpan.FromSeconds(1) };
+            var options = new AiWorkerRuntimeOptions
+            {
+                Enabled = true,
+                ReleasedModelVersionId = seed.ModelId,
+                CheckpointSha256 = ModelHash,
+                ClassMap = seed.Map,
+                TempRoot = Path.Combine(root, "be-spool"),
+                FfprobePath = Path.Combine(tools, "ffprobe.exe"),
+                MaxFrames = 60,
+                PollInterval = TimeSpan.FromSeconds(1)
+            };
             var artifacts = new MinioAnh02ArtifactStore(storage); var uploads = new MinioUploadObjectStorage(storage);
             var timer = Stopwatch.StartNew(); AiVideoWorkItem? state = null;
             while (timer.Elapsed < TimeSpan.FromMinutes(10 * pilotCount))
@@ -183,7 +192,7 @@ public sealed class AiRealVerticalTests
         db.Users.Add(new ApplicationUser { Id = owner, UserName = $"worker-{owner:N}", NormalizedUserName = $"worker-{owner:N}".ToUpperInvariant(), DisplayName = "Worker fixture", PasswordHash = "fixture-password-hash", RoleCode = UserRoleCode.DroneOperator, Status = UserStatus.Active, CreatedAt = now });
         var project = new Project { Id = Guid.NewGuid(), ProjectCode = $"WORKER-{Guid.NewGuid():N}", Name = "Isolated worker repository", EngineeringUtmSrid = 32648, Status = ProjectStatus.Active, CreatedAt = now };
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"ROAD-{Guid.NewGuid():N}");
-        var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new Coordinate(500000,1200000),new Coordinate(500100,1200000)]);
+        var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new Coordinate(500000, 1200000), new Coordinate(500100, 1200000)]);
         var version = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, geometry, now, "fixture");
         var survey = Survey.Create(Guid.NewGuid(), null, project.Id, version.Id, SurveyType.Periodic, SurveyStatus.InProgress, false, null, null);
         var files = Enumerable.Range(0, count).Select(_ => StoredFile.Create(Guid.NewGuid(), $"fixture/{Guid.NewGuid():N}", "video.mp4", "video/mp4", new FileInfo(Video).Length, VideoHash, owner, now, null)).ToArray();

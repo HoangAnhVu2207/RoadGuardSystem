@@ -9,6 +9,10 @@ $expected = @($manifest.lanes | ForEach-Object { $_.classes })
 if ($expected.Count -eq 0 -or @($expected | Sort-Object -Unique).Count -ne $expected.Count) {
     throw 'SQL lane class manifest is empty or contains duplicate classes.'
 }
+if ([string]::IsNullOrWhiteSpace($manifest.localRealAcceptanceClass) -or $manifest.localRealAcceptanceClass -in $expected) {
+    throw 'The opt-in REAL AI acceptance class must be declared separately from the SQL lanes.'
+}
+$expected += $manifest.localRealAcceptanceClass
 
 $assemblyFile = (Resolve-Path -LiteralPath $AssemblyPath).Path
 $assemblyDir = Split-Path -Parent $assemblyFile
@@ -48,4 +52,4 @@ if ($delta.Count -ne 0) {
     $stale = @($delta | Where-Object SideIndicator -eq '<=').Count
     throw "SQL lane manifest differs from compiled xUnit discovery: $missing unassigned class(es), $stale stale class(es)."
 }
-Write-Host "SQL lane discovery gate passed: $($discovered.Count) compiled xUnit classes assigned exactly once."
+Write-Host "SQL lane discovery gate passed: $($discovered.Count - 1) SQL lane classes and one opt-in REAL AI acceptance class."

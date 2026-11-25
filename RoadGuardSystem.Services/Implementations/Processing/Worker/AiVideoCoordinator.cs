@@ -82,12 +82,28 @@ public sealed class AiVideoCoordinator : IDisposable
         var metadata = await StageAndProbeAsync(source, ct);
         var reservation = checked(source.Bytes + (long)_settings.MaxFrames * ((long)metadata.Width * metadata.Height * 3 + 65536) + 64L * 1024 * 1024 + 2L * 1024 * 1024 * 1024);
         CheckCapacity(reservation);
-        var manifest = JsonSerializer.Serialize(new { contractVersion = "rg-ai-worker-v1", datasetId = source.DatasetId, projectId = source.ProjectId,
-            sourceVideoFileId = source.FileId, inputSha256 = source.Sha256, inputBytes = source.Bytes,
-            sourceVideoVersion = source.SourceVideoVersion, geometry,
-            inputWidth = metadata.Width, inputHeight = metadata.Height, inputDurationMs = metadata.DurationMs,
-            modelVersionId = _settings.ModelVersionId, checkpointSha256 = _settings.CheckpointSha256, preprocessingVersion = _settings.PreprocessingVersion,
-            configVersion = _settings.ConfigVersion, sampleFps = _settings.SampleFps, maxFrames = _settings.MaxFrames, classMap = _settings.ClassMap, logicalConfigurationIdentity = _settings.Identity });
+        var manifest = JsonSerializer.Serialize(new
+        {
+            contractVersion = "rg-ai-worker-v1",
+            datasetId = source.DatasetId,
+            projectId = source.ProjectId,
+            sourceVideoFileId = source.FileId,
+            inputSha256 = source.Sha256,
+            inputBytes = source.Bytes,
+            sourceVideoVersion = source.SourceVideoVersion,
+            geometry,
+            inputWidth = metadata.Width,
+            inputHeight = metadata.Height,
+            inputDurationMs = metadata.DurationMs,
+            modelVersionId = _settings.ModelVersionId,
+            checkpointSha256 = _settings.CheckpointSha256,
+            preprocessingVersion = _settings.PreprocessingVersion,
+            configVersion = _settings.ConfigVersion,
+            sampleFps = _settings.SampleFps,
+            maxFrames = _settings.MaxFrames,
+            classMap = _settings.ClassMap,
+            logicalConfigurationIdentity = _settings.Identity
+        });
         var manifestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(manifest))).ToLowerInvariant();
         var admission = new AiWorkerAdmission("rg-ai-worker-v1", source.ProjectId, Guid.NewGuid(), Guid.NewGuid(), source.DatasetId, source.FileId,
             manifestHash, _settings.ModelVersionId, _settings.CheckpointSha256, _settings.PreprocessingVersion, _settings.ConfigVersion, source.Sha256, source.Bytes,
@@ -163,11 +179,23 @@ public sealed class AiVideoCoordinator : IDisposable
         {
             if (!_settings.ClassMap.TryGetValue(d.SourceClass, out var code)) throw new InvalidDataException("UNKNOWN_SOURCE_CLASS");
             var bbox = AiWorkerCoordinates.DecimalNormalizedBox(d.Bbox);
-            var payload = JsonSerializer.Serialize(new { contractVersion = admission.ContractVersion, resultId = result.ResultId,
-                sourceVideoFileId = admission.SourceVideoFileId, sourceVideoSha256 = admission.InputSha256, frameArtifactId = d.FrameArtifactId,
-                sourceClass = d.SourceClass, timestampMs = d.TimestampMs, bbox, confidence = d.Confidence,
-                telemetry = result.Telemetry, roadMaskStatus = result.RoadMaskStatus, limitations = result.Limitations,
-                groundLocationStatus = "NOT_MEASURED", proposalOnly = true }, AiWorkerWireContract.JsonOptions);
+            var payload = JsonSerializer.Serialize(new
+            {
+                contractVersion = admission.ContractVersion,
+                resultId = result.ResultId,
+                sourceVideoFileId = admission.SourceVideoFileId,
+                sourceVideoSha256 = admission.InputSha256,
+                frameArtifactId = d.FrameArtifactId,
+                sourceClass = d.SourceClass,
+                timestampMs = d.TimestampMs,
+                bbox,
+                confidence = d.Confidence,
+                telemetry = result.Telemetry,
+                roadMaskStatus = result.RoadMaskStatus,
+                limitations = result.Limitations,
+                groundLocationStatus = "NOT_MEASURED",
+                proposalOnly = true
+            }, AiWorkerWireContract.JsonOptions);
             return new AiProposedDetection(d.DetectionId, d.FrameArtifactId, d.SourceClass, code, (decimal)d.Confidence, payload);
         }).ToArray();
         await _repository.CompleteAsync(work.Id, owner, admission.AttemptId, registered, proposals, _settings.ClassMap, _clock.GetUtcNow(), ct);

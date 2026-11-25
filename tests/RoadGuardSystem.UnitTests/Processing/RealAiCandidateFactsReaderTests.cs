@@ -44,22 +44,51 @@ public sealed class RealAiCandidateFactsReaderTests
         var frameArtifact = Guid.NewGuid(); var frameFile = Guid.NewGuid(); var result = Guid.NewGuid(); var detection = Guid.NewGuid();
         var map = new Dictionary<string, string> { ["alligator crack"] = "ALLIGATOR_CRACK", ["longitudinal crack"] = "LONGITUDINAL_CRACK", ["oblique crack"] = "OBLIQUE_CRACK", ["pothole"] = "POTHOLE", ["repair"] = "REPAIR_PATCH", ["transverse crack"] = "TRANSVERSE_CRACK" };
         var source = new AiVideoSource(dataset, project, video, Guid.NewGuid(), "uploads/video", new string('a', 64), 100, null, "source-row-version");
-        var manifest = JsonSerializer.Serialize(new { contractVersion = "rg-ai-worker-v1", datasetId = dataset, projectId = project, sourceVideoFileId = video,
-            inputSha256 = source.Sha256, inputBytes = source.Bytes, modelVersionId = model, sourceVideoVersion = source.SourceVideoVersion,
-            checkpointSha256 = new string('b', 64), preprocessingVersion = "ffmpeg-pts-v1", configVersion = "ft95-cpu-v1",
-            inputWidth = 1920, inputHeight = 1080, inputDurationMs = 10000, sampleFps = 1, maxFrames = 10,
-            logicalConfigurationIdentity = "frozen", classMap = map,
-            geometry = geometry ? new AiVideoGeometrySnapshot(Guid.NewGuid(), Guid.NewGuid(), "geometry-version", [Guid.NewGuid()]) : null }, Json);
+        var manifest = JsonSerializer.Serialize(new
+        {
+            contractVersion = "rg-ai-worker-v1",
+            datasetId = dataset,
+            projectId = project,
+            sourceVideoFileId = video,
+            inputSha256 = source.Sha256,
+            inputBytes = source.Bytes,
+            modelVersionId = model,
+            sourceVideoVersion = source.SourceVideoVersion,
+            checkpointSha256 = new string('b', 64),
+            preprocessingVersion = "ffmpeg-pts-v1",
+            configVersion = "ft95-cpu-v1",
+            inputWidth = 1920,
+            inputHeight = 1080,
+            inputDurationMs = 10000,
+            sampleFps = 1,
+            maxFrames = 10,
+            logicalConfigurationIdentity = "frozen",
+            classMap = map,
+            geometry = geometry ? new AiVideoGeometrySnapshot(Guid.NewGuid(), Guid.NewGuid(), "geometry-version", [Guid.NewGuid()]) : null
+        }, Json);
         var admission = new AiWorkerAdmission("rg-ai-worker-v1", project, jobId, attempt, dataset, video, Hash(manifest), model, new string('b', 64),
             "ffmpeg-pts-v1", "ft95-cpu-v1", source.Sha256, 100, 1920, 1080, 10000, 1, 10);
         var work = Work.Create(workId, dataset, video, project, jobId, attempt, "frozen", JsonSerializer.Serialize(admission, AiWorkerWireContract.JsonOptions), now);
         work.AcquireLease("mock", now, now.AddMinutes(1)); work.Transition("mock", attempt, State.Admitted, now);
         work.Transition("mock", attempt, State.ArtifactsReady, now); work.Transition("mock", attempt, State.Ingested, now);
         var job = ProcessingJob.CreateQueued(jobId, Guid.NewGuid(), model, project, Hash(manifest), manifest, "REAL"); job.Complete(now);
-        var payload = JsonSerializer.SerializeToNode(new { workItemId = workId, attemptId = attempt, contractVersion = "rg-ai-worker-v1", resultId = result,
-            sourceVideoFileId = video, sourceVideoSha256 = source.Sha256, frameArtifactId = frameArtifact, frameFileId = frameFile,
-            sourceClass = label, timestampMs = 1500, bbox = new[] { .1m, .2m, .3m, .4m }, confidence = .9m,
-            groundLocationStatus = "NOT_MEASURED", proposalOnly = true }, Json)!.AsObject(); mutate?.Invoke(payload);
+        var payload = JsonSerializer.SerializeToNode(new
+        {
+            workItemId = workId,
+            attemptId = attempt,
+            contractVersion = "rg-ai-worker-v1",
+            resultId = result,
+            sourceVideoFileId = video,
+            sourceVideoSha256 = source.Sha256,
+            frameArtifactId = frameArtifact,
+            frameFileId = frameFile,
+            sourceClass = label,
+            timestampMs = 1500,
+            bbox = new[] { .1m, .2m, .3m, .4m },
+            confidence = .9m,
+            groundLocationStatus = "NOT_MEASURED",
+            proposalOnly = true
+        }, Json)!.AsObject(); mutate?.Invoke(payload);
         var d = AIDetection.Create(detection, jobId, model, null, null, map[label], .9m, null, null, payload.ToJsonString());
         RealAiArtifactReadFact Artifact(Guid artifact, Guid file, string kind, string type)
         {
@@ -95,14 +124,27 @@ public sealed class RealAiCandidateFactsReaderTests
         result.Facts.TimestampMs.Should().Be(1500); result.Facts.BoundingBox.Should().Be(new NormalizedBoundingBoxV1(.1m, .2m, .3m, .4m));
     }
     [Theory]
-    [InlineData("attemptId")][InlineData("workItemId")][InlineData("sourceVideoFileId")][InlineData("frameFileId")][InlineData("frameArtifactId")]
-    [InlineData("sourceClass")][InlineData("timestampMs")][InlineData("bbox")][InlineData("confidence")][InlineData("proposalOnly")]
+    [InlineData("attemptId")]
+    [InlineData("workItemId")]
+    [InlineData("sourceVideoFileId")]
+    [InlineData("frameFileId")]
+    [InlineData("frameArtifactId")]
+    [InlineData("sourceClass")]
+    [InlineData("timestampMs")]
+    [InlineData("bbox")]
+    [InlineData("confidence")]
+    [InlineData("proposalOnly")]
     public async Task Corrupt_persisted_provenance_is_not_ready(string field)
     {
-        var f = Facts(mutate: p => p[field] = field switch {
-            "sourceClass" => JsonValue.Create("crack"), "timestampMs" => JsonValue.Create(10001),
-            "bbox" => JsonSerializer.SerializeToNode(new[] { 0m, 0m, 2m, 1m }), "confidence" => JsonValue.Create(.8m),
-            "proposalOnly" => JsonValue.Create(false), _ => JsonValue.Create(Guid.NewGuid()) });
+        var f = Facts(mutate: p => p[field] = field switch
+        {
+            "sourceClass" => JsonValue.Create("crack"),
+            "timestampMs" => JsonValue.Create(10001),
+            "bbox" => JsonSerializer.SerializeToNode(new[] { 0m, 0m, 2m, 1m }),
+            "confidence" => JsonValue.Create(.8m),
+            "proposalOnly" => JsonValue.Create(false),
+            _ => JsonValue.Create(Guid.NewGuid())
+        });
         (await Reader(f).ResolveAsync(Guid.NewGuid(), UserRoleCode.ProjectManager, f.Work.ProjectId, f.Detection.Id)).Status.Should().Be(AnhHuyProducerStatus.SourceNotReady);
     }
     [Theory]
@@ -116,8 +158,11 @@ public sealed class RealAiCandidateFactsReaderTests
     {
         var f = Facts(mutate: p => p["confidence"] = JsonValue.Create(decimal.Parse(raw, System.Globalization.CultureInfo.InvariantCulture)));
         var d = f.Detection;
-        f = f with { Detection = AIDetection.Create(d.Id, d.ProcessingJobId, d.ModelVersionId, null, null,
-            d.DefectTypeCode, decimal.Parse(persisted, System.Globalization.CultureInfo.InvariantCulture), null, null, d.RawPayload) };
+        f = f with
+        {
+            Detection = AIDetection.Create(d.Id, d.ProcessingJobId, d.ModelVersionId, null, null,
+            d.DefectTypeCode, decimal.Parse(persisted, System.Globalization.CultureInfo.InvariantCulture), null, null, d.RawPayload)
+        };
         (await Reader(f).ResolveAsync(Guid.NewGuid(), UserRoleCode.ProjectManager, f.Work.ProjectId, d.Id)).Status
             .Should().Be(valid ? AnhHuyProducerStatus.Ready : AnhHuyProducerStatus.SourceNotReady);
     }
@@ -155,12 +200,16 @@ public sealed class RealAiCandidateFactsReaderTests
         called.Should().Be(fallback); result.Status.Should().Be(fallback ? AnhHuyProducerStatus.Ready : status);
     }
     [Theory]
-    [InlineData(false)][InlineData(true)]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task Ambiguous_or_malformed_scope_never_selects_first_route(bool malformed)
     {
-        var source = Facts().Source with { ScopeManifest = malformed ? "not-json" : JsonSerializer.Serialize(new[] {
+        var source = Facts().Source with
+        {
+            ScopeManifest = malformed ? "not-json" : JsonSerializer.Serialize(new[] {
             new { routeVersionId = Guid.NewGuid(), segmentSetId = Guid.NewGuid(), segmentIds = new[] { Guid.NewGuid() } },
-            new { routeVersionId = Guid.NewGuid(), segmentSetId = Guid.NewGuid(), segmentIds = new[] { Guid.NewGuid() } } }) };
+            new { routeVersionId = Guid.NewGuid(), segmentSetId = Guid.NewGuid(), segmentIds = new[] { Guid.NewGuid() } } })
+        };
         var called = false; var repo = Mock<IGeometryWorkflowRepository>((_, _) => { called = true; throw new InvalidOperationException(); });
         (await AiVideoGeometrySnapshot.CaptureAsync(source, repo, CancellationToken.None)).Should().BeNull(); called.Should().BeFalse();
     }
@@ -168,9 +217,12 @@ public sealed class RealAiCandidateFactsReaderTests
     public async Task Admission_freezes_authorized_unambiguous_package_and_union_of_scope_segments()
     {
         var source = Facts().Source; var route = Guid.NewGuid(); var set = Guid.NewGuid(); var first = Guid.NewGuid(); var second = Guid.NewGuid();
-        source = source with { ScopeManifest = JsonSerializer.Serialize(new[] {
+        source = source with
+        {
+            ScopeManifest = JsonSerializer.Serialize(new[] {
             new { RouteVersionId = route, SegmentSetId = set, SegmentIds = new[] { first } },
-            new { RouteVersionId = route, SegmentSetId = set, SegmentIds = new[] { second } } }) };
+            new { RouteVersionId = route, SegmentSetId = set, SegmentIds = new[] { second } } })
+        };
         var shape = new RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.GeometryShapeFact("LineString", Array.Empty<double>());
         var package = new RoadGuardSystem.BusinessObjects.PersistenceFacts.Projects.GeometryPackageViewFact("geometry.v1", source.ProjectId,
             new(source.ProjectId, Guid.NewGuid(), route, 1, true, DateTimeOffset.UtcNow, null, null, 32648, null, null, null, shape, null, 100,
@@ -178,7 +230,8 @@ public sealed class RealAiCandidateFactsReaderTests
             new(set, route, "PUBLISHED", null, null,
                 [new(first, 1, null, null, null, null, null, null, null, []), new(second, 2, null, null, null, null, null, null, null, [])],
                 null, null, "set-version", "COMPLETE", []));
-        var repo = Mock<IGeometryWorkflowRepository>((m, args) => {
+        var repo = Mock<IGeometryWorkflowRepository>((m, args) =>
+        {
             m.Name.Should().Be("ExecuteAsync"); var command = (GeometryWorkflowCommand)args![0]!;
             command.ActorId.Should().Be(source.OwnerId); command.Role.Should().Be(UserRoleCode.DroneOperator);
             command.RouteVersionId.Should().Be(route); command.SetId.Should().Be(set);

@@ -87,7 +87,10 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("POST", "/api/v1/projects/{projectId}/road-geometry-drafts/{draftId}/submit"),
             ("GET", "/api/v1/projects/{projectId}/road-geometry-submission"),
             ("POST", "/api/v1/projects/{projectId}/road-geometry-drafts/{draftId}/reject"),
-            ("GET", "/api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions/{routeVersionId}/segment-sets/{segmentSetId}/pavement-layouts")
+            ("GET", "/api/v1/projects/{projectId}/road-sections/{roadSectionId}/versions/{routeVersionId}/segment-sets/{segmentSetId}/pavement-layouts"),
+            ("GET", "/api/v1/projects/{projectId}/ai-videos"),
+            ("GET", "/api/v1/projects/{projectId}/ai-videos/{workId}/telemetry"),
+            ("POST", "/api/v1/projects/{projectId}/ai-videos/{workId}/telemetry-revisions")
         };
         Assert.Empty(expected.Except(actual));
         Assert.Empty(additions.Except(actual));

@@ -43,12 +43,19 @@ public sealed class AiVideoWorkItem
         var identity = JsonSerializer.Serialize(new[] { datasetId.ToString("D"), sourceVideoFileId.ToString("D"), config });
         return new AiVideoWorkItem
         {
-            Id = id, DatasetId = datasetId, SourceVideoFileId = sourceVideoFileId, ProjectId = projectId,
-            ProcessingJobId = processingJobId, CurrentAttemptId = currentAttemptId,
+            Id = id,
+            DatasetId = datasetId,
+            SourceVideoFileId = sourceVideoFileId,
+            ProjectId = projectId,
+            ProcessingJobId = processingJobId,
+            CurrentAttemptId = currentAttemptId,
             LogicalConfigurationIdentity = config,
             DispatchKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant(),
-            AdmissionJson = CanonicalAdmission(admissionJson), State = AiVideoWorkState.Pending,
-            CreatedAt = now.ToUniversalTime(), UpdatedAt = now.ToUniversalTime(), NextPollAt = now.ToUniversalTime()
+            AdmissionJson = CanonicalAdmission(admissionJson),
+            State = AiVideoWorkState.Pending,
+            CreatedAt = now.ToUniversalTime(),
+            UpdatedAt = now.ToUniversalTime(),
+            NextPollAt = now.ToUniversalTime()
         };
     }
 

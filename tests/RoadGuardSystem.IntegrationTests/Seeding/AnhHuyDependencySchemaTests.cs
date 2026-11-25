@@ -12,6 +12,51 @@ namespace RoadGuardSystem.IntegrationTests.Seeding;
 
 public sealed class AnhHuyDependencySchemaTests
 {
+    [Fact]
+    public async Task UpgradeFromNovemberServerSchema_PreservesProjectAndDefect()
+    {
+        string[] serverMigrations =
+        [
+            "20261008171739_BaselineCurrentSchema",
+            "20261009043010_AllowVerifiedDefectPostRepairTasks",
+            "20261022074647_C1ControlledPublicPublication",
+            "20261022181921_B2NotificationSupervisorAssignment"
+        ];
+        var fixture = new SqlServerTestFixture(_ => null, createSpatialProbeSchema: false);
+        await fixture.InitializeAsync();
+        try
+        {
+            var options = new DbContextOptionsBuilder<RoadGuardDbContext>()
+                .UseSqlServer(fixture.ConnectionString, sql => sql.UseNetTopologySuite()).Options;
+            await using var db = new RoadGuardDbContext(options);
+            var migrator = db.GetService<IMigrator>();
+            await migrator.MigrateAsync(serverMigrations[^1]);
+            (await db.Database.GetAppliedMigrationsAsync()).Should().Equal(serverMigrations);
+
+            var projectId = Guid.NewGuid();
+            var defectId = Guid.NewGuid();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO Projects (Id, ProjectCode, Name, Status, CreatedAt)
+                    VALUES ({projectId}, 'RG_UPGRADE', N'Synthetic road project', 1, SYSDATETIMEOFFSET());
+                INSERT INTO DefectTypes (Code, Name, IsActive)
+                    VALUES ('RG_UPGRADE', N'Synthetic defect type', 1);
+                INSERT INTO Defects (Id, ProjectId, DefectTypeCode, Status, Severity)
+                    VALUES ({defectId}, {projectId}, 'RG_UPGRADE', 1, 1);
+                """);
+
+            await migrator.MigrateAsync();
+
+            (await db.Database.GetAppliedMigrationsAsync()).Should().Equal(db.Database.GetMigrations());
+            var project = await db.Projects.AsNoTracking().SingleAsync(row => row.Id == projectId);
+            project.ProjectCode.Should().Be("RG_UPGRADE");
+            project.Name.Should().Be("Synthetic road project");
+            var defect = await db.Set<Defect>().AsNoTracking().SingleAsync(row => row.Id == defectId);
+            defect.ProjectId.Should().Be(projectId);
+            defect.DefectTypeCode.Should().Be("RG_UPGRADE");
+        }
+        finally { await fixture.DisposeAsync(); }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

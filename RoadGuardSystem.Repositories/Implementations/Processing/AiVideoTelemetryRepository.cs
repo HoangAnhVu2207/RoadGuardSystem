@@ -17,16 +17,18 @@ public sealed class AiVideoTelemetryRepository(RoadGuardDbContext db, TimeProvid
         if (projectId == Guid.Empty || datasetId == Guid.Empty || offset < 0 || limit is < 1 or > 100)
             throw new AiRequestException(422, "invalid_video_query");
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-        if (!await (from d in db.SurveyDataVersions.AsNoTracking() join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
-                where d.Id == datasetId && s.ProjectId == projectId select d.Id).AnyAsync(ct))
+        if (!await (from d in db.SurveyDataVersions.AsNoTracking()
+                    join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+                    where d.Id == datasetId && s.ProjectId == projectId
+                    select d.Id).AnyAsync(ct))
             throw new AiRequestException(404, "not_found");
         await AuthorizeAsync(actorId, role, projectId, datasetId, false, ct);
         // Discovery includes pending/failed/zero-detection work and never requires successful ingestion.
         var rows = await (from w in db.AiVideoWorkItems.AsNoTracking()
-            join j in db.ProcessingJobs.AsNoTracking() on w.ProcessingJobId equals j.Id
-            where w.ProjectId == projectId && w.DatasetId == datasetId && j.ProjectId == projectId && j.Mode == "REAL"
-            orderby w.CreatedAt, w.Id
-            select new { w.Id, w.SourceVideoFileId, w.ProcessingJobId, w.CurrentAttemptId, w.State, w.ErrorCode })
+                          join j in db.ProcessingJobs.AsNoTracking() on w.ProcessingJobId equals j.Id
+                          where w.ProjectId == projectId && w.DatasetId == datasetId && j.ProjectId == projectId && j.Mode == "REAL"
+                          orderby w.CreatedAt, w.Id
+                          select new { w.Id, w.SourceVideoFileId, w.ProcessingJobId, w.CurrentAttemptId, w.State, w.ErrorCode })
             .Skip(offset).Take(limit + 1).ToArrayAsync(ct);
         var result = new AiVideoWorkPage(rows.Take(limit).Select(x => new AiVideoWorkSummary(x.Id, x.SourceVideoFileId,
             x.ProcessingJobId, x.CurrentAttemptId, x.State.ToString(), x.ErrorCode)).ToArray(), offset, limit, rows.Length > limit);
@@ -131,8 +133,10 @@ public sealed class AiVideoTelemetryRepository(RoadGuardDbContext db, TimeProvid
         if (!await db.ProjectMembers.AsNoTracking().AnyAsync(x => x.ProjectId == projectId && x.UserId == actorId && x.RoleCode == role &&
             x.Status == ProjectMemberStatus.Active && x.ValidFrom <= today && (x.ValidTo == null || x.ValidTo >= today), ct)) throw new AiRequestException(403, "access_forbidden");
         if (role == UserRoleCode.ProjectManager) return;
-        var requestId = await (from d in db.SurveyDataVersions.AsNoTracking() join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
-            where d.Id == datasetId && s.ProjectId == projectId select s.SurveyRequestId).SingleOrDefaultAsync(ct);
+        var requestId = await (from d in db.SurveyDataVersions.AsNoTracking()
+                               join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+                               where d.Id == datasetId && s.ProjectId == projectId
+                               select s.SurveyRequestId).SingleOrDefaultAsync(ct);
         if (requestId is null || !await db.SurveyRequests.AsNoTracking().AnyAsync(x => x.Id == requestId && x.ProjectId == projectId, ct) ||
             !await db.SurveyAssignments.AsNoTracking().AnyAsync(x => x.SurveyRequestId == requestId && x.OperatorUserId == actorId &&
                 x.AcceptedAt != null && x.RejectedAt == null && x.EndedAt == null, ct)) throw new AiRequestException(403, "access_forbidden");
@@ -176,8 +180,10 @@ public sealed class AiVideoTelemetryRepository(RoadGuardDbContext db, TimeProvid
 
     internal async Task<AiPairedTelemetryFile?> ReadPairedAsync(AiVideoWorkItem work, Guid ownerId, CancellationToken ct)
     {
-        var dataset = await (from d in db.SurveyDataVersions.AsNoTracking() join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
-            where d.Id == work.DatasetId && s.ProjectId == work.ProjectId select new { d.PairsManifest, d.SourceManifest, s.SurveyRequestId }).SingleAsync(ct);
+        var dataset = await (from d in db.SurveyDataVersions.AsNoTracking()
+                             join s in db.Surveys.AsNoTracking() on d.SurveyId equals s.Id
+                             where d.Id == work.DatasetId && s.ProjectId == work.ProjectId
+                             select new { d.PairsManifest, d.SourceManifest, s.SurveyRequestId }).SingleAsync(ct);
         if (string.IsNullOrWhiteSpace(dataset.PairsManifest)) return null;
         Guid telemetryId; long offset;
         try
@@ -193,12 +199,14 @@ public sealed class AiVideoTelemetryRepository(RoadGuardDbContext db, TimeProvid
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
         { throw new AiRequestException(409, "paired_telemetry_provenance_invalid"); }
-        var file = await (from f in db.Files.AsNoTracking() join u in db.UploadSessions.AsNoTracking() on f.Id equals u.FileId
-            join s in db.FileScopes.AsNoTracking() on f.Id equals s.FileId
-            where f.Id == telemetryId && s.ProjectId == work.ProjectId && s.TargetId == dataset.SurveyRequestId && s.Purpose == "TELEMETRY" &&
-                s.OwnerUserId == ownerId && u.OwnerUserId == ownerId && f.UploadedByUserId == ownerId && u.Purpose == s.Purpose &&
-                u.Status == UploadSessionStatus.Verified && u.ExpectedChecksumSha256 == f.Checksum && u.ExpectedSizeBytes == f.SizeBytes &&
-                u.MediaType == f.MimeType && u.ObjectKey == f.StorageUri select f).SingleOrDefaultAsync(ct);
+        var file = await (from f in db.Files.AsNoTracking()
+                          join u in db.UploadSessions.AsNoTracking() on f.Id equals u.FileId
+                          join s in db.FileScopes.AsNoTracking() on f.Id equals s.FileId
+                          where f.Id == telemetryId && s.ProjectId == work.ProjectId && s.TargetId == dataset.SurveyRequestId && s.Purpose == "TELEMETRY" &&
+                              s.OwnerUserId == ownerId && u.OwnerUserId == ownerId && f.UploadedByUserId == ownerId && u.Purpose == s.Purpose &&
+                              u.Status == UploadSessionStatus.Verified && u.ExpectedChecksumSha256 == f.Checksum && u.ExpectedSizeBytes == f.SizeBytes &&
+                              u.MediaType == f.MimeType && u.ObjectKey == f.StorageUri
+                          select f).SingleOrDefaultAsync(ct);
         if (file is null) throw new AiRequestException(409, "paired_telemetry_provenance_invalid");
         try
         {

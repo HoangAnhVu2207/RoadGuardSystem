@@ -26,8 +26,18 @@ public sealed class AiWorkerArtifact
         if (kind is not ("RAW_RESULT" or "FRAME" or "TELEMETRY_SRT") ||
             (kind == "FRAME" ? width is not (> 0 and <= 16384) || height is not (> 0 and <= 16384) : width is not null || height is not null))
             throw new ArgumentException("Artifact kind or frame dimensions are invalid.");
-        return new AiWorkerArtifact { Id = id, WorkItemId = workItemId, AttemptId = attemptId, ArtifactId = artifactId,
-            Sha256 = sha256, Bytes = bytes, Kind = kind, Width = width, Height = height };
+        return new AiWorkerArtifact
+        {
+            Id = id,
+            WorkItemId = workItemId,
+            AttemptId = attemptId,
+            ArtifactId = artifactId,
+            Sha256 = sha256,
+            Bytes = bytes,
+            Kind = kind,
+            Width = width,
+            Height = height
+        };
     }
 
     // Caller must first verify bytes/hash and durably register the matching StoredFile.

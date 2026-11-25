@@ -44,7 +44,7 @@ public sealed class AiVideoAttemptOutcomeRepositoryTests : IAsyncLifetime
         outcome.ProcessingJobId.Should().Be(work.ProcessingJobId); outcome.State.Should().Be(state); outcome.ErrorCode.Should().Be(error);
         outcome.AdmissionHash.Should().Be(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(work.AdmissionJson))).ToLowerInvariant());
         outcome.OccurredAt.Should().Be(now);
-        await FluentActions.Awaiting(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE AiVideoAttemptOutcomes SET AdmissionHash={new string('b',64)} WHERE AttemptId={outcome.AttemptId}"))
+        await FluentActions.Awaiting(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE AiVideoAttemptOutcomes SET AdmissionHash={new string('b', 64)} WHERE AttemptId={outcome.AttemptId}"))
             .Should().ThrowAsync<Microsoft.Data.SqlClient.SqlException>();
         await FluentActions.Awaiting(() => db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM AiVideoAttemptOutcomes WHERE AttemptId={outcome.AttemptId}"))
             .Should().ThrowAsync<Microsoft.Data.SqlClient.SqlException>();
@@ -72,7 +72,7 @@ public sealed class AiVideoAttemptOutcomeRepositoryTests : IAsyncLifetime
         await using var db = _fixture.CreateDbContext();
         var now = work.UpdatedAt.AddSeconds(1);
         await new AiVideoWorkRepository(db).CompleteAsync(work.Id, "worker", work.CurrentAttemptId,
-            [new AiRegisteredArtifact(Guid.NewGuid(), new string('b',64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now, Ct);
+            [new AiRegisteredArtifact(Guid.NewGuid(), new string('b', 64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now, Ct);
         var outcome = await db.AiVideoAttemptOutcomes.SingleAsync();
         outcome.State.Should().Be(AiVideoWorkState.Ingested); outcome.ErrorCode.Should().BeNull();
         (await db.AiVideoWorkItems.SingleAsync()).State.Should().Be(AiVideoWorkState.Ingested);
@@ -102,7 +102,7 @@ public sealed class AiVideoAttemptOutcomeRepositoryTests : IAsyncLifetime
         // Adversarial pre-existing fact: an attempt outcome can never be
         // overwritten, and failure to append must roll back the whole change.
         db.AiVideoAttemptOutcomes.Add(AiVideoAttemptOutcome.Create(work.CurrentAttemptId, work.Id, work.ProcessingJobId,
-            AiVideoWorkState.Cancelled, null, new string('a',64), now));
+            AiVideoWorkState.Cancelled, null, new string('a', 64), now));
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
         await FluentActions.Awaiting(() => new AiVideoWorkRepository(db).ChangeAsync(work.Id, "worker", work.CurrentAttemptId,
@@ -133,8 +133,18 @@ public sealed class AiVideoAttemptOutcomeRepositoryTests : IAsyncLifetime
         var manifest = source.SourceVideoVersion is null ? "{\"source\":\"verified-video\"}" : JsonSerializer.Serialize(new { source = "verified-video", sourceVideoVersion = source.SourceVideoVersion });
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(manifest))).ToLowerInvariant();
         var job = Guid.NewGuid(); var attempt = Guid.NewGuid();
-        var admission = JsonSerializer.Serialize(new { projectId = source.ProjectId, datasetId = source.DatasetId, sourceVideoFileId = source.FileId,
-            jobId = job, attemptId = attempt, modelVersionId = model, inputSha256 = source.Sha256, inputBytes = source.Bytes, manifestHash = hash });
+        var admission = JsonSerializer.Serialize(new
+        {
+            projectId = source.ProjectId,
+            datasetId = source.DatasetId,
+            sourceVideoFileId = source.FileId,
+            jobId = job,
+            attemptId = attempt,
+            modelVersionId = model,
+            inputSha256 = source.Sha256,
+            inputBytes = source.Bytes,
+            manifestHash = hash
+        });
         return new(job, attempt, model, "config", admission, manifest, hash);
     }
 
@@ -148,10 +158,10 @@ public sealed class AiVideoAttemptOutcomeRepositoryTests : IAsyncLifetime
         db.Users.Add(new ApplicationUser { Id = owner, UserName = $"worker-{owner:N}", NormalizedUserName = $"worker-{owner:N}".ToUpperInvariant(), DisplayName = "Worker fixture", PasswordHash = "fixture-password-hash", RoleCode = UserRoleCode.DroneOperator, Status = UserStatus.Active, CreatedAt = now });
         var project = new Project { Id = Guid.NewGuid(), ProjectCode = $"WORKER-{Guid.NewGuid():N}", Name = "Isolated worker repository", EngineeringUtmSrid = 32648, Status = ProjectStatus.Active, CreatedAt = now };
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"ROAD-{Guid.NewGuid():N}");
-        var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new Coordinate(500000,1200000),new Coordinate(500100,1200000)]);
+        var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new Coordinate(500000, 1200000), new Coordinate(500100, 1200000)]);
         var version = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, geometry, now, "fixture");
         var survey = Survey.Create(Guid.NewGuid(), null, project.Id, version.Id, SurveyType.Periodic, SurveyStatus.InProgress, false, null, null);
-        var files = Enumerable.Range(0, count).Select(_ => StoredFile.Create(Guid.NewGuid(), $"fixture/{Guid.NewGuid():N}", "video.mp4", "video/mp4", 10, new string('a',64), owner, now, null)).ToArray();
+        var files = Enumerable.Range(0, count).Select(_ => StoredFile.Create(Guid.NewGuid(), $"fixture/{Guid.NewGuid():N}", "video.mp4", "video/mp4", 10, new string('a', 64), owner, now, null)).ToArray();
         var manifest = JsonSerializer.Serialize(files.Select(f => new { fileId = f.Id, checksumSha256 = f.Checksum, sizeBytes = f.SizeBytes, purpose = "SURVEY_VIDEO" }));
         if (malformed) manifest = JsonSerializer.Serialize(new object[] { new { purpose = "SURVEY_VIDEO", fileId = "invalid" }, new { purpose = "SURVEY_VIDEO", fileId = files[1].Id.ToString("D"), checksumSha256 = files[1].Checksum, sizeBytes = "invalid" }, new { purpose = "SURVEY_VIDEO", fileId = files[1].Id.ToString("D"), checksumSha256 = files[1].Checksum, sizeBytes = files[1].SizeBytes } });
         var dataset = SurveyDataVersion.Create(Guid.NewGuid(), survey.Id, 1, SurveyDataVersionStatus.ServerConfirmed, SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend, manifest);

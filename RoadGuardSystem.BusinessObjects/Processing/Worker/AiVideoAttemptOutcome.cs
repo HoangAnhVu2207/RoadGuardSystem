@@ -23,7 +23,15 @@ public sealed class AiVideoAttemptOutcome
         if (!failure && state is not (AiVideoWorkState.Ingested or AiVideoWorkState.Cancelled) ||
             (failure ? string.IsNullOrEmpty(errorCode) || errorCode.Length > 80 || errorCode.Any(c => c is not (>= 'A' and <= 'Z' or >= '0' and <= '9' or '_')) : errorCode is not null))
             throw new ArgumentException("Terminal outcome state and safe error code must agree.");
-        return new() { AttemptId = attemptId, WorkId = workId, ProcessingJobId = processingJobId, State = state,
-            ErrorCode = errorCode, AdmissionHash = admissionHash, OccurredAt = occurredAt.ToUniversalTime() };
+        return new()
+        {
+            AttemptId = attemptId,
+            WorkId = workId,
+            ProcessingJobId = processingJobId,
+            State = state,
+            ErrorCode = errorCode,
+            AdmissionHash = admissionHash,
+            OccurredAt = occurredAt.ToUniversalTime()
+        };
     }
 }

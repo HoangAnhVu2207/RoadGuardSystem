@@ -27,9 +27,9 @@ public sealed partial class AiVideoWorkRepository(RoadGuardDbContext db) : IAiVi
         foreach (var datasetId in datasets.OfType<Guid>())
         {
             var row = await (from data in db.SurveyDataVersions.AsNoTracking()
-                join survey in db.Surveys.AsNoTracking() on data.SurveyId equals survey.Id
-                where data.Id == datasetId && data.Status == SurveyDataVersionStatus.ServerConfirmed && data.IntegrityStatus == SurveyDataIntegrityStatus.Passed
-                select new { data.SourceManifest, survey.ProjectId }).SingleOrDefaultAsync(ct);
+                             join survey in db.Surveys.AsNoTracking() on data.SurveyId equals survey.Id
+                             where data.Id == datasetId && data.Status == SurveyDataVersionStatus.ServerConfirmed && data.IntegrityStatus == SurveyDataIntegrityStatus.Passed
+                             select new { data.SourceManifest, survey.ProjectId }).SingleOrDefaultAsync(ct);
             if (row is null) continue;
             foreach (var fileId in VideoIds(row.SourceManifest))
             {
@@ -131,9 +131,13 @@ public sealed partial class AiVideoWorkRepository(RoadGuardDbContext db) : IAiVi
         if (state is { } target) work.Transition(owner, attemptId, target, now, nextPoll, errorCode);
         if (state is AiVideoWorkState.Running or AiVideoWorkState.RetryableFailed or AiVideoWorkState.TerminalFailed or AiVideoWorkState.Cancelled)
         {
-            job.ApplyRealWorkerState(state switch { AiVideoWorkState.Running => ProcessingJobStatus.Running,
+            job.ApplyRealWorkerState(state switch
+            {
+                AiVideoWorkState.Running => ProcessingJobStatus.Running,
                 AiVideoWorkState.RetryableFailed => ProcessingJobStatus.RetryableFailure,
-                AiVideoWorkState.TerminalFailed => ProcessingJobStatus.DataFailure, _ => ProcessingJobStatus.Cancelled }, now, errorCode);
+                AiVideoWorkState.TerminalFailed => ProcessingJobStatus.DataFailure,
+                _ => ProcessingJobStatus.Cancelled
+            }, now, errorCode);
         }
         if (work.State is AiVideoWorkState.Pending or AiVideoWorkState.Admitted or AiVideoWorkState.Running or AiVideoWorkState.ArtifactsReady)
             work.ReleaseLease(owner, attemptId, now, nextPoll);
@@ -204,16 +208,16 @@ public sealed partial class AiVideoWorkRepository(RoadGuardDbContext db) : IAiVi
     private async Task<AiVideoSource?> SourceAsync(Guid datasetId, Guid projectId, Guid fileId, CancellationToken ct)
     {
         var row = await (from data in db.SurveyDataVersions.AsNoTracking()
-            join survey in db.Surveys.AsNoTracking() on data.SurveyId equals survey.Id
-            join scope in db.FileScopes.AsNoTracking() on projectId equals scope.ProjectId
-            join file in db.Files.AsNoTracking() on scope.FileId equals file.Id
-            join upload in db.UploadSessions.AsNoTracking() on file.Id equals upload.FileId
-            where data.Id == datasetId && survey.ProjectId == projectId && data.Status == SurveyDataVersionStatus.ServerConfirmed && data.IntegrityStatus == SurveyDataIntegrityStatus.Passed &&
-                file.Id == fileId && scope.Purpose == "SURVEY_VIDEO" && scope.TargetId == survey.SurveyRequestId && upload.Status == UploadSessionStatus.Verified &&
-                scope.OwnerUserId == upload.OwnerUserId && upload.OwnerUserId == file.UploadedByUserId && upload.Purpose == scope.Purpose &&
-                upload.ExpectedChecksumSha256 == file.Checksum && upload.ExpectedSizeBytes == file.SizeBytes && upload.MediaType == file.MimeType &&
-                upload.ObjectKey == file.StorageUri
-            select new { data.SourceManifest, data.ScopeManifest, File = file, scope.OwnerUserId, upload.RowVersion }).SingleOrDefaultAsync(ct);
+                         join survey in db.Surveys.AsNoTracking() on data.SurveyId equals survey.Id
+                         join scope in db.FileScopes.AsNoTracking() on projectId equals scope.ProjectId
+                         join file in db.Files.AsNoTracking() on scope.FileId equals file.Id
+                         join upload in db.UploadSessions.AsNoTracking() on file.Id equals upload.FileId
+                         where data.Id == datasetId && survey.ProjectId == projectId && data.Status == SurveyDataVersionStatus.ServerConfirmed && data.IntegrityStatus == SurveyDataIntegrityStatus.Passed &&
+                             file.Id == fileId && scope.Purpose == "SURVEY_VIDEO" && scope.TargetId == survey.SurveyRequestId && upload.Status == UploadSessionStatus.Verified &&
+                             scope.OwnerUserId == upload.OwnerUserId && upload.OwnerUserId == file.UploadedByUserId && upload.Purpose == scope.Purpose &&
+                             upload.ExpectedChecksumSha256 == file.Checksum && upload.ExpectedSizeBytes == file.SizeBytes && upload.MediaType == file.MimeType &&
+                             upload.ObjectKey == file.StorageUri
+                         select new { data.SourceManifest, data.ScopeManifest, File = file, scope.OwnerUserId, upload.RowVersion }).SingleOrDefaultAsync(ct);
         if (row is null) return null;
         if (!ManifestMatches(row.SourceManifest, fileId, row.File.Checksum, row.File.SizeBytes)) return null;
         return new(datasetId, projectId, fileId, row.OwnerUserId, row.File.StorageUri, row.File.Checksum, row.File.SizeBytes, row.ScopeManifest, Convert.ToBase64String(row.RowVersion));

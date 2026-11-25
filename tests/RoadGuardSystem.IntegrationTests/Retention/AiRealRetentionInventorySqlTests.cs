@@ -70,11 +70,11 @@ public sealed class AiRealRetentionInventorySqlTests : IAsyncLifetime
         StoredFile? file = null;
         if (mapping != "missing")
         {
-            file = StoredFile.Create(Guid.NewGuid(), mapping == "case" ? key.ToUpperInvariant() : key, "original.srt", "application/x-subrip", mapping == "bytes" ? 21 : 20, new string(mapping == "hash" ? 'c' : 'b',64), null, work.CreatedAt, null);
+            file = StoredFile.Create(Guid.NewGuid(), mapping == "case" ? key.ToUpperInvariant() : key, "original.srt", "application/x-subrip", mapping == "bytes" ? 21 : 20, new string(mapping == "hash" ? 'c' : 'b', 64), null, work.CreatedAt, null);
             db.Files.Add(file);
         }
-        var revision = AiVideoTelemetryRevision.Create(Guid.NewGuid(), work.Id, 1, null, actor, work.CreatedAt, new string('a',64), "EXTERNAL_SRT",
-            "[{\"startMs\":0,\"endMs\":1000,\"latitude\":10,\"longitude\":106}]", 1000, key, new string('b',64), 20, 0, null, new string('c',64), new string('d',64));
+        var revision = AiVideoTelemetryRevision.Create(Guid.NewGuid(), work.Id, 1, null, actor, work.CreatedAt, new string('a', 64), "EXTERNAL_SRT",
+            "[{\"startMs\":0,\"endMs\":1000,\"latitude\":10,\"longitude\":106}]", 1000, key, new string('b', 64), 20, 0, null, new string('c', 64), new string('d', 64));
         db.AiVideoTelemetryRevisions.Add(revision); await db.SaveChangesAsync();
         var inventory = new AiRetentionInventoryContributor(db);
         var result = await inventory.ReadAsync(work.SourceVideoFileId, default);
@@ -91,8 +91,15 @@ public sealed class AiRealRetentionInventorySqlTests : IAsyncLifetime
     {
         await using var context = _fixture.CreateDbContext();
         var now = DateTimeOffset.UtcNow;
-        var project = new Project { Id = Guid.NewGuid(), ProjectCode = $"WORKER-{Guid.NewGuid():N}",
-            Name = "Isolated worker ledger", EngineeringUtmSrid = 32648, Status = ProjectStatus.Active, CreatedAt = now };
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            ProjectCode = $"WORKER-{Guid.NewGuid():N}",
+            Name = "Isolated worker ledger",
+            EngineeringUtmSrid = 32648,
+            Status = ProjectStatus.Active,
+            CreatedAt = now
+        };
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"ROAD-{Guid.NewGuid():N}");
         var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([
             new Coordinate(500000, 1200000), new Coordinate(500100, 1200000)]);

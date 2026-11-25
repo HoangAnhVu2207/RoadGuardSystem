@@ -58,10 +58,25 @@ public sealed class AiVideoTelemetryRevision
                 throw new ArgumentException("Invalid telemetry interval geometry or timing.");
             previousEnd = e;
         }
-        return new() { Id = id, WorkId = workId, Number = number, PreviousId = previousId, ActorId = actorId,
-            CreatedAt = createdAt.ToUniversalTime(), SourceVideoHash = sourceVideoHash, Kind = kind, IntervalsJson = intervalsJson,
-            OriginalSrtObjectKey = originalSrtObjectKey, OriginalSrtSha256 = originalSrtSha256, OriginalSrtBytes = originalSrtBytes,
-            OffsetMs = offsetMs, Note = note, IdempotencyKeyHash = idempotencyKeyHash, PayloadFingerprint = payloadFingerprint };
+        return new()
+        {
+            Id = id,
+            WorkId = workId,
+            Number = number,
+            PreviousId = previousId,
+            ActorId = actorId,
+            CreatedAt = createdAt.ToUniversalTime(),
+            SourceVideoHash = sourceVideoHash,
+            Kind = kind,
+            IntervalsJson = intervalsJson,
+            OriginalSrtObjectKey = originalSrtObjectKey,
+            OriginalSrtSha256 = originalSrtSha256,
+            OriginalSrtBytes = originalSrtBytes,
+            OffsetMs = offsetMs,
+            Note = note,
+            IdempotencyKeyHash = idempotencyKeyHash,
+            PayloadFingerprint = payloadFingerprint
+        };
     }
     private static bool Hash(string? value) => value is { Length: 64 } && value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
 }

@@ -97,10 +97,10 @@ public sealed class CandidateDecisionRepository(RoadGuardDbContext db) : ICandid
     {
         await db.Database.SqlQuery<int>($"SELECT CAST(COUNT(*) AS int) AS [Value] FROM [AIDetections] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={detectionId}").SingleAsync(ct);
         var real = await (from detection in db.AIDetections.AsNoTracking()
-            join job in db.ProcessingJobs.AsNoTracking() on detection.ProcessingJobId equals job.Id
-            join work in db.AiVideoWorkItems.AsNoTracking() on job.Id equals work.ProcessingJobId
-            where detection.Id == detectionId && job.Mode == "REAL"
-            select new { work.Id, work.ProcessingJobId, work.DatasetId, work.SourceVideoFileId }).SingleOrDefaultAsync(ct);
+                          join job in db.ProcessingJobs.AsNoTracking() on detection.ProcessingJobId equals job.Id
+                          join work in db.AiVideoWorkItems.AsNoTracking() on job.Id equals work.ProcessingJobId
+                          where detection.Id == detectionId && job.Mode == "REAL"
+                          select new { work.Id, work.ProcessingJobId, work.DatasetId, work.SourceVideoFileId }).SingleOrDefaultAsync(ct);
         if (real is not null)
         {
             // The telemetry writer takes this same work lock before reading/appending its head.

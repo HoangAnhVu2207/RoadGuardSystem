@@ -31,18 +31,22 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
     public Task DisposeAsync() => _fixture.DisposeAsync();
 
     private static AiVideoTelemetryAppend Request(AiVideoWorkItem work) => new(Guid.NewGuid(), Guid.Empty,
-        work.CurrentAttemptId, new string('a',64), "OPERATOR_ESTIMATE",
+        work.CurrentAttemptId, new string('a', 64), "OPERATOR_ESTIMATE",
         "[{\"startMs\":0,\"endMs\":1000,\"latitude\":10,\"longitude\":106}]", null, null, null, 0,
-        "fixture estimate", new string('b',64), new string('c',64), null, false);
+        "fixture estimate", new string('b', 64), new string('c', 64), null, false);
 
     [Theory]
-    [InlineData("discover")][InlineData("scope")][InlineData("list")][InlineData("append")]
+    [InlineData("discover")]
+    [InlineData("scope")]
+    [InlineData("list")]
+    [InlineData("append")]
     public async Task Telemetry_boundaries_support_the_configured_retry_strategy(string operation)
     {
         await using var db = _fixture.CreateRetryingDbContext();
         var repo = new AiVideoTelemetryRepository(db, TimeProvider.System);
         var actor = Guid.NewGuid(); var project = Guid.NewGuid(); var work = Guid.NewGuid();
-        await Expect(404, async () => {
+        await Expect(404, async () =>
+        {
             if (operation == "discover") await repo.DiscoverAsync(actor, UserRoleCode.ProjectManager, project, Guid.NewGuid(), 0, 10, Ct);
             else if (operation == "scope") await repo.ReadScopeAsync(actor, UserRoleCode.ProjectManager, project, work, Ct);
             else if (operation == "list") await repo.ListAsync(actor, UserRoleCode.ProjectManager, project, work, Ct);
@@ -62,8 +66,10 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         }
     }
     [Theory]
-    [InlineData(false, false)][InlineData(true, false)]
-    [InlineData(false, true)][InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
     public async Task AppendReplaysBeforeHeadCheckAndEnforcesImmutableSqlHistory(bool retry, bool external)
     {
         var seed = await SeedAsync(); var source = seed.Sources[0];
@@ -76,7 +82,7 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         work.Transition("worker", work.CurrentAttemptId, AiVideoWorkState.ArtifactsReady, now);
         await db.SaveChangesAsync();
         await transport.CompleteAsync(workId, "worker", work.CurrentAttemptId,
-            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d',64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now.AddSeconds(1), Ct);
+            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d', 64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now.AddSeconds(1), Ct);
         var transient = new FailFirstRevisionSave();
         await using var telemetryDb = retry ? _fixture.CreateRetryingDbContext(transient) : _fixture.CreateDbContext();
         var repo = new AiVideoTelemetryRepository(telemetryDb, TimeProvider.System);
@@ -84,7 +90,7 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         if (external) request = request with { Kind = "EXTERNAL_SRT", OriginalSrtObjectKey = $"fixture/{Guid.NewGuid():N}.srt", OriginalSrtSha256 = new string('9', 64), OriginalSrtBytes = 42 };
         var first = await repo.AppendAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, workId, request, Ct);
         var second = await repo.AppendAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, workId,
-            request with { RevisionId = Guid.NewGuid(), ExpectedHeadId = first.Id, IdempotencyKeyHash = new string('e',64), PayloadFingerprint = new string('f',64) }, Ct);
+            request with { RevisionId = Guid.NewGuid(), ExpectedHeadId = first.Id, IdempotencyKeyHash = new string('e', 64), PayloadFingerprint = new string('f', 64) }, Ct);
         second.PreviousId.Should().Be(first.Id); second.Number.Should().Be(2);
         if (external)
         {
@@ -96,8 +102,8 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         }
         if (retry) transient.Attempts.Should().Be(3);
         (await repo.AppendAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, workId, request, Ct)).Id.Should().Be(first.Id);
-        await Expect(409, () => repo.AppendAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, workId, request with { PayloadFingerprint = new string('f',64) }, Ct));
-        await Expect(412, () => repo.AppendAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, workId, request with { IdempotencyKeyHash = new string('1',64) }, Ct));
+        await Expect(409, () => repo.AppendAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, workId, request with { PayloadFingerprint = new string('f', 64) }, Ct));
+        await Expect(412, () => repo.AppendAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, workId, request with { IdempotencyKeyHash = new string('1', 64) }, Ct));
         await Expect(403, () => repo.AppendAsync(source.OwnerId, UserRoleCode.ProjectManager, source.ProjectId, workId, request, Ct));
         await FluentActions.Awaiting(() => db.Database.ExecuteSqlInterpolatedAsync($"UPDATE AiVideoTelemetryRevisions SET Note='changed' WHERE Id={first.Id}"))
             .Should().ThrowAsync<Microsoft.Data.SqlClient.SqlException>();
@@ -129,16 +135,16 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         work.Transition("worker", work.CurrentAttemptId, AiVideoWorkState.ArtifactsReady, now);
         await db.SaveChangesAsync();
         await transport.CompleteAsync(workId, "worker", work.CurrentAttemptId,
-            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d',64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now.AddSeconds(1), Ct);
+            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d', 64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now.AddSeconds(1), Ct);
         var request = Request(work);
         if (mutation == "attempt") db.ProcessingAttempts.Add(ProcessingAttempt.Create(Guid.NewGuid(), work.ProcessingJobId, 2, now.AddSeconds(2), null, null, null));
         if (mutation == "source") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET Status={(byte)UploadSessionStatus.Uploading} WHERE FileId={source.FileId}");
         if (mutation == "password") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET MustChangePassword=1 WHERE Id={source.OwnerId}");
         if (mutation is "embedded" or "artifact-hash")
         {
-            var file = StoredFile.Create(Guid.NewGuid(), "fixture/embedded.srt", "embedded.srt", "application/x-subrip", 40, new string('e',64), null, now, null);
+            var file = StoredFile.Create(Guid.NewGuid(), "fixture/embedded.srt", "embedded.srt", "application/x-subrip", 40, new string('e', 64), null, now, null);
             var artifact = AiWorkerArtifact.Create(Guid.NewGuid(), work.Id, work.CurrentAttemptId, Guid.NewGuid().ToString("D"),
-                new string(mutation == "artifact-hash" ? 'f' : 'e',64), 40, "TELEMETRY_SRT");
+                new string(mutation == "artifact-hash" ? 'f' : 'e', 64), 40, "TELEMETRY_SRT");
             artifact.MarkRegistered(file.Id); db.AddRange(file, artifact);
             request = request with { ExpectedEmbeddedSrtFileId = file.Id, EmbeddedSrtIsValid = true };
         }
@@ -161,7 +167,7 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         work.Transition("worker", work.CurrentAttemptId, AiVideoWorkState.ArtifactsReady, now);
         await db.SaveChangesAsync();
         await transport.CompleteAsync(workId, "worker", work.CurrentAttemptId,
-            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d',64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now.AddSeconds(1), Ct);
+            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d', 64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, now.AddSeconds(1), Ct);
         var repo = new AiVideoTelemetryRepository(db, TimeProvider.System);
         foreach (var role in new[] { UserRoleCode.ProjectManager, UserRoleCode.Supervisor })
         {
@@ -232,7 +238,7 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         work.Transition("worker", work.CurrentAttemptId, AiVideoWorkState.ArtifactsReady, work.UpdatedAt);
         await db.SaveChangesAsync();
         await transport.CompleteAsync(id, "worker", work.CurrentAttemptId,
-            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d',64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, work.UpdatedAt.AddSeconds(1), Ct);
+            [new AiRegisteredArtifact(Guid.NewGuid(), new string('d', 64), 20, "application/json", "RAW_RESULT", "fixture/result.json", null, null)], [], seed.Map, work.UpdatedAt.AddSeconds(1), Ct);
         var repo = new AiVideoTelemetryRepository(db, TimeProvider.System);
         if (mutation == "scope")
         {
@@ -242,9 +248,9 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         var scope = await repo.ReadScopeAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, id, Ct);
         scope.PairedSrt.Should().NotBeNull(); scope.PairedSrt!.OffsetMs.Should().Be(-250);
         var fileId = scope.PairedSrt.File.FileId;
-        scope.PairedSrt.File.Sha256.Should().Be(new string('f',64)); scope.PairedSrt.File.Bytes.Should().Be(30);
+        scope.PairedSrt.File.Sha256.Should().Be(new string('f', 64)); scope.PairedSrt.File.Bytes.Should().Be(30);
         if (mutation == "unverified") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET Status={(byte)UploadSessionStatus.Uploading} WHERE FileId={fileId}");
-        if (mutation == "checksum") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET ExpectedChecksumSha256={new string('e',64)} WHERE FileId={fileId}");
+        if (mutation == "checksum") await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET ExpectedChecksumSha256={new string('e', 64)} WHERE FileId={fileId}");
         await Expect(409, () => repo.ReadScopeAsync(source.OwnerId, UserRoleCode.DroneOperator, source.ProjectId, id, Ct));
     }
     private static AiPreparedVideo Prepared(AiVideoSource source, Guid model)
@@ -252,8 +258,19 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         var manifest = source.SourceVideoVersion is null ? "{\"source\":\"verified-video\"}" : JsonSerializer.Serialize(new { source = "verified-video", sourceVideoVersion = source.SourceVideoVersion });
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(manifest))).ToLowerInvariant();
         var job = Guid.NewGuid(); var attempt = Guid.NewGuid();
-        var admission = JsonSerializer.Serialize(new { projectId = source.ProjectId, datasetId = source.DatasetId, sourceVideoFileId = source.FileId,
-            jobId = job, attemptId = attempt, modelVersionId = model, inputSha256 = source.Sha256, inputBytes = source.Bytes, inputDurationMs = 2000L, manifestHash = hash });
+        var admission = JsonSerializer.Serialize(new
+        {
+            projectId = source.ProjectId,
+            datasetId = source.DatasetId,
+            sourceVideoFileId = source.FileId,
+            jobId = job,
+            attemptId = attempt,
+            modelVersionId = model,
+            inputSha256 = source.Sha256,
+            inputBytes = source.Bytes,
+            inputDurationMs = 2000L,
+            manifestHash = hash
+        });
         return new(job, attempt, model, "config", admission, manifest, hash);
     }
 
@@ -267,20 +284,20 @@ public sealed class AiVideoTelemetryRepositoryTests : IAsyncLifetime
         db.Users.Add(new ApplicationUser { Id = owner, UserName = $"worker-{owner:N}", NormalizedUserName = $"worker-{owner:N}".ToUpperInvariant(), DisplayName = "Worker fixture", PasswordHash = "fixture-password-hash", RoleCode = UserRoleCode.DroneOperator, Status = UserStatus.Active, CreatedAt = now });
         var project = new Project { Id = Guid.NewGuid(), ProjectCode = $"WORKER-{Guid.NewGuid():N}", Name = "Isolated worker repository", EngineeringUtmSrid = 32648, Status = ProjectStatus.Active, CreatedAt = now };
         var road = RoadSection.Create(Guid.NewGuid(), project.Id, $"ROAD-{Guid.NewGuid():N}");
-        var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new Coordinate(500000,1200000),new Coordinate(500100,1200000)]);
+        var geometry = new GeometryFactory(new PrecisionModel(), 32648).CreateLineString([new Coordinate(500000, 1200000), new Coordinate(500100, 1200000)]);
         var version = RoadSectionVersion.Create(Guid.NewGuid(), road.Id, 1, true, geometry, now, "fixture");
         var request = SurveyRequest.Create(Guid.NewGuid(), project.Id, road.Id, null, owner, SurveyType.Periodic, SurveyRequestStatus.Completed, now);
         var survey = Survey.Create(Guid.NewGuid(), request.Id, project.Id, version.Id, SurveyType.Periodic, SurveyStatus.InProgress, false, null, null);
-        var files = Enumerable.Range(0, count).Select(_ => StoredFile.Create(Guid.NewGuid(), $"fixture/{Guid.NewGuid():N}", "video.mp4", "video/mp4", 10, new string('a',64), owner, now, null)).ToArray();
+        var files = Enumerable.Range(0, count).Select(_ => StoredFile.Create(Guid.NewGuid(), $"fixture/{Guid.NewGuid():N}", "video.mp4", "video/mp4", 10, new string('a', 64), owner, now, null)).ToArray();
         var manifest = JsonSerializer.Serialize(files.Select(f => new { fileId = f.Id, checksumSha256 = f.Checksum, sizeBytes = f.SizeBytes, purpose = "SURVEY_VIDEO" }));
-        var telemetry = paired ? StoredFile.Create(Guid.NewGuid(), $"fixture/{Guid.NewGuid():N}.srt", "paired.srt", "application/x-subrip", 30, new string('f',64), owner, now, null) : null;
+        var telemetry = paired ? StoredFile.Create(Guid.NewGuid(), $"fixture/{Guid.NewGuid():N}.srt", "paired.srt", "application/x-subrip", 30, new string('f', 64), owner, now, null) : null;
         if (telemetry is not null) manifest = JsonSerializer.Serialize(files.Append(telemetry).Select(f => new { fileId = f.Id, checksumSha256 = f.Checksum, sizeBytes = f.SizeBytes, purpose = f.Id == telemetry.Id ? "TELEMETRY" : "SURVEY_VIDEO" }));
         if (malformed) manifest = JsonSerializer.Serialize(new object[] { new { purpose = "SURVEY_VIDEO", fileId = "invalid" }, new { purpose = "SURVEY_VIDEO", fileId = files[1].Id.ToString("D"), checksumSha256 = files[1].Checksum, sizeBytes = "invalid" }, new { purpose = "SURVEY_VIDEO", fileId = files[1].Id.ToString("D"), checksumSha256 = files[1].Checksum, sizeBytes = files[1].SizeBytes } });
         var dataset = SurveyDataVersion.Create(Guid.NewGuid(), survey.Id, 1, SurveyDataVersionStatus.ServerConfirmed, SurveyDataIntegrityStatus.Passed, now, SurveyDataConfirmationActor.Backend, manifest);
         if (telemetry is not null) dataset.SetSubmissionProvenance(owner, JsonSerializer.Serialize(new[] { new { videoFileId = files[0].Id, telemetryFileId = telemetry.Id, timeOffsetMilliseconds = -250 } }));
         var model = AIModelVersion.Create(Guid.NewGuid(), "FT95", Guid.NewGuid().ToString("N"), "fixture/model", null, null, AIModelVersionStatus.Released, null, null);
         var map = Labels.Select((label, i) => (label, code: $"FT95_{i}")).ToDictionary(x => x.label, x => x.code);
-        db.AddRange(project, road, version, request, survey, dataset, model); db.Add(SurveyAssignment.Create(Guid.NewGuid(), request.Id, owner, owner, now, now, null, null, null, null)); db.Add(new ProjectMember { Id=Guid.NewGuid(), ProjectId=project.Id, UserId=owner, RoleCode=UserRoleCode.DroneOperator, ValidFrom=DateOnly.FromDateTime(now.UtcDateTime), Status=ProjectMemberStatus.Active });
+        db.AddRange(project, road, version, request, survey, dataset, model); db.Add(SurveyAssignment.Create(Guid.NewGuid(), request.Id, owner, owner, now, now, null, null, null, null)); db.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = owner, RoleCode = UserRoleCode.DroneOperator, ValidFrom = DateOnly.FromDateTime(now.UtcDateTime), Status = ProjectMemberStatus.Active });
         foreach (var code in map.Values) db.DefectTypes.Add(DefectType.Create(code, code));
         foreach (var file in telemetry is null ? files : files.Append(telemetry))
         {

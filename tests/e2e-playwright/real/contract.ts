@@ -21,16 +21,18 @@ function parseUrl(value: unknown): URL | undefined {
   }
 }
 
-export function configuredOrigin(value: unknown, kind: 'api' | 'storage'): string {
+export function configuredOrigin(value: unknown, kind: 'api' | 'storage', disposable = false): string {
   const url = parseUrl(value);
-  check(url?.protocol === 'https:' && !url.username && !url.password &&
+  const allowed = disposable ? url?.protocol === 'http:' && url.hostname === '127.0.0.1' : url?.protocol === 'https:';
+  check(url && allowed && !url.username && !url.password &&
     url.pathname === '/' && !url.search && !url.hash, `invalid_${kind}_origin`);
   return url.origin;
 }
 
 export function requireStorageUrl(value: unknown, origin: string): string {
   const url = parseUrl(value);
-  check(typeof value === 'string' && url?.protocol === 'https:' && url.origin === origin &&
+  check(typeof value === 'string' && url && url.origin === origin &&
+    (url.protocol === 'https:' || (url.protocol === 'http:' && url.hostname === '127.0.0.1')) &&
     !url.username && !url.password && !url.hash && url.searchParams.has('X-Amz-Signature'),
   'storage_origin_or_signature_mismatch');
   return value;

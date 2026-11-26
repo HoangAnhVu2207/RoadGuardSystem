@@ -33,9 +33,11 @@ Remove-Variable cred -ErrorAction SilentlyContinue
 npm exec -- playwright test --config=real/playwright.config.ts server.spec.ts
 ```
 
-## 3. Kiểm tra hai survey task
+## 3. Kiểm tra survey task
 
-Dùng ID từ hồ sơ bàn giao FE hoặc danh sách survey task của Operator. Mỗi tuyến cần một task riêng đã `ACCEPTED` hoặc `IN_PROGRESS` và được giao cho Operator đã nhập. Điền thời điểm thực tế ghi video theo ISO 8601 có múi giờ, ví dụ định dạng `YYYY-MM-DDTHH:mm:ss+07:00`. Scope và ETag được đọc từ BE. Có thể chạy bước này cùng môi trường PowerShell đang giữ thông tin phiên trước.
+Dùng ID từ hồ sơ bàn giao FE hoặc danh sách survey task của Operator. Mỗi clip cần một task riêng ở trạng thái `NEW_ASSIGNED`, `ACCEPTED` hoặc `IN_PROGRESS`, được giao cho Operator đã nhập. Nhiều task có thể thuộc cùng dự án DEMO. Điền thời điểm thực tế ghi video theo ISO 8601 có múi giờ. Scope và ETag được đọc từ BE.
+
+`E2E_CLIPS` nhận danh sách khóa phân cách bằng dấu phẩy. Ví dụ, đặt `E2E_CLIPS=KENH_DONG` để chạy một clip. Với khóa riêng, cấu hình các biến cùng mẫu `E2E_<KEY>_PROJECT_ID`, `TASK_ID`, `DEVICE_ID`, `RECORDED_AT`, `VIDEO` và `SRT`. Mặc định dùng `KENH_DONG,DUONG_SO_2`.
 
 ```powershell
 $env:E2E_KENH_DONG_PROJECT_ID = Read-Host 'Project ID Kenh Dong'
@@ -70,14 +72,20 @@ try {
 }
 ```
 
-Không có đường dẫn clip mặc định. Mỗi dataset thành công chuyển task sang `SUBMITTED`. Nếu lỗi giữa chừng, dùng kết quả để kiểm tra trạng thái trước khi chạy lại. File bảo vệ phải liệt kê ID của mọi project cũ, không được đặt trong repository.
+Đặt `E2E_<KEY>_SRT` bằng đường dẫn tuyệt đối ngoài repo nếu có SRT đã cắt theo thời gian của MP4. Chế độ `real` nhận task mới trước lúc upload. Mỗi dataset thành công chuyển task sang `SUBMITTED`. Nếu lỗi giữa chừng, kiểm tra receipt và trạng thái task trước khi chạy lại. File bảo vệ nằm ngoài repo và liệt kê ID của mọi project cũ.
 
 Đọc báo cáo mới nhất và xóa biến chứa thông tin đăng nhập khỏi PowerShell sau khi chạy xong.
 
 ```powershell
 $result = Get-ChildItem .\results\real-*.json | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 Get-Content -LiteralPath $result.FullName
-foreach ($role in 'SUPERVISOR', 'PM', 'REPORTER', 'CREW', 'OPERATOR') {
+foreach ($role in 'SUPERVISOR', 'PM', 'OTHER_PM', 'REPORTER', 'CREW', 'OPERATOR') {
     Remove-Item -LiteralPath "Env:E2E_${role}_EMAIL", "Env:E2E_${role}_PASSWORD" -ErrorAction SilentlyContinue
 }
 ```
+
+## 5. Kiểm tra offline và stack dùng một lần
+
+Đặt `E2E_REAL_MODE=dry-run` rồi chạy `npm run test:public` để kiểm tra hash MP4/SRT và các tham số task đã cấu hình. Đọc `status` trong receipt. `NOT_RUN` cho biết còn thiếu dữ liệu đầu vào.
+
+Với stack dùng một lần, đặt `E2E_DISPOSABLE=true` và dùng hai origin `http://127.0.0.1` của API và MinIO local. Chế độ `real` cần đủ sáu phiên, gồm `E2E_OTHER_PM_EMAIL` và `E2E_OTHER_PM_PASSWORD` cho PM ngoài dự án. Dùng tài khoản fixture cho lượt chạy này.

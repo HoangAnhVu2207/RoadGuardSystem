@@ -9,6 +9,7 @@ type Options = Parameters<APIRequestContext['fetch']>[1];
 export const profileRoles = {
   SUPERVISOR: 'SUPERVISOR',
   PM: 'PM',
+  OTHER_PM: 'PM',
   REPORTER: 'REPORTER',
   CREW: 'REPAIR_CREW',
   OPERATOR: 'DRONE_OPERATOR',
@@ -79,7 +80,8 @@ export class Session {
 
   private remember(tokens: Tokens) {
     check(tokens?.mustChangePassword === false, 'login_password_change_required_or_contract_mismatch');
-    check(tokens.user?.role === this.role && tokens.accessToken && tokens.refreshToken &&
+    const loginRole = this.role === 'OTHER_PM' ? 'PM' : this.role;
+    check(tokens.user?.role === loginRole && tokens.accessToken && tokens.refreshToken &&
       Number.isFinite(tokens.expiresIn) && tokens.expiresIn > 0, 'session_role_or_tokens_mismatch');
     const id = guid(tokens.user.id);
     check(!this.actorId || id === this.actorId, 'session_identity_changed');
